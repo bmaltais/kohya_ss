@@ -6,7 +6,6 @@ https://note.com/kohya_ss/n/nee3ed1649fb6
 python -m venv --system-site-packages venv
 .\venv\Scripts\activate
 
-11.6:
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
 
 pip install --upgrade diffusers
@@ -22,7 +21,13 @@ cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
 cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
 cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
-accelerate config
+accelerate config:
+- 0
+- 0
+- No
+- No
+- All
+- fp15
 
 accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
     --pretrained_model_name_or_path="d:\models\v1-5-pruned.ckpt" `
