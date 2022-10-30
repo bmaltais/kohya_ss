@@ -2,6 +2,7 @@
 
 https://note.com/kohya_ss/n/nee3ed1649fb6
 
+
 ```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
@@ -17,7 +18,7 @@ pip install pytorch_lightning
 
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
-# Setup bitsandbytes wioth Adam8bit support for windows: https://note.com/kohya_ss/n/n47f654dc161e
+# Setup bitsandbytes with Adam8bit support for windows: https://note.com/kohya_ss/n/n47f654dc161e
 pip install bitsandbytes==0.35.0
 cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
 cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
@@ -26,10 +27,10 @@ cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_set
 accelerate config:
 - 0
 - 0
-- No
-- No
+- NO
+- NO
 - All
-- fp15
+- fp16
 
 accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
     --pretrained_model_name_or_path="d:\models\v1-5-pruned.ckpt" `
