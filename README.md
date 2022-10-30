@@ -1,6 +1,6 @@
 # HOWTO
 
-https://note.com/kohya_ss/n/nee3ed1649fb6
+This repo provide all the required config to run the Dreambooth version found in this note: https://note.com/kohya_ss/n/nee3ed1649fb6
 
 
 ## Required Dependencies
@@ -42,13 +42,35 @@ accelerate config:
 - fp16
 ```
 
+## Folders configuration
+
+Refer to the note to understand how to create the folde structure. In short it should look like:
+
+```
+<wathever top folder name>
+|- reg_<class>
+    |- <repeat count>_<prompt>
+|- train_<class>
+   |- <repeat count>_<prompt>
+```
+
+Example for `sks dog`
+
+```
+my_sks_dog_dreambooth
+|- reg_dog
+    |- 1_sks dog
+|- train_dog
+    |- 20_sks dog
+```
+
 ## Execution
 
 ```
 accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
     --pretrained_model_name_or_path="d:\models\v1-5-pruned.ckpt" `
     --train_data_dir="D:\dreambooth\train_bernard\train_man" `
-    --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
+    --train_data_dir="D:\dreambooth\train_bernard\reg_man" `
     --output_dir="D:\dreambooth\train_bernard" `
     --prior_loss_weight=1.0 `
     --resolution=512 `
