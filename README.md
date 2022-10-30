@@ -3,6 +3,8 @@
 https://note.com/kohya_ss/n/nee3ed1649fb6
 
 ```
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
 python -m venv --system-site-packages venv
 .\venv\Scripts\activate
 
