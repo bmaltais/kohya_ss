@@ -6,7 +6,9 @@ https://note.com/kohya_ss/n/nee3ed1649fb6
 ## Required Dependencies
 
 Python 3.10.6 and Git:
-Windows: download and run installers for Python 3.10.6 (https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe) and git (https://git-scm.com/download/win)
+
+- Python 3.10.6: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
+- git: https://git-scm.com/download/win
 
 ## Installation
 
