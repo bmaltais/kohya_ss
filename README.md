@@ -72,9 +72,9 @@ Edit and paste the following in a Powershell terminal:
 
 ```powershell
 accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
-    --pretrained_model_name_or_path="d:\models\v1-5-pruned.ckpt" `
+    --pretrained_model_name_or_path="D:\models\last.ckpt" `
     --train_data_dir="D:\dreambooth\train_bernard\train_man" `
-    --train_data_dir="D:\dreambooth\train_bernard\reg_man" `
+    --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
     --output_dir="D:\dreambooth\train_bernard" `
     --prior_loss_weight=1.0 `
     --resolution=512 `
