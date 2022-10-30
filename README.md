@@ -12,7 +12,9 @@ Python 3.10.6 and Git:
 
 ## Installation
 
-```
+Open a Powershell terminal and type the following inside:
+
+```powershell
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 python -m venv --system-site-packages venv
@@ -66,7 +68,7 @@ my_sks_dog_dreambooth
 
 ## Execution
 
-```
+```powershell
 accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
     --pretrained_model_name_or_path="d:\models\v1-5-pruned.ckpt" `
     --train_data_dir="D:\dreambooth\train_bernard\train_man" `
