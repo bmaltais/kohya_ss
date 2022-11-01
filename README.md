@@ -10,9 +10,15 @@ Python 3.10.6 and Git:
 - Python 3.10.6: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
 - git: https://git-scm.com/download/win
 
+Give unrestricted script access to powershell so venv can work:
+
+- Open an administrator powershell window
+- Type `Set-ExecutionPolicy Unrestricted` and answer A
+- Close admin powershell window
+
 ## Installation
 
-Open a Powershell terminal and type the following inside:
+Open a regular Powershell terminal and type the following inside:
 
 ```powershell
 git clone https://github.com/bmaltais/kohya_ss.git
