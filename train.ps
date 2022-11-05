@@ -1,0 +1,106 @@
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned.ckpt" `
+    --train_data_dir="D:\dreambooth\train_bernard\train_man" `
+    --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
+    --output_dir="D:\dreambooth\train_bernard" `
+    --prior_loss_weight=1.0 `
+    --resolution="512,512" `
+    --train_batch_size=1 `
+    --learning_rate=1e-6 `
+    --max_train_steps=3000 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --gradient_checkpointing `
+    --save_every_n_epochs=1 
+
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+    --pretrained_model_name_or_path="D:\models\bernard\asd man-3000-remgb-sd15.ckpt" `
+    --train_data_dir="D:\dreambooth\train_bernard\train_man" `
+    --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
+    --output_dir="D:\dreambooth\train_bernard" `
+    --prior_loss_weight=1.0 `
+    --resolution="512,512" `
+    --train_batch_size=1 `
+    --learning_rate=1e-6 `
+    --max_train_steps=1500 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --gradient_checkpointing `
+    --save_every_n_epochs=1
+
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+    --train_data_dir="D:\dreambooth\train_bernard\train_man" `
+    --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
+    --output_dir="D:\dreambooth\train_bernard" `
+    --prior_loss_weight=1.0 `
+    --resolution="512,512" `
+    --train_batch_size=1 `
+    --learning_rate=1e-6 `
+    --max_train_steps=4500 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --gradient_checkpointing `
+    --no_token_padding `
+    --save_every_n_epochs=1
+    
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+    --train_data_dir="D:\dreambooth\source\alex\train" `
+    --output_dir="D:\dreambooth\train_alex" `
+    --prior_loss_weight=1.0 `
+    --resolution="448,640" `
+    --train_batch_size=8 `
+    --learning_rate=1e-6 `
+    --max_train_steps=4500 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --save_every_n_epochs=1 `
+    --shuffle_caption
+
+# -fine_tuning
+
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+    --train_data_dir="D:\dreambooth\source\alex\train\50_portrait-pp" `
+    --output_dir="D:\dreambooth\train_alex" `
+    --resolution="448,640" `
+    --train_batch_size=8 `
+    --learning_rate=1e-6 `
+    --max_train_steps=4500 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --save_every_n_epochs=1 `
+    --fine_tuning `
+    --shuffle_caption
+    
+Resume:
+
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6-ber.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+    --train_data_dir="D:\dreambooth\source\alet_et_bernard\landscape-pp" `
+    --output_dir="D:\dreambooth\train_alex_and_bernard" `
+    --resolution="640,448" `
+    --train_batch_size=8 `
+    --learning_rate=1e-6 `
+    --max_train_steps=550 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --save_every_n_epochs=1 `
+    --fine_tuning `
+    --fine_tuning_repeat=200 `
+    --seed=23 `
+    --save_half
+    

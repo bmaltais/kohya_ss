@@ -93,3 +93,29 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
     --cache_latents `
     --gradient_checkpointing `
     --save_every_n_epochs=1 
+
+## Finetuning
+
+If you would rather use model finetuning rather than the dreambooth method you can use a command similat to the following. The advantage of fine tuning is that you do not need to worry about regularization images... but you need to provide captions for every images. The caption will be used to train the model. You can use auto1111 to preprocess your training images and add either BLIP or danbooru captions to them. You then need to edit those to add the name of the model and correct any wrong description.
+
+```
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6-ber.py `
+    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+    --train_data_dir="D:\dreambooth\source\alet_et_bernard\landscape-pp" `
+    --output_dir="D:\dreambooth\train_alex_and_bernard" `
+    --resolution="640,448" `
+    --train_batch_size=8 `
+    --learning_rate=1e-6 `
+    --max_train_steps=550 `
+    --use_8bit_adam `
+    --xformers `
+    --mixed_precision="fp16" `
+    --cache_latents `
+    --save_every_n_epochs=1 `
+    --fine_tuning `
+    --fine_tuning_repeat=200 `
+    --seed=23 `
+    --save_half
+```
+
+Refer to this url for more details about finetuning: https://note.com/kohya_ss/n/n1269f1e1a54e
