@@ -77,7 +77,7 @@ my_sks_dog_dreambooth
 Edit and paste the following in a Powershell terminal:
 
 ```powershell
-accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v7.py `
     --pretrained_model_name_or_path="D:\models\last.ckpt" `
     --train_data_dir="D:\dreambooth\train_bernard\train_man" `
     --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
@@ -99,12 +99,12 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6.py `
 If you would rather use model finetuning rather than the dreambooth method you can use a command similat to the following. The advantage of fine tuning is that you do not need to worry about regularization images... but you need to provide captions for every images. The caption will be used to train the model. You can use auto1111 to preprocess your training images and add either BLIP or danbooru captions to them. You then need to edit those to add the name of the model and correct any wrong description.
 
 ```
-accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6-ber.py `
-    --pretrained_model_name_or_path="D:\models\v1-5-pruned-mse-vae.ckpt" `
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v7-ber.py `
+    --pretrained_model_name_or_path="D:\models\alexandrine_teissier_and_bernard_maltais-400-kohya-sd15-v1.ckpt" `
     --train_data_dir="D:\dreambooth\source\alet_et_bernard\landscape-pp" `
     --output_dir="D:\dreambooth\train_alex_and_bernard" `
     --resolution="640,448" `
-    --train_batch_size=8 `
+    --train_batch_size=1 `
     --learning_rate=1e-6 `
     --max_train_steps=550 `
     --use_8bit_adam `
@@ -113,9 +113,13 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v6-ber.py `
     --cache_latents `
     --save_every_n_epochs=1 `
     --fine_tuning `
-    --fine_tuning_repeat=200 `
+    --dataset_repeats=200 `
     --seed=23 `
     --save_half
 ```
 
 Refer to this url for more details about finetuning: https://note.com/kohya_ss/n/n1269f1e1a54e
+
+## Change history
+
+* 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).
