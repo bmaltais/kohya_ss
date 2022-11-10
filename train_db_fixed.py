@@ -1,9 +1,9 @@
 # このスクリプトのライセンスは、train_dreambooth.pyと同じくApache License 2.0とします
-# The license of this script, like train_dreambooth.py, is Apache License 2.0
 # (c) 2022 Kohya S. @kohya_ss
 
-# v7: another text encoder ckpt format, average loss, save epochs/global steps, show num of train/reg images, 
+# v7: another text encoder ckpt format, average loss, save epochs/global steps, show num of train/reg images,
 #     enable reg images in fine-tuning, add dataset_repeats option
+# v8: supports Diffusers 0.7.2
 
 from torch.autograd.function import Function
 import argparse
@@ -29,11 +29,9 @@ from einops import rearrange
 from torch import einsum
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-# Tokenizer: use the one provided beforehand instead of reading from checkpoints
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 
 # StableDiffusionのモデルパラメータ
-# StableDiffusion model parameters
 NUM_TRAIN_TIMESTEPS = 1000
 BETA_START = 0.00085
 BETA_END = 0.0120
@@ -57,7 +55,6 @@ VAE_PARAMS_CH_MULT = [1, 2, 4, 4]
 VAE_PARAMS_NUM_RES_BLOCKS = 2
 
 # checkpointファイル名
-# checkpoint filename
 LAST_CHECKPOINT_NAME = "last.ckpt"
 EPOCH_CHECKPOINT_NAME = "epoch-{:06d}.ckpt"
 
@@ -84,7 +81,6 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     flip_p = 0.5 if flip_aug else 0.0
     if color_aug:
       # わりと弱めの色合いaugmentation：brightness/contrastあたりは画像のpixel valueの最大値・最小値を変えてしまうのでよくないのではという想定でgamma/hue/saturationあたりを触る
-      # Weak tint augmentation: touch gamma/hue/saturation on the assumption that brightness/contrast is not good because it changes the maximum and minimum pixel value of the image.
       self.aug = albu.Compose([
           albu.OneOf([
               # albu.RandomBrightnessContrast(0.05, 0.05, p=.2),
@@ -101,14 +97,18 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     else:
       self.aug = None
 
-    if self.fine_tuning:
-      self._length = len(self.train_img_path_captions) * args.fine_tuning_repeat
+    self.num_train_images = len(self.train_img_path_captions)
+    self.num_reg_images = len(self.reg_img_path_captions)
+
+    self.enable_reg_images = self.num_reg_images > 0
+
+    if not self.enable_reg_images:
+      self._length = self.num_train_images
     else:
       # 学習データの倍として、奇数ならtrain
-      # train as double the training data, train if odd
-      self._length = len(self.train_img_path_captions) * 2
-      if self._length // 2 < len(self.reg_img_path_captions):
-        print("some of reg images are not used / Due to the large number of regularized images, some regularized images are not used")
+      self._length = self.num_train_images * 2
+      if self._length // 2 < self.num_reg_images:
+        print("some of reg images are not used / 正則化画像の数が多いので、一部使用されない正則化画像があります")
 
     self.image_transforms = transforms.Compose(
         [
@@ -135,18 +135,16 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     return img, face_cx, face_cy, face_w, face_h
 
   # いい感じに切り出す
-  # Cutting it out for good
   def crop_target(self, image, face_cx, face_cy, face_w, face_h):
     height, width = image.shape[0:2]
     if height == self.height and width == self.width:
       return image
 
     # 画像サイズはsizeより大きいのでリサイズする
-    # Resize the image size because it is larger than size
     face_size = max(face_w, face_h)
-    min_scale = max(self.height / height, self.width / width)        # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）# Magnification at which the image exactly matches the model input size (minimum magnification)
-    min_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[1])))             # 指定した顔最小サイズ # Minimum size of the specified face
-    max_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[0])))             # 指定した顔最大サイズ # Minimum size of the specified face
+    min_scale = max(self.height / height, self.width / width)        # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
+    min_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[1])))             # 指定した顔最小サイズ
+    max_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[0])))             # 指定した顔最大サイズ
     if min_scale >= max_scale:          # range指定がmin==max
       scale = min_scale
     else:
@@ -160,18 +158,16 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     face_cy = int(face_cy * scale + .5)
     height, width = nh, nw
 
-    # Cut out 448*640 or so centered on the face.
+    # 顔を中心として448*640とかへを切り出す
     for axis, (target_size, length, face_p) in enumerate(zip((self.height, self.width), (height, width), (face_cy, face_cx))):
-      p1 = face_p - target_size // 2                # 顔を中心に持ってくるための切り出し位置 # Cutout position to bring the face to the center
+      p1 = face_p - target_size // 2                # 顔を中心に持ってくるための切り出し位置
 
       if self.random_crop:
         # 背景も含めるために顔を中心に置く確率を高めつつずらす
-        # Shift while increasing the probability of centering the face to include the background
-        range = max(length - face_p, face_p)        # 画像の端から顔中心までの距離の長いほう # Longer distance from the edge of the image to the center of the face
-        p1 = p1 + (random.randint(0, range) + random.randint(0, range)) - range     # -range ~ +range までのいい感じの乱数 # nice random numbers from -range to +range
+        range = max(length - face_p, face_p)        # 画像の端から顔中心までの距離の長いほう
+        p1 = p1 + (random.randint(0, range) + random.randint(0, range)) - range     # -range ~ +range までのいい感じの乱数
       else:
         # range指定があるときのみ、すこしだけランダムに（わりと適当）
-        # Only when a range is specified, a little bit random (rather appropriate)
         if self.face_crop_aug_range[0] != self.face_crop_aug_range[1]:
           if face_size > self.size // 10 and face_size >= 40:
             p1 = p1 + random.randint(-face_size // 20, +face_size // 20)
@@ -196,13 +192,12 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
   def __getitem__(self, index_arg):
     example = {}
 
-    if self.fine_tuning or len(self.reg_img_path_captions) == 0:
+    if not self.enable_reg_images:
       index = index_arg
       img_path_captions = self.train_img_path_captions
       reg = False
     else:
       # 偶数ならtrain、奇数ならregを返す
-      # Return train for even numbers, reg for odd numbers
       if index_arg % 2 == 0:
         img_path_captions = self.train_img_path_captions
         reg = False
@@ -217,16 +212,14 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     example['image_path'] = image_path
 
     # image/latentsを処理する
-    # process images/latents
     if self.latents_cache is not None and image_path in self.latents_cache:
       # latentsはキャッシュ済み
       example['latents'] = self.latents_cache[image_path]
     else:
       # 画像を読み込み必要ならcropする
-      # load images and crop if necessary
       img, face_cx, face_cy, face_w, face_h = self.load_image(image_path)
       im_h, im_w = img.shape[0:2]
-      if face_cx > 0:                   # 顔位置情報あり # With face location information
+      if face_cx > 0:                   # 顔位置情報あり
         img = self.crop_target(img, face_cx, face_cy, face_w, face_h)
       elif im_h > self.height or im_w > self.width:
         assert self.random_crop, f"image too large, and face_crop_aug_range and random_crop are disabled / 画像サイズが大きいのでface_crop_aug_rangeかrandom_cropを有効にしてください"
@@ -271,7 +264,7 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     return example
 
 
-# checkpoint変換など ###############################
+# region checkpoint変換、読み込み、書き込み ###############################
 
 # region StableDiffusion->Diffusersの変換コード
 # convert_original_stable_diffusion_to_diffusers をコピーしている（ASL 2.0）
@@ -874,56 +867,87 @@ def convert_unet_state_dict(unet_state_dict):
 # endregion
 
 
-def load_stable_diffusion_checkpoint(ckpt_path):
-  checkpoint = torch.load(ckpt_path, map_location="cpu")["state_dict"]
+def load_checkpoint_with_conversion(ckpt_path):
+  # text encoderの格納形式が違うモデルに対応する ('text_model'がない)
+  TEXT_ENCODER_KEY_REPLACEMENTS = [
+      ('cond_stage_model.transformer.embeddings.', 'cond_stage_model.transformer.text_model.embeddings.'),
+      ('cond_stage_model.transformer.encoder.', 'cond_stage_model.transformer.text_model.encoder.'),
+      ('cond_stage_model.transformer.final_layer_norm.', 'cond_stage_model.transformer.text_model.final_layer_norm.')
+  ]
+
+  checkpoint = torch.load(ckpt_path, map_location="cpu")
+  state_dict = checkpoint["state_dict"]
+
+  key_reps = []
+  for rep_from, rep_to in TEXT_ENCODER_KEY_REPLACEMENTS:
+    for key in state_dict.keys():
+      if key.startswith(rep_from):
+        new_key = rep_to + key[len(rep_from):]
+        key_reps.append((key, new_key))
+
+  for key, new_key in key_reps:
+    state_dict[new_key] = state_dict[key]
+    del state_dict[key]
+
+  return checkpoint
+
+
+def load_models_from_stable_diffusion_checkpoint(ckpt_path):
+  checkpoint = load_checkpoint_with_conversion(ckpt_path)
+  state_dict = checkpoint["state_dict"]
 
   # Convert the UNet2DConditionModel model.
   unet_config = create_unet_diffusers_config()
-  converted_unet_checkpoint = convert_ldm_unet_checkpoint(checkpoint, unet_config)
+  converted_unet_checkpoint = convert_ldm_unet_checkpoint(state_dict, unet_config)
 
   unet = UNet2DConditionModel(**unet_config)
   unet.load_state_dict(converted_unet_checkpoint)
 
   # Convert the VAE model.
   vae_config = create_vae_diffusers_config()
-  converted_vae_checkpoint = convert_ldm_vae_checkpoint(checkpoint, vae_config)
+  converted_vae_checkpoint = convert_ldm_vae_checkpoint(state_dict, vae_config)
 
   vae = AutoencoderKL(**vae_config)
   vae.load_state_dict(converted_vae_checkpoint)
 
   # convert text_model
-  text_model = convert_ldm_clip_checkpoint(checkpoint)
+  text_model = convert_ldm_clip_checkpoint(state_dict)
 
   return text_model, vae, unet
 
 
-def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path):
+def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path, epochs, steps):
   # VAEがメモリ上にないので、もう一度VAEを含めて読み込む
-  state_dict = torch.load(ckpt_path, map_location="cpu")['state_dict']
+  checkpoint = load_checkpoint_with_conversion(ckpt_path)
+  state_dict = checkpoint["state_dict"]
 
   # Convert the UNet model
   unet_state_dict = convert_unet_state_dict(unet.state_dict())
   for k, v in unet_state_dict.items():
     key = "model.diffusion_model." + k
     assert key in state_dict, f"Illegal key in save SD: {key}"
-    if args.save_half:
-      state_dict[key] = v.half() # save to fp16
-    else:
-      state_dict[key] = v
+    state_dict[key] = v
 
   # Convert the text encoder model
   text_enc_dict = text_encoder.state_dict()             # 変換不要
   for k, v in text_enc_dict.items():
     key = "cond_stage_model.transformer." + k
     assert key in state_dict, f"Illegal key in save SD: {key}"
-    if args.save_half:
-      state_dict[key] = v.half() # save to fp16
-    else:
-      state_dict[key] = v
+    state_dict[key] = v
 
   # Put together new checkpoint
-  state_dict = {"state_dict": state_dict}
-  torch.save(state_dict, output_file)
+  new_ckpt = {'state_dict': state_dict}
+
+  if 'epoch' in checkpoint:
+    epochs += checkpoint['epoch']
+  if 'global_step' in checkpoint:
+    steps += checkpoint['global_step']
+
+  new_ckpt['epoch'] = epochs
+  new_ckpt['global_step'] = steps
+
+  torch.save(new_ckpt, output_file)
+# endregion
 
 
 def collate_fn(examples):
@@ -1007,6 +1031,11 @@ def train(args):
 
       train_img_path_captions.append((img_path, caption))
 
+    if args.dataset_repeats is not None:
+      l = []
+      for _ in range(args.dataset_repeats):
+        l.extend(train_img_path_captions)
+      train_img_path_captions = l
   else:
     train_dirs = os.listdir(args.train_data_dir)
     for dir in train_dirs:
@@ -1015,17 +1044,14 @@ def train(args):
         train_img_path_captions.extend(img_caps)
   print(f"{len(train_img_path_captions)} train images.")
 
-  if fine_tuning:
-    reg_img_path_captions = []
-  else:
+  reg_img_path_captions = []
+  if args.reg_data_dir:
     print("prepare reg images.")
-    reg_img_path_captions = []
-    if args.reg_data_dir:
-      reg_dirs = os.listdir(args.reg_data_dir)
-      for dir in reg_dirs:
-        n_repeats, img_caps = load_dreambooth_dir(os.path.join(args.reg_data_dir, dir))
-        for _ in range(n_repeats):
-          reg_img_path_captions.extend(img_caps)
+    reg_dirs = os.listdir(args.reg_data_dir)
+    for dir in reg_dirs:
+      n_repeats, img_caps = load_dreambooth_dir(os.path.join(args.reg_data_dir, dir))
+      for _ in range(n_repeats):
+        reg_img_path_captions.extend(img_caps)
     print(f"{len(reg_img_path_captions)} reg images.")
 
   if args.debug_dataset:
@@ -1079,7 +1105,7 @@ def train(args):
   # モデルを読み込む
   if use_stable_diffusion_format:
     print("load StableDiffusion checkpoint")
-    text_encoder, vae, unet = load_stable_diffusion_checkpoint(args.pretrained_model_name_or_path)
+    text_encoder, vae, unet = load_models_from_stable_diffusion_checkpoint(args.pretrained_model_name_or_path)
   else:
     print("load Diffusers pretrained models")
     text_encoder = CLIPTextModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="text_encoder")
@@ -1133,7 +1159,7 @@ def train(args):
       import bitsandbytes as bnb
     except ImportError:
       raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adma optimizer")
+    print("use 8-bit Adam optimizer")
     optimizer_class = bnb.optim.AdamW8bit
   else:
     optimizer_class = torch.optim.AdamW
@@ -1145,7 +1171,7 @@ def train(args):
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
-  n_workers = min(4, os.cpu_count() - 1)      # cpu_count-1 ただし最大4
+  n_workers = min(8, os.cpu_count() - 1)      # cpu_count-1 ただし最大8
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=args.train_batch_size, shuffle=True, collate_fn=collate_fn, num_workers=n_workers)
 
@@ -1165,6 +1191,8 @@ def train(args):
   # 学習する
   total_batch_size = args.train_batch_size  # * accelerator.num_processes
   print("running training / 学習開始")
+  print(f"  num train images * repeats / 学習画像の数×繰り返し回数: {train_dataset.num_train_images}")
+  print(f"  num reg images / 正則化画像の数: {train_dataset.num_reg_images}")
   print(f"  num examples / サンプル数: {len(train_dataset)}")
   print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
   print(f"  num epochs / epoch数: {num_train_epochs}")
@@ -1186,6 +1214,7 @@ def train(args):
     unet.train()
     text_encoder.train()        # なんかunetだけでいいらしい？→最新版で修正されてた(;´Д｀)　いろいろ雑だな
 
+    loss_total = 0
     for step, batch in enumerate(train_dataloader):
       with accelerator.accumulate(unet):
         with torch.no_grad():
@@ -1241,7 +1270,10 @@ def train(args):
         progress_bar.update(1)
         global_step += 1
 
-      logs = {"loss": loss.detach().item()}  # , "lr": lr_scheduler.get_last_lr()[0]}
+      current_loss = loss.detach().item()
+      loss_total += current_loss
+      avr_loss = loss_total / (step+1)
+      logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
       # accelerator.log(logs, step=global_step)
 
@@ -1255,8 +1287,8 @@ def train(args):
         print("saving check point.")
         os.makedirs(args.output_dir, exist_ok=True)
         ckpt_file = os.path.join(args.output_dir, EPOCH_CHECKPOINT_NAME.format(epoch + 1))
-        save_stable_diffusion_checkpoint(ckpt_file, accelerator.unwrap_model(
-            text_encoder), accelerator.unwrap_model(unet), args.pretrained_model_name_or_path)
+        save_stable_diffusion_checkpoint(ckpt_file, accelerator.unwrap_model(text_encoder), accelerator.unwrap_model(unet),
+                                         args.pretrained_model_name_or_path, epoch + 1, global_step)
 
   is_main_process = accelerator.is_main_process
   if is_main_process:
@@ -1269,9 +1301,9 @@ def train(args):
   if is_main_process:
     os.makedirs(args.output_dir, exist_ok=True)
     if use_stable_diffusion_format:
-      print(f"save trained model as StableDiffusion checkpoint to {args.output_dir}")
       ckpt_file = os.path.join(args.output_dir, LAST_CHECKPOINT_NAME)
-      save_stable_diffusion_checkpoint(ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path)
+      print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
+      save_stable_diffusion_checkpoint(ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path, epoch, global_step)
     else:
       # Create the pipeline using using the trained modules and save it.
       print(f"save trained model as Diffusers to {args.output_dir}")
@@ -1491,7 +1523,15 @@ def replace_unet_cross_attn_to_memory_efficient():
     out = flash_func.apply(q, k, v, mask, False, q_bucket_size, k_bucket_size)
 
     out = rearrange(out, 'b h n d -> b n (h d)')
-    return self.to_out(out)
+
+    # diffusers 0.6.0
+    if type(self.to_out) is torch.nn.Sequential:
+      return self.to_out(out)
+
+    # diffusers 0.7.0~
+    out = self.to_out[0](out)
+    out = self.to_out[1](out)
+    return out
 
   diffusers.models.attention.CrossAttention.forward = forward_flash_attn
 
@@ -1518,7 +1558,15 @@ def replace_unet_cross_attn_to_xformers():
     out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)        # 最適なのを選んでくれる
 
     out = rearrange(out, 'b n h d -> b n (h d)', h=h)
-    return self.to_out(out)
+
+    # diffusers 0.6.0
+    if type(self.to_out) is torch.nn.Sequential:
+      return self.to_out(out)
+
+    # diffusers 0.7.0~
+    out = self.to_out[0](out)
+    out = self.to_out[1](out)
+    return out
 
   diffusers.models.attention.CrossAttention.forward = forward_xformers
 # endregion
@@ -1531,12 +1579,12 @@ if __name__ == '__main__':
                       help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル")
   parser.add_argument("--fine_tuning", action="store_true",
                       help="fine tune the model instead of DreamBooth / DreamBoothではなくfine tuningする")
-  parser.add_argument("--fine_tuning_repeat", type=int, default=50,
-                      help="Number of time each images will be repeated in each epoc")
   parser.add_argument("--shuffle_caption", action="store_true",
                       help="shuffle comma-separated caption when fine tuning / fine tuning時にコンマで区切られたcaptionの各要素をshuffleする")
   parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")
+  parser.add_argument("--dataset_repeats", type=int, default=None,
+                      help="repeat dataset in fine tuning / fine tuning時にデータセットを繰り返す回数")
   parser.add_argument("--output_dir", type=str, default=None,
                       help="directory to output trained model, save as same format as input / 学習後のモデル出力先ディレクトリ（入力と同じ形式で保存）")
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
@@ -1573,8 +1621,6 @@ if __name__ == '__main__':
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
   parser.add_argument("--clip_skip", type=int, default=None,
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
-  parser.add_argument("--save_half", action="store_true",
-                      help="save ckpt model with fp16 precision")
 
   args = parser.parse_args()
   train(args)

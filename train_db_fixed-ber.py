@@ -3,6 +3,7 @@
 
 # v7: another text encoder ckpt format, average loss, save epochs/global steps, show num of train/reg images, 
 #     enable reg images in fine-tuning, add dataset_repeats option
+# v8: supports Diffusers 0.7.2
 
 from torch.autograd.function import Function
 import argparse
@@ -1555,7 +1556,14 @@ def replace_unet_cross_attn_to_xformers():
     out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)        # 最適なのを選んでくれる
 
     out = rearrange(out, 'b n h d -> b n (h d)', h=h)
-    return self.to_out(out)
+    # diffusers 0.6.0
+    if type(self.to_out) is torch.nn.Sequential:
+      return self.to_out(out)
+
+    # diffusers 0.7.0~
+    out = self.to_out[0](out)
+    out = self.to_out[1](out)
+    return out
 
   diffusers.models.attention.CrossAttention.forward = forward_xformers
 # endregion
