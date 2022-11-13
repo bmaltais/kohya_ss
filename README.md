@@ -55,11 +55,11 @@ accelerate config:
 Refer to the note to understand how to create the folde structure. In short it should look like:
 
 ```
-<wathever top folder name>
-|- reg_<class>
-    |- <repeat count>_<prompt>
-|- train_<class>
-   |- <repeat count>_<prompt>
+<arbitrary folder name>
+|- <arbitrary class folder name>
+    |- <repeat count>_<class>
+|- <arbitrary training folder name>
+   |- <repeat count>_<token> <class>
 ```
 
 Example for `sks dog`
