@@ -48,7 +48,7 @@ $square_mts = [Math]::Ceiling($square_repeats / $train_batch_size * $epoch)
 
 .\venv\Scripts\activate
 
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$pretrained_model_name_or_path `
     --train_data_dir=$landscape_data_dir `
     --output_dir=$landscape_output_dir `
@@ -65,7 +65,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     --dataset_repeats=$dataset_repeats `
     --save_half
     
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$landscape_output_dir"\last.ckpt" `
     --train_data_dir=$portrait_data_dir `
     --output_dir=$portrait_output_dir `
@@ -82,7 +82,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     --dataset_repeats=$dataset_repeats `
     --save_half
     
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$portrait_output_dir"\last.ckpt" `
     --train_data_dir=$square_data_dir `
     --output_dir=$square_output_dir `
@@ -101,7 +101,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     
 # 2nd pass at half the dataset repeat value
 
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$square_output_dir"\last.ckpt" `
     --train_data_dir=$landscape_data_dir `
     --output_dir=$landscape_output_dir"2" `
@@ -118,7 +118,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     --dataset_repeats=$([Math]::Ceiling($dataset_repeats/2)) `
     --save_half
     
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$landscape_output_dir"2\last.ckpt" `
     --train_data_dir=$portrait_data_dir `
     --output_dir=$portrait_output_dir"2" `
@@ -135,7 +135,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     --dataset_repeats=$([Math]::Ceiling($dataset_repeats/2)) `
     --save_half
     
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed-ber.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
     --pretrained_model_name_or_path=$portrait_output_dir"2\last.ckpt" `
     --train_data_dir=$square_data_dir `
     --output_dir=$square_output_dir"2" `
