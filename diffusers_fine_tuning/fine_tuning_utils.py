@@ -683,7 +683,7 @@ def load_models_from_stable_diffusion_checkpoint(ckpt_path):
   return text_model, vae, unet
 
 
-def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path, epochs, steps):
+def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path, epochs, steps, save_dtype=None):
   # VAEがメモリ上にないので、もう一度VAEを含めて読み込む
   checkpoint = load_checkpoint_with_conversion(ckpt_path)
   state_dict = checkpoint["state_dict"]
@@ -693,6 +693,8 @@ def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path,
   for k, v in unet_state_dict.items():
     key = "model.diffusion_model." + k
     assert key in state_dict, f"Illegal key in save SD: {key}"
+    if save_dtype is not None:
+      v = v.detach().clone().to("cpu").to(save_dtype)
     state_dict[key] = v
 
   # Convert the text encoder model
@@ -700,6 +702,8 @@ def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path,
   for k, v in text_enc_dict.items():
     key = "cond_stage_model.transformer." + k
     assert key in state_dict, f"Illegal key in save SD: {key}"
+    if save_dtype is not None:
+      v = v.detach().clone().to("cpu").to(save_dtype)
     state_dict[key] = v
 
   # Put together new checkpoint

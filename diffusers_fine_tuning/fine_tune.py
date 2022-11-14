@@ -1,7 +1,28 @@
+# v2: select precision for saved checkpoint
+
+
 # このスクリプトのライセンスは、train_dreambooth.pyと同じくApache License 2.0とします
-# (c) 2022 Kohya S. @kohya_ss
+# License:
+# Copyright 2022 Kohya S. @kohya_ss
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# License of included scripts:
+# Diffusers: ASL 2.0 https://github.com/huggingface/diffusers/blob/main/LICENSE
+
 
 import argparse
+import itertools
 import math
 import os
 import random
@@ -19,14 +40,16 @@ import numpy as np
 from einops import rearrange
 from torch import einsum
 
-import fine_tuning_utils_ber as fine_tuning_utils
+import fine_tuning_utils
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 
 # checkpointファイル名
 LAST_CHECKPOINT_NAME = "last.ckpt"
+LAST_STATE_NAME = "last-state"
 EPOCH_CHECKPOINT_NAME = "epoch-{:06d}.ckpt"
+EPOCH_STATE_NAME = "epoch-{:06d}-state"
 
 
 def collate_fn(examples):
@@ -256,18 +279,42 @@ def train(args):
   elif args.mixed_precision == "bf16":
     weight_dtype = torch.bfloat16
 
-  # 学習を準備する
+  save_dtype = None
+  if args.save_precision == "fp16":
+    save_dtype = torch.float16
+  elif args.save_precision == "bf16":
+    save_dtype = torch.bfloat16
+  elif args.save_precision == "float":
+    save_dtype = torch.float32
+
+  # 学習を準備する：モデルを適切な状態にする
+  training_models = []
   if fine_tuning:
     if args.gradient_checkpointing:
       unet.enable_gradient_checkpointing()
-    unet.requires_grad_(True)             # unetは学習しない
-    net = unet
-  else:
-    unet.requires_grad_(False)             # unetは学習しない
-    unet.eval()
+    training_models.append(unet)
 
-    hypernetwork.requires_grad_(True)
-    net = hypernetwork
+    if args.train_text_encoder:
+      print("enable text encoder training")
+      if args.gradient_checkpointing:
+        text_encoder.gradient_checkpointing_enable()
+      training_models.append(text_encoder)
+    else:
+      text_encoder.to(accelerator.device, dtype=weight_dtype)
+      text_encoder.requires_grad_(False)             # text encoderは学習しない
+      text_encoder.eval()
+  else:
+    unet.to(accelerator.device, dtype=weight_dtype)
+    unet.requires_grad_(False)
+    unet.eval()
+    text_encoder.to(accelerator.device, dtype=weight_dtype)
+    text_encoder.requires_grad_(False)
+    text_encoder.eval()
+    training_models.append(hypernetwork)
+
+  for m in training_models:
+    m.requires_grad_(True)
+  params_to_optimize = itertools.chain(*[m.parameters() for m in training_models])
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
@@ -284,7 +331,7 @@ def train(args):
     optimizer_class = torch.optim.AdamW
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(net.parameters(), lr=args.learning_rate)
+  optimizer = optimizer_class(params_to_optimize, lr=args.learning_rate)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -298,15 +345,19 @@ def train(args):
 
   # acceleratorがなんかよろしくやってくれるらしい
   if fine_tuning:
-    unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
-    net = unet
+    if args.train_text_encoder:
+      unet, text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+          unet, text_encoder, optimizer, train_dataloader, lr_scheduler)
+    else:
+      unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
   else:
     unet, hypernetwork, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         unet, hypernetwork, optimizer, train_dataloader, lr_scheduler)
-    net = hypernetwork
 
-  text_encoder.to(accelerator.device, dtype=weight_dtype)
-  text_encoder.requires_grad_(False)             # text encoderは学習しない
+  # resumeする
+  if args.resume is not None:
+    print(f"resume training from state: {args.resume}")
+    accelerator.load_state(args.resume)
 
   # epoch数を計算する
   num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
@@ -334,16 +385,18 @@ def train(args):
   # 以下 train_dreambooth.py からほぼコピペ
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
-    net.train()
+    for m in training_models:
+      m.train()
 
     loss_total = 0
     for step, batch in enumerate(train_dataloader):
-      with accelerator.accumulate(unet):
+      with accelerator.accumulate(training_models[0]):
         latents = batch["latents"].to(accelerator.device)
         latents = latents * 0.18215
         b_size = latents.shape[0]
 
-        with torch.no_grad():
+        # with torch.no_grad():
+        with torch.set_grad_enabled(args.train_text_encoder):
           # Get the text embedding for conditioning
           input_ids = batch["input_ids"].to(accelerator.device)
           input_ids = input_ids.reshape((-1, tokenizer.model_max_length))     # batch_size*3, 77
@@ -383,7 +436,8 @@ def train(args):
 
         accelerator.backward(loss)
         if accelerator.sync_gradients:
-          accelerator.clip_grad_norm_(net.parameters(), 1.0)  # args.max_grad_norm)
+          params_to_clip = itertools.chain(*[m.parameters() for m in training_models])
+          accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
 
         optimizer.step()
         lr_scheduler.step()
@@ -414,15 +468,29 @@ def train(args):
 
         if fine_tuning:
           fine_tuning_utils.save_stable_diffusion_checkpoint(
-              ckpt_file, text_encoder, accelerator.unwrap_model(net), args.pretrained_model_name_or_path, epoch + 1, global_step)
+              ckpt_file, accelerator.unwrap_model(text_encoder), accelerator.unwrap_model(unet),
+              args.pretrained_model_name_or_path, epoch + 1, global_step, save_dtype)
         else:
-          save_hypernetwork(ckpt_file, accelerator.unwrap_model(net))
+          save_hypernetwork(ckpt_file, accelerator.unwrap_model(hypernetwork))
+
+        if args.save_state:
+          print("saving state.")
+          accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1)))
 
   is_main_process = accelerator.is_main_process
   if is_main_process:
-    net = accelerator.unwrap_model(net)
+    if fine_tuning:
+      unet = accelerator.unwrap_model(unet)
+      text_encoder = accelerator.unwrap_model(text_encoder)
+    else:
+      hypernetwork = accelerator.unwrap_model(hypernetwork)
 
   accelerator.end_training()
+
+  if args.save_state:
+    print("saving last state.")
+    accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME))
+
   del accelerator                         # この後メモリを使うのでこれは消す
 
   if is_main_process:
@@ -432,7 +500,7 @@ def train(args):
         ckpt_file = os.path.join(args.output_dir, LAST_CHECKPOINT_NAME)
         print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
         fine_tuning_utils.save_stable_diffusion_checkpoint(
-            ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path, epoch, global_step)
+            ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path, epoch, global_step, save_dtype)
       else:
         # Create the pipeline using using the trained modules and save it.
         print(f"save trained model as Diffusers to {args.output_dir}")
@@ -445,7 +513,8 @@ def train(args):
     else:
       ckpt_file = os.path.join(args.output_dir, LAST_CHECKPOINT_NAME)
       print(f"save trained model to {ckpt_file}")
-      save_hypernetwork(ckpt_file, net)
+      save_hypernetwork(ckpt_file, hypernetwork)
+
     print("model saved.")
 
 
@@ -738,12 +807,17 @@ if __name__ == '__main__':
   parser.add_argument("--dataset_repeats", type=int, default=None, help="num times to repeat dataset / 学習にデータセットを繰り返す回数")
   parser.add_argument("--output_dir", type=str, default=None,
                       help="directory to output trained model, save as same format as input / 学習後のモデル出力先ディレクトリ（入力と同じ形式で保存）")
+  parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
   parser.add_argument("--hypernetwork_module", type=str, default=None,
                       help='train hypernetwork instead of fine tuning, module to use / fine tuningの代わりにHypernetworkの学習をする場合、そのモジュール')
   parser.add_argument("--hypernetwork_weights", type=str, default=None,
                       help='hypernetwork weights to initialize for additional training / Hypernetworkの学習時に読み込む重み（Hypernetworkの追加学習）')
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
                       help="save checkpoint every N epochs (only supports in StableDiffusion checkpoint) / 学習中のモデルを指定エポックごとに保存する（StableDiffusion形式のモデルを読み込んだ場合のみ有効）")
+  parser.add_argument("--save_state", action="store_true",
+                      help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
+  parser.add_argument("--resume", type=str, default=None,
+                      help="saved state to resume training / 学習再開するモデルのstate")
   parser.add_argument("--max_token_length", type=int, default=None, choices=[None, 150, 225],
                       help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
   parser.add_argument("--train_batch_size", type=int, default=1,
@@ -763,12 +837,12 @@ if __name__ == '__main__':
                       help="Number of updates steps to accumulate before performing a backward/update pass / 学習時に逆伝播をする前に勾配を合計するステップ数")
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
+  parser.add_argument("--save_precision", type=str, default=None,
+                      choices=[None, "float", "fp16", "bf16"], help="precision in saving / 保存時に精度を変更して保存する")
   parser.add_argument("--clip_skip", type=int, default=None,
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
   parser.add_argument("--debug_dataset", action="store_true",
                       help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
-  parser.add_argument("--save_half", action="store_true",
-                      help="save ckpt model with fp16 precision")
 
   args = parser.parse_args()
   train(args)

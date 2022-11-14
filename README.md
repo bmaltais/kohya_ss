@@ -77,7 +77,7 @@ my_sks_dog_dreambooth
 Edit and paste the following in a Powershell terminal:
 
 ```powershell
-accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v7.py `
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed.py `
     --pretrained_model_name_or_path="D:\models\last.ckpt" `
     --train_data_dir="D:\dreambooth\train_bernard\train_man" `
     --reg_data_dir="D:\dreambooth\train_bernard\reg_man" `
@@ -99,7 +99,7 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v7.py `
 If you would rather use model finetuning rather than the dreambooth method you can use a command similat to the following. The advantage of fine tuning is that you do not need to worry about regularization images... but you need to provide captions for every images. The caption will be used to train the model. You can use auto1111 to preprocess your training images and add either BLIP or danbooru captions to them. You then need to edit those to add the name of the model and correct any wrong description.
 
 ```
-accelerate launch --num_cpu_threads_per_process 6 train_db_fixed_v7-ber.py `
+accelerate launch --num_cpu_threads_per_process 6 train_db_fixed-ber.py `
     --pretrained_model_name_or_path="D:\models\alexandrine_teissier_and_bernard_maltais-400-kohya-sd15-v1.ckpt" `
     --train_data_dir="D:\dreambooth\source\alet_et_bernard\landscape-pp" `
     --output_dir="D:\dreambooth\train_alex_and_bernard" `
@@ -124,3 +124,8 @@ Refer to this url for more details about finetuning: https://note.com/kohya_ss/n
 
 * 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).
 * 11/9 (v8): supports Diffusers 0.7.2. To upgrade diffusers run `pip install --upgrade diffusers[torch]`
+* 11/14 (diffusers_fine_tuning v2):
+- script name is now fine_tune.py.
+- Added option to learn Text Encoder --train_text_encoder.
+- The data format of checkpoint at the time of saving can be specified with the --save_precision option. You can choose float, fp16, and bf16.
+- Added a --save_state option to save the learning state (optimizer, etc.) in the middle. It can be resumed with the --resume option.
