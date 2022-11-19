@@ -2,9 +2,12 @@
 #
 # Usefull to create base caption that will be augmented on a per image basis
 
-$folder = "D:\dreambooth\train_sylvia_ritter\raw_data\all-images\"
+$folder = "D:\some\folder\location\"
 $file_pattern="*.*"
-$text_fir_file="a digital painting of xxx, by silvery trait"
+$caption_text="some caption text"
 
-$files = Get-ChildItem $folder$file_pattern
-foreach ($file in $files) {New-Item -ItemType file -Path $folder -Name "$($file.BaseName).txt" -Value $text_fir_file}
+$files = Get-ChildItem $folder$file_pattern -Include *.png,*.jpg,*.webp -File
+foreach ($file in $files) 
+{
+    New-Item -ItemType file -Path $folder -Name "$($file.BaseName).txt" -Value $caption_text
+}

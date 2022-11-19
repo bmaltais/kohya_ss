@@ -113,9 +113,10 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed-ber.py `
     --cache_latents `
     --save_every_n_epochs=1 `
     --fine_tuning `
+    --enable_bucket `
     --dataset_repeats=200 `
     --seed=23 `
-    --save_half
+    ---save_precision="fp16"
 ```
 
 Refer to this url for more details about finetuning: https://note.com/kohya_ss/n/n1269f1e1a54e
@@ -125,7 +126,12 @@ Refer to this url for more details about finetuning: https://note.com/kohya_ss/n
 * 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).
 * 11/9 (v8): supports Diffusers 0.7.2. To upgrade diffusers run `pip install --upgrade diffusers[torch]`
 * 11/14 (diffusers_fine_tuning v2):
-- script name is now fine_tune.py.
-- Added option to learn Text Encoder --train_text_encoder.
-- The data format of checkpoint at the time of saving can be specified with the --save_precision option. You can choose float, fp16, and bf16.
-- Added a --save_state option to save the learning state (optimizer, etc.) in the middle. It can be resumed with the --resume option.
+    - script name is now fine_tune.py.
+    - Added option to learn Text Encoder --train_text_encoder.
+    - The data format of checkpoint at the time of saving can be specified with the --save_precision option. You can choose float, fp16, and bf16.
+    - Added a --save_state option to save the learning state (optimizer, etc.) in the middle. It can be resumed with the --resume option.
+* 11/18 (v9):
+    - Added support for Aspect Ratio Bucketing (enable_bucket option). (--enable_bucket)
+    - Added support for selecting data format (fp16/bf16/float) when saving checkpoint (--save_precision)
+    - Added support for saving learning state (--save_state, --resume)
+    - Added support for logging (--logging_dir)

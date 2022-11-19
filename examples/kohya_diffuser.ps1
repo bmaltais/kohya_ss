@@ -55,7 +55,7 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process D:\
     --use_8bit_adam --xformers `
     --mixed_precision=$mixed_precision `
     --save_every_n_epochs=$save_every_n_epochs `
-    --save_half
+    --save_precision="fp16"
 
 accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process D:\kohya_ss\diffusers_fine_tuning\fine_tune.py `
     --pretrained_model_name_or_path=$train_dir"\fine_tuned\last.ckpt" `
@@ -69,4 +69,4 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process D:\
     --use_8bit_adam --xformers `
     --mixed_precision=$mixed_precision `
     --save_every_n_epochs=$save_every_n_epochs `
-    --save_half
+    --save_precision="fp16"
