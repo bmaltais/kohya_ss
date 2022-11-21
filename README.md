@@ -135,3 +135,8 @@ Refer to this url for more details about finetuning: https://note.com/kohya_ss/n
     - Added support for selecting data format (fp16/bf16/float) when saving checkpoint (--save_precision)
     - Added support for saving learning state (--save_state, --resume)
     - Added support for logging (--logging_dir)
+* 11/21 (v10):
+    - Added minimum/maximum resolution specification when using Aspect Ratio Bucketing (min_bucket_reso/max_bucket_reso option).
+    - Added extension specification for caption files (caption_extention).
+    - Added support for images with .webp extension.
+    - Added a function that allows captions to learning images and regularized images.
