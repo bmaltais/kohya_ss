@@ -13,11 +13,13 @@ def clean_tags(image_key, tags):
   # replace '_' to ' '
   tags = tags.replace('_', ' ')
 
-  # remove rating
+  # remove rating: deepdanbooruのみ
   tokens = tags.split(", rating")
   if len(tokens) == 1:
-    print("no rating:")
-    print(f"{image_key} {tags}")
+    # WD14 taggerのときはこちらになるのでメッセージは出さない
+    # print("no rating:")
+    # print(f"{image_key} {tags}")
+    pass
   else:
     if len(tokens) > 2:
       print("multiple ratings:")

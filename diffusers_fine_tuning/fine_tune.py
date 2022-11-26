@@ -1,5 +1,5 @@
 # v2: select precision for saved checkpoint
-
+# v3: add logging for tensorboard, fix to shuffle=False in DataLoader (shuffling is in dataset)
 
 # このスクリプトのライセンスは、train_dreambooth.pyと同じくApache License 2.0とします
 # License:
@@ -22,12 +22,12 @@
 
 
 import argparse
-import itertools
 import math
 import os
 import random
 import json
 import importlib
+import time
 
 from tqdm import tqdm
 import torch
@@ -159,7 +159,7 @@ class FineTuningDataset(torch.utils.data.Dataset):
       input_ids = self.tokenizer(caption, padding="max_length", truncation=True,
                                  max_length=self.tokenizer_max_length, return_tensors="pt").input_ids
 
-      # 77以上の時は "<CLS> .... <EOS> <EOS> <EOS>" でトータル227とかになっているので、"<CLS>...<EOS>"の三連に変換する
+      # 77以上の時は "<BOS> .... <EOS> <EOS> <EOS>" でトータル227とかになっているので、"<BOS>...<EOS>"の三連に変換する
       # 1111氏のやつは , で区切る、とかしているようだが　とりあえず単純に
       if self.tokenizer_max_length > self.tokenizer.model_max_length:
         input_ids = input_ids.squeeze(0)
@@ -242,7 +242,14 @@ def train(args):
 
   # acceleratorを準備する
   print("prepare accelerator")
-  accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, mixed_precision=args.mixed_precision)
+  if args.logging_dir is None:
+    log_with = None
+    logging_dir = None
+  else:
+    log_with = "tensorboard"
+    logging_dir = args.logging_dir + "/" + time.strftime('%Y%m%d%H%M%S', time.localtime())
+  accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps,
+                            mixed_precision=args.mixed_precision, log_with=log_with, logging_dir=logging_dir)
 
   # モデルを読み込む
   if use_stable_diffusion_format:
@@ -304,7 +311,7 @@ def train(args):
       text_encoder.requires_grad_(False)             # text encoderは学習しない
       text_encoder.eval()
   else:
-    unet.to(accelerator.device, dtype=weight_dtype)
+    unet.to(accelerator.device)  # , dtype=weight_dtype)     # dtypeを指定すると学習できない
     unet.requires_grad_(False)
     unet.eval()
     text_encoder.to(accelerator.device, dtype=weight_dtype)
@@ -314,7 +321,10 @@ def train(args):
 
   for m in training_models:
     m.requires_grad_(True)
-  params_to_optimize = itertools.chain(*[m.parameters() for m in training_models])
+  params = []
+  for m in training_models:
+    params.extend(m.parameters())
+  params_to_optimize = params
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
@@ -337,11 +347,11 @@ def train(args):
   # DataLoaderのプロセス数：0はメインプロセスになる
   n_workers = min(8, os.cpu_count() - 1)      # cpu_count-1 ただし最大8
   train_dataloader = torch.utils.data.DataLoader(
-      train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn, num_workers=n_workers)
+      train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers)
 
   # lr schedulerを用意する
   lr_scheduler = diffusers.optimization.get_scheduler(
-      args.lr_scheduler, optimizer, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps, num_warmup_steps=args.lr_warmup_steps)
+      "constant", optimizer, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
 
   # acceleratorがなんかよろしくやってくれるらしい
   if fine_tuning:
@@ -390,7 +400,7 @@ def train(args):
 
     loss_total = 0
     for step, batch in enumerate(train_dataloader):
-      with accelerator.accumulate(training_models[0]):
+      with accelerator.accumulate(training_models[0]):  # ここはこれでいいのか……？
         latents = batch["latents"].to(accelerator.device)
         latents = latents * 0.18215
         b_size = latents.shape[0]
@@ -411,7 +421,7 @@ def train(args):
           encoder_hidden_states = encoder_hidden_states.reshape((b_size, -1, encoder_hidden_states.shape[-1]))
 
           if args.max_token_length is not None:
-            # <CLS>...<EOS> の三連を <CLS>...<EOS> へ戻す
+            # <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
             sts_list = [encoder_hidden_states[:, 0].unsqueeze(1)]
             for i in range(1, args.max_token_length, tokenizer.model_max_length):
               sts_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])
@@ -436,7 +446,9 @@ def train(args):
 
         accelerator.backward(loss)
         if accelerator.sync_gradients:
-          params_to_clip = itertools.chain(*[m.parameters() for m in training_models])
+          params_to_clip = []
+          for m in training_models:
+            params_to_clip.extend(m.parameters())
           accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
 
         optimizer.step()
@@ -449,14 +461,21 @@ def train(args):
         global_step += 1
 
       current_loss = loss.detach().item() * b_size
+      if args.logging_dir is not None:
+        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
+        accelerator.log(logs, step=global_step)
+
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
-      # accelerator.log(logs, step=global_step)
 
       if global_step >= args.max_train_steps:
         break
+
+    if args.logging_dir is not None:
+      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
 
@@ -843,7 +862,8 @@ if __name__ == '__main__':
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
   parser.add_argument("--debug_dataset", action="store_true",
                       help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
-  parser.add_argument("--lr_scheduler", type=str, default="constant", help="scheduler to use for learning rate: linear, cosine, cosine_with_restarts, polynomial, constant, constant_with_warmup")
-  parser.add_argument("--lr_warmup_steps", type=int, default=0, help="Number of steps for the warmup in the lr scheduler.")
+  parser.add_argument("--logging_dir", type=str, default=None,
+                      help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する")
+
   args = parser.parse_args()
   train(args)

@@ -48,7 +48,7 @@ def main(args):
         captions = model.generate(imgs, sample=True, top_p=args.top_p, max_length=args.max_length, min_length=args.min_length)
 
     for (image_path, _), caption in zip(path_imgs, captions):
-      with open(os.path.splitext(image_path)[0] + args.caption_extention, "wt", encoding='utf-8') as f:
+      with open(os.path.splitext(image_path)[0] + args.caption_extension, "wt", encoding='utf-8') as f:
         f.write(caption + "\n")
         if args.debug:
           print(image_path, caption)
@@ -76,7 +76,9 @@ if __name__ == '__main__':
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("caption_weights", type=str,
                       help="BLIP caption weights (model_large_caption.pth) / BLIP captionの重みファイル(model_large_caption.pth)")
-  parser.add_argument("--caption_extention", type=str, default=".caption", help="extention of caption file / 出力されるキャプションファイルの拡張子")
+  parser.add_argument("--caption_extention", type=str, default=None,
+                      help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
+  parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption file / 出力されるキャプションファイルの拡張子")
   parser.add_argument("--beam_search", action="store_true",
                       help="use beam search (default Nucleus sampling) / beam searchを使う（このオプション未指定時はNucleus sampling）")
   parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
@@ -87,4 +89,9 @@ if __name__ == '__main__':
   parser.add_argument("--debug", action="store_true", help="debug mode")
 
   args = parser.parse_args()
+
+  # スペルミスしていたオプションを復元する
+  if args.caption_extention is not None:
+    args.caption_extension = args.caption_extention
+
   main(args)

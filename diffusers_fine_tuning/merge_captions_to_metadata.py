@@ -24,7 +24,7 @@ def main(args):
 
   print("merge caption texts to metadata json.")
   for image_path in tqdm(image_paths):
-    caption_path = os.path.splitext(image_path)[0] + args.caption_extention
+    caption_path = os.path.splitext(image_path)[0] + args.caption_extension
     with open(caption_path, "rt", encoding='utf-8') as f:
       caption = f.readlines()[0].strip()
 
@@ -54,8 +54,15 @@ if __name__ == '__main__':
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
   parser.add_argument("--in_json", type=str, help="metadata file to input / 読み込むメタデータファイル")
-  parser.add_argument("--caption_extention", type=str, default=".caption", help="extention of caption file / 読み込むキャプションファイルの拡張子")
+  parser.add_argument("--caption_extention", type=str, default=None,
+                      help="extension of caption file (for backward compatibility) / 読み込むキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
+  parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption file / 読み込むキャプションファイルの拡張子")
   parser.add_argument("--debug", action="store_true", help="debug mode")
 
   args = parser.parse_args()
+
+  # スペルミスしていたオプションを復元する
+  if args.caption_extention is not None:
+    args.caption_extension = args.caption_extention
+
   main(args)
