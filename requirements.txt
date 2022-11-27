@@ -4,3 +4,4 @@ ftfy
 albumentations
 opencv-python
 einops
+diffusers[torch]==0.9.0
