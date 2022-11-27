@@ -92,7 +92,8 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed.py `
     --mixed_precision="fp16" `
     --cache_latents `
     --gradient_checkpointing `
-    --save_every_n_epochs=1 
+    --save_every_n_epochs=1
+```
 
 ## Finetuning
 
@@ -235,7 +236,7 @@ options:
 * 11/27 (v11) update:
     - DiffUsers 0.9.0 is required. Update as `pip install -U diffusers[torch]==0.9.0` in the virtual environment.
     - The way captions are handled in DreamBooth has changed. When a caption file existed, the file's caption was added to the folder caption until v10, but from v11 it is only the file's caption. Please be careful.
-    - Fixed a bug where prior_loss_weight was applied to learning images. We apologize for the inconvenience.
-    - Compatible with Stable Diffusion v2.0. Add the --v2 option. If you are using 768-v-ema.ckpt or stable-diffusion-2 instead of stable-diffusion-v2-base, add --v_parameterization as well. Learn more about other options.
+    - Fixed a bug where prior_loss_weight was applied to learning images. Sorry for the inconvenience.
+    - Compatible with Stable Diffusion v2.0. Add the `--v2` option. If you are using `768-v-ema.ckpt` or `stable-diffusion-2` instead of `stable-diffusion-v2-base`, add `--v_parameterization` as well. Learn more about other options.
     - Added options related to the learning rate scheduler.
     - You can download and use DiffUsers models directly from Hugging Face. In addition, DiffUsers models can be saved during training.
