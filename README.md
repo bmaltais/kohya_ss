@@ -234,7 +234,7 @@ options:
     - Added support for images with .webp extension.
     - Added a function that allows captions to learning images and regularized images.
 * 11/27 (v11) update:
-    - DiffUsers 0.9.0 is required. Update as `pip install -U diffusers[torch]==0.9.0` in the virtual environment.
+    - DiffUsers 0.9.0 is required. Update with `pip install --upgrade -r requirements.txt` in the virtual environment.
     - The way captions are handled in DreamBooth has changed. When a caption file existed, the file's caption was added to the folder caption until v10, but from v11 it is only the file's caption. Please be careful.
     - Fixed a bug where prior_loss_weight was applied to learning images. Sorry for the inconvenience.
     - Compatible with Stable Diffusion v2.0. Add the `--v2` option. If you are using `768-v-ema.ckpt` or `stable-diffusion-2` instead of `stable-diffusion-v2-base`, add `--v_parameterization` as well. Learn more about other options.
