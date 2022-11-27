@@ -121,6 +121,98 @@ accelerate launch --num_cpu_threads_per_process 6 train_db_fixed-ber.py `
 
 Refer to this url for more details about finetuning: https://note.com/kohya_ss/n/n1269f1e1a54e
 
+## Options list
+
+```txt
+usage: train_db_fixed.py [-h] [--v2] [--v_parameterization] [--pretrained_model_name_or_path PRETRAINED_MODEL_NAME_OR_PATH]
+                         [--fine_tuning] [--shuffle_caption] [--caption_extention CAPTION_EXTENTION]
+                         [--caption_extension CAPTION_EXTENSION] [--train_data_dir TRAIN_DATA_DIR]
+                         [--reg_data_dir REG_DATA_DIR] [--dataset_repeats DATASET_REPEATS] [--output_dir OUTPUT_DIR]
+                         [--save_every_n_epochs SAVE_EVERY_N_EPOCHS] [--save_state] [--resume RESUME]
+                         [--prior_loss_weight PRIOR_LOSS_WEIGHT] [--no_token_padding] [--color_aug] [--flip_aug]
+                         [--face_crop_aug_range FACE_CROP_AUG_RANGE] [--random_crop] [--debug_dataset]
+                         [--resolution RESOLUTION] [--train_batch_size TRAIN_BATCH_SIZE] [--use_8bit_adam] [--mem_eff_attn]    
+                         [--xformers] [--cache_latents] [--enable_bucket] [--min_bucket_reso MIN_BUCKET_RESO]
+                         [--max_bucket_reso MAX_BUCKET_RESO] [--learning_rate LEARNING_RATE]
+                         [--max_train_steps MAX_TRAIN_STEPS] [--seed SEED] [--gradient_checkpointing]
+                         [--mixed_precision {no,fp16,bf16}] [--save_precision {None,float,fp16,bf16}] [--clip_skip CLIP_SKIP]  
+                         [--logging_dir LOGGING_DIR] [--lr_scheduler LR_SCHEDULER] [--lr_warmup_steps LR_WARMUP_STEPS]
+
+options:
+  -h, --help            show this help message and exit
+  --v2                  load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む
+  --v_parameterization  enable v-parameterization training / v-parameterization学習を有効にする
+  --pretrained_model_name_or_path PRETRAINED_MODEL_NAME_OR_PATH
+                        pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint /
+                        学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル
+  --fine_tuning         fine tune the model instead of DreamBooth / DreamBoothではなくfine tuningする
+  --shuffle_caption     shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする
+  --caption_extention CAPTION_EXTENTION
+                        extension of caption files (backward compatiblity) / 読み込むcaptionファイルの拡張子（スペルミスを残し てあります）
+  --caption_extension CAPTION_EXTENSION
+                        extension of caption files / 読み込むcaptionファイルの拡張子
+  --train_data_dir TRAIN_DATA_DIR
+                        directory for train images / 学習画像データのディレクトリ
+  --reg_data_dir REG_DATA_DIR
+                        directory for regularization images / 正則化画像データのディレクトリ
+  --dataset_repeats DATASET_REPEATS
+                        repeat dataset in fine tuning / fine tuning時にデータセットを繰り返す回数
+  --output_dir OUTPUT_DIR
+                        directory to output trained model (default format is same to input) /
+                        学習後のモデル出力先ディレクトリ（デフォルトの保存形式は読み込んだ形式と同じ）
+  --save_every_n_epochs SAVE_EVERY_N_EPOCHS
+                        save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存します
+  --save_state          save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する
+  --resume RESUME       saved state to resume training / 学習再開するモデルのstate
+  --prior_loss_weight PRIOR_LOSS_WEIGHT
+                        loss weight for regularization images / 正則化画像のlossの重み
+  --no_token_padding    disable token padding (same as Diffuser's DreamBooth) / トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）
+  --color_aug           enable weak color augmentation / 学習時に色合いのaugmentationを有効にする
+  --flip_aug            enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする
+  --face_crop_aug_range FACE_CROP_AUG_RANGE
+                        enable face-centered crop augmentation and its range (e.g. 2.0,4.0) /
+                        学習時に顔を中心とした切り出しaugmentationを有効にするときは倍率を指定する（例：2.0,4.0）
+  --random_crop         enable random crop (for style training in face-centered crop augmentation) /
+                        ランダムな切り出しを有効にする（顔を中心としたaugmentationを行うときに画風の学習用に指定する）
+  --debug_dataset       show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）      
+  --resolution RESOLUTION
+                        resolution in training ('size' or 'width,height') / 学習時の画像解像度（'サイズ'指定、または'幅,高さ'指定）
+  --train_batch_size TRAIN_BATCH_SIZE
+                        batch size for training (1 means one train or reg data, not train/reg pair) /
+                        学習時のバッチサイズ（1でtrain/regをそれぞれ1件ずつ学習）
+  --use_8bit_adam       use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）
+  --mem_eff_attn        use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う
+  --xformers            use xformers for CrossAttention / CrossAttentionにxformersを使う
+  --cache_latents       cache latents to reduce memory (augmentations must be disabled) /
+                        メモリ削減のためにlatentをcacheする（augmentationは使用不可）
+  --enable_bucket       enable buckets for multi aspect ratio training / 複数解像度学習のためのbucketを有効にする
+  --min_bucket_reso MIN_BUCKET_RESO
+                        minimum resolution for buckets / bucketの最小解像度
+  --max_bucket_reso MAX_BUCKET_RESO
+                        maximum resolution for buckets / bucketの最小解像度
+  --learning_rate LEARNING_RATE
+                        learning rate / 学習率
+  --max_train_steps MAX_TRAIN_STEPS
+                        training steps / 学習ステップ数
+  --seed SEED           random seed for training / 学習時の乱数のseed
+  --gradient_checkpointing
+                        enable gradient checkpointing / grandient checkpointingを有効にする
+  --mixed_precision {no,fp16,bf16}
+                        use mixed precision / 混合精度を使う場合、その精度
+  --save_precision {None,float,fp16,bf16}
+                        precision in saving (available in StableDiffusion checkpoint) /
+                        保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）
+  --clip_skip CLIP_SKIP
+                        use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用い る（nは1以上）
+  --logging_dir LOGGING_DIR
+                        enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する
+  --lr_scheduler LR_SCHEDULER
+                        scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial,
+                        constant (default), constant_with_warmup
+  --lr_warmup_steps LR_WARMUP_STEPS
+                        Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアッ プするステップ数（デフォルト0）
+```
+
 ## Change history
 
 * 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).
