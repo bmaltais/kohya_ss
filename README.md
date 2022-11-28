@@ -50,6 +50,19 @@ accelerate config:
 - fp16
 ```
 
+## Upgrade
+
+When a new release comes out you can upgrade your repo with the following command:
+
+```powershell
+cd kohya_ss
+git pull
+.\venv\Scripts\activate
+pip install --upgrade -r requirements.txt
+```
+
+Once the commands have completed successfully you should be ready to use the new version.
+
 ## Folders configuration
 
 Refer to the note to understand how to create the folde structure. In short it should look like:
