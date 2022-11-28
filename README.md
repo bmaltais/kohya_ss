@@ -75,7 +75,7 @@ Refer to the note to understand how to create the folde structure. In short it s
    |- <repeat count>_<token> <class>
 ```
 
-Example for `asd dog` where `asd` is the instance prompt word and `dog` is the class. In this example the regularization `dog` class images contained in the folder will be repeated only 1 time and the `asd dog` images will be repeated 20 times:
+Example for `asd dog` where `asd` is the token word and `dog` is the class. In this example the regularization `dog` class images contained in the folder will be repeated only 1 time and the `asd dog` images will be repeated 20 times:
 
 ```
 my_asd_dog_dreambooth
