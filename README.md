@@ -391,3 +391,7 @@ options:
     - Compatible with Stable Diffusion v2.0. Add the `--v2` option. If you are using `768-v-ema.ckpt` or `stable-diffusion-2` instead of `stable-diffusion-v2-base`, add `--v_parameterization` as well. Learn more about other options.
     - Added options related to the learning rate scheduler.
     - You can download and use DiffUsers models directly from Hugging Face. In addition, DiffUsers models can be saved during training.
+* 11/29 (v12) update:
+    - stop training text encoder at specified step (`--stop_text_encoder_training=<step #>`)
+    - tqdm smoothing
+    - updated fine tuning script to support SD2.0 768/v
