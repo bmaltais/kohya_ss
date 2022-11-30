@@ -281,7 +281,8 @@ usage: train_db_fixed.py [-h] [--v2] [--v_parameterization] [--pretrained_model_
                          [--caption_extension CAPTION_EXTENSION] [--train_data_dir TRAIN_DATA_DIR]
                          [--reg_data_dir REG_DATA_DIR] [--dataset_repeats DATASET_REPEATS] [--output_dir OUTPUT_DIR]
                          [--save_every_n_epochs SAVE_EVERY_N_EPOCHS] [--save_state] [--resume RESUME]
-                         [--prior_loss_weight PRIOR_LOSS_WEIGHT] [--no_token_padding] [--color_aug] [--flip_aug]
+                         [--prior_loss_weight PRIOR_LOSS_WEIGHT] [--no_token_padding]
+                         [--stop_text_encoder_training STOP_TEXT_ENCODER_TRAINING] [--color_aug] [--flip_aug]
                          [--face_crop_aug_range FACE_CROP_AUG_RANGE] [--random_crop] [--debug_dataset]
                          [--resolution RESOLUTION] [--train_batch_size TRAIN_BATCH_SIZE] [--use_8bit_adam] [--mem_eff_attn]    
                          [--xformers] [--cache_latents] [--enable_bucket] [--min_bucket_reso MIN_BUCKET_RESO]
@@ -319,6 +320,8 @@ options:
   --prior_loss_weight PRIOR_LOSS_WEIGHT
                         loss weight for regularization images / 正則化画像のlossの重み
   --no_token_padding    disable token padding (same as Diffuser's DreamBooth) / トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）
+  --stop_text_encoder_training STOP_TEXT_ENCODER_TRAINING
+                        steps to stop text encoder training / Text Encoderの学習を止めるステップ数
   --color_aug           enable weak color augmentation / 学習時に色合いのaugmentationを有効にする
   --flip_aug            enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする
   --face_crop_aug_range FACE_CROP_AUG_RANGE
@@ -353,37 +356,23 @@ options:
                         use mixed precision / 混合精度を使う場合、その精度
   --save_precision {None,float,fp16,bf16}
                         precision in saving (available in StableDiffusion checkpoint) /
-                        保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）
-  --clip_skip CLIP_SKIP
-                        use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用い る（nは1以上）
   --logging_dir LOGGING_DIR
                         enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する
   --lr_scheduler LR_SCHEDULER
                         scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial,
                         constant (default), constant_with_warmup
   --lr_warmup_steps LR_WARMUP_STEPS
-                        Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアッ プするステップ数（デフォルト0）
+                        Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）
 ```
 
 ## Change history
 
-* 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).
-* 11/9 (v8): supports Diffusers 0.7.2. To upgrade diffusers run `pip install --upgrade diffusers[torch]`
-* 11/14 (diffusers_fine_tuning v2):
-    - script name is now fine_tune.py.
-    - Added option to learn Text Encoder --train_text_encoder.
-    - The data format of checkpoint at the time of saving can be specified with the --save_precision option. You can choose float, fp16, and bf16.
-    - Added a --save_state option to save the learning state (optimizer, etc.) in the middle. It can be resumed with the --resume option.
-* 11/18 (v9):
-    - Added support for Aspect Ratio Bucketing (enable_bucket option). (--enable_bucket)
-    - Added support for selecting data format (fp16/bf16/float) when saving checkpoint (--save_precision)
-    - Added support for saving learning state (--save_state, --resume)
-    - Added support for logging (--logging_dir)
-* 11/21 (v10):
-    - Added minimum/maximum resolution specification when using Aspect Ratio Bucketing (min_bucket_reso/max_bucket_reso option).
-    - Added extension specification for caption files (caption_extention).
-    - Added support for images with .webp extension.
-    - Added a function that allows captions to learning images and regularized images.
+* 11/30 (v13) update:
+    - fix training text encoder at specified step (`--stop_text_encoder_training=<step #>`) that was causing both Unet and text encoder training to stop completely at the specified step rather than continue without text encoding training.
+* 11/29 (v12) update:
+    - stop training text encoder at specified step (`--stop_text_encoder_training=<step #>`)
+    - tqdm smoothing
+    - updated fine tuning script to support SD2.0 768/v
 * 11/27 (v11) update:
     - DiffUsers 0.9.0 is required. Update with `pip install --upgrade -r requirements.txt` in the virtual environment.
     - The way captions are handled in DreamBooth has changed. When a caption file existed, the file's caption was added to the folder caption until v10, but from v11 it is only the file's caption. Please be careful.
@@ -391,7 +380,20 @@ options:
     - Compatible with Stable Diffusion v2.0. Add the `--v2` option. If you are using `768-v-ema.ckpt` or `stable-diffusion-2` instead of `stable-diffusion-v2-base`, add `--v_parameterization` as well. Learn more about other options.
     - Added options related to the learning rate scheduler.
     - You can download and use DiffUsers models directly from Hugging Face. In addition, DiffUsers models can be saved during training.
-* 11/29 (v12) update:
-    - stop training text encoder at specified step (`--stop_text_encoder_training=<step #>`)
-    - tqdm smoothing
-    - updated fine tuning script to support SD2.0 768/v
+* 11/21 (v10):
+    - Added minimum/maximum resolution specification when using Aspect Ratio Bucketing (min_bucket_reso/max_bucket_reso option).
+    - Added extension specification for caption files (caption_extention).
+    - Added support for images with .webp extension.
+    - Added a function that allows captions to learning images and regularized images.
+* 11/18 (v9):
+    - Added support for Aspect Ratio Bucketing (enable_bucket option). (--enable_bucket)
+    - Added support for selecting data format (fp16/bf16/float) when saving checkpoint (--save_precision)
+    - Added support for saving learning state (--save_state, --resume)
+    - Added support for logging (--logging_dir)
+* 11/14 (diffusers_fine_tuning v2):
+    - script name is now fine_tune.py.
+    - Added option to learn Text Encoder --train_text_encoder.
+    - The data format of checkpoint at the time of saving can be specified with the --save_precision option. You can choose float, fp16, and bf16.
+    - Added a --save_state option to save the learning state (optimizer, etc.) in the middle. It can be resumed with the --resume option.
+* 11/9 (v8): supports Diffusers 0.7.2. To upgrade diffusers run `pip install --upgrade diffusers[torch]`
+* 11/7 (v7): Text Encoder supports checkpoint files in different storage formats (it is converted at the time of import, so export will be in normal format). Changed the average value of EPOCH loss to output to the screen. Added a function to save epoch and global step in checkpoint in SD format (add values if there is existing data). The reg_data_dir option is enabled during fine tuning (fine tuning while mixing regularized images). Added dataset_repeats option that is valid for fine tuning (specified when the number of teacher images is small and the epoch is extremely short).

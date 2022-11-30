@@ -1876,11 +1876,21 @@ def train(args):
   # 以下 train_dreambooth.py からほぼコピペ
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
+
+    # 指定したステップ数までText Encoderを学習する：epoch最初の状態
+    train_text_encoder = args.stop_text_encoder_training is None or global_step < args.stop_text_encoder_training 
     unet.train()
-    text_encoder.train()
+    if train_text_encoder:
+      text_encoder.train()
 
     loss_total = 0
     for step, batch in enumerate(train_dataloader):
+      # 指定したステップ数でText Encoderの学習を止める
+      stop_text_encoder_training = args.stop_text_encoder_training is not None and global_step == args.stop_text_encoder_training 
+      if stop_text_encoder_training:
+        print(f"stop text encoder training at step {global_step}")
+        text_encoder.train(False)
+
       with accelerator.accumulate(unet):
         with torch.no_grad():
           # latentに変換
@@ -1902,16 +1912,13 @@ def train(args):
         # (this is the forward diffusion process)
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
-        # 指定したステップ数までText Encoderを学習する
-        train_text_encoder = args.stop_text_encoder_training is None or global_step < args.stop_text_encoder_training 
-        with torch.set_grad_enabled(train_text_encoder):
-          # Get the text embedding for conditioning
-          if args.clip_skip is None:
-            encoder_hidden_states = text_encoder(batch["input_ids"])[0]
-          else:
-            enc_out = text_encoder(batch["input_ids"], output_hidden_states=True, return_dict=True)
-            encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
-            encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
+        # Get the text embedding for conditioning
+        if args.clip_skip is None:
+          encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+        else:
+          enc_out = text_encoder(batch["input_ids"], output_hidden_states=True, return_dict=True)
+          encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
+          encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
 
         # Predict the noise residual
         noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
@@ -1967,9 +1974,6 @@ def train(args):
       if accelerator.sync_gradients:
         progress_bar.update(1)
         global_step += 1
-
-        if global_step == args.stop_text_encoder_training:
-          print(f"stop text encoder training at step {global_step}")
 
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
