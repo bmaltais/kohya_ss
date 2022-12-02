@@ -2,11 +2,13 @@ import math
 import torch
 from transformers import CLIPTextModel
 from diffusers import AutoencoderKL, UNet2DConditionModel
+from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig
+from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline, UNet2DConditionModel
 
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 
-# StableDiffusionのモデルパラメータ
+# region checkpoint変換、読み込み、書き込み ###############################
+
+# DiffUsers版StableDiffusionのモデルパラメータ
 NUM_TRAIN_TIMESTEPS = 1000
 BETA_START = 0.00085
 BETA_END = 0.0120
@@ -29,12 +31,14 @@ VAE_PARAMS_CH = 128
 VAE_PARAMS_CH_MULT = [1, 2, 4, 4]
 VAE_PARAMS_NUM_RES_BLOCKS = 2
 
+# V2
+V2_UNET_PARAMS_ATTENTION_HEAD_DIM = [5, 10, 20, 20]
+V2_UNET_PARAMS_CONTEXT_DIM = 1024
 
-# region conversion
-# checkpoint変換など ###############################
 
 # region StableDiffusion->Diffusersの変換コード
 # convert_original_stable_diffusion_to_diffusers をコピーしている（ASL 2.0）
+
 
 def shave_segments(path, n_shave_prefix_segments=1):
   """
@@ -199,7 +203,16 @@ def conv_attn_to_linear(checkpoint):
         checkpoint[key] = checkpoint[key][:, :, 0]
 
 
-def convert_ldm_unet_checkpoint(checkpoint, config):
+def linear_transformer_to_conv(checkpoint):
+  keys = list(checkpoint.keys())
+  tf_keys = ["proj_in.weight", "proj_out.weight"]
+  for key in keys:
+    if ".".join(key.split(".")[-2:]) in tf_keys:
+      if checkpoint[key].ndim == 2:
+        checkpoint[key] = checkpoint[key].unsqueeze(2).unsqueeze(2)
+
+
+def convert_ldm_unet_checkpoint(v2, checkpoint, config):
   """
   Takes a state dict and a config, and returns a converted checkpoint.
   """
@@ -349,6 +362,10 @@ def convert_ldm_unet_checkpoint(checkpoint, config):
 
         new_checkpoint[new_path] = unet_state_dict[old_path]
 
+  # SDのv2では1*1のconv2dがlinearに変わっているので、linear->convに変換する
+  if v2:
+    linear_transformer_to_conv(new_checkpoint)
+
   return new_checkpoint
 
 
@@ -459,7 +476,7 @@ def convert_ldm_vae_checkpoint(checkpoint, config):
   return new_checkpoint
 
 
-def create_unet_diffusers_config():
+def create_unet_diffusers_config(v2):
   """
   Creates a config for the diffusers based on the config of the LDM model.
   """
@@ -489,8 +506,8 @@ def create_unet_diffusers_config():
       up_block_types=tuple(up_block_types),
       block_out_channels=tuple(block_out_channels),
       layers_per_block=UNET_PARAMS_NUM_RES_BLOCKS,
-      cross_attention_dim=UNET_PARAMS_CONTEXT_DIM,
-      attention_head_dim=UNET_PARAMS_NUM_HEADS,
+      cross_attention_dim=UNET_PARAMS_CONTEXT_DIM if not v2 else V2_UNET_PARAMS_CONTEXT_DIM,
+      attention_head_dim=UNET_PARAMS_NUM_HEADS if not v2 else V2_UNET_PARAMS_ATTENTION_HEAD_DIM,
   )
 
   return config
@@ -519,20 +536,82 @@ def create_vae_diffusers_config():
   return config
 
 
-def convert_ldm_clip_checkpoint(checkpoint):
-  text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
-
+def convert_ldm_clip_checkpoint_v1(checkpoint):
   keys = list(checkpoint.keys())
-
   text_model_dict = {}
-
   for key in keys:
     if key.startswith("cond_stage_model.transformer"):
       text_model_dict[key[len("cond_stage_model.transformer."):]] = checkpoint[key]
+  return text_model_dict
 
-  text_model.load_state_dict(text_model_dict)
 
-  return text_model
+def convert_ldm_clip_checkpoint_v2(checkpoint, max_length):
+  # 嫌になるくらい違うぞ！
+  def convert_key(key):
+    if not key.startswith("cond_stage_model"):
+      return None
+
+    # common conversion
+    key = key.replace("cond_stage_model.model.transformer.", "text_model.encoder.")
+    key = key.replace("cond_stage_model.model.", "text_model.")
+
+    if "resblocks" in key:
+      # resblocks conversion
+      key = key.replace(".resblocks.", ".layers.")
+      if ".ln_" in key:
+        key = key.replace(".ln_", ".layer_norm")
+      elif ".mlp." in key:
+        key = key.replace(".c_fc.", ".fc1.")
+        key = key.replace(".c_proj.", ".fc2.")
+      elif '.attn.out_proj' in key:
+        key = key.replace(".attn.out_proj.", ".self_attn.out_proj.")
+      elif '.attn.in_proj' in key:
+        key = None                  # 特殊なので後で処理する
+      else:
+        raise ValueError(f"unexpected key in SD: {key}")
+    elif '.positional_embedding' in key:
+      key = key.replace(".positional_embedding", ".embeddings.position_embedding.weight")
+    elif '.text_projection' in key:
+      key = None    # 使われない???
+    elif '.logit_scale' in key:
+      key = None    # 使われない???
+    elif '.token_embedding' in key:
+      key = key.replace(".token_embedding.weight", ".embeddings.token_embedding.weight")
+    elif '.ln_final' in key:
+      key = key.replace(".ln_final", ".final_layer_norm")
+    return key
+
+  keys = list(checkpoint.keys())
+  new_sd = {}
+  for key in keys:
+    # remove resblocks 23
+    if '.resblocks.23.' in key:
+      continue
+    new_key = convert_key(key)
+    if new_key is None:
+      continue
+    new_sd[new_key] = checkpoint[key]
+
+  # attnの変換
+  for key in keys:
+    if '.resblocks.23.' in key:
+      continue
+    if '.resblocks' in key and '.attn.in_proj_' in key:
+      # 三つに分割
+      values = torch.chunk(checkpoint[key], 3)
+
+      key_suffix = ".weight" if "weight" in key else ".bias"
+      key_pfx = key.replace("cond_stage_model.model.transformer.resblocks.", "text_model.encoder.layers.")
+      key_pfx = key_pfx.replace("_weight", "")
+      key_pfx = key_pfx.replace("_bias", "")
+      key_pfx = key_pfx.replace(".attn.in_proj", ".self_attn.")
+      new_sd[key_pfx + "q_proj" + key_suffix] = values[0]
+      new_sd[key_pfx + "k_proj" + key_suffix] = values[1]
+      new_sd[key_pfx + "v_proj" + key_suffix] = values[2]
+
+  # position_idsの追加
+  new_sd["text_model.embeddings.position_ids"] = torch.Tensor([list(range(max_length))]).to(torch.int64)
+  return new_sd
 
 # endregion
 
@@ -540,7 +619,16 @@ def convert_ldm_clip_checkpoint(checkpoint):
 # region Diffusers->StableDiffusion の変換コード
 # convert_diffusers_to_original_stable_diffusion をコピーしている（ASL 2.0）
 
-def convert_unet_state_dict(unet_state_dict):
+def conv_transformer_to_linear(checkpoint):
+  keys = list(checkpoint.keys())
+  tf_keys = ["proj_in.weight", "proj_out.weight"]
+  for key in keys:
+    if ".".join(key.split(".")[-2:]) in tf_keys:
+      if checkpoint[key].ndim > 2:
+        checkpoint[key] = checkpoint[key][:, :, 0, 0]
+
+
+def convert_unet_state_dict_to_sd(v2, unet_state_dict):
   unet_conversion_map = [
       # (stable-diffusion, HF Diffusers)
       ("time_embed.0.weight", "time_embedding.linear_1.weight"),
@@ -629,12 +717,16 @@ def convert_unet_state_dict(unet_state_dict):
       v = v.replace(hf_part, sd_part)
     mapping[k] = v
   new_state_dict = {v: unet_state_dict[k] for k, v in mapping.items()}
+
+  if v2:
+    conv_transformer_to_linear(new_state_dict)
+
   return new_state_dict
 
 # endregion
 
 
-def load_checkpoint_with_conversion(ckpt_path):
+def load_checkpoint_with_text_encoder_conversion(ckpt_path):
   # text encoderの格納形式が違うモデルに対応する ('text_model'がない)
   TEXT_ENCODER_KEY_REPLACEMENTS = [
       ('cond_stage_model.transformer.embeddings.', 'cond_stage_model.transformer.text_model.embeddings.'),
@@ -659,52 +751,148 @@ def load_checkpoint_with_conversion(ckpt_path):
   return checkpoint
 
 
-def load_models_from_stable_diffusion_checkpoint(ckpt_path):
-  checkpoint = load_checkpoint_with_conversion(ckpt_path)
+def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
+  checkpoint = load_checkpoint_with_text_encoder_conversion(ckpt_path)
   state_dict = checkpoint["state_dict"]
+  if dtype is not None:
+    for k, v in state_dict.items():
+      if type(v) is torch.Tensor:
+        state_dict[k] = v.to(dtype)
 
   # Convert the UNet2DConditionModel model.
-  unet_config = create_unet_diffusers_config()
-  converted_unet_checkpoint = convert_ldm_unet_checkpoint(state_dict, unet_config)
+  unet_config = create_unet_diffusers_config(v2)
+  converted_unet_checkpoint = convert_ldm_unet_checkpoint(v2, state_dict, unet_config)
 
   unet = UNet2DConditionModel(**unet_config)
-  unet.load_state_dict(converted_unet_checkpoint)
+  info = unet.load_state_dict(converted_unet_checkpoint)
+  print("loading u-net:", info)
 
   # Convert the VAE model.
   vae_config = create_vae_diffusers_config()
   converted_vae_checkpoint = convert_ldm_vae_checkpoint(state_dict, vae_config)
 
   vae = AutoencoderKL(**vae_config)
-  vae.load_state_dict(converted_vae_checkpoint)
+  info = vae.load_state_dict(converted_vae_checkpoint)
+  print("loadint vae:", info)
 
   # convert text_model
-  text_model = convert_ldm_clip_checkpoint(state_dict)
+  if v2:
+    converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v2(state_dict, 77)
+    cfg = CLIPTextConfig(
+        vocab_size=49408,
+        hidden_size=1024,
+        intermediate_size=4096,
+        num_hidden_layers=23,
+        num_attention_heads=16,
+        max_position_embeddings=77,
+        hidden_act="gelu",
+        layer_norm_eps=1e-05,
+        dropout=0.0,
+        attention_dropout=0.0,
+        initializer_range=0.02,
+        initializer_factor=1.0,
+        pad_token_id=1,
+        bos_token_id=0,
+        eos_token_id=2,
+        model_type="clip_text_model",
+        projection_dim=512,
+        torch_dtype="float32",
+        transformers_version="4.25.0.dev0",
+    )
+    text_model = CLIPTextModel._from_config(cfg)
+    info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+  else:
+    converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
+    text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
+    info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+  print("loading text encoder:", info)
 
   return text_model, vae, unet
 
 
-def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path, epochs, steps, save_dtype=None):
+def convert_text_encoder_state_dict_to_sd_v2(checkpoint):
+  def convert_key(key):
+    # position_idsの除去
+    if ".position_ids" in key:
+      return None
+
+    # common
+    key = key.replace("text_model.encoder.", "transformer.")
+    key = key.replace("text_model.", "")
+    if "layers" in key:
+      # resblocks conversion
+      key = key.replace(".layers.", ".resblocks.")
+      if ".layer_norm" in key:
+        key = key.replace(".layer_norm", ".ln_")
+      elif ".mlp." in key:
+        key = key.replace(".fc1.", ".c_fc.")
+        key = key.replace(".fc2.", ".c_proj.")
+      elif '.self_attn.out_proj' in key:
+        key = key.replace(".self_attn.out_proj.", ".attn.out_proj.")
+      elif '.self_attn.' in key:
+        key = None                  # 特殊なので後で処理する
+      else:
+        raise ValueError(f"unexpected key in DiffUsers model: {key}")
+    elif '.position_embedding' in key:
+      key = key.replace("embeddings.position_embedding.weight", "positional_embedding")
+    elif '.token_embedding' in key:
+      key = key.replace("embeddings.token_embedding.weight", "token_embedding.weight")
+    elif 'final_layer_norm' in key:
+      key = key.replace("final_layer_norm", "ln_final")
+    return key
+
+  keys = list(checkpoint.keys())
+  new_sd = {}
+  for key in keys:
+    new_key = convert_key(key)
+    if new_key is None:
+      continue
+    new_sd[new_key] = checkpoint[key]
+
+  # attnの変換
+  for key in keys:
+    if 'layers' in key and 'q_proj' in key:
+      # 三つを結合
+      key_q = key
+      key_k = key.replace("q_proj", "k_proj")
+      key_v = key.replace("q_proj", "v_proj")
+
+      value_q = checkpoint[key_q]
+      value_k = checkpoint[key_k]
+      value_v = checkpoint[key_v]
+      value = torch.cat([value_q, value_k, value_v])
+
+      new_key = key.replace("text_model.encoder.layers.", "transformer.resblocks.")
+      new_key = new_key.replace(".self_attn.q_proj.", ".attn.in_proj_")
+      new_sd[new_key] = value
+
+  return new_sd
+
+
+def save_stable_diffusion_checkpoint(v2, output_file, text_encoder, unet, ckpt_path, epochs, steps, save_dtype=None):
   # VAEがメモリ上にないので、もう一度VAEを含めて読み込む
-  checkpoint = load_checkpoint_with_conversion(ckpt_path)
+  checkpoint = load_checkpoint_with_text_encoder_conversion(ckpt_path)
   state_dict = checkpoint["state_dict"]
 
+  def assign_new_sd(prefix, sd):
+    for k, v in sd.items():
+      key = prefix + k
+      assert key in state_dict, f"Illegal key in save SD: {key}"
+      if save_dtype is not None:
+        v = v.detach().clone().to("cpu").to(save_dtype)
+      state_dict[key] = v
+
   # Convert the UNet model
-  unet_state_dict = convert_unet_state_dict(unet.state_dict())
-  for k, v in unet_state_dict.items():
-    key = "model.diffusion_model." + k
-    assert key in state_dict, f"Illegal key in save SD: {key}"
-    if save_dtype is not None:
-      v = v.detach().clone().to("cpu").to(save_dtype)
-    state_dict[key] = v
+  unet_state_dict = convert_unet_state_dict_to_sd(v2, unet.state_dict())
+  assign_new_sd("model.diffusion_model.", unet_state_dict)
 
   # Convert the text encoder model
-  text_enc_dict = text_encoder.state_dict()             # 変換不要
-  for k, v in text_enc_dict.items():
-    key = "cond_stage_model.transformer." + k
-    assert key in state_dict, f"Illegal key in save SD: {key}"
-    if save_dtype is not None:
-      v = v.detach().clone().to("cpu").to(save_dtype)
-    state_dict[key] = v
+  if v2:
+    text_enc_dict = convert_text_encoder_state_dict_to_sd_v2(text_encoder.state_dict())
+    assign_new_sd("cond_stage_model.model.", text_enc_dict)
+  else:
+    text_enc_dict = text_encoder.state_dict()
+    assign_new_sd("cond_stage_model.transformer.", text_enc_dict)
 
   # Put together new checkpoint
   new_ckpt = {'state_dict': state_dict}
@@ -718,6 +906,21 @@ def save_stable_diffusion_checkpoint(output_file, text_encoder, unet, ckpt_path,
   new_ckpt['global_step'] = steps
 
   torch.save(new_ckpt, output_file)
+
+
+def save_diffusers_checkpoint(v2, output_dir, text_encoder, unet, pretrained_model_name_or_path, save_dtype):
+  pipeline = StableDiffusionPipeline(
+      unet=unet,
+      text_encoder=text_encoder,
+      vae=AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae"),
+      scheduler=DDIMScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler"),
+      tokenizer=CLIPTokenizer.from_pretrained(pretrained_model_name_or_path, subfolder="tokenizer"),
+      safety_checker=None,
+      feature_extractor=None,
+      requires_safety_checker=None,
+  )
+  pipeline.save_pretrained(output_dir)
+
 # endregion
 
 

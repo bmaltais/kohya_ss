@@ -71,6 +71,7 @@ def clean_caption(caption):
       replaced = bef != caption
   return caption
 
+
 def main(args):
   image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + glob.glob(os.path.join(args.train_data_dir, "*.png"))
   print(f"found {len(image_paths)} images.")
@@ -95,16 +96,16 @@ def main(args):
       return
 
     tags = metadata[image_key].get('tags')
-    caption = metadata[image_key].get('caption')
     if tags is None:
       print(f"image does not have tags / メタデータにタグがありません: {image_path}")
-      return
+    else:
+      metadata[image_key]['tags'] = clean_tags(image_key, tags)
+
+    caption = metadata[image_key].get('caption')
     if caption is None:
       print(f"image does not have caption / メタデータにキャプションがありません: {image_path}")
-      return
-
-    metadata[image_key]['tags'] = clean_tags(image_key, tags)
-    metadata[image_key]['caption'] = clean_caption(caption)
+    else:
+      metadata[image_key]['caption'] = clean_caption(caption)
 
   # metadataを書き出して終わり
   print(f"writing metadata: {args.out_json}")

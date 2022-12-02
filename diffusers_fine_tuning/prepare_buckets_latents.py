@@ -36,7 +36,7 @@ def get_latents(vae, images, weight_dtype):
 
 
 def main(args):
-  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + glob.glob(os.path.join(args.train_data_dir, "*.png"))
+  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
   print(f"found {len(image_paths)} images.")
 
   if os.path.exists(args.in_json):
@@ -49,13 +49,11 @@ def main(args):
 
   # モデル形式のオプション設定を確認する
   use_stable_diffusion_format = os.path.isfile(args.model_name_or_path)
-  if not use_stable_diffusion_format:
-    assert os.path.exists(args.model_name_or_path), f"no model / モデルがありません : {args.model_name_or_path}"
 
   # モデルを読み込む
   if use_stable_diffusion_format:
     print("load StableDiffusion checkpoint")
-    _, vae, _ = fine_tuning_utils.load_models_from_stable_diffusion_checkpoint(args.model_name_or_path)
+    _, vae, _ = fine_tuning_utils.load_models_from_stable_diffusion_checkpoint(args.v2, args.model_name_or_path)
   else:
     print("load Diffusers pretrained models")
     vae = AutoencoderKL.from_pretrained(args.model_name_or_path, subfolder="vae")
@@ -73,7 +71,8 @@ def main(args):
   max_reso = tuple([int(t) for t in args.max_resolution.split(',')])
   assert len(max_reso) == 2, f"illegal resolution (not 'width,height') / 画像サイズに誤りがあります。'幅,高さ'で指定してください: {args.max_resolution}"
 
-  bucket_resos, bucket_aspect_ratios = fine_tuning_utils.make_bucket_resolutions(max_reso)
+  bucket_resos, bucket_aspect_ratios = fine_tuning_utils.make_bucket_resolutions(
+      max_reso, args.min_bucket_reso, args.max_bucket_reso)
 
   # 画像をひとつずつ適切なbucketに割り当てながらlatentを計算する
   bucket_aspect_ratios = np.array(bucket_aspect_ratios)
@@ -162,9 +161,13 @@ if __name__ == '__main__':
   parser.add_argument("in_json", type=str, help="metadata file to input / 読み込むメタデータファイル")
   parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
   parser.add_argument("model_name_or_path", type=str, help="model name or path to encode latents / latentを取得するためのモデル")
+  parser.add_argument("--v2", action='store_true',
+                      help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
   parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
   parser.add_argument("--max_resolution", type=str, default="512,512",
                       help="max resolution in fine tuning (width,height) / fine tuning時の最大画像サイズ 「幅,高さ」（使用メモリ量に関係します）")
+  parser.add_argument("--min_bucket_reso", type=int, default=256, help="minimum resolution for buckets / bucketの最小解像度")
+  parser.add_argument("--max_bucket_reso", type=int, default=1024, help="maximum resolution for buckets / bucketの最小解像度")
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
 

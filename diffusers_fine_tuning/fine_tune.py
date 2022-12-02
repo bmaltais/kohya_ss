@@ -1,5 +1,6 @@
 # v2: select precision for saved checkpoint
 # v3: add logging for tensorboard, fix to shuffle=False in DataLoader (shuffling is in dataset)
+# v4: support SD2.0, add lr scheduler options, supports save_every_n_epochs and save_state for DiffUsers model
 
 # このスクリプトのライセンスは、train_dreambooth.pyと同じくApache License 2.0とします
 # License:
@@ -44,12 +45,15 @@ import fine_tuning_utils
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
+V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う
 
 # checkpointファイル名
 LAST_CHECKPOINT_NAME = "last.ckpt"
 LAST_STATE_NAME = "last-state"
+LAST_DIFFUSERS_DIR_NAME = "last"
 EPOCH_CHECKPOINT_NAME = "epoch-{:06d}.ckpt"
 EPOCH_STATE_NAME = "epoch-{:06d}-state"
+EPOCH_DIFFUSERS_DIR_NAME = "epoch-{:06d}"
 
 
 def collate_fn(examples):
@@ -63,7 +67,7 @@ class FineTuningDataset(torch.utils.data.Dataset):
     self.metadata = metadata
     self.train_data_dir = train_data_dir
     self.batch_size = batch_size
-    self.tokenizer = tokenizer
+    self.tokenizer: CLIPTokenizer = tokenizer
     self.max_token_length = max_token_length
     self.shuffle_caption = shuffle_caption
     self.debug = debug
@@ -159,17 +163,38 @@ class FineTuningDataset(torch.utils.data.Dataset):
       input_ids = self.tokenizer(caption, padding="max_length", truncation=True,
                                  max_length=self.tokenizer_max_length, return_tensors="pt").input_ids
 
-      # 77以上の時は "<BOS> .... <EOS> <EOS> <EOS>" でトータル227とかになっているので、"<BOS>...<EOS>"の三連に変換する
-      # 1111氏のやつは , で区切る、とかしているようだが　とりあえず単純に
       if self.tokenizer_max_length > self.tokenizer.model_max_length:
         input_ids = input_ids.squeeze(0)
         iids_list = []
-        for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):
-          iid = (input_ids[0].unsqueeze(0),
-                 input_ids[i:i + self.tokenizer.model_max_length - 2],
-                 input_ids[-1].unsqueeze(0))
-          iid = torch.cat(iid)
-          iids_list.append(iid)
+        if self.tokenizer.pad_token_id == self.tokenizer.eos_token_id:
+          # v1
+          # 77以上の時は "<BOS> .... <EOS> <EOS> <EOS>" でトータル227とかになっているので、"<BOS>...<EOS>"の三連に変換する
+          # 1111氏のやつは , で区切る、とかしているようだが　とりあえず単純に
+          for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):  # (1, 152, 75)
+            ids_chunk = (input_ids[0].unsqueeze(0),
+                         input_ids[i:i + self.tokenizer.model_max_length - 2],
+                         input_ids[-1].unsqueeze(0))
+            ids_chunk = torch.cat(ids_chunk)
+            iids_list.append(ids_chunk)
+        else:
+          # v2
+          # 77以上の時は "<BOS> .... <EOS> <PAD> <PAD>..." でトータル227とかになっているので、"<BOS>...<EOS> <PAD> <PAD> ..."の三連に変換する
+          for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):
+            ids_chunk = (input_ids[0].unsqueeze(0),       # BOS
+                         input_ids[i:i + self.tokenizer.model_max_length - 2],
+                         input_ids[-1].unsqueeze(0))      # PAD or EOS
+            ids_chunk = torch.cat(ids_chunk)
+
+            # 末尾が <EOS> <PAD> または <PAD> <PAD> の場合は、何もしなくてよい
+            # 末尾が x <PAD/EOS> の場合は末尾を <EOS> に変える（x <EOS> なら結果的に変化なし）
+            if ids_chunk[-2] != self.tokenizer.eos_token_id and ids_chunk[-2] != self.tokenizer.pad_token_id:
+              ids_chunk[-1] = self.tokenizer.eos_token_id
+            # 先頭が <BOS> <PAD> ... の場合は <BOS> <EOS> <PAD> ... に変える
+            if ids_chunk[1] == self.tokenizer.pad_token_id:
+              ids_chunk[1] = self.tokenizer.eos_token_id
+
+            iids_list.append(ids_chunk)
+
         input_ids = torch.stack(iids_list)      # 3,77
 
       input_ids_list.append(input_ids)
@@ -192,15 +217,17 @@ def save_hypernetwork(output_file, hypernetwork):
 def train(args):
   fine_tuning = args.hypernetwork_module is None            # fine tuning or hypernetwork training
 
+  # その他のオプション設定を確認する
+  if args.v_parameterization and not args.v2:
+    print("v_parameterization should be with v2 / v1でv_parameterizationを使用することは想定されていません")
+  if args.v2 and args.clip_skip is not None:
+    print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
+
   # モデル形式のオプション設定を確認する
+  # v11からDiffUsersから直接落としてくるのもOK（ただし認証がいるやつは未対応）、またv11からDiffUsersも途中保存に対応した
   use_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)
-  if not use_stable_diffusion_format:
-    assert os.path.exists(
-        args.pretrained_model_name_or_path), f"no pretrained model / 学習元モデルがありません : {args.pretrained_model_name_or_path}"
 
-  assert not fine_tuning or (
-      args.save_every_n_epochs is None or use_stable_diffusion_format), "when loading Diffusers model, save_every_n_epochs does not work / Diffusersのモデルを読み込むときにはsave_every_n_epochsオプションは無効になります"
-
+  # 乱数系列を初期化する
   if args.seed is not None:
     set_seed(args.seed)
 
@@ -215,18 +242,22 @@ def train(args):
 
   # tokenizerを読み込む
   print("prepare tokenizer")
-  tokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)
+  if args.v2:
+    tokenizer = CLIPTokenizer.from_pretrained(V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
+  else:
+    tokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)
+
   if args.max_token_length is not None:
-    print(f"update token length in tokenizer: {args.max_token_length}")
+    print(f"update token length: {args.max_token_length}")
 
   # datasetを用意する
   print("prepare dataset")
   train_dataset = FineTuningDataset(metadata, args.train_data_dir, args.train_batch_size,
                                     tokenizer, args.max_token_length, args.shuffle_caption, args.dataset_repeats, args.debug_dataset)
 
+  print(f"Total dataset length / データセットの長さ: {len(train_dataset)}")
+  print(f"Total images / 画像数: {train_dataset.images_count}")
   if args.debug_dataset:
-    print(f"Total dataset length / データセットの長さ: {len(train_dataset)}")
-    print(f"Total images / 画像数: {train_dataset.images_count}")
     train_dataset.show_buckets()
     i = 0
     for example in train_dataset:
@@ -251,14 +282,33 @@ def train(args):
   accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps,
                             mixed_precision=args.mixed_precision, log_with=log_with, logging_dir=logging_dir)
 
+  # mixed precisionに対応した型を用意しておき適宜castする
+  weight_dtype = torch.float32
+  if args.mixed_precision == "fp16":
+    weight_dtype = torch.float16
+  elif args.mixed_precision == "bf16":
+    weight_dtype = torch.bfloat16
+
+  save_dtype = None
+  if args.save_precision == "fp16":
+    save_dtype = torch.float16
+  elif args.save_precision == "bf16":
+    save_dtype = torch.bfloat16
+  elif args.save_precision == "float":
+    save_dtype = torch.float32
+
   # モデルを読み込む
   if use_stable_diffusion_format:
     print("load StableDiffusion checkpoint")
-    text_encoder, _, unet = fine_tuning_utils.load_models_from_stable_diffusion_checkpoint(args.pretrained_model_name_or_path)
+    text_encoder, _, unet = fine_tuning_utils.load_models_from_stable_diffusion_checkpoint(
+        args.v2, args.pretrained_model_name_or_path)
   else:
     print("load Diffusers pretrained models")
-    text_encoder = CLIPTextModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="text_encoder")
-    unet = UNet2DConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet")
+    pipe = StableDiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, tokenizer=None, safety_checker=None)
+    # , torch_dtype=weight_dtype) ここでtorch_dtypeを指定すると学習時にエラーになる
+    text_encoder = pipe.text_encoder
+    unet = pipe.unet
+    del pipe
 
   # モデルに xformers とか memory efficient attention を組み込む
   replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
@@ -278,21 +328,6 @@ def train(args):
 
     print("apply hypernetwork")
     hypernetwork.apply_to_diffusers(None, text_encoder, unet)
-
-  # mixed precisionに対応した型を用意しておき適宜castする
-  weight_dtype = torch.float32
-  if args.mixed_precision == "fp16":
-    weight_dtype = torch.float16
-  elif args.mixed_precision == "bf16":
-    weight_dtype = torch.bfloat16
-
-  save_dtype = None
-  if args.save_precision == "fp16":
-    save_dtype = torch.float16
-  elif args.save_precision == "bf16":
-    save_dtype = torch.bfloat16
-  elif args.save_precision == "float":
-    save_dtype = torch.float32
 
   # 学習を準備する：モデルを適切な状態にする
   training_models = []
@@ -351,7 +386,7 @@ def train(args):
 
   # lr schedulerを用意する
   lr_scheduler = diffusers.optimization.get_scheduler(
-      "constant", optimizer, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
+      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
 
   # acceleratorがなんかよろしくやってくれるらしい
   if fine_tuning:
@@ -384,10 +419,14 @@ def train(args):
   print(f"  gradient ccumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
   print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
 
-  progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process, desc="steps")
+  progress_bar = tqdm(range(args.max_train_steps), smoothing=0, disable=not accelerator.is_local_main_process, desc="steps")
   global_step = 0
 
-  noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000)
+  # v4で更新：clip_sample=Falseに
+  # Diffusersのtrain_dreambooth.pyがconfigから持ってくるように変更されたので、clip_sample=Falseになるため、それに合わせる
+  # 既存の1.4/1.5/2.0はすべてschdulerのconfigは（クラス名を除いて）同じ
+  noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear",
+                                  num_train_timesteps=1000, clip_sample=False)
 
   if accelerator.is_main_process:
     accelerator.init_trackers("finetuning" if fine_tuning else "hypernetwork")
@@ -400,7 +439,7 @@ def train(args):
 
     loss_total = 0
     for step, batch in enumerate(train_dataloader):
-      with accelerator.accumulate(training_models[0]):  # ここはこれでいいのか……？
+      with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
         latents = batch["latents"].to(accelerator.device)
         latents = latents * 0.18215
         b_size = latents.shape[0]
@@ -418,15 +457,29 @@ def train(args):
             encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
             encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
 
+          # bs*3, 77, 768 or 1024
           encoder_hidden_states = encoder_hidden_states.reshape((b_size, -1, encoder_hidden_states.shape[-1]))
 
           if args.max_token_length is not None:
-            # <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
-            sts_list = [encoder_hidden_states[:, 0].unsqueeze(1)]
-            for i in range(1, args.max_token_length, tokenizer.model_max_length):
-              sts_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])
-            sts_list.append(encoder_hidden_states[:, -1].unsqueeze(1))
-            encoder_hidden_states = torch.cat(sts_list, dim=1)
+            if args.v2:
+              # v2: <BOS>...<EOS> <PAD> ... の三連を <BOS>...<EOS> <PAD> ... へ戻す　正直この実装でいいのかわからん
+              states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
+              for i in range(1, args.max_token_length, tokenizer.model_max_length):
+                chunk = encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2]              # <BOS> の後から 最後の前まで
+                if i > 0:
+                  for j in range(len(chunk)):
+                    if input_ids[j, 1] == tokenizer.eos_token:                                      # 空、つまり <BOS> <EOS> <PAD> ...のパターン
+                      chunk[j, 0] = chunk[j, 1]                                                     # 次の <PAD> の値をコピーする
+                states_list.append(chunk)  # <BOS> の後から <EOS> の前まで
+              states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS> か <PAD> のどちらか
+              encoder_hidden_states = torch.cat(states_list, dim=1)
+            else:
+              # v1: <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
+              states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
+              for i in range(1, args.max_token_length, tokenizer.model_max_length):
+                states_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])  # <BOS> の後から <EOS> の前まで
+              states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS>
+              encoder_hidden_states = torch.cat(states_list, dim=1)
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
@@ -442,7 +495,41 @@ def train(args):
         # Predict the noise residual
         noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
-        loss = torch.nn.functional.mse_loss(noise_pred.float(), noise.float(), reduction="mean")
+        if args.v_parameterization:
+          # v-parameterization training
+
+          # 11/29現在v predictionのコードがDiffusersにcommitされたがリリースされていないので独自コードを使う
+          # 実装の中身は同じ模様
+
+          # こうしたい：
+          # target = noise_scheduler.get_v(latents, noise, timesteps)
+
+          # StabilityAiのddpm.pyのコード：
+          # elif self.parameterization == "v":
+          #     target = self.get_v(x_start, noise, t)
+          # ...
+          # def get_v(self, x, noise, t):
+          #   return (
+          #           extract_into_tensor(self.sqrt_alphas_cumprod, t, x.shape) * noise -
+          #           extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x.shape) * x
+          #   )
+
+          # scheduling_ddim.pyのコード：
+          # elif self.config.prediction_type == "v_prediction":
+          #     pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
+          #     # predict V
+          #     model_output = (alpha_prod_t**0.5) * model_output + (beta_prod_t**0.5) * sample
+
+          # これでいいかな？：
+          alpha_prod_t = noise_scheduler.alphas_cumprod[timesteps]
+          beta_prod_t = 1 - alpha_prod_t
+          alpha_prod_t = torch.reshape(alpha_prod_t, (len(alpha_prod_t), 1, 1, 1))    # broadcastされないらしいのでreshape
+          beta_prod_t = torch.reshape(beta_prod_t, (len(beta_prod_t), 1, 1, 1))
+          target = (alpha_prod_t ** 0.5) * noise - (beta_prod_t ** 0.5) * latents
+        else:
+          target = noise
+
+        loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="mean")
 
         accelerator.backward(loss)
         if accelerator.sync_gradients:
@@ -460,7 +547,7 @@ def train(args):
         progress_bar.update(1)
         global_step += 1
 
-      current_loss = loss.detach().item() * b_size
+      current_loss = loss.detach().item()        # 平均なのでbatch sizeは関係ないはず
       if args.logging_dir is not None:
         logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
         accelerator.log(logs, step=global_step)
@@ -481,14 +568,20 @@ def train(args):
 
     if args.save_every_n_epochs is not None:
       if (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs:
-        print("saving check point.")
+        print("saving checkpoint.")
         os.makedirs(args.output_dir, exist_ok=True)
         ckpt_file = os.path.join(args.output_dir, EPOCH_CHECKPOINT_NAME.format(epoch + 1))
 
         if fine_tuning:
-          fine_tuning_utils.save_stable_diffusion_checkpoint(
-              ckpt_file, accelerator.unwrap_model(text_encoder), accelerator.unwrap_model(unet),
-              args.pretrained_model_name_or_path, epoch + 1, global_step, save_dtype)
+          if use_stable_diffusion_format:
+            fine_tuning_utils.save_stable_diffusion_checkpoint(
+                args.v2, ckpt_file, accelerator.unwrap_model(text_encoder), accelerator.unwrap_model(unet),
+                args.pretrained_model_name_or_path, epoch + 1, global_step, save_dtype)
+          else:
+            out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
+            os.makedirs(out_dir, exist_ok=True)
+            fine_tuning_utils.save_diffusers_checkpoint(args.v2, out_dir, accelerator.unwrap_model(text_encoder),
+                                                        accelerator.unwrap_model(unet), args.pretrained_model_name_or_path, save_dtype)
         else:
           save_hypernetwork(ckpt_file, accelerator.unwrap_model(hypernetwork))
 
@@ -519,16 +612,14 @@ def train(args):
         ckpt_file = os.path.join(args.output_dir, LAST_CHECKPOINT_NAME)
         print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
         fine_tuning_utils.save_stable_diffusion_checkpoint(
-            ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path, epoch, global_step, save_dtype)
+            args.v2, ckpt_file, text_encoder, unet, args.pretrained_model_name_or_path, epoch, global_step, save_dtype)
       else:
         # Create the pipeline using using the trained modules and save it.
         print(f"save trained model as Diffusers to {args.output_dir}")
-        pipeline = StableDiffusionPipeline.from_pretrained(
-            args.pretrained_model_name_or_path,
-            unet=unet,
-            text_encoder=text_encoder,
-        )
-        pipeline.save_pretrained(args.output_dir)
+        out_dir = os.path.join(args.output_dir, LAST_DIFFUSERS_DIR_NAME)
+        os.makedirs(out_dir, exist_ok=True)
+        fine_tuning_utils.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet,
+                                                    args.pretrained_model_name_or_path, save_dtype)
     else:
       ckpt_file = os.path.join(args.output_dir, LAST_CHECKPOINT_NAME)
       print(f"save trained model to {ckpt_file}")
@@ -817,6 +908,10 @@ def replace_unet_cross_attn_to_xformers():
 if __name__ == '__main__':
   # torch.cuda.set_per_process_memory_fraction(0.48)
   parser = argparse.ArgumentParser()
+  parser.add_argument("--v2", action='store_true',
+                      help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
+  parser.add_argument("--v_parameterization", action='store_true',
+                      help='enable v-parameterization training / v-parameterization学習を有効にする')
   parser.add_argument("--pretrained_model_name_or_path", type=str, default=None,
                       help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル")
   parser.add_argument("--in_json", type=str, default=None, help="metadata file to input / 読みこむメタデータファイル")
@@ -832,7 +927,7 @@ if __name__ == '__main__':
   parser.add_argument("--hypernetwork_weights", type=str, default=None,
                       help='hypernetwork weights to initialize for additional training / Hypernetworkの学習時に読み込む重み（Hypernetworkの追加学習）')
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
-                      help="save checkpoint every N epochs (only supports in StableDiffusion checkpoint) / 学習中のモデルを指定エポックごとに保存する（StableDiffusion形式のモデルを読み込んだ場合のみ有効）")
+                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
   parser.add_argument("--save_state", action="store_true",
                       help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
   parser.add_argument("--resume", type=str, default=None,
@@ -857,13 +952,17 @@ if __name__ == '__main__':
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
   parser.add_argument("--save_precision", type=str, default=None,
-                      choices=[None, "float", "fp16", "bf16"], help="precision in saving / 保存時に精度を変更して保存する")
+                      choices=[None, "float", "fp16", "bf16"], help="precision in saving (available in StableDiffusion checkpoint) / 保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）")
   parser.add_argument("--clip_skip", type=int, default=None,
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
   parser.add_argument("--debug_dataset", action="store_true",
                       help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
   parser.add_argument("--logging_dir", type=str, default=None,
                       help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する")
+  parser.add_argument("--lr_scheduler", type=str, default="constant",
+                      help="scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial, constant (default), constant_with_warmup")
+  parser.add_argument("--lr_warmup_steps", type=int, default=0,
+                      help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
 
   args = parser.parse_args()
   train(args)
