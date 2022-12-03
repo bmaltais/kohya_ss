@@ -1,0 +1,1 @@
+Put your asd dog images you want to train in this folder
