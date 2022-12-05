@@ -21,29 +21,20 @@ Give unrestricted script access to powershell so venv can work:
 Open a regular Powershell terminal and type the following inside:
 
 ```powershell
-# Clone the Kohya_ss repository
 git clone https://github.com/bmaltais/kohya_ss.git
-
-# Navigate to the newly cloned directory
 cd kohya_ss
 
-# Create a virtual environment using the system-site-packages option
 python -m venv --system-site-packages venv
-
-# Activate the virtual environment
 .\venv\Scripts\activate
 
-# Install the required packages
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
 pip install --upgrade -r requirements.txt
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
-# Copy the necessary files to the virtual environment's site-packages directory
 cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
 cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
 cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
-# Configure the accelerate utility
 accelerate config
 
 ```
@@ -285,20 +276,22 @@ Refer to this url for more details about finetuning: https://note.com/kohya_ss/n
 ## Options list
 
 ```txt
-usage: train_db_fixed.py [-h] [--v2] [--v_parameterization] [--pretrained_model_name_or_path PRETRAINED_MODEL_NAME_OR_PATH]
-                         [--fine_tuning] [--shuffle_caption] [--caption_extention CAPTION_EXTENTION]
+usage: train_db_fixed.py [-h] [--v2] [--v_parameterization]
+                         [--pretrained_model_name_or_path PRETRAINED_MODEL_NAME_OR_PATH] [--fine_tuning]
+                         [--shuffle_caption] [--caption_extention CAPTION_EXTENTION]
                          [--caption_extension CAPTION_EXTENSION] [--train_data_dir TRAIN_DATA_DIR]
-                         [--reg_data_dir REG_DATA_DIR] [--dataset_repeats DATASET_REPEATS] [--output_dir OUTPUT_DIR]
-                         [--save_every_n_epochs SAVE_EVERY_N_EPOCHS] [--save_state] [--resume RESUME]
+                         [--reg_data_dir REG_DATA_DIR] [--dataset_repeats DATASET_REPEATS] [--output_dir OUTPUT_DIR]       
+                         [--use_safetensors] [--save_every_n_epochs SAVE_EVERY_N_EPOCHS] [--save_state] [--resume RESUME]  
                          [--prior_loss_weight PRIOR_LOSS_WEIGHT] [--no_token_padding]
                          [--stop_text_encoder_training STOP_TEXT_ENCODER_TRAINING] [--color_aug] [--flip_aug]
                          [--face_crop_aug_range FACE_CROP_AUG_RANGE] [--random_crop] [--debug_dataset]
-                         [--resolution RESOLUTION] [--train_batch_size TRAIN_BATCH_SIZE] [--use_8bit_adam] [--mem_eff_attn]    
-                         [--xformers] [--cache_latents] [--enable_bucket] [--min_bucket_reso MIN_BUCKET_RESO]
-                         [--max_bucket_reso MAX_BUCKET_RESO] [--learning_rate LEARNING_RATE]
-                         [--max_train_steps MAX_TRAIN_STEPS] [--seed SEED] [--gradient_checkpointing]
-                         [--mixed_precision {no,fp16,bf16}] [--save_precision {None,float,fp16,bf16}] [--clip_skip CLIP_SKIP]  
-                         [--logging_dir LOGGING_DIR] [--lr_scheduler LR_SCHEDULER] [--lr_warmup_steps LR_WARMUP_STEPS]
+                         [--resolution RESOLUTION] [--train_batch_size TRAIN_BATCH_SIZE] [--use_8bit_adam]
+                         [--mem_eff_attn] [--xformers] [--vae VAE] [--cache_latents] [--enable_bucket]
+                         [--min_bucket_reso MIN_BUCKET_RESO] [--max_bucket_reso MAX_BUCKET_RESO]
+                         [--learning_rate LEARNING_RATE] [--max_train_steps MAX_TRAIN_STEPS] [--seed SEED]
+                         [--gradient_checkpointing] [--mixed_precision {no,fp16,bf16}]
+                         [--save_precision {None,float,fp16,bf16}] [--clip_skip CLIP_SKIP] [--logging_dir LOGGING_DIR]     
+                         [--log_prefix LOG_PREFIX] [--lr_scheduler LR_SCHEDULER] [--lr_warmup_steps LR_WARMUP_STEPS]       
 
 options:
   -h, --help            show this help message and exit
@@ -310,7 +303,7 @@ options:
   --fine_tuning         fine tune the model instead of DreamBooth / DreamBoothではなくfine tuningする
   --shuffle_caption     shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする
   --caption_extention CAPTION_EXTENTION
-                        extension of caption files (backward compatiblity) / 読み込むcaptionファイルの拡張子（スペルミスを残し てあります）
+                        extension of caption files (backward compatiblity) / 読み込むcaptionファイルの拡張子（スペルミスを 残してあります）
   --caption_extension CAPTION_EXTENSION
                         extension of caption files / 読み込むcaptionファイルの拡張子
   --train_data_dir TRAIN_DATA_DIR
@@ -320,15 +313,18 @@ options:
   --dataset_repeats DATASET_REPEATS
                         repeat dataset in fine tuning / fine tuning時にデータセットを繰り返す回数
   --output_dir OUTPUT_DIR
-                        directory to output trained model (default format is same to input) /
-                        学習後のモデル出力先ディレクトリ（デフォルトの保存形式は読み込んだ形式と同じ）
+                        directory to output trained model / 学習後のモデル出力先ディレクトリ
+  --use_safetensors     use safetensors format for StableDiffusion checkpoint /
+                        StableDiffusionのcheckpointをsafetensors形式で保存する
   --save_every_n_epochs SAVE_EVERY_N_EPOCHS
                         save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存します
-  --save_state          save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する
+  --save_state          save training state additionally (including optimizer states etc.) /
+                        optimizerなど学習状態も含めたstateを追加で保存する
   --resume RESUME       saved state to resume training / 学習再開するモデルのstate
   --prior_loss_weight PRIOR_LOSS_WEIGHT
                         loss weight for regularization images / 正則化画像のlossの重み
-  --no_token_padding    disable token padding (same as Diffuser's DreamBooth) / トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）
+  --no_token_padding    disable token padding (same as Diffuser's DreamBooth) /
+                        トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）
   --stop_text_encoder_training STOP_TEXT_ENCODER_TRAINING
                         steps to stop text encoder training / Text Encoderの学習を止めるステップ数
   --color_aug           enable weak color augmentation / 学習時に色合いのaugmentationを有効にする
@@ -337,16 +333,17 @@ options:
                         enable face-centered crop augmentation and its range (e.g. 2.0,4.0) /
                         学習時に顔を中心とした切り出しaugmentationを有効にするときは倍率を指定する（例：2.0,4.0）
   --random_crop         enable random crop (for style training in face-centered crop augmentation) /
-                        ランダムな切り出しを有効にする（顔を中心としたaugmentationを行うときに画風の学習用に指定する）
-  --debug_dataset       show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）      
+                        ランダムな切り出しを有効にする（顔を中心としたaugmentationを行うときに画風の学習用に指定する）     
+  --debug_dataset       show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）  
   --resolution RESOLUTION
-                        resolution in training ('size' or 'width,height') / 学習時の画像解像度（'サイズ'指定、または'幅,高さ'指定）
+                        resolution in training ('size' or 'width,height') / 学習時の画像解像度（'サイズ'指定、または'幅,高 さ'指定）
   --train_batch_size TRAIN_BATCH_SIZE
                         batch size for training (1 means one train or reg data, not train/reg pair) /
                         学習時のバッチサイズ（1でtrain/regをそれぞれ1件ずつ学習）
   --use_8bit_adam       use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）
-  --mem_eff_attn        use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う
+  --mem_eff_attn        use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う      
   --xformers            use xformers for CrossAttention / CrossAttentionにxformersを使う
+  --vae VAE             path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ
   --cache_latents       cache latents to reduce memory (augmentations must be disabled) /
                         メモリ削減のためにlatentをcacheする（augmentationは使用不可）
   --enable_bucket       enable buckets for multi aspect ratio training / 複数解像度学習のためのbucketを有効にする
@@ -365,17 +362,29 @@ options:
                         use mixed precision / 混合精度を使う場合、その精度
   --save_precision {None,float,fp16,bf16}
                         precision in saving (available in StableDiffusion checkpoint) /
+                        保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）
+  --clip_skip CLIP_SKIP
+                        use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を 用いる（nは1以上）
   --logging_dir LOGGING_DIR
-                        enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する
+                        enable logging and output TensorBoard log to this directory /
+                        ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する
+  --log_prefix LOG_PREFIX
+                        add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列
   --lr_scheduler LR_SCHEDULER
-                        scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial,
-                        constant (default), constant_with_warmup
+                        scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts,   
+                        polynomial, constant (default), constant_with_warmup
   --lr_warmup_steps LR_WARMUP_STEPS
-                        Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）
+                        Number of steps for the warmup in the lr scheduler (default is 0) /
+                        学習率のスケジューラをウォームアップするステップ数（デフォルト0）
 ```
 
 ## Change history
 
+* 12/05 (v15) update:
+    - The script has been divided into two parts
+    - Support for SafeTensors format has been added. Install SafeTensors with `pip install safetensors`. The script will automatically detect the format based on the file extension when loading. Use the `--use_safetensors` option if you want to save the model as safetensor.
+    - The vae option has been added to load a VAE model separately.
+    - The log_prefix option has been added to allow adding a custom string to the log directory name before the date and time.
 * 11/30 (v13) update:
     - fix training text encoder at specified step (`--stop_text_encoder_training=<step #>`) that was causing both Unet and text encoder training to stop completely at the specified step rather than continue without text encoding training.
 * 11/29 (v12) update:

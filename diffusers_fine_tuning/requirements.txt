@@ -1,6 +1,0 @@
-transformers>=4.21.0
-ftfy
-albumentations
-opencv-python
-einops
-pytorch_lightning
