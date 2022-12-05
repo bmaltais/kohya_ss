@@ -21,20 +21,29 @@ Give unrestricted script access to powershell so venv can work:
 Open a regular Powershell terminal and type the following inside:
 
 ```powershell
+# Clone the Kohya_ss repository
 git clone https://github.com/bmaltais/kohya_ss.git
+
+# Navigate to the newly cloned directory
 cd kohya_ss
 
+# Create a virtual environment using the system-site-packages option
 python -m venv --system-site-packages venv
+
+# Activate the virtual environment
 .\venv\Scripts\activate
 
+# Install the required packages
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
 pip install --upgrade -r requirements.txt
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
+# Copy the necessary files to the virtual environment's site-packages directory
 cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
 cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
 cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
+# Configure the accelerate utility
 accelerate config
 
 ```
