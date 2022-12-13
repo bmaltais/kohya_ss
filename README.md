@@ -387,6 +387,12 @@ options:
 
 ## Change history
 
+* 12/13 (v17) update:
+    - Added support for learning to fp16 gradient (experimental function). SD1.x can be trained with 8GB of VRAM. Specify full_fp16 options.
+* 12/06 (v16) update:
+    - Added support for Diffusers 0.10.2 (use code in Diffusers to learn v-parameterization).
+    - Diffusers also supports safetensors.
+    - Added support for accelerate 0.15.0.
 * 12/05 (v15) update:
     - The script has been divided into two parts
     - Support for SafeTensors format has been added. Install SafeTensors with `pip install safetensors`. The script will automatically detect the format based on the file extension when loading. Use the `--use_safetensors` option if you want to save the model as safetensor.
