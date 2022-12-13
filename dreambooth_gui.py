@@ -34,7 +34,9 @@ def save_variables(
     cache_latent,
     caption_extention,
     use_safetensors,
-    enable_bucket
+    enable_bucket,
+    gradient_checkpointing,
+    full_fp16
 ):
     # Return the values of the variables as a dictionary
     variables = {
@@ -61,7 +63,9 @@ def save_variables(
         "cache_latent": cache_latent,
         "caption_extention": caption_extention,
         "use_safetensors": use_safetensors,
-        "enable_bucket": enable_bucket
+        "enable_bucket": enable_bucket,
+        "gradient_checkpointing": gradient_checkpointing,
+        "full_fp16": full_fp16
     }
 
     # Save the data to the selected file
@@ -100,6 +104,8 @@ def load_variables(file_path):
         my_data.get("caption_extention", None),
         my_data.get("use_safetensors", None),
         my_data.get("enable_bucket", None),
+        my_data.get("gradient_checkpointing", None),
+        my_data.get("full_fp16", None),
     )
 
 
@@ -127,7 +133,9 @@ def train_model(
     cache_latent,
     caption_extention,
     use_safetensors,
-    enable_bucket
+    enable_bucket,
+    gradient_checkpointing,
+    full_fp16
 ):
     def save_inference_file(output_dir, v2, v_model):
         # Copy inference model for v2 if required
@@ -189,6 +197,10 @@ def train_model(
         run_cmd += " --use_safetensors"
     if enable_bucket:
         run_cmd += " --enable_bucket"
+    if gradient_checkpointing:
+        run_cmd += " --gradient_checkpointing"
+    if full_fp16:
+        run_cmd += " --full_fp16"
     run_cmd += f" --pretrained_model_name_or_path={pretrained_model_name_or_path}"
     run_cmd += f" --train_data_dir={train_data_dir}"
     run_cmd += f" --reg_data_dir={reg_data_dir}"
@@ -287,8 +299,8 @@ with interface:
         with gr.Row():
             config_file_name = gr.Textbox(
                 label="Config file name")
-            b1 = gr.Button("Load config")
-            b2 = gr.Button("Save config")
+            button_load_config = gr.Button("Load config")
+            button_save_config = gr.Button("Save config")
     with gr.Tab("Source model"):
         # Define the input elements
         with gr.Row():
@@ -399,6 +411,12 @@ with interface:
             cache_latent_input = gr.Checkbox(
                 label="Cache latent", value=True
             )
+            gradient_checkpointing_input = gr.Checkbox(
+                label="Gradient checkpointing", value=False
+            )
+            full_fp16_input = gr.Checkbox(
+                label="Full fp16 training (experimental)", value=False
+            )
 
     with gr.Tab("Model conversion"):
         convert_to_safetensors_input = gr.Checkbox(
@@ -408,9 +426,9 @@ with interface:
             label="Convert to CKPT", value=False
         )
 
-    b3 = gr.Button("Run")
+    button_run = gr.Button("Run")
 
-    b1.click(
+    button_load_config.click(
         load_variables,
         inputs=[config_file_name],
         outputs=[
@@ -437,11 +455,13 @@ with interface:
             cache_latent_input,
             caption_extention_input,
             use_safetensors_input,
-            enable_bucket_input
+            enable_bucket_input,
+            gradient_checkpointing_input,
+            full_fp16_input
         ]
     )
 
-    b2.click(
+    button_save_config.click(
         save_variables,
         inputs=[
             config_file_name,
@@ -468,10 +488,12 @@ with interface:
             cache_latent_input,
             caption_extention_input,
             use_safetensors_input,
-            enable_bucket_input
+            enable_bucket_input,
+            gradient_checkpointing_input,
+            full_fp16_input
         ]
     )
-    b3.click(
+    button_run.click(
         train_model,
         inputs=[
             pretrained_model_name_or_path_input,
@@ -497,7 +519,9 @@ with interface:
             cache_latent_input,
             caption_extention_input,
             use_safetensors_input,
-            enable_bucket_input
+            enable_bucket_input,
+            gradient_checkpointing_input,
+            full_fp16_input
         ]
     )
 

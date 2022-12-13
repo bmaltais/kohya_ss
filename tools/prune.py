@@ -1,4 +1,3 @@
-import os
 import argparse
 import torch
 from tqdm import tqdm
@@ -23,7 +22,7 @@ del theta_prune
 
 if args.half:
     print("Halving model...")
-    state_dict = {k: v.half() for k, v in theta.items()}
+    state_dict = {k: v.half() for k, v in tqdm(theta.items(), desc="Halving weights")}
 else:
     state_dict = theta
 

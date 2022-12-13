@@ -13,6 +13,9 @@
 # v12: stop train text encode, tqdm smoothing
 # v13: bug fix
 # v14: refactor to use model_util, add log prefix, support safetensors, support vae loading, keep vae in CPU to save the loaded vae
+# v15: model_util update
+# v16: support Diffusers 0.10.0 (v-parameterization training, safetensors in Diffusers) and accelerate 0.15.0
+# v17: add fp16 gradient training (experimental)
 
 import gc
 import time
@@ -43,7 +46,7 @@ import model_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う
+V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
 
 # CLIP_ID_L14_336 = "openai/clip-vit-large-patch14-336"
 
@@ -596,10 +599,6 @@ def replace_unet_cross_attn_to_memory_efficient():
 
     out = rearrange(out, 'b h n d -> b n (h d)')
 
-    # diffusers 0.6.0
-    if type(self.to_out) is torch.nn.Sequential:
-      return self.to_out(out)
-
     # diffusers 0.7.0~
     out = self.to_out[0](out)
     out = self.to_out[1](out)
@@ -632,10 +631,6 @@ def replace_unet_cross_attn_to_xformers():
 
     out = rearrange(out, 'b n h d -> b n (h d)', h=h)
     # out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
-
-    # diffusers 0.6.0
-    if type(self.to_out) is torch.nn.Sequential:
-      return self.to_out(out)
 
     # diffusers 0.7.0~
     out = self.to_out[0](out)
@@ -821,6 +816,19 @@ def train(args):
   accelerator = Accelerator(gradient_accumulation_steps=1, mixed_precision=args.mixed_precision,
                             log_with=log_with, logging_dir=logging_dir)
 
+  # accelerateの互換性問題を解決する
+  accelerator_0_15 = True
+  try:
+    accelerator.unwrap_model("dummy", True)
+    print("Using accelerator 0.15.0 or above.")
+  except TypeError:
+    accelerator_0_15 = False
+
+  def unwrap_model(model):
+    if accelerator_0_15:
+      return accelerator.unwrap_model(model, True)
+    return accelerator.unwrap_model(model)
+
   # mixed precisionに対応した型を用意しておき適宜castする
   weight_dtype = torch.float32
   if args.mixed_precision == "fp16":
@@ -914,12 +922,28 @@ def train(args):
   lr_scheduler = diffusers.optimization.get_scheduler(
       args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
 
+  # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
+  if args.full_fp16:
+    assert args.mixed_precision == "fp16", "full_fp16 requires mixed precision='fp16' / full_fp16を使う場合はmixed_precision='fp16'を指定してください。"
+    print("enable full fp16 training.")
+    unet.to(weight_dtype)
+    text_encoder.to(weight_dtype)
+
   # acceleratorがなんかよろしくやってくれるらしい
   unet, text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
       unet, text_encoder, optimizer, train_dataloader, lr_scheduler)
 
   if not cache_latents:
     vae.to(accelerator.device, dtype=weight_dtype)
+
+  # 実験的機能：勾配も含めたfp16学習を行う　PyTorchにパッチを当ててfp16でのgrad scaleを有効にする
+  if args.full_fp16:
+    org_unscale_grads = accelerator.scaler._unscale_grads_
+
+    def _unscale_grads_replacer(optimizer, inv_scale, found_inf, allow_fp16):
+      return org_unscale_grads(optimizer, inv_scale, found_inf, True)
+
+    accelerator.scaler._unscale_grads_ = _unscale_grads_replacer
 
   # resumeする
   if args.resume is not None:
@@ -946,8 +970,8 @@ def train(args):
 
   # v12で更新：clip_sample=Falseに
   # Diffusersのtrain_dreambooth.pyがconfigから持ってくるように変更されたので、clip_sample=Falseになるため、それに合わせる
-  # 既存の1.4/1.5/2.0はすべてschdulerのconfigは（クラス名を除いて）同じ
-  # よくソースを見たら学習時は関係ないや(;'∀')　
+  # 既存の1.4/1.5/2.0/2.1はすべてschdulerのconfigは（クラス名を除いて）同じ
+  # よくソースを見たら学習時はclip_sampleは関係ないや(;'∀')　
   noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear",
                                   num_train_timesteps=1000, clip_sample=False)
 
@@ -1006,31 +1030,8 @@ def train(args):
 
         if args.v_parameterization:
           # v-parameterization training
-          # こうしたい：
-          # target = noise_scheduler.get_v(latents, noise, timesteps)
-
-          # StabilityAiのddpm.pyのコード：
-          # elif self.parameterization == "v":
-          #     target = self.get_v(x_start, noise, t)
-          # ...
-          # def get_v(self, x, noise, t):
-          #   return (
-          #           extract_into_tensor(self.sqrt_alphas_cumprod, t, x.shape) * noise -
-          #           extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x.shape) * x
-          #   )
-
-          # scheduling_ddim.pyのコード：
-          # elif self.config.prediction_type == "v_prediction":
-          #     pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
-          #     # predict V
-          #     model_output = (alpha_prod_t**0.5) * model_output + (beta_prod_t**0.5) * sample
-
-          # これでいいかな？：
-          alpha_prod_t = noise_scheduler.alphas_cumprod[timesteps]
-          beta_prod_t = 1 - alpha_prod_t
-          alpha_prod_t = torch.reshape(alpha_prod_t, (len(alpha_prod_t), 1, 1, 1))    # broadcastされないらしいのでreshape
-          beta_prod_t = torch.reshape(beta_prod_t, (len(beta_prod_t), 1, 1, 1))
-          target = (alpha_prod_t ** 0.5) * noise - (beta_prod_t ** 0.5) * latents
+          # Diffusers 0.10.0からv_parameterizationの学習に対応したのでそちらを使う
+          target = noise_scheduler.get_velocity(latents, noise, timesteps)
         else:
           target = noise
 
@@ -1081,13 +1082,14 @@ def train(args):
         if use_stable_diffusion_format:
           os.makedirs(args.output_dir, exist_ok=True)
           ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(args.use_safetensors, epoch + 1))
-          model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, accelerator.unwrap_model(text_encoder), accelerator.unwrap_model(unet),
+          model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
                                                       args.pretrained_model_name_or_path, epoch + 1, global_step, save_dtype, vae)
         else:
           out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
           os.makedirs(out_dir, exist_ok=True)
-          model_util.save_diffusers_checkpoint(args.v2, out_dir, accelerator.unwrap_model(text_encoder),
-                                               accelerator.unwrap_model(unet), args.pretrained_model_name_or_path)
+          model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder),
+                                               unwrap_model(unet), args.pretrained_model_name_or_path,
+                                               use_safetensors=args.use_safetensors)
 
         if args.save_state:
           print("saving state.")
@@ -1095,8 +1097,8 @@ def train(args):
 
   is_main_process = accelerator.is_main_process
   if is_main_process:
-    unet = accelerator.unwrap_model(unet)
-    text_encoder = accelerator.unwrap_model(text_encoder)
+    unet = unwrap_model(unet)
+    text_encoder = unwrap_model(text_encoder)
 
   accelerator.end_training()
 
@@ -1118,7 +1120,8 @@ def train(args):
       print(f"save trained model as Diffusers to {args.output_dir}")
       out_dir = os.path.join(args.output_dir, LAST_DIFFUSERS_DIR_NAME)
       os.makedirs(out_dir, exist_ok=True)
-      model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet, args.pretrained_model_name_or_path)
+      model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet, args.pretrained_model_name_or_path,
+                                           use_safetensors=args.use_safetensors)
     print("model saved.")
 
 
@@ -1147,9 +1150,9 @@ if __name__ == '__main__':
   parser.add_argument("--output_dir", type=str, default=None,
                       help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
   parser.add_argument("--use_safetensors", action='store_true',
-                      help="use safetensors format for StableDiffusion checkpoint / StableDiffusionのcheckpointをsafetensors形式で保存する")
+                      help="use safetensors format to save / checkpoint、モデルをsafetensors形式で保存する")
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
-                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存します")
+                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
   parser.add_argument("--save_state", action="store_true",
                       help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
   parser.add_argument("--resume", type=str, default=None, help="saved state to resume training / 学習再開するモデルのstate")
@@ -1191,6 +1194,7 @@ if __name__ == '__main__':
                       help="enable gradient checkpointing / grandient checkpointingを有効にする")
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
+  parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
   parser.add_argument("--save_precision", type=str, default=None,
                       choices=[None, "float", "fp16", "bf16"], help="precision in saving (available in StableDiffusion checkpoint) / 保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）")
   parser.add_argument("--clip_skip", type=int, default=None,
