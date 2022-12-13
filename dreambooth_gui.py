@@ -13,7 +13,7 @@ def save_variables(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_model,
+    v_parameterization,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -42,7 +42,7 @@ def save_variables(
     variables = {
         "pretrained_model_name_or_path": pretrained_model_name_or_path,
         "v2": v2,
-        "v_model": v_model,
+        "v_parameterization": v_parameterization,
         "logging_dir": logging_dir,
         "train_data_dir": train_data_dir,
         "reg_data_dir": reg_data_dir,
@@ -82,7 +82,7 @@ def load_variables(file_path):
     return (
         my_data.get("pretrained_model_name_or_path", None),
         my_data.get("v2", None),
-        my_data.get("v_model", None),
+        my_data.get("v_parameterization", None),
         my_data.get("logging_dir", None),
         my_data.get("train_data_dir", None),
         my_data.get("reg_data_dir", None),
@@ -112,7 +112,7 @@ def load_variables(file_path):
 def train_model(
     pretrained_model_name_or_path,
     v2,
-    v_model,
+    v_parameterization,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -137,9 +137,9 @@ def train_model(
     gradient_checkpointing,
     full_fp16
 ):
-    def save_inference_file(output_dir, v2, v_model):
+    def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
-        if v2 and v_model:
+        if v2 and v_parameterization:
             print(f"Saving v2-inference-v.yaml as {output_dir}/last.yaml")
             shutil.copy(
                 f"./v2_inference/v2-inference-v.yaml",
@@ -189,7 +189,7 @@ def train_model(
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db_fixed.py"'
     if v2:
         run_cmd += " --v2"
-    if v_model:
+    if v_parameterization:
         run_cmd += " --v_parameterization"
     if cache_latent:
         run_cmd += " --cache_latents"
@@ -234,7 +234,7 @@ def train_model(
                 f"python ./tools/convert_diffusers20_original_sd.py {last_dir} {last_dir}.ckpt --{save_precision}"
             )
 
-            save_inference_file(output_dir, v2, v_model)
+            save_inference_file(output_dir, v2, v_parameterization)
 
         if convert_to_safetensors:
             print(
@@ -243,53 +243,53 @@ def train_model(
                 f"python ./tools/convert_diffusers20_original_sd.py {last_dir} {last_dir}.safetensors --{save_precision}"
             )
 
-            save_inference_file(output_dir, v2, v_model)
+            save_inference_file(output_dir, v2, v_parameterization)
     else:
         # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_model)
+        save_inference_file(output_dir, v2, v_parameterization)
 
     # Return the values of the variables as a dictionary
     # return
 
 
-def set_pretrained_model_name_or_path_input(value, v2, v_model):
+def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
     # define a list of substrings to search for
     substrings_v2 = ["stabilityai/stable-diffusion-2-1-base", "stabilityai/stable-diffusion-2-base"]
 
-    # check if $v2 and $v_model are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
+    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
     if str(value) in substrings_v2:
         print("SD v2 model detected. Setting --v2 parameter")
         v2 = True
-        v_model = False
+        v_parameterization = False
 
-        return value, v2, v_model
+        return value, v2, v_parameterization
 
     # define a list of substrings to search for v-objective
-    substrings_v_model = ["stabilityai/stable-diffusion-2-1", "stabilityai/stable-diffusion-2"]
+    substrings_v_parameterization = ["stabilityai/stable-diffusion-2-1", "stabilityai/stable-diffusion-2"]
 
-    # check if $v2 and $v_model are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_model list
-    if str(value) in substrings_v_model:
-        print("SD v2 v_model detected. Setting --v2 parameter and --v_parameterization")
+    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
+    if str(value) in substrings_v_parameterization:
+        print("SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization")
         v2 = True
-        v_model = True
+        v_parameterization = True
 
-        return value, v2, v_model
+        return value, v2, v_parameterization
 
     # define a list of substrings to v1.x
     substrings_v1_model = ["CompVis/stable-diffusion-v1-4", "runwayml/stable-diffusion-v1-5"]
 
     if str(value) in substrings_v1_model:
         v2 = False
-        v_model = False
+        v_parameterization = False
 
-        return value, v2, v_model
+        return value, v2, v_parameterization
 
     if value == "custom":
         value = ""
         v2 = False
-        v_model = False
+        v_parameterization = False
 
-        return value, v2, v_model
+        return value, v2, v_parameterization
 
 interface = gr.Blocks()
 
@@ -322,12 +322,12 @@ with interface:
             )
         with gr.Row():
             v2_input = gr.Checkbox(label="v2", value=True)
-            v_model_input = gr.Checkbox(label="v_model", value=False)
+            v_parameterization_input = gr.Checkbox(label="v_parameterization", value=False)
         model_list.change(
             set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2_input, v_model_input],
+            inputs=[model_list, v2_input, v_parameterization_input],
             outputs=[pretrained_model_name_or_path_input,
-                     v2_input, v_model_input],
+                     v2_input, v_parameterization_input],
         )
     with gr.Tab("Directories"):
         with gr.Row():
@@ -403,7 +403,7 @@ with interface:
 
         with gr.Row():
             use_safetensors_input = gr.Checkbox(
-                label="Use safetensor when saving checkpoint", value=False
+                label="Use safetensor when saving", value=False
             )
             enable_bucket_input = gr.Checkbox(
                 label="Enable buckets", value=False
@@ -434,7 +434,7 @@ with interface:
         outputs=[
             pretrained_model_name_or_path_input,
             v2_input,
-            v_model_input,
+            v_parameterization_input,
             logging_dir_input,
             train_data_dir_input,
             reg_data_dir_input,
@@ -467,7 +467,7 @@ with interface:
             config_file_name,
             pretrained_model_name_or_path_input,
             v2_input,
-            v_model_input,
+            v_parameterization_input,
             logging_dir_input,
             train_data_dir_input,
             reg_data_dir_input,
@@ -498,7 +498,7 @@ with interface:
         inputs=[
             pretrained_model_name_or_path_input,
             v2_input,
-            v_model_input,
+            v_parameterization_input,
             logging_dir_input,
             train_data_dir_input,
             reg_data_dir_input,
