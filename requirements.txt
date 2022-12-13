@@ -9,3 +9,5 @@ pytorch_lightning
 bitsandbytes==0.35.0
 tensorboard
 safetensors==0.2.5
+gradio
+altair
