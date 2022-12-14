@@ -100,6 +100,10 @@ There is now support for GUI based training using gradio. You can start the GUI 
 python .\dreambooth_gui.py
 ```
 
+## Support
+
+Drop by the discord server for support: https://discord.com/channels/1023277529424986162/1026874833193140285
+
 ## Manual Script Execution
 
 ### SD1.5 example
