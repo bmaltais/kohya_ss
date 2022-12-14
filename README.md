@@ -50,6 +50,20 @@ Answers to accelerate config:
 - fp16
 ```
 
+### Optional: CUDNN 8.6
+
+This step is optional but can improve the learning speed for NVidia 4090 owners...
+
+Due to the filesize I can't host the DLLs needed for CUDNN 8.6 on Github, I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090) you can download them from here: https://b1.thefileditch.ch/mwxKTEtelILoIbMbruuM.zip
+
+To install simply unzip the directory and place the cudnn_windows folder in the root of the kohya_diffusers_fine_tuning repo.
+
+Run the following command to install:
+
+```
+python cudann_1.8_install.py
+```
+
 ## Upgrade
 
 When a new release comes out you can upgrade your repo with the following command:
