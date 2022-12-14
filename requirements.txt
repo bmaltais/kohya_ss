@@ -11,3 +11,4 @@ tensorboard
 safetensors==0.2.6
 gradio
 altair
+easygui
