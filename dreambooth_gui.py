@@ -477,7 +477,7 @@ def dreambooth_folder_preparation(
     else:
         training_dir = os.path.join(
             util_training_dir_input,
-            f"img/{int(util_training_images_repeat_input)}_{util_training_images_prompt_input}",
+            f"img/{int(util_training_images_repeat_input)}_{util_training_images_prompt_input} {util_regularization_images_prompt_input}",
         )
 
         # Remove folders if they exist
@@ -739,6 +739,18 @@ with interface:
                 "This utility will create the required folder structure for the training images and regularisation images that is required for kohys_ss Dreambooth method to properly run."
             )
             with gr.Row():
+                util_training_images_prompt_input = gr.Textbox(
+                    label="Instance prompt",
+                    placeholder="Eg: asd",
+                    interactive=True,
+                )
+                util_regularization_images_prompt_input = gr.Textbox(
+                    label="Class prompt",
+                    placeholder=
+                    "Eg: person",
+                    interactive=True,
+                )
+            with gr.Row():
                 util_training_images_dir_input = gr.Textbox(
                     label="Training images",
                     placeholder="Directory containing the training images",
@@ -753,16 +765,11 @@ with interface:
                     value=40,
                     interactive=True,
                     elem_id="number_input")
-                util_training_images_prompt_input = gr.Textbox(
-                    label="Training images prompt",
-                    placeholder="Prompt for the training images. Eg: asd",
-                    interactive=True,
-                )
             with gr.Row():
                 util_regularization_images_dir_input = gr.Textbox(
                     label="Regularisation images",
                     placeholder=
-                    "Directory containing the regularisation images",
+                    "(Optional) Directory containing the regularisation images",
                     interactive=True,
                 )
                 button_util_regularization_images_dir_input = gr.Button(
@@ -775,12 +782,6 @@ with interface:
                     value=1,
                     interactive=True,
                     elem_id="number_input")
-                util_regularization_images_prompt_input = gr.Textbox(
-                    label="Regularisation images class prompt",
-                    placeholder=
-                    "Prompt for the regularisation images. Eg: person",
-                    interactive=True,
-                )
             with gr.Row():
                 util_training_dir_input = gr.Textbox(
                     label="Destination training directory",
