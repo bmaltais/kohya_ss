@@ -517,6 +517,7 @@ def dreambooth_folder_preparation(
         f"Done creating kohya_ss training folder structure at {util_training_dir_input}..."
     )
 
+
 def copy_info_to_Directories_tab(training_folder):
     img_folder = os.path.join(training_folder, "img")
     reg_folder = os.path.join(training_folder, "reg")
@@ -524,6 +525,7 @@ def copy_info_to_Directories_tab(training_folder):
     log_folder = os.path.join(training_folder, "log")
 
     return img_folder, reg_folder, model_folder, log_folder
+
 
 css = ""
 
@@ -746,8 +748,7 @@ with interface:
                 )
                 util_regularization_images_prompt_input = gr.Textbox(
                     label="Class prompt",
-                    placeholder=
-                    "Eg: person",
+                    placeholder="Eg: person",
                     interactive=True,
                 )
             with gr.Row():
@@ -811,10 +812,14 @@ with interface:
 
     button_run = gr.Button("Train model")
 
-    button_copy_info_to_Directories_tab.click(
-        copy_info_to_Directories_tab,
-        inputs=[util_training_dir_input],
-        outputs=[train_data_dir_input, reg_data_dir_input, output_dir_input, logging_dir_input])
+    button_copy_info_to_Directories_tab.click(copy_info_to_Directories_tab,
+                                              inputs=[util_training_dir_input],
+                                              outputs=[
+                                                  train_data_dir_input,
+                                                  reg_data_dir_input,
+                                                  output_dir_input,
+                                                  logging_dir_input
+                                              ])
 
     button_open_config.click(
         open_configuration,
