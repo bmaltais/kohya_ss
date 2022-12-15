@@ -490,7 +490,7 @@ def dreambooth_folder_preparation(
         shutil.copytree(util_training_images_dir_input, training_dir)
 
     # Create the regularization_dir path
-    if (not len(util_regularization_images_prompt_input)
+    if (not (util_regularization_images_prompt_input == "")
             or not util_regularization_images_repeat_input > 0):
         print(
             "Regularization images directory or repeats is missing... not copying regularisation images..."
@@ -520,7 +520,10 @@ def dreambooth_folder_preparation(
 
 def copy_info_to_Directories_tab(training_folder):
     img_folder = os.path.join(training_folder, "img")
-    reg_folder = os.path.join(training_folder, "reg")
+    if os.path.exists(os.path.join(training_folder, "reg")):
+        reg_folder = os.path.join(training_folder, "reg")
+    else:
+        reg_folder = ""
     model_folder = os.path.join(training_folder, "model")
     log_folder = os.path.join(training_folder, "log")
 
