@@ -116,7 +116,7 @@ python .\dreambooth_gui.py
 
 ## Support
 
-Drop by the discord server for support: https://discord.com/channels/1023277529424986162/1026874833193140285
+Drop by the discord server for support: https://discord.com/channels/1041518562487058594/1041518563242020906
 
 ## Manual Script Execution
 
