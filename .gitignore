@@ -2,3 +2,4 @@ venv
 venv1
 mytraining.ps
 __pycache__
+.vscode

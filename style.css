@@ -1,5 +1,5 @@
 #open_folder_small{
-    height: fit-content;
+    height: auto;
     min-width: auto;
     flex-grow: 0;
     padding-left: 0.25em;
@@ -7,8 +7,15 @@
 }
 
 #open_folder{
-    height: fit-content;
+    height: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
+}
+
+#number_input{
+    min-width: min-content;
+    flex-grow: 0.3;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
 }
