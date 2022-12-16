@@ -1,6 +1,7 @@
 # v1: initial release
 # v2: add open and save folder icons
 # v3: Add new Utilities tab for Dreambooth folder preparation
+# v3.1: Adding captionning of images to utilities
 
 import gradio as gr
 import json
@@ -9,6 +10,7 @@ import os
 import subprocess
 import pathlib
 import shutil
+import dreambooth_gui.caption_gui as caption_gui
 from glob import glob
 from os.path import join
 from easygui import fileopenbox, filesavebox, enterbox, diropenbox, msgbox
@@ -475,29 +477,38 @@ def dreambooth_folder_preparation(
     util_regularization_images_dir_input,
     util_regularization_images_repeat_input,
     util_class_prompt_input,
-    util_training_dir_input,
+    util_training_dir_output,
 ):
 
     # Check if the input variables are empty
-    if (not len(util_training_dir_input)):
+    if (not len(util_training_dir_output)):
         print(
             "Destination training directory is missing... can't perform the required task..."
         )
         return
     else:
-        # Create the util_training_dir_input directory if it doesn't exist
-        os.makedirs(util_training_dir_input, exist_ok=True)
+        # Create the util_training_dir_output directory if it doesn't exist
+        os.makedirs(util_training_dir_output, exist_ok=True)
+
+    # Check for instance prompt
+    if util_instance_prompt_input == "":
+        msgbox("Instance prompt missing...")
+        return
+    
+    # Check for class prompt
+    if util_class_prompt_input == "":
+        msgbox("Class prompt missing...")
+        return
 
     # Create the training_dir path
-    if (not len(util_instance_prompt_input)
-            or not util_training_images_repeat_input > 0):
+    if (util_training_images_dir_input == ""):
         print(
-            "Training images directory or repeats is missing... can't perform the required task..."
+            "Training images directory is missing... can't perform the required task..."
         )
         return
     else:
         training_dir = os.path.join(
-            util_training_dir_input,
+            util_training_dir_output,
             f"img/{int(util_training_images_repeat_input)}_{util_instance_prompt_input} {util_class_prompt_input}",
         )
 
@@ -518,7 +529,7 @@ def dreambooth_folder_preparation(
         )
     else:
         regularization_dir = os.path.join(
-            util_training_dir_input,
+            util_training_dir_output,
             f"reg/{int(util_regularization_images_repeat_input)}_{util_class_prompt_input}",
         )
 
@@ -535,7 +546,7 @@ def dreambooth_folder_preparation(
                         regularization_dir)
 
     print(
-        f"Done creating kohya_ss training folder structure at {util_training_dir_input}..."
+        f"Done creating kohya_ss training folder structure at {util_training_dir_output}..."
     )
 
 
@@ -810,16 +821,16 @@ with interface:
                     interactive=True,
                     elem_id="number_input")
             with gr.Row():
-                util_training_dir_input = gr.Textbox(
+                util_training_dir_output = gr.Textbox(
                     label="Destination training directory",
                     placeholder=
                     "Directory where formatted training and regularisation folders will be placed",
                     interactive=True,
                 )
-                button_util_training_dir_input = gr.Button(
+                button_util_training_dir_output = gr.Button(
                     "📂", elem_id="open_folder_small")
-                button_util_training_dir_input.click(
-                    get_folder_path, outputs=util_training_dir_input)
+                button_util_training_dir_output.click(
+                    get_folder_path, outputs=util_training_dir_output)
             button_prepare_training_data = gr.Button("Prepare training data")
             button_prepare_training_data.click(
                 dreambooth_folder_preparation,
@@ -830,16 +841,17 @@ with interface:
                     util_regularization_images_dir_input,
                     util_regularization_images_repeat_input,
                     util_class_prompt_input,
-                    util_training_dir_input,
+                    util_training_dir_output,
                 ],
             )
             button_copy_info_to_Directories_tab = gr.Button(
                 "Copy info to Directories Tab")
+        caption_gui.gradio_caption_gui()
 
     button_run = gr.Button("Train model")
 
     button_copy_info_to_Directories_tab.click(copy_info_to_Directories_tab,
-                                              inputs=[util_training_dir_input],
+                                              inputs=[util_training_dir_output],
                                               outputs=[
                                                   train_data_dir_input,
                                                   reg_data_dir_input,
