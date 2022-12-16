@@ -471,10 +471,10 @@ def get_folder_path():
 def dreambooth_folder_preparation(
     util_training_images_dir_input,
     util_training_images_repeat_input,
-    util_training_images_prompt_input,
+    util_instance_prompt_input,
     util_regularization_images_dir_input,
     util_regularization_images_repeat_input,
-    util_regularization_images_prompt_input,
+    util_class_prompt_input,
     util_training_dir_input,
 ):
 
@@ -489,7 +489,7 @@ def dreambooth_folder_preparation(
         os.makedirs(util_training_dir_input, exist_ok=True)
 
     # Create the training_dir path
-    if (not len(util_training_images_prompt_input)
+    if (not len(util_instance_prompt_input)
             or not util_training_images_repeat_input > 0):
         print(
             "Training images directory or repeats is missing... can't perform the required task..."
@@ -498,7 +498,7 @@ def dreambooth_folder_preparation(
     else:
         training_dir = os.path.join(
             util_training_dir_input,
-            f"img/{int(util_training_images_repeat_input)}_{util_training_images_prompt_input} {util_regularization_images_prompt_input}",
+            f"img/{int(util_training_images_repeat_input)}_{util_instance_prompt_input} {util_class_prompt_input}",
         )
 
         # Remove folders if they exist
@@ -511,7 +511,7 @@ def dreambooth_folder_preparation(
         shutil.copytree(util_training_images_dir_input, training_dir)
 
     # Create the regularization_dir path
-    if (not (util_regularization_images_prompt_input == "")
+    if (not (util_class_prompt_input == "")
             or not util_regularization_images_repeat_input > 0):
         print(
             "Regularization images directory or repeats is missing... not copying regularisation images..."
@@ -519,7 +519,7 @@ def dreambooth_folder_preparation(
     else:
         regularization_dir = os.path.join(
             util_training_dir_input,
-            f"reg/{int(util_regularization_images_repeat_input)}_{util_regularization_images_prompt_input}",
+            f"reg/{int(util_regularization_images_repeat_input)}_{util_class_prompt_input}",
         )
 
         # Remove folders if they exist
@@ -571,7 +571,7 @@ with interface:
             button_save_as_config = gr.Button("Save as... 💾",
                                               elem_id="open_folder")
         config_file_name = gr.Textbox(
-            label="", placeholder="type config file path or use buttons...")
+            label="", placeholder="type the configuration file path or use the 'Open' button above to select it...")
         config_file_name.change(remove_doublequote,
                                 inputs=[config_file_name],
                                 outputs=[config_file_name])
@@ -722,7 +722,8 @@ with interface:
         with gr.Row():
             seed_input = gr.Textbox(label="Seed", value=1234)
             max_resolution_input = gr.Textbox(label="Max resolution",
-                                              value="512,512", placeholder="512,512")
+                                              value="512,512",
+                                              placeholder="512,512")
         with gr.Row():
             caption_extention_input = gr.Textbox(
                 label="Caption Extension",
@@ -763,15 +764,15 @@ with interface:
     with gr.Tab("Utilities"):
         with gr.Tab("Dreambooth folder preparation"):
             gr.Markdown(
-                "This utility will create the required folder structure for the training images and regularisation images that is required for kohys_ss Dreambooth method to properly run."
+                "This utility will create the necessary folder structure for the training images and optional regularization images needed for the kohys_ss Dreambooth method to function correctly."
             )
             with gr.Row():
-                util_training_images_prompt_input = gr.Textbox(
+                util_instance_prompt_input = gr.Textbox(
                     label="Instance prompt",
                     placeholder="Eg: asd",
                     interactive=True,
                 )
-                util_regularization_images_prompt_input = gr.Textbox(
+                util_class_prompt_input = gr.Textbox(
                     label="Class prompt",
                     placeholder="Eg: person",
                     interactive=True,
@@ -812,7 +813,7 @@ with interface:
                 util_training_dir_input = gr.Textbox(
                     label="Destination training directory",
                     placeholder=
-                    "Directory where formatted training and regularisation images will be placed",
+                    "Directory where formatted training and regularisation folders will be placed",
                     interactive=True,
                 )
                 button_util_training_dir_input = gr.Button(
@@ -825,10 +826,10 @@ with interface:
                 inputs=[
                     util_training_images_dir_input,
                     util_training_images_repeat_input,
-                    util_training_images_prompt_input,
+                    util_instance_prompt_input,
                     util_regularization_images_dir_input,
                     util_regularization_images_repeat_input,
-                    util_regularization_images_prompt_input,
+                    util_class_prompt_input,
                     util_training_dir_input,
                 ],
             )
