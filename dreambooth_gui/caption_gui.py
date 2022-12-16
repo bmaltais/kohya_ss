@@ -1,11 +1,7 @@
 import gradio as gr
-from easygui import diropenbox, msgbox
+from easygui import msgbox
 import subprocess
-
-def get_folder_path():
-    folder_path = diropenbox("Select the directory to use")
-
-    return folder_path
+from .common_gui import get_folder_path
 
 def caption_images(caption_text_input, images_dir_input, overwrite_input, caption_file_ext):
     # Check for caption_text_input
@@ -38,7 +34,7 @@ def caption_images(caption_text_input, images_dir_input, overwrite_input, captio
 # Gradio UI
 ###
 
-def gradio_caption_gui():
+def gradio_caption_gui_tab():
     with gr.Tab("Captionning"):
         gr.Markdown(
             "This utility will allow the creation of caption files for each images in a folder."
