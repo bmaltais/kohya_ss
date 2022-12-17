@@ -21,6 +21,11 @@ from dreambooth_gui.common_gui import (
 )
 from easygui import filesavebox, msgbox
 
+folder_symbol = '\U0001f4c2'  # 📂
+refresh_symbol = '\U0001f504'  # 🔄
+save_style_symbol = '\U0001f4be'  # 💾
+document_symbol = '\U0001F4C4' # 📄
+
 
 def save_configuration(
     save_as,
@@ -504,6 +509,18 @@ with interface:
             pretrained_model_name_or_path_input = gr.Textbox(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
+            )
+            pretrained_model_name_or_path_fille = gr.Button(
+                document_symbol, elem_id='open_folder_small'
+            )
+            pretrained_model_name_or_path_fille.click(
+                get_file_path, inputs=[pretrained_model_name_or_path_input], outputs=pretrained_model_name_or_path_input
+            )
+            pretrained_model_name_or_path_folder = gr.Button(
+                folder_symbol, elem_id='open_folder_small'
+            )
+            pretrained_model_name_or_path_folder.click(
+                get_folder_path, outputs=pretrained_model_name_or_path_input
             )
             model_list = gr.Dropdown(
                 label='(Optional) Model Quick Pick',

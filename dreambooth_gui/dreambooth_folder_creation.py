@@ -70,7 +70,7 @@ def dreambooth_folder_preparation(
 
     # Create the regularization_dir path
     if (
-        not (util_class_prompt_input == '')
+        util_class_prompt_input == ''
         or not util_regularization_images_repeat_input > 0
     ):
         print(
