@@ -13,9 +13,7 @@ from .common_gui import get_folder_path
 
 
 def dataset_balancing(concept_repeats, folder, insecure):
-    if insecure:
-        if not boolbox(f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> forders in:\n\n\t"{folder}"\n\nAre you sure you want to do that?', choices=("Yes, I like danger", "Not, get me out of here")):
-            return
+    
     if not concept_repeats > 0:
         # Display an error message if the total number of repeats is not a valid integer
         msgbox('Please enter a valid integer for the total number of repeats.')
@@ -78,6 +76,12 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
     msgbox('Dataset balancing completed...')
 
+def warning(insecure):
+    if insecure:
+        if boolbox(f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> forders...\n\nAre you sure you want to do that?', choices=("Yes, I like danger", "No, get me out of here")):
+            return True
+        else:
+            return False
 
 def gradio_dataset_balancing_tab():
     with gr.Tab('Dataset balancing'):
@@ -104,6 +108,7 @@ def gradio_dataset_balancing_tab():
             )
         with gr.Accordion('Advanced options', open=False):
             insecure = gr.Checkbox(value=False, label="DANGER!!! -- Insecure folder renaming -- DANGER!!!")
+            insecure.change(warning, inputs=insecure, outputs=insecure)
         balance_button = gr.Button('Balance dataset')
         balance_button.click(
             dataset_balancing,
