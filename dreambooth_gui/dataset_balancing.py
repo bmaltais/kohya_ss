@@ -102,9 +102,9 @@ def gradio_dataset_balancing_tab():
                 interactive=True,
                 label='Training steps per concept per epoch',
             )
-            
-        insecure = gr.Checkbox(value=False, label="DANGER!!! -- Insecure folder renaming -- DANGER!!!")
-        balance_button = gr.Button('Balance dataset')
+        with gr.Accordion('Advanced options', open=False):
+            insecure = gr.Checkbox(value=False, label="DANGER!!! -- Insecure folder renaming -- DANGER!!!")
+            balance_button = gr.Button('Balance dataset')
         balance_button.click(
             dataset_balancing,
             inputs=[total_repeats_number, select_dataset_folder_input, insecure],
