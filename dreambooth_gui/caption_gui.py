@@ -18,7 +18,7 @@ def caption_images(
         return
 
     print(
-        f'Captionning files in {images_dir_input} with {caption_text_input}...'
+        f'Captioning files in {images_dir_input} with {caption_text_input}...'
     )
     run_cmd = f'python "tools/caption.py"'
     run_cmd += f' --caption_text="{caption_text_input}"'
@@ -33,7 +33,7 @@ def caption_images(
     # Run the command
     subprocess.run(run_cmd)
 
-    print('...captionning done')
+    print('...captioning done')
 
 
 ###
@@ -42,7 +42,7 @@ def caption_images(
 
 
 def gradio_caption_gui_tab():
-    with gr.Tab('Captionning'):
+    with gr.Tab('Captioning'):
         gr.Markdown(
             'This utility will allow the creation of caption files for each images in a folder.'
         )

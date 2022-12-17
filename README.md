@@ -89,7 +89,7 @@ python .\dreambooth_gui.py
 
 You can find a screen cast on how to use the GUI at the following location:
 
-https://youtu.be/RlvqEKj03WI
+[![Video](https://img.youtube.com/vi/RlvqEKj03WI/maxresdefault.jpg)](https://www.youtube.com/watch?v=RlvqEKj03WI)
 
 ## Folders configuration
 
@@ -124,8 +124,13 @@ my_asd_dog_dreambooth
 
 Drop by the discord server for support: https://discord.com/channels/1041518562487058594/1041518563242020906
 
-## Change history
+## Contributors
 
+- Lord of the universe - cacoe (twitter: @cac0e)
+
+## Change history
+* 12/?? (v17.2) update:
+    - Adding new dataset balancing utility.
 * 12/17 (v17.1) update:
     - Adding GUI for kohya_ss called dreambooth_gui.py
     - removing support for `--finetuning` as there is now a dedicated python repo for that. `--fine-tuning` is still there behind the scene until kohya_ss remove it in a future code release.

@@ -10,10 +10,9 @@ import os
 import subprocess
 import pathlib
 import shutil
-from dreambooth_gui.dreambooth_folder_creation import (
-    gradio_dreambooth_folder_creation_tab,
-)
+from dreambooth_gui.dreambooth_folder_creation import gradio_dreambooth_folder_creation_tab
 from dreambooth_gui.caption_gui import gradio_caption_gui_tab
+from dreambooth_gui.dataset_balancing import gradio_dataset_balancing_tab
 from dreambooth_gui.common_gui import (
     get_folder_path,
     remove_doublequote,
@@ -729,6 +728,7 @@ with interface:
         )
         # Captionning tab
         gradio_caption_gui_tab()
+        gradio_dataset_balancing_tab()
 
     button_run = gr.Button('Train model')
 
