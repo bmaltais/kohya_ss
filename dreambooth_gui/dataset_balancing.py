@@ -86,7 +86,7 @@ def warning(insecure):
 def gradio_dataset_balancing_tab():
     with gr.Tab('Dataset balancing'):
         gr.Markdown('This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.')
-        gr.Markdown('WARNING! The use of this utility on the wrong folder can lead to loss of data!!! Use at your own risk!')
+        gr.Markdown('WARNING! The use of this utility on the wrong folder can lead to unexpected folder renaming!!!')
         with gr.Row():
             select_dataset_folder_input = gr.Textbox(label="Dataset folder",
                 placeholder='Folder containing the concepts folders to balance...',
