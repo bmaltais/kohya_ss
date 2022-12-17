@@ -129,7 +129,7 @@ Drop by the discord server for support: https://discord.com/channels/10415185624
 - Lord of the universe - cacoe (twitter: @cac0e)
 
 ## Change history
-* 12/?? (v17.2) update:
+* 12/17 (v17.2) update:
     - Adding new dataset balancing utility.
 * 12/17 (v17.1) update:
     - Adding GUI for kohya_ss called dreambooth_gui.py
