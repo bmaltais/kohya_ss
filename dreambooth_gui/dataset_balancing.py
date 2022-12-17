@@ -78,7 +78,7 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
 def warning(insecure):
     if insecure:
-        if boolbox(f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> forders...\n\nAre you sure you want to do that?', choices=("Yes, I like danger", "No, get me out of here")):
+        if boolbox(f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?', choices=("Yes, I like danger", "No, get me out of here")):
             return True
         else:
             return False
