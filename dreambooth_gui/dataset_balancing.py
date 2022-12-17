@@ -73,8 +73,9 @@ def dataset_balancing(concept_repeats, folder):
 
 def gradio_dataset_balancing_tab():
     with gr.Tab('Dataset balancing'):
+        gr.Markdown('This utility will ensure that each concept folder in the dataset folder is used equally during the training process of a machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.')
         with gr.Row():
-            select_dataset_folder_input = gr.Textbox(
+            select_dataset_folder_input = gr.Textbox(label="Dataset folder",
                 placeholder='Folder containing the concepts folders to balance...',
                 interactive=True,
             )
