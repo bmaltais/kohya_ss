@@ -124,8 +124,13 @@ my_asd_dog_dreambooth
 
 Drop by the discord server for support: https://discord.com/channels/1041518562487058594/1041518563242020906
 
-## Change history
+## Contributors
 
+- Lord of the universe - cacoe (twitter: @cac0e)
+
+## Change history
+* 12/?? (v17.2) update:
+    - Adding new dataset balancing utility.
 * 12/17 (v17.1) update:
     - Adding GUI for kohya_ss called dreambooth_gui.py
     - removing support for `--finetuning` as there is now a dedicated python repo for that. `--fine-tuning` is still there behind the scene until kohya_ss remove it in a future code release.
