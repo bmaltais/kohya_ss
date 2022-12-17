@@ -89,7 +89,16 @@ python .\dreambooth_gui.py
 
 You can find a screen cast on how to use the GUI at the following location:
 
-https://youtu.be/RlvqEKj03WI
+<center>
+ <iframe width="560" 
+         height="315" 
+         src="https://youtu.be/RlvqEKj03WI" 
+         title="YouTube video player" 
+         frameborder="0" 
+         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+         allowfullscreen>
+ </iframe>
+</center>
 
 ## Folders configuration
 
