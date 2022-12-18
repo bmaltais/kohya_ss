@@ -18,6 +18,6 @@ note.comに記事がありますのでそちらをご覧ください（将来的
 
 * [環境整備とDreamBooth学習スクリプトについて](https://note.com/kohya_ss/n/nee3ed1649fb6)
 * [fine-tuningスクリプト](https://note.com/kohya_ss/n/nbf7ce8d80f29):
-Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
+BLIPによるキャプショニングと、DeepDanbooruまたはWD14 taggerによるタグ付けを含みます
 * [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
 * [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)

@@ -15,7 +15,7 @@ This repository contains the scripts for:
 
 These files do not contain requirements for PyTorch and Diffusers. Because the versions of them depend on your environment. Please install PyTorch at first, then Diffusers. 
 
-The scripts is tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
+The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 ## Links to how-to-use documents
 
