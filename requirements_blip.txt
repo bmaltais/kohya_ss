@@ -1,0 +1,3 @@
+timm==0.4.12
+transformers==4.16.2
+fairscale==0.4.4
