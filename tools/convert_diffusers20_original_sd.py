@@ -5,9 +5,7 @@ import argparse
 import os
 import torch
 from diffusers import StableDiffusionPipeline
-
-import model_util
-
+from library import model_util as model_util
 
 def convert(args):
   # 引数を確認する

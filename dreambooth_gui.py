@@ -10,14 +10,15 @@ import os
 import subprocess
 import pathlib
 import shutil
-from dreambooth_gui.dreambooth_folder_creation import gradio_dreambooth_folder_creation_tab
-from dreambooth_gui.caption_gui import gradio_caption_gui_tab
-from dreambooth_gui.dataset_balancing import gradio_dataset_balancing_tab
-from dreambooth_gui.common_gui import (
+from library.dreambooth_folder_creation_gui import gradio_dreambooth_folder_creation_tab
+from library.caption_gui import gradio_caption_gui_tab
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
+from library.common_gui import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
 )
+from library.convert_model_gui import gradio_convert_model_tab
 from easygui import filesavebox, msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -699,6 +700,7 @@ with interface:
         # Captionning tab
         gradio_caption_gui_tab()
         gradio_dataset_balancing_tab()
+        gradio_convert_model_tab()
         # with gr.Tab('Model conversion'):
         #     convert_to_safetensors_input = gr.Checkbox(
         #         label='Convert to SafeTensors', value=True

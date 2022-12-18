@@ -3,3 +3,5 @@ venv1
 mytraining.ps
 __pycache__
 .vscode
+*.egg-info
+build

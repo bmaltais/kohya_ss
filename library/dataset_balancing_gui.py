@@ -102,7 +102,6 @@ def gradio_dataset_balancing_tab():
 
             total_repeats_number = gr.Number(
                 value=1000,
-                min=1,
                 interactive=True,
                 label='Training steps per concept per epoch',
             )
