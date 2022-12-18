@@ -35,6 +35,10 @@ VAE_PARAMS_NUM_RES_BLOCKS = 2
 V2_UNET_PARAMS_ATTENTION_HEAD_DIM = [5, 10, 20, 20]
 V2_UNET_PARAMS_CONTEXT_DIM = 1024
 
+# Diffusersの設定を読み込むための参照モデル
+DIFFUSERS_REF_MODEL_ID_V1 = "runwayml/stable-diffusion-v1-5"
+DIFFUSERS_REF_MODEL_ID_V2 = "stabilityai/stable-diffusion-2-1"
+
 
 # region StableDiffusion->Diffusersの変換コード
 # convert_original_stable_diffusion_to_diffusers をコピーして修正している（ASL 2.0）
@@ -973,7 +977,7 @@ def convert_text_encoder_state_dict_to_sd_v2(checkpoint, make_dummy_weights=Fals
     keys = list(new_sd.keys())
     for key in keys:
       if key.startswith("transformer.resblocks.22."):
-        new_sd[key.replace(".22.", ".23.")] = new_sd[key]
+        new_sd[key.replace(".22.", ".23.")] = new_sd[key].clone()          # copyしないとsafetensorsの保存で落ちる
 
     # Diffusersに含まれない重みを作っておく
     new_sd['text_projection'] = torch.ones((1024, 1024), dtype=new_sd[keys[0]].dtype, device=new_sd[keys[0]].device)
@@ -995,6 +999,7 @@ def save_stable_diffusion_checkpoint(v2, output_file, text_encoder, unet, ckpt_p
       del state_dict["state_dict"]
   else:
     # 新しく作る
+    assert vae is not None, "VAE is required to save a checkpoint without a given checkpoint"
     checkpoint = {}
     state_dict = {}
     strict = False
@@ -1047,14 +1052,24 @@ def save_stable_diffusion_checkpoint(v2, output_file, text_encoder, unet, ckpt_p
 
 
 def save_diffusers_checkpoint(v2, output_dir, text_encoder, unet, pretrained_model_name_or_path, vae=None, use_safetensors=False):
+  if pretrained_model_name_or_path is None:
+    # load default settings for v1/v2
+    if v2:
+      pretrained_model_name_or_path = DIFFUSERS_REF_MODEL_ID_V2
+    else:
+      pretrained_model_name_or_path = DIFFUSERS_REF_MODEL_ID_V1
+
+  scheduler = DDIMScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler")
+  tokenizer = CLIPTokenizer.from_pretrained(pretrained_model_name_or_path, subfolder="tokenizer")
   if vae is None:
     vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae")
+
   pipeline = StableDiffusionPipeline(
       unet=unet,
       text_encoder=text_encoder,
       vae=vae,
-      scheduler=DDIMScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler"),
-      tokenizer=CLIPTokenizer.from_pretrained(pretrained_model_name_or_path, subfolder="tokenizer"),
+      scheduler=scheduler,
+      tokenizer=tokenizer,
       safety_checker=None,
       feature_extractor=None,
       requires_safety_checker=None,

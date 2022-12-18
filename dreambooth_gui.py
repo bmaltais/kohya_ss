@@ -47,11 +47,8 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    convert_to_safetensors,
-    convert_to_ckpt,
     cache_latent,
     caption_extention,
-    use_safetensors,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -59,6 +56,7 @@ def save_configuration(
     stop_text_encoder_training,
     use_8bit_adam,
     xformers,
+    save_model_as
 ):
     original_file_path = file_path
 
@@ -103,11 +101,8 @@ def save_configuration(
         'save_precision': save_precision,
         'seed': seed,
         'num_cpu_threads_per_process': num_cpu_threads_per_process,
-        'convert_to_safetensors': convert_to_safetensors,
-        'convert_to_ckpt': convert_to_ckpt,
         'cache_latent': cache_latent,
         'caption_extention': caption_extention,
-        'use_safetensors': use_safetensors,
         'enable_bucket': enable_bucket,
         'gradient_checkpointing': gradient_checkpointing,
         'full_fp16': full_fp16,
@@ -115,6 +110,7 @@ def save_configuration(
         'stop_text_encoder_training': stop_text_encoder_training,
         'use_8bit_adam': use_8bit_adam,
         'xformers': xformers,
+        'save_model_as': save_model_as
     }
 
     # Save the data to the selected file
@@ -144,11 +140,8 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    convert_to_safetensors,
-    convert_to_ckpt,
     cache_latent,
     caption_extention,
-    use_safetensors,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -156,6 +149,7 @@ def open_configuration(
     stop_text_encoder_training,
     use_8bit_adam,
     xformers,
+    save_model_as
 ):
 
     original_file_path = file_path
@@ -195,11 +189,8 @@ def open_configuration(
         my_data.get(
             'num_cpu_threads_per_process', num_cpu_threads_per_process
         ),
-        my_data.get('convert_to_safetensors', convert_to_safetensors),
-        my_data.get('convert_to_ckpt', convert_to_ckpt),
         my_data.get('cache_latent', cache_latent),
         my_data.get('caption_extention', caption_extention),
-        my_data.get('use_safetensors', use_safetensors),
         my_data.get('enable_bucket', enable_bucket),
         my_data.get('gradient_checkpointing', gradient_checkpointing),
         my_data.get('full_fp16', full_fp16),
@@ -207,6 +198,7 @@ def open_configuration(
         my_data.get('stop_text_encoder_training', stop_text_encoder_training),
         my_data.get('use_8bit_adam', use_8bit_adam),
         my_data.get('xformers', xformers),
+        my_data.get('save_model_as', save_model_as)
     )
 
 
@@ -229,11 +221,8 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    convert_to_safetensors,
-    convert_to_ckpt,
     cache_latent,
     caption_extention,
-    use_safetensors,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -241,6 +230,7 @@ def train_model(
     stop_text_encoder_training_pct,
     use_8bit_adam,
     xformers,
+    save_model_as
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -352,8 +342,6 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if cache_latent:
         run_cmd += ' --cache_latents'
-    if use_safetensors:
-        run_cmd += ' --use_safetensors'
     if enable_bucket:
         run_cmd += ' --enable_bucket'
     if gradient_checkpointing:
@@ -388,38 +376,19 @@ def train_model(
     run_cmd += f' --logging_dir={logging_dir}'
     run_cmd += f' --caption_extention={caption_extention}'
     run_cmd += f' --stop_text_encoder_training={stop_text_encoder_training}'
+    if not save_model_as == 'same as source model':
+        run_cmd += f' --save_model_as={save_model_as}'
 
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
 
-    # check if output_dir/last is a directory... therefore it is a diffuser model
+    # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/last')
-    print(last_dir)
-    if last_dir.is_dir():
-        if convert_to_ckpt:
-            print(f'Converting diffuser model {last_dir} to {last_dir}.ckpt')
-            os.system(
-                f'python ./tools/convert_diffusers20_original_sd.py {last_dir} {last_dir}.ckpt --{save_precision}'
-            )
-
-            save_inference_file(output_dir, v2, v_parameterization)
-
-        if convert_to_safetensors:
-            print(
-                f'Converting diffuser model {last_dir} to {last_dir}.safetensors'
-            )
-            os.system(
-                f'python ./tools/convert_diffusers20_original_sd.py {last_dir} {last_dir}.safetensors --{save_precision}'
-            )
-
-            save_inference_file(output_dir, v2, v_parameterization)
-    else:
+    
+    if not last_dir.is_dir():
         # Copy inference model for v2 if required
         save_inference_file(output_dir, v2, v_parameterization)
-
-    # Return the values of the variables as a dictionary
-    # return
 
 
 def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
@@ -533,6 +502,17 @@ with interface:
                     'CompVis/stable-diffusion-v1-4',
                 ],
             )
+            save_model_as_dropdown = gr.Dropdown(
+                label='Save trained model as',
+                choices=[
+                    'same as source model',
+                    'ckpt',
+                    'diffusers',
+                    "diffusers_safetensors",
+                    'safetensors',
+                ],
+                value='same as source model'
+            )
         with gr.Row():
             v2_input = gr.Checkbox(label='v2', value=True)
             v_parameterization_input = gr.Checkbox(
@@ -557,7 +537,7 @@ with interface:
         with gr.Row():
             train_data_dir_input = gr.Textbox(
                 label='Image folder',
-                placeholder='Directory where the training folders containing the images are located',
+                placeholder='Folder where the training folders containing the images are located',
             )
             train_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
@@ -567,7 +547,7 @@ with interface:
             )
             reg_data_dir_input = gr.Textbox(
                 label='Regularisation folder',
-                placeholder='(Optional) Directory where where the regularization folders containing the images are located',
+                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
             reg_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
@@ -577,8 +557,8 @@ with interface:
             )
         with gr.Row():
             output_dir_input = gr.Textbox(
-                label='Output directory',
-                placeholder='Directory to output trained model',
+                label='Output folder',
+                placeholder='Folder to output trained model',
             )
             output_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
@@ -587,8 +567,8 @@ with interface:
                 get_folder_path, outputs=output_dir_input
             )
             logging_dir_input = gr.Textbox(
-                label='Logging directory',
-                placeholder='Optional: enable logging and output TensorBoard log to this directory',
+                label='Logging folder',
+                placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
             logging_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
@@ -694,9 +674,6 @@ with interface:
             no_token_padding_input = gr.Checkbox(
                 label='No token padding', value=False
             )
-            use_safetensors_input = gr.Checkbox(
-                label='Use safetensor when saving', value=False
-            )
 
             gradient_checkpointing_input = gr.Checkbox(
                 label='Gradient checkpointing', value=False
@@ -711,13 +688,6 @@ with interface:
             )
             xformers_input = gr.Checkbox(label='Use xformers', value=True)
 
-    with gr.Tab('Model conversion'):
-        convert_to_safetensors_input = gr.Checkbox(
-            label='Convert to SafeTensors', value=True
-        )
-        convert_to_ckpt_input = gr.Checkbox(
-            label='Convert to CKPT', value=False
-        )
     with gr.Tab('Utilities'):
         # Dreambooth folder creation tab
         gradio_dreambooth_folder_creation_tab(
@@ -729,6 +699,13 @@ with interface:
         # Captionning tab
         gradio_caption_gui_tab()
         gradio_dataset_balancing_tab()
+        # with gr.Tab('Model conversion'):
+        #     convert_to_safetensors_input = gr.Checkbox(
+        #         label='Convert to SafeTensors', value=True
+        #     )
+        #     convert_to_ckpt_input = gr.Checkbox(
+        #         label='Convert to CKPT', value=False
+        #     )
 
     button_run = gr.Button('Train model')
 
@@ -754,11 +731,8 @@ with interface:
             save_precision_input,
             seed_input,
             num_cpu_threads_per_process_input,
-            convert_to_safetensors_input,
-            convert_to_ckpt_input,
             cache_latent_input,
             caption_extention_input,
-            use_safetensors_input,
             enable_bucket_input,
             gradient_checkpointing_input,
             full_fp16_input,
@@ -766,6 +740,7 @@ with interface:
             stop_text_encoder_training_input,
             use_8bit_adam_input,
             xformers_input,
+            save_model_as_dropdown
         ],
         outputs=[
             config_file_name,
@@ -787,11 +762,8 @@ with interface:
             save_precision_input,
             seed_input,
             num_cpu_threads_per_process_input,
-            convert_to_safetensors_input,
-            convert_to_ckpt_input,
             cache_latent_input,
             caption_extention_input,
-            use_safetensors_input,
             enable_bucket_input,
             gradient_checkpointing_input,
             full_fp16_input,
@@ -799,6 +771,7 @@ with interface:
             stop_text_encoder_training_input,
             use_8bit_adam_input,
             xformers_input,
+            save_model_as_dropdown
         ],
     )
 
@@ -827,11 +800,8 @@ with interface:
             save_precision_input,
             seed_input,
             num_cpu_threads_per_process_input,
-            convert_to_safetensors_input,
-            convert_to_ckpt_input,
             cache_latent_input,
             caption_extention_input,
-            use_safetensors_input,
             enable_bucket_input,
             gradient_checkpointing_input,
             full_fp16_input,
@@ -839,6 +809,7 @@ with interface:
             stop_text_encoder_training_input,
             use_8bit_adam_input,
             xformers_input,
+            save_model_as_dropdown
         ],
         outputs=[config_file_name],
     )
@@ -866,11 +837,8 @@ with interface:
             save_precision_input,
             seed_input,
             num_cpu_threads_per_process_input,
-            convert_to_safetensors_input,
-            convert_to_ckpt_input,
             cache_latent_input,
             caption_extention_input,
-            use_safetensors_input,
             enable_bucket_input,
             gradient_checkpointing_input,
             full_fp16_input,
@@ -878,6 +846,7 @@ with interface:
             stop_text_encoder_training_input,
             use_8bit_adam_input,
             xformers_input,
+            save_model_as_dropdown
         ],
         outputs=[config_file_name],
     )
@@ -903,11 +872,8 @@ with interface:
             save_precision_input,
             seed_input,
             num_cpu_threads_per_process_input,
-            convert_to_safetensors_input,
-            convert_to_ckpt_input,
             cache_latent_input,
             caption_extention_input,
-            use_safetensors_input,
             enable_bucket_input,
             gradient_checkpointing_input,
             full_fp16_input,
@@ -915,6 +881,7 @@ with interface:
             stop_text_encoder_training_input,
             use_8bit_adam_input,
             xformers_input,
+            save_model_as_dropdown
         ],
     )
 

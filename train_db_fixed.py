@@ -16,6 +16,7 @@
 # v15: model_util update
 # v16: support Diffusers 0.10.0 (v-parameterization training, safetensors in Diffusers) and accelerate 0.15.0
 # v17: add fp16 gradient training (experimental)
+# v18: add save_model_as option
 
 import gc
 import time
@@ -670,8 +671,21 @@ def train(args):
     print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
   # モデル形式のオプション設定を確認する：
-  # v11からDiffUsersから直接落としてくるのもOK（ただし認証がいるやつは未対応）、またv11からDiffUsersも途中保存に対応した
-  use_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)
+  load_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)
+
+  if load_stable_diffusion_format:
+    src_stable_diffusion_ckpt = args.pretrained_model_name_or_path
+    src_diffusers_model_path = None
+  else:
+    src_stable_diffusion_ckpt = None
+    src_diffusers_model_path = args.pretrained_model_name_or_path
+  
+  if args.save_model_as is None:
+    save_stable_diffusion_format = load_stable_diffusion_format
+    use_safetensors = args.use_safetensors
+  else:
+    save_stable_diffusion_format = args.save_model_as.lower() == 'ckpt' or args.save_model_as.lower() == 'safetensors'
+    use_safetensors = args.use_safetensors or ("safetensors" in args.save_model_as.lower())
 
   # 乱数系列を初期化する
   if args.seed is not None:
@@ -691,7 +705,9 @@ def train(args):
     for cap_path in cap_paths:
       if os.path.isfile(cap_path):
         with open(cap_path, "rt", encoding='utf-8') as f:
-          caption = f.readlines()[0].strip()
+          lines = f.readlines()
+          assert len(lines) > 0, f"caption file is empty / キャプションファイルが空です: {cap_path}"
+          caption = lines[0].strip()
         break
     return caption
 
@@ -845,7 +861,7 @@ def train(args):
     save_dtype = torch.float32
 
   # モデルを読み込む
-  if use_stable_diffusion_format:
+  if load_stable_diffusion_format:
     print("load StableDiffusion checkpoint")
     text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.pretrained_model_name_or_path)
   else:
@@ -1079,17 +1095,17 @@ def train(args):
     if args.save_every_n_epochs is not None:
       if (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs:
         print("saving checkpoint.")
-        if use_stable_diffusion_format:
+        if save_stable_diffusion_format:
           os.makedirs(args.output_dir, exist_ok=True)
-          ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(args.use_safetensors, epoch + 1))
+          ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(use_safetensors, epoch + 1))
           model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
-                                                      args.pretrained_model_name_or_path, epoch + 1, global_step, save_dtype, vae)
+                                                      src_stable_diffusion_ckpt, epoch + 1, global_step, save_dtype, vae)
         else:
           out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
           os.makedirs(out_dir, exist_ok=True)
           model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder),
-                                               unwrap_model(unet), args.pretrained_model_name_or_path,
-                                               use_safetensors=args.use_safetensors)
+                                               unwrap_model(unet), src_diffusers_model_path,
+                                               use_safetensors=use_safetensors)
 
         if args.save_state:
           print("saving state.")
@@ -1110,18 +1126,17 @@ def train(args):
 
   if is_main_process:
     os.makedirs(args.output_dir, exist_ok=True)
-    if use_stable_diffusion_format:
-      ckpt_file = os.path.join(args.output_dir, model_util.get_last_ckpt_name(args.use_safetensors))
+    if save_stable_diffusion_format:
+      ckpt_file = os.path.join(args.output_dir, model_util.get_last_ckpt_name(use_safetensors))
       print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
       model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, text_encoder, unet,
-                                                  args.pretrained_model_name_or_path, epoch, global_step, save_dtype, vae)
+                                                  src_stable_diffusion_ckpt, epoch, global_step, save_dtype, vae)
     else:
-      # Create the pipeline using using the trained modules and save it.
       print(f"save trained model as Diffusers to {args.output_dir}")
       out_dir = os.path.join(args.output_dir, LAST_DIFFUSERS_DIR_NAME)
       os.makedirs(out_dir, exist_ok=True)
-      model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet, args.pretrained_model_name_or_path,
-                                           use_safetensors=args.use_safetensors)
+      model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet, src_diffusers_model_path,
+                                           use_safetensors=use_safetensors)
     print("model saved.")
 
 
@@ -1149,8 +1164,12 @@ if __name__ == '__main__':
                       help="repeat dataset in fine tuning / fine tuning時にデータセットを繰り返す回数")
   parser.add_argument("--output_dir", type=str, default=None,
                       help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
+  parser.add_argument("--save_precision", type=str, default=None,
+                      choices=[None, "float", "fp16", "bf16"], help="precision in saving (available in StableDiffusion checkpoint) / 保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）")
+  parser.add_argument("--save_model_as", type=str, default=None, choices=[None, "ckpt", "safetensors", "diffusers", "diffusers_safetensors"],
+                      help="format to save the model (default is same to original) / モデル保存時の形式（未指定時は元モデルと同じ）")
   parser.add_argument("--use_safetensors", action='store_true',
-                      help="use safetensors format to save / checkpoint、モデルをsafetensors形式で保存する")
+                      help="use safetensors format to save (if save_model_as is not specified) / checkpoint、モデルをsafetensors形式で保存する（save_model_as未指定時）")
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
                       help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
   parser.add_argument("--save_state", action="store_true",
@@ -1195,8 +1214,6 @@ if __name__ == '__main__':
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
   parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
-  parser.add_argument("--save_precision", type=str, default=None,
-                      choices=[None, "float", "fp16", "bf16"], help="precision in saving (available in StableDiffusion checkpoint) / 保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）")
   parser.add_argument("--clip_skip", type=int, default=None,
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
   parser.add_argument("--logging_dir", type=str, default=None,

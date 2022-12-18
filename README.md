@@ -129,6 +129,11 @@ Drop by the discord server for support: https://discord.com/channels/10415185624
 - Lord of the universe - cacoe (twitter: @cac0e)
 
 ## Change history
+
+* 12/17 (v18) update:
+    - Save model as option added to train_db_fixed.py
+    - Save model as option added to GUI
+    - Retire "Model conversion" parameters that was essentially performing the same function as the new `--save_model_as` parameter
 * 12/17 (v17.2) update:
     - Adding new dataset balancing utility.
 * 12/17 (v17.1) update:
