@@ -1,2 +1,3 @@
 tensorflow<2.11
 huggingface-hub
+.
