@@ -44,11 +44,16 @@ def get_saveasfile_path(file_path='', defaultextension='.json'):
     root = Tk()
     root.wm_attributes('-topmost', 1)
     root.withdraw()
-    file_path = filedialog.asksaveasfile(filetypes = (("Config files", "*.json"), ("All files", "*")), defaultextension=defaultextension)
+    save_file_path = filedialog.asksaveasfile(filetypes = (("Config files", "*.json"), ("All files", "*")), defaultextension=defaultextension)
     root.destroy()
     
-    file_path = file_path.name
+    # file_path = file_path.name
     if file_path == '':
         file_path = current_file_path
+    else:
+        print(save_file_path.name)
+        file_path = save_file_path.name
+
+    print(file_path)
 
     return file_path

@@ -84,7 +84,7 @@ def save_configuration(
             # )
             file_path = get_saveasfile_path(file_path)
 
-    if file_path == None:
+    if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Return the values of the variables as a dictionary
