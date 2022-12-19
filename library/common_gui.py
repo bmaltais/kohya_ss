@@ -1,4 +1,5 @@
 from tkinter import filedialog, Tk
+import os
 
 def get_file_path(file_path='', defaultextension='.json'):
     current_file_path = file_path
@@ -57,3 +58,18 @@ def get_saveasfile_path(file_path='', defaultextension='.json'):
     print(file_path)
 
     return file_path
+
+def add_pre_postfix(folder='', prefix='', postfix='', caption_file_ext='.caption'):
+    files  = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
+    if not prefix == '':
+        prefix = f'{prefix} '
+    if not postfix == '':
+        postfix = f' {postfix}'
+        
+    for file in files:
+        with open(os.path.join(folder, file), 'r+') as f:
+            content = f.read()
+            content = content.rstrip()
+            f.seek(0,0)
+            f.write(f'{prefix}{content}{postfix}')
+    f.close()

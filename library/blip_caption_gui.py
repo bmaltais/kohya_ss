@@ -1,8 +1,8 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path
-
+import os
+from .common_gui import get_folder_path, add_pre_postfix
 
 def caption_images(
     train_data_dir,
@@ -13,6 +13,8 @@ def caption_images(
     max_length,
     min_length,
     beam_search,
+    prefix,
+    postfix
 ):
     # Check for caption_text_input
     # if caption_text_input == "":
@@ -42,6 +44,9 @@ def caption_images(
 
     # Run the command
     subprocess.run(run_cmd)
+    
+    # Add prefix and postfix
+    add_pre_postfix(folder=train_data_dir, caption_file_ext=caption_file_ext, prefix=prefix, postfix=postfix)
 
     print('...captioning done')
 
@@ -68,10 +73,22 @@ def gradio_blip_caption_gui_tab():
             button_train_data_dir_input.click(
                 get_folder_path, outputs=train_data_dir
             )
-
+        with gr.Row():
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
                 placeholder='(Optional) Default: .caption',
+                interactive=True,
+            )
+            
+            prefix = gr.Textbox(
+                label='Prefix to add to BLIP caption',
+                placeholder='(Optional)',
+                interactive=True,
+            )
+            
+            postfix = gr.Textbox(
+                label='Postfix to add to BLIP caption',
+                placeholder='(Optional)',
                 interactive=True,
             )
 
@@ -107,5 +124,7 @@ def gradio_blip_caption_gui_tab():
                 max_length,
                 min_length,
                 beam_search,
+                prefix,
+                postfix
             ],
         )
