@@ -50,7 +50,7 @@ import numpy as np
 from einops import rearrange
 from torch import einsum
 
-import model_util
+import library.model_util as model_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"

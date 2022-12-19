@@ -6,3 +6,7 @@ opencv-python
 einops
 pytorch_lightning
 safetensors
+bitsandbytes==0.35.0
+tensorboard
+diffusers[torch]==0.10.2
+.
