@@ -381,7 +381,8 @@ def train_model(
     run_cmd += f' --save_precision={save_precision}'
     run_cmd += f' --logging_dir={logging_dir}'
     run_cmd += f' --caption_extention={caption_extention}'
-    run_cmd += f' --stop_text_encoder_training={stop_text_encoder_training}'
+    if not stop_text_encoder_training == 0:
+        run_cmd += f' --stop_text_encoder_training={stop_text_encoder_training}'
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
 
@@ -462,22 +463,23 @@ with interface:
     dummy_false = gr.Label(value=False, visible=False)
     with gr.Tab('Dreambooth'):
         gr.Markdown('Enter kohya finetuner parameter using this interface.')
-        with gr.Accordion('Configuration File Load/Save', open=False):
+        with gr.Accordion('Configuration file', open=False):
             with gr.Row():
                 button_open_config = gr.Button('Open 📂', elem_id='open_folder')
                 button_save_config = gr.Button('Save 💾', elem_id='open_folder')
                 button_save_as_config = gr.Button(
                     'Save as... 💾', elem_id='open_folder'
                 )
-            config_file_name = gr.Textbox(
-                label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
-            )
-            config_file_name.change(
-                remove_doublequote,
-                inputs=[config_file_name],
-                outputs=[config_file_name],
-            )
+                config_file_name = gr.Textbox(
+                    label='',
+                    # placeholder="type the configuration file path or use the 'Open' button above to select it...",
+                    interactive=False
+                )
+            # config_file_name.change(
+            #     remove_doublequote,
+            #     inputs=[config_file_name],
+            #     outputs=[config_file_name],
+            # )
         with gr.Tab('Source model'):
             # Define the input elements
             with gr.Row():

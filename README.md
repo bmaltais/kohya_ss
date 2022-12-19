@@ -130,6 +130,8 @@ Drop by the discord server for support: https://discord.com/channels/10415185624
 
 ## Change history
 
+* 12/19 (v18.3) update:
+    - fix stop encoder training issue
 * 12/19 (v18.2) update:
     - Fix file/folder opening behind the browser window
     - Add WD14 and BLIP captioning to utilities
