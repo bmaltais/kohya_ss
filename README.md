@@ -13,7 +13,7 @@ This repository contains the scripts for:
 
 ## About requirements_*.txt
 
-These files do not contain requirements for PyTorch and Diffusers. Because the versions of them depend on your environment. Please install PyTorch at first, then Diffusers. 
+These files do not contain requirements for PyTorch. Because the versions of them depend on your environment. Please install PyTorch at first (see installation guide below.) 
 
 The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
@@ -79,10 +79,21 @@ Answers to accelerate config:
 When a new release comes out you can upgrade your repo with the following command:
 
 ```powershell
-cd kohya_diffusers_fine_tuning
+cd sd-scripts
 git pull
 .\venv\Scripts\activate
 pip install --upgrade -r <requirement file name>
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.
+
+## License
+
+The majority of scripts is licensed under ASL 2.0 (including codes from Diffusers), however portions of the project are available under separate license terms:
+
+[Memory Efficient Attention Pytorch](https://github.com/lucidrains/memory-efficient-attention-pytorch): MIT
+
+[bitsandbytes](https://github.com/TimDettmers/bitsandbytes): MIT
+
+[BLIP](https://github.com/salesforce/BLIP): BSD-3-Clause
+
