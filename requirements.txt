@@ -12,7 +12,6 @@ safetensors==0.2.6
 gradio
 altair
 easygui
-tkinter
 # for BLIP captioning
 requests
 timm
