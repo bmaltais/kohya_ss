@@ -41,10 +41,10 @@ def caption_images(
 ###
 
 
-def gradio_caption_gui_tab():
-    with gr.Tab('Captioning'):
+def gradio_basic_caption_gui_tab():
+    with gr.Tab('Basic Captioning'):
         gr.Markdown(
-            'This utility will allow the creation of caption files for each images in a folder.'
+            'This utility will allow the creation of simple caption files for each images in a folder.'
         )
         with gr.Row():
             caption_text_input = gr.Textbox(
@@ -64,7 +64,7 @@ def gradio_caption_gui_tab():
             )
         with gr.Row():
             images_dir_input = gr.Textbox(
-                label='Image forder to caption',
+                label='Image folder to caption',
                 placeholder='Directory containing the images to caption',
                 interactive=True,
             )

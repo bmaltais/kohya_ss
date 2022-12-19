@@ -50,12 +50,15 @@ def convert_model(source_model_input, source_model_type, target_model_folder_inp
     if not target_save_precision_type == 'unspecified':
         run_cmd += f' --{target_save_precision_type}'
     
-    if target_model_type == "diffuser":
+    if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
         run_cmd += f' --reference_model="{source_model_type}"'
+        
+    if target_model_type == 'diffuser_safetensors':
+        run_cmd += ' --use_safetensors'
         
     run_cmd += f' "{source_model_input}"'
     
-    if target_model_type == "diffuser":
+    if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
         target_model_path = os.path.join(target_model_folder_input, target_model_name_input)
         run_cmd += f' "{target_model_path}"'
     else:
@@ -67,7 +70,7 @@ def convert_model(source_model_input, source_model_type, target_model_folder_inp
     # Run the command
     subprocess.run(run_cmd)
     
-    if not target_model_type == "diffuser":
+    if not target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
         
         v2_models = ['stabilityai/stable-diffusion-2-1-base',
                     'stabilityai/stable-diffusion-2-base',]
@@ -171,6 +174,7 @@ def gradio_convert_model_tab():
             )
             target_model_type = gr.Dropdown(label="Target model type", choices=[
                     'diffuser',
+                    'diffuser_safetensors',
                     'ckpt',
                     'safetensors',
                 ],)

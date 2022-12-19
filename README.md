@@ -130,6 +130,10 @@ Drop by the discord server for support: https://discord.com/channels/10415185624
 
 ## Change history
 
+* 12/19 (v18.2) update:
+    - Fix file/folder opening behind the browser window
+    - Add WD14 and BLIP captioning to utilities
+    - Improve overall GUI layout
 * 12/18 (v18.1) update:
     - Add Stable Diffusion model conversion utility. Make sure to run `pip upgrade -U -r requirements.txt` after updating to this release as this introduce new pip requirements.
 * 12/17 (v18) update:

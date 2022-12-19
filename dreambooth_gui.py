@@ -11,15 +11,18 @@ import subprocess
 import pathlib
 import shutil
 from library.dreambooth_folder_creation_gui import gradio_dreambooth_folder_creation_tab
-from library.caption_gui import gradio_caption_gui_tab
+from library.basic_caption_gui import gradio_basic_caption_gui_tab
+from library.convert_model_gui import gradio_convert_model_tab
+from library.blip_caption_gui import gradio_blip_caption_gui_tab
+from library.wd14_caption_gui import gradio_wd14_caption_gui_tab
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.common_gui import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
+    get_saveasfile_path
 )
-from library.convert_model_gui import gradio_convert_model_tab
-from easygui import filesavebox, msgbox
+from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -65,19 +68,21 @@ def save_configuration(
 
     if save_as_bool:
         print('Save as...')
-        file_path = filesavebox(
-            'Select the config file to save',
-            default='finetune.json',
-            filetypes='*.json',
-        )
+        # file_path = filesavebox(
+        #     'Select the config file to save',
+        #     default='finetune.json',
+        #     filetypes='*.json',
+        # )
+        file_path = get_saveasfile_path(file_path)
     else:
         print('Save...')
         if file_path == None or file_path == '':
-            file_path = filesavebox(
-                'Select the config file to save',
-                default='finetune.json',
-                filetypes='*.json',
-            )
+            # file_path = filesavebox(
+            #     'Select the config file to save',
+            #     default='finetune.json',
+            #     filetypes='*.json',
+            # )
+            file_path = get_saveasfile_path(file_path)
 
     if file_path == None:
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -455,261 +460,258 @@ interface = gr.Blocks(css=css)
 with interface:
     dummy_true = gr.Label(value=True, visible=False)
     dummy_false = gr.Label(value=False, visible=False)
-    gr.Markdown('Enter kohya finetuner parameter using this interface.')
-    with gr.Accordion('Configuration File Load/Save', open=False):
-        with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
-            button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder'
+    with gr.Tab('Dreambooth'):
+        gr.Markdown('Enter kohya finetuner parameter using this interface.')
+        with gr.Accordion('Configuration File Load/Save', open=False):
+            with gr.Row():
+                button_open_config = gr.Button('Open 📂', elem_id='open_folder')
+                button_save_config = gr.Button('Save 💾', elem_id='open_folder')
+                button_save_as_config = gr.Button(
+                    'Save as... 💾', elem_id='open_folder'
+                )
+            config_file_name = gr.Textbox(
+                label='',
+                placeholder="type the configuration file path or use the 'Open' button above to select it...",
             )
-        config_file_name = gr.Textbox(
-            label='',
-            placeholder="type the configuration file path or use the 'Open' button above to select it...",
-        )
-        config_file_name.change(
-            remove_doublequote,
-            inputs=[config_file_name],
-            outputs=[config_file_name],
-        )
-    with gr.Tab('Source model'):
-        # Define the input elements
-        with gr.Row():
-            pretrained_model_name_or_path_input = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
+            config_file_name.change(
+                remove_doublequote,
+                inputs=[config_file_name],
+                outputs=[config_file_name],
             )
-            pretrained_model_name_or_path_fille = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+        with gr.Tab('Source model'):
+            # Define the input elements
+            with gr.Row():
+                pretrained_model_name_or_path_input = gr.Textbox(
+                    label='Pretrained model name or path',
+                    placeholder='enter the path to custom model or name of pretrained model',
+                )
+                pretrained_model_name_or_path_fille = gr.Button(
+                    document_symbol, elem_id='open_folder_small'
+                )
+                pretrained_model_name_or_path_fille.click(
+                    get_file_path, inputs=[pretrained_model_name_or_path_input], outputs=pretrained_model_name_or_path_input
+                )
+                pretrained_model_name_or_path_folder = gr.Button(
+                    folder_symbol, elem_id='open_folder_small'
+                )
+                pretrained_model_name_or_path_folder.click(
+                    get_folder_path, outputs=pretrained_model_name_or_path_input
+                )
+                model_list = gr.Dropdown(
+                    label='(Optional) Model Quick Pick',
+                    choices=[
+                        'custom',
+                        'stabilityai/stable-diffusion-2-1-base',
+                        'stabilityai/stable-diffusion-2-base',
+                        'stabilityai/stable-diffusion-2-1',
+                        'stabilityai/stable-diffusion-2',
+                        'runwayml/stable-diffusion-v1-5',
+                        'CompVis/stable-diffusion-v1-4',
+                    ],
+                )
+                save_model_as_dropdown = gr.Dropdown(
+                    label='Save trained model as',
+                    choices=[
+                        'same as source model',
+                        'ckpt',
+                        'diffusers',
+                        "diffusers_safetensors",
+                        'safetensors',
+                    ],
+                    value='same as source model'
+                )
+            with gr.Row():
+                v2_input = gr.Checkbox(label='v2', value=True)
+                v_parameterization_input = gr.Checkbox(
+                    label='v_parameterization', value=False
+                )
+            pretrained_model_name_or_path_input.change(
+                remove_doublequote,
+                inputs=[pretrained_model_name_or_path_input],
+                outputs=[pretrained_model_name_or_path_input],
             )
-            pretrained_model_name_or_path_fille.click(
-                get_file_path, inputs=[pretrained_model_name_or_path_input], outputs=pretrained_model_name_or_path_input
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path, outputs=pretrained_model_name_or_path_input
-            )
-            model_list = gr.Dropdown(
-                label='(Optional) Model Quick Pick',
-                choices=[
-                    'custom',
-                    'stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
+            model_list.change(
+                set_pretrained_model_name_or_path_input,
+                inputs=[model_list, v2_input, v_parameterization_input],
+                outputs=[
+                    pretrained_model_name_or_path_input,
+                    v2_input,
+                    v_parameterization_input,
                 ],
-            )
-            save_model_as_dropdown = gr.Dropdown(
-                label='Save trained model as',
-                choices=[
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    "diffusers_safetensors",
-                    'safetensors',
-                ],
-                value='same as source model'
-            )
-        with gr.Row():
-            v2_input = gr.Checkbox(label='v2', value=True)
-            v_parameterization_input = gr.Checkbox(
-                label='v_parameterization', value=False
-            )
-        pretrained_model_name_or_path_input.change(
-            remove_doublequote,
-            inputs=[pretrained_model_name_or_path_input],
-            outputs=[pretrained_model_name_or_path_input],
-        )
-        model_list.change(
-            set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2_input, v_parameterization_input],
-            outputs=[
-                pretrained_model_name_or_path_input,
-                v2_input,
-                v_parameterization_input,
-            ],
-        )
-
-    with gr.Tab('Directories'):
-        with gr.Row():
-            train_data_dir_input = gr.Textbox(
-                label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
-            )
-            train_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            train_data_dir_input_folder.click(
-                get_folder_path, outputs=train_data_dir_input
-            )
-            reg_data_dir_input = gr.Textbox(
-                label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
-            )
-            reg_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            reg_data_dir_input_folder.click(
-                get_folder_path, outputs=reg_data_dir_input
-            )
-        with gr.Row():
-            output_dir_input = gr.Textbox(
-                label='Output folder',
-                placeholder='Folder to output trained model',
-            )
-            output_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            output_dir_input_folder.click(
-                get_folder_path, outputs=output_dir_input
-            )
-            logging_dir_input = gr.Textbox(
-                label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
-            )
-            logging_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir_input
-            )
-        train_data_dir_input.change(
-            remove_doublequote,
-            inputs=[train_data_dir_input],
-            outputs=[train_data_dir_input],
-        )
-        reg_data_dir_input.change(
-            remove_doublequote,
-            inputs=[reg_data_dir_input],
-            outputs=[reg_data_dir_input],
-        )
-        output_dir_input.change(
-            remove_doublequote,
-            inputs=[output_dir_input],
-            outputs=[output_dir_input],
-        )
-        logging_dir_input.change(
-            remove_doublequote,
-            inputs=[logging_dir_input],
-            outputs=[logging_dir_input],
-        )
-    with gr.Tab('Training parameters'):
-        with gr.Row():
-            learning_rate_input = gr.Textbox(label='Learning rate', value=1e-6)
-            lr_scheduler_input = gr.Dropdown(
-                label='LR Scheduler',
-                choices=[
-                    'constant',
-                    'constant_with_warmup',
-                    'cosine',
-                    'cosine_with_restarts',
-                    'linear',
-                    'polynomial',
-                ],
-                value='constant',
-            )
-            lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
-        with gr.Row():
-            train_batch_size_input = gr.Slider(
-                minimum=1,
-                maximum=32,
-                label='Train batch size',
-                value=1,
-                step=1,
-            )
-            epoch_input = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs_input = gr.Textbox(
-                label='Save every N epochs', value=1
-            )
-        with gr.Row():
-            mixed_precision_input = gr.Dropdown(
-                label='Mixed precision',
-                choices=[
-                    'no',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            save_precision_input = gr.Dropdown(
-                label='Save precision',
-                choices=[
-                    'float',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            num_cpu_threads_per_process_input = gr.Slider(
-                minimum=1,
-                maximum=os.cpu_count(),
-                step=1,
-                label='Number of CPU threads per process',
-                value=os.cpu_count(),
-            )
-        with gr.Row():
-            seed_input = gr.Textbox(label='Seed', value=1234)
-            max_resolution_input = gr.Textbox(
-                label='Max resolution', value='512,512', placeholder='512,512'
-            )
-        with gr.Row():
-            caption_extention_input = gr.Textbox(
-                label='Caption Extension',
-                placeholder='(Optional) Extension for caption files. default: .caption',
-            )
-            stop_text_encoder_training_input = gr.Slider(
-                minimum=0,
-                maximum=100,
-                value=0,
-                step=1,
-                label='Stop text encoder training',
-            )
-        with gr.Row():
-            full_fp16_input = gr.Checkbox(
-                label='Full fp16 training (experimental)', value=False
-            )
-            no_token_padding_input = gr.Checkbox(
-                label='No token padding', value=False
             )
 
-            gradient_checkpointing_input = gr.Checkbox(
-                label='Gradient checkpointing', value=False
+        with gr.Tab('Directories'):
+            with gr.Row():
+                train_data_dir_input = gr.Textbox(
+                    label='Image folder',
+                    placeholder='Folder where the training folders containing the images are located',
+                )
+                train_data_dir_input_folder = gr.Button(
+                    '📂', elem_id='open_folder_small'
+                )
+                train_data_dir_input_folder.click(
+                    get_folder_path, outputs=train_data_dir_input
+                )
+                reg_data_dir_input = gr.Textbox(
+                    label='Regularisation folder',
+                    placeholder='(Optional) Folder where where the regularization folders containing the images are located',
+                )
+                reg_data_dir_input_folder = gr.Button(
+                    '📂', elem_id='open_folder_small'
+                )
+                reg_data_dir_input_folder.click(
+                    get_folder_path, outputs=reg_data_dir_input
+                )
+            with gr.Row():
+                output_dir_input = gr.Textbox(
+                    label='Output folder',
+                    placeholder='Folder to output trained model',
+                )
+                output_dir_input_folder = gr.Button(
+                    '📂', elem_id='open_folder_small'
+                )
+                output_dir_input_folder.click(
+                    get_folder_path, outputs=output_dir_input
+                )
+                logging_dir_input = gr.Textbox(
+                    label='Logging folder',
+                    placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                )
+                logging_dir_input_folder = gr.Button(
+                    '📂', elem_id='open_folder_small'
+                )
+                logging_dir_input_folder.click(
+                    get_folder_path, outputs=logging_dir_input
+                )
+            train_data_dir_input.change(
+                remove_doublequote,
+                inputs=[train_data_dir_input],
+                outputs=[train_data_dir_input],
             )
-        with gr.Row():
-            enable_bucket_input = gr.Checkbox(
-                label='Enable buckets', value=True
+            reg_data_dir_input.change(
+                remove_doublequote,
+                inputs=[reg_data_dir_input],
+                outputs=[reg_data_dir_input],
             )
-            cache_latent_input = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam_input = gr.Checkbox(
-                label='Use 8bit adam', value=True
+            output_dir_input.change(
+                remove_doublequote,
+                inputs=[output_dir_input],
+                outputs=[output_dir_input],
             )
-            xformers_input = gr.Checkbox(label='Use xformers', value=True)
+            logging_dir_input.change(
+                remove_doublequote,
+                inputs=[logging_dir_input],
+                outputs=[logging_dir_input],
+            )
+        with gr.Tab('Training parameters'):
+            with gr.Row():
+                learning_rate_input = gr.Textbox(label='Learning rate', value=1e-6)
+                lr_scheduler_input = gr.Dropdown(
+                    label='LR Scheduler',
+                    choices=[
+                        'constant',
+                        'constant_with_warmup',
+                        'cosine',
+                        'cosine_with_restarts',
+                        'linear',
+                        'polynomial',
+                    ],
+                    value='constant',
+                )
+                lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
+            with gr.Row():
+                train_batch_size_input = gr.Slider(
+                    minimum=1,
+                    maximum=32,
+                    label='Train batch size',
+                    value=1,
+                    step=1,
+                )
+                epoch_input = gr.Textbox(label='Epoch', value=1)
+                save_every_n_epochs_input = gr.Textbox(
+                    label='Save every N epochs', value=1
+                )
+            with gr.Row():
+                mixed_precision_input = gr.Dropdown(
+                    label='Mixed precision',
+                    choices=[
+                        'no',
+                        'fp16',
+                        'bf16',
+                    ],
+                    value='fp16',
+                )
+                save_precision_input = gr.Dropdown(
+                    label='Save precision',
+                    choices=[
+                        'float',
+                        'fp16',
+                        'bf16',
+                    ],
+                    value='fp16',
+                )
+                num_cpu_threads_per_process_input = gr.Slider(
+                    minimum=1,
+                    maximum=os.cpu_count(),
+                    step=1,
+                    label='Number of CPU threads per process',
+                    value=os.cpu_count(),
+                )
+            with gr.Row():
+                seed_input = gr.Textbox(label='Seed', value=1234)
+                max_resolution_input = gr.Textbox(
+                    label='Max resolution', value='512,512', placeholder='512,512'
+                )
+            with gr.Row():
+                caption_extention_input = gr.Textbox(
+                    label='Caption Extension',
+                    placeholder='(Optional) Extension for caption files. default: .caption',
+                )
+                stop_text_encoder_training_input = gr.Slider(
+                    minimum=0,
+                    maximum=100,
+                    value=0,
+                    step=1,
+                    label='Stop text encoder training',
+                )
+            with gr.Row():
+                full_fp16_input = gr.Checkbox(
+                    label='Full fp16 training (experimental)', value=False
+                )
+                no_token_padding_input = gr.Checkbox(
+                    label='No token padding', value=False
+                )
+
+                gradient_checkpointing_input = gr.Checkbox(
+                    label='Gradient checkpointing', value=False
+                )
+            with gr.Row():
+                enable_bucket_input = gr.Checkbox(
+                    label='Enable buckets', value=True
+                )
+                cache_latent_input = gr.Checkbox(label='Cache latent', value=True)
+                use_8bit_adam_input = gr.Checkbox(
+                    label='Use 8bit adam', value=True
+                )
+                xformers_input = gr.Checkbox(label='Use xformers', value=True)
+                
+        button_run = gr.Button('Train model')
 
     with gr.Tab('Utilities'):
-        # Dreambooth folder creation tab
+        with gr.Tab('Captioning'):
+            gradio_basic_caption_gui_tab()
+            gradio_blip_caption_gui_tab()
+            gradio_wd14_caption_gui_tab()
         gradio_dreambooth_folder_creation_tab(
             train_data_dir_input,
             reg_data_dir_input,
             output_dir_input,
             logging_dir_input,
         )
-        # Captionning tab
-        gradio_caption_gui_tab()
         gradio_dataset_balancing_tab()
         gradio_convert_model_tab()
-        # with gr.Tab('Model conversion'):
-        #     convert_to_safetensors_input = gr.Checkbox(
-        #         label='Convert to SafeTensors', value=True
-        #     )
-        #     convert_to_ckpt_input = gr.Checkbox(
-        #         label='Convert to CKPT', value=False
-        #     )
 
-    button_run = gr.Button('Train model')
+    
 
     button_open_config.click(
         open_configuration,

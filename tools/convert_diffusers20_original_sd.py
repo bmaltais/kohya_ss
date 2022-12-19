@@ -1,11 +1,16 @@
 # convert Diffusers v1.x/v2.0 model to original Stable Diffusion
 # v1: initial version
+# v2: support safetensors
+# v3: fix to support another format
+# v4: support safetensors in Diffusers
 
 import argparse
 import os
 import torch
 from diffusers import StableDiffusionPipeline
+
 from library import model_util as model_util
+
 
 def convert(args):
   # 引数を確認する
@@ -56,7 +61,7 @@ def convert(args):
     print(f"model saved. total converted state_dict keys: {key_count}")
   else:
     print(f"copy scheduler/tokenizer config from: {args.reference_model}")
-    model_util.save_diffusers_checkpoint(v2_model, args.model_to_save, text_encoder, unet, args.reference_model, vae)
+    model_util.save_diffusers_checkpoint(v2_model, args.model_to_save, text_encoder, unet, args.reference_model, vae, args.use_safetensors)
     print(f"model saved.")
 
 
@@ -76,6 +81,8 @@ if __name__ == '__main__':
                       help='global_step to write to checkpoint / checkpointに記録するglobal_stepの値')
   parser.add_argument("--reference_model", type=str, default=None,
                       help="reference model for schduler/tokenizer, required in saving Diffusers, copy schduler/tokenizer from this / scheduler/tokenizerのコピー元のDiffusersモデル、Diffusers形式で保存するときに必要")
+  parser.add_argument("--use_safetensors", action='store_true',
+                      help="use safetensors format to save Diffusers model (checkpoint depends on the file extension) / Duffusersモデルをsafetensors形式で保存する（checkpointは拡張子で自動判定）")
 
   parser.add_argument("model_to_load", type=str, default=None,
                       help="model to load: checkpoint file or Diffusers model's directory / 読み込むモデル、checkpointかDiffusers形式モデルのディレクトリ")
