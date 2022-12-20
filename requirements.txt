@@ -1,0 +1,23 @@
+accelerate==0.15.0
+transformers==4.25.1
+ftfy
+albumentations
+opencv-python
+einops
+diffusers[torch]==0.10.2
+pytorch_lightning
+bitsandbytes==0.35.0
+tensorboard
+safetensors==0.2.6
+gradio
+altair
+easygui
+# for BLIP captioning
+requests
+timm==0.4.12
+fairscale==0.4.4
+# for WD14 captioning
+tensorflow<2.11
+huggingface-hub
+# for kohya_ss library
+.
