@@ -11,7 +11,7 @@ if sys.version_info < (3, 8):
 else:
     import importlib.metadata as importlib_metadata
 
-req_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "requirements.txt")
+req_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../requirements.txt")
 
 def run(command, desc=None, errdesc=None, custom_env=None):
     if desc is not None:
@@ -83,9 +83,9 @@ check_versions()
 # Check for "different" B&B Files and copy only if necessary
 if os.name == "nt":
     python = sys.executable
-    bnb_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bitsandbytes_windows")
+    bnb_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\bitsandbytes_windows")
     bnb_dest = os.path.join(sysconfig.get_paths()["purelib"], "bitsandbytes")
-    cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cudnn_windows")
+    cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows")
     cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
     
     print(f"Checking for CUDNN files in {cudnn_dest}")
@@ -101,9 +101,4 @@ if os.name == "nt":
                     shutil.copy2(src_file, cudnn_dest)
             print("Copied CUDNN 8.6 files to destination")
 
-    # diffusers_cmd = "git+https://github.com/huggingface/diffusers.git@8e74efa#egg=diffusers --force-reinstall"
-    # run(f'"{python}" -m pip install {diffusers_cmd}', "Installing particular diffusers commit", "Couldn't install diffusers")
-    # #install requirements file
-    # req_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "requirements.txt")
-    # run(f'"{python}" -m pip install -r "{req_file}"', "Updating requirements", "Couldn't install requirements")
             

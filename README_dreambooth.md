@@ -60,7 +60,7 @@ To install simply unzip the directory and place the cudnn_windows folder in the 
 Run the following command to install:
 
 ```
-python cudann_1.8_install.py
+python .\tools\cudann_1.8_install.py
 ```
 
 ## Upgrade
