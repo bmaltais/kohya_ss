@@ -95,6 +95,15 @@ def dreambooth_folder_preparation(
             util_regularization_images_dir_input, regularization_dir
         )
 
+    # create log and model folder
+    # Check if the log folder exists and create it if it doesn't
+    if not os.path.exists(os.path.join(util_training_dir_output, 'log')):
+        os.makedirs(os.path.join(util_training_dir_output, 'log'))
+
+    # Check if the model folder exists and create it if it doesn't
+    if not os.path.exists(os.path.join(util_training_dir_output, 'model')):
+        os.makedirs(os.path.join(util_training_dir_output, 'model'))
+
     print(
         f'Done creating kohya_ss training folder structure at {util_training_dir_output}...'
     )
