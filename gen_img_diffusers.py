@@ -113,7 +113,7 @@ import PIL
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 
-import model_util
+import library.model_util as model_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"

@@ -1,10 +1,8 @@
-# このスクリプトのライセンスは、Apache License 2.0とします
-# (c) 2022 Kohya S. @kohya_ss
-
 import argparse
 import glob
 import os
 import json
+import random
 
 from PIL import Image
 from tqdm import tqdm
@@ -12,20 +10,31 @@ import numpy as np
 import torch
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
-from models.blip import blip_decoder
+from blip.blip import blip_decoder
 # from Salesforce_BLIP.models.blip import blip_decoder
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main(args):
+  # fix the seed for reproducibility
+  seed = args.seed # + utils.get_rank()
+  torch.manual_seed(seed)
+  np.random.seed(seed)
+  random.seed(seed)
+    
+  if not os.path.exists("blip"):
+    cwd = os.getcwd()
+    print('Current Working Directory is: ', cwd)
+    os.chdir('finetune')
+
   image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
       glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
   print(f"found {len(image_paths)} images.")
 
   print(f"loading BLIP caption: {args.caption_weights}")
   image_size = 384
-  model = blip_decoder(pretrained=args.caption_weights, image_size=image_size, vit='large')
+  model = blip_decoder(pretrained=args.caption_weights, image_size=image_size, vit='large', med_config="./blip/med_config.json")
   model.eval()
   model = model.to(DEVICE)
   print("BLIP loaded")
@@ -75,7 +84,7 @@ def main(args):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
-  parser.add_argument("caption_weights", type=str,
+  parser.add_argument("--caption_weights", type=str, default="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth",
                       help="BLIP caption weights (model_large_caption.pth) / BLIP captionの重みファイル(model_large_caption.pth)")
   parser.add_argument("--caption_extention", type=str, default=None,
                       help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
@@ -87,6 +96,7 @@ if __name__ == '__main__':
   parser.add_argument("--top_p", type=float, default=0.9, help="top_p in Nucleus sampling / Nucleus sampling時のtop_p")
   parser.add_argument("--max_length", type=int, default=75, help="max length of caption / captionの最大長")
   parser.add_argument("--min_length", type=int, default=5, help="min length of caption / captionの最小長")
+  parser.add_argument('--seed', default=42, type=int, help='seed for reproducibility / 再現性を確保するための乱数seed')
   parser.add_argument("--debug", action="store_true", help="debug mode")
 
   args = parser.parse_args()
