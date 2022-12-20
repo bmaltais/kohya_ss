@@ -107,6 +107,10 @@ Support for GUI based training using gradio. You can start the GUI interface by 
 python .\dreambooth_gui.py
 ```
 
+## CLI
+
+You can find various examples of how to leverage the fine_tune.py in this folder: https://github.com/bmaltais/kohya_ss/tree/master/examples
+
 ## Support
 
 Drop by the discord server for support: https://discord.com/channels/1041518562487058594/1041518563242020906

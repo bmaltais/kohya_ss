@@ -28,7 +28,7 @@ $convert_to_safetensors = 1 # set to 1 to convert resulting diffuser to ckpt
 $convert_to_ckpt = 1 # set to 1 to convert resulting diffuser to ckpt
 
 # other variables
-$kohya_diffusers_fine_tuning_repo_path = "D:\kohya_diffusers_fine_tuning"
+$kohya_finetune_repo_path = "D:\kohya_ss"
 
 ### You should not need to change things below
 
@@ -61,7 +61,7 @@ elseif ($v2 -eq $null -and $v_model -eq $null -and ($substrings_v_model | Where-
 }
 
 # activate venv
-cd $kohya_diffusers_fine_tuning_repo_path
+cd $kohya_finetune_repo_path
 .\venv\Scripts\activate
 
 # create caption json file
@@ -69,11 +69,11 @@ if (!(Test-Path -Path $train_dir)) {
     New-Item -Path $train_dir -ItemType "directory"
 }
 
-python $kohya_diffusers_fine_tuning_repo_path\script\merge_captions_to_metadata.py `
+python $kohya_finetune_repo_path\script\merge_captions_to_metadata.py `
     --caption_extention ".txt" $image_folder $train_dir"\meta_cap.json"
 
 # create images buckets
-python $kohya_diffusers_fine_tuning_repo_path\script\prepare_buckets_latents.py `
+python $kohya_finetune_repo_path\script\prepare_buckets_latents.py `
     $image_folder `
     $train_dir"\meta_cap.json" `
     $train_dir"\meta_lat.json" `
@@ -95,7 +95,7 @@ Write-Host("lr_warmup_steps = $lr_warmup_steps")
 
 Write-Host("$v2 $v_model")
 
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process $kohya_diffusers_fine_tuning_repo_path\script\fine_tune.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process $kohya_finetune_repo_path\script\fine_tune.py `
     $v2 `
     $v_model `
     --pretrained_model_name_or_path=$pretrained_model_name_or_path `
@@ -120,14 +120,14 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process $ko
 if (Test-Path "$output_dir\last" -PathType Container) {
     if ($convert_to_ckpt) {
         Write-Host("Converting diffuser model $output_dir\last to $output_dir\last.ckpt")
-        python "$kohya_diffusers_fine_tuning_repo_path\tools\convert_diffusers20_original_sd.py" `
+        python "$kohya_finetune_repo_path\tools\convert_diffusers20_original_sd.py" `
             $output_dir\last `
             $output_dir\last.ckpt `
             --$save_precision
     }
     if ($convert_to_safetensors) {
         Write-Host("Converting diffuser model $output_dir\last to $output_dir\last.safetensors")
-        python "$kohya_diffusers_fine_tuning_repo_path\tools\convert_diffusers20_original_sd.py" `
+        python "$kohya_finetune_repo_path\tools\convert_diffusers20_original_sd.py" `
             $output_dir\last `
             $output_dir\last.safetensors `
             --$save_precision
@@ -144,10 +144,10 @@ if ($matching_extension.Count -gt 0) {
     # copy the file named "v2-inference.yaml" from the "v2_inference" folder to $output_dir as last.yaml
     if ( $v2 -ne $null -and $v_model -ne $null) {
         Write-Host("Saving v2-inference-v.yaml as $output_dir\last.yaml")
-        Copy-Item -Path "$kohya_diffusers_fine_tuning_repo_path\v2_inference\v2-inference-v.yaml" -Destination "$output_dir\last.yaml"
+        Copy-Item -Path "$kohya_finetune_repo_path\v2_inference\v2-inference-v.yaml" -Destination "$output_dir\last.yaml"
     }
     elseif ( $v2 -ne $null ) {
         Write-Host("Saving v2-inference.yaml as $output_dir\last.yaml")
-        Copy-Item -Path "$kohya_diffusers_fine_tuning_repo_path\v2_inference\v2-inference.yaml" -Destination "$output_dir\last.yaml"
+        Copy-Item -Path "$kohya_finetune_repo_path\v2_inference\v2-inference.yaml" -Destination "$output_dir\last.yaml"
     }
 }
