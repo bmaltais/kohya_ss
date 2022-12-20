@@ -1,8 +1,8 @@
 # Kohya's dreambooth and finetuning
 
-This repo now combine bot Kohya_ss solution under one roof. I am merging both under a single repo to align with the new official kohya repo where he will maintain his code from now on: https://github.com/kohya-ss/sd-scripts
+This repository now includes the solutions provided by Kohya_ss in a single location. I have combined both solutions under one repository to align with the new official Kohya repository where he will maintain his code from now on: https://github.com/kohya-ss/sd-scripts.
 
-A new note accompaning the release of his new repo can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
+A note accompanying the release of his new repository can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
 
 ## Dreambooth
 

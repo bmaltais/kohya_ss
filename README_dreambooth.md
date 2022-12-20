@@ -139,6 +139,8 @@ Drop by the discord server for support: https://discord.com/channels/10415185624
 
 ## Change history
 
+* 12/19 (v18.5) update:
+    - Create model and log folder when running th dreambooth folder creation utility
 * 12/19 (v18.4) update:
     - Add support for shuffle_caption, save_state, resume, prior_loss_weight under "Advanced Configuration" section
     - Fix issue with open/save config not working properly
