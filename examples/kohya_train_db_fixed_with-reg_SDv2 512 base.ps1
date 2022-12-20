@@ -8,7 +8,7 @@ $pretrained_model_name_or_path = "D:\models\512-base-ema.ckpt"
 $data_dir = "D:\models\dariusz_zawadzki\kohya_reg\data"
 $reg_data_dir = "D:\models\dariusz_zawadzki\kohya_reg\reg"
 $logging_dir = "D:\models\dariusz_zawadzki\logs"
-$output_dir = "D:\models\dariusz_zawadzki\train_db_fixed_model_reg_v2"
+$output_dir = "D:\models\dariusz_zawadzki\train_db_model_reg_v2"
 $resolution = "512,512"
 $lr_scheduler="polynomial"
 $cache_latents = 1 # 1 = true, 0 = false
@@ -41,7 +41,7 @@ Write-Output "Repeats: $repeats"
 cd D:\kohya_ss
 .\venv\Scripts\activate
 
-accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db_fixed.py `
+accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process train_db.py `
     --v2 `
     --pretrained_model_name_or_path=$pretrained_model_name_or_path `
     --train_data_dir=$data_dir `

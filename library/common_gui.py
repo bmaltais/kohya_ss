@@ -72,6 +72,10 @@ def get_saveasfile_path(file_path='', defaultextension='.json'):
 def add_pre_postfix(
     folder='', prefix='', postfix='', caption_file_ext='.caption'
 ):
+    # set caption extention to default in case it was not provided
+    if caption_file_ext == '':
+        caption_file_ext = '.caption'
+    
     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
     if not prefix == '':
         prefix = f'{prefix} '
