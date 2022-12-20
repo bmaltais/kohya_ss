@@ -1,6 +1,6 @@
-# Diffusers Fine Tuning
+# Kohya_ss Finetune
 
-This subfolder provide all the required tools  to run the diffusers fine tuning version found in this note: https://note.com/kohya_ss/n/nbf7ce8d80f29
+This python utility provide code to run the diffusers fine tuning version found in this note: https://note.com/kohya_ss/n/nbf7ce8d80f29
 
 ## Required Dependencies
 

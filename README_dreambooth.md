@@ -1,7 +1,6 @@
-# HOWTO
+# Kohya_ss Dreambooth
 
-This repo provide all the required config to run the Dreambooth version found in this note: https://note.com/kohya_ss/n/nee3ed1649fb6
-The setup of bitsandbytes with Adam8bit support for windows: https://note.com/kohya_ss/n/n47f654dc161e
+This repo provide all the required code to run the Dreambooth version found in this note: https://note.com/kohya_ss/n/nee3ed1649fb6
 
 ## Required Dependencies
 
