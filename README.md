@@ -6,8 +6,8 @@ A new note accompaning the release of his new repo can be found here: https://no
 
 ## Dreambooth
 
-You can find the dreambooth solution spercific README here:  [README_dreambooth.md](Dreambooth README)
+You can find the dreambooth solution spercific [Dreambooth README](README_dreambooth.md)
 
 ## Finetune
 
-You can find the finetune solution spercific README here:  [README_finetune.md](Finetune README)
+You can find the finetune solution spercific [Finetune README](README_finetune.md)
