@@ -67,8 +67,14 @@ python cudann_1.8_install.py
 
 When a new release comes out you can upgrade your repo with the following command:
 
+```
+.\upgrade.bat
+```
+
+or you can do it manually with
+
 ```powershell
-cd kohya_diffusers_fine_tuning
+cd kohya_ss
 git pull
 .\venv\Scripts\activate
 pip install --upgrade -r requirements.txt
@@ -104,7 +110,7 @@ You can also use the `Captioning` tool found under the `Utilities` tab in the GU
 Support for GUI based training using gradio. You can start the GUI interface by running:
 
 ```powershell
-python .\dreambooth_gui.py
+.\finetune.bat
 ```
 
 ## CLI

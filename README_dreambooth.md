@@ -67,6 +67,12 @@ python cudann_1.8_install.py
 
 When a new release comes out you can upgrade your repo with the following command:
 
+```
+.\upgrade.bat
+```
+
+or you can do it manually with
+
 ```powershell
 cd kohya_ss
 git pull
@@ -81,7 +87,7 @@ Once the commands have completed successfully you should be ready to use the new
 There is now support for GUI based training using gradio. You can start the GUI interface by running:
 
 ```powershell
-python .\dreambooth_gui.py
+.\dreambooth.bat
 ```
 
 ## CLI
