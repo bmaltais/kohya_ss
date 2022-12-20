@@ -13,7 +13,7 @@ from .common_gui import get_folder_path
 
 
 def dataset_balancing(concept_repeats, folder, insecure):
-    
+
     if not concept_repeats > 0:
         # Display an error message if the total number of repeats is not a valid integer
         msgbox('Please enter a valid integer for the total number of repeats.')
@@ -72,23 +72,35 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
             os.rename(old_name, new_name)
         else:
-            print(f"Skipping folder {subdir} because it does not match kohya_ss expected syntax...")
+            print(
+                f'Skipping folder {subdir} because it does not match kohya_ss expected syntax...'
+            )
 
     msgbox('Dataset balancing completed...')
 
+
 def warning(insecure):
     if insecure:
-        if boolbox(f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?', choices=("Yes, I like danger", "No, get me out of here")):
+        if boolbox(
+            f'WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?',
+            choices=('Yes, I like danger', 'No, get me out of here'),
+        ):
             return True
         else:
             return False
 
+
 def gradio_dataset_balancing_tab():
     with gr.Tab('Dataset balancing'):
-        gr.Markdown('This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.')
-        gr.Markdown('WARNING! The use of this utility on the wrong folder can lead to unexpected folder renaming!!!')
+        gr.Markdown(
+            'This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.'
+        )
+        gr.Markdown(
+            'WARNING! The use of this utility on the wrong folder can lead to unexpected folder renaming!!!'
+        )
         with gr.Row():
-            select_dataset_folder_input = gr.Textbox(label="Dataset folder",
+            select_dataset_folder_input = gr.Textbox(
+                label='Dataset folder',
                 placeholder='Folder containing the concepts folders to balance...',
                 interactive=True,
             )
@@ -106,10 +118,17 @@ def gradio_dataset_balancing_tab():
                 label='Training steps per concept per epoch',
             )
         with gr.Accordion('Advanced options', open=False):
-            insecure = gr.Checkbox(value=False, label="DANGER!!! -- Insecure folder renaming -- DANGER!!!")
+            insecure = gr.Checkbox(
+                value=False,
+                label='DANGER!!! -- Insecure folder renaming -- DANGER!!!',
+            )
             insecure.change(warning, inputs=insecure, outputs=insecure)
         balance_button = gr.Button('Balance dataset')
         balance_button.click(
             dataset_balancing,
-            inputs=[total_repeats_number, select_dataset_folder_input, insecure],
+            inputs=[
+                total_repeats_number,
+                select_dataset_folder_input,
+                insecure,
+            ],
         )

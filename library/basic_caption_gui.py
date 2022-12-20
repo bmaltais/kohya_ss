@@ -5,7 +5,12 @@ from .common_gui import get_folder_path, add_pre_postfix
 
 
 def caption_images(
-    caption_text_input, images_dir_input, overwrite_input, caption_file_ext, prefix, postfix
+    caption_text_input,
+    images_dir_input,
+    overwrite_input,
+    caption_file_ext,
+    prefix,
+    postfix,
 ):
     # Check for images_dir_input
     if images_dir_input == '':
@@ -28,13 +33,20 @@ def caption_images(
 
         # Run the command
         subprocess.run(run_cmd)
-    
+
     if overwrite_input:
         # Add prefix and postfix
-        add_pre_postfix(folder=images_dir_input, caption_file_ext=caption_file_ext, prefix=prefix, postfix=postfix)
+        add_pre_postfix(
+            folder=images_dir_input,
+            caption_file_ext=caption_file_ext,
+            prefix=prefix,
+            postfix=postfix,
+        )
     else:
         if not prefix == '' or not postfix == '':
-            msgbox('Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...')
+            msgbox(
+                'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...'
+            )
 
     print('...captioning done')
 
@@ -97,6 +109,7 @@ def gradio_basic_caption_gui_tab():
                 images_dir_input,
                 overwrite_input,
                 caption_file_ext,
-                prefix, postfix
+                prefix,
+                postfix,
             ],
         )
