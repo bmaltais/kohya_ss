@@ -8,37 +8,45 @@ from .common_gui import get_folder_path, get_file_path
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4' # 📄
+document_symbol = '\U0001F4C4'   # 📄
 
-def convert_model(source_model_input, source_model_type, target_model_folder_input, target_model_name_input, target_model_type, target_save_precision_type):
+
+def convert_model(
+    source_model_input,
+    source_model_type,
+    target_model_folder_input,
+    target_model_name_input,
+    target_model_type,
+    target_save_precision_type,
+):
     # Check for caption_text_input
-    if source_model_type == "":
-        msgbox("Invalid source model type")
+    if source_model_type == '':
+        msgbox('Invalid source model type')
         return
-    
+
     # Check if source model exist
     if os.path.isfile(source_model_input):
         print('The provided source model is a file')
     elif os.path.isdir(source_model_input):
         print('The provided model is a folder')
     else:
-        msgbox("The provided source model is neither a file nor a folder")
+        msgbox('The provided source model is neither a file nor a folder')
         return
-    
+
     # Check if source model exist
     if os.path.isdir(target_model_folder_input):
         print('The provided model folder exist')
     else:
-        msgbox("The provided target folder does not exist")
+        msgbox('The provided target folder does not exist')
         return
-    
+
     run_cmd = f'.\\venv\Scripts\python.exe "tools/convert_diffusers20_original_sd.py"'
-    
+
     v1_models = [
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
+        'runwayml/stable-diffusion-v1-5',
+        'CompVis/stable-diffusion-v1-4',
     ]
-    
+
     # check if v1 models
     if str(source_model_type) in v1_models:
         print('SD v1 model specified. Setting --v1 parameter')
@@ -46,53 +54,75 @@ def convert_model(source_model_input, source_model_type, target_model_folder_inp
     else:
         print('SD v2 model specified. Setting --v2 parameter')
         run_cmd += ' --v2'
-    
+
     if not target_save_precision_type == 'unspecified':
         run_cmd += f' --{target_save_precision_type}'
-    
-    if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
+
+    if (
+        target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
+    ):
         run_cmd += f' --reference_model="{source_model_type}"'
-        
+
     if target_model_type == 'diffuser_safetensors':
         run_cmd += ' --use_safetensors'
-        
+
     run_cmd += f' "{source_model_input}"'
-    
-    if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
-        target_model_path = os.path.join(target_model_folder_input, target_model_name_input)
+
+    if (
+        target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
+    ):
+        target_model_path = os.path.join(
+            target_model_folder_input, target_model_name_input
+        )
         run_cmd += f' "{target_model_path}"'
     else:
-        target_model_path = os.path.join(target_model_folder_input, f'{target_model_name_input}.{target_model_type}')
+        target_model_path = os.path.join(
+            target_model_folder_input,
+            f'{target_model_name_input}.{target_model_type}',
+        )
         run_cmd += f' "{target_model_path}"'
-    
+
     print(run_cmd)
-    
+
     # Run the command
     subprocess.run(run_cmd)
-    
-    if not target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
-        
-        v2_models = ['stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',]
-        v_parameterization =[
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',]
-        
+
+    if (
+        not target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
+    ):
+
+        v2_models = [
+            'stabilityai/stable-diffusion-2-1-base',
+            'stabilityai/stable-diffusion-2-base',
+        ]
+        v_parameterization = [
+            'stabilityai/stable-diffusion-2-1',
+            'stabilityai/stable-diffusion-2',
+        ]
+
         if str(source_model_type) in v2_models:
-            inference_file = os.path.join(target_model_folder_input, f'{target_model_name_input}.yaml')
+            inference_file = os.path.join(
+                target_model_folder_input, f'{target_model_name_input}.yaml'
+            )
             print(f'Saving v2-inference.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference.yaml',
                 f'{inference_file}',
             )
-        
+
         if str(source_model_type) in v_parameterization:
-            inference_file = os.path.join(target_model_folder_input, f'{target_model_name_input}.yaml')
+            inference_file = os.path.join(
+                target_model_folder_input, f'{target_model_name_input}.yaml'
+            )
             print(f'Saving v2-inference-v.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference-v.yaml',
                 f'{inference_file}',
             )
+
 
 #   parser = argparse.ArgumentParser()
 #   parser.add_argument("--v1", action='store_true',
@@ -138,22 +168,27 @@ def gradio_convert_model_tab():
             button_source_model_dir.click(
                 get_folder_path, outputs=source_model_input
             )
-            
+
             button_source_model_file = gr.Button(
                 document_symbol, elem_id='open_folder_small'
             )
             button_source_model_file.click(
-                get_file_path, inputs=[source_model_input], outputs=source_model_input
+                get_file_path,
+                inputs=[source_model_input],
+                outputs=source_model_input,
             )
-            
-            source_model_type = gr.Dropdown(label="Source model type", choices=[
+
+            source_model_type = gr.Dropdown(
+                label='Source model type',
+                choices=[
                     'stabilityai/stable-diffusion-2-1-base',
                     'stabilityai/stable-diffusion-2-base',
                     'stabilityai/stable-diffusion-2-1',
                     'stabilityai/stable-diffusion-2',
                     'runwayml/stable-diffusion-v1-5',
                     'CompVis/stable-diffusion-v1-4',
-                ],)
+                ],
+            )
         with gr.Row():
             target_model_folder_input = gr.Textbox(
                 label='Target model folder',
@@ -166,30 +201,37 @@ def gradio_convert_model_tab():
             button_target_model_folder.click(
                 get_folder_path, outputs=target_model_folder_input
             )
-            
+
             target_model_name_input = gr.Textbox(
                 label='Target model name',
                 placeholder='target model name...',
                 interactive=True,
             )
-            target_model_type = gr.Dropdown(label="Target model type", choices=[
+            target_model_type = gr.Dropdown(
+                label='Target model type',
+                choices=[
                     'diffuser',
                     'diffuser_safetensors',
                     'ckpt',
                     'safetensors',
-                ],)
-            target_save_precision_type = gr.Dropdown(label="Target model precison", choices=[
-                    'unspecified',
-                    'fp16',
-                    'bf16',
-                    'float'
-                ], value='unspecified')
-            
-        
+                ],
+            )
+            target_save_precision_type = gr.Dropdown(
+                label='Target model precison',
+                choices=['unspecified', 'fp16', 'bf16', 'float'],
+                value='unspecified',
+            )
+
         convert_button = gr.Button('Convert model')
 
         convert_button.click(
             convert_model,
-            inputs=[source_model_input, source_model_type, target_model_folder_input, target_model_name_input, target_model_type, target_save_precision_type
+            inputs=[
+                source_model_input,
+                source_model_type,
+                target_model_folder_input,
+                target_model_name_input,
+                target_model_type,
+                target_save_precision_type,
             ],
         )
