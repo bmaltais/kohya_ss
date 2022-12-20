@@ -28,7 +28,7 @@ def caption_images(
         return
 
     print(f'Captioning files in {train_data_dir}...')
-    run_cmd = f'.\\venv\\Scripts\\python.exe "./BLIP_caption/make_captions.py"'
+    run_cmd = f'.\\venv\\Scripts\\python.exe "finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
     run_cmd += f' --top_p="{top_p}"'
@@ -39,7 +39,7 @@ def caption_images(
     if caption_file_ext != '':
         run_cmd += f' --caption_extension="{caption_file_ext}"'
     run_cmd += f' "{train_data_dir}"'
-    run_cmd += f' "https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
+    run_cmd += f' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
 
     print(run_cmd)
 
