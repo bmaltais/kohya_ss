@@ -11,3 +11,8 @@ You can find the dreambooth solution spercific [Dreambooth README](README_dreamb
 ## Finetune
 
 You can find the finetune solution spercific [Finetune README](README_finetune.md)
+
+## Change history
+
+* 12/21 (v9.7) update:
+    - add optional GUI authentication support via: `python fine_tune.py --username=<name> --password=<password>`
