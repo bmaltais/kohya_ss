@@ -21,11 +21,11 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 All documents are in Japanese currently, and CUI based.
 
-* [Environment setup and DreamBooth training guide](https://note.com/kohya_ss/n/nee3ed1649fb6)
-* [Fine-tuning step-by-step guide](https://note.com/kohya_ss/n/nbf7ce8d80f29):
+* note.com [Environment setup and DreamBooth training guide](https://note.com/kohya_ss/n/nba4eceaa4594)
+* [fine-tuningのガイド](./fine_tune_README_ja.md):
 Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
-* [Image generation](https://note.com/kohya_ss/n/n2693183a798e)
-* [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
+* note.com [Image generation](https://note.com/kohya_ss/n/n2693183a798e)
+* note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windows Required Dependencies
 
