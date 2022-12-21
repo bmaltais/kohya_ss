@@ -14,13 +14,13 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 ## 使用法について
 
-note.comに記事がありますのでそちらをご覧ください（将来的にはこちらへ移すかもしれません）。
+当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
-* [環境整備とDreamBooth学習スクリプトについて](https://note.com/kohya_ss/n/nee3ed1649fb6)
-* [fine-tuningスクリプト](https://note.com/kohya_ss/n/nbf7ce8d80f29):
+* note.com [環境整備とDreamBooth学習スクリプトについて](https://note.com/kohya_ss/n/nba4eceaa4594)
+* [fine-tuningのガイド](./fine_tune_README_ja.md):
 BLIPによるキャプショニングと、DeepDanbooruまたはWD14 taggerによるタグ付けを含みます
-* [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
-* [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
+* note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
+* note.com [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windowsでの動作に必要なプログラム
 
@@ -85,6 +85,8 @@ accelerate config
 ```
 
 accelerate configの質問には以下のように答えてください。（bf16で学習する場合、最後の質問にはbf16と答えてください。）
+
+※0.15.0から日本語環境では選択のためにカーソルキーを押すと落ちます（……）。数字キーの0、1、2……で選択できますので、そちらを使ってください。
 
 ```txt
 - 0
