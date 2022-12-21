@@ -14,5 +14,8 @@ You can find the finetune solution spercific [Finetune README](README_finetune.m
 
 ## Change history
 
-* 12/21 (v9.7) update:
+* 12/21 (v18.6.1) update:
+    - fix issue with dataset balancing when the number of detected images in the folder is 0
+
+* 12/21 (v18.6) update:
     - add optional GUI authentication support via: `python fine_tune.py --username=<name> --password=<password>`
