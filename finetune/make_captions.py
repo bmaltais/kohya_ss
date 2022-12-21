@@ -24,10 +24,13 @@ def main(args):
   random.seed(seed)
     
   if not os.path.exists("blip"):
+    args.train_data_dir = os.path.abspath(args.train_data_dir)        # convert to absolute path
+
     cwd = os.getcwd()
     print('Current Working Directory is: ', cwd)
     os.chdir('finetune')
 
+  print(f"load images from {args.train_data_dir}")
   image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
       glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
   print(f"found {len(image_paths)} images.")
