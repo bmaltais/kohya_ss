@@ -52,7 +52,7 @@ python -m venv --system-site-packages venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --upgrade -r requirements_db_finetune.txt
+pip install --upgrade -r requirements.txt
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
 cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
@@ -82,7 +82,7 @@ When a new release comes out you can upgrade your repo with the following comman
 cd sd-scripts
 git pull
 .\venv\Scripts\activate
-pip install --upgrade -r <requirement file name>
+pip install --upgrade -r requirements.txt
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.
