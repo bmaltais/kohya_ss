@@ -35,7 +35,7 @@ Stable Diffusionでは最大75トークン（開始・終了を含むと77トー
 
 ## 環境整備
 
-このリポジトリの[README]{README_ja.md)を参照してください。
+このリポジトリの[README](./README-ja.md)を参照してください。
 
 ## 教師データの用意
 
