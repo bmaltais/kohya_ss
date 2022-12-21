@@ -50,12 +50,16 @@ def dataset_balancing(concept_repeats, folder, insecure):
             match = re.match(r'^\{(\d+\.?\d*)\}', subdir)
             if match:
                 # Multiply the repeats value by the number inside the braces
-                repeats = max(
-                    1, round(concept_repeats / images * float(match.group(1)))
-                )
+                if not images == 0:
+                    repeats = max(1, round(concept_repeats / images * float(match.group(1))))
+                else:
+                    repeats = 0
                 subdir = subdir[match.end() :]
             else:
-                repeats = max(1, round(concept_repeats / images))
+                if not images == 0:
+                    repeats = max(1, round(concept_repeats / images))
+                else:
+                    repeats = 0
 
             # Check if the subdirectory name already has a number at the beginning
             match = re.match(r'^\d+_', subdir)
