@@ -509,7 +509,7 @@ def dreambooth_tab(
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
-    gr.Markdown('Enter kohya finetuner parameter using this interface.')
+    gr.Markdown('Enter kohya dreambooth training parameter using this interface.')
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
             button_open_config = gr.Button('Open 📂', elem_id='open_folder')

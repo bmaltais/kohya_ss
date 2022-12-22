@@ -44,7 +44,6 @@ def save_configuration(
     train_text_encoder,
     create_buckets,
     create_caption,
-    train,
     save_model_as,
     caption_extension,
 ):
@@ -89,7 +88,6 @@ def save_configuration(
         'train_text_encoder': train_text_encoder,
         'create_buckets': create_buckets,
         'create_caption': create_caption,
-        'train': train,
         'save_model_as': save_model_as,
         'caption_extension': caption_extension,
     }
@@ -125,7 +123,6 @@ def open_config_file(
     train_text_encoder,
     create_buckets,
     create_caption,
-    train,
     save_model_as,
     caption_extension,
 ):
@@ -170,7 +167,6 @@ def open_config_file(
         my_data.get('train_text_encoder', train_text_encoder),
         my_data.get('create_buckets', create_buckets),
         my_data.get('create_caption', create_caption),
-        my_data.get('train', train),
         my_data.get('save_model_as', save_model_as),
         my_data.get('caption_extension', caption_extension),
     )
@@ -179,7 +175,6 @@ def open_config_file(
 def train_model(
     generate_caption_database,
     generate_image_buckets,
-    train,
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
@@ -262,59 +257,58 @@ def train_model(
         # Run the command
         subprocess.run(command)
 
-    if train:
-        image_num = len(
-            [f for f in os.listdir(image_folder) if f.endswith('.npz')]
-        )
-        print(f'image_num = {image_num}')
+    image_num = len(
+        [f for f in os.listdir(image_folder) if f.endswith('.npz')]
+    )
+    print(f'image_num = {image_num}')
 
-        repeats = int(image_num) * int(dataset_repeats)
-        print(f'repeats = {str(repeats)}')
+    repeats = int(image_num) * int(dataset_repeats)
+    print(f'repeats = {str(repeats)}')
 
-        # calculate max_train_steps
-        max_train_steps = int(
-            math.ceil(float(repeats) / int(train_batch_size) * int(epoch))
-        )
-        print(f'max_train_steps = {max_train_steps}')
+    # calculate max_train_steps
+    max_train_steps = int(
+        math.ceil(float(repeats) / int(train_batch_size) * int(epoch))
+    )
+    print(f'max_train_steps = {max_train_steps}')
 
-        lr_warmup_steps = round(
-            float(int(lr_warmup) * int(max_train_steps) / 100)
-        )
-        print(f'lr_warmup_steps = {lr_warmup_steps}')
+    lr_warmup_steps = round(
+        float(int(lr_warmup) * int(max_train_steps) / 100)
+    )
+    print(f'lr_warmup_steps = {lr_warmup_steps}')
 
-        run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "./fine_tune.py"'
-        if v2:
-            run_cmd += ' --v2'
-        if v_parameterization:
-            run_cmd += ' --v_parameterization'
-        if train_text_encoder:
-            run_cmd += ' --train_text_encoder'
-        run_cmd += (
-            f' --pretrained_model_name_or_path={pretrained_model_name_or_path}'
-        )
-        run_cmd += f' --in_json={train_dir}/meta_lat.json'
-        run_cmd += f' --train_data_dir={image_folder}'
-        run_cmd += f' --output_dir={output_dir}'
-        if not logging_dir == '':
-            run_cmd += f' --logging_dir={logging_dir}'
-        run_cmd += f' --train_batch_size={train_batch_size}'
-        run_cmd += f' --dataset_repeats={dataset_repeats}'
-        run_cmd += f' --learning_rate={learning_rate}'
-        run_cmd += f' --lr_scheduler={lr_scheduler}'
-        run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
-        run_cmd += f' --max_train_steps={max_train_steps}'
-        run_cmd += f' --use_8bit_adam'
-        run_cmd += f' --xformers'
-        run_cmd += f' --mixed_precision={mixed_precision}'
-        run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
-        run_cmd += f' --seed={seed}'
-        run_cmd += f' --save_precision={save_precision}'
-        if not save_model_as == 'same as source model':
-            run_cmd += f' --save_model_as={save_model_as}'
+    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "./fine_tune.py"'
+    if v2:
+        run_cmd += ' --v2'
+    if v_parameterization:
+        run_cmd += ' --v_parameterization'
+    if train_text_encoder:
+        run_cmd += ' --train_text_encoder'
+    run_cmd += (
+        f' --pretrained_model_name_or_path={pretrained_model_name_or_path}'
+    )
+    run_cmd += f' --in_json={train_dir}/meta_lat.json'
+    run_cmd += f' --train_data_dir={image_folder}'
+    run_cmd += f' --output_dir={output_dir}'
+    if not logging_dir == '':
+        run_cmd += f' --logging_dir={logging_dir}'
+    run_cmd += f' --train_batch_size={train_batch_size}'
+    run_cmd += f' --dataset_repeats={dataset_repeats}'
+    run_cmd += f' --learning_rate={learning_rate}'
+    run_cmd += f' --lr_scheduler={lr_scheduler}'
+    run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
+    run_cmd += f' --max_train_steps={max_train_steps}'
+    run_cmd += f' --use_8bit_adam'
+    run_cmd += f' --xformers'
+    run_cmd += f' --mixed_precision={mixed_precision}'
+    run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
+    run_cmd += f' --seed={seed}'
+    run_cmd += f' --save_precision={save_precision}'
+    if not save_model_as == 'same as source model':
+        run_cmd += f' --save_model_as={save_model_as}'
 
-        print(run_cmd)
-        # Run the command
-        subprocess.run(run_cmd)
+    print(run_cmd)
+    # Run the command
+    subprocess.run(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/last')
@@ -409,7 +403,7 @@ def finetune_tab():
     dummy_ft_true = gr.Label(value=True, visible=False)
     dummy_ft_false = gr.Label(value=False, visible=False)
     gr.Markdown(
-        'Enter kohya finetuner parameter using this interface.'
+        'Enter kohya finetune training parameter using this interface.'
     )
     with gr.Accordion('Configuration File Load/Save', open=False):
         with gr.Row():
@@ -632,16 +626,14 @@ def finetune_tab():
             create_buckets = gr.Checkbox(
                 label='Generate image buckets', value=True
             )
-            train = gr.Checkbox(label='Train model', value=True)
 
-    button_run = gr.Button('Run')
+    button_run = gr.Button('Train model')
 
     button_run.click(
         train_model,
         inputs=[
             create_caption,
             create_buckets,
-            train,
             pretrained_model_name_or_path_input,
             v2_input,
             v_parameterization_input,
@@ -693,7 +685,6 @@ def finetune_tab():
             train_text_encoder_input,
             create_buckets,
             create_caption,
-            train,
             save_model_as_dropdown,
             caption_extention_input,
         ],
@@ -721,7 +712,6 @@ def finetune_tab():
             train_text_encoder_input,
             create_buckets,
             create_caption,
-            train,
             save_model_as_dropdown,
             caption_extention_input,
         ],
@@ -754,7 +744,6 @@ def finetune_tab():
             train_text_encoder_input,
             create_buckets,
             create_caption,
-            train,
             save_model_as_dropdown,
             caption_extention_input,
         ],
@@ -788,7 +777,6 @@ def finetune_tab():
             train_text_encoder_input,
             create_buckets,
             create_caption,
-            train,
             save_model_as_dropdown,
             caption_extention_input,
         ],

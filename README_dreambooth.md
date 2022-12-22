@@ -71,7 +71,7 @@ When a new release comes out you can upgrade your repo with the following comman
 .\upgrade.bat
 ```
 
-or you can do it manually with
+alternatively you can do it manually with
 
 ```powershell
 cd kohya_ss
@@ -84,15 +84,27 @@ Once the commands have completed successfully you should be ready to use the new
 
 ## GUI
 
-There is now support for GUI based training using gradio. You can start the GUI interface by running:
+There is now support for GUI based training using gradio. You can start the complete kohya training GUI interface by running:
 
 ```powershell
-.\dreambooth.bat
+.\kohya.cmd
+```
+
+and select the Dreambooth tab.
+
+Alternativelly you can use the Dreambooth focus GUI with
+
+```powershell
+.\dreambooth.cmd
 ```
 
 ## CLI
 
-You can find various examples of how to leverage the fine_tune.py in this folder: https://github.com/bmaltais/kohya_ss/tree/master/examples
+You can find various examples of how to leverage the `train_db.py` in this folder: https://github.com/bmaltais/kohya_ss/tree/master/examples
+
+## Support
+
+Drop by the discord server for support: https://discord.com/channels/1041518562487058594/1041518563242020906
 
 ## Quickstart screencast
 
