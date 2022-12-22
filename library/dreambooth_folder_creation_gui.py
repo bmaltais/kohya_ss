@@ -68,31 +68,31 @@ def dreambooth_folder_preparation(
         print(f'Copy {util_training_images_dir_input} to {training_dir}...')
         shutil.copytree(util_training_images_dir_input, training_dir)
 
-    # Create the regularization_dir path
-    if (
-        util_class_prompt_input == ''
-        or not util_regularization_images_repeat_input > 0
-    ):
-        print(
-            'Regularization images directory or repeats is missing... not copying regularisation images...'
-        )
+    if not util_regularization_images_dir_input == '':
+        # Create the regularization_dir path
+        if not util_regularization_images_repeat_input > 0:
+            print('Repeats is missing... not copying regularisation images...')
+        else:
+            regularization_dir = os.path.join(
+                util_training_dir_output,
+                f'reg/{int(util_regularization_images_repeat_input)}_{util_class_prompt_input}',
+            )
+
+            # Remove folders if they exist
+            if os.path.exists(regularization_dir):
+                print(f'Removing existing directory {regularization_dir}...')
+                shutil.rmtree(regularization_dir)
+
+            # Copy the regularisation images to their respective directories
+            print(
+                f'Copy {util_regularization_images_dir_input} to {regularization_dir}...'
+            )
+            shutil.copytree(
+                util_regularization_images_dir_input, regularization_dir
+            )
     else:
-        regularization_dir = os.path.join(
-            util_training_dir_output,
-            f'reg/{int(util_regularization_images_repeat_input)}_{util_class_prompt_input}',
-        )
-
-        # Remove folders if they exist
-        if os.path.exists(regularization_dir):
-            print(f'Removing existing directory {regularization_dir}...')
-            shutil.rmtree(regularization_dir)
-
-        # Copy the regularisation images to their respective directories
         print(
-            f'Copy {util_regularization_images_dir_input} to {regularization_dir}...'
-        )
-        shutil.copytree(
-            util_regularization_images_dir_input, regularization_dir
+            'Regularization images directory is missing... not copying regularisation images...'
         )
 
     # create log and model folder
@@ -110,10 +110,11 @@ def dreambooth_folder_preparation(
 
 
 def gradio_dreambooth_folder_creation_tab(
-    train_data_dir_input,
-    reg_data_dir_input,
-    output_dir_input,
-    logging_dir_input,
+    train_data_dir_input=gr.Textbox(),
+    reg_data_dir_input=gr.Textbox(),
+    output_dir_input=gr.Textbox(),
+    logging_dir_input=gr.Textbox(),
+    enable_copy_info_button=bool(False),
 ):
     with gr.Tab('Dreambooth folder preparation'):
         gr.Markdown(
@@ -191,16 +192,17 @@ def gradio_dreambooth_folder_creation_tab(
                 util_training_dir_output,
             ],
         )
-        button_copy_info_to_Directories_tab = gr.Button(
-            'Copy info to Directories Tab'
-        )
-    button_copy_info_to_Directories_tab.click(
-        copy_info_to_Directories_tab,
-        inputs=[util_training_dir_output],
-        outputs=[
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            logging_dir_input,
-        ],
-    )
+        if enable_copy_info_button:
+            button_copy_info_to_Directories_tab = gr.Button(
+                'Copy info to Directories Tab'
+            )
+            button_copy_info_to_Directories_tab.click(
+                copy_info_to_Directories_tab,
+                inputs=[util_training_dir_output],
+                outputs=[
+                    train_data_dir_input,
+                    reg_data_dir_input,
+                    output_dir_input,
+                    logging_dir_input,
+                ],
+            )
