@@ -14,6 +14,9 @@ You can find the finetune solution spercific [Finetune README](README_finetune.m
 
 ## Change history
 
+* 12/22 (v18.7) update:
+    - Merge dreambooth and finetune is a common GUI
+    - General bug fixes and code improvements
 * 12/21 (v18.6.1) update:
     - fix issue with dataset balancing when the number of detected images in the folder is 0
 
