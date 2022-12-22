@@ -51,7 +51,12 @@ def dataset_balancing(concept_repeats, folder, insecure):
             if match:
                 # Multiply the repeats value by the number inside the braces
                 if not images == 0:
-                    repeats = max(1, round(concept_repeats / images * float(match.group(1))))
+                    repeats = max(
+                        1,
+                        round(
+                            concept_repeats / images * float(match.group(1))
+                        ),
+                    )
                 else:
                     repeats = 0
                 subdir = subdir[match.end() :]
@@ -95,7 +100,7 @@ def warning(insecure):
 
 
 def gradio_dataset_balancing_tab():
-    with gr.Tab('Dataset balancing'):
+    with gr.Tab('Dreambooth Dataset balancing'):
         gr.Markdown(
             'This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.'
         )

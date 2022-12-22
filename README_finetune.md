@@ -107,15 +107,23 @@ You can also use the `Captioning` tool found under the `Utilities` tab in the GU
 
 ## GUI
 
-Support for GUI based training using gradio. You can start the GUI interface by running:
+There is now support for GUI based training using gradio. You can start the complete kohya training GUI interface by running:
 
 ```powershell
-.\finetune.bat
+.\kohya.cmd
+```
+
+and select the Finetune tab.
+
+Alternativelly you can use the Finetune focus GUI with
+
+```powershell
+.\finetune.cmd
 ```
 
 ## CLI
 
-You can find various examples of how to leverage the fine_tune.py in this folder: https://github.com/bmaltais/kohya_ss/tree/master/examples
+You can find various examples of how to leverage the `fine_tune.py` in this folder: https://github.com/bmaltais/kohya_ss/tree/master/examples
 
 ## Support
 
