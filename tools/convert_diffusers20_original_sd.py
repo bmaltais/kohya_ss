@@ -48,7 +48,7 @@ def convert(args):
       v2_model = unet.config.cross_attention_dim == 1024
       print("checking model version: model is " + ('v2' if v2_model else 'v1'))
     else:
-      v2_model = args.v1
+      v2_model = not args.v1
 
   # 変換して保存する
   msg = ("checkpoint" + ("" if save_dtype is None else f" in {save_dtype}")) if is_save_ckpt else "Diffusers"
