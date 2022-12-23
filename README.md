@@ -14,6 +14,9 @@ You can find the finetune solution spercific [Finetune README](README_finetune.m
 
 ## Change history
 
+* 12/23 (v18.8) update:
+    - Fix for conversion tool issue when the source was an sd1.x diffuser model
+    - Other minor code and GUI fix
 * 12/22 (v18.7) update:
     - Merge dreambooth and finetune is a common GUI
     - General bug fixes and code improvements
