@@ -67,12 +67,6 @@ python .\tools\cudann_1.8_install.py
 
 When a new release comes out you can upgrade your repo with the following command:
 
-```
-.\upgrade.bat
-```
-
-or you can do it manually with
-
 ```powershell
 cd kohya_ss
 git pull
@@ -110,15 +104,8 @@ You can also use the `Captioning` tool found under the `Utilities` tab in the GU
 There is now support for GUI based training using gradio. You can start the complete kohya training GUI interface by running:
 
 ```powershell
-.\kohya.cmd
-```
-
-and select the Finetune tab.
-
-Alternativelly you can use the Finetune focus GUI with
-
-```powershell
-.\finetune.cmd
+.\venv\Scripts\activate
+.\kohya_gui.cmd
 ```
 
 ## CLI

@@ -5,7 +5,7 @@ import shutil
 import os
 
 
-def copy_info_to_Directories_tab(training_folder):
+def copy_info_to_Folders_tab(training_folder):
     img_folder = os.path.join(training_folder, 'img')
     if os.path.exists(os.path.join(training_folder, 'reg')):
         reg_folder = os.path.join(training_folder, 'reg')
@@ -114,7 +114,6 @@ def gradio_dreambooth_folder_creation_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
-    enable_copy_info_button=bool(False),
 ):
     with gr.Tab('Dreambooth folder preparation'):
         gr.Markdown(
@@ -192,17 +191,16 @@ def gradio_dreambooth_folder_creation_tab(
                 util_training_dir_output,
             ],
         )
-        if enable_copy_info_button:
-            button_copy_info_to_Directories_tab = gr.Button(
-                'Copy info to Directories Tab'
-            )
-            button_copy_info_to_Directories_tab.click(
-                copy_info_to_Directories_tab,
-                inputs=[util_training_dir_output],
-                outputs=[
-                    train_data_dir_input,
-                    reg_data_dir_input,
-                    output_dir_input,
-                    logging_dir_input,
-                ],
-            )
+        button_copy_info_to_Folders_tab = gr.Button(
+            'Copy info to Folders Tab'
+        )
+        button_copy_info_to_Folders_tab.click(
+            copy_info_to_Folders_tab,
+            inputs=[util_training_dir_output],
+            outputs=[
+                train_data_dir_input,
+                reg_data_dir_input,
+                output_dir_input,
+                logging_dir_input,
+            ],
+        )

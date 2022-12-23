@@ -1,1 +1,0 @@
-.\venv\Scripts\python.exe .\dreambooth_gui.py

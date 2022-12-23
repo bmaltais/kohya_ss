@@ -403,9 +403,9 @@ def finetune_tab():
     dummy_ft_true = gr.Label(value=True, visible=False)
     dummy_ft_false = gr.Label(value=False, visible=False)
     gr.Markdown(
-        'Enter kohya finetune training parameter using this interface.'
+        'Train a custom model using kohya finetune python code...'
     )
-    with gr.Accordion('Configuration File Load/Save', open=False):
+    with gr.Accordion('Configuration file', open=False):
         with gr.Row():
             button_open_config = gr.Button(
                 f'Open {folder_symbol}', elem_id='open_folder'
@@ -486,7 +486,7 @@ def finetune_tab():
                 v_parameterization_input,
             ],
         )
-    with gr.Tab('Directories'):
+    with gr.Tab('Folders'):
         with gr.Row():
             train_dir_input = gr.Textbox(
                 label='Training config folder',

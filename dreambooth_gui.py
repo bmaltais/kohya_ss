@@ -17,6 +17,10 @@ from library.common_gui import (
     get_file_path,
     get_saveasfile_path,
 )
+from library.dreambooth_folder_creation_gui import (
+    gradio_dreambooth_folder_creation_tab,
+)
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from easygui import msgbox
 
@@ -509,7 +513,7 @@ def dreambooth_tab(
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
-    gr.Markdown('Enter kohya dreambooth training parameter using this interface.')
+    gr.Markdown('Train a custom model using kohya dreambooth python code...')
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
             button_open_config = gr.Button('Open 📂', elem_id='open_folder')
@@ -592,7 +596,7 @@ def dreambooth_tab(
             ],
         )
 
-    with gr.Tab('Directories'):
+    with gr.Tab('Folders'):
         with gr.Row():
             train_data_dir_input = gr.Textbox(
                 label='Image folder',
@@ -766,6 +770,15 @@ def dreambooth_tab(
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
+    with gr.Tab('Tools'):
+        gr.Markdown('This section provide Dreambooth tools to help setup your dataset...')
+        gradio_dreambooth_folder_creation_tab(
+            train_data_dir_input=train_data_dir_input,
+            reg_data_dir_input=reg_data_dir_input,
+            output_dir_input=output_dir_input,
+            logging_dir_input=logging_dir_input,
+        )
+        gradio_dataset_balancing_tab()
 
     button_run = gr.Button('Train model')
 

@@ -67,12 +67,6 @@ python .\tools\cudann_1.8_install.py
 
 When a new release comes out you can upgrade your repo with the following command:
 
-```
-.\upgrade.bat
-```
-
-alternatively you can do it manually with
-
 ```powershell
 cd kohya_ss
 git pull
@@ -87,15 +81,8 @@ Once the commands have completed successfully you should be ready to use the new
 There is now support for GUI based training using gradio. You can start the complete kohya training GUI interface by running:
 
 ```powershell
-.\kohya.cmd
-```
-
-and select the Dreambooth tab.
-
-Alternativelly you can use the Dreambooth focus GUI with
-
-```powershell
-.\dreambooth.cmd
+.\venv\Scripts\activate
+.\kohya_gui.cmd
 ```
 
 ## CLI
