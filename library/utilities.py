@@ -6,14 +6,10 @@
 import gradio as gr
 import os
 import argparse
-from library.dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
 from library.basic_caption_gui import gradio_basic_caption_gui_tab
 from library.convert_model_gui import gradio_convert_model_tab
 from library.blip_caption_gui import gradio_blip_caption_gui_tab
 from library.wd14_caption_gui import gradio_wd14_caption_gui_tab
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 
 
 def utilities_tab(
@@ -28,17 +24,6 @@ def utilities_tab(
         gradio_basic_caption_gui_tab()
         gradio_blip_caption_gui_tab()
         gradio_wd14_caption_gui_tab()
-    if enable_dreambooth_tab:
-        with gr.Tab('Dreambooth'):
-            gr.Markdown('This section provide Dreambooth specific tools.')
-            gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=train_data_dir_input,
-                reg_data_dir_input=reg_data_dir_input,
-                output_dir_input=output_dir_input,
-                logging_dir_input=logging_dir_input,
-                enable_copy_info_button=enable_copy_info_button,
-            )
-            gradio_dataset_balancing_tab()
     gradio_convert_model_tab()
 
     return (
