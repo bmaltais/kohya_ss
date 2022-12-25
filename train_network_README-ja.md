@@ -138,11 +138,17 @@ v1で学習したLoRAとv2で学習したLoRA、次元数の異なるLoRAはマ�
 * save_precision
   * モデル保存時の精度をfloat、fp16、bf16から指定できます。省略時はprecisionと同じ精度になります。
 
+## 当リポジトリ内の画像生成スクリプトで生成する
+
+gen_img_diffusers.pyに、--network_module、--network_weights、--network_dim（省略可）の各オプションを追加してください。意味は学習時と同様です。
+
+--network_mulオプションで0~1.0の数値を指定すると、LoRAの適用率を変えられます。
+
 ## 追加情報
 
 ### cloneofsimo氏のリポジトリとの違い
 
-12/25時点では、当リポジトリはLoRAの適用個所をText EncoderのMLP、U-NetのFFN、Transformerのin/out projectionに拡大し、表現力が増しています。
+12/25時点では、当リポジトリはLoRAの適用個所をText EncoderのMLP、U-NetのFFN、Transformerのin/out projectionに拡大し、表現力が増しています。ただその代わりメモリ使用量は増え、8GBぎりぎりになりました。
 
 またモジュール入れ替え機構は全く異なります。
 
