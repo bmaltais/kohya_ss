@@ -11,7 +11,7 @@ This repository contains the scripts for:
 * image generation
 * model conversion (supports 1.x and 2.x, Stable Diffision ckpt/safetensors and Diffusers)
 
-## About requirements_*.txt
+## About requirements.txt
 
 These files do not contain requirements for PyTorch. Because the versions of them depend on your environment. Please install PyTorch at first (see installation guide below.) 
 
@@ -22,8 +22,9 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 All documents are in Japanese currently, and CUI based.
 
 * note.com [Environment setup and DreamBooth training guide](https://note.com/kohya_ss/n/nba4eceaa4594)
-* [fine-tuningのガイド](./fine_tune_README_ja.md):
+* [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
 Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
+* [training LoRA](./train_network_README-ja.md)
 * note.com [Image generation](https://note.com/kohya_ss/n/n2693183a798e)
 * note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 
