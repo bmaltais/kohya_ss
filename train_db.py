@@ -62,7 +62,7 @@ LAST_DIFFUSERS_DIR_NAME = "last"
 # region dataset
 
 class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
-  def __init__(self, batch_size, fine_tuning, train_img_path_captions, reg_img_path_captions, tokenizer, resolution, prior_loss_weight, flip_aug, color_aug, face_crop_aug_range, random_crop, shuffle_caption, disable_padding, debug_dataset) -> None:
+  def __init__(self, batch_size, fine_tuning, train_img_path_captions, reg_img_path_captions, tokenizer, resolution, prior_loss_weight, flip_aug, color_aug, face_crop_aug_range, random_crop, shuffle_caption, tag_dropout, disable_padding, debug_dataset) -> None:
     super().__init__()
 
     self.batch_size = batch_size
@@ -77,6 +77,7 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
     self.random_crop = random_crop
     self.debug_dataset = debug_dataset
     self.shuffle_caption = shuffle_caption
+    self.tag_dropout = tag_dropout
     self.disable_padding = disable_padding
     self.latents_cache = None
     self.enable_bucket = False
@@ -364,6 +365,10 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
       if self.shuffle_caption:         # captionのshuffleをする
         tokens = caption.strip().split(",")
         random.shuffle(tokens)
+        caption = ",".join(tokens).strip()
+      if self.tag_dropout > 0:         # captionのタグをdropoutする
+        tokens = caption.strip().split(",")
+        tokens = [t for t in tokens if random.random() > self.tag_dropout]
         caption = ",".join(tokens).strip()
       captions.append(caption)
 
@@ -797,7 +802,7 @@ def train(args):
   print("prepare dataset")
   train_dataset = DreamBoothOrFineTuningDataset(args.train_batch_size, fine_tuning, train_img_path_captions, reg_img_path_captions, tokenizer, resolution,
                                                 args.prior_loss_weight, args.flip_aug, args.color_aug, face_crop_aug_range, args.random_crop,
-                                                args.shuffle_caption, args.no_token_padding, args.debug_dataset)
+                                                args.shuffle_caption, args.tag_dropout, args.no_token_padding, args.debug_dataset)
 
   if args.debug_dataset:
     train_dataset.make_buckets_with_caching(args.enable_bucket, None, args.min_bucket_reso,
@@ -1156,6 +1161,8 @@ if __name__ == '__main__':
                       help="fine tune the model instead of DreamBooth / DreamBoothではなくfine tuningする")
   parser.add_argument("--shuffle_caption", action="store_true",
                       help="shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする")
+  parser.add_argument("--tag_dropout", type=float, default=0.0,
+                      help="percentage of tag dropout / タグのdropout率")
   parser.add_argument("--caption_extention", type=str, default=None,
                       help="extension of caption files (backward compatiblity) / 読み込むcaptionファイルの拡張子（スペルミスを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
