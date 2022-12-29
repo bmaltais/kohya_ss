@@ -4,6 +4,7 @@ import argparse
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from library.utilities import utilities_tab
+from lora_gui import lora_tab
 
 
 def UI(username, password):
@@ -27,6 +28,8 @@ def UI(username, password):
             ) = dreambooth_tab()
         with gr.Tab('Finetune'):
             finetune_tab()
+        with gr.Tab('LoRA'):
+            lora_tab()
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,

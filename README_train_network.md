@@ -9,9 +9,9 @@
 
 ## A Note about Trained Models
 
-Cloneofsimo's repository and d8ahazard's [Drebooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_drebooth_extension) are currently incompatible. Because we are doing some enhancements (see below).
+Cloneofsimo's repository and d8ahazard's [Drebooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_drebooth_extension) are currently incompatible due to ongoing enhancements (see below).
 
-When generating images with WebUI etc., it is necessary to merge the learned LoRA model with the learning source Stable Diffusion model in advance using the script in this repository. The model file after merging will reflect the learning results of LoRA.
+In order to generate images using WebUI, it is necessary to merge the learned LoRA model with the Stable Diffusion model using the script in this repository. The resulting merged model file will incorporate the learning results from LoRA. Note that merging is not required when generating images with the script in this repository.
 
 Note that merging is not required when generating with the image generation script in this repository.
 
@@ -38,44 +38,6 @@ Please refer to [fine-tuning guide](./fine_tune_README_en.md) and perform each s
 Specify train_network.py instead of fine_tune.py when training. Almost all options (except for model saving) can be used as is.
 
 In addition, it will work even if you do not perform "Pre-obtain latents". Since the latent is acquired from the VAE when learning (or caching), the learning speed will be slower, but color_aug can be used instead.
-
-### Options for Learning LoRA
-
-In train_network.py, specify the name of the module to be trained in the --network_module option. LoRA is compatible with network.lora, so please specify it.
-
-The learning rate should be set to about 1e-4, which is higher than normal DreamBooth and fine tuning.
-
-Below is an example command line (DreamBooth technique).
-
-```
-accelerate launch --num_cpu_threads_per_process 12 train_network.py
-     --pretrained_model_name_or_path=..\models\model.ckpt
-     --train_data_dir=..\data\db\char1 --output_dir=..\lora_train1
-     --reg_data_dir=..\data\db\reg1 --prior_loss_weight=1.0
-     --resolution=448,640 --train_batch_size=1 --learning_rate=1e-4
-     --max_train_steps=400 --use_8bit_adam --xformers --mixed_precision=fp16
-     --save_every_n_epochs=1 --save_model_as=safetensors --clip_skip=2 --seed=42 --color_aug
-     --network_module=networks.lora
-```
-
-The LoRA model will be saved in the directory specified by the --output_dir option.
-
-In addition, the following options can be specified.
-
-* --network_dim
-   * Specify the number of dimensions of LoRA (such as ``--networkdim=4``). Default is 4. The greater the number, the greater the expressive power, but the memory and time required for learning also increase. In addition, it seems that it is not good to increase it blindly.
-* --network_weights
-   * Load pretrained LoRA weights before training and additionally learn from them.
-* --network_train_unet_only
-   * Valid only for LoRA modules related to U-Net. It may be better to specify it in fine-tuning study.
-* --network_train_text_encoder_only
-   * Only LoRA modules related to Text Encoder are enabled. You may be able to expect a textual inversion effect.
-* --unet_lr
-   * Specify when using a learning rate different from the normal learning rate (specified with the --learning_rate option) for the LoRA module related to U-Net.
-* --text_encoder_lr
-   * Specify when using a learning rate different from the normal learning rate (specified with the --learning_rate option) for the LoRA module associated with the Text Encoder. Some people say that it is better to set the Text Encoder to a slightly lower learning rate (such as 5e-5).
-
-When neither --network_train_unet_only nor --network_train_text_encoder_only is specified (default), both Text Encoder and U-Net LoRA modules are enabled.
 
 ### Options for Learning LoRA
 
