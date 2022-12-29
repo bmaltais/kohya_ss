@@ -925,11 +925,12 @@ def train(args):
     print(f"update token length: {args.max_token_length}")
 
   # 学習データを用意する
+  assert args.resolution is not None, f"resolution is required / resolution（解像度）を指定してください"
   resolution = tuple([int(r) for r in args.resolution.split(',')])
   if len(resolution) == 1:
     resolution = (resolution[0], resolution[0])
   assert len(resolution) == 2, \
-      f"resolution must be 'size' or 'width,height' / resolutionは'サイズ'または'幅','高さ'で指定してください: {args.resolution}"
+      f"resolution must be 'size' or 'width,height' / resolution（解像度）は'サイズ'または'幅','高さ'で指定してください: {args.resolution}"
 
   if args.face_crop_aug_range is not None:
     face_crop_aug_range = tuple([float(r) for r in args.face_crop_aug_range.split(',')])
@@ -1375,7 +1376,7 @@ if __name__ == '__main__':
   parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")
   parser.add_argument("--in_json", type=str, default=None, help="json meatadata for dataset / データセットのmetadataのjsonファイル")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
-  parser.add_argument("--dataset_repeats", type=int, default=None,
+  parser.add_argument("--dataset_repeats", type=int, default=1,
                       help="repeat dataset when training with captions / キャプションでの学習時にデータセットを繰り返す回数")
   parser.add_argument("--output_dir", type=str, default=None,
                       help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
