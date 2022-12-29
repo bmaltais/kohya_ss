@@ -236,7 +236,7 @@ def train_model(
     seed,
     num_cpu_threads_per_process,
     cache_latent,
-    caption_extention,
+    caption_extension,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -396,8 +396,8 @@ def train_model(
     run_cmd += f' --seed={seed}'
     run_cmd += f' --save_precision={save_precision}'
     run_cmd += f' --logging_dir={logging_dir}'
-    if not caption_extention == '':
-        run_cmd += f' --caption_extention={caption_extention}'
+    if not caption_extension == '':
+        run_cmd += f' --caption_extension={caption_extension}'
     if not stop_text_encoder_training == 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
