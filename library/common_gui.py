@@ -20,6 +20,21 @@ def get_file_path(file_path='', defaultextension='.json'):
 
     return file_path
 
+def get_any_file_path(file_path=''):
+    current_file_path = file_path
+    # print(f'current file path: {current_file_path}')
+
+    root = Tk()
+    root.wm_attributes('-topmost', 1)
+    root.withdraw()
+    file_path = filedialog.askopenfilename()
+    root.destroy()
+
+    if file_path == '':
+        file_path = current_file_path
+
+    return file_path
+
 
 def remove_doublequote(file_path):
     if file_path != None:
