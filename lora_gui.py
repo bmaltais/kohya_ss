@@ -418,8 +418,10 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
-    run_cmd += f' --text_encoder_lr={text_encoder_lr}'
-    run_cmd += f' --unet_lr={unet_lr}'
+    if not text_encoder_lr == '':
+        run_cmd += f' --text_encoder_lr={text_encoder_lr}'
+    if not unet_lr == '':
+        run_cmd += f' --unet_lr={unet_lr}'
     if network_train == 'Text encoder only':
         run_cmd += f' --network_train_text_encoder_only'
     elif network_train == 'Unet only':
@@ -708,8 +710,8 @@ def lora_tab(
             )
             lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
         with gr.Row():
-            text_encoder_lr = gr.Textbox(label='Text Encoder learning rate', value=1e-6)
-            unet_lr = gr.Textbox(label='Unet learning rate', value=1e-4)
+            text_encoder_lr = gr.Textbox(label='Text Encoder learning rate', value=1e-6, placeholder='Optional')
+            unet_lr = gr.Textbox(label='Unet learning rate', value=1e-4, placeholder='Optional')
             network_train =gr.Dropdown(
                 label='Network to train',
                 choices=[
