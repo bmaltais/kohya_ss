@@ -4,7 +4,7 @@ extract factors the build is dependent on:
     [ ] TODO: Q - What if we have multiple GPUs of different makes?
 - CUDA version
 - Software:
-    - CPU-only: only CPU quantization functions (no optimizer, no matrix multipl)
+    - CPU-only: only CPU quantization functions (no optimizer, no matrix multiple)
     - CuBLAS-LT: full-build 8-bit optimizer
     - no CuBLAS-LT: no 8-bit matrix multiplication (`nomatmul`)
 
@@ -44,7 +44,7 @@ def get_cuda_version(cuda, cudart_path):
     minor = (version-(major*1000))//10
 
     if major < 11:
-       print('CUDA SETUP: CUDA version lower than 11 are currenlty not supported for LLM.int8(). You will be only to use 8-bit optimizers and quantization routines!!')
+       print('CUDA SETUP: CUDA version lower than 11 are currently not supported for LLM.int8(). You will be only to use 8-bit optimizers and quantization routines!!')
 
     return f'{major}{minor}'
 
