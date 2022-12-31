@@ -540,7 +540,7 @@ def train(args):
 
   # v4で更新：clip_sample=Falseに
   # Diffusersのtrain_dreambooth.pyがconfigから持ってくるように変更されたので、clip_sample=Falseになるため、それに合わせる
-  # 既存の1.4/1.5/2.0/2.1はすべてschdulerのconfigは（クラス名を除いて）同じ
+  # 既存の1.4/1.5/2.0/2.1はすべてschedulerのconfigは（クラス名を除いて）同じ
   # よくソースを見たら学習時はclip_sampleは関係ないや(;'∀')
   noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear",
                                   num_train_timesteps=1000, clip_sample=False)

@@ -9,7 +9,7 @@
 # v11: Diffusers 0.9.0 is required. support for Stable Diffusion 2.0/v-parameterization
 #      add lr scheduler options, change handling folder/file caption, support loading DiffUser model from Huggingface
 #      support save_ever_n_epochs/save_state in DiffUsers model
-#      fix the issue that prior_loss_weight is applyed to train images
+#      fix the issue that prior_loss_weight is applied to train images
 # v12: stop train text encode, tqdm smoothing
 # v13: bug fix
 # v14: refactor to use model_util, add log prefix, support safetensors, support vae loading, keep vae in CPU to save the loaded vae
@@ -986,7 +986,7 @@ def train(args):
 
   # v12で更新：clip_sample=Falseに
   # Diffusersのtrain_dreambooth.pyがconfigから持ってくるように変更されたので、clip_sample=Falseになるため、それに合わせる
-  # 既存の1.4/1.5/2.0/2.1はすべてschdulerのconfigは（クラス名を除いて）同じ
+  # 既存の1.4/1.5/2.0/2.1はすべてschedulerのconfigは（クラス名を除いて）同じ
   # よくソースを見たら学習時はclip_sampleは関係ないや(;'∀')　
   noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear",
                                   num_train_timesteps=1000, clip_sample=False)
@@ -1157,7 +1157,7 @@ if __name__ == '__main__':
   parser.add_argument("--shuffle_caption", action="store_true",
                       help="shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする")
   parser.add_argument("--caption_extention", type=str, default=None,
-                      help="extension of caption files (backward compatiblity) / 読み込むcaptionファイルの拡張子（スペルミスを残してあります）")
+                      help="extension of caption files (backward compatibility) / 読み込むcaptionファイルの拡張子（スペルミスを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
   parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")

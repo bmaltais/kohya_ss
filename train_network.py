@@ -1374,7 +1374,7 @@ if __name__ == '__main__':
                       help="keep heading N tokens when shuffling caption tokens / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す")
   parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")
-  parser.add_argument("--in_json", type=str, default=None, help="json meatadata for dataset / データセットのmetadataのjsonファイル")
+  parser.add_argument("--in_json", type=str, default=None, help="json metadata for dataset / データセットのmetadataのjsonファイル")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
   parser.add_argument("--dataset_repeats", type=int, default=1,
                       help="repeat dataset when training with captions / キャプションでの学習時にデータセットを繰り返す回数")

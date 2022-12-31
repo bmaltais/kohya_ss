@@ -5,7 +5,7 @@
 
 # v2: extract max face if multiple faces are found
 # v3: add crop_ratio option
-# v4: add multple faces extraction and min/max size
+# v4: add multiple faces extraction and min/max size
 
 import argparse
 import math
