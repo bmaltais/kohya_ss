@@ -503,13 +503,13 @@ def UI(username, password):
     interface = gr.Blocks(css=css)
 
     with interface:
-        with gr.Tab('Dreambooth'):
+        with gr.Tab('LoRA'):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab()
+            ) = lora_tab()
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
