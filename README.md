@@ -14,6 +14,8 @@ You can find the finetune solution spercific [Finetune README](README_finetune.m
 
 ## Change history
 
+* 12/30 (v19) update:
+    - support for LoRA network training in kohya_gui.py.
 * 12/23 (v18.8) update:
     - Fix for conversion tool issue when the source was an sd1.x diffuser model
     - Other minor code and GUI fix

@@ -115,9 +115,9 @@ def gradio_dreambooth_folder_creation_tab(
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
 ):
-    with gr.Tab('Dreambooth folder preparation'):
+    with gr.Tab('Dreambooth/LoRA Folder preparation'):
         gr.Markdown(
-            'This utility will create the necessary folder structure for the training images and optional regularization images needed for the kohys_ss Dreambooth method to function correctly.'
+            'This utility will create the necessary folder structure for the training images and optional regularization images needed for the kohys_ss Dreambooth/LoRA method to function correctly.'
         )
         with gr.Row():
             util_instance_prompt_input = gr.Textbox(
