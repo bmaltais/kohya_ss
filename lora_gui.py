@@ -64,7 +64,7 @@ def save_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
     original_file_path = file_path
 
@@ -118,7 +118,8 @@ def save_configuration(
         'prior_loss_weight': prior_loss_weight,
         'text_encoder_lr': text_encoder_lr,
         'unet_lr': unet_lr,
-        'network_dim': network_dim
+        'network_dim': network_dim,
+        'lora_network_weights': lora_network_weights,
     }
 
     # Save the data to the selected file
@@ -160,7 +161,7 @@ def open_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
 
     original_file_path = file_path
@@ -216,6 +217,7 @@ def open_configuration(
         my_data.get('text_encoder_lr', text_encoder_lr),
         my_data.get('unet_lr', unet_lr),
         my_data.get('network_dim', network_dim),
+        my_data.get('lora_network_weights', lora_network_weights),
     )
 
 
@@ -250,7 +252,7 @@ def train_model(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -432,6 +434,7 @@ def train_model(
     # elif network_train == 'Unet only':
     #     run_cmd += f' --network_train_unet_only'
     run_cmd += f' --network_dim={network_dim}'
+    run_cmd += f' --network_weights={lora_network_weights}'
     
 
     print(run_cmd)
@@ -568,7 +571,7 @@ def lora_tab(
                 document_symbol, elem_id='open_folder_small'
             )
             pretrained_model_name_or_path_file.click(
-                get_file_path,
+                get_any_file_path,
                 inputs=[pretrained_model_name_or_path_input],
                 outputs=pretrained_model_name_or_path_input,
             )
@@ -602,19 +605,7 @@ def lora_tab(
                 ],
                 value='same as source model',
             )
-        with gr.Row():
-            lora_network_weights = gr.Textbox(
-                label='LoRA network weights',
-                placeholder='{Optional) Path to existing LoRA network weights to resume training}',
-            )
-            lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            lora_network_weights_file.click(
-                get_any_file_path,
-                inputs=[lora_network_weights],
-                outputs=lora_network_weights,
-            )
+            
         with gr.Row():
             v2_input = gr.Checkbox(label='v2', value=True)
             v_parameterization_input = gr.Checkbox(
@@ -699,6 +690,19 @@ def lora_tab(
             outputs=[logging_dir_input],
         )
     with gr.Tab('Training parameters'):
+        with gr.Row():
+            lora_network_weights = gr.Textbox(
+                label='LoRA network weights',
+                placeholder='{Optional) Path to existing LoRA network weights to resume training',
+            )
+            lora_network_weights_file = gr.Button(
+                document_symbol, elem_id='open_folder_small'
+            )
+            lora_network_weights_file.click(
+                get_any_file_path,
+                inputs=[lora_network_weights],
+                outputs=lora_network_weights,
+            )
         with gr.Row():
             # learning_rate_input = gr.Textbox(label='Learning rate', value=1e-4, visible=False)
             lr_scheduler_input = gr.Dropdown(
@@ -874,7 +878,7 @@ def lora_tab(
         shuffle_caption,
         save_state,
         resume,
-        prior_loss_weight, text_encoder_lr, unet_lr, network_dim
+        prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
     ]
 
     button_open_config.click(

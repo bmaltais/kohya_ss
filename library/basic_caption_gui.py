@@ -75,7 +75,7 @@ def gradio_basic_caption_gui_tab():
             )
         with gr.Row():
             prefix = gr.Textbox(
-                label='Prefix to add to txt caption',
+                label='Prefix to add to caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
@@ -85,7 +85,7 @@ def gradio_basic_caption_gui_tab():
                 interactive=True,
             )
             postfix = gr.Textbox(
-                label='Postfix to add to txt caption',
+                label='Postfix to add to caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
