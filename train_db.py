@@ -1103,7 +1103,7 @@ def train(args):
           model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
                                                       src_stable_diffusion_ckpt, epoch + 1, global_step, save_dtype, vae)
           if args.save_last_n_epochs is not None:
-            old_ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(use_safetensors, epoch + 1 - args.save_last_n_epochs))
+            old_ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(use_safetensors, epoch + 1 - args.save_every_n_epochs * args.save_last_n_epochs))
             if os.path.exists(old_ckpt_file):
               os.remove(old_ckpt_file)
         else:
@@ -1113,7 +1113,7 @@ def train(args):
                                                unwrap_model(unet), src_diffusers_model_path,
                                                use_safetensors=use_safetensors)
           if args.save_last_n_epochs is not None:
-            out_dir_old = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1 - args.save_last_n_epochs))
+            out_dir_old = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1 - args.save_every_n_epochs * args.save_last_n_epochs))
             if os.path.exists(out_dir_old):
               shutil.rmtree(out_dir_old)
 
@@ -1121,7 +1121,7 @@ def train(args):
           print("saving state.")
           accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1)))
           if args.save_last_n_epochs is not None:
-            state_dir_old = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1 - args.save_last_n_epochs))
+            state_dir_old = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1 - args.save_every_n_epochs * args.save_last_n_epochs))
             if os.path.exists(state_dir_old):
               shutil.rmtree(state_dir_old)
 
