@@ -2486,9 +2486,9 @@ if __name__ == '__main__':
   parser.add_argument("--bf16", action='store_true', help='use bfloat16 / bfloat16を指定し省メモリ化する')
   parser.add_argument("--xformers", action='store_true', help='use xformers / xformersを使用し高速化する')
   parser.add_argument("--diffusers_xformers", action='store_true',
-                      help='use xformers by diffusers (Hypernetworks doen\'t work) / Diffusersでxformersを使用する（Hypernetwork利用不可）')
+                      help='use xformers by diffusers (Hypernetworks doesn\'t work) / Diffusersでxformersを使用する（Hypernetwork利用不可）')
   parser.add_argument("--opt_channels_last", action='store_true',
-                      help='set channels last option to model / モデルにchannles lastを指定し最適化する')
+                      help='set channels last option to model / モデルにchannels lastを指定し最適化する')
   parser.add_argument("--network_module", type=str, default=None, help='Hypernetwork module to use / Hypernetworkを使う時そのモジュール名')
   parser.add_argument("--network_weights", type=str, default=None, help='Hypernetwork weights to load / Hypernetworkの重み')
   parser.add_argument("--network_mul", type=float, default=1.0, help='Hypernetwork multiplier / Hypernetworkの効果の倍率')

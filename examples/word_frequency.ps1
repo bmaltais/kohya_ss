@@ -1,12 +1,12 @@
-$txt_files_folder = "D:\dreambooth\training_twq\mad_hatter\all"
-$txt_prefix_to_ignore = "asd"
-$txt_postfix_ti_ignore = "asd"
+$txt_files_folder = "D:\dataset\metart_g1\img\100_asd girl"
+$txt_prefix_to_ignore = "asds"
+$txt_postfix_ti_ignore = "asds"
 
 # Should not need to touch anything below
 
 # (Get-Content $txt_files_folder"\*.txt" ).Replace(",", "") -Split '\W' | Group-Object -NoElement | Sort-Object -Descending -Property Count
 
-$combined_txt = Get-Content $txt_files_folder"\*.txt"
+$combined_txt = Get-Content $txt_files_folder"\*.cap"
 $combined_txt = $combined_txt.Replace(",", "")
 $combined_txt = $combined_txt.Replace("$txt_prefix_to_ignore", "")
 $combined_txt = $combined_txt.Replace("$txt_postfix_ti_ignore", "") -Split '\W' | Group-Object -NoElement | Sort-Object -Descending -Property Count

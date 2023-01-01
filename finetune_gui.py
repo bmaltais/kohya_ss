@@ -9,6 +9,7 @@ import argparse
 from library.common_gui import (
     get_folder_path,
     get_file_path,
+    get_any_file_path,
     get_saveasfile_path,
 )
 from library.utilities import utilities_tab
@@ -436,7 +437,7 @@ def finetune_tab():
                 document_symbol, elem_id='open_folder_small'
             )
             pretrained_model_name_or_path_file.click(
-                get_file_path,
+                get_any_file_path,
                 inputs=pretrained_model_name_or_path_input,
                 outputs=pretrained_model_name_or_path_input,
             )

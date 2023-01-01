@@ -42,7 +42,6 @@ def save_configuration(
     reg_data_dir,
     output_dir,
     max_resolution,
-    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -65,7 +64,7 @@ def save_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_train, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
     original_file_path = file_path
 
@@ -94,7 +93,6 @@ def save_configuration(
         'reg_data_dir': reg_data_dir,
         'output_dir': output_dir,
         'max_resolution': max_resolution,
-        'learning_rate': learning_rate,
         'lr_scheduler': lr_scheduler,
         'lr_warmup': lr_warmup,
         'train_batch_size': train_batch_size,
@@ -120,8 +118,8 @@ def save_configuration(
         'prior_loss_weight': prior_loss_weight,
         'text_encoder_lr': text_encoder_lr,
         'unet_lr': unet_lr,
-        'network_train': network_train,
-        'network_dim': network_dim
+        'network_dim': network_dim,
+        'lora_network_weights': lora_network_weights,
     }
 
     # Save the data to the selected file
@@ -141,7 +139,6 @@ def open_configuration(
     reg_data_dir,
     output_dir,
     max_resolution,
-    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -164,7 +161,7 @@ def open_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_train, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
 
     original_file_path = file_path
@@ -192,7 +189,6 @@ def open_configuration(
         my_data.get('reg_data_dir', reg_data_dir),
         my_data.get('output_dir', output_dir),
         my_data.get('max_resolution', max_resolution),
-        my_data.get('learning_rate', learning_rate),
         my_data.get('lr_scheduler', lr_scheduler),
         my_data.get('lr_warmup', lr_warmup),
         my_data.get('train_batch_size', train_batch_size),
@@ -220,8 +216,8 @@ def open_configuration(
         my_data.get('prior_loss_weight', prior_loss_weight),
         my_data.get('text_encoder_lr', text_encoder_lr),
         my_data.get('unet_lr', unet_lr),
-        my_data.get('network_train', network_train),
         my_data.get('network_dim', network_dim),
+        my_data.get('lora_network_weights', lora_network_weights),
     )
 
 
@@ -234,7 +230,6 @@ def train_model(
     reg_data_dir,
     output_dir,
     max_resolution,
-    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -257,7 +252,7 @@ def train_model(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_train, network_dim
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -293,6 +288,14 @@ def train_model(
 
     if output_dir == '':
         msgbox('Output folder path is missing')
+        return
+    
+    # If string is empty set string to 0.
+    if text_encoder_lr == '': text_encoder_lr = 0
+    if unet_lr == '': unet_lr = 0
+    
+    if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
+        msgbox('At least one Learning Rate value for "Text encoder" or "Unet" need to be provided')
         return
 
     # Get a list of all subfolders in train_data_dir
@@ -394,7 +397,7 @@ def train_model(
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir={output_dir}'
     run_cmd += f' --train_batch_size={train_batch_size}'
-    run_cmd += f' --learning_rate={learning_rate}'
+    # run_cmd += f' --learning_rate={learning_rate}'
     run_cmd += f' --lr_scheduler={lr_scheduler}'
     run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
     run_cmd += f' --max_train_steps={max_train_steps}'
@@ -418,15 +421,20 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
-    if not text_encoder_lr == '':
+    if not float(text_encoder_lr) == 0:
         run_cmd += f' --text_encoder_lr={text_encoder_lr}'
-    if not unet_lr == '':
-        run_cmd += f' --unet_lr={unet_lr}'
-    if network_train == 'Text encoder only':
-        run_cmd += f' --network_train_text_encoder_only'
-    elif network_train == 'Unet only':
+    else:
         run_cmd += f' --network_train_unet_only'
+    if not float(unet_lr) == 0:
+        run_cmd += f' --unet_lr={unet_lr}'
+    else:
+        run_cmd += f' --network_train_text_encoder_only'
+    # if network_train == 'Text encoder only':
+    #     run_cmd += f' --network_train_text_encoder_only'
+    # elif network_train == 'Unet only':
+    #     run_cmd += f' --network_train_unet_only'
     run_cmd += f' --network_dim={network_dim}'
+    run_cmd += f' --network_weights={lora_network_weights}'
     
 
     print(run_cmd)
@@ -503,13 +511,13 @@ def UI(username, password):
     interface = gr.Blocks(css=css)
 
     with interface:
-        with gr.Tab('Dreambooth'):
+        with gr.Tab('LoRA'):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab()
+            ) = lora_tab()
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -563,7 +571,7 @@ def lora_tab(
                 document_symbol, elem_id='open_folder_small'
             )
             pretrained_model_name_or_path_file.click(
-                get_file_path,
+                get_any_file_path,
                 inputs=[pretrained_model_name_or_path_input],
                 outputs=pretrained_model_name_or_path_input,
             )
@@ -597,19 +605,7 @@ def lora_tab(
                 ],
                 value='same as source model',
             )
-        with gr.Row():
-            lora_network_weights = gr.Textbox(
-                label='LoRA network weights',
-                placeholder='{Optional) Path to existing LoRA network weights to resume training}',
-            )
-            lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            lora_network_weights_file.click(
-                get_any_file_path,
-                inputs=[lora_network_weights],
-                outputs=lora_network_weights,
-            )
+            
         with gr.Row():
             v2_input = gr.Checkbox(label='v2', value=True)
             v_parameterization_input = gr.Checkbox(
@@ -695,7 +691,20 @@ def lora_tab(
         )
     with gr.Tab('Training parameters'):
         with gr.Row():
-            learning_rate_input = gr.Textbox(label='Learning rate', value=1e-4)
+            lora_network_weights = gr.Textbox(
+                label='LoRA network weights',
+                placeholder='{Optional) Path to existing LoRA network weights to resume training',
+            )
+            lora_network_weights_file = gr.Button(
+                document_symbol, elem_id='open_folder_small'
+            )
+            lora_network_weights_file.click(
+                get_any_file_path,
+                inputs=[lora_network_weights],
+                outputs=lora_network_weights,
+            )
+        with gr.Row():
+            # learning_rate_input = gr.Textbox(label='Learning rate', value=1e-4, visible=False)
             lr_scheduler_input = gr.Dropdown(
                 label='LR Scheduler',
                 choices=[
@@ -712,16 +721,16 @@ def lora_tab(
         with gr.Row():
             text_encoder_lr = gr.Textbox(label='Text Encoder learning rate', value=1e-6, placeholder='Optional')
             unet_lr = gr.Textbox(label='Unet learning rate', value=1e-4, placeholder='Optional')
-            network_train =gr.Dropdown(
-                label='Network to train',
-                choices=[
-                    'Text encoder and Unet',
-                    'Text encoder only',
-                    'Unet only',
-                ],
-                value='Text encoder and Unet',
-                interactive=True
-            )
+            # network_train = gr.Dropdown(
+            #     label='Network to train',
+            #     choices=[
+            #         'Text encoder and Unet',
+            #         'Text encoder only',
+            #         'Unet only',
+            #     ],
+            #     value='Text encoder and Unet',
+            #     interactive=True
+            # )
             network_dim = gr.Slider(
                 minimum=1,
                 maximum=32,
@@ -846,7 +855,7 @@ def lora_tab(
         reg_data_dir_input,
         output_dir_input,
         max_resolution_input,
-        learning_rate_input,
+        # learning_rate_input,
         lr_scheduler_input,
         lr_warmup_input,
         train_batch_size_input,
@@ -869,7 +878,7 @@ def lora_tab(
         shuffle_caption,
         save_state,
         resume,
-        prior_loss_weight, text_encoder_lr, unet_lr, network_train, network_dim
+        prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
     ]
 
     button_open_config.click(
