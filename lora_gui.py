@@ -434,7 +434,8 @@ def train_model(
     # elif network_train == 'Unet only':
     #     run_cmd += f' --network_train_unet_only'
     run_cmd += f' --network_dim={network_dim}'
-    run_cmd += f' --network_weights={lora_network_weights}'
+    if not lora_network_weights == '':
+        run_cmd += f' --network_weights={lora_network_weights}'
     
 
     print(run_cmd)
