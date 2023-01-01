@@ -26,10 +26,10 @@ def UI(username, password):
                 output_dir_input,
                 logging_dir_input,
             ) = dreambooth_tab()
+        with gr.Tab('Dreambooth LoRA'):
+            lora_tab()
         with gr.Tab('Finetune'):
             finetune_tab()
-        with gr.Tab('LoRA'):
-            lora_tab()
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
