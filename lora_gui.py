@@ -17,7 +17,7 @@ from library.common_gui import (
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
-    color_aug_changed
+    color_aug_changed,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -65,7 +65,13 @@ def save_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
+    prior_loss_weight,
+    text_encoder_lr,
+    unet_lr,
+    network_dim,
+    lora_network_weights,
+    color_aug,
+    flip_aug,
 ):
     original_file_path = file_path
 
@@ -164,7 +170,13 @@ def open_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
+    prior_loss_weight,
+    text_encoder_lr,
+    unet_lr,
+    network_dim,
+    lora_network_weights,
+    color_aug,
+    flip_aug,
 ):
 
     original_file_path = file_path
@@ -257,7 +269,13 @@ def train_model(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
+    prior_loss_weight,
+    text_encoder_lr,
+    unet_lr,
+    network_dim,
+    lora_network_weights,
+    color_aug,
+    flip_aug,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -294,13 +312,17 @@ def train_model(
     if output_dir == '':
         msgbox('Output folder path is missing')
         return
-    
+
     # If string is empty set string to 0.
-    if text_encoder_lr == '': text_encoder_lr = 0
-    if unet_lr == '': unet_lr = 0
-    
+    if text_encoder_lr == '':
+        text_encoder_lr = 0
+    if unet_lr == '':
+        unet_lr = 0
+
     if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-        msgbox('At least one Learning Rate value for "Text encoder" or "Unet" need to be provided')
+        msgbox(
+            'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
+        )
         return
 
     # Get a list of all subfolders in train_data_dir
@@ -445,7 +467,6 @@ def train_model(
     run_cmd += f' --network_dim={network_dim}'
     if not lora_network_weights == '':
         run_cmd += f' --network_weights={lora_network_weights}'
-    
 
     print(run_cmd)
     # Run the command
@@ -552,7 +573,9 @@ def lora_tab(
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
-    gr.Markdown('Train a custom model using kohya train network LoRA python code...')
+    gr.Markdown(
+        'Train a custom model using kohya train network LoRA python code...'
+    )
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
             button_open_config = gr.Button('Open 📂', elem_id='open_folder')
@@ -615,7 +638,7 @@ def lora_tab(
                 ],
                 value='same as source model',
             )
-            
+
         with gr.Row():
             v2_input = gr.Checkbox(label='v2', value=True)
             v_parameterization_input = gr.Checkbox(
@@ -729,8 +752,14 @@ def lora_tab(
             )
             lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
         with gr.Row():
-            text_encoder_lr = gr.Textbox(label='Text Encoder learning rate', value=1e-6, placeholder='Optional')
-            unet_lr = gr.Textbox(label='Unet learning rate', value=1e-4, placeholder='Optional')
+            text_encoder_lr = gr.Textbox(
+                label='Text Encoder learning rate',
+                value=1e-6,
+                placeholder='Optional',
+            )
+            unet_lr = gr.Textbox(
+                label='Unet learning rate', value=1e-4, placeholder='Optional'
+            )
             # network_train = gr.Dropdown(
             #     label='Network to train',
             #     choices=[
@@ -747,7 +776,7 @@ def lora_tab(
                 label='Network Dimension',
                 value=4,
                 step=1,
-                interactive=True
+                interactive=True,
             )
         with gr.Row():
             train_batch_size_input = gr.Slider(
@@ -837,10 +866,12 @@ def lora_tab(
                 color_aug = gr.Checkbox(
                     label='Color augmentation', value=False
                 )
-                flip_aug = gr.Checkbox(
-                    label='Flip augmentation', value=False
+                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+                color_aug.change(
+                    color_aug_changed,
+                    inputs=[color_aug],
+                    outputs=[cache_latent_input],
                 )
-                color_aug.change(color_aug_changed, inputs=[color_aug], outputs=[cache_latent_input])
             with gr.Row():
                 resume = gr.Textbox(
                     label='Resume from saved training state',
@@ -852,7 +883,9 @@ def lora_tab(
                     label='Prior loss weight', value=1.0
                 )
     with gr.Tab('Tools'):
-        gr.Markdown('This section provide Dreambooth tools to help setup your dataset...')
+        gr.Markdown(
+            'This section provide Dreambooth tools to help setup your dataset...'
+        )
         gradio_dreambooth_folder_creation_tab(
             train_data_dir_input=train_data_dir_input,
             reg_data_dir_input=reg_data_dir_input,
@@ -862,7 +895,7 @@ def lora_tab(
         gradio_dataset_balancing_tab()
 
     button_run = gr.Button('Train model')
-    
+
     settings_list = [
         pretrained_model_name_or_path_input,
         v2_input,
@@ -895,7 +928,13 @@ def lora_tab(
         shuffle_caption,
         save_state,
         resume,
-        prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
+        prior_loss_weight,
+        text_encoder_lr,
+        unet_lr,
+        network_dim,
+        lora_network_weights,
+        color_aug,
+        flip_aug,
     ]
 
     button_open_config.click(
@@ -918,7 +957,7 @@ def lora_tab(
 
     button_run.click(
         train_model,
-        inputs=settings_list, 
+        inputs=settings_list,
     )
 
     return (

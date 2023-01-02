@@ -17,7 +17,7 @@ from library.common_gui import (
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
-    color_aug_changed
+    color_aug_changed,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -66,7 +66,9 @@ def save_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, color_aug, flip_aug
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
 ):
     original_file_path = file_path
 
@@ -163,7 +165,9 @@ def open_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, color_aug, flip_aug
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
 ):
 
     original_file_path = file_path
@@ -254,7 +258,9 @@ def train_model(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, color_aug, flip_aug
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -514,7 +520,7 @@ def UI(username, password):
         interface.launch(auth=(username, password))
     else:
         interface.launch()
-        
+
 
 def dreambooth_tab(
     train_data_dir_input=gr.Textbox(),
@@ -774,10 +780,12 @@ def dreambooth_tab(
                 color_aug = gr.Checkbox(
                     label='Color augmentation', value=False
                 )
-                flip_aug = gr.Checkbox(
-                    label='Flip augmentation', value=False
+                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+                color_aug.change(
+                    color_aug_changed,
+                    inputs=[color_aug],
+                    outputs=[cache_latent_input],
                 )
-                color_aug.change(color_aug_changed, inputs=[color_aug], outputs=[cache_latent_input])
             with gr.Row():
                 resume = gr.Textbox(
                     label='Resume from saved training state',
@@ -789,7 +797,9 @@ def dreambooth_tab(
                     label='Prior loss weight', value=1.0
                 )
     with gr.Tab('Tools'):
-        gr.Markdown('This section provide Dreambooth tools to help setup your dataset...')
+        gr.Markdown(
+            'This section provide Dreambooth tools to help setup your dataset...'
+        )
         gradio_dreambooth_folder_creation_tab(
             train_data_dir_input=train_data_dir_input,
             reg_data_dir_input=reg_data_dir_input,
@@ -835,7 +845,9 @@ def dreambooth_tab(
             shuffle_caption,
             save_state,
             resume,
-            prior_loss_weight, color_aug, flip_aug
+            prior_loss_weight,
+            color_aug,
+            flip_aug,
         ],
         outputs=[
             config_file_name,
@@ -870,7 +882,9 @@ def dreambooth_tab(
             shuffle_caption,
             save_state,
             resume,
-            prior_loss_weight, color_aug, flip_aug
+            prior_loss_weight,
+            color_aug,
+            flip_aug,
         ],
     )
 
@@ -910,7 +924,9 @@ def dreambooth_tab(
             shuffle_caption,
             save_state,
             resume,
-            prior_loss_weight, color_aug, flip_aug
+            prior_loss_weight,
+            color_aug,
+            flip_aug,
         ],
         outputs=[config_file_name],
     )
@@ -951,7 +967,9 @@ def dreambooth_tab(
             shuffle_caption,
             save_state,
             resume,
-            prior_loss_weight, color_aug, flip_aug
+            prior_loss_weight,
+            color_aug,
+            flip_aug,
         ],
         outputs=[config_file_name],
     )
@@ -990,7 +1008,9 @@ def dreambooth_tab(
             shuffle_caption,
             save_state,
             resume,
-            prior_loss_weight, color_aug, flip_aug
+            prior_loss_weight,
+            color_aug,
+            flip_aug,
         ],
     )
 

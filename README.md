@@ -30,6 +30,9 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/02 (v19.2) update:
+    - Finetune, add xformers, 8bit adam, min bucket, max bucket, batch size and flip augmentation support for dataset preparation
+    - Finetune, add "Dataset preparation" tab to group task specific options
 * 2023/01/01 (v19.2) update:
     - add support for color and flip augmentation to "Dreambooth LoRA"
 * 2023/01/01 (v19.1) update:
