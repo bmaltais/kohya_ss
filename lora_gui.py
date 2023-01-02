@@ -17,6 +17,7 @@ from library.common_gui import (
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
+    color_aug_changed
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -64,7 +65,7 @@ def save_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
 ):
     original_file_path = file_path
 
@@ -120,6 +121,8 @@ def save_configuration(
         'unet_lr': unet_lr,
         'network_dim': network_dim,
         'lora_network_weights': lora_network_weights,
+        'color_aug': color_aug,
+        'flip_aug': flip_aug,
     }
 
     # Save the data to the selected file
@@ -161,7 +164,7 @@ def open_configuration(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
 ):
 
     original_file_path = file_path
@@ -218,6 +221,8 @@ def open_configuration(
         my_data.get('unet_lr', unet_lr),
         my_data.get('network_dim', network_dim),
         my_data.get('lora_network_weights', lora_network_weights),
+        my_data.get('color_aug', color_aug),
+        my_data.get('flip_aug', flip_aug),
     )
 
 
@@ -252,7 +257,7 @@ def train_model(
     shuffle_caption,
     save_state,
     resume,
-    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
+    prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -388,6 +393,10 @@ def train_model(
         run_cmd += ' --shuffle_caption'
     if save_state:
         run_cmd += ' --save_state'
+    if color_aug:
+        run_cmd += ' --color_aug'
+    if flip_aug:
+        run_cmd += ' --flip_aug'
     run_cmd += (
         f' --pretrained_model_name_or_path={pretrained_model_name_or_path}'
     )
@@ -825,6 +834,13 @@ def lora_tab(
                 save_state = gr.Checkbox(
                     label='Save training state', value=False
                 )
+                color_aug = gr.Checkbox(
+                    label='Color augmentation', value=False
+                )
+                flip_aug = gr.Checkbox(
+                    label='Flip augmentation', value=False
+                )
+                color_aug.change(color_aug_changed, inputs=[color_aug], outputs=[cache_latent_input])
             with gr.Row():
                 resume = gr.Textbox(
                     label='Resume from saved training state',
@@ -879,7 +895,7 @@ def lora_tab(
         shuffle_caption,
         save_state,
         resume,
-        prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights
+        prior_loss_weight, text_encoder_lr, unet_lr, network_dim, lora_network_weights, color_aug, flip_aug
     ]
 
     button_open_config.click(

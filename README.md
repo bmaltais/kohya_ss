@@ -30,6 +30,8 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/01 (v19.2) update:
+    - add support for color and flip augmentation to "Dreambooth LoRA"
 * 2023/01/01 (v19.1) update:
     - merge kohys_ss upstream code  updates
     - rework Dreambooth LoRA GUI
