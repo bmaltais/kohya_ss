@@ -1,22 +1,4 @@
-# このスクリプトのライセンスは、train_dreambooth.pyと同じくApache License 2.0とします
-# (c) 2022 Kohya S. @kohya_ss
-
-# v7: another text encoder ckpt format, average loss, save epochs/global steps, show num of train/reg images,
-#     enable reg images in fine-tuning, add dataset_repeats option
-# v8: supports Diffusers 0.7.2
-# v9: add bucketing option
-# v10: add min_bucket_reso/max_bucket_reso options, read captions for train/reg images in DreamBooth
-# v11: Diffusers 0.9.0 is required. support for Stable Diffusion 2.0/v-parameterization
-#      add lr scheduler options, change handling folder/file caption, support loading DiffUser model from Huggingface
-#      support save_ever_n_epochs/save_state in DiffUsers model
-#      fix the issue that prior_loss_weight is applied to train images
-# v12: stop train text encode, tqdm smoothing
-# v13: bug fix
-# v14: refactor to use model_util, add log prefix, support safetensors, support vae loading, keep vae in CPU to save the loaded vae
-# v15: model_util update
-# v16: support Diffusers 0.10.0 (v-parameterization training, safetensors in Diffusers) and accelerate 0.15.0
-# v17: add fp16 gradient training (experimental)
-# v18: add save_model_as option
+# DreamBooth training
 
 import gc
 import time
@@ -44,19 +26,8 @@ from einops import rearrange
 from torch import einsum
 
 import library.model_util as model_util
-
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
-
-# CLIP_ID_L14_336 = "openai/clip-vit-large-patch14-336"
-
-# checkpointファイル名
-EPOCH_STATE_NAME = "epoch-{:06d}-state"
-LAST_STATE_NAME = "last-state"
-
-EPOCH_DIFFUSERS_DIR_NAME = "epoch-{:06d}"
-LAST_DIFFUSERS_DIR_NAME = "last"
+import library.train_util as train_util
+from library.train_util import DreamBoothDataset, FineTuningDataset
 
 
 # region dataset
@@ -392,264 +363,8 @@ class DreamBoothOrFineTuningDataset(torch.utils.data.Dataset):
 # endregion
 
 
-# region モジュール入れ替え部
-"""
-高速化のためのモジュール入れ替え
-"""
-
-# FlashAttentionを使うCrossAttention
-# based on https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/memory_efficient_attention_pytorch/flash_attention.py
-# LICENSE MIT https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/LICENSE
-
-# constants
-
-EPSILON = 1e-6
-
-# helper functions
-
-
-def exists(val):
-  return val is not None
-
-
-def default(val, d):
-  return val if exists(val) else d
-
-# flash attention forwards and backwards
-
-# https://arxiv.org/abs/2205.14135
-
-
-class FlashAttentionFunction(Function):
-  @ staticmethod
-  @ torch.no_grad()
-  def forward(ctx, q, k, v, mask, causal, q_bucket_size, k_bucket_size):
-    """ Algorithm 2 in the paper """
-
-    device = q.device
-    dtype = q.dtype
-    max_neg_value = -torch.finfo(q.dtype).max
-    qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-    o = torch.zeros_like(q)
-    all_row_sums = torch.zeros((*q.shape[:-1], 1), dtype=dtype, device=device)
-    all_row_maxes = torch.full((*q.shape[:-1], 1), max_neg_value, dtype=dtype, device=device)
-
-    scale = (q.shape[-1] ** -0.5)
-
-    if not exists(mask):
-      mask = (None,) * math.ceil(q.shape[-2] / q_bucket_size)
-    else:
-      mask = rearrange(mask, 'b n -> b 1 1 n')
-      mask = mask.split(q_bucket_size, dim=-1)
-
-    row_splits = zip(
-        q.split(q_bucket_size, dim=-2),
-        o.split(q_bucket_size, dim=-2),
-        mask,
-        all_row_sums.split(q_bucket_size, dim=-2),
-        all_row_maxes.split(q_bucket_size, dim=-2),
-    )
-
-    for ind, (qc, oc, row_mask, row_sums, row_maxes) in enumerate(row_splits):
-      q_start_index = ind * q_bucket_size - qk_len_diff
-
-      col_splits = zip(
-          k.split(k_bucket_size, dim=-2),
-          v.split(k_bucket_size, dim=-2),
-      )
-
-      for k_ind, (kc, vc) in enumerate(col_splits):
-        k_start_index = k_ind * k_bucket_size
-
-        attn_weights = einsum('... i d, ... j d -> ... i j', qc, kc) * scale
-
-        if exists(row_mask):
-          attn_weights.masked_fill_(~row_mask, max_neg_value)
-
-        if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-          causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool,
-                                   device=device).triu(q_start_index - k_start_index + 1)
-          attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-        block_row_maxes = attn_weights.amax(dim=-1, keepdims=True)
-        attn_weights -= block_row_maxes
-        exp_weights = torch.exp(attn_weights)
-
-        if exists(row_mask):
-          exp_weights.masked_fill_(~row_mask, 0.)
-
-        block_row_sums = exp_weights.sum(dim=-1, keepdims=True).clamp(min=EPSILON)
-
-        new_row_maxes = torch.maximum(block_row_maxes, row_maxes)
-
-        exp_values = einsum('... i j, ... j d -> ... i d', exp_weights, vc)
-
-        exp_row_max_diff = torch.exp(row_maxes - new_row_maxes)
-        exp_block_row_max_diff = torch.exp(block_row_maxes - new_row_maxes)
-
-        new_row_sums = exp_row_max_diff * row_sums + exp_block_row_max_diff * block_row_sums
-
-        oc.mul_((row_sums / new_row_sums) * exp_row_max_diff).add_((exp_block_row_max_diff / new_row_sums) * exp_values)
-
-        row_maxes.copy_(new_row_maxes)
-        row_sums.copy_(new_row_sums)
-
-    ctx.args = (causal, scale, mask, q_bucket_size, k_bucket_size)
-    ctx.save_for_backward(q, k, v, o, all_row_sums, all_row_maxes)
-
-    return o
-
-  @ staticmethod
-  @ torch.no_grad()
-  def backward(ctx, do):
-    """ Algorithm 4 in the paper """
-
-    causal, scale, mask, q_bucket_size, k_bucket_size = ctx.args
-    q, k, v, o, l, m = ctx.saved_tensors
-
-    device = q.device
-
-    max_neg_value = -torch.finfo(q.dtype).max
-    qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-    dq = torch.zeros_like(q)
-    dk = torch.zeros_like(k)
-    dv = torch.zeros_like(v)
-
-    row_splits = zip(
-        q.split(q_bucket_size, dim=-2),
-        o.split(q_bucket_size, dim=-2),
-        do.split(q_bucket_size, dim=-2),
-        mask,
-        l.split(q_bucket_size, dim=-2),
-        m.split(q_bucket_size, dim=-2),
-        dq.split(q_bucket_size, dim=-2)
-    )
-
-    for ind, (qc, oc, doc, row_mask, lc, mc, dqc) in enumerate(row_splits):
-      q_start_index = ind * q_bucket_size - qk_len_diff
-
-      col_splits = zip(
-          k.split(k_bucket_size, dim=-2),
-          v.split(k_bucket_size, dim=-2),
-          dk.split(k_bucket_size, dim=-2),
-          dv.split(k_bucket_size, dim=-2),
-      )
-
-      for k_ind, (kc, vc, dkc, dvc) in enumerate(col_splits):
-        k_start_index = k_ind * k_bucket_size
-
-        attn_weights = einsum('... i d, ... j d -> ... i j', qc, kc) * scale
-
-        if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-          causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool,
-                                   device=device).triu(q_start_index - k_start_index + 1)
-          attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-        exp_attn_weights = torch.exp(attn_weights - mc)
-
-        if exists(row_mask):
-          exp_attn_weights.masked_fill_(~row_mask, 0.)
-
-        p = exp_attn_weights / lc
-
-        dv_chunk = einsum('... i j, ... i d -> ... j d', p, doc)
-        dp = einsum('... i d, ... j d -> ... i j', doc, vc)
-
-        D = (doc * oc).sum(dim=-1, keepdims=True)
-        ds = p * scale * (dp - D)
-
-        dq_chunk = einsum('... i j, ... j d -> ... i d', ds, kc)
-        dk_chunk = einsum('... i j, ... i d -> ... j d', ds, qc)
-
-        dqc.add_(dq_chunk)
-        dkc.add_(dk_chunk)
-        dvc.add_(dv_chunk)
-
-    return dq, dk, dv, None, None, None, None
-
-
-def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers):
-  if mem_eff_attn:
-    replace_unet_cross_attn_to_memory_efficient()
-  elif xformers:
-    replace_unet_cross_attn_to_xformers()
-
-
-def replace_unet_cross_attn_to_memory_efficient():
-  print("Replace CrossAttention.forward to use FlashAttention")
-  flash_func = FlashAttentionFunction
-
-  def forward_flash_attn(self, x, context=None, mask=None):
-    q_bucket_size = 512
-    k_bucket_size = 1024
-
-    h = self.heads
-    q = self.to_q(x)
-
-    context = context if context is not None else x
-    context = context.to(x.dtype)
-    k = self.to_k(context)
-    v = self.to_v(context)
-    del context, x
-
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
-
-    out = flash_func.apply(q, k, v, mask, False, q_bucket_size, k_bucket_size)
-
-    out = rearrange(out, 'b h n d -> b n (h d)')
-
-    # diffusers 0.7.0~
-    out = self.to_out[0](out)
-    out = self.to_out[1](out)
-    return out
-
-  diffusers.models.attention.CrossAttention.forward = forward_flash_attn
-
-
-def replace_unet_cross_attn_to_xformers():
-  print("Replace CrossAttention.forward to use xformers")
-  try:
-    import xformers.ops
-  except ImportError:
-    raise ImportError("No xformers / xformersがインストールされていないようです")
-
-  def forward_xformers(self, x, context=None, mask=None):
-    h = self.heads
-    q_in = self.to_q(x)
-
-    context = default(context, x)
-    context = context.to(x.dtype)
-
-    k_in = self.to_k(context)
-    v_in = self.to_v(context)
-
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b n h d', h=h), (q_in, k_in, v_in))          # new format
-    # q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q_in, k_in, v_in))      # legacy format
-    del q_in, k_in, v_in
-    out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)        # 最適なのを選んでくれる
-
-    out = rearrange(out, 'b n h d -> b n (h d)', h=h)
-    # out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
-
-    # diffusers 0.7.0~
-    out = self.to_out[0](out)
-    out = self.to_out[1](out)
-    return out
-
-  diffusers.models.attention.CrossAttention.forward = forward_xformers
-# endregion
-
-
 def collate_fn(examples):
   return examples[0]
-
-
-# def load_clip_l14_336(dtype):
-#   print(f"loading CLIP: {CLIP_ID_L14_336}")
-#   text_encoder = CLIPTextModel.from_pretrained(CLIP_ID_L14_336, torch_dtype=dtype)
-#   return text_encoder
 
 
 def train(args):
@@ -679,7 +394,7 @@ def train(args):
   else:
     src_stable_diffusion_ckpt = None
     src_diffusers_model_path = args.pretrained_model_name_or_path
-  
+
   if args.save_model_as is None:
     save_stable_diffusion_format = load_stable_diffusion_format
     use_safetensors = args.use_safetensors
@@ -790,9 +505,9 @@ def train(args):
   # tokenizerを読み込む
   print("prepare tokenizer")
   if args.v2:
-    tokenizer = CLIPTokenizer.from_pretrained(V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
+    tokenizer = CLIPTokenizer.from_pretrained(train_util.V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
   else:
-    tokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)
+    tokenizer = CLIPTokenizer.from_pretrained(train_util.TOKENIZER_PATH)
 
   print("prepare dataset")
   train_dataset = DreamBoothOrFineTuningDataset(args.train_batch_size, fine_tuning, train_img_path_captions, reg_img_path_captions, tokenizer, resolution,
@@ -884,7 +599,7 @@ def train(args):
     print("additional VAE loaded")
 
   # モデルに xformers とか memory efficient attention を組み込む
-  replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+  train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
   # 学習を準備する
   if cache_latents:
@@ -1102,7 +817,7 @@ def train(args):
           model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
                                                       src_stable_diffusion_ckpt, epoch + 1, global_step, save_dtype, vae)
         else:
-          out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
+          out_dir = os.path.join(args.output_dir, train_util.EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
           os.makedirs(out_dir, exist_ok=True)
           model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder),
                                                unwrap_model(unet), src_diffusers_model_path,
@@ -1110,7 +825,7 @@ def train(args):
 
         if args.save_state:
           print("saving state.")
-          accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1)))
+          accelerator.save_state(os.path.join(args.output_dir, train_util.EPOCH_STATE_NAME.format(epoch + 1)))
 
   is_main_process = accelerator.is_main_process
   if is_main_process:
@@ -1121,7 +836,7 @@ def train(args):
 
   if args.save_state:
     print("saving last state.")
-    accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME))
+    accelerator.save_state(os.path.join(args.output_dir, train_util.LAST_STATE_NAME))
 
   del accelerator                         # この後メモリを使うのでこれは消す
 
@@ -1134,7 +849,7 @@ def train(args):
                                                   src_stable_diffusion_ckpt, epoch, global_step, save_dtype, vae)
     else:
       print(f"save trained model as Diffusers to {args.output_dir}")
-      out_dir = os.path.join(args.output_dir, LAST_DIFFUSERS_DIR_NAME)
+      out_dir = os.path.join(args.output_dir, train_util.LAST_DIFFUSERS_DIR_NAME)
       os.makedirs(out_dir, exist_ok=True)
       model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet, src_diffusers_model_path,
                                            use_safetensors=use_safetensors)
