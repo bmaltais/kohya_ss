@@ -1,5 +1,7 @@
 from tkinter import filedialog, Tk
 import os
+import gradio as gr
+from easygui import msgbox
 
 
 def get_file_path(file_path='', defaultextension='.json'):
@@ -107,3 +109,10 @@ def add_pre_postfix(
             f.seek(0, 0)
             f.write(f'{prefix}{content}{postfix}')
     f.close()
+
+def color_aug_changed(color_aug):
+    if color_aug:
+        msgbox('Disabling "Cache latent" because "Color augmentation" has been selected...')
+        return gr.Checkbox.update(value=False, interactive=False)
+    else:
+        return gr.Checkbox.update(value=True, interactive=True)
