@@ -1,6 +1,8 @@
 # training with captions
+# XXX dropped option: fine_tune
 
 import argparse
+import gc
 import math
 import os
 import random
@@ -200,21 +202,13 @@ class FineTuningDataset(torch.utils.data.Dataset):
     return example
 
 
-def save_hypernetwork(output_file, hypernetwork):
-  state_dict = hypernetwork.get_state_dict()
-  torch.save(state_dict, output_file)
-
-
 def train(args):
-  fine_tuning = args.hypernetwork_module is None            # fine tuning or hypernetwork training
+  train_util.verify_training_args(args)
+  train_util.prepare_dataset_args(args, True)
 
-  # その他のオプション設定を確認する
-  if args.v_parameterization and not args.v2:
-    print("v_parameterization should be with v2 / v1でv_parameterizationを使用することは想定されていません")
-  if args.v2 and args.clip_skip is not None:
-    print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
+  cache_latents = args.cache_latents
 
-  # モデル形式のオプション設定を確認する
+  # verify load/save model formats
   load_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)
 
   if load_stable_diffusion_format:
@@ -231,109 +225,33 @@ def train(args):
     save_stable_diffusion_format = args.save_model_as.lower() == 'ckpt' or args.save_model_as.lower() == 'safetensors'
     use_safetensors = args.use_safetensors or ("safetensors" in args.save_model_as.lower())
 
-  # 乱数系列を初期化する
   if args.seed is not None:
-    set_seed(args.seed)
+    set_seed(args.seed)                           # 乱数系列を初期化する
 
-  # メタデータを読み込む
-  if os.path.exists(args.in_json):
-    print(f"loading existing metadata: {args.in_json}")
-    with open(args.in_json, "rt", encoding='utf-8') as f:
-      metadata = json.load(f)
-  else:
-    print(f"no metadata / メタデータファイルがありません: {args.in_json}")
-    return
+  tokenizer = train_util.load_tokenizer(args)
 
-  # tokenizerを読み込む
-  print("prepare tokenizer")
-  if args.v2:
-    tokenizer = CLIPTokenizer.from_pretrained(train_util.V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
-  else:
-    tokenizer = CLIPTokenizer.from_pretrained(train_util.TOKENIZER_PATH)
-
-  if args.max_token_length is not None:
-    print(f"update token length: {args.max_token_length}")
-
-  # datasetを用意する
-  print("prepare dataset")
-  train_dataset = FineTuningDataset(metadata, args.train_data_dir, args.train_batch_size,
+  train_dataset = FineTuningDataset(args.in_json, args.train_batch_size, args.train_data_dir,
                                     tokenizer, args.max_token_length, args.shuffle_caption, args.keep_tokens,
-                                    args.dataset_repeats, args.debug_dataset)
+                                    args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
+                                    args.flip_aug, args.color_aug, args.face_crop_aug_range, args.dataset_repeats, args.debug_dataset)
+  train_dataset.make_buckets()
 
-  print(f"Total dataset length / データセットの長さ: {len(train_dataset)}")
-  print(f"Total images / 画像数: {train_dataset.images_count}")
-
+  if args.debug_dataset:
+    train_util.debug_dataset(train_dataset)
+    return
   if len(train_dataset) == 0:
     print("No data found. Please verify the metadata file and train_data_dir option. / 画像がありません。メタデータおよびtrain_data_dirオプションを確認してください。")
     return
 
-  if args.debug_dataset:
-    train_dataset.show_buckets()
-    i = 0
-    for example in train_dataset:
-      print(f"image: {example['image_keys']}")
-      print(f"captions: {example['captions']}")
-      print(f"latents: {example['latents'].shape}")
-      print(f"input_ids: {example['input_ids'].shape}")
-      print(example['input_ids'])
-      i += 1
-      if i >= 8:
-        break
-    return
-
   # acceleratorを準備する
   print("prepare accelerator")
-  if args.logging_dir is None:
-    log_with = None
-    logging_dir = None
-  else:
-    log_with = "tensorboard"
-    log_prefix = "" if args.log_prefix is None else args.log_prefix
-    logging_dir = args.logging_dir + "/" + log_prefix + time.strftime('%Y%m%d%H%M%S', time.localtime())
-  accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps,
-                            mixed_precision=args.mixed_precision, log_with=log_with, logging_dir=logging_dir)
-
-  # accelerateの互換性問題を解決する
-  accelerator_0_15 = True
-  try:
-    accelerator.unwrap_model("dummy", True)
-    print("Using accelerator 0.15.0 or above.")
-  except TypeError:
-    accelerator_0_15 = False
-
-  def unwrap_model(model):
-    if accelerator_0_15:
-      return accelerator.unwrap_model(model, True)
-    return accelerator.unwrap_model(model)
+  accelerator, unwrap_model = train_util.prepare_accelerator(args)
 
   # mixed precisionに対応した型を用意しておき適宜castする
-  weight_dtype = torch.float32
-  if args.mixed_precision == "fp16":
-    weight_dtype = torch.float16
-  elif args.mixed_precision == "bf16":
-    weight_dtype = torch.bfloat16
-
-  save_dtype = None
-  if args.save_precision == "fp16":
-    save_dtype = torch.float16
-  elif args.save_precision == "bf16":
-    save_dtype = torch.bfloat16
-  elif args.save_precision == "float":
-    save_dtype = torch.float32
+  weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
   # モデルを読み込む
-  if load_stable_diffusion_format:
-    print("load StableDiffusion checkpoint")
-    text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.pretrained_model_name_or_path)
-  else:
-    print("load Diffusers pretrained models")
-    pipe = StableDiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, tokenizer=None, safety_checker=None)
-    # , torch_dtype=weight_dtype) ここでtorch_dtypeを指定すると学習時にエラーになる
-    text_encoder = pipe.text_encoder
-    unet = pipe.unet
-    vae = pipe.vae
-    del pipe
-  vae.to("cpu")                     # 保存時にしか使わないので、メモリを開けるためCPUに移しておく
+  text_encoder, vae, unet, load_stable_diffusion_format = train_util.load_target_model(args, weight_dtype)
 
   # Diffusers版のxformers使用フラグを設定する関数
   def set_diffusers_xformers_flag(model, valid):
@@ -364,46 +282,38 @@ def train(args):
     set_diffusers_xformers_flag(unet, False)
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
-  if not fine_tuning:
-    # Hypernetwork
-    print("import hypernetwork module:", args.hypernetwork_module)
-    hyp_module = importlib.import_module(args.hypernetwork_module)
-
-    hypernetwork = hyp_module.Hypernetwork()
-
-    if args.hypernetwork_weights is not None:
-      print("load hypernetwork weights from:", args.hypernetwork_weights)
-      hyp_sd = torch.load(args.hypernetwork_weights, map_location='cpu')
-      success = hypernetwork.load_from_state_dict(hyp_sd)
-      assert success, "hypernetwork weights loading failed."
-
-    print("apply hypernetwork")
-    hypernetwork.apply_to_diffusers(None, text_encoder, unet)
+  # 学習を準備する
+  if cache_latents:
+    vae.to(accelerator.device, dtype=weight_dtype)
+    vae.requires_grad_(False)
+    vae.eval()
+    with torch.no_grad():
+      train_dataset.cache_latents(vae)
+    vae.to("cpu")
+    if torch.cuda.is_available():
+      torch.cuda.empty_cache()
+    gc.collect()
 
   # 学習を準備する：モデルを適切な状態にする
   training_models = []
-  if fine_tuning:
-    if args.gradient_checkpointing:
-      unet.enable_gradient_checkpointing()
-    training_models.append(unet)
+  if args.gradient_checkpointing:
+    unet.enable_gradient_checkpointing()
+  training_models.append(unet)
 
-    if args.train_text_encoder:
-      print("enable text encoder training")
-      if args.gradient_checkpointing:
-        text_encoder.gradient_checkpointing_enable()
-      training_models.append(text_encoder)
-    else:
-      text_encoder.to(accelerator.device, dtype=weight_dtype)
-      text_encoder.requires_grad_(False)             # text encoderは学習しない
-      text_encoder.eval()
+  if args.train_text_encoder:
+    print("enable text encoder training")
+    if args.gradient_checkpointing:
+      text_encoder.gradient_checkpointing_enable()
+    training_models.append(text_encoder)
   else:
-    unet.to(accelerator.device)  # , dtype=weight_dtype)     # dtypeを指定すると学習できない
-    unet.requires_grad_(False)
-    unet.eval()
     text_encoder.to(accelerator.device, dtype=weight_dtype)
-    text_encoder.requires_grad_(False)
+    text_encoder.requires_grad_(False)             # text encoderは学習しない
     text_encoder.eval()
-    training_models.append(hypernetwork)
+
+  if not cache_latents:
+    vae.requires_grad_(False)
+    vae.eval()
+    vae.to(accelerator.device, dtype=weight_dtype)
 
   for m in training_models:
     m.requires_grad_(True)
@@ -439,29 +349,19 @@ def train(args):
   lr_scheduler = diffusers.optimization.get_scheduler(
       args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
 
-  # acceleratorがなんかよろしくやってくれるらしい
+  # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
     assert args.mixed_precision == "fp16", "full_fp16 requires mixed precision='fp16' / full_fp16を使う場合はmixed_precision='fp16'を指定してください。"
     print("enable full fp16 training.")
+    unet.to(weight_dtype)
+    text_encoder.to(weight_dtype)
 
-  if fine_tuning:
-    # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
-    if args.full_fp16:
-      unet.to(weight_dtype)
-      text_encoder.to(weight_dtype)
-
-    if args.train_text_encoder:
-      unet, text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-          unet, text_encoder, optimizer, train_dataloader, lr_scheduler)
-    else:
-      unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
+  # acceleratorがなんかよろしくやってくれるらしい
+  if args.train_text_encoder:
+    unet, text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+        unet, text_encoder, optimizer, train_dataloader, lr_scheduler)
   else:
-    if args.full_fp16:
-      unet.to(weight_dtype)
-      hypernetwork.to(weight_dtype)
-
-    unet, hypernetwork, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-        unet, hypernetwork, optimizer, train_dataloader, lr_scheduler)
+    unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
 
   # 実験的機能：勾配も含めたfp16学習を行う　PyTorchにパッチを当ててfp16でのgrad scaleを有効にする
   if args.full_fp16:
@@ -471,8 +371,6 @@ def train(args):
       return org_unscale_grads(optimizer, inv_scale, found_inf, True)
 
     accelerator.scaler._unscale_grads_ = _unscale_grads_replacer
-
-  # TODO accelerateのconfigに指定した型とオプション指定の型とをチェックして異なれば警告を出す
 
   # resumeする
   if args.resume is not None:
@@ -497,17 +395,12 @@ def train(args):
   progress_bar = tqdm(range(args.max_train_steps), smoothing=0, disable=not accelerator.is_local_main_process, desc="steps")
   global_step = 0
 
-  # v4で更新：clip_sample=Falseに
-  # Diffusersのtrain_dreambooth.pyがconfigから持ってくるように変更されたので、clip_sample=Falseになるため、それに合わせる
-  # 既存の1.4/1.5/2.0/2.1はすべてschedulerのconfigは（クラス名を除いて）同じ
-  # よくソースを見たら学習時はclip_sampleは関係ないや(;'∀')
   noise_scheduler = DDPMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear",
                                   num_train_timesteps=1000, clip_sample=False)
 
   if accelerator.is_main_process:
-    accelerator.init_trackers("finetuning" if fine_tuning else "hypernetwork")
+    accelerator.init_trackers("finetuning")
 
-  # 以下 train_dreambooth.py からほぼコピペ
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
     for m in training_models:
@@ -524,38 +417,7 @@ def train(args):
         with torch.set_grad_enabled(args.train_text_encoder):
           # Get the text embedding for conditioning
           input_ids = batch["input_ids"].to(accelerator.device)
-          input_ids = input_ids.reshape((-1, tokenizer.model_max_length))     # batch_size*3, 77
-
-          if args.clip_skip is None:
-            encoder_hidden_states = text_encoder(input_ids)[0]
-          else:
-            enc_out = text_encoder(input_ids, output_hidden_states=True, return_dict=True)
-            encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
-            encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
-
-          # bs*3, 77, 768 or 1024
-          encoder_hidden_states = encoder_hidden_states.reshape((b_size, -1, encoder_hidden_states.shape[-1]))
-
-          if args.max_token_length is not None:
-            if args.v2:
-              # v2: <BOS>...<EOS> <PAD> ... の三連を <BOS>...<EOS> <PAD> ... へ戻す　正直この実装でいいのかわからん
-              states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
-              for i in range(1, args.max_token_length, tokenizer.model_max_length):
-                chunk = encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2]              # <BOS> の後から 最後の前まで
-                if i > 0:
-                  for j in range(len(chunk)):
-                    if input_ids[j, 1] == tokenizer.eos_token:                                      # 空、つまり <BOS> <EOS> <PAD> ...のパターン
-                      chunk[j, 0] = chunk[j, 1]                                                     # 次の <PAD> の値をコピーする
-                states_list.append(chunk)  # <BOS> の後から <EOS> の前まで
-              states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS> か <PAD> のどちらか
-              encoder_hidden_states = torch.cat(states_list, dim=1)
-            else:
-              # v1: <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
-              states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
-              for i in range(1, args.max_token_length, tokenizer.model_max_length):
-                states_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])  # <BOS> の後から <EOS> の前まで
-              states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS>
-              encoder_hidden_states = torch.cat(states_list, dim=1)
+          encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder)
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
@@ -616,23 +478,23 @@ def train(args):
     accelerator.wait_for_everyone()
 
     if args.save_every_n_epochs is not None:
+      def save_func(file):
+        model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder), unwrap_model(unet),
+                                             src_diffusers_model_path, vae=vae, use_safetensors=use_safetensors)
+      train_util.save_on_epoch_end(args, accelerator, epoch, num_train_epochs, save_func)
       if (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs:
         print("saving checkpoint.")
         os.makedirs(args.output_dir, exist_ok=True)
         ckpt_file = os.path.join(args.output_dir, model_util.get_epoch_ckpt_name(use_safetensors, epoch + 1))
 
-        if fine_tuning:
-          if save_stable_diffusion_format:
-            model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
-                                                        src_stable_diffusion_ckpt, epoch + 1, global_step, save_dtype, vae)
-          else:
-            out_dir = os.path.join(args.output_dir, train_util.EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
-            os.makedirs(out_dir, exist_ok=True)
-            model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder), unwrap_model(unet),
-                                                 src_diffusers_model_path, vae=vae, use_safetensors=use_safetensors)
+        if save_stable_diffusion_format:
+          model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, unwrap_model(text_encoder), unwrap_model(unet),
+                                                      src_stable_diffusion_ckpt, epoch + 1, global_step, save_dtype, vae)
         else:
-          save_hypernetwork(ckpt_file, unwrap_model(hypernetwork))
-
+          out_dir = os.path.join(args.output_dir, train_util.EPOCH_DIFFUSERS_DIR_NAME.format(epoch + 1))
+          os.makedirs(out_dir, exist_ok=True)
+          model_util.save_diffusers_checkpoint(args.v2, out_dir, unwrap_model(text_encoder), unwrap_model(unet),
+                                                src_diffusers_model_path, vae=vae, use_safetensors=use_safetensors)
         if args.save_state:
           print("saving state.")
           accelerator.save_state(os.path.join(args.output_dir, train_util.EPOCH_STATE_NAME.format(epoch + 1)))
@@ -677,73 +539,16 @@ def train(args):
 
 
 if __name__ == '__main__':
-  # torch.cuda.set_per_process_memory_fraction(0.48)
   parser = argparse.ArgumentParser()
-  parser.add_argument("--v2", action='store_true',
-                      help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
-  parser.add_argument("--v_parameterization", action='store_true',
-                      help='enable v-parameterization training / v-parameterization学習を有効にする')
-  parser.add_argument("--pretrained_model_name_or_path", type=str, default=None,
-                      help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル")
-  parser.add_argument("--in_json", type=str, default=None, help="metadata file to input / 読みこむメタデータファイル")
-  parser.add_argument("--shuffle_caption", action="store_true",
-                      help="shuffle comma-separated caption when fine tuning / fine tuning時にコンマで区切られたcaptionの各要素をshuffleする")
-  parser.add_argument("--keep_tokens", type=int, default=None,
-                      help="keep heading N tokens when shuffling caption tokens / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す")
-  parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
-  parser.add_argument("--dataset_repeats", type=int, default=None, help="num times to repeat dataset / 学習にデータセットを繰り返す回数")
-  parser.add_argument("--output_dir", type=str, default=None,
-                      help="directory to output trained model, save as same format as input / 学習後のモデル出力先ディレクトリ（入力と同じ形式で保存）")
-  parser.add_argument("--save_precision", type=str, default=None,
-                      choices=[None, "float", "fp16", "bf16"], help="precision in saving (available in StableDiffusion checkpoint) / 保存時に精度を変更して保存する（StableDiffusion形式での保存時のみ有効）")
-  parser.add_argument("--save_model_as", type=str, default=None, choices=[None, "ckpt", "safetensors", "diffusers", "diffusers_safetensors"],
-                      help="format to save the model (default is same to original) / モデル保存時の形式（未指定時は元モデルと同じ）")
+
+  train_util.add_sd_models_arguments(parser)
+  train_util.add_dataset_arguments(parser, False, True)
+  train_util.add_training_arguments(parser, False)
+
   parser.add_argument("--use_safetensors", action='store_true',
                       help="use safetensors format to save (if save_model_as is not specified) / checkpoint、モデルをsafetensors形式で保存する（save_model_as未指定時）")
-  parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
-  parser.add_argument("--hypernetwork_module", type=str, default=None,
-                      help='train hypernetwork instead of fine tuning, module to use / fine tuningの代わりにHypernetworkの学習をする場合、そのモジュール')
-  parser.add_argument("--hypernetwork_weights", type=str, default=None,
-                      help='hypernetwork weights to initialize for additional training / Hypernetworkの学習時に読み込む重み（Hypernetworkの追加学習）')
-  parser.add_argument("--save_every_n_epochs", type=int, default=None,
-                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
-  parser.add_argument("--save_state", action="store_true",
-                      help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
-  parser.add_argument("--resume", type=str, default=None,
-                      help="saved state to resume training / 学習再開するモデルのstate")
-  parser.add_argument("--max_token_length", type=int, default=None, choices=[None, 150, 225],
-                      help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
-  parser.add_argument("--train_batch_size", type=int, default=1,
-                      help="batch size for training / 学習時のバッチサイズ")
-  parser.add_argument("--use_8bit_adam", action="store_true",
-                      help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
-  parser.add_argument("--mem_eff_attn", action="store_true",
-                      help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
-  parser.add_argument("--xformers", action="store_true",
-                      help="use xformers for CrossAttention / CrossAttentionにxformersを使う")
   parser.add_argument("--diffusers_xformers", action='store_true',
-                      help='use xformers by diffusers (Hypernetworks doesn\'t work) / Diffusersでxformersを使用する（Hypernetwork利用不可）')
-  parser.add_argument("--learning_rate", type=float, default=2.0e-6, help="learning rate / 学習率")
-  parser.add_argument("--max_train_steps", type=int, default=1600, help="training steps / 学習ステップ数")
-  parser.add_argument("--seed", type=int, default=None, help="random seed for training / 学習時の乱数のseed")
-  parser.add_argument("--gradient_checkpointing", action="store_true",
-                      help="enable gradient checkpointing / grandient checkpointingを有効にする")
-  parser.add_argument("--gradient_accumulation_steps", type=int, default=1,
-                      help="Number of updates steps to accumulate before performing a backward/update pass / 学習時に逆伝播をする前に勾配を合計するステップ数")
-  parser.add_argument("--mixed_precision", type=str, default="no",
-                      choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
-  parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
-  parser.add_argument("--clip_skip", type=int, default=None,
-                      help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
-  parser.add_argument("--debug_dataset", action="store_true",
-                      help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
-  parser.add_argument("--logging_dir", type=str, default=None,
-                      help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する")
-  parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
-  parser.add_argument("--lr_scheduler", type=str, default="constant",
-                      help="scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial, constant (default), constant_with_warmup")
-  parser.add_argument("--lr_warmup_steps", type=int, default=0,
-                      help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
+                      help='use xformers by diffusers / Diffusersでxformersを使用する')
 
   args = parser.parse_args()
   train(args)

@@ -832,11 +832,6 @@ def train(args):
             if os.path.exists(out_dir_old):
               shutil.rmtree(out_dir_old)
 
-
-
-
-            
-
         if args.save_state:
           print("saving state.")
           accelerator.save_state(os.path.join(args.output_dir, train_util.EPOCH_STATE_NAME.format(epoch + 1)))

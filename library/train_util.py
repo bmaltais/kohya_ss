@@ -1,7 +1,10 @@
 # common functions for training
 
+import argparse
 import json
+import time
 from typing import NamedTuple
+from accelerate import Accelerator
 from torch.autograd.function import Function
 import glob
 import math
@@ -13,6 +16,7 @@ import torch
 from torchvision import transforms
 from transformers import CLIPTokenizer
 import diffusers
+from diffusers import DDPMScheduler, StableDiffusionPipeline
 import albumentations as albu
 import numpy as np
 from PIL import Image
@@ -32,6 +36,9 @@ LAST_STATE_NAME = "last-state"
 
 EPOCH_FILE_NAME = "epoch-{:06d}"
 LAST_FILE_NAME = "last"
+
+LAST_DIFFUSERS_DIR_NAME = "last"
+EPOCH_DIFFUSERS_DIR_NAME = "epoch-{:06d}"
 
 
 # region dataset
@@ -63,7 +70,8 @@ class BaseDataset(torch.utils.data.Dataset):
     self.max_token_length = max_token_length
     self.shuffle_caption = shuffle_caption
     self.shuffle_keep_tokens = shuffle_keep_tokens
-    self.width, self.height = resolution
+    # width/height is used when enable_bucket==False
+    self.width, self.height = (None, None) if resolution is None else resolution
     self.face_crop_aug_range = face_crop_aug_range
     self.flip_aug = flip_aug
     self.color_aug = color_aug
@@ -149,35 +157,26 @@ class BaseDataset(torch.utils.data.Dataset):
   def register_image(self, info: ImageInfo):
     self.image_data[info.image_key] = info
 
-  def make_buckets(self, enable_bucket, min_size, max_size):
+  def make_buckets(self):
     '''
     bucketingを行わない場合も呼び出し必須（ひとつだけbucketを作る）
     min_size and max_size are ignored when enable_bucket is False
     '''
-
-    self.enable_bucket = enable_bucket
-
     print("loading image sizes.")
     for info in tqdm(self.image_data.values()):
       if info.image_size is None:
         info.image_size = self.get_image_size(info.absolute_path)
 
-    if enable_bucket:
+    if self.enable_bucket:
       print("make buckets")
     else:
       print("prepare dataset")
 
-    # bucketingを用意する
-    if enable_bucket:
-      bucket_resos, bucket_aspect_ratios = model_util.make_bucket_resolutions((self.width, self.height), min_size, max_size)
-    else:
-      # bucketはひとつだけ、すべての画像は同じ解像度
-      bucket_resos = [(self.width, self.height)]
-      bucket_aspect_ratios = [self.width / self.height]
-    bucket_aspect_ratios = np.array(bucket_aspect_ratios)
+    bucket_resos = self.bucket_resos
+    bucket_aspect_ratios = np.array(self.bucket_aspect_ratios)
 
     # bucketを作成する
-    if enable_bucket:
+    if self.enable_bucket:
       img_ar_errors = []
       for image_info in self.image_data.values():
         # bucketを決める
@@ -191,9 +190,8 @@ class BaseDataset(torch.utils.data.Dataset):
         ar_error = ar_errors[bucket_id]
         img_ar_errors.append(ar_error)
     else:
-      reso = (self.width, self.height)
       for image_info in self.image_data.values():
-        image_info.bucket_reso = reso
+        image_info.bucket_reso = bucket_resos[0]              # bucket_resos contains (width, height) only
 
     # 画像をbucketに分割する
     self.buckets: list[str] = [[] for _ in range(len(bucket_resos))]
@@ -206,8 +204,8 @@ class BaseDataset(torch.utils.data.Dataset):
       for _ in range(image_info.num_repeats):
         self.buckets[bucket_index].append(image_info.image_key)
 
-    if enable_bucket:
-      print("number of images (including repeats for DreamBooth) / 各bucketの画像枚数（DreamBoothの場合は繰り返し回数を含む）")
+    if self.enable_bucket:
+      print("number of images (including repeats) / 各bucketの画像枚数（繰り返し回数を含む）")
       for i, (reso, img_keys) in enumerate(zip(bucket_resos, self.buckets)):
         print(f"bucket {i}: resolution {reso}, count: {len(img_keys)}")
       img_ar_errors = np.array(img_ar_errors)
@@ -432,16 +430,27 @@ class BaseDataset(torch.utils.data.Dataset):
 
 
 class DreamBoothDataset(BaseDataset):
-  def __init__(self, batch_size, train_data_dir, reg_data_dir, tokenizer, max_token_length, caption_extension, shuffle_caption, shuffle_keep_tokens, resolution, prior_loss_weight, flip_aug, color_aug, face_crop_aug_range, random_crop, debug_dataset) -> None:
+  def __init__(self, batch_size, train_data_dir, reg_data_dir, tokenizer, max_token_length, caption_extension, shuffle_caption, shuffle_keep_tokens, resolution, enable_bucket, min_bucket_reso, max_bucket_reso, prior_loss_weight, flip_aug, color_aug, face_crop_aug_range, random_crop, debug_dataset) -> None:
     super().__init__(tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens,
                      resolution, flip_aug, color_aug, face_crop_aug_range, debug_dataset)
+
+    assert resolution is not None, f"resolution is required / resolution（解像度）指定は必須です"
 
     self.batch_size = batch_size
     self.size = min(self.width, self.height)                  # 短いほう
     self.prior_loss_weight = prior_loss_weight
     self.random_crop = random_crop
     self.latents_cache = None
-    self.enable_bucket = False
+
+    self.enable_bucket = enable_bucket
+    if self.enable_bucket:
+      assert min(resolution) >= min_bucket_reso, f"min_bucket_reso must be equal or less than resolution / min_bucket_resoは最小解像度より大きくできません。解像度を大きくするかmin_bucket_resoを小さくしてください"
+      assert max(resolution) <= max_bucket_reso, f"max_bucket_reso must be equal or greater than resolution / max_bucket_resoは最大解像度より小さくできません。解像度を小さくするかmin_bucket_resoを大きくしてください"
+      self.bucket_resos, self.bucket_aspect_ratios = model_util.make_bucket_resolutions(
+          (self.width, self.height), min_bucket_reso, max_bucket_reso)
+    else:
+      self.bucket_resos = [(self.width, self.height)]
+      self.bucket_aspect_ratios = [self.width / self.height]
 
     def read_caption(img_path):
       # captionの候補ファイル名を作る
@@ -532,9 +541,9 @@ class DreamBoothDataset(BaseDataset):
 
 
 class FineTuningDataset(BaseDataset):
-  def __init__(self, json_file_name, batch_size, train_data_dir, tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens, resolution, flip_aug, color_aug, face_crop_aug_range, dataset_repeats, debug_dataset) -> None:
+  def __init__(self, json_file_name, batch_size, train_data_dir, tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens, resolution, enable_bucket, min_bucket_reso, max_bucket_reso, flip_aug, color_aug, face_crop_aug_range, dataset_repeats, debug_dataset) -> None:
     super().__init__(tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens,
-                     resolution, flip_aug, color_aug, face_crop_aug_range, debug_dataset)
+                     resolution, min_bucket_reso, max_bucket_reso, flip_aug, color_aug, face_crop_aug_range, debug_dataset)
 
     # メタデータを読み込む
     if os.path.exists(json_file_name):
@@ -602,18 +611,35 @@ class FineTuningDataset(BaseDataset):
 
     # check min/max bucket size
     sizes = set()
+    resos = set()
     for image_info in self.image_data.values():
       if image_info.image_size is None:
         sizes = None                  # not calculated
         break
       sizes.add(image_info.image_size[0])
       sizes.add(image_info.image_size[1])
+      resos.add(image_info.image_size)
 
     if sizes is None:
-      self.min_bucket_reso = self.max_bucket_reso = None                # set as not calculated
+      assert resolution is not None, "if metadata doesn't have bucket info, resolution is required / メタデータにbucket情報がない場合はresolutionを指定してください"
+
+      self.enable_bucket = enable_bucket
+      if self.enable_bucket:
+        assert min(resolution) >= min_bucket_reso, f"min_bucket_reso must be equal or less than resolution / min_bucket_resoは最小解像度より大きくできません。解像度を大きくするかmin_bucket_resoを小さくしてください"
+        assert max(resolution) <= max_bucket_reso, f"max_bucket_reso must be equal or greater than resolution / max_bucket_resoは最大解像度より小さくできません。解像度を小さくするかmin_bucket_resoを大きくしてください"
+        self.bucket_resos, self.bucket_aspect_ratios = model_util.make_bucket_resolutions(
+            (self.width, self.height), min_bucket_reso, max_bucket_reso)
+      else:
+        self.bucket_resos = [(self.width, self.height)]
+        self.bucket_aspect_ratios = [self.width / self.height]
     else:
-      self.min_bucket_reso = min(sizes)
-      self.max_bucket_reso = max(sizes)
+      if not enable_bucket:
+        print("metadata has bucket info, enable bucketing / メタデータにbucket情報があるためbucketを有効にします")
+      print("using bucket info in metadata / メタデータ内のbucket情報を使います")
+      self.enable_bucket = True
+      self.bucket_resos = list(resos)
+      self.bucket_resos.sort()
+      self.bucket_aspect_ratios = [w / h for w, h in self.bucket_resos]
 
   def image_key_to_npz_file(self, image_key):
     base_name = os.path.splitext(image_key)[0]
@@ -637,6 +663,28 @@ class FineTuningDataset(BaseDataset):
       npz_file_flip = None
 
     return npz_file_norm, npz_file_flip
+
+def debug_dataset(train_dataset):
+  print(f"Total dataset length (steps) / データセットの長さ（ステップ数）: {len(train_dataset)}")
+  print("Escape for exit. / Escキーで中断、終了します")
+  k = 0
+  for example in train_dataset:
+    if example['latents'] is not None:
+      print("sample has latents from npz file")
+    for j, (ik, cap, lw) in enumerate(zip(example['image_keys'], example['captions'], example['loss_weights'])):
+      print(f'{ik}, size: {train_dataset.image_data[ik].image_size}, caption: "{cap}", loss weight: {lw}')
+      if example['images'] is not None:
+        im = example['images'][j]
+        im = ((im.numpy() + 1.0) * 127.5).astype(np.uint8)
+        im = np.transpose(im, (1, 2, 0))                # c,H,W -> H,W,c
+        im = im[:, :, ::-1]                             # RGB -> BGR (OpenCV)
+        cv2.imshow("img", im)
+        k = cv2.waitKey()
+        cv2.destroyAllWindows()
+        if k == 27:
+          break
+    if k == 27 or example['images'] is None:
+      break
 
 # endregion
 
@@ -907,4 +955,290 @@ def replace_unet_cross_attn_to_xformers():
     return out
 
   diffusers.models.attention.CrossAttention.forward = forward_xformers
+# endregion
+
+
+# region utils
+
+def add_sd_models_arguments(parser: argparse.ArgumentParser):
+  # for pretrained models
+  parser.add_argument("--v2", action='store_true',
+                      help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
+  parser.add_argument("--v_parameterization", action='store_true',
+                      help='enable v-parameterization training / v-parameterization学習を有効にする')
+  parser.add_argument("--pretrained_model_name_or_path", type=str, default=None,
+                      help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル")
+
+
+def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool):
+  parser.add_argument("--output_dir", type=str, default=None,
+                      help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
+  parser.add_argument("--save_precision", type=str, default=None,
+                      choices=[None, "float", "fp16", "bf16"], help="precision in saving / 保存時に精度を変更して保存する")
+  parser.add_argument("--save_model_as", type=str, default="pt", choices=[None, "ckpt", "pt", "safetensors"],
+                      help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）")
+  parser.add_argument("--save_every_n_epochs", type=int, default=None,
+                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
+  parser.add_argument("--save_state", action="store_true",
+                      help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
+  parser.add_argument("--resume", type=str, default=None, help="saved state to resume training / 学習再開するモデルのstate")
+
+  parser.add_argument("--train_batch_size", type=int, default=1, help="batch size for training / 学習時のバッチサイズ")
+  parser.add_argument("--max_token_length", type=int, default=None, choices=[None, 150, 225],
+                      help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
+  parser.add_argument("--use_8bit_adam", action="store_true",
+                      help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
+  parser.add_argument("--mem_eff_attn", action="store_true",
+                      help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
+  parser.add_argument("--xformers", action="store_true",
+                      help="use xformers for CrossAttention / CrossAttentionにxformersを使う")
+  parser.add_argument("--vae", type=str, default=None,
+                      help="path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ")
+
+  parser.add_argument("--learning_rate", type=float, default=2.0e-6, help="learning rate / 学習率")
+  parser.add_argument("--max_train_steps", type=int, default=1600, help="training steps / 学習ステップ数")
+  parser.add_argument("--seed", type=int, default=None, help="random seed for training / 学習時の乱数のseed")
+  parser.add_argument("--gradient_checkpointing", action="store_true",
+                      help="enable gradient checkpointing / grandient checkpointingを有効にする")
+  parser.add_argument("--gradient_accumulation_steps", type=int, default=1,
+                      help="Number of updates steps to accumulate before performing a backward/update pass / 学習時に逆伝播をする前に勾配を合計するステップ数")
+  parser.add_argument("--mixed_precision", type=str, default="no",
+                      choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
+  parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
+  parser.add_argument("--clip_skip", type=int, default=None,
+                      help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
+  parser.add_argument("--logging_dir", type=str, default=None,
+                      help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する")
+  parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
+  parser.add_argument("--lr_scheduler", type=str, default="constant",
+                      help="scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial, constant (default), constant_with_warmup")
+  parser.add_argument("--lr_warmup_steps", type=int, default=0,
+                      help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
+
+  if support_dreambooth:
+    # DreamBooth training
+    parser.add_argument("--prior_loss_weight", type=float, default=1.0,
+                        help="loss weight for regularization images / 正則化画像のlossの重み")
+
+
+def verify_training_args(args: argparse.Namespace):
+  if args.v_parameterization and not args.v2:
+    print("v_parameterization should be with v2 / v1でv_parameterizationを使用することは想定されていません")
+  if args.v2 and args.clip_skip is not None:
+    print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
+
+
+def add_dataset_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool, support_caption: bool):
+  # dataset common
+  parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
+  parser.add_argument("--shuffle_caption", action="store_true",
+                      help="shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする")
+  parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
+  parser.add_argument("--keep_tokens", type=int, default=None,
+                      help="keep heading N tokens when shuffling caption tokens / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す")
+  parser.add_argument("--color_aug", action="store_true", help="enable weak color augmentation / 学習時に色合いのaugmentationを有効にする")
+  parser.add_argument("--flip_aug", action="store_true", help="enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする")
+  parser.add_argument("--face_crop_aug_range", type=str, default=None,
+                      help="enable face-centered crop augmentation and its range (e.g. 2.0,4.0) / 学習時に顔を中心とした切り出しaugmentationを有効にするときは倍率を指定する（例：2.0,4.0）")
+  parser.add_argument("--random_crop", action="store_true",
+                      help="enable random crop (for style training in face-centered crop augmentation) / ランダムな切り出しを有効にする（顔を中心としたaugmentationを行うときに画風の学習用に指定する）")
+  parser.add_argument("--debug_dataset", action="store_true",
+                      help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
+  parser.add_argument("--resolution", type=str, default=None,
+                      help="resolution in training ('size' or 'width,height') / 学習時の画像解像度（'サイズ'指定、または'幅,高さ'指定）")
+  parser.add_argument("--cache_latents", action="store_true",
+                      help="cache latents to reduce memory (augmentations must be disabled) / メモリ削減のためにlatentをcacheする（augmentationは使用不可）")
+  parser.add_argument("--enable_bucket", action="store_true",
+                      help="enable buckets for multi aspect ratio training / 複数解像度学習のためのbucketを有効にする")
+  parser.add_argument("--min_bucket_reso", type=int, default=256, help="minimum resolution for buckets / bucketの最小解像度")
+  parser.add_argument("--max_bucket_reso", type=int, default=1024, help="maximum resolution for buckets / bucketの最大解像度")
+
+  if support_dreambooth:
+    # DreamBooth dataset
+    parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")
+
+  if support_caption:
+    # caption dataset
+    parser.add_argument("--in_json", type=str, default=None, help="json metadata for dataset / データセットのmetadataのjsonファイル")
+    parser.add_argument("--dataset_repeats", type=int, default=1,
+                        help="repeat dataset when training with captions / キャプションでの学習時にデータセットを繰り返す回数")
+
+
+def prepare_dataset_args(args: argparse.Namespace, support_caption: bool):
+  if args.cache_latents:
+    assert not args.color_aug, "when caching latents, color_aug cannot be used / latentをキャッシュするときはcolor_augは使えません"
+
+  # assert args.resolution is not None, f"resolution is required / resolution（解像度）を指定してください"
+  if args.resolution is not None:
+    args.resolution = tuple([int(r) for r in args.resolution.split(',')])
+    if len(args.resolution) == 1:
+      args.resolution = (args.resolution[0], args.resolution[0])
+    assert len(args.resolution) == 2, \
+        f"resolution must be 'size' or 'width,height' / resolution（解像度）は'サイズ'または'幅','高さ'で指定してください: {args.resolution}"
+
+  if args.face_crop_aug_range is not None:
+    args.face_crop_aug_range = tuple([float(r) for r in args.face_crop_aug_range.split(',')])
+    assert len(args.face_crop_aug_range) == 2, \
+        f"face_crop_aug_range must be two floats / face_crop_aug_rangeは'下限,上限'で指定してください: {args.face_crop_aug_range}"
+  else:
+    args.face_crop_aug_range = None
+
+  if support_caption:
+    if args.in_json is not None and args.color_aug:
+      print(f"latents in npz is ignored when color_aug is True / color_augを有効にした場合、npzファイルのlatentsは無視されます")
+
+
+def load_tokenizer(args: argparse.Namespace):
+  print("prepare tokenizer")
+  if args.v2:
+    tokenizer = CLIPTokenizer.from_pretrained(V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
+  else:
+    tokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)
+  if args.max_token_length is not None:
+    print(f"update token length: {args.max_token_length}")
+  return tokenizer
+
+
+def prepare_accelerator(args: argparse.Namespace):
+  if args.logging_dir is None:
+    log_with = None
+    logging_dir = None
+  else:
+    log_with = "tensorboard"
+    log_prefix = "" if args.log_prefix is None else args.log_prefix
+    logging_dir = args.logging_dir + "/" + log_prefix + time.strftime('%Y%m%d%H%M%S', time.localtime())
+
+  accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, mixed_precision=args.mixed_precision,
+                            log_with=log_with, logging_dir=logging_dir)
+
+  # accelerateの互換性問題を解決する
+  accelerator_0_15 = True
+  try:
+    accelerator.unwrap_model("dummy", True)
+    print("Using accelerator 0.15.0 or above.")
+  except TypeError:
+    accelerator_0_15 = False
+
+  def unwrap_model(model):
+    if accelerator_0_15:
+      return accelerator.unwrap_model(model, True)
+    return accelerator.unwrap_model(model)
+
+  return accelerator, unwrap_model
+
+
+def prepare_dtype(args: argparse.Namespace):
+  weight_dtype = torch.float32
+  if args.mixed_precision == "fp16":
+    weight_dtype = torch.float16
+  elif args.mixed_precision == "bf16":
+    weight_dtype = torch.bfloat16
+
+  save_dtype = None
+  if args.save_precision == "fp16":
+    save_dtype = torch.float16
+  elif args.save_precision == "bf16":
+    save_dtype = torch.bfloat16
+  elif args.save_precision == "float":
+    save_dtype = torch.float32
+
+  return weight_dtype, save_dtype
+
+
+def load_target_model(args: argparse.Namespace, weight_dtype):
+  load_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)           # determine SD or Diffusers
+  if load_stable_diffusion_format:
+    print("load StableDiffusion checkpoint")
+    text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.pretrained_model_name_or_path)
+  else:
+    print("load Diffusers pretrained models")
+    pipe = StableDiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, tokenizer=None, safety_checker=None)
+    text_encoder = pipe.text_encoder
+    vae = pipe.vae
+    unet = pipe.unet
+    del pipe
+
+  # VAEを読み込む
+  if args.vae is not None:
+    vae = model_util.load_vae(args.vae, weight_dtype)
+    print("additional VAE loaded")
+
+  return text_encoder, vae, unet, load_stable_diffusion_format
+
+
+def patch_accelerator_for_fp16_training(accelerator):
+  org_unscale_grads = accelerator.scaler._unscale_grads_
+
+  def _unscale_grads_replacer(optimizer, inv_scale, found_inf, allow_fp16):
+    return org_unscale_grads(optimizer, inv_scale, found_inf, True)
+
+  accelerator.scaler._unscale_grads_ = _unscale_grads_replacer
+
+
+def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encoder, weight_dtype=None):
+  b_size = input_ids.size()[0]
+  input_ids = input_ids.reshape((-1, tokenizer.model_max_length))     # batch_size*3, 77
+
+  if args.clip_skip is None:
+    encoder_hidden_states = text_encoder(input_ids)[0]
+  else:
+    enc_out = text_encoder(input_ids, output_hidden_states=True, return_dict=True)
+    encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
+    if weight_dtype is not None:
+      # this is required for additional network training
+      encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
+    encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
+
+  # bs*3, 77, 768 or 1024
+  encoder_hidden_states = encoder_hidden_states.reshape((b_size, -1, encoder_hidden_states.shape[-1]))
+
+  if args.max_token_length is not None:
+    if args.v2:
+        # v2: <BOS>...<EOS> <PAD> ... の三連を <BOS>...<EOS> <PAD> ... へ戻す　正直この実装でいいのかわからん
+      states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
+      for i in range(1, args.max_token_length, tokenizer.model_max_length):
+        chunk = encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2]              # <BOS> の後から 最後の前まで
+        if i > 0:
+          for j in range(len(chunk)):
+            if input_ids[j, 1] == tokenizer.eos_token:                                      # 空、つまり <BOS> <EOS> <PAD> ...のパターン
+              chunk[j, 0] = chunk[j, 1]                                                     # 次の <PAD> の値をコピーする
+        states_list.append(chunk)  # <BOS> の後から <EOS> の前まで
+      states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS> か <PAD> のどちらか
+      encoder_hidden_states = torch.cat(states_list, dim=1)
+    else:
+      # v1: <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
+      states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
+      for i in range(1, args.max_token_length, tokenizer.model_max_length):
+        states_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])  # <BOS> の後から <EOS> の前まで
+      states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS>
+      encoder_hidden_states = torch.cat(states_list, dim=1)
+
+  return encoder_hidden_states
+
+
+def save_on_epoch_end(args: argparse.Namespace, accelerator, epoch: int, num_train_epochs: int, save_func):
+  if (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs:
+    print("saving checkpoint.")
+    os.makedirs(args.output_dir, exist_ok=True)
+    ckpt_file = os.path.join(args.output_dir, EPOCH_FILE_NAME.format(epoch + 1) + '.' + args.save_model_as)
+    save_func(ckpt_file)
+
+    if args.save_state:
+      print("saving state.")
+      accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(epoch + 1)))
+
+
+def save_last_state(args, accelerator):
+  print("saving last state.")
+  os.makedirs(args.output_dir, exist_ok=True)
+  accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME))
+
+
+def save_last_model(args, save_func):
+  os.makedirs(args.output_dir, exist_ok=True)
+  ckpt_file = os.path.join(args.output_dir, LAST_FILE_NAME + '.' + args.save_model_as)
+  print(f"save trained model to {ckpt_file}")
+  save_func(ckpt_file)
+  print("model saved.")
+
 # endregion
