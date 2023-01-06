@@ -1,4 +1,4 @@
-$txt_files_folder = "D:\dataset\metart_g1\img\100_asd girl"
+$txt_files_folder = "D:\dataset\"
 $txt_prefix_to_ignore = "asds"
 $txt_postfix_ti_ignore = "asds"
 
@@ -6,10 +6,10 @@ $txt_postfix_ti_ignore = "asds"
 
 # (Get-Content $txt_files_folder"\*.txt" ).Replace(",", "") -Split '\W' | Group-Object -NoElement | Sort-Object -Descending -Property Count
 
-$combined_txt = Get-Content $txt_files_folder"\*.cap"
+$combined_txt = Get-Content $txt_files_folder"\*.txt"
 $combined_txt = $combined_txt.Replace(",", "")
 $combined_txt = $combined_txt.Replace("$txt_prefix_to_ignore", "")
 $combined_txt = $combined_txt.Replace("$txt_postfix_ti_ignore", "") -Split '\W' | Group-Object -NoElement | Sort-Object -Descending -Property Count
 
 Write-Output "Sorted by count"
-Write-Output $combined_txt
+Write-Output $combined_txt.Name
