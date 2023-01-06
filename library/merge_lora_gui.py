@@ -2,7 +2,7 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
-from .common_gui import get_folder_path, get_any_file_path
+from .common_gui import get_saveasfilename_path, get_any_file_path, get_file_path
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -55,29 +55,11 @@ def merge_lora(
 def gradio_merge_lora_tab():
     with gr.Tab('Merge LoRA'):
         gr.Markdown(
-            'This utility can merge LoRA networks.'
+            'This utility can merge two LoRA networks together.'
         )
-        # with gr.Row():
-        #     sd_model = gr.Textbox(
-        #         label='Stable Diffusion model',
-        #         placeholder='(Optional) only select if mergind a LoRA into a ckpt or tensorflow model',
-        #         interactive=True,
-        #     )
-        #     button_sd_model_dir = gr.Button(
-        #         folder_symbol, elem_id='open_folder_small'
-        #     )
-        #     button_sd_model_dir.click(
-        #         get_folder_path, outputs=sd_model
-        #     )
-
-        #     button_sd_model_file = gr.Button(
-        #         document_symbol, elem_id='open_folder_small'
-        #     )
-        #     button_sd_model_file.click(
-        #         get_any_file_path,
-        #         inputs=[sd_model],
-        #         outputs=sd_model,
-        #     )
+        
+        lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
+        lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
         
         with gr.Row():
             lora_a_model = gr.Textbox(
@@ -86,11 +68,11 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small'
             )
             button_lora_a_model_file.click(
-                get_any_file_path,
-                inputs=[lora_a_model],
+                get_file_path,
+                inputs=[lora_a_model, lora_ext, lora_ext_name],
                 outputs=lora_a_model,
             )
             
@@ -100,11 +82,11 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_b_model_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small'
             )
             button_lora_b_model_file.click(
-                get_any_file_path,
-                inputs=[lora_b_model],
+                get_file_path,
+                inputs=[lora_b_model, lora_ext, lora_ext_name],
                 outputs=lora_b_model,
             )
         with gr.Row():
@@ -121,7 +103,7 @@ def gradio_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_any_file_path, inputs=save_to, outputs=save_to
+                get_saveasfilename_path, inputs=[save_to, lora_ext, lora_ext_name], outputs=save_to
             )
             precision = gr.Dropdown(
                 label='Merge precison',

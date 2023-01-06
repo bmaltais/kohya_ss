@@ -4,6 +4,8 @@ import argparse
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from library.utilities import utilities_tab
+from library.extract_lora_gui import gradio_extract_lora_tab
+from library.merge_lora_gui import gradio_merge_lora_tab
 from lora_gui import lora_tab
 
 
@@ -38,6 +40,8 @@ def UI(username, password):
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
             )
+            gradio_extract_lora_tab()
+            gradio_merge_lora_tab()
 
     # Show the interface
     if not username == '':
