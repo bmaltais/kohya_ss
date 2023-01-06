@@ -4,6 +4,64 @@ This repository now includes the solutions provided by Kohya_ss in a single loca
 
 A note accompanying the release of his new repository can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
 
+## Installation
+
+Open a regular Powershell terminal and type the following inside:
+
+```powershell
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+
+python -m venv --system-site-packages venv
+.\venv\Scripts\activate
+
+pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install --upgrade -r requirements.txt
+pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+
+accelerate config
+
+```
+
+### Optional: CUDNN 8.6
+
+This step is optional but can improve the learning speed for NVidia 4090 owners...
+
+Due to the filesize I can't host the DLLs needed for CUDNN 8.6 on Github, I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090) you can download them from here: https://b1.thefileditch.ch/mwxKTEtelILoIbMbruuM.zip
+
+To install simply unzip the directory and place the cudnn_windows folder in the root of the kohya_diffusers_fine_tuning repo.
+
+Run the following command to install:
+
+```
+python .\tools\cudann_1.8_install.py
+```
+
+## Upgrade
+
+When a new release comes out you can upgrade your repo with the following command:
+
+```powershell
+cd kohya_ss
+git pull
+.\venv\Scripts\activate
+pip install --upgrade -r requirements.txt
+```
+
+Once the commands have completed successfully you should be ready to use the new version.
+
+## Launching the GUI
+
+To run the GUI you simply use this command:
+
+```
+gui.cmd
+```
+
 ## Dreambooth
 
 You can find the dreambooth solution spercific [Dreambooth README](README_dreambooth.md)
