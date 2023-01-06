@@ -22,7 +22,6 @@ from library.common_gui import (
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from easygui import msgbox
 
@@ -398,13 +397,13 @@ def train_model(
     if flip_aug:
         run_cmd += ' --flip_aug'
     run_cmd += (
-        f' --pretrained_model_name_or_path={pretrained_model_name_or_path}'
+        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
     run_cmd += f' --train_data_dir="{train_data_dir}"'
     if len(reg_data_dir):
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
-    run_cmd += f' --output_dir={output_dir}'
+    run_cmd += f' --output_dir="{output_dir}"'
     run_cmd += f' --train_batch_size={train_batch_size}'
     run_cmd += f' --learning_rate={learning_rate}'
     run_cmd += f' --lr_scheduler={lr_scheduler}'
@@ -416,7 +415,7 @@ def train_model(
     run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
     run_cmd += f' --seed={seed}'
     run_cmd += f' --save_precision={save_precision}'
-    run_cmd += f' --logging_dir={logging_dir}'
+    run_cmd += f' --logging_dir="{logging_dir}"'
     if not caption_extension == '':
         run_cmd += f' --caption_extension={caption_extension}'
     if not stop_text_encoder_training == 0:
@@ -817,7 +816,6 @@ def dreambooth_tab(
             output_dir_input=output_dir_input,
             logging_dir_input=logging_dir_input,
         )
-        gradio_dataset_balancing_tab()
 
     button_run = gr.Button('Train model')
     

@@ -276,8 +276,8 @@ def train_model(
             run_cmd += f' --caption_extension=".txt"'
         else:
             run_cmd += f' --caption_extension={caption_extension}'
-        run_cmd += f' {image_folder}'
-        run_cmd += f' {train_dir}/{caption_metadata_filename}'
+        run_cmd += f' "{image_folder}"'
+        run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         if full_path:
             run_cmd += f' --full_path'
 
@@ -291,10 +291,10 @@ def train_model(
         run_cmd = (
             f'./venv/Scripts/python.exe finetune/prepare_buckets_latents.py'
         )
-        run_cmd += f' {image_folder}'
-        run_cmd += f' {train_dir}/{caption_metadata_filename}'
-        run_cmd += f' {train_dir}/{latent_metadata_filename}'
-        run_cmd += f' {pretrained_model_name_or_path}'
+        run_cmd += f' "{image_folder}"'
+        run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
+        run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
+        run_cmd += f' "{pretrained_model_name_or_path}"'
         run_cmd += f' --batch_size={batch_size}'
         run_cmd += f' --max_resolution={max_resolution}'
         run_cmd += f' --min_bucket_reso={min_bucket_reso}'
@@ -344,13 +344,13 @@ def train_model(
     if xformers:
         run_cmd += f' --xformers'
     run_cmd += (
-        f' --pretrained_model_name_or_path={pretrained_model_name_or_path}'
+        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
-    run_cmd += f' --in_json={train_dir}/{latent_metadata_filename}'
-    run_cmd += f' --train_data_dir={image_folder}'
-    run_cmd += f' --output_dir={output_dir}'
+    run_cmd += f' --in_json="{train_dir}/{latent_metadata_filename}"'
+    run_cmd += f' --train_data_dir="{image_folder}"'
+    run_cmd += f' --output_dir="{output_dir}"'
     if not logging_dir == '':
-        run_cmd += f' --logging_dir={logging_dir}'
+        run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --train_batch_size={train_batch_size}'
     run_cmd += f' --dataset_repeats={dataset_repeats}'
     run_cmd += f' --learning_rate={learning_rate}'

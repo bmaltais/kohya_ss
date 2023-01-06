@@ -30,6 +30,8 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/06 (v19.4):
+    - Add new Utility to Extract a LoRA from a finetuned model
 * 2023/01/06 (v19.3.1):
     - Emergency fix for dreambooth_ui no longer working, sorry
     - Add LoRA network merge too GUI. Run `pip install -U -r requirements.txt` after pulling this new release.
