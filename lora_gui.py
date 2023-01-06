@@ -72,6 +72,7 @@ def save_configuration(
     lora_network_weights,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
     original_file_path = file_path
 
@@ -129,6 +130,7 @@ def save_configuration(
         'lora_network_weights': lora_network_weights,
         'color_aug': color_aug,
         'flip_aug': flip_aug,
+        'clip_skip': clip_skip,
     }
 
     # Save the data to the selected file
@@ -177,6 +179,7 @@ def open_configuration(
     lora_network_weights,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
 
     original_file_path = file_path
@@ -235,6 +238,7 @@ def open_configuration(
         my_data.get('lora_network_weights', lora_network_weights),
         my_data.get('color_aug', color_aug),
         my_data.get('flip_aug', flip_aug),
+        my_data.get('clip_skip', clip_skip),
     )
 
 
@@ -276,6 +280,7 @@ def train_model(
     lora_network_weights,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -361,13 +366,13 @@ def train_model(
     # Print the result
     # print(f"{total_steps} total steps")
 
-    if reg_data_dir == '':
-        reg_factor = 1
-    else:
-        print(
-            'Regularisation images are used... Will double the number of steps required...'
-        )
-        reg_factor = 2
+    # if reg_data_dir == '':
+    #     reg_factor = 1
+    # else:
+    #     print(
+    #         'Regularisation images are used... Will double the number of steps required...'
+    #     )
+    #     reg_factor = 2
 
     # calculate max_train_steps
     max_train_steps = int(
@@ -375,7 +380,7 @@ def train_model(
             float(total_steps)
             / int(train_batch_size)
             * int(epoch)
-            * int(reg_factor)
+            # * int(reg_factor)
         )
     )
     print(f'max_train_steps = {max_train_steps}')
@@ -467,6 +472,8 @@ def train_model(
     run_cmd += f' --network_dim={network_dim}'
     if not lora_network_weights == '':
         run_cmd += f' --network_weights={lora_network_weights}'
+    if int(clip_skip) > 1:
+        run_cmd += f' --clip_skip={int(clip_skip)}'
 
     print(run_cmd)
     # Run the command
@@ -860,6 +867,7 @@ def lora_tab(
                 shuffle_caption = gr.Checkbox(
                     label='Shuffle caption', value=False
                 )
+            with gr.Row():
                 save_state = gr.Checkbox(
                     label='Save training state', value=False
                 )
@@ -871,6 +879,9 @@ def lora_tab(
                     color_aug_changed,
                     inputs=[color_aug],
                     outputs=[cache_latent_input],
+                )
+                clip_skip = gr.Slider(
+                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
             with gr.Row():
                 resume = gr.Textbox(
@@ -935,6 +946,7 @@ def lora_tab(
         lora_network_weights,
         color_aug,
         flip_aug,
+        clip_skip,
     ]
 
     button_open_config.click(

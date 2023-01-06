@@ -69,6 +69,7 @@ def save_configuration(
     prior_loss_weight,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
     original_file_path = file_path
 
@@ -123,6 +124,7 @@ def save_configuration(
         'prior_loss_weight': prior_loss_weight,
         'color_aug': color_aug,
         'flip_aug': flip_aug,
+        'clip_skip': clip_skip,
     }
 
     # Save the data to the selected file
@@ -168,6 +170,7 @@ def open_configuration(
     prior_loss_weight,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
 
     original_file_path = file_path
@@ -223,6 +226,7 @@ def open_configuration(
         my_data.get('prior_loss_weight', prior_loss_weight),
         my_data.get('color_aug', color_aug),
         my_data.get('flip_aug', flip_aug),
+        my_data.get('clip_skip', clip_skip),
     )
 
 
@@ -261,6 +265,7 @@ def train_model(
     prior_loss_weight,
     color_aug,
     flip_aug,
+    clip_skip,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -424,6 +429,8 @@ def train_model(
         run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
+    if clip_skip > 1:
+        run_cmd += f' --clip_skip={int(clip_skip)}'
 
     print(run_cmd)
     # Run the command
@@ -774,6 +781,7 @@ def dreambooth_tab(
                 shuffle_caption = gr.Checkbox(
                     label='Shuffle caption', value=False
                 )
+            with gr.Row():
                 save_state = gr.Checkbox(
                     label='Save training state', value=False
                 )
@@ -785,6 +793,9 @@ def dreambooth_tab(
                     color_aug_changed,
                     inputs=[color_aug],
                     outputs=[cache_latent_input],
+                )
+                clip_skip = gr.Slider(
+                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
             with gr.Row():
                 resume = gr.Textbox(
@@ -809,209 +820,66 @@ def dreambooth_tab(
         gradio_dataset_balancing_tab()
 
     button_run = gr.Button('Train model')
+    
+    settings_list = [
+        pretrained_model_name_or_path_input,
+        v2_input,
+        v_parameterization_input,
+        logging_dir_input,
+        train_data_dir_input,
+        reg_data_dir_input,
+        output_dir_input,
+        max_resolution_input,
+        learning_rate_input,
+        lr_scheduler_input,
+        lr_warmup_input,
+        train_batch_size_input,
+        epoch_input,
+        save_every_n_epochs_input,
+        mixed_precision_input,
+        save_precision_input,
+        seed_input,
+        num_cpu_threads_per_process_input,
+        cache_latent_input,
+        caption_extention_input,
+        enable_bucket_input,
+        gradient_checkpointing_input,
+        full_fp16_input,
+        no_token_padding_input,
+        stop_text_encoder_training_input,
+        use_8bit_adam_input,
+        xformers_input,
+        save_model_as_dropdown,
+        shuffle_caption,
+        save_state,
+        resume,
+        prior_loss_weight,
+        color_aug,
+        flip_aug,
+        clip_skip,
+    ]
 
     button_open_config.click(
         open_configuration,
-        inputs=[
-            config_file_name,
-            pretrained_model_name_or_path_input,
-            v2_input,
-            v_parameterization_input,
-            logging_dir_input,
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            max_resolution_input,
-            learning_rate_input,
-            lr_scheduler_input,
-            lr_warmup_input,
-            train_batch_size_input,
-            epoch_input,
-            save_every_n_epochs_input,
-            mixed_precision_input,
-            save_precision_input,
-            seed_input,
-            num_cpu_threads_per_process_input,
-            cache_latent_input,
-            caption_extention_input,
-            enable_bucket_input,
-            gradient_checkpointing_input,
-            full_fp16_input,
-            no_token_padding_input,
-            stop_text_encoder_training_input,
-            use_8bit_adam_input,
-            xformers_input,
-            save_model_as_dropdown,
-            shuffle_caption,
-            save_state,
-            resume,
-            prior_loss_weight,
-            color_aug,
-            flip_aug,
-        ],
-        outputs=[
-            config_file_name,
-            pretrained_model_name_or_path_input,
-            v2_input,
-            v_parameterization_input,
-            logging_dir_input,
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            max_resolution_input,
-            learning_rate_input,
-            lr_scheduler_input,
-            lr_warmup_input,
-            train_batch_size_input,
-            epoch_input,
-            save_every_n_epochs_input,
-            mixed_precision_input,
-            save_precision_input,
-            seed_input,
-            num_cpu_threads_per_process_input,
-            cache_latent_input,
-            caption_extention_input,
-            enable_bucket_input,
-            gradient_checkpointing_input,
-            full_fp16_input,
-            no_token_padding_input,
-            stop_text_encoder_training_input,
-            use_8bit_adam_input,
-            xformers_input,
-            save_model_as_dropdown,
-            shuffle_caption,
-            save_state,
-            resume,
-            prior_loss_weight,
-            color_aug,
-            flip_aug,
-        ],
+        inputs=[config_file_name] + settings_list,
+        outputs=[config_file_name] + settings_list,
     )
 
     button_save_config.click(
         save_configuration,
-        inputs=[
-            dummy_db_false,
-            config_file_name,
-            pretrained_model_name_or_path_input,
-            v2_input,
-            v_parameterization_input,
-            logging_dir_input,
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            max_resolution_input,
-            learning_rate_input,
-            lr_scheduler_input,
-            lr_warmup_input,
-            train_batch_size_input,
-            epoch_input,
-            save_every_n_epochs_input,
-            mixed_precision_input,
-            save_precision_input,
-            seed_input,
-            num_cpu_threads_per_process_input,
-            cache_latent_input,
-            caption_extention_input,
-            enable_bucket_input,
-            gradient_checkpointing_input,
-            full_fp16_input,
-            no_token_padding_input,
-            stop_text_encoder_training_input,
-            use_8bit_adam_input,
-            xformers_input,
-            save_model_as_dropdown,
-            shuffle_caption,
-            save_state,
-            resume,
-            prior_loss_weight,
-            color_aug,
-            flip_aug,
-        ],
+        inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name],
     )
 
     button_save_as_config.click(
         save_configuration,
-        inputs=[
-            dummy_db_true,
-            config_file_name,
-            pretrained_model_name_or_path_input,
-            v2_input,
-            v_parameterization_input,
-            logging_dir_input,
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            max_resolution_input,
-            learning_rate_input,
-            lr_scheduler_input,
-            lr_warmup_input,
-            train_batch_size_input,
-            epoch_input,
-            save_every_n_epochs_input,
-            mixed_precision_input,
-            save_precision_input,
-            seed_input,
-            num_cpu_threads_per_process_input,
-            cache_latent_input,
-            caption_extention_input,
-            enable_bucket_input,
-            gradient_checkpointing_input,
-            full_fp16_input,
-            no_token_padding_input,
-            stop_text_encoder_training_input,
-            use_8bit_adam_input,
-            xformers_input,
-            save_model_as_dropdown,
-            shuffle_caption,
-            save_state,
-            resume,
-            prior_loss_weight,
-            color_aug,
-            flip_aug,
-        ],
+        inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name],
     )
 
     button_run.click(
         train_model,
-        inputs=[
-            pretrained_model_name_or_path_input,
-            v2_input,
-            v_parameterization_input,
-            logging_dir_input,
-            train_data_dir_input,
-            reg_data_dir_input,
-            output_dir_input,
-            max_resolution_input,
-            learning_rate_input,
-            lr_scheduler_input,
-            lr_warmup_input,
-            train_batch_size_input,
-            epoch_input,
-            save_every_n_epochs_input,
-            mixed_precision_input,
-            save_precision_input,
-            seed_input,
-            num_cpu_threads_per_process_input,
-            cache_latent_input,
-            caption_extention_input,
-            enable_bucket_input,
-            gradient_checkpointing_input,
-            full_fp16_input,
-            no_token_padding_input,
-            stop_text_encoder_training_input,
-            use_8bit_adam_input,
-            xformers_input,
-            save_model_as_dropdown,
-            shuffle_caption,
-            save_state,
-            resume,
-            prior_loss_weight,
-            color_aug,
-            flip_aug,
-        ],
+        inputs=settings_list,
     )
 
     return (
