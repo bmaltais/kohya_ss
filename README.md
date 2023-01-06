@@ -21,7 +21,7 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 All documents are in Japanese currently, and CUI based.
 
-* note.com [Environment setup and DreamBooth training guide](https://note.com/kohya_ss/n/nba4eceaa4594)
+* [DreamBooth training guide](./train_db_README-ja.md)
 * [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
 Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
 * [training LoRA](./train_network_README-ja.md)
@@ -67,11 +67,12 @@ accelerate config
 Answers to accelerate config:
 
 ```txt
-- 0
-- 0
+- This machine
+- No distributed training
 - NO
 - NO
-- All
+- NO
+- all
 - fp16
 ```
 
