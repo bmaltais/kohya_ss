@@ -4,6 +4,19 @@ This repository now includes the solutions provided by Kohya_ss in a single loca
 
 A note accompanying the release of his new repository can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
 
+## Required Dependencies
+
+Python 3.10.6+ and Git:
+
+- Python 3.10.6+: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
+- git: https://git-scm.com/download/win
+
+Give unrestricted script access to powershell so venv can work:
+
+- Open an administrator powershell window
+- Type `Set-ExecutionPolicy Unrestricted` and answer A
+- Close admin powershell window
+
 ## Installation
 
 Open a regular Powershell terminal and type the following inside:
