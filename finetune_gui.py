@@ -56,6 +56,7 @@ def save_configuration(
     caption_extension,
     use_8bit_adam,
     xformers,
+    clip_skip,
 ):
     original_file_path = file_path
 
@@ -109,6 +110,7 @@ def save_configuration(
         'caption_extension': caption_extension,
         'use_8bit_adam': use_8bit_adam,
         'xformers': xformers,
+        'clip_skip': clip_skip,
     }
 
     # Save the data to the selected file
@@ -153,6 +155,7 @@ def open_config_file(
     caption_extension,
     use_8bit_adam,
     xformers,
+    clip_skip,
 ):
     original_file_path = file_path
     file_path = get_file_path(file_path)
@@ -206,6 +209,7 @@ def open_config_file(
         my_data.get('caption_extension', caption_extension),
         my_data.get('use_8bit_adam', use_8bit_adam),
         my_data.get('xformers', xformers),
+        my_data.get('clip_skip', clip_skip),
     )
 
 
@@ -243,6 +247,7 @@ def train_model(
     caption_extension,
     use_8bit_adam,
     xformers,
+    clip_skip,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -358,6 +363,8 @@ def train_model(
     run_cmd += f' --save_precision={save_precision}'
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
+    if clip_skip > 1:
+        run_cmd += f' --clip_skip={int(clip_skip)}'
 
     print(run_cmd)
     # Run the command
@@ -688,6 +695,9 @@ def finetune_tab():
             with gr.Row():
                 use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
                 xformers = gr.Checkbox(label='Use xformers', value=True)
+                clip_skip = gr.Slider(
+                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
+                )
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -733,6 +743,7 @@ def finetune_tab():
         caption_extention_input,
         use_8bit_adam,
         xformers,
+        clip_skip,
     ]
 
     button_run.click(train_model, inputs=settings_list)

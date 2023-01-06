@@ -30,6 +30,10 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/05 (v19.2):
+    - Add support for `--clip_skip` option
+    - Add missing `detect_face_rotate.py` to tools folder
+    - Add `gui.cmd` for easy start of GUI
 * 2023/01/02 (v19.2) update:
     - Finetune, add xformers, 8bit adam, min bucket, max bucket, batch size and flip augmentation support for dataset preparation
     - Finetune, add "Dataset preparation" tab to group task specific options
