@@ -429,8 +429,8 @@ def train_model(
         run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if clip_skip > 1:
-        run_cmd += f' --clip_skip={int(clip_skip)}'
+    if int(clip_skip) > 1:
+        run_cmd += f' --clip_skip={str(clip_skip)}'
 
     print(run_cmd)
     # Run the command

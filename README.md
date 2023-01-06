@@ -30,7 +30,10 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
-* 2023/01/05 (v19.2):
+* 2023/01/06 (v19.3.1):
+    - Emergency fix for dreambooth_ui no longer working, sorry
+    - Add LoRA network merge too GUI. Run `pip install -U -r requirements.txt` after pulling this new release.
+* 2023/01/05 (v19.3):
     - Add support for `--clip_skip` option
     - Add missing `detect_face_rotate.py` to tools folder
     - Add `gui.cmd` for easy start of GUI
