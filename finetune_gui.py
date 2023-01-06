@@ -363,8 +363,8 @@ def train_model(
     run_cmd += f' --save_precision={save_precision}'
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if clip_skip > 1:
-        run_cmd += f' --clip_skip={int(clip_skip)}'
+    if int(clip_skip) > 1:
+        run_cmd += f' --clip_skip={str(clip_skip)}'
 
     print(run_cmd)
     # Run the command

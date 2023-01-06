@@ -24,6 +24,7 @@ from library.dreambooth_folder_creation_gui import (
 )
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
+from library.merge_lora_gui import gradio_merge_lora_tab
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -473,7 +474,7 @@ def train_model(
     if not lora_network_weights == '':
         run_cmd += f' --network_weights={lora_network_weights}'
     if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={int(clip_skip)}'
+        run_cmd += f' --clip_skip={str(clip_skip)}'
 
     print(run_cmd)
     # Run the command
@@ -779,7 +780,7 @@ def lora_tab(
             # )
             network_dim = gr.Slider(
                 minimum=1,
-                maximum=32,
+                maximum=128,
                 label='Network Dimension',
                 value=4,
                 step=1,
@@ -904,6 +905,7 @@ def lora_tab(
             logging_dir_input=logging_dir_input,
         )
         gradio_dataset_balancing_tab()
+        gradio_merge_lora_tab()
 
     button_run = gr.Button('Train model')
 
