@@ -89,13 +89,17 @@ accelerate configの質問には以下のように答えてください。（bf1
 ※0.15.0から日本語環境では選択のためにカーソルキーを押すと落ちます（……）。数字キーの0、1、2……で選択できますので、そちらを使ってください。
 
 ```txt
-- 0
-- 0
+- This machine
+- No distributed training
 - NO
 - NO
-- All
+- NO
+- all
 - fp16
 ```
+
+※場合によって ``ValueError: fp16 mixed precision requires a GPU`` というエラーが出ることがあるようです。この場合、6番目の質問（
+``What GPU(s) (by id) should be used for training on this machine as a comma-seperated list? [all]:``）に「0」と答えてください。（id `0`のGPUが使われます。）
 
 ## アップグレード
 
