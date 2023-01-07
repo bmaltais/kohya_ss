@@ -101,6 +101,8 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/06 (v19.4.1):
+    - Emergency fix for new version of gradio causing issues with drop down menus. Please run `pip install -U -r requirements.txt` to fix the issue after pulling this repo.
 * 2023/01/06 (v19.4):
     - Add new Utility to Extract a LoRA from a finetuned model
 * 2023/01/06 (v19.3.1):

@@ -9,7 +9,7 @@ pytorch_lightning
 bitsandbytes==0.35.0
 tensorboard
 safetensors==0.2.6
-gradio
+gradio==3.15.0
 altair
 easygui
 # for BLIP captioning
