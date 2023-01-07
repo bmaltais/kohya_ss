@@ -10,9 +10,7 @@
 
 cloneofsimo氏のリポジトリ、およびd8ahazard氏の[Dreambooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_dreambooth_extension)とは、現時点では互換性がありません。いくつかの機能拡張を行っているためです（後述）。
 
-WebUI等で画像生成する場合には、学習したLoRAのモデルを学習元のStable Diffusionのモデルに、このリポジトリ内のスクリプトであらかじめマージしておく必要があります。マージ後のモデルファイルはLoRAの学習結果が反映されたものになります。
-
-なお当リポジトリ内の画像生成スクリプトで生成する場合はマージ不要です。
+WebUI等で画像生成する場合には、学習したLoRAのモデルを学習元のStable Diffusionのモデルにこのリポジトリ内のスクリプトであらかじめマージしておくか、こちらの[WebUI用extention](https://github.com/kohya-ss/sd-webui-additional-networks)を使ってください。
 
 ## 学習方法
 
@@ -24,7 +22,7 @@ DreamBoothの手法（identifier（sksなど）とclass、オプションで正�
 
 ### DreamBoothの手法を用いる場合
 
-note.com [環境整備とDreamBooth学習スクリプトについて](https://note.com/kohya_ss/n/nba4eceaa4594) を参照してデータを用意してください。
+[DreamBoothのガイド](./train_db_README-ja.md) を参照してデータを用意してください。
 
 学習するとき、train_db.pyの代わりにtrain_network.pyを指定してください。
 
@@ -110,7 +108,7 @@ python networks\merge_lora.py --sd_model ..\model\model.ckpt
 
 ### 複数のLoRAのモデルをマージする
 
-結局のところSDモデルにマージしないと推論できないのであまり使い道はないかもしれません。ただ、複数のLoRAモデルをひとつずつSDモデルにマージしていく場合と、複数のLoRAモデルをマージしてからSDモデルにマージする場合とは、計算順序の関連で微妙に異なる結果になります。
+複数のLoRAモデルをひとつずつSDモデルに適用する場合と、複数のLoRAモデルをマージしてからSDモデルにマージする場合とは、計算順序の関連で微妙に異なる結果になります。
 
 たとえば以下のようなコマンドラインになります。
 
@@ -143,6 +141,40 @@ v1で学習したLoRAとv2で学習したLoRA、次元数の異なるLoRAはマ�
 gen_img_diffusers.pyに、--network_module、--network_weights、--network_dim（省略可）の各オプションを追加してください。意味は学習時と同様です。
 
 --network_mulオプションで0~1.0の数値を指定すると、LoRAの適用率を変えられます。
+
+## 二つのモデルの差分からLoRAモデルを作成する
+
+[こちらのディスカッション](https://github.com/cloneofsimo/lora/discussions/56)を参考に実装したものです。数式はそのまま使わせていただきました（よく理解していませんが近似には特異値分解を用いるようです）。
+
+二つのモデル（たとえばfine tuningの元モデルとfine tuning後のモデル）の差分を、LoRAで近似します。
+
+### スクリプトの実行方法
+
+以下のように指定してください。
+```
+python networks\extract_lora_from_models.py --model_org base-model.ckpt
+    --model_tuned fine-tuned-model.ckpt 
+    --save_to lora-weights.safetensors --dim 4
+```
+
+--model_orgオプションに元のStable Diffusionモデルを指定します。作成したLoRAモデルを適用する場合は、このモデルを指定して適用することになります。.ckptまたは.safetensorsが指定できます。
+
+--model_tunedオプションに差分を抽出する対象のStable Diffusionモデルを指定します。たとえばfine tuningやDreamBooth後のモデルを指定します。.ckptまたは.safetensorsが指定できます。
+
+--save_toにLoRAモデルの保存先を指定します。--dimにLoRAの次元数を指定します。
+
+生成されたLoRAモデルは、学習したLoRAモデルと同様に使用できます。
+
+Text Encoderが二つのモデルで同じ場合にはLoRAはU-NetのみのLoRAとなります。
+
+### その他のオプション
+
+- --v2
+  - v2.xのStable Diffusionモデルを使う場合に指定してください。
+- --device
+  - ``--device cuda``としてcudaを指定すると計算をGPU上で行います。処理が速くなります（CPUでもそこまで遅くないため、せいぜい倍～数倍程度のようです）。
+- --save_precision
+  - LoRAの保存形式を"float", "fp16", "bf16"から指定します。省略時はfloatになります。
 
 ## 追加情報
 
