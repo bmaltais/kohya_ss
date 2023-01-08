@@ -230,7 +230,8 @@ def train(args):
         with torch.set_grad_enabled(args.train_text_encoder):
           # Get the text embedding for conditioning
           input_ids = batch["input_ids"].to(accelerator.device)
-          encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder)
+          encoder_hidden_states = train_util.get_hidden_states(
+              args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype)
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
