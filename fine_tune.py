@@ -33,7 +33,8 @@ def train(args):
   train_dataset = train_util.FineTuningDataset(args.in_json, args.train_batch_size, args.train_data_dir,
                                                tokenizer, args.max_token_length, args.shuffle_caption, args.keep_tokens,
                                                args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
-                                               args.flip_aug, args.color_aug, args.face_crop_aug_range, args.dataset_repeats, args.debug_dataset)
+                                               args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop,
+                                               args.dataset_repeats, args.debug_dataset)
   train_dataset.make_buckets()
 
   if args.debug_dataset:
@@ -198,7 +199,7 @@ def train(args):
   # 学習する
   total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
   print("running training / 学習開始")
-  print(f"  num examples / サンプル数: {train_dataset.images_count}")
+  print(f"  num examples / サンプル数: {train_dataset.num_train_images}")
   print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
   print(f"  num epochs / epoch数: {num_train_epochs}")
   print(f"  batch size per device / バッチサイズ: {args.train_batch_size}")
@@ -223,8 +224,13 @@ def train(args):
     loss_total = 0
     for step, batch in enumerate(train_dataloader):
       with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
-        latents = batch["latents"].to(accelerator.device)
-        latents = latents * 0.18215
+        with torch.no_grad():
+          if "latents" in batch and batch["latents"] is not None:
+            latents = batch["latents"].to(accelerator.device)
+          else:
+            # latentに変換
+            latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
+          latents = latents * 0.18215
         b_size = latents.shape[0]
 
         with torch.set_grad_enabled(args.train_text_encoder):
@@ -310,7 +316,7 @@ def train(args):
   if is_main_process:
     src_path = src_stable_diffusion_ckpt if save_stable_diffusion_format else src_diffusers_model_path
     train_util.save_sd_model_on_train_end(args, src_path, save_stable_diffusion_format, use_safetensors,
-                                 save_dtype, epoch, global_step,  text_encoder, unet, vae)
+                                          save_dtype, epoch, global_step,  text_encoder, unet, vae)
     print("model saved.")
 
 
@@ -324,6 +330,7 @@ if __name__ == '__main__':
 
   parser.add_argument("--diffusers_xformers", action='store_true',
                       help='use xformers by diffusers / Diffusersでxformersを使用する')
+  parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
 
   args = parser.parse_args()
   train(args)
