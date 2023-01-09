@@ -715,7 +715,10 @@ def debug_dataset(train_dataset):
 def glob_images(dir, base):
   img_paths = []
   for ext in IMAGE_EXTENSIONS:
-    img_paths.extend(glob.glob(os.path.join(dir, base + ext)))
+    if base == '*':
+      img_paths.extend(glob.glob(os.path.join(glob.escape(dir), base + ext)))
+    else:
+      img_paths.extend(glob.glob(glob.escape(os.path.join(dir, base + ext))))
   return img_paths
 
 # endregion
