@@ -1,35 +1,32 @@
-# Train network documentation translated from japanese
 ## About learning LoRA
 
 [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685) (arxiv), [LoRA](https://github.com/microsoft/LoRA) (github) to Stable Applied to Diffusion.
 
-[cloneofsimo's repository](https://github.com/cloneofsimo/lora) was a great reference. thank you.
+[cloneofsimo's repository](https://github.com/cloneofsimo/lora) was a great reference. Thank you very much.
 
 8GB VRAM seems to work just fine.
 
 ## A Note about Trained Models
 
-Cloneofsimo's repository and d8ahazard's [Drebooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_drebooth_extension) are currently incompatible due to ongoing enhancements (see below).
+Cloneofsimo's repository and d8ahazard's [Drebooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_drebooth_extension) are currently incompatible. Because we are doing some enhancements (see below).
 
-In order to generate images using WebUI, it is necessary to merge the learned LoRA model with the Stable Diffusion model using the script in this repository. The resulting merged model file will incorporate the learning results from LoRA. Note that merging is not required when generating images with the script in this repository.
-
-Note that merging is not required when generating with the image generation script in this repository.
+When generating images with WebUI, etc., merge the learned LoRA model with the learning source Stable Diffusion model in advance with the script in this repository, or click here [Extention for WebUI] (https://github .com/kohya-ss/sd-webui-additional-networks).
 
 ## Learning method
 
 Use train_network.py.
 
-You can learn both the DreamBooth method (using identifiers (sks, etc.) and classes, optionally with regularized images) and the fine tuning method using captions.
+You can learn both the DreamBooth method (using identifiers (sks, etc.) and classes, optionally regularized images) and the fine tuning method using captions.
 
 Both methods can be learned in much the same way as existing scripts. We will discuss the differences later.
 
 ### Using the DreamBooth Method
 
-Please refer to note.com [Environment preparation and DreamBooth learning script](https://note.com/kohya_ss/n/nba4eceaa4594) to prepare the data.
+Please refer to [DreamBooth guide](./train_db_README-en.md) and prepare the data.
 
 Specify train_network.py instead of train_db.py when training.
 
-Almost all options are available (except model saving related to Stable Diffusion), but stop_text_encoder_training is not supported.
+Almost all options are available (except Stable Diffusion model save related), but stop_text_encoder_training is not supported.
 
 ### When to use captions
 
@@ -75,7 +72,9 @@ In addition, the following options can be specified.
 * --text_encoder_lr
    * Specify when using a learning rate different from the normal learning rate (specified with the --learning_rate option) for the LoRA module associated with the Text Encoder. Some people say that it is better to set the Text Encoder to a slightly lower learning rate (such as 5e-5).
 
-If both --network_train_unet_only and --network_train_text_encoder_only are not specified (default), both Text Encoder and U-Net LoRA modules will be enabled. ## About the merge script
+When neither --network_train_unet_only nor --network_train_text_encoder_only is specified (default), both Text Encoder and U-Net LoRA modules are enabled.
+
+## About the merge script
 
 merge_lora.py allows you to merge LoRA training results into a Stable Diffusion model, or merge multiple LoRA models.
 
@@ -109,7 +108,7 @@ python networks\merge_lora.py --sd_model ..\model\model.ckpt
 
 ### Merge multiple LoRA models
 
-After all, it may not be very useful because it cannot be inferred unless it is merged into the SD model. However, when merging multiple LoRA models one by one into the SD model, and when merging multiple LoRA models and then merging them into the SD model, the result will be slightly different in relation to the calculation order.
+Applying multiple LoRA models one by one to the SD model and merging multiple LoRA models and then merging them into the SD model yield slightly different results in relation to the calculation order.
 
 For example, a command line like:
 
@@ -143,14 +142,48 @@ Add options --network_module, --network_weights, --network_dim (optional) to gen
 
 You can change the LoRA application rate by specifying a value between 0 and 1.0 with the --network_mul option.
 
+## Create a LoRA model from the difference between two models
+
+It was implemented with reference to [this discussion](https://github.com/cloneofsimo/lora/discussions/56). I used the formula as it is (I don't understand it well, but it seems that singular value decomposition is used for approximation).
+
+LoRA approximates the difference between two models (for example, the original model after fine tuning and the model after fine tuning).
+
+### How to run scripts
+
+Please specify as follows.
+```
+python networks\extract_lora_from_models.py --model_org base-model.ckpt
+     --model_tuned fine-tuned-model.ckpt
+     --save_to lora-weights.safetensors --dim 4
+```
+
+Specify the original Stable Diffusion model for the --model_org option. When applying the created LoRA model, this model will be specified and applied. .ckpt or .safetensors can be specified.
+
+Specify the Stable Diffusion model to extract the difference in the --model_tuned option. For example, specify a model after fine tuning or DreamBooth. .ckpt or .safetensors can be specified.
+
+Specify the save destination of the LoRA model in --save_to. Specify the number of dimensions of LoRA in --dim.
+
+A generated LoRA model can be used in the same way as a trained LoRA model.
+
+If the Text Encoder is the same for both models, LoRA will be U-Net only LoRA.
+
+### Other Options
+
+--v2
+   - Please specify when using the v2.x Stable Diffusion model.
+--device
+   - If cuda is specified as ``--device cuda``, the calculation will be performed on the GPU. Processing will be faster (because even the CPU is not that slow, it seems to be at most twice or several times faster).
+--save_precision
+   - Specify the LoRA save format from "float", "fp16", "bf16". Default is float.
+
 ## Additional Information
 
 ### Differences from cloneofsimo's repository
 
-As of 12/25, this repository has expanded LoRA application points to Text Encoder's MLP, U-Net's FFN, and Transformer's in/out projection, increasing its expressiveness. However, the amount of memory used increased, and it became the last minute of 8GB instead.
+As of 12/25, this repository has expanded LoRA application points to Text Encoder's MLP, U-Net's FFN, and Transformer's in/out projection, increasing its expressiveness. However, the amount of memory used increased instead, and it became the last minute of 8GB.
 
 Also, the module replacement mechanism is completely different.
 
-### About future expansion
+### About Future Expansion
 
 It is possible to support not only LoRA but also other expansions, so we plan to add them as well.
