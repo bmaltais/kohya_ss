@@ -1133,14 +1133,6 @@ def load_vae(vae_id, dtype):
   return vae
 
 
-def get_epoch_ckpt_name(use_safetensors, epoch):
-  return f"epoch-{epoch:06d}" + (".safetensors" if use_safetensors else ".ckpt")
-
-
-def get_last_ckpt_name(use_safetensors):
-  return f"last" + (".safetensors" if use_safetensors else ".ckpt")
-
-
 # endregion
 
 
