@@ -7,6 +7,15 @@ def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
     return (dir_path, file_name)
 
+def has_ext_files(directory, extension):
+    # Iterate through all the files in the directory
+    for file in os.listdir(directory):
+        # If the file name ends with extension, return True
+        if file.endswith(extension):
+            return True
+    # If no extension files were found, return False
+    return False
+
 def get_file_path(file_path='', defaultextension='.json', extension_name='Config files'):
     current_file_path = file_path
     # print(f'current file path: {current_file_path}')
@@ -127,12 +136,12 @@ def get_saveasfilename_path(file_path='', extensions='*', extension_name='Config
 def add_pre_postfix(
     folder='', prefix='', postfix='', caption_file_ext='.caption'
 ):
+    if not has_ext_files(folder, caption_file_ext):
+        msgbox(f'No files with extension {caption_file_ext} were found in {folder}...')
+        return
+    
     if prefix == '' and postfix == '':
         return
-
-    # set caption extention to default in case it was not provided
-    if caption_file_ext == '':
-        caption_file_ext = '.caption'
 
     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
     if not prefix == '':
@@ -147,6 +156,27 @@ def add_pre_postfix(
             f.seek(0, 0)
             f.write(f'{prefix}{content}{postfix}')
     f.close()
+    
+def find_replace(
+    folder='', caption_file_ext='.caption', find='', replace=''
+):
+    print('Running caption find/replace')
+    if not has_ext_files(folder, caption_file_ext):
+        msgbox(f'No files with extension {caption_file_ext} were found in {folder}...')
+        return
+    
+    if find == '':
+        return
+
+    files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
+    for file in files:
+        with open(os.path.join(folder, file), 'r') as f:
+            content = f.read()
+            f.close
+        content = content.replace(find, replace)
+        with open(os.path.join(folder, file), 'w') as f:
+            f.write(content)
+            f.close()
 
 def color_aug_changed(color_aug):
     if color_aug:

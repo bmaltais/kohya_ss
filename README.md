@@ -101,6 +101,9 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/08 (v19.4.2):
+    - Add find/replace option to Basic Caption utility
+    - Add resume training and save_state option to finetune UI
 * 2023/01/06 (v19.4.1):
     - Emergency fix for new version of gradio causing issues with drop down menus. Please run `pip install -U -r requirements.txt` to fix the issue after pulling this repo.
 * 2023/01/06 (v19.4):
