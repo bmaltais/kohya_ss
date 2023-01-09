@@ -74,6 +74,9 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    # vae,
 ):
     original_file_path = file_path
 
@@ -132,6 +135,9 @@ def save_configuration(
         'color_aug': color_aug,
         'flip_aug': flip_aug,
         'clip_skip': clip_skip,
+        'gradient_accumulation_steps': gradient_accumulation_steps,
+        'mem_eff_attn': mem_eff_attn,
+        # 'vae': vae,
     }
 
     # Save the data to the selected file
@@ -181,6 +187,9 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    # vae,
 ):
 
     original_file_path = file_path
@@ -240,6 +249,9 @@ def open_configuration(
         my_data.get('color_aug', color_aug),
         my_data.get('flip_aug', flip_aug),
         my_data.get('clip_skip', clip_skip),
+        my_data.get('gradient_accumulation_steps', gradient_accumulation_steps),
+        my_data.get('mem_eff_attn', mem_eff_attn),
+        # my_data.get('vae', vae),
     )
 
 
@@ -282,6 +294,9 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    # vae,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -425,6 +440,8 @@ def train_model(
         run_cmd += ' --color_aug'
     if flip_aug:
         run_cmd += ' --flip_aug'
+    if mem_eff_attn:
+        run_cmd += ' --mem_eff_attn'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -475,6 +492,10 @@ def train_model(
         run_cmd += f' --network_weights="{lora_network_weights}"'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
+    # if not vae == '':
+    #     run_cmd += f' --vae="{vae}"'
 
     print(run_cmd)
     # Run the command
@@ -851,16 +872,19 @@ def lora_tab(
                     label='No token padding', value=False
                 )
 
-                gradient_checkpointing_input = gr.Checkbox(
+                gradient_checkpointing = gr.Checkbox(
                     label='Gradient checkpointing', value=False
+                )
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
                 )
 
                 shuffle_caption = gr.Checkbox(
                     label='Shuffle caption', value=False
                 )
             with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
+                prior_loss_weight = gr.Number(
+                    label='Prior loss weight', value=1.0
                 )
                 color_aug = gr.Checkbox(
                     label='Color augmentation', value=False
@@ -874,16 +898,25 @@ def lora_tab(
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
+                mem_eff_attn = gr.Checkbox(
+                    label='Memory efficient attention', value=False
+                )
             with gr.Row():
+                save_state = gr.Checkbox(
+                    label='Save training state', value=False
+                )
                 resume = gr.Textbox(
                     label='Resume from saved training state',
                     placeholder='path to "last-state" state folder to resume from',
                 )
                 resume_button = gr.Button('📂', elem_id='open_folder_small')
                 resume_button.click(get_folder_path, outputs=resume)
-                prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
-                )
+                # vae = gr.Textbox(
+                #     label='VAE',
+                #     placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                # )
+                # vae_button = gr.Button('📂', elem_id='open_folder_small')
+                # vae_button.click(get_any_file_path, outputs=vae)
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -921,7 +954,7 @@ def lora_tab(
         cache_latent_input,
         caption_extention_input,
         enable_bucket_input,
-        gradient_checkpointing_input,
+        gradient_checkpointing,
         full_fp16_input,
         no_token_padding_input,
         stop_text_encoder_training_input,
@@ -939,6 +972,9 @@ def lora_tab(
         color_aug,
         flip_aug,
         clip_skip,
+        gradient_accumulation_steps,
+        mem_eff_attn,
+        # vae,
     ]
 
     button_open_config.click(

@@ -101,6 +101,10 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/09 (v19.4.3):
+    - Add vae support to dreambooth GUI
+    - Add gradient_checkpointing, gradient_accumulation_steps, mem_eff_attn, shuffle_caption to finetune GUI
+    - Add gradient_accumulation_steps, mem_eff_attn to dreambooth lora gui
 * 2023/01/08 (v19.4.2):
     - Add find/replace option to Basic Caption utility
     - Add resume training and save_state option to finetune UI

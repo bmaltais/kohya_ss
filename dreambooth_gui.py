@@ -69,6 +69,7 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
 ):
     original_file_path = file_path
 
@@ -124,6 +125,7 @@ def save_configuration(
         'color_aug': color_aug,
         'flip_aug': flip_aug,
         'clip_skip': clip_skip,
+        'vae': vae,
     }
 
     # Save the data to the selected file
@@ -170,6 +172,7 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
 ):
 
     original_file_path = file_path
@@ -226,6 +229,7 @@ def open_configuration(
         my_data.get('color_aug', color_aug),
         my_data.get('flip_aug', flip_aug),
         my_data.get('clip_skip', clip_skip),
+        my_data.get('vae', vae),
     )
 
 
@@ -265,6 +269,7 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -430,6 +435,8 @@ def train_model(
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if not vae == '':
+        run_cmd += f' --vae="{vae}"'
 
     print(run_cmd)
     # Run the command
@@ -806,6 +813,12 @@ def dreambooth_tab(
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
+                vae = gr.Textbox(
+                    label='VAE',
+                    placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                )
+                vae_button = gr.Button('📂', elem_id='open_folder_small')
+                vae_button.click(get_any_file_path, outputs=vae)
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -855,6 +868,7 @@ def dreambooth_tab(
         color_aug,
         flip_aug,
         clip_skip,
+        vae,
     ]
 
     button_open_config.click(

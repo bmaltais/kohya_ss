@@ -59,6 +59,10 @@ def save_configuration(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
 ):
     original_file_path = file_path
 
@@ -115,6 +119,10 @@ def save_configuration(
         'clip_skip': clip_skip,
         'save_state': save_state,
         'resume': resume,
+        'gradient_checkpointing': gradient_checkpointing,
+        'gradient_accumulation_steps': gradient_accumulation_steps,
+        'mem_eff_attn': mem_eff_attn,
+        'shuffle_caption': shuffle_caption,
     }
 
     # Save the data to the selected file
@@ -162,6 +170,10 @@ def open_config_file(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
 ):
     original_file_path = file_path
     file_path = get_file_path(file_path)
@@ -218,6 +230,10 @@ def open_config_file(
         my_data.get('clip_skip', clip_skip),
         my_data.get('save_state', save_state),
         my_data.get('resume', resume),
+        my_data.get('gradient_checkpointing', gradient_checkpointing),
+        my_data.get('gradient_accumulation_steps', gradient_accumulation_steps),
+        my_data.get('mem_eff_attn', mem_eff_attn),
+        my_data.get('shuffle_caption', shuffle_caption),
     )
 
 
@@ -258,6 +274,10 @@ def train_model(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -353,6 +373,12 @@ def train_model(
         run_cmd += f' --use_8bit_adam'
     if xformers:
         run_cmd += f' --xformers'
+    if gradient_checkpointing:
+        run_cmd += ' --gradient_checkpointing'
+    if mem_eff_attn:
+        run_cmd += ' --mem_eff_attn'
+    if shuffle_caption:
+        run_cmd += ' --shuffle_caption'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -375,6 +401,8 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if save_state:
         run_cmd += ' --save_state'
     if not resume == '':
@@ -712,6 +740,12 @@ def finetune_tab():
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
+                mem_eff_attn = gr.Checkbox(
+                    label='Memory efficient attention', value=False
+                )
+                shuffle_caption = gr.Checkbox(
+                    label='Shuffle caption', value=False
+                )
             with gr.Row():
                 save_state = gr.Checkbox(
                     label='Save training state', value=False
@@ -722,6 +756,12 @@ def finetune_tab():
                 )
                 resume_button = gr.Button('📂', elem_id='open_folder_small')
                 resume_button.click(get_folder_path, outputs=resume)
+                gradient_checkpointing = gr.Checkbox(
+                    label='Gradient checkpointing', value=False
+                )
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
+                )
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -770,6 +810,10 @@ def finetune_tab():
         clip_skip,
         save_state,
         resume,
+        gradient_checkpointing,
+        gradient_accumulation_steps,
+        mem_eff_attn,
+        shuffle_caption,
     ]
 
     button_run.click(train_model, inputs=settings_list)
