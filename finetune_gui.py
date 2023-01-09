@@ -11,6 +11,8 @@ from library.common_gui import (
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
+    save_inference_file,
+    set_pretrained_model_name_or_path_input,
 )
 from library.utilities import utilities_tab
 
@@ -59,7 +61,15 @@ def save_configuration(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+    
     original_file_path = file_path
 
     save_as_bool = True if save_as.get('label') == 'True' else False
@@ -79,47 +89,18 @@ def save_configuration(
 
     # Return the values of the variables as a dictionary
     variables = {
-        'pretrained_model_name_or_path': pretrained_model_name_or_path,
-        'v2': v2,
-        'v_parameterization': v_parameterization,
-        'train_dir': train_dir,
-        'image_folder': image_folder,
-        'output_dir': output_dir,
-        'logging_dir': logging_dir,
-        'max_resolution': max_resolution,
-        'min_bucket_reso': min_bucket_reso,
-        'max_bucket_reso': max_bucket_reso,
-        'batch_size': batch_size,
-        'flip_aug': flip_aug,
-        'caption_metadata_filename': caption_metadata_filename,
-        'latent_metadata_filename': latent_metadata_filename,
-        'full_path': full_path,
-        'learning_rate': learning_rate,
-        'lr_scheduler': lr_scheduler,
-        'lr_warmup': lr_warmup,
-        'dataset_repeats': dataset_repeats,
-        'train_batch_size': train_batch_size,
-        'epoch': epoch,
-        'save_every_n_epochs': save_every_n_epochs,
-        'mixed_precision': mixed_precision,
-        'save_precision': save_precision,
-        'seed': seed,
-        'num_cpu_threads_per_process': num_cpu_threads_per_process,
-        'train_text_encoder': train_text_encoder,
-        'create_buckets': create_buckets,
-        'create_caption': create_caption,
-        'save_model_as': save_model_as,
-        'caption_extension': caption_extension,
-        'use_8bit_adam': use_8bit_adam,
-        'xformers': xformers,
-        'clip_skip': clip_skip,
-        'save_state': save_state,
-        'resume': resume,
+        name: value
+        for name, value in parameters  # locals().items()
+        if name
+        not in [
+            'file_path',
+            'save_as',
+        ]
     }
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:
-        json.dump(variables, file)
+        json.dump(variables, file, indent=2)
 
     return file_path
 
@@ -162,7 +143,15 @@ def open_config_file(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+    
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
@@ -170,55 +159,18 @@ def open_config_file(
         print(f'Loading config file {file_path}')
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data = json.load(f)
+            my_data_ft = json.load(f)
     else:
         file_path = original_file_path   # In case a file_path was provided and the user decide to cancel the open action
-        my_data = {}
-
-    # Return the values of the variables as a dictionary
-    return (
-        file_path,
-        my_data.get(
-            'pretrained_model_name_or_path', pretrained_model_name_or_path
-        ),
-        my_data.get('v2', v2),
-        my_data.get('v_parameterization', v_parameterization),
-        my_data.get('train_dir', train_dir),
-        my_data.get('image_folder', image_folder),
-        my_data.get('output_dir', output_dir),
-        my_data.get('logging_dir', logging_dir),
-        my_data.get('max_resolution', max_resolution),
-        my_data.get('min_bucket_reso', min_bucket_reso),
-        my_data.get('max_bucket_reso', max_bucket_reso),
-        my_data.get('batch_size', batch_size),
-        my_data.get('flip_aug', flip_aug),
-        my_data.get('caption_metadata_filename', caption_metadata_filename),
-        my_data.get('latent_metadata_filename', latent_metadata_filename),
-        my_data.get('full_path', full_path),
-        my_data.get('learning_rate', learning_rate),
-        my_data.get('lr_scheduler', lr_scheduler),
-        my_data.get('lr_warmup', lr_warmup),
-        my_data.get('dataset_repeats', dataset_repeats),
-        my_data.get('train_batch_size', train_batch_size),
-        my_data.get('epoch', epoch),
-        my_data.get('save_every_n_epochs', save_every_n_epochs),
-        my_data.get('mixed_precision', mixed_precision),
-        my_data.get('save_precision', save_precision),
-        my_data.get('seed', seed),
-        my_data.get(
-            'num_cpu_threads_per_process', num_cpu_threads_per_process
-        ),
-        my_data.get('train_text_encoder', train_text_encoder),
-        my_data.get('create_buckets', create_buckets),
-        my_data.get('create_caption', create_caption),
-        my_data.get('save_model_as', save_model_as),
-        my_data.get('caption_extension', caption_extension),
-        my_data.get('use_8bit_adam', use_8bit_adam),
-        my_data.get('xformers', xformers),
-        my_data.get('clip_skip', clip_skip),
-        my_data.get('save_state', save_state),
-        my_data.get('resume', resume),
-    )
+        my_data_ft = {}
+    
+    values = [file_path]
+    for key, value in parameters:
+        # Set the value in the dictionary to the corresponding value in `my_data_ft`, or the default value if not found
+        if not key in ['file_path']:
+            values.append(my_data_ft.get(key, value))
+    # print(values)
+    return tuple(values)
 
 
 def train_model(
@@ -258,22 +210,12 @@ def train_model(
     clip_skip,
     save_state,
     resume,
+    gradient_checkpointing,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    shuffle_caption,
+    output_name,
 ):
-    def save_inference_file(output_dir, v2, v_parameterization):
-        # Copy inference model for v2 if required
-        if v2 and v_parameterization:
-            print(f'Saving v2-inference-v.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference-v.yaml',
-                f'{output_dir}/last.yaml',
-            )
-        elif v2:
-            print(f'Saving v2-inference.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference.yaml',
-                f'{output_dir}/last.yaml',
-            )
-
     # create caption json file
     if generate_caption_database:
         if not os.path.exists(train_dir):
@@ -353,6 +295,12 @@ def train_model(
         run_cmd += f' --use_8bit_adam'
     if xformers:
         run_cmd += f' --xformers'
+    if gradient_checkpointing:
+        run_cmd += ' --gradient_checkpointing'
+    if mem_eff_attn:
+        run_cmd += ' --mem_eff_attn'
+    if shuffle_caption:
+        run_cmd += ' --shuffle_caption'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -375,72 +323,25 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if save_state:
         run_cmd += ' --save_state'
     if not resume == '':
         run_cmd += f' --resume={resume}'
+    if not output_name == '':
+        run_cmd += f' --output_name="{output_name}"'
 
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/last')
+    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
     if not last_dir.is_dir():
         # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization)
-
-
-def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
-    # define a list of substrings to search for
-    substrings_v2 = [
-        'stabilityai/stable-diffusion-2-1-base',
-        'stabilityai/stable-diffusion-2-base',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(value) in substrings_v2:
-        print('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to search for v-objective
-    substrings_v_parameterization = [
-        'stabilityai/stable-diffusion-2-1',
-        'stabilityai/stable-diffusion-2',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(value) in substrings_v_parameterization:
-        print(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
-        )
-        v2 = True
-        v_parameterization = True
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to v1.x
-    substrings_v1_model = [
-        'CompVis/stable-diffusion-v1-4',
-        'runwayml/stable-diffusion-v1-5',
-    ]
-
-    if str(value) in substrings_v1_model:
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    if value == 'custom':
-        value = ''
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
+        save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def remove_doublequote(file_path):
@@ -582,7 +483,7 @@ def finetune_tab():
             )
         with gr.Row():
             output_dir_input = gr.Textbox(
-                label='Output folder',
+                label='Model output folder',
                 placeholder='folder where the model will be saved',
             )
             output_dir_input_folder = gr.Button(
@@ -601,6 +502,13 @@ def finetune_tab():
             )
             logging_dir_input_folder.click(
                 get_folder_path, outputs=logging_dir_input
+            )
+        with gr.Row():
+            output_name = gr.Textbox(
+                label='Model output name',
+                placeholder='Name of the model to output',
+                value='last',
+                interactive=True,
             )
         train_dir_input.change(
             remove_doublequote,
@@ -712,6 +620,12 @@ def finetune_tab():
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
+                mem_eff_attn = gr.Checkbox(
+                    label='Memory efficient attention', value=False
+                )
+                shuffle_caption = gr.Checkbox(
+                    label='Shuffle caption', value=False
+                )
             with gr.Row():
                 save_state = gr.Checkbox(
                     label='Save training state', value=False
@@ -722,6 +636,12 @@ def finetune_tab():
                 )
                 resume_button = gr.Button('📂', elem_id='open_folder_small')
                 resume_button.click(get_folder_path, outputs=resume)
+                gradient_checkpointing = gr.Checkbox(
+                    label='Gradient checkpointing', value=False
+                )
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
+                )
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -770,6 +690,11 @@ def finetune_tab():
         clip_skip,
         save_state,
         resume,
+        gradient_checkpointing,
+        gradient_accumulation_steps,
+        mem_eff_attn,
+        shuffle_caption,
+        output_name,
     ]
 
     button_run.click(train_model, inputs=settings_list)

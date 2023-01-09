@@ -51,6 +51,7 @@ To install simply unzip the directory and place the cudnn_windows folder in the 
 Run the following command to install:
 
 ```
+.\venv\Scripts\activate
 python .\tools\cudann_1.8_install.py
 ```
 
@@ -72,35 +73,43 @@ Once the commands have completed successfully you should be ready to use the new
 To run the GUI you simply use this command:
 
 ```
-gui.cmd
+gui.ps1
 ```
 
 ## Dreambooth
 
-You can find the dreambooth solution spercific [Dreambooth README](README_dreambooth.md)
+You can find the dreambooth solution spercific [Dreambooth README](train_db_README.md)
 
 ## Finetune
 
-You can find the finetune solution spercific [Finetune README](README_finetune.md)
+You can find the finetune solution spercific [Finetune README](fine_tune_README.md)
+
+## Train Network
+
+You can find the train network solution spercific [Train network README](train_network_README.md)
 
 ## LoRA
 
-You can create LoRA network by running the dedicated GUI with:
+Training a LoRA currently use the `train_network.py` python code. You can create LoRA network by using the all-in-one `gui.cmd` or by running the dedicated LoRA training GUI with:
 
 ```
+.\venv\Scripts\activate
 python lora_gui.py
-```
-
-or via the all in one GUI:
-
-```
-python kahya_gui.py
 ```
 
 Once you have created the LoRA network you can generate images via auto1111 by installing the extension found here: https://github.com/kohya-ss/sd-webui-additional-networks
 
 ## Change history
 
+* 2023/01/10 (v20.1):
+    - Add support for `--output_name` to trainers
+    - Refactor code for easier maintenance
+* 2023/01/10 (v20.0):
+    - Update code base to match latest kohys_ss code upgrade in https://github.com/kohya-ss/sd-scripts
+* 2023/01/09 (v19.4.3):
+    - Add vae support to dreambooth GUI
+    - Add gradient_checkpointing, gradient_accumulation_steps, mem_eff_attn, shuffle_caption to finetune GUI
+    - Add gradient_accumulation_steps, mem_eff_attn to dreambooth lora gui
 * 2023/01/08 (v19.4.2):
     - Add find/replace option to Basic Caption utility
     - Add resume training and save_state option to finetune UI

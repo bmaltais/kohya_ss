@@ -18,6 +18,8 @@ from library.common_gui import (
     get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
+    save_inference_file,
+    set_pretrained_model_name_or_path_input,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -69,7 +71,12 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+
     original_file_path = file_path
 
     save_as_bool = True if save_as.get('label') == 'True' else False
@@ -89,46 +96,18 @@ def save_configuration(
 
     # Return the values of the variables as a dictionary
     variables = {
-        'pretrained_model_name_or_path': pretrained_model_name_or_path,
-        'v2': v2,
-        'v_parameterization': v_parameterization,
-        'logging_dir': logging_dir,
-        'train_data_dir': train_data_dir,
-        'reg_data_dir': reg_data_dir,
-        'output_dir': output_dir,
-        'max_resolution': max_resolution,
-        'learning_rate': learning_rate,
-        'lr_scheduler': lr_scheduler,
-        'lr_warmup': lr_warmup,
-        'train_batch_size': train_batch_size,
-        'epoch': epoch,
-        'save_every_n_epochs': save_every_n_epochs,
-        'mixed_precision': mixed_precision,
-        'save_precision': save_precision,
-        'seed': seed,
-        'num_cpu_threads_per_process': num_cpu_threads_per_process,
-        'cache_latent': cache_latent,
-        'caption_extention': caption_extention,
-        'enable_bucket': enable_bucket,
-        'gradient_checkpointing': gradient_checkpointing,
-        'full_fp16': full_fp16,
-        'no_token_padding': no_token_padding,
-        'stop_text_encoder_training': stop_text_encoder_training,
-        'use_8bit_adam': use_8bit_adam,
-        'xformers': xformers,
-        'save_model_as': save_model_as,
-        'shuffle_caption': shuffle_caption,
-        'save_state': save_state,
-        'resume': resume,
-        'prior_loss_weight': prior_loss_weight,
-        'color_aug': color_aug,
-        'flip_aug': flip_aug,
-        'clip_skip': clip_skip,
+        name: value
+        for name, value in parameters  # locals().items()
+        if name
+        not in [
+            'file_path',
+            'save_as',
+        ]
     }
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:
-        json.dump(variables, file)
+        json.dump(variables, file, indent=2)
 
     return file_path
 
@@ -170,65 +149,32 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
 
     original_file_path = file_path
     file_path = get_file_path(file_path)
-    # print(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data = json.load(f)
+            my_data_db = json.load(f)
+            print("Loading config...")
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data = {}
+        my_data_db = {}
 
-    # Return the values of the variables as a dictionary
-    return (
-        file_path,
-        my_data.get(
-            'pretrained_model_name_or_path', pretrained_model_name_or_path
-        ),
-        my_data.get('v2', v2),
-        my_data.get('v_parameterization', v_parameterization),
-        my_data.get('logging_dir', logging_dir),
-        my_data.get('train_data_dir', train_data_dir),
-        my_data.get('reg_data_dir', reg_data_dir),
-        my_data.get('output_dir', output_dir),
-        my_data.get('max_resolution', max_resolution),
-        my_data.get('learning_rate', learning_rate),
-        my_data.get('lr_scheduler', lr_scheduler),
-        my_data.get('lr_warmup', lr_warmup),
-        my_data.get('train_batch_size', train_batch_size),
-        my_data.get('epoch', epoch),
-        my_data.get('save_every_n_epochs', save_every_n_epochs),
-        my_data.get('mixed_precision', mixed_precision),
-        my_data.get('save_precision', save_precision),
-        my_data.get('seed', seed),
-        my_data.get(
-            'num_cpu_threads_per_process', num_cpu_threads_per_process
-        ),
-        my_data.get('cache_latent', cache_latent),
-        my_data.get('caption_extention', caption_extention),
-        my_data.get('enable_bucket', enable_bucket),
-        my_data.get('gradient_checkpointing', gradient_checkpointing),
-        my_data.get('full_fp16', full_fp16),
-        my_data.get('no_token_padding', no_token_padding),
-        my_data.get('stop_text_encoder_training', stop_text_encoder_training),
-        my_data.get('use_8bit_adam', use_8bit_adam),
-        my_data.get('xformers', xformers),
-        my_data.get('save_model_as', save_model_as),
-        my_data.get('shuffle_caption', shuffle_caption),
-        my_data.get('save_state', save_state),
-        my_data.get('resume', resume),
-        my_data.get('prior_loss_weight', prior_loss_weight),
-        my_data.get('color_aug', color_aug),
-        my_data.get('flip_aug', flip_aug),
-        my_data.get('clip_skip', clip_skip),
-    )
+    values = [file_path]
+    for key, value in parameters:
+        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
+        if not key in ['file_path']:
+            values.append(my_data_db.get(key, value))
+    return tuple(values)
 
-
+    
 def train_model(
     pretrained_model_name_or_path,
     v2,
@@ -265,22 +211,9 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
+    output_name,
 ):
-    def save_inference_file(output_dir, v2, v_parameterization):
-        # Copy inference model for v2 if required
-        if v2 and v_parameterization:
-            print(f'Saving v2-inference-v.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference-v.yaml',
-                f'{output_dir}/last.yaml',
-            )
-        elif v2:
-            print(f'Saving v2-inference.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference.yaml',
-                f'{output_dir}/last.yaml',
-            )
-
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -430,68 +363,21 @@ def train_model(
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if not vae == '':
+        run_cmd += f' --vae="{vae}"'
+    if not output_name == '':
+        run_cmd += f' --output_name="{output_name}"'
 
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/last')
+    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
     if not last_dir.is_dir():
         # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization)
-
-
-def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
-    # define a list of substrings to search for
-    substrings_v2 = [
-        'stabilityai/stable-diffusion-2-1-base',
-        'stabilityai/stable-diffusion-2-base',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(value) in substrings_v2:
-        print('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to search for v-objective
-    substrings_v_parameterization = [
-        'stabilityai/stable-diffusion-2-1',
-        'stabilityai/stable-diffusion-2',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(value) in substrings_v_parameterization:
-        print(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
-        )
-        v2 = True
-        v_parameterization = True
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to v1.x
-    substrings_v1_model = [
-        'CompVis/stable-diffusion-v1-4',
-        'runwayml/stable-diffusion-v1-5',
-    ]
-
-    if str(value) in substrings_v1_model:
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    if value == 'custom':
-        value = ''
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
+        save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def UI(username, password):
@@ -529,10 +415,10 @@ def UI(username, password):
 
 
 def dreambooth_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+    train_data_dir=gr.Textbox(),
+    reg_data_dir=gr.Textbox(),
+    output_dir=gr.Textbox(),
+    logging_dir=gr.Textbox(),
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -549,32 +435,27 @@ def dreambooth_tab(
                 placeholder="type the configuration file path or use the 'Open' button above to select it...",
                 interactive=True,
             )
-        # config_file_name.change(
-        #     remove_doublequote,
-        #     inputs=[config_file_name],
-        #     outputs=[config_file_name],
-        # )
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
-            pretrained_model_name_or_path_input = gr.Textbox(
+            pretrained_model_name_or_path = gr.Textbox(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
             )
-            pretrained_model_name_or_path_fille = gr.Button(
+            pretrained_model_name_or_path_file = gr.Button(
                 document_symbol, elem_id='open_folder_small'
             )
-            pretrained_model_name_or_path_fille.click(
+            pretrained_model_name_or_path_file.click(
                 get_any_file_path,
-                inputs=[pretrained_model_name_or_path_input],
-                outputs=pretrained_model_name_or_path_input,
+                inputs=[pretrained_model_name_or_path],
+                outputs=pretrained_model_name_or_path,
             )
             pretrained_model_name_or_path_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
             pretrained_model_name_or_path_folder.click(
                 get_folder_path,
-                outputs=pretrained_model_name_or_path_input,
+                outputs=pretrained_model_name_or_path,
             )
             model_list = gr.Dropdown(
                 label='(Optional) Model Quick Pick',
@@ -588,7 +469,7 @@ def dreambooth_tab(
                     'CompVis/stable-diffusion-v1-4',
                 ],
             )
-            save_model_as_dropdown = gr.Dropdown(
+            save_model_as = gr.Dropdown(
                 label='Save trained model as',
                 choices=[
                     'same as source model',
@@ -600,28 +481,28 @@ def dreambooth_tab(
                 value='same as source model',
             )
         with gr.Row():
-            v2_input = gr.Checkbox(label='v2', value=True)
-            v_parameterization_input = gr.Checkbox(
+            v2 = gr.Checkbox(label='v2', value=True)
+            v_parameterization = gr.Checkbox(
                 label='v_parameterization', value=False
             )
-        pretrained_model_name_or_path_input.change(
+        pretrained_model_name_or_path.change(
             remove_doublequote,
-            inputs=[pretrained_model_name_or_path_input],
-            outputs=[pretrained_model_name_or_path_input],
+            inputs=[pretrained_model_name_or_path],
+            outputs=[pretrained_model_name_or_path],
         )
         model_list.change(
             set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2_input, v_parameterization_input],
+            inputs=[model_list, v2, v_parameterization],
             outputs=[
-                pretrained_model_name_or_path_input,
-                v2_input,
-                v_parameterization_input,
+                pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
             ],
         )
 
     with gr.Tab('Folders'):
         with gr.Row():
-            train_data_dir_input = gr.Textbox(
+            train_data_dir = gr.Textbox(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
@@ -629,9 +510,9 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             train_data_dir_input_folder.click(
-                get_folder_path, outputs=train_data_dir_input
+                get_folder_path, outputs=train_data_dir
             )
-            reg_data_dir_input = gr.Textbox(
+            reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
@@ -639,20 +520,18 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             reg_data_dir_input_folder.click(
-                get_folder_path, outputs=reg_data_dir_input
+                get_folder_path, outputs=reg_data_dir
             )
         with gr.Row():
-            output_dir_input = gr.Textbox(
-                label='Output folder',
+            output_dir = gr.Textbox(
+                label='Model output folder',
                 placeholder='Folder to output trained model',
             )
             output_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            output_dir_input_folder.click(
-                get_folder_path, outputs=output_dir_input
-            )
-            logging_dir_input = gr.Textbox(
+            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
+            logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
@@ -660,32 +539,39 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir_input
+                get_folder_path, outputs=logging_dir
             )
-        train_data_dir_input.change(
+        with gr.Row():
+            output_name = gr.Textbox(
+                label='Model output name',
+                placeholder='Name of the model to output',
+                value='last',
+                interactive=True,
+            )
+        train_data_dir.change(
             remove_doublequote,
-            inputs=[train_data_dir_input],
-            outputs=[train_data_dir_input],
+            inputs=[train_data_dir],
+            outputs=[train_data_dir],
         )
-        reg_data_dir_input.change(
+        reg_data_dir.change(
             remove_doublequote,
-            inputs=[reg_data_dir_input],
-            outputs=[reg_data_dir_input],
+            inputs=[reg_data_dir],
+            outputs=[reg_data_dir],
         )
-        output_dir_input.change(
+        output_dir.change(
             remove_doublequote,
-            inputs=[output_dir_input],
-            outputs=[output_dir_input],
+            inputs=[output_dir],
+            outputs=[output_dir],
         )
-        logging_dir_input.change(
+        logging_dir.change(
             remove_doublequote,
-            inputs=[logging_dir_input],
-            outputs=[logging_dir_input],
+            inputs=[logging_dir],
+            outputs=[logging_dir],
         )
     with gr.Tab('Training parameters'):
         with gr.Row():
-            learning_rate_input = gr.Textbox(label='Learning rate', value=1e-6)
-            lr_scheduler_input = gr.Dropdown(
+            learning_rate = gr.Textbox(label='Learning rate', value=1e-6)
+            lr_scheduler = gr.Dropdown(
                 label='LR Scheduler',
                 choices=[
                     'constant',
@@ -697,21 +583,21 @@ def dreambooth_tab(
                 ],
                 value='constant',
             )
-            lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
+            lr_warmup = gr.Textbox(label='LR warmup', value=0)
         with gr.Row():
-            train_batch_size_input = gr.Slider(
+            train_batch_size = gr.Slider(
                 minimum=1,
                 maximum=32,
                 label='Train batch size',
                 value=1,
                 step=1,
             )
-            epoch_input = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs_input = gr.Textbox(
+            epoch = gr.Textbox(label='Epoch', value=1)
+            save_every_n_epochs = gr.Textbox(
                 label='Save every N epochs', value=1
             )
         with gr.Row():
-            mixed_precision_input = gr.Dropdown(
+            mixed_precision = gr.Dropdown(
                 label='Mixed precision',
                 choices=[
                     'no',
@@ -720,7 +606,7 @@ def dreambooth_tab(
                 ],
                 value='fp16',
             )
-            save_precision_input = gr.Dropdown(
+            save_precision = gr.Dropdown(
                 label='Save precision',
                 choices=[
                     'float',
@@ -729,7 +615,7 @@ def dreambooth_tab(
                 ],
                 value='fp16',
             )
-            num_cpu_threads_per_process_input = gr.Slider(
+            num_cpu_threads_per_process = gr.Slider(
                 minimum=1,
                 maximum=os.cpu_count(),
                 step=1,
@@ -737,18 +623,18 @@ def dreambooth_tab(
                 value=os.cpu_count(),
             )
         with gr.Row():
-            seed_input = gr.Textbox(label='Seed', value=1234)
-            max_resolution_input = gr.Textbox(
+            seed = gr.Textbox(label='Seed', value=1234)
+            max_resolution = gr.Textbox(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
             )
         with gr.Row():
-            caption_extention_input = gr.Textbox(
+            caption_extention = gr.Textbox(
                 label='Caption Extension',
                 placeholder='(Optional) Extension for caption files. default: .caption',
             )
-            stop_text_encoder_training_input = gr.Slider(
+            stop_text_encoder_training = gr.Slider(
                 minimum=0,
                 maximum=100,
                 value=0,
@@ -756,24 +642,20 @@ def dreambooth_tab(
                 label='Stop text encoder training',
             )
         with gr.Row():
-            enable_bucket_input = gr.Checkbox(
-                label='Enable buckets', value=True
-            )
-            cache_latent_input = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam_input = gr.Checkbox(
-                label='Use 8bit adam', value=True
-            )
-            xformers_input = gr.Checkbox(label='Use xformers', value=True)
+            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            cache_latent = gr.Checkbox(label='Cache latent', value=True)
+            use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+            xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                full_fp16_input = gr.Checkbox(
+                full_fp16 = gr.Checkbox(
                     label='Full fp16 training (experimental)', value=False
                 )
-                no_token_padding_input = gr.Checkbox(
+                no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
 
-                gradient_checkpointing_input = gr.Checkbox(
+                gradient_checkpointing = gr.Checkbox(
                     label='Gradient checkpointing', value=False
                 )
 
@@ -791,7 +673,7 @@ def dreambooth_tab(
                 color_aug.change(
                     color_aug_changed,
                     inputs=[color_aug],
-                    outputs=[cache_latent_input],
+                    outputs=[cache_latent],
                 )
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
@@ -806,48 +688,54 @@ def dreambooth_tab(
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
+                vae = gr.Textbox(
+                    label='VAE',
+                    placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                )
+                vae_button = gr.Button('📂', elem_id='open_folder_small')
+                vae_button.click(get_any_file_path, outputs=vae)
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
         )
         gradio_dreambooth_folder_creation_tab(
-            train_data_dir_input=train_data_dir_input,
-            reg_data_dir_input=reg_data_dir_input,
-            output_dir_input=output_dir_input,
-            logging_dir_input=logging_dir_input,
+            train_data_dir_input=train_data_dir,
+            reg_data_dir_input=reg_data_dir,
+            output_dir_input=output_dir,
+            logging_dir_input=logging_dir,
         )
 
     button_run = gr.Button('Train model')
-    
+
     settings_list = [
-        pretrained_model_name_or_path_input,
-        v2_input,
-        v_parameterization_input,
-        logging_dir_input,
-        train_data_dir_input,
-        reg_data_dir_input,
-        output_dir_input,
-        max_resolution_input,
-        learning_rate_input,
-        lr_scheduler_input,
-        lr_warmup_input,
-        train_batch_size_input,
-        epoch_input,
-        save_every_n_epochs_input,
-        mixed_precision_input,
-        save_precision_input,
-        seed_input,
-        num_cpu_threads_per_process_input,
-        cache_latent_input,
-        caption_extention_input,
-        enable_bucket_input,
-        gradient_checkpointing_input,
-        full_fp16_input,
-        no_token_padding_input,
-        stop_text_encoder_training_input,
-        use_8bit_adam_input,
-        xformers_input,
-        save_model_as_dropdown,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        logging_dir,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        max_resolution,
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        cache_latent,
+        caption_extention,
+        enable_bucket,
+        gradient_checkpointing,
+        full_fp16,
+        no_token_padding,
+        stop_text_encoder_training,
+        use_8bit_adam,
+        xformers,
+        save_model_as,
         shuffle_caption,
         save_state,
         resume,
@@ -855,6 +743,8 @@ def dreambooth_tab(
         color_aug,
         flip_aug,
         clip_skip,
+        vae,
+        output_name,
     ]
 
     button_open_config.click(
@@ -881,10 +771,10 @@ def dreambooth_tab(
     )
 
     return (
-        train_data_dir_input,
-        reg_data_dir_input,
-        output_dir_input,
-        logging_dir_input,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        logging_dir,
     )
 
 

@@ -18,6 +18,8 @@ from library.common_gui import (
     get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
+    save_inference_file,
+    set_pretrained_model_name_or_path_input,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -74,7 +76,13 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+
     original_file_path = file_path
 
     save_as_bool = True if save_as.get('label') == 'True' else False
@@ -94,82 +102,51 @@ def save_configuration(
 
     # Return the values of the variables as a dictionary
     variables = {
-        'pretrained_model_name_or_path': pretrained_model_name_or_path,
-        'v2': v2,
-        'v_parameterization': v_parameterization,
-        'logging_dir': logging_dir,
-        'train_data_dir': train_data_dir,
-        'reg_data_dir': reg_data_dir,
-        'output_dir': output_dir,
-        'max_resolution': max_resolution,
-        'lr_scheduler': lr_scheduler,
-        'lr_warmup': lr_warmup,
-        'train_batch_size': train_batch_size,
-        'epoch': epoch,
-        'save_every_n_epochs': save_every_n_epochs,
-        'mixed_precision': mixed_precision,
-        'save_precision': save_precision,
-        'seed': seed,
-        'num_cpu_threads_per_process': num_cpu_threads_per_process,
-        'cache_latent': cache_latent,
-        'caption_extention': caption_extention,
-        'enable_bucket': enable_bucket,
-        'gradient_checkpointing': gradient_checkpointing,
-        'full_fp16': full_fp16,
-        'no_token_padding': no_token_padding,
-        'stop_text_encoder_training': stop_text_encoder_training,
-        'use_8bit_adam': use_8bit_adam,
-        'xformers': xformers,
-        'save_model_as': save_model_as,
-        'shuffle_caption': shuffle_caption,
-        'save_state': save_state,
-        'resume': resume,
-        'prior_loss_weight': prior_loss_weight,
-        'text_encoder_lr': text_encoder_lr,
-        'unet_lr': unet_lr,
-        'network_dim': network_dim,
-        'lora_network_weights': lora_network_weights,
-        'color_aug': color_aug,
-        'flip_aug': flip_aug,
-        'clip_skip': clip_skip,
+        name: value
+        for name, value in parameters  # locals().items()
+        if name
+        not in [
+            'file_path',
+            'save_as',
+        ]
     }
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:
-        json.dump(variables, file)
+        json.dump(variables, file, indent=2)
 
     return file_path
 
 
 def open_configuration(
     file_path,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-    logging_dir,
-    train_data_dir,
-    reg_data_dir,
-    output_dir,
-    max_resolution,
-    lr_scheduler,
-    lr_warmup,
-    train_batch_size,
-    epoch,
-    save_every_n_epochs,
-    mixed_precision,
-    save_precision,
-    seed,
-    num_cpu_threads_per_process,
-    cache_latent,
-    caption_extention,
-    enable_bucket,
+    pretrained_model_name_or_path_input,
+    v2_input,
+    v_parameterization_input,
+    logging_dir_input,
+    train_data_dir_input,
+    reg_data_dir_input,
+    output_dir_input,
+    max_resolution_input,
+    lr_scheduler_input,
+    lr_warmup_input,
+    train_batch_size_input,
+    epoch_input,
+    save_every_n_epochs_input,
+    mixed_precision_input,
+    save_precision_input,
+    seed_input,
+    num_cpu_threads_per_process_input,
+    cache_latent_input,
+    caption_extention_input,
+    enable_bucket_input,
     gradient_checkpointing,
-    full_fp16,
-    no_token_padding,
-    stop_text_encoder_training,
-    use_8bit_adam,
-    xformers,
-    save_model_as,
+    full_fp16_input,
+    no_token_padding_input,
+    stop_text_encoder_training_input,
+    use_8bit_adam_input,
+    xformers_input,
+    save_model_as_dropdown,
     shuffle_caption,
     save_state,
     resume,
@@ -181,66 +158,31 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    output_name,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
 
     original_file_path = file_path
     file_path = get_file_path(file_path)
-    # print(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data = json.load(f)
+            my_data_lora = json.load(f)
+            print("Loading config...")
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data = {}
-
-    # Return the values of the variables as a dictionary
-    return (
-        file_path,
-        my_data.get(
-            'pretrained_model_name_or_path', pretrained_model_name_or_path
-        ),
-        my_data.get('v2', v2),
-        my_data.get('v_parameterization', v_parameterization),
-        my_data.get('logging_dir', logging_dir),
-        my_data.get('train_data_dir', train_data_dir),
-        my_data.get('reg_data_dir', reg_data_dir),
-        my_data.get('output_dir', output_dir),
-        my_data.get('max_resolution', max_resolution),
-        my_data.get('lr_scheduler', lr_scheduler),
-        my_data.get('lr_warmup', lr_warmup),
-        my_data.get('train_batch_size', train_batch_size),
-        my_data.get('epoch', epoch),
-        my_data.get('save_every_n_epochs', save_every_n_epochs),
-        my_data.get('mixed_precision', mixed_precision),
-        my_data.get('save_precision', save_precision),
-        my_data.get('seed', seed),
-        my_data.get(
-            'num_cpu_threads_per_process', num_cpu_threads_per_process
-        ),
-        my_data.get('cache_latent', cache_latent),
-        my_data.get('caption_extention', caption_extention),
-        my_data.get('enable_bucket', enable_bucket),
-        my_data.get('gradient_checkpointing', gradient_checkpointing),
-        my_data.get('full_fp16', full_fp16),
-        my_data.get('no_token_padding', no_token_padding),
-        my_data.get('stop_text_encoder_training', stop_text_encoder_training),
-        my_data.get('use_8bit_adam', use_8bit_adam),
-        my_data.get('xformers', xformers),
-        my_data.get('save_model_as', save_model_as),
-        my_data.get('shuffle_caption', shuffle_caption),
-        my_data.get('save_state', save_state),
-        my_data.get('resume', resume),
-        my_data.get('prior_loss_weight', prior_loss_weight),
-        my_data.get('text_encoder_lr', text_encoder_lr),
-        my_data.get('unet_lr', unet_lr),
-        my_data.get('network_dim', network_dim),
-        my_data.get('lora_network_weights', lora_network_weights),
-        my_data.get('color_aug', color_aug),
-        my_data.get('flip_aug', flip_aug),
-        my_data.get('clip_skip', clip_skip),
-    )
+        my_data_lora = {}
+    
+    values = [file_path]
+    for key, value in parameters:
+        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
+        if not key in ['file_path']:
+            values.append(my_data_lora.get(key, value))
+    return tuple(values)
 
 
 def train_model(
@@ -282,22 +224,10 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    gradient_accumulation_steps,
+    mem_eff_attn,
+    output_name,
 ):
-    def save_inference_file(output_dir, v2, v_parameterization):
-        # Copy inference model for v2 if required
-        if v2 and v_parameterization:
-            print(f'Saving v2-inference-v.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference-v.yaml',
-                f'{output_dir}/last.yaml',
-            )
-        elif v2:
-            print(f'Saving v2-inference.yaml as {output_dir}/last.yaml')
-            shutil.copy(
-                f'./v2_inference/v2-inference.yaml',
-                f'{output_dir}/last.yaml',
-            )
-
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -364,17 +294,6 @@ def train_model(
         # Print the result
         print(f'Folder {folder}: {steps} steps')
 
-    # Print the result
-    # print(f"{total_steps} total steps")
-
-    # if reg_data_dir == '':
-    #     reg_factor = 1
-    # else:
-    #     print(
-    #         'Regularisation images are used... Will double the number of steps required...'
-    #     )
-    #     reg_factor = 2
-
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
@@ -425,6 +344,8 @@ def train_model(
         run_cmd += ' --color_aug'
     if flip_aug:
         run_cmd += ' --flip_aug'
+    if mem_eff_attn:
+        run_cmd += ' --mem_eff_attn'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -475,68 +396,23 @@ def train_model(
         run_cmd += f' --network_weights="{lora_network_weights}"'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
+    # if not vae == '':
+    #     run_cmd += f' --vae="{vae}"'
+    if not output_name == '':
+        run_cmd += f' --output_name="{output_name}"'
 
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/last')
+    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
     if not last_dir.is_dir():
         # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization)
-
-
-def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
-    # define a list of substrings to search for
-    substrings_v2 = [
-        'stabilityai/stable-diffusion-2-1-base',
-        'stabilityai/stable-diffusion-2-base',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(value) in substrings_v2:
-        print('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to search for v-objective
-    substrings_v_parameterization = [
-        'stabilityai/stable-diffusion-2-1',
-        'stabilityai/stable-diffusion-2',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(value) in substrings_v_parameterization:
-        print(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
-        )
-        v2 = True
-        v_parameterization = True
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to v1.x
-    substrings_v1_model = [
-        'CompVis/stable-diffusion-v1-4',
-        'runwayml/stable-diffusion-v1-5',
-    ]
-
-    if str(value) in substrings_v1_model:
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    if value == 'custom':
-        value = ''
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
+        save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def UI(username, password):
@@ -710,6 +586,13 @@ def lora_tab(
             logging_dir_input_folder.click(
                 get_folder_path, outputs=logging_dir_input
             )
+        with gr.Row():
+            output_name = gr.Textbox(
+                label='Model output name',
+                placeholder='Name of the model to output',
+                value='last',
+                interactive=True,
+            )
         train_data_dir_input.change(
             remove_doublequote,
             inputs=[train_data_dir_input],
@@ -745,7 +628,6 @@ def lora_tab(
                 outputs=lora_network_weights,
             )
         with gr.Row():
-            # learning_rate_input = gr.Textbox(label='Learning rate', value=1e-4, visible=False)
             lr_scheduler_input = gr.Dropdown(
                 label='LR Scheduler',
                 choices=[
@@ -851,16 +733,19 @@ def lora_tab(
                     label='No token padding', value=False
                 )
 
-                gradient_checkpointing_input = gr.Checkbox(
+                gradient_checkpointing = gr.Checkbox(
                     label='Gradient checkpointing', value=False
+                )
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
                 )
 
                 shuffle_caption = gr.Checkbox(
                     label='Shuffle caption', value=False
                 )
             with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
+                prior_loss_weight = gr.Number(
+                    label='Prior loss weight', value=1.0
                 )
                 color_aug = gr.Checkbox(
                     label='Color augmentation', value=False
@@ -874,16 +759,25 @@ def lora_tab(
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
+                mem_eff_attn = gr.Checkbox(
+                    label='Memory efficient attention', value=False
+                )
             with gr.Row():
+                save_state = gr.Checkbox(
+                    label='Save training state', value=False
+                )
                 resume = gr.Textbox(
                     label='Resume from saved training state',
                     placeholder='path to "last-state" state folder to resume from',
                 )
                 resume_button = gr.Button('📂', elem_id='open_folder_small')
                 resume_button.click(get_folder_path, outputs=resume)
-                prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
-                )
+                # vae = gr.Textbox(
+                #     label='VAE',
+                #     placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                # )
+                # vae_button = gr.Button('📂', elem_id='open_folder_small')
+                # vae_button.click(get_any_file_path, outputs=vae)
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -908,7 +802,6 @@ def lora_tab(
         reg_data_dir_input,
         output_dir_input,
         max_resolution_input,
-        # learning_rate_input,
         lr_scheduler_input,
         lr_warmup_input,
         train_batch_size_input,
@@ -921,7 +814,7 @@ def lora_tab(
         cache_latent_input,
         caption_extention_input,
         enable_bucket_input,
-        gradient_checkpointing_input,
+        gradient_checkpointing,
         full_fp16_input,
         no_token_padding_input,
         stop_text_encoder_training_input,
@@ -939,6 +832,9 @@ def lora_tab(
         color_aug,
         flip_aug,
         clip_skip,
+        gradient_accumulation_steps,
+        mem_eff_attn,
+        output_name,
     ]
 
     button_open_config.click(
