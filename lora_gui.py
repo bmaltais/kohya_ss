@@ -79,6 +79,7 @@ def save_configuration(
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
+    model_list,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -120,32 +121,32 @@ def save_configuration(
 
 def open_configuration(
     file_path,
-    pretrained_model_name_or_path_input,
-    v2_input,
-    v_parameterization_input,
-    logging_dir_input,
-    train_data_dir_input,
-    reg_data_dir_input,
-    output_dir_input,
-    max_resolution_input,
-    lr_scheduler_input,
-    lr_warmup_input,
-    train_batch_size_input,
-    epoch_input,
-    save_every_n_epochs_input,
-    mixed_precision_input,
-    save_precision_input,
-    seed_input,
-    num_cpu_threads_per_process_input,
-    cache_latent_input,
-    caption_extention_input,
-    enable_bucket_input,
+    pretrained_model_name_or_path,
+    v2,
+    v_parameterization,
+    logging_dir,
+    train_data_dir,
+    reg_data_dir,
+    output_dir,
+    max_resolution,
+    lr_scheduler,
+    lr_warmup,
+    train_batch_size,
+    epoch,
+    save_every_n_epochs,
+    mixed_precision,
+    save_precision,
+    seed,
+    num_cpu_threads_per_process,
+    cache_latent,
+    caption_extention,
+    enable_bucket,
     gradient_checkpointing,
-    full_fp16_input,
-    no_token_padding_input,
-    stop_text_encoder_training_input,
-    use_8bit_adam_input,
-    xformers_input,
+    full_fp16,
+    no_token_padding,
+    stop_text_encoder_training,
+    use_8bit_adam,
+    xformers,
     save_model_as_dropdown,
     shuffle_caption,
     save_state,
@@ -161,27 +162,28 @@ def open_configuration(
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
+    model_list,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
+    
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data_lora = json.load(f)
+            my_data = json.load(f)
             print("Loading config...")
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data_lora = {}
-    
+        my_data = {}
+            
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data_lora.get(key, value))
+            values.append(my_data.get(key, value))
     return tuple(values)
 
 
@@ -227,6 +229,7 @@ def train_model(
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
+    model_list,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -480,7 +483,7 @@ def lora_tab(
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
-            pretrained_model_name_or_path_input = gr.Textbox(
+            pretrained_model_name_or_path = gr.Textbox(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
             )
@@ -489,15 +492,15 @@ def lora_tab(
             )
             pretrained_model_name_or_path_file.click(
                 get_any_file_path,
-                inputs=[pretrained_model_name_or_path_input],
-                outputs=pretrained_model_name_or_path_input,
+                inputs=[pretrained_model_name_or_path],
+                outputs=pretrained_model_name_or_path,
             )
             pretrained_model_name_or_path_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
             pretrained_model_name_or_path_folder.click(
                 get_folder_path,
-                outputs=pretrained_model_name_or_path_input,
+                outputs=pretrained_model_name_or_path,
             )
             model_list = gr.Dropdown(
                 label='(Optional) Model Quick Pick',
@@ -524,67 +527,67 @@ def lora_tab(
             )
 
         with gr.Row():
-            v2_input = gr.Checkbox(label='v2', value=True)
-            v_parameterization_input = gr.Checkbox(
+            v2 = gr.Checkbox(label='v2', value=True)
+            v_parameterization = gr.Checkbox(
                 label='v_parameterization', value=False
             )
-        pretrained_model_name_or_path_input.change(
+        pretrained_model_name_or_path.change(
             remove_doublequote,
-            inputs=[pretrained_model_name_or_path_input],
-            outputs=[pretrained_model_name_or_path_input],
+            inputs=[pretrained_model_name_or_path],
+            outputs=[pretrained_model_name_or_path],
         )
         model_list.change(
             set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2_input, v_parameterization_input],
+            inputs=[model_list, v2, v_parameterization],
             outputs=[
-                pretrained_model_name_or_path_input,
-                v2_input,
-                v_parameterization_input,
+                pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
             ],
         )
 
     with gr.Tab('Folders'):
         with gr.Row():
-            train_data_dir_input = gr.Textbox(
+            train_data_dir = gr.Textbox(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_input_folder = gr.Button(
+            train_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            train_data_dir_input_folder.click(
-                get_folder_path, outputs=train_data_dir_input
+            train_data_dir_folder.click(
+                get_folder_path, outputs=train_data_dir
             )
-            reg_data_dir_input = gr.Textbox(
+            reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_input_folder = gr.Button(
+            reg_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            reg_data_dir_input_folder.click(
-                get_folder_path, outputs=reg_data_dir_input
+            reg_data_dir_folder.click(
+                get_folder_path, outputs=reg_data_dir
             )
         with gr.Row():
-            output_dir_input = gr.Textbox(
+            output_dir = gr.Textbox(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_input_folder = gr.Button(
+            output_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            output_dir_input_folder.click(
-                get_folder_path, outputs=output_dir_input
+            output_dir_folder.click(
+                get_folder_path, outputs=output_dir
             )
-            logging_dir_input = gr.Textbox(
+            logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_input_folder = gr.Button(
+            logging_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir_input
+            logging_dir_folder.click(
+                get_folder_path, outputs=logging_dir
             )
         with gr.Row():
             output_name = gr.Textbox(
@@ -593,25 +596,25 @@ def lora_tab(
                 value='last',
                 interactive=True,
             )
-        train_data_dir_input.change(
+        train_data_dir.change(
             remove_doublequote,
-            inputs=[train_data_dir_input],
-            outputs=[train_data_dir_input],
+            inputs=[train_data_dir],
+            outputs=[train_data_dir],
         )
-        reg_data_dir_input.change(
+        reg_data_dir.change(
             remove_doublequote,
-            inputs=[reg_data_dir_input],
-            outputs=[reg_data_dir_input],
+            inputs=[reg_data_dir],
+            outputs=[reg_data_dir],
         )
-        output_dir_input.change(
+        output_dir.change(
             remove_doublequote,
-            inputs=[output_dir_input],
-            outputs=[output_dir_input],
+            inputs=[output_dir],
+            outputs=[output_dir],
         )
-        logging_dir_input.change(
+        logging_dir.change(
             remove_doublequote,
-            inputs=[logging_dir_input],
-            outputs=[logging_dir_input],
+            inputs=[logging_dir],
+            outputs=[logging_dir],
         )
     with gr.Tab('Training parameters'):
         with gr.Row():
@@ -628,7 +631,7 @@ def lora_tab(
                 outputs=lora_network_weights,
             )
         with gr.Row():
-            lr_scheduler_input = gr.Dropdown(
+            lr_scheduler = gr.Dropdown(
                 label='LR Scheduler',
                 choices=[
                     'constant',
@@ -640,7 +643,7 @@ def lora_tab(
                 ],
                 value='cosine',
             )
-            lr_warmup_input = gr.Textbox(label='LR warmup (% of steps)', value=10)
+            lr_warmup = gr.Textbox(label='LR warmup (% of steps)', value=10)
         with gr.Row():
             text_encoder_lr = gr.Textbox(
                 label='Text Encoder learning rate',
@@ -659,19 +662,19 @@ def lora_tab(
                 interactive=True,
             )
         with gr.Row():
-            train_batch_size_input = gr.Slider(
+            train_batch_size = gr.Slider(
                 minimum=1,
                 maximum=32,
                 label='Train batch size',
                 value=1,
                 step=1,
             )
-            epoch_input = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs_input = gr.Textbox(
+            epoch = gr.Textbox(label='Epoch', value=1)
+            save_every_n_epochs = gr.Textbox(
                 label='Save every N epochs', value=1
             )
         with gr.Row():
-            mixed_precision_input = gr.Dropdown(
+            mixed_precision = gr.Dropdown(
                 label='Mixed precision',
                 choices=[
                     'no',
@@ -680,7 +683,7 @@ def lora_tab(
                 ],
                 value='fp16',
             )
-            save_precision_input = gr.Dropdown(
+            save_precision = gr.Dropdown(
                 label='Save precision',
                 choices=[
                     'float',
@@ -689,7 +692,7 @@ def lora_tab(
                 ],
                 value='fp16',
             )
-            num_cpu_threads_per_process_input = gr.Slider(
+            num_cpu_threads_per_process = gr.Slider(
                 minimum=1,
                 maximum=os.cpu_count(),
                 step=1,
@@ -697,18 +700,18 @@ def lora_tab(
                 value=os.cpu_count(),
             )
         with gr.Row():
-            seed_input = gr.Textbox(label='Seed', value=1234)
-            max_resolution_input = gr.Textbox(
+            seed = gr.Textbox(label='Seed', value=1234)
+            max_resolution = gr.Textbox(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
             )
         with gr.Row():
-            caption_extention_input = gr.Textbox(
+            caption_extention = gr.Textbox(
                 label='Caption Extension',
                 placeholder='(Optional) Extension for caption files. default: .caption',
             )
-            stop_text_encoder_training_input = gr.Slider(
+            stop_text_encoder_training = gr.Slider(
                 minimum=0,
                 maximum=100,
                 value=0,
@@ -716,20 +719,20 @@ def lora_tab(
                 label='Stop text encoder training',
             )
         with gr.Row():
-            enable_bucket_input = gr.Checkbox(
+            enable_bucket = gr.Checkbox(
                 label='Enable buckets', value=True
             )
-            cache_latent_input = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam_input = gr.Checkbox(
+            cache_latent = gr.Checkbox(label='Cache latent', value=True)
+            use_8bit_adam = gr.Checkbox(
                 label='Use 8bit adam', value=True
             )
-            xformers_input = gr.Checkbox(label='Use xformers', value=True)
+            xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                full_fp16_input = gr.Checkbox(
+                full_fp16 = gr.Checkbox(
                     label='Full fp16 training (experimental)', value=False
                 )
-                no_token_padding_input = gr.Checkbox(
+                no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
 
@@ -754,7 +757,7 @@ def lora_tab(
                 color_aug.change(
                     color_aug_changed,
                     inputs=[color_aug],
-                    outputs=[cache_latent_input],
+                    outputs=[cache_latent],
                 )
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
@@ -783,10 +786,10 @@ def lora_tab(
             'This section provide Dreambooth tools to help setup your dataset...'
         )
         gradio_dreambooth_folder_creation_tab(
-            train_data_dir_input=train_data_dir_input,
-            reg_data_dir_input=reg_data_dir_input,
-            output_dir_input=output_dir_input,
-            logging_dir_input=logging_dir_input,
+            train_data_dir_input=train_data_dir,
+            reg_data_dir_input=reg_data_dir,
+            output_dir_input=output_dir,
+            logging_dir_input=logging_dir,
         )
         gradio_dataset_balancing_tab()
         gradio_merge_lora_tab()
@@ -794,32 +797,32 @@ def lora_tab(
     button_run = gr.Button('Train model')
 
     settings_list = [
-        pretrained_model_name_or_path_input,
-        v2_input,
-        v_parameterization_input,
-        logging_dir_input,
-        train_data_dir_input,
-        reg_data_dir_input,
-        output_dir_input,
-        max_resolution_input,
-        lr_scheduler_input,
-        lr_warmup_input,
-        train_batch_size_input,
-        epoch_input,
-        save_every_n_epochs_input,
-        mixed_precision_input,
-        save_precision_input,
-        seed_input,
-        num_cpu_threads_per_process_input,
-        cache_latent_input,
-        caption_extention_input,
-        enable_bucket_input,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        logging_dir,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        max_resolution,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        cache_latent,
+        caption_extention,
+        enable_bucket,
         gradient_checkpointing,
-        full_fp16_input,
-        no_token_padding_input,
-        stop_text_encoder_training_input,
-        use_8bit_adam_input,
-        xformers_input,
+        full_fp16,
+        no_token_padding,
+        stop_text_encoder_training,
+        use_8bit_adam,
+        xformers,
         save_model_as_dropdown,
         shuffle_caption,
         save_state,
@@ -835,6 +838,7 @@ def lora_tab(
         gradient_accumulation_steps,
         mem_eff_attn,
         output_name,
+        model_list,
     ]
 
     button_open_config.click(
@@ -861,10 +865,10 @@ def lora_tab(
     )
 
     return (
-        train_data_dir_input,
-        reg_data_dir_input,
-        output_dir_input,
-        logging_dir_input,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        logging_dir,
     )
 
 
