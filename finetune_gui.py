@@ -57,6 +57,8 @@ def save_configuration(
     use_8bit_adam,
     xformers,
     clip_skip,
+    save_state,
+    resume,
 ):
     original_file_path = file_path
 
@@ -111,6 +113,8 @@ def save_configuration(
         'use_8bit_adam': use_8bit_adam,
         'xformers': xformers,
         'clip_skip': clip_skip,
+        'save_state': save_state,
+        'resume': resume,
     }
 
     # Save the data to the selected file
@@ -156,12 +160,14 @@ def open_config_file(
     use_8bit_adam,
     xformers,
     clip_skip,
+    save_state,
+    resume,
 ):
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
     if file_path != '' and file_path != None:
-        print(file_path)
+        print(f'Loading config file {file_path}')
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -210,6 +216,8 @@ def open_config_file(
         my_data.get('use_8bit_adam', use_8bit_adam),
         my_data.get('xformers', xformers),
         my_data.get('clip_skip', clip_skip),
+        my_data.get('save_state', save_state),
+        my_data.get('resume', resume),
     )
 
 
@@ -248,6 +256,8 @@ def train_model(
     use_8bit_adam,
     xformers,
     clip_skip,
+    save_state,
+    resume,
 ):
     def save_inference_file(output_dir, v2, v_parameterization):
         # Copy inference model for v2 if required
@@ -365,6 +375,10 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if int(clip_skip) > 1:
         run_cmd += f' --clip_skip={str(clip_skip)}'
+    if save_state:
+        run_cmd += ' --save_state'
+    if not resume == '':
+        run_cmd += f' --resume={resume}'
 
     print(run_cmd)
     # Run the command
@@ -698,6 +712,16 @@ def finetune_tab():
                 clip_skip = gr.Slider(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
+            with gr.Row():
+                save_state = gr.Checkbox(
+                    label='Save training state', value=False
+                )
+                resume = gr.Textbox(
+                    label='Resume from saved training state',
+                    placeholder='path to "last-state" state folder to resume from',
+                )
+                resume_button = gr.Button('📂', elem_id='open_folder_small')
+                resume_button.click(get_folder_path, outputs=resume)
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -744,6 +768,8 @@ def finetune_tab():
         use_8bit_adam,
         xformers,
         clip_skip,
+        save_state,
+        resume,
     ]
 
     button_run.click(train_model, inputs=settings_list)
