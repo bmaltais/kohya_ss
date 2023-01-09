@@ -18,6 +18,8 @@ from library.common_gui import (
     get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
+    save_inference_file,
+    set_pretrained_model_name_or_path_input,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -102,45 +104,6 @@ def save_configuration(
             'save_as',
         ]
     }
-    # variables = {
-    #     'pretrained_model_name_or_path': pretrained_model_name_or_path,
-    #     'v2': v2,
-    #     'v_parameterization': v_parameterization,
-    #     'logging_dir': logging_dir,
-    #     'train_data_dir': train_data_dir,
-    #     'reg_data_dir': reg_data_dir,
-    #     'output_dir': output_dir,
-    #     'max_resolution': max_resolution,
-    #     'learning_rate': learning_rate,
-    #     'lr_scheduler': lr_scheduler,
-    #     'lr_warmup': lr_warmup,
-    #     'train_batch_size': train_batch_size,
-    #     'epoch': epoch,
-    #     'save_every_n_epochs': save_every_n_epochs,
-    #     'mixed_precision': mixed_precision,
-    #     'save_precision': save_precision,
-    #     'seed': seed,
-    #     'num_cpu_threads_per_process': num_cpu_threads_per_process,
-    #     'cache_latent': cache_latent,
-    #     'caption_extention': caption_extention,
-    #     'enable_bucket': enable_bucket,
-    #     'gradient_checkpointing': gradient_checkpointing,
-    #     'full_fp16': full_fp16,
-    #     'no_token_padding': no_token_padding,
-    #     'stop_text_encoder_training': stop_text_encoder_training,
-    #     'use_8bit_adam': use_8bit_adam,
-    #     'xformers': xformers,
-    #     'save_model_as': save_model_as,
-    #     'shuffle_caption': shuffle_caption,
-    #     'save_state': save_state,
-    #     'resume': resume,
-    #     'prior_loss_weight': prior_loss_weight,
-    #     'color_aug': color_aug,
-    #     'flip_aug': flip_aug,
-    #     'clip_skip': clip_skip,
-    #     'vae': vae,
-    #     'output_name': output_name,
-    # }
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:
@@ -194,71 +157,24 @@ def open_configuration(
 
     original_file_path = file_path
     file_path = get_file_path(file_path)
-    # print(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data = json.load(f)
+            my_data_db = json.load(f)
+            print("Loading config...")
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data = {}
+        my_data_db = {}
 
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data.get(key, value))
-    # print(values)
+            values.append(my_data_db.get(key, value))
     return tuple(values)
 
-    # Return the values of the variables as a dictionary
-    # return (
-    #     file_path,
-    #     my_data.get(
-    #         'pretrained_model_name_or_path', pretrained_model_name_or_path
-    #     ),
-    #     my_data.get('v2', v2),
-    #     my_data.get('v_parameterization', v_parameterization),
-    #     my_data.get('logging_dir', logging_dir),
-    #     my_data.get('train_data_dir', train_data_dir),
-    #     my_data.get('reg_data_dir', reg_data_dir),
-    #     my_data.get('output_dir', output_dir),
-    #     my_data.get('max_resolution', max_resolution),
-    #     my_data.get('learning_rate', learning_rate),
-    #     my_data.get('lr_scheduler', lr_scheduler),
-    #     my_data.get('lr_warmup', lr_warmup),
-    #     my_data.get('train_batch_size', train_batch_size),
-    #     my_data.get('epoch', epoch),
-    #     my_data.get('save_every_n_epochs', save_every_n_epochs),
-    #     my_data.get('mixed_precision', mixed_precision),
-    #     my_data.get('save_precision', save_precision),
-    #     my_data.get('seed', seed),
-    #     my_data.get(
-    #         'num_cpu_threads_per_process', num_cpu_threads_per_process
-    #     ),
-    #     my_data.get('cache_latent', cache_latent),
-    #     my_data.get('caption_extention', caption_extention),
-    #     my_data.get('enable_bucket', enable_bucket),
-    #     my_data.get('gradient_checkpointing', gradient_checkpointing),
-    #     my_data.get('full_fp16', full_fp16),
-    #     my_data.get('no_token_padding', no_token_padding),
-    #     my_data.get('stop_text_encoder_training', stop_text_encoder_training),
-    #     my_data.get('use_8bit_adam', use_8bit_adam),
-    #     my_data.get('xformers', xformers),
-    #     my_data.get('save_model_as', save_model_as),
-    #     my_data.get('shuffle_caption', shuffle_caption),
-    #     my_data.get('save_state', save_state),
-    #     my_data.get('resume', resume),
-    #     my_data.get('prior_loss_weight', prior_loss_weight),
-    #     my_data.get('color_aug', color_aug),
-    #     my_data.get('flip_aug', flip_aug),
-    #     my_data.get('clip_skip', clip_skip),
-    #     my_data.get('vae', vae),
-    #     my_data.get('output_name', output_name),
-    # )
-
-
+    
 def train_model(
     pretrained_model_name_or_path,
     v2,
@@ -298,29 +214,6 @@ def train_model(
     vae,
     output_name,
 ):
-    def save_inference_file(output_dir, v2, v_parameterization, output_name):
-        # List all files in the directory
-        files = os.listdir(output_dir)
-
-        # Iterate over the list of files
-        for file in files:
-            # Check if the file starts with the value of save_inference_file
-            if file.startswith(output_name):
-                # Copy the v2-inference-v.yaml file to the current file, with a .yaml extension
-                if v2 and v_parameterization:
-                    print(f'Saving v2-inference-v.yaml as {output_dir}/{file}.yaml')
-                    shutil.copy(
-                        f'./v2_inference/v2-inference-v.yaml',
-                        f'{output_dir}/{file}.yaml',
-                    )
-                elif v2:
-                    print(f'Saving v2-inference.yaml as {output_dir}/{file}.yaml')
-                    shutil.copy(
-                        f'./v2_inference/v2-inference.yaml',
-                        f'{output_dir}/{file}.yaml',
-                    )
-
-
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -487,57 +380,6 @@ def train_model(
         save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
-    # define a list of substrings to search for
-    substrings_v2 = [
-        'stabilityai/stable-diffusion-2-1-base',
-        'stabilityai/stable-diffusion-2-base',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(value) in substrings_v2:
-        print('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to search for v-objective
-    substrings_v_parameterization = [
-        'stabilityai/stable-diffusion-2-1',
-        'stabilityai/stable-diffusion-2',
-    ]
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(value) in substrings_v_parameterization:
-        print(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
-        )
-        v2 = True
-        v_parameterization = True
-
-        return value, v2, v_parameterization
-
-    # define a list of substrings to v1.x
-    substrings_v1_model = [
-        'CompVis/stable-diffusion-v1-4',
-        'runwayml/stable-diffusion-v1-5',
-    ]
-
-    if str(value) in substrings_v1_model:
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-    if value == 'custom':
-        value = ''
-        v2 = False
-        v_parameterization = False
-
-        return value, v2, v_parameterization
-
-
 def UI(username, password):
     css = ''
 
@@ -593,11 +435,6 @@ def dreambooth_tab(
                 placeholder="type the configuration file path or use the 'Open' button above to select it...",
                 interactive=True,
             )
-        # config_file_name.change(
-        #     remove_doublequote,
-        #     inputs=[config_file_name],
-        #     outputs=[config_file_name],
-        # )
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():

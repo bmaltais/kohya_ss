@@ -101,6 +101,9 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/10 (v20.1):
+    - Add support for `--output_name` to trainers
+    - Refactor code for easier maintenance
 * 2023/01/10 (v20.0):
     - Update code base to match latest kohys_ss code upgrade in https://github.com/kohya-ss/sd-scripts
 * 2023/01/09 (v19.4.3):
