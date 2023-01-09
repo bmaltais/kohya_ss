@@ -101,6 +101,8 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/10 (v20.1.1):
+    - Fix issue with LoRA config loading
 * 2023/01/10 (v20.1):
     - Add support for `--output_name` to trainers
     - Refactor code for easier maintenance
