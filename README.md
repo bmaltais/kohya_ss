@@ -1,8 +1,8 @@
 This repository contains training, generation and utility scripts for Stable Diffusion.
 
-**January 9, 2023: Information about the update can be found at the end of the page.**
+**January 9, 2023: Information about the update can be found at [the end of the page](#updates-jan-9-2023).**
 
-**20231/1/9: 更新情報がページ末尾にありますのでご覧ください。**
+**20231/1/9: 更新情報が[ページ末尾](#更新情報-202319)にありますのでご覧ください。**
 
 [日本語版README](./README-ja.md)
 
