@@ -135,7 +135,7 @@ def svd(args):
   if dir_name and not os.path.exists(dir_name):
     os.makedirs(dir_name, exist_ok=True)
 
-  lora_network_o.save_weights(args.save_to, save_dtype)
+  lora_network_o.save_weights(args.save_to, save_dtype, {})
   print(f"LoRA weights are saved to: {args.save_to}")
 
 
