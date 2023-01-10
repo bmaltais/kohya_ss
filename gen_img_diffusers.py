@@ -2517,7 +2517,7 @@ if __name__ == '__main__':
   parser.add_argument("--highres_fix_save_1st", action='store_true',
                       help="save 1st stage images for highres fix / highres fixの最初のステージの画像を保存する")
   parser.add_argument("--negative_scale", type=float, default=None,
-                      help="correctly cfg")
+                      help="scaling negative prompt")
 
   args = parser.parse_args()
   main(args)
