@@ -66,6 +66,7 @@ def save_configuration(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -148,6 +149,7 @@ def open_config_file(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -215,6 +217,7 @@ def train_model(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
 ):
     # create caption json file
     if generate_caption_database:
@@ -331,6 +334,8 @@ def train_model(
         run_cmd += f' --resume={resume}'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if (int(max_token_length) > 75):
+        run_cmd += f' --max_token_length={max_token_length}'
 
     print(run_cmd)
     # Run the command
@@ -642,6 +647,15 @@ def finetune_tab():
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
+                max_token_length = gr.Dropdown(
+                    label='Max Token Length',
+                    choices=[
+                        '75',
+                        '150',
+                        '225',
+                    ],
+                    value='75',
+                )
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -695,6 +709,7 @@ def finetune_tab():
         mem_eff_attn,
         shuffle_caption,
         output_name,
+        max_token_length,
     ]
 
     button_run.click(train_model, inputs=settings_list)

@@ -1,8 +1,6 @@
-# Kohya's dreambooth and finetuning
+# Kohya's GUI
 
-This repository now includes the solutions provided by Kohya_ss in a single location. I have combined both solutions under one repository to align with the new official Kohya repository where he will maintain his code from now on: https://github.com/kohya-ss/sd-scripts.
-
-A note accompanying the release of his new repository can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
+This repository repository is providing a Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
 
 ## Required Dependencies
 
@@ -101,6 +99,8 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/11 (v20.2.0):
+    - Add support for max token lenght
 * 2023/01/10 (v20.1.1):
     - Fix issue with LoRA config loading
 * 2023/01/10 (v20.1):

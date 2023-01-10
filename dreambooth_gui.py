@@ -73,6 +73,7 @@ def save_configuration(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -151,6 +152,7 @@ def open_configuration(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -213,6 +215,7 @@ def train_model(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -367,6 +370,8 @@ def train_model(
         run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if (int(max_token_length) > 75):
+        run_cmd += f' --max_token_length={max_token_length}'
 
     print(run_cmd)
     # Run the command
@@ -694,6 +699,15 @@ def dreambooth_tab(
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
                 vae_button.click(get_any_file_path, outputs=vae)
+                max_token_length = gr.Dropdown(
+                    label='Max Token Length',
+                    choices=[
+                        '75',
+                        '150',
+                        '225',
+                    ],
+                    value='75',
+                )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -745,6 +759,7 @@ def dreambooth_tab(
         clip_skip,
         vae,
         output_name,
+        max_token_length,
     ]
 
     button_open_config.click(
