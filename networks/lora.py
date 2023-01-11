@@ -6,6 +6,8 @@
 import math
 import os
 import torch
+import zipfile
+import json
 
 
 class LoRAModule(torch.nn.Module):
@@ -56,6 +58,7 @@ class LoRANetwork(torch.nn.Module):
   TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
   LORA_PREFIX_UNET = 'lora_unet'
   LORA_PREFIX_TEXT_ENCODER = 'lora_te'
+  METADATA_FILENAME = "sd_scripts_metadata.json"
 
   def __init__(self, text_encoder, unet, multiplier=1.0, lora_dim=4) -> None:
     super().__init__()
@@ -92,7 +95,7 @@ class LoRANetwork(torch.nn.Module):
 
   def load_weights(self, file):
     if os.path.splitext(file)[1] == '.safetensors':
-      from safetensors.torch import load_file
+      from safetensors.torch import load_file, safe_open
       self.weights_sd = load_file(file)
     else:
       self.weights_sd = torch.load(file, map_location='cpu')
@@ -174,7 +177,7 @@ class LoRANetwork(torch.nn.Module):
   def get_trainable_params(self):
     return self.parameters()
 
-  def save_weights(self, file, dtype):
+  def save_weights(self, file, dtype, metadata):
     state_dict = self.state_dict()
 
     if dtype is not None:
@@ -185,6 +188,8 @@ class LoRANetwork(torch.nn.Module):
 
     if os.path.splitext(file)[1] == '.safetensors':
       from safetensors.torch import save_file
-      save_file(state_dict, file)
+      save_file(state_dict, file, metadata)
     else:
       torch.save(state_dict, file)
+      with zipfile.ZipFile(file, "w") as zipf:
+        zipf.writestr(LoRANetwork.METADATA_FILENAME, json.dumps(metadata))
