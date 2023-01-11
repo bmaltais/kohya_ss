@@ -178,6 +178,9 @@ class LoRANetwork(torch.nn.Module):
     return self.parameters()
 
   def save_weights(self, file, dtype, metadata):
+    if len(metadata) == 0:
+      metadata = None
+
     state_dict = self.state_dict()
 
     if dtype is not None:
@@ -191,5 +194,6 @@ class LoRANetwork(torch.nn.Module):
       save_file(state_dict, file, metadata)
     else:
       torch.save(state_dict, file)
-      with zipfile.ZipFile(file, "w") as zipf:
-        zipf.writestr(LoRANetwork.METADATA_FILENAME, json.dumps(metadata))
+      if metadata is not None:
+        with zipfile.ZipFile(file, "w") as zipf:
+          zipf.writestr(LoRANetwork.METADATA_FILENAME, json.dumps(metadata))
