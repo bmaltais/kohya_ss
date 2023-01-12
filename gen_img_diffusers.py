@@ -46,11 +46,13 @@ VGG(
 )
 """
 
+import json
 from typing import List, Optional, Union
 import glob
 import importlib
 import inspect
 import time
+import zipfile
 from diffusers.utils import deprecate
 from diffusers.configuration_utils import FrozenDict
 import argparse
@@ -1972,6 +1974,14 @@ def main(args):
       if args.network_weights and i < len(args.network_weights):
         network_weight = args.network_weights[i]
         print("load network weights from:", network_weight)
+
+        if os.path.splitext(network_weight)[1] == '.safetensors':
+          from safetensors.torch import safe_open
+          with safe_open(network_weight, framework="pt") as f:
+            metadata = f.metadata()
+          if metadata is not None:
+            print(f"metadata for: {network_weight}: {metadata}")
+
         network.load_weights(network_weight)
 
       network.apply_to(text_encoder, unet)
