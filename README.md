@@ -1,10 +1,18 @@
 This repository contains training, generation and utility scripts for Stable Diffusion.
 
-**January 9, 2023: Information about the update can be found at [the end of the page](#updates-jan-9-2023).**
+## Updates
+
+- January 12, 2023, 2023/1/23
+  - Metadata is saved on the model (.safetensors only) (model name, VAE name, training steps, learning rate etc.) The metadata will be able to inspect by sd-webui-additional-networks extension in near future. If you do not want to save it, specify ``no_metadata`` option.
+  - メタデータが保存されるようになりました（ .safetensors 形式の場合のみ）（モデル名、VAE 名、ステップ数、学習率など）。近日中に拡張から確認できるようになる予定です。メタデータを保存したくない場合は ``no_metadata`` オプションをしてしてください。
+  
+**January 9, 2023: Important information about the update can be found at [the end of the page](#updates-jan-9-2023).**
 
 **20231/1/9: 更新情報が[ページ末尾](#更新情報-202319)にありますのでご覧ください。**
 
 [日本語版README](./README-ja.md)
+
+##
 
 For easier use (GUI and PowerShell scripts etc...), please visit [the repository maintained by bmaltais](https://github.com/bmaltais/kohya_ss). Thanks to @bmaltais!
 
