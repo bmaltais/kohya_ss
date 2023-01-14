@@ -114,9 +114,13 @@ pip install --upgrade -r <requirement file name>
 
 コマンドが成功すれば新しいバージョンが使用できます。
 
+## 謝意
+
+LoRAの実装は[cloneofsimo氏のリポジトリ](https://github.com/cloneofsimo/lora)を基にしたものです。感謝申し上げます。
+
 ## ライセンス
 
-スクリプトのライセンスはASL 2.0ですが、一部他のライセンスのコードを含みます。
+スクリプトのライセンスはASL 2.0ですが（Diffusersおよびcloneofsimo氏のリポジトリ由来のものも同様）、一部他のライセンスのコードを含みます。
 
 [Memory Efficient Attention Pytorch](https://github.com/lucidrains/memory-efficient-attention-pytorch): MIT
 
