@@ -1106,12 +1106,12 @@ def load_vae(vae_id, dtype):
     if vae_key.startswith(VAE_PREFIX):
       full_model = True
       break
-    if not full_model:
-      sd = {}
-      for key, value in vae_sd.items():
-        sd[VAE_PREFIX + key] = value
-      vae_sd = sd
-      del sd
+  if not full_model:
+    sd = {}
+    for key, value in vae_sd.items():
+      sd[VAE_PREFIX + key] = value
+    vae_sd = sd
+    del sd
 
   converted_vae_checkpoint = convert_ldm_vae_checkpoint(vae_sd, vae_config)
   vae = AutoencoderKL(**vae_config)
