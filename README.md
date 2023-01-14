@@ -4,7 +4,7 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 - January 14, 2023, 2023/1/14
   - Fix loading some VAE or .safetensors as VAE is failed for ``--vae`` option. Thanks to Fannovel16!
-  - ``--vae`` オプションに一部のVAEや .safetensors 形式のモデルを指定するとエラーになる不具合を修正しました。Fannovel16に感謝します。
+  - ``--vae`` オプションに一部のVAEや .safetensors 形式のモデルを指定するとエラーになる不具合を修正しました。Fannovel16氏に感謝します。
 - January 12, 2023, 2023/1/12
   - Metadata is saved on the model (.safetensors only) (model name, VAE name, training steps, learning rate etc.) The metadata will be able to inspect by sd-webui-additional-networks extension in near future. If you do not want to save it, specify ``no_metadata`` option.
   - メタデータが保存されるようになりました（ .safetensors 形式の場合のみ）（モデル名、VAE 名、ステップ数、学習率など）。近日中に拡張から確認できるようになる予定です。メタデータを保存したくない場合は ``no_metadata`` オプションをしてしてください。
