@@ -1,1390 +1,1168 @@
-# common functions for training
+# v1: split from train_db_fixed.py.
+# v2: support safetensors
 
-import argparse
-import json
-import shutil
-import time
-from typing import NamedTuple
-from accelerate import Accelerator
-from torch.autograd.function import Function
-import glob
 import math
 import os
-import random
-
-from tqdm import tqdm
 import torch
-from torchvision import transforms
-from transformers import CLIPTokenizer
-import diffusers
-from diffusers import DDPMScheduler, StableDiffusionPipeline
-import albumentations as albu
-import numpy as np
-from PIL import Image
-import cv2
-from einops import rearrange
-from torch import einsum
+from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig
+from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline, UNet2DConditionModel
+from safetensors.torch import load_file, save_file
 
-import library.model_util as model_util
+# DiffUsers版StableDiffusionのモデルパラメータ
+NUM_TRAIN_TIMESTEPS = 1000
+BETA_START = 0.00085
+BETA_END = 0.0120
 
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
+UNET_PARAMS_MODEL_CHANNELS = 320
+UNET_PARAMS_CHANNEL_MULT = [1, 2, 4, 4]
+UNET_PARAMS_ATTENTION_RESOLUTIONS = [4, 2, 1]
+UNET_PARAMS_IMAGE_SIZE = 32  # unused
+UNET_PARAMS_IN_CHANNELS = 4
+UNET_PARAMS_OUT_CHANNELS = 4
+UNET_PARAMS_NUM_RES_BLOCKS = 2
+UNET_PARAMS_CONTEXT_DIM = 768
+UNET_PARAMS_NUM_HEADS = 8
 
-# checkpointファイル名
-EPOCH_STATE_NAME = "{}-{:06d}-state"
-EPOCH_FILE_NAME = "{}-{:06d}"
-EPOCH_DIFFUSERS_DIR_NAME = "{}-{:06d}"
-LAST_STATE_NAME = "{}-state"
-DEFAULT_EPOCH_NAME = "epoch"
-DEFAULT_LAST_OUTPUT_NAME = "last"
+VAE_PARAMS_Z_CHANNELS = 4
+VAE_PARAMS_RESOLUTION = 256
+VAE_PARAMS_IN_CHANNELS = 3
+VAE_PARAMS_OUT_CH = 3
+VAE_PARAMS_CH = 128
+VAE_PARAMS_CH_MULT = [1, 2, 4, 4]
+VAE_PARAMS_NUM_RES_BLOCKS = 2
 
-# region dataset
+# V2
+V2_UNET_PARAMS_ATTENTION_HEAD_DIM = [5, 10, 20, 20]
+V2_UNET_PARAMS_CONTEXT_DIM = 1024
 
-IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp"]
-
-
-class ImageInfo():
-  def __init__(self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str) -> None:
-    self.image_key: str = image_key
-    self.num_repeats: int = num_repeats
-    self.caption: str = caption
-    self.is_reg: bool = is_reg
-    self.absolute_path: str = absolute_path
-    self.image_size: tuple[int, int] = None
-    self.bucket_reso: tuple[int, int] = None
-    self.latents: torch.Tensor = None
-    self.latents_flipped: torch.Tensor = None
-    self.latents_npz: str = None
-    self.latents_npz_flipped: str = None
+# Diffusersの設定を読み込むための参照モデル
+DIFFUSERS_REF_MODEL_ID_V1 = "runwayml/stable-diffusion-v1-5"
+DIFFUSERS_REF_MODEL_ID_V2 = "stabilityai/stable-diffusion-2-1"
 
 
-class BucketBatchIndex(NamedTuple):
-  bucket_index: int
-  batch_index: int
+# region StableDiffusion->Diffusersの変換コード
+# convert_original_stable_diffusion_to_diffusers をコピーして修正している（ASL 2.0）
 
 
-class BaseDataset(torch.utils.data.Dataset):
-  def __init__(self, tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens, resolution, flip_aug: bool, color_aug: bool, face_crop_aug_range, random_crop, debug_dataset: bool) -> None:
-    super().__init__()
-    self.tokenizer: CLIPTokenizer = tokenizer
-    self.max_token_length = max_token_length
-    self.shuffle_caption = shuffle_caption
-    self.shuffle_keep_tokens = shuffle_keep_tokens
-    # width/height is used when enable_bucket==False
-    self.width, self.height = (None, None) if resolution is None else resolution
-    self.face_crop_aug_range = face_crop_aug_range
-    self.flip_aug = flip_aug
-    self.color_aug = color_aug
-    self.debug_dataset = debug_dataset
-    self.random_crop = random_crop
-    self.token_padding_disabled = False
+def shave_segments(path, n_shave_prefix_segments=1):
+  """
+  Removes segments. Positive values shave the first segments, negative shave the last segments.
+  """
+  if n_shave_prefix_segments >= 0:
+    return ".".join(path.split(".")[n_shave_prefix_segments:])
+  else:
+    return ".".join(path.split(".")[:n_shave_prefix_segments])
 
-    self.tokenizer_max_length = self.tokenizer.model_max_length if max_token_length is None else max_token_length + 2
 
-    # augmentation
-    flip_p = 0.5 if flip_aug else 0.0
-    if color_aug:
-      # わりと弱めの色合いaugmentation：brightness/contrastあたりは画像のpixel valueの最大値・最小値を変えてしまうのでよくないのではという想定でgamma/hueあたりを触る
-      self.aug = albu.Compose([
-          albu.OneOf([
-              albu.HueSaturationValue(8, 0, 0, p=.5),
-              albu.RandomGamma((95, 105), p=.5),
-          ], p=.33),
-          albu.HorizontalFlip(p=flip_p)
-      ], p=1.)
-    elif flip_aug:
-      self.aug = albu.Compose([
-          albu.HorizontalFlip(p=flip_p)
-      ], p=1.)
+def renew_resnet_paths(old_list, n_shave_prefix_segments=0):
+  """
+  Updates paths inside resnets to the new naming scheme (local renaming)
+  """
+  mapping = []
+  for old_item in old_list:
+    new_item = old_item.replace("in_layers.0", "norm1")
+    new_item = new_item.replace("in_layers.2", "conv1")
+
+    new_item = new_item.replace("out_layers.0", "norm2")
+    new_item = new_item.replace("out_layers.3", "conv2")
+
+    new_item = new_item.replace("emb_layers.1", "time_emb_proj")
+    new_item = new_item.replace("skip_connection", "conv_shortcut")
+
+    new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
+
+    mapping.append({"old": old_item, "new": new_item})
+
+  return mapping
+
+
+def renew_vae_resnet_paths(old_list, n_shave_prefix_segments=0):
+  """
+  Updates paths inside resnets to the new naming scheme (local renaming)
+  """
+  mapping = []
+  for old_item in old_list:
+    new_item = old_item
+
+    new_item = new_item.replace("nin_shortcut", "conv_shortcut")
+    new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
+
+    mapping.append({"old": old_item, "new": new_item})
+
+  return mapping
+
+
+def renew_attention_paths(old_list, n_shave_prefix_segments=0):
+  """
+  Updates paths inside attentions to the new naming scheme (local renaming)
+  """
+  mapping = []
+  for old_item in old_list:
+    new_item = old_item
+
+    #         new_item = new_item.replace('norm.weight', 'group_norm.weight')
+    #         new_item = new_item.replace('norm.bias', 'group_norm.bias')
+
+    #         new_item = new_item.replace('proj_out.weight', 'proj_attn.weight')
+    #         new_item = new_item.replace('proj_out.bias', 'proj_attn.bias')
+
+    #         new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
+
+    mapping.append({"old": old_item, "new": new_item})
+
+  return mapping
+
+
+def renew_vae_attention_paths(old_list, n_shave_prefix_segments=0):
+  """
+  Updates paths inside attentions to the new naming scheme (local renaming)
+  """
+  mapping = []
+  for old_item in old_list:
+    new_item = old_item
+
+    new_item = new_item.replace("norm.weight", "group_norm.weight")
+    new_item = new_item.replace("norm.bias", "group_norm.bias")
+
+    new_item = new_item.replace("q.weight", "query.weight")
+    new_item = new_item.replace("q.bias", "query.bias")
+
+    new_item = new_item.replace("k.weight", "key.weight")
+    new_item = new_item.replace("k.bias", "key.bias")
+
+    new_item = new_item.replace("v.weight", "value.weight")
+    new_item = new_item.replace("v.bias", "value.bias")
+
+    new_item = new_item.replace("proj_out.weight", "proj_attn.weight")
+    new_item = new_item.replace("proj_out.bias", "proj_attn.bias")
+
+    new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
+
+    mapping.append({"old": old_item, "new": new_item})
+
+  return mapping
+
+
+def assign_to_checkpoint(
+    paths, checkpoint, old_checkpoint, attention_paths_to_split=None, additional_replacements=None, config=None
+):
+  """
+  This does the final conversion step: take locally converted weights and apply a global renaming
+  to them. It splits attention layers, and takes into account additional replacements
+  that may arise.
+
+  Assigns the weights to the new checkpoint.
+  """
+  assert isinstance(paths, list), "Paths should be a list of dicts containing 'old' and 'new' keys."
+
+  # Splits the attention layers into three variables.
+  if attention_paths_to_split is not None:
+    for path, path_map in attention_paths_to_split.items():
+      old_tensor = old_checkpoint[path]
+      channels = old_tensor.shape[0] // 3
+
+      target_shape = (-1, channels) if len(old_tensor.shape) == 3 else (-1)
+
+      num_heads = old_tensor.shape[0] // config["num_head_channels"] // 3
+
+      old_tensor = old_tensor.reshape((num_heads, 3 * channels // num_heads) + old_tensor.shape[1:])
+      query, key, value = old_tensor.split(channels // num_heads, dim=1)
+
+      checkpoint[path_map["query"]] = query.reshape(target_shape)
+      checkpoint[path_map["key"]] = key.reshape(target_shape)
+      checkpoint[path_map["value"]] = value.reshape(target_shape)
+
+  for path in paths:
+    new_path = path["new"]
+
+    # These have already been assigned
+    if attention_paths_to_split is not None and new_path in attention_paths_to_split:
+      continue
+
+    # Global renaming happens here
+    new_path = new_path.replace("middle_block.0", "mid_block.resnets.0")
+    new_path = new_path.replace("middle_block.1", "mid_block.attentions.0")
+    new_path = new_path.replace("middle_block.2", "mid_block.resnets.1")
+
+    if additional_replacements is not None:
+      for replacement in additional_replacements:
+        new_path = new_path.replace(replacement["old"], replacement["new"])
+
+    # proj_attn.weight has to be converted from conv 1D to linear
+    if "proj_attn.weight" in new_path:
+      checkpoint[new_path] = old_checkpoint[path["old"]][:, :, 0]
     else:
-      self.aug = None
+      checkpoint[new_path] = old_checkpoint[path["old"]]
 
-    self.image_transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5]), ])
 
-    self.image_data: dict[str, ImageInfo] = {}
+def conv_attn_to_linear(checkpoint):
+  keys = list(checkpoint.keys())
+  attn_keys = ["query.weight", "key.weight", "value.weight"]
+  for key in keys:
+    if ".".join(key.split(".")[-2:]) in attn_keys:
+      if checkpoint[key].ndim > 2:
+        checkpoint[key] = checkpoint[key][:, :, 0, 0]
+    elif "proj_attn.weight" in key:
+      if checkpoint[key].ndim > 2:
+        checkpoint[key] = checkpoint[key][:, :, 0]
 
-  def disable_token_padding(self):
-    self.token_padding_disabled = True
 
-  def process_caption(self, caption):
-    if self.shuffle_caption:
-      tokens = caption.strip().split(",")
-      if self.shuffle_keep_tokens is None:
-        random.shuffle(tokens)
+def linear_transformer_to_conv(checkpoint):
+  keys = list(checkpoint.keys())
+  tf_keys = ["proj_in.weight", "proj_out.weight"]
+  for key in keys:
+    if ".".join(key.split(".")[-2:]) in tf_keys:
+      if checkpoint[key].ndim == 2:
+        checkpoint[key] = checkpoint[key].unsqueeze(2).unsqueeze(2)
+
+
+def convert_ldm_unet_checkpoint(v2, checkpoint, config):
+  """
+  Takes a state dict and a config, and returns a converted checkpoint.
+  """
+
+  # extract state_dict for UNet
+  unet_state_dict = {}
+  unet_key = "model.diffusion_model."
+  keys = list(checkpoint.keys())
+  for key in keys:
+    if key.startswith(unet_key):
+      unet_state_dict[key.replace(unet_key, "")] = checkpoint.pop(key)
+
+  new_checkpoint = {}
+
+  new_checkpoint["time_embedding.linear_1.weight"] = unet_state_dict["time_embed.0.weight"]
+  new_checkpoint["time_embedding.linear_1.bias"] = unet_state_dict["time_embed.0.bias"]
+  new_checkpoint["time_embedding.linear_2.weight"] = unet_state_dict["time_embed.2.weight"]
+  new_checkpoint["time_embedding.linear_2.bias"] = unet_state_dict["time_embed.2.bias"]
+
+  new_checkpoint["conv_in.weight"] = unet_state_dict["input_blocks.0.0.weight"]
+  new_checkpoint["conv_in.bias"] = unet_state_dict["input_blocks.0.0.bias"]
+
+  new_checkpoint["conv_norm_out.weight"] = unet_state_dict["out.0.weight"]
+  new_checkpoint["conv_norm_out.bias"] = unet_state_dict["out.0.bias"]
+  new_checkpoint["conv_out.weight"] = unet_state_dict["out.2.weight"]
+  new_checkpoint["conv_out.bias"] = unet_state_dict["out.2.bias"]
+
+  # Retrieves the keys for the input blocks only
+  num_input_blocks = len({".".join(layer.split(".")[:2]) for layer in unet_state_dict if "input_blocks" in layer})
+  input_blocks = {
+      layer_id: [key for key in unet_state_dict if f"input_blocks.{layer_id}." in key]
+      for layer_id in range(num_input_blocks)
+  }
+
+  # Retrieves the keys for the middle blocks only
+  num_middle_blocks = len({".".join(layer.split(".")[:2]) for layer in unet_state_dict if "middle_block" in layer})
+  middle_blocks = {
+      layer_id: [key for key in unet_state_dict if f"middle_block.{layer_id}." in key]
+      for layer_id in range(num_middle_blocks)
+  }
+
+  # Retrieves the keys for the output blocks only
+  num_output_blocks = len({".".join(layer.split(".")[:2]) for layer in unet_state_dict if "output_blocks" in layer})
+  output_blocks = {
+      layer_id: [key for key in unet_state_dict if f"output_blocks.{layer_id}." in key]
+      for layer_id in range(num_output_blocks)
+  }
+
+  for i in range(1, num_input_blocks):
+    block_id = (i - 1) // (config["layers_per_block"] + 1)
+    layer_in_block_id = (i - 1) % (config["layers_per_block"] + 1)
+
+    resnets = [
+        key for key in input_blocks[i] if f"input_blocks.{i}.0" in key and f"input_blocks.{i}.0.op" not in key
+    ]
+    attentions = [key for key in input_blocks[i] if f"input_blocks.{i}.1" in key]
+
+    if f"input_blocks.{i}.0.op.weight" in unet_state_dict:
+      new_checkpoint[f"down_blocks.{block_id}.downsamplers.0.conv.weight"] = unet_state_dict.pop(
+          f"input_blocks.{i}.0.op.weight"
+      )
+      new_checkpoint[f"down_blocks.{block_id}.downsamplers.0.conv.bias"] = unet_state_dict.pop(
+          f"input_blocks.{i}.0.op.bias"
+      )
+
+    paths = renew_resnet_paths(resnets)
+    meta_path = {"old": f"input_blocks.{i}.0", "new": f"down_blocks.{block_id}.resnets.{layer_in_block_id}"}
+    assign_to_checkpoint(
+        paths, new_checkpoint, unet_state_dict, additional_replacements=[meta_path], config=config
+    )
+
+    if len(attentions):
+      paths = renew_attention_paths(attentions)
+      meta_path = {"old": f"input_blocks.{i}.1", "new": f"down_blocks.{block_id}.attentions.{layer_in_block_id}"}
+      assign_to_checkpoint(
+          paths, new_checkpoint, unet_state_dict, additional_replacements=[meta_path], config=config
+      )
+
+  resnet_0 = middle_blocks[0]
+  attentions = middle_blocks[1]
+  resnet_1 = middle_blocks[2]
+
+  resnet_0_paths = renew_resnet_paths(resnet_0)
+  assign_to_checkpoint(resnet_0_paths, new_checkpoint, unet_state_dict, config=config)
+
+  resnet_1_paths = renew_resnet_paths(resnet_1)
+  assign_to_checkpoint(resnet_1_paths, new_checkpoint, unet_state_dict, config=config)
+
+  attentions_paths = renew_attention_paths(attentions)
+  meta_path = {"old": "middle_block.1", "new": "mid_block.attentions.0"}
+  assign_to_checkpoint(
+      attentions_paths, new_checkpoint, unet_state_dict, additional_replacements=[meta_path], config=config
+  )
+
+  for i in range(num_output_blocks):
+    block_id = i // (config["layers_per_block"] + 1)
+    layer_in_block_id = i % (config["layers_per_block"] + 1)
+    output_block_layers = [shave_segments(name, 2) for name in output_blocks[i]]
+    output_block_list = {}
+
+    for layer in output_block_layers:
+      layer_id, layer_name = layer.split(".")[0], shave_segments(layer, 1)
+      if layer_id in output_block_list:
+        output_block_list[layer_id].append(layer_name)
       else:
-        if len(tokens) > self.shuffle_keep_tokens:
-          keep_tokens = tokens[:self.shuffle_keep_tokens]
-          tokens = tokens[self.shuffle_keep_tokens:]
-          random.shuffle(tokens)
-          tokens = keep_tokens + tokens
-      caption = ",".join(tokens).strip()
-    return caption
+        output_block_list[layer_id] = [layer_name]
 
-  def get_input_ids(self, caption):
-    input_ids = self.tokenizer(caption, padding="max_length", truncation=True,
-                               max_length=self.tokenizer_max_length, return_tensors="pt").input_ids
+    if len(output_block_list) > 1:
+      resnets = [key for key in output_blocks[i] if f"output_blocks.{i}.0" in key]
+      attentions = [key for key in output_blocks[i] if f"output_blocks.{i}.1" in key]
 
-    if self.tokenizer_max_length > self.tokenizer.model_max_length:
-      input_ids = input_ids.squeeze(0)
-      iids_list = []
-      if self.tokenizer.pad_token_id == self.tokenizer.eos_token_id:
-        # v1
-        # 77以上の時は "<BOS> .... <EOS> <EOS> <EOS>" でトータル227とかになっているので、"<BOS>...<EOS>"の三連に変換する
-        # 1111氏のやつは , で区切る、とかしているようだが　とりあえず単純に
-        for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):  # (1, 152, 75)
-          ids_chunk = (input_ids[0].unsqueeze(0),
-                       input_ids[i:i + self.tokenizer.model_max_length - 2],
-                       input_ids[-1].unsqueeze(0))
-          ids_chunk = torch.cat(ids_chunk)
-          iids_list.append(ids_chunk)
-      else:
-        # v2
-        # 77以上の時は "<BOS> .... <EOS> <PAD> <PAD>..." でトータル227とかになっているので、"<BOS>...<EOS> <PAD> <PAD> ..."の三連に変換する
-        for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):
-          ids_chunk = (input_ids[0].unsqueeze(0),       # BOS
-                       input_ids[i:i + self.tokenizer.model_max_length - 2],
-                       input_ids[-1].unsqueeze(0))      # PAD or EOS
-          ids_chunk = torch.cat(ids_chunk)
+      resnet_0_paths = renew_resnet_paths(resnets)
+      paths = renew_resnet_paths(resnets)
 
-          # 末尾が <EOS> <PAD> または <PAD> <PAD> の場合は、何もしなくてよい
-          # 末尾が x <PAD/EOS> の場合は末尾を <EOS> に変える（x <EOS> なら結果的に変化なし）
-          if ids_chunk[-2] != self.tokenizer.eos_token_id and ids_chunk[-2] != self.tokenizer.pad_token_id:
-            ids_chunk[-1] = self.tokenizer.eos_token_id
-          # 先頭が <BOS> <PAD> ... の場合は <BOS> <EOS> <PAD> ... に変える
-          if ids_chunk[1] == self.tokenizer.pad_token_id:
-            ids_chunk[1] = self.tokenizer.eos_token_id
+      meta_path = {"old": f"output_blocks.{i}.0", "new": f"up_blocks.{block_id}.resnets.{layer_in_block_id}"}
+      assign_to_checkpoint(
+          paths, new_checkpoint, unet_state_dict, additional_replacements=[meta_path], config=config
+      )
 
-          iids_list.append(ids_chunk)
+      # オリジナル：
+      # if ["conv.weight", "conv.bias"] in output_block_list.values():
+      #   index = list(output_block_list.values()).index(["conv.weight", "conv.bias"])
 
-      input_ids = torch.stack(iids_list)      # 3,77
-    return input_ids
+      # biasとweightの順番に依存しないようにする：もっといいやり方がありそうだが
+      for l in output_block_list.values():
+        l.sort()
 
-  def register_image(self, info: ImageInfo):
-    self.image_data[info.image_key] = info
+      if ["conv.bias", "conv.weight"] in output_block_list.values():
+        index = list(output_block_list.values()).index(["conv.bias", "conv.weight"])
+        new_checkpoint[f"up_blocks.{block_id}.upsamplers.0.conv.bias"] = unet_state_dict[
+            f"output_blocks.{i}.{index}.conv.bias"
+        ]
+        new_checkpoint[f"up_blocks.{block_id}.upsamplers.0.conv.weight"] = unet_state_dict[
+            f"output_blocks.{i}.{index}.conv.weight"
+        ]
 
-  def make_buckets(self):
-    '''
-    bucketingを行わない場合も呼び出し必須（ひとつだけbucketを作る）
-    min_size and max_size are ignored when enable_bucket is False
-    '''
-    print("loading image sizes.")
-    for info in tqdm(self.image_data.values()):
-      if info.image_size is None:
-        info.image_size = self.get_image_size(info.absolute_path)
+        # Clear attentions as they have been attributed above.
+        if len(attentions) == 2:
+          attentions = []
 
-    if self.enable_bucket:
-      print("make buckets")
+      if len(attentions):
+        paths = renew_attention_paths(attentions)
+        meta_path = {
+            "old": f"output_blocks.{i}.1",
+            "new": f"up_blocks.{block_id}.attentions.{layer_in_block_id}",
+        }
+        assign_to_checkpoint(
+            paths, new_checkpoint, unet_state_dict, additional_replacements=[meta_path], config=config
+        )
     else:
-      print("prepare dataset")
+      resnet_0_paths = renew_resnet_paths(output_block_layers, n_shave_prefix_segments=1)
+      for path in resnet_0_paths:
+        old_path = ".".join(["output_blocks", str(i), path["old"]])
+        new_path = ".".join(["up_blocks", str(block_id), "resnets", str(layer_in_block_id), path["new"]])
 
-    bucket_resos = self.bucket_resos
-    bucket_aspect_ratios = np.array(self.bucket_aspect_ratios)
+        new_checkpoint[new_path] = unet_state_dict[old_path]
 
-    # bucketを作成する
-    if self.enable_bucket:
-      img_ar_errors = []
-      for image_info in self.image_data.values():
-        # bucketを決める
-        image_width, image_height = image_info.image_size
-        aspect_ratio = image_width / image_height
-        ar_errors = bucket_aspect_ratios - aspect_ratio
+  # SDのv2では1*1のconv2dがlinearに変わっているので、linear->convに変換する
+  if v2:
+    linear_transformer_to_conv(new_checkpoint)
 
-        bucket_id = np.abs(ar_errors).argmin()
-        image_info.bucket_reso = bucket_resos[bucket_id]
+  return new_checkpoint
 
-        ar_error = ar_errors[bucket_id]
-        img_ar_errors.append(ar_error)
-    else:
-      for image_info in self.image_data.values():
-        image_info.bucket_reso = bucket_resos[0]              # bucket_resos contains (width, height) only
 
-    # 画像をbucketに分割する
-    self.buckets: list[str] = [[] for _ in range(len(bucket_resos))]
-    reso_to_index = {}
-    for i, reso in enumerate(bucket_resos):
-      reso_to_index[reso] = i
+def convert_ldm_vae_checkpoint(checkpoint, config):
+  # extract state dict for VAE
+  vae_state_dict = {}
+  vae_key = "first_stage_model."
+  keys = list(checkpoint.keys())
+  for key in keys:
+    if key.startswith(vae_key):
+      vae_state_dict[key.replace(vae_key, "")] = checkpoint.get(key)
+  # if len(vae_state_dict) == 0:
+  #   # 渡されたcheckpointは.ckptから読み込んだcheckpointではなくvaeのstate_dict
+  #   vae_state_dict = checkpoint
 
-    for image_info in self.image_data.values():
-      bucket_index = reso_to_index[image_info.bucket_reso]
-      for _ in range(image_info.num_repeats):
-        self.buckets[bucket_index].append(image_info.image_key)
+  new_checkpoint = {}
 
-    if self.enable_bucket:
-      print("number of images (including repeats) / 各bucketの画像枚数（繰り返し回数を含む）")
-      for i, (reso, img_keys) in enumerate(zip(bucket_resos, self.buckets)):
-        print(f"bucket {i}: resolution {reso}, count: {len(img_keys)}")
-      img_ar_errors = np.array(img_ar_errors)
-      print(f"mean ar error (without repeats): {np.mean(np.abs(img_ar_errors))}")
+  new_checkpoint["encoder.conv_in.weight"] = vae_state_dict["encoder.conv_in.weight"]
+  new_checkpoint["encoder.conv_in.bias"] = vae_state_dict["encoder.conv_in.bias"]
+  new_checkpoint["encoder.conv_out.weight"] = vae_state_dict["encoder.conv_out.weight"]
+  new_checkpoint["encoder.conv_out.bias"] = vae_state_dict["encoder.conv_out.bias"]
+  new_checkpoint["encoder.conv_norm_out.weight"] = vae_state_dict["encoder.norm_out.weight"]
+  new_checkpoint["encoder.conv_norm_out.bias"] = vae_state_dict["encoder.norm_out.bias"]
 
-    # 参照用indexを作る
-    self.buckets_indices: list(BucketBatchIndex) = []
-    for bucket_index, bucket in enumerate(self.buckets):
-      batch_count = int(math.ceil(len(bucket) / self.batch_size))
-      for batch_index in range(batch_count):
-        self.buckets_indices.append(BucketBatchIndex(bucket_index, batch_index))
+  new_checkpoint["decoder.conv_in.weight"] = vae_state_dict["decoder.conv_in.weight"]
+  new_checkpoint["decoder.conv_in.bias"] = vae_state_dict["decoder.conv_in.bias"]
+  new_checkpoint["decoder.conv_out.weight"] = vae_state_dict["decoder.conv_out.weight"]
+  new_checkpoint["decoder.conv_out.bias"] = vae_state_dict["decoder.conv_out.bias"]
+  new_checkpoint["decoder.conv_norm_out.weight"] = vae_state_dict["decoder.norm_out.weight"]
+  new_checkpoint["decoder.conv_norm_out.bias"] = vae_state_dict["decoder.norm_out.bias"]
 
-    self.shuffle_buckets()
-    self._length = len(self.buckets_indices)
+  new_checkpoint["quant_conv.weight"] = vae_state_dict["quant_conv.weight"]
+  new_checkpoint["quant_conv.bias"] = vae_state_dict["quant_conv.bias"]
+  new_checkpoint["post_quant_conv.weight"] = vae_state_dict["post_quant_conv.weight"]
+  new_checkpoint["post_quant_conv.bias"] = vae_state_dict["post_quant_conv.bias"]
 
-  def shuffle_buckets(self):
-    random.shuffle(self.buckets_indices)
-    for bucket in self.buckets:
-      random.shuffle(bucket)
+  # Retrieves the keys for the encoder down blocks only
+  num_down_blocks = len({".".join(layer.split(".")[:3]) for layer in vae_state_dict if "encoder.down" in layer})
+  down_blocks = {
+      layer_id: [key for key in vae_state_dict if f"down.{layer_id}" in key] for layer_id in range(num_down_blocks)
+  }
 
-  def load_image(self, image_path):
-    image = Image.open(image_path)
-    if not image.mode == "RGB":
-      image = image.convert("RGB")
-    img = np.array(image, np.uint8)
-    return img
+  # Retrieves the keys for the decoder up blocks only
+  num_up_blocks = len({".".join(layer.split(".")[:3]) for layer in vae_state_dict if "decoder.up" in layer})
+  up_blocks = {
+      layer_id: [key for key in vae_state_dict if f"up.{layer_id}" in key] for layer_id in range(num_up_blocks)
+  }
 
-  def resize_and_trim(self, image, reso):
-    image_height, image_width = image.shape[0:2]
-    ar_img = image_width / image_height
-    ar_reso = reso[0] / reso[1]
-    if ar_img > ar_reso:                   # 横が長い→縦を合わせる
-      scale = reso[1] / image_height
-    else:
-      scale = reso[0] / image_width
-    resized_size = (int(image_width * scale + .5), int(image_height * scale + .5))
+  for i in range(num_down_blocks):
+    resnets = [key for key in down_blocks[i] if f"down.{i}" in key and f"down.{i}.downsample" not in key]
 
-    image = cv2.resize(image, resized_size, interpolation=cv2.INTER_AREA)       # INTER_AREAでやりたいのでcv2でリサイズ
-    if resized_size[0] > reso[0]:
-      trim_size = resized_size[0] - reso[0]
-      image = image[:, trim_size//2:trim_size//2 + reso[0]]
-    elif resized_size[1] > reso[1]:
-      trim_size = resized_size[1] - reso[1]
-      image = image[trim_size//2:trim_size//2 + reso[1]]
-    assert image.shape[0] == reso[1] and image.shape[1] == reso[0],  \
-        f"internal error, illegal trimmed size: {image.shape}, {reso}"
-    return image
+    if f"encoder.down.{i}.downsample.conv.weight" in vae_state_dict:
+      new_checkpoint[f"encoder.down_blocks.{i}.downsamplers.0.conv.weight"] = vae_state_dict.pop(
+          f"encoder.down.{i}.downsample.conv.weight"
+      )
+      new_checkpoint[f"encoder.down_blocks.{i}.downsamplers.0.conv.bias"] = vae_state_dict.pop(
+          f"encoder.down.{i}.downsample.conv.bias"
+      )
 
-  def cache_latents(self, vae):
-    print("caching latents.")
-    for info in tqdm(self.image_data.values()):
-      if info.latents_npz is not None:
-        info.latents = self.load_latents_from_npz(info, False)
-        info.latents = torch.FloatTensor(info.latents)
-        info.latents_flipped = self.load_latents_from_npz(info, True)             # might be None
-        if info.latents_flipped is not None:
-          info.latents_flipped = torch.FloatTensor(info.latents_flipped)
-        continue
+    paths = renew_vae_resnet_paths(resnets)
+    meta_path = {"old": f"down.{i}.block", "new": f"down_blocks.{i}.resnets"}
+    assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
 
-      image = self.load_image(info.absolute_path)
-      image = self.resize_and_trim(image, info.bucket_reso)
+  mid_resnets = [key for key in vae_state_dict if "encoder.mid.block" in key]
+  num_mid_res_blocks = 2
+  for i in range(1, num_mid_res_blocks + 1):
+    resnets = [key for key in mid_resnets if f"encoder.mid.block_{i}" in key]
 
-      img_tensor = self.image_transforms(image)
-      img_tensor = img_tensor.unsqueeze(0).to(device=vae.device, dtype=vae.dtype)
-      info.latents = vae.encode(img_tensor).latent_dist.sample().squeeze(0).to("cpu")
+    paths = renew_vae_resnet_paths(resnets)
+    meta_path = {"old": f"mid.block_{i}", "new": f"mid_block.resnets.{i - 1}"}
+    assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
 
-      if self.flip_aug:
-        image = image[:, ::-1].copy()     # cannot convert to Tensor without copy
-        img_tensor = self.image_transforms(image)
-        img_tensor = img_tensor.unsqueeze(0).to(device=vae.device, dtype=vae.dtype)
-        info.latents_flipped = vae.encode(img_tensor).latent_dist.sample().squeeze(0).to("cpu")
+  mid_attentions = [key for key in vae_state_dict if "encoder.mid.attn" in key]
+  paths = renew_vae_attention_paths(mid_attentions)
+  meta_path = {"old": "mid.attn_1", "new": "mid_block.attentions.0"}
+  assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
+  conv_attn_to_linear(new_checkpoint)
 
-  def get_image_size(self, image_path):
-    image = Image.open(image_path)
-    return image.size
+  for i in range(num_up_blocks):
+    block_id = num_up_blocks - 1 - i
+    resnets = [
+        key for key in up_blocks[block_id] if f"up.{block_id}" in key and f"up.{block_id}.upsample" not in key
+    ]
 
-  def load_image_with_face_info(self, image_path: str):
-    img = self.load_image(image_path)
+    if f"decoder.up.{block_id}.upsample.conv.weight" in vae_state_dict:
+      new_checkpoint[f"decoder.up_blocks.{i}.upsamplers.0.conv.weight"] = vae_state_dict[
+          f"decoder.up.{block_id}.upsample.conv.weight"
+      ]
+      new_checkpoint[f"decoder.up_blocks.{i}.upsamplers.0.conv.bias"] = vae_state_dict[
+          f"decoder.up.{block_id}.upsample.conv.bias"
+      ]
 
-    face_cx = face_cy = face_w = face_h = 0
-    if self.face_crop_aug_range is not None:
-      tokens = os.path.splitext(os.path.basename(image_path))[0].split('_')
-      if len(tokens) >= 5:
-        face_cx = int(tokens[-4])
-        face_cy = int(tokens[-3])
-        face_w = int(tokens[-2])
-        face_h = int(tokens[-1])
+    paths = renew_vae_resnet_paths(resnets)
+    meta_path = {"old": f"up.{block_id}.block", "new": f"up_blocks.{i}.resnets"}
+    assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
 
-    return img, face_cx, face_cy, face_w, face_h
+  mid_resnets = [key for key in vae_state_dict if "decoder.mid.block" in key]
+  num_mid_res_blocks = 2
+  for i in range(1, num_mid_res_blocks + 1):
+    resnets = [key for key in mid_resnets if f"decoder.mid.block_{i}" in key]
 
-  # いい感じに切り出す
-  def crop_target(self, image, face_cx, face_cy, face_w, face_h):
-    height, width = image.shape[0:2]
-    if height == self.height and width == self.width:
-      return image
+    paths = renew_vae_resnet_paths(resnets)
+    meta_path = {"old": f"mid.block_{i}", "new": f"mid_block.resnets.{i - 1}"}
+    assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
 
-    # 画像サイズはsizeより大きいのでリサイズする
-    face_size = max(face_w, face_h)
-    min_scale = max(self.height / height, self.width / width)        # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
-    min_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[1])))             # 指定した顔最小サイズ
-    max_scale = min(1.0, max(min_scale, self.size / (face_size * self.face_crop_aug_range[0])))             # 指定した顔最大サイズ
-    if min_scale >= max_scale:          # range指定がmin==max
-      scale = min_scale
-    else:
-      scale = random.uniform(min_scale, max_scale)
+  mid_attentions = [key for key in vae_state_dict if "decoder.mid.attn" in key]
+  paths = renew_vae_attention_paths(mid_attentions)
+  meta_path = {"old": "mid.attn_1", "new": "mid_block.attentions.0"}
+  assign_to_checkpoint(paths, new_checkpoint, vae_state_dict, additional_replacements=[meta_path], config=config)
+  conv_attn_to_linear(new_checkpoint)
+  return new_checkpoint
 
-    nh = int(height * scale + .5)
-    nw = int(width * scale + .5)
-    assert nh >= self.height and nw >= self.width, f"internal error. small scale {scale}, {width}*{height}"
-    image = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_AREA)
-    face_cx = int(face_cx * scale + .5)
-    face_cy = int(face_cy * scale + .5)
-    height, width = nh, nw
 
-    # 顔を中心として448*640とかへ切り出す
-    for axis, (target_size, length, face_p) in enumerate(zip((self.height, self.width), (height, width), (face_cy, face_cx))):
-      p1 = face_p - target_size // 2                # 顔を中心に持ってくるための切り出し位置
+def create_unet_diffusers_config(v2):
+  """
+  Creates a config for the diffusers based on the config of the LDM model.
+  """
+  # unet_params = original_config.model.params.unet_config.params
 
-      if self.random_crop:
-        # 背景も含めるために顔を中心に置く確率を高めつつずらす
-        range = max(length - face_p, face_p)        # 画像の端から顔中心までの距離の長いほう
-        p1 = p1 + (random.randint(0, range) + random.randint(0, range)) - range     # -range ~ +range までのいい感じの乱数
-      else:
-        # range指定があるときのみ、すこしだけランダムに（わりと適当）
-        if self.face_crop_aug_range[0] != self.face_crop_aug_range[1]:
-          if face_size > self.size // 10 and face_size >= 40:
-            p1 = p1 + random.randint(-face_size // 20, +face_size // 20)
+  block_out_channels = [UNET_PARAMS_MODEL_CHANNELS * mult for mult in UNET_PARAMS_CHANNEL_MULT]
 
-      p1 = max(0, min(p1, length - target_size))
+  down_block_types = []
+  resolution = 1
+  for i in range(len(block_out_channels)):
+    block_type = "CrossAttnDownBlock2D" if resolution in UNET_PARAMS_ATTENTION_RESOLUTIONS else "DownBlock2D"
+    down_block_types.append(block_type)
+    if i != len(block_out_channels) - 1:
+      resolution *= 2
 
-      if axis == 0:
-        image = image[p1:p1 + target_size, :]
-      else:
-        image = image[:, p1:p1 + target_size]
+  up_block_types = []
+  for i in range(len(block_out_channels)):
+    block_type = "CrossAttnUpBlock2D" if resolution in UNET_PARAMS_ATTENTION_RESOLUTIONS else "UpBlock2D"
+    up_block_types.append(block_type)
+    resolution //= 2
 
-    return image
+  config = dict(
+      sample_size=UNET_PARAMS_IMAGE_SIZE,
+      in_channels=UNET_PARAMS_IN_CHANNELS,
+      out_channels=UNET_PARAMS_OUT_CHANNELS,
+      down_block_types=tuple(down_block_types),
+      up_block_types=tuple(up_block_types),
+      block_out_channels=tuple(block_out_channels),
+      layers_per_block=UNET_PARAMS_NUM_RES_BLOCKS,
+      cross_attention_dim=UNET_PARAMS_CONTEXT_DIM if not v2 else V2_UNET_PARAMS_CONTEXT_DIM,
+      attention_head_dim=UNET_PARAMS_NUM_HEADS if not v2 else V2_UNET_PARAMS_ATTENTION_HEAD_DIM,
+  )
 
-  def load_latents_from_npz(self, image_info: ImageInfo, flipped):
-    npz_file = image_info.latents_npz_flipped if flipped else image_info.latents_npz
-    if npz_file is None:
+  return config
+
+
+def create_vae_diffusers_config():
+  """
+  Creates a config for the diffusers based on the config of the LDM model.
+  """
+  # vae_params = original_config.model.params.first_stage_config.params.ddconfig
+  # _ = original_config.model.params.first_stage_config.params.embed_dim
+  block_out_channels = [VAE_PARAMS_CH * mult for mult in VAE_PARAMS_CH_MULT]
+  down_block_types = ["DownEncoderBlock2D"] * len(block_out_channels)
+  up_block_types = ["UpDecoderBlock2D"] * len(block_out_channels)
+
+  config = dict(
+      sample_size=VAE_PARAMS_RESOLUTION,
+      in_channels=VAE_PARAMS_IN_CHANNELS,
+      out_channels=VAE_PARAMS_OUT_CH,
+      down_block_types=tuple(down_block_types),
+      up_block_types=tuple(up_block_types),
+      block_out_channels=tuple(block_out_channels),
+      latent_channels=VAE_PARAMS_Z_CHANNELS,
+      layers_per_block=VAE_PARAMS_NUM_RES_BLOCKS,
+  )
+  return config
+
+
+def convert_ldm_clip_checkpoint_v1(checkpoint):
+  keys = list(checkpoint.keys())
+  text_model_dict = {}
+  for key in keys:
+    if key.startswith("cond_stage_model.transformer"):
+      text_model_dict[key[len("cond_stage_model.transformer."):]] = checkpoint[key]
+  return text_model_dict
+
+
+def convert_ldm_clip_checkpoint_v2(checkpoint, max_length):
+  # 嫌になるくらい違うぞ！
+  def convert_key(key):
+    if not key.startswith("cond_stage_model"):
       return None
-    return np.load(npz_file)['arr_0']
 
-  def __len__(self):
-    return self._length
+    # common conversion
+    key = key.replace("cond_stage_model.model.transformer.", "text_model.encoder.")
+    key = key.replace("cond_stage_model.model.", "text_model.")
 
-  def __getitem__(self, index):
-    if index == 0:
-      self.shuffle_buckets()
-
-    bucket = self.buckets[self.buckets_indices[index].bucket_index]
-    image_index = self.buckets_indices[index].batch_index * self.batch_size
-
-    loss_weights = []
-    captions = []
-    input_ids_list = []
-    latents_list = []
-    images = []
-
-    for image_key in bucket[image_index:image_index + self.batch_size]:
-      image_info = self.image_data[image_key]
-      loss_weights.append(self.prior_loss_weight if image_info.is_reg else 1.0)
-
-      # image/latentsを処理する
-      if image_info.latents is not None:
-        latents = image_info.latents if not self.flip_aug or random.random() < .5 else image_info.latents_flipped
-        image = None
-      elif image_info.latents_npz is not None:
-        latents = self.load_latents_from_npz(image_info, self.flip_aug and random.random() >= .5)
-        latents = torch.FloatTensor(latents)
-        image = None
+    if "resblocks" in key:
+      # resblocks conversion
+      key = key.replace(".resblocks.", ".layers.")
+      if ".ln_" in key:
+        key = key.replace(".ln_", ".layer_norm")
+      elif ".mlp." in key:
+        key = key.replace(".c_fc.", ".fc1.")
+        key = key.replace(".c_proj.", ".fc2.")
+      elif '.attn.out_proj' in key:
+        key = key.replace(".attn.out_proj.", ".self_attn.out_proj.")
+      elif '.attn.in_proj' in key:
+        key = None                  # 特殊なので後で処理する
       else:
-        # 画像を読み込み、必要ならcropする
-        img, face_cx, face_cy, face_w, face_h = self.load_image_with_face_info(image_info.absolute_path)
-        im_h, im_w = img.shape[0:2]
+        raise ValueError(f"unexpected key in SD: {key}")
+    elif '.positional_embedding' in key:
+      key = key.replace(".positional_embedding", ".embeddings.position_embedding.weight")
+    elif '.text_projection' in key:
+      key = None    # 使われない???
+    elif '.logit_scale' in key:
+      key = None    # 使われない???
+    elif '.token_embedding' in key:
+      key = key.replace(".token_embedding.weight", ".embeddings.token_embedding.weight")
+    elif '.ln_final' in key:
+      key = key.replace(".ln_final", ".final_layer_norm")
+    return key
 
-        if self.enable_bucket:
-          img = self.resize_and_trim(img, image_info.bucket_reso)
-        else:
-          if face_cx > 0:                   # 顔位置情報あり
-            img = self.crop_target(img, face_cx, face_cy, face_w, face_h)
-          elif im_h > self.height or im_w > self.width:
-            assert self.random_crop, f"image too large, but cropping and bucketing are disabled / 画像サイズが大きいのでface_crop_aug_rangeかrandom_crop、またはbucketを有効にしてください: {image_info.absolute_path}"
-            if im_h > self.height:
-              p = random.randint(0, im_h - self.height)
-              img = img[p:p + self.height]
-            if im_w > self.width:
-              p = random.randint(0, im_w - self.width)
-              img = img[:, p:p + self.width]
+  keys = list(checkpoint.keys())
+  new_sd = {}
+  for key in keys:
+    # remove resblocks 23
+    if '.resblocks.23.' in key:
+      continue
+    new_key = convert_key(key)
+    if new_key is None:
+      continue
+    new_sd[new_key] = checkpoint[key]
 
-          im_h, im_w = img.shape[0:2]
-          assert im_h == self.height and im_w == self.width, f"image size is small / 画像サイズが小さいようです: {image_info.absolute_path}"
+  # attnの変換
+  for key in keys:
+    if '.resblocks.23.' in key:
+      continue
+    if '.resblocks' in key and '.attn.in_proj_' in key:
+      # 三つに分割
+      values = torch.chunk(checkpoint[key], 3)
 
-        # augmentation
-        if self.aug is not None:
-          img = self.aug(image=img)['image']
+      key_suffix = ".weight" if "weight" in key else ".bias"
+      key_pfx = key.replace("cond_stage_model.model.transformer.resblocks.", "text_model.encoder.layers.")
+      key_pfx = key_pfx.replace("_weight", "")
+      key_pfx = key_pfx.replace("_bias", "")
+      key_pfx = key_pfx.replace(".attn.in_proj", ".self_attn.")
+      new_sd[key_pfx + "q_proj" + key_suffix] = values[0]
+      new_sd[key_pfx + "k_proj" + key_suffix] = values[1]
+      new_sd[key_pfx + "v_proj" + key_suffix] = values[2]
 
-        latents = None
-        image = self.image_transforms(img)      # -1.0~1.0のtorch.Tensorになる
+  # rename or add position_ids
+  ANOTHER_POSITION_IDS_KEY = "text_model.encoder.text_model.embeddings.position_ids"
+  if ANOTHER_POSITION_IDS_KEY in new_sd:
+    # waifu diffusion v1.4
+    position_ids = new_sd[ANOTHER_POSITION_IDS_KEY]
+    del new_sd[ANOTHER_POSITION_IDS_KEY]
+  else:
+    position_ids = torch.Tensor([list(range(max_length))]).to(torch.int64)
+  
+  new_sd["text_model.embeddings.position_ids"] = position_ids
+  return new_sd
 
-      images.append(image)
-      latents_list.append(latents)
-
-      caption = self.process_caption(image_info.caption)
-      captions.append(caption)
-      if not self.token_padding_disabled:                     # this option might be omitted in future
-        input_ids_list.append(self.get_input_ids(caption))
-
-    example = {}
-    example['loss_weights'] = torch.FloatTensor(loss_weights)
-
-    if self.token_padding_disabled:
-      # padding=True means pad in the batch
-      example['input_ids'] = self.tokenizer(captions, padding=True, truncation=True, return_tensors="pt").input_ids
-    else:
-      # batch processing seems to be good
-      example['input_ids'] = torch.stack(input_ids_list)
-
-    if images[0] is not None:
-      images = torch.stack(images)
-      images = images.to(memory_format=torch.contiguous_format).float()
-    else:
-      images = None
-    example['images'] = images
-
-    example['latents'] = torch.stack(latents_list) if latents_list[0] is not None else None
-
-    if self.debug_dataset:
-      example['image_keys'] = bucket[image_index:image_index + self.batch_size]
-      example['captions'] = captions
-    return example
+# endregion
 
 
-class DreamBoothDataset(BaseDataset):
-  def __init__(self, batch_size, train_data_dir, reg_data_dir, tokenizer, max_token_length, caption_extension, shuffle_caption, shuffle_keep_tokens, resolution, enable_bucket, min_bucket_reso, max_bucket_reso, prior_loss_weight, flip_aug, color_aug, face_crop_aug_range, random_crop, debug_dataset) -> None:
-    super().__init__(tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens,
-                     resolution, flip_aug, color_aug, face_crop_aug_range, random_crop, debug_dataset)
+# region Diffusers->StableDiffusion の変換コード
+# convert_diffusers_to_original_stable_diffusion をコピーして修正している（ASL 2.0）
 
-    assert resolution is not None, f"resolution is required / resolution（解像度）指定は必須です"
+def conv_transformer_to_linear(checkpoint):
+  keys = list(checkpoint.keys())
+  tf_keys = ["proj_in.weight", "proj_out.weight"]
+  for key in keys:
+    if ".".join(key.split(".")[-2:]) in tf_keys:
+      if checkpoint[key].ndim > 2:
+        checkpoint[key] = checkpoint[key][:, :, 0, 0]
 
-    self.batch_size = batch_size
-    self.size = min(self.width, self.height)                  # 短いほう
-    self.prior_loss_weight = prior_loss_weight
-    self.latents_cache = None
 
-    self.enable_bucket = enable_bucket
-    if self.enable_bucket:
-      assert min(resolution) >= min_bucket_reso, f"min_bucket_reso must be equal or less than resolution / min_bucket_resoは最小解像度より大きくできません。解像度を大きくするかmin_bucket_resoを小さくしてください"
-      assert max(resolution) <= max_bucket_reso, f"max_bucket_reso must be equal or greater than resolution / max_bucket_resoは最大解像度より小さくできません。解像度を小さくするかmin_bucket_resoを大きくしてください"
-      self.bucket_resos, self.bucket_aspect_ratios = model_util.make_bucket_resolutions(
-          (self.width, self.height), min_bucket_reso, max_bucket_reso)
-    else:
-      self.bucket_resos = [(self.width, self.height)]
-      self.bucket_aspect_ratios = [self.width / self.height]
+def convert_unet_state_dict_to_sd(v2, unet_state_dict):
+  unet_conversion_map = [
+      # (stable-diffusion, HF Diffusers)
+      ("time_embed.0.weight", "time_embedding.linear_1.weight"),
+      ("time_embed.0.bias", "time_embedding.linear_1.bias"),
+      ("time_embed.2.weight", "time_embedding.linear_2.weight"),
+      ("time_embed.2.bias", "time_embedding.linear_2.bias"),
+      ("input_blocks.0.0.weight", "conv_in.weight"),
+      ("input_blocks.0.0.bias", "conv_in.bias"),
+      ("out.0.weight", "conv_norm_out.weight"),
+      ("out.0.bias", "conv_norm_out.bias"),
+      ("out.2.weight", "conv_out.weight"),
+      ("out.2.bias", "conv_out.bias"),
+  ]
 
-    def read_caption(img_path):
-      # captionの候補ファイル名を作る
-      base_name = os.path.splitext(img_path)[0]
-      base_name_face_det = base_name
-      tokens = base_name.split("_")
-      if len(tokens) >= 5:
-        base_name_face_det = "_".join(tokens[:-4])
-      cap_paths = [base_name + caption_extension, base_name_face_det + caption_extension]
+  unet_conversion_map_resnet = [
+      # (stable-diffusion, HF Diffusers)
+      ("in_layers.0", "norm1"),
+      ("in_layers.2", "conv1"),
+      ("out_layers.0", "norm2"),
+      ("out_layers.3", "conv2"),
+      ("emb_layers.1", "time_emb_proj"),
+      ("skip_connection", "conv_shortcut"),
+  ]
 
-      caption = None
-      for cap_path in cap_paths:
-        if os.path.isfile(cap_path):
-          with open(cap_path, "rt", encoding='utf-8') as f:
-            try:
-              lines = f.readlines()
-            except UnicodeDecodeError as e:
-              print(f"illegal char in file (not UTF-8) / ファイルにUTF-8以外の文字があります: {cap_path}")
-              raise e
-            assert len(lines) > 0, f"caption file is empty / キャプションファイルが空です: {cap_path}"
-            caption = lines[0].strip()
-          break
-      return caption
+  unet_conversion_map_layer = []
+  for i in range(4):
+      # loop over downblocks/upblocks
 
-    def load_dreambooth_dir(dir):
-      if not os.path.isdir(dir):
-        # print(f"ignore file: {dir}")
-        return 0, [], []
+    for j in range(2):
+        # loop over resnets/attentions for downblocks
+      hf_down_res_prefix = f"down_blocks.{i}.resnets.{j}."
+      sd_down_res_prefix = f"input_blocks.{3*i + j + 1}.0."
+      unet_conversion_map_layer.append((sd_down_res_prefix, hf_down_res_prefix))
 
-      tokens = os.path.basename(dir).split('_')
-      try:
-        n_repeats = int(tokens[0])
-      except ValueError as e:
-        print(f"ignore directory without repeats / 繰り返し回数のないディレクトリを無視します: {dir}")
-        return 0, [], []
+      if i < 3:
+        # no attention layers in down_blocks.3
+        hf_down_atn_prefix = f"down_blocks.{i}.attentions.{j}."
+        sd_down_atn_prefix = f"input_blocks.{3*i + j + 1}.1."
+        unet_conversion_map_layer.append((sd_down_atn_prefix, hf_down_atn_prefix))
 
-      caption_by_folder = '_'.join(tokens[1:])
-      img_paths = glob_images(dir, "*")
-      print(f"found directory {n_repeats}_{caption_by_folder} contains {len(img_paths)} image files")
+    for j in range(3):
+      # loop over resnets/attentions for upblocks
+      hf_up_res_prefix = f"up_blocks.{i}.resnets.{j}."
+      sd_up_res_prefix = f"output_blocks.{3*i + j}.0."
+      unet_conversion_map_layer.append((sd_up_res_prefix, hf_up_res_prefix))
 
-      # 画像ファイルごとにプロンプトを読み込み、もしあればそちらを使う
-      captions = []
-      for img_path in img_paths:
-        cap_for_img = read_caption(img_path)
-        captions.append(caption_by_folder if cap_for_img is None else cap_for_img)
+      if i > 0:
+        # no attention layers in up_blocks.0
+        hf_up_atn_prefix = f"up_blocks.{i}.attentions.{j}."
+        sd_up_atn_prefix = f"output_blocks.{3*i + j}.1."
+        unet_conversion_map_layer.append((sd_up_atn_prefix, hf_up_atn_prefix))
 
-      return n_repeats, img_paths, captions
+    if i < 3:
+      # no downsample in down_blocks.3
+      hf_downsample_prefix = f"down_blocks.{i}.downsamplers.0.conv."
+      sd_downsample_prefix = f"input_blocks.{3*(i+1)}.0.op."
+      unet_conversion_map_layer.append((sd_downsample_prefix, hf_downsample_prefix))
 
-    print("prepare train images.")
-    train_dirs = os.listdir(train_data_dir)
-    num_train_images = 0
-    for dir in train_dirs:
-      n_repeats, img_paths, captions = load_dreambooth_dir(os.path.join(train_data_dir, dir))
-      num_train_images += n_repeats * len(img_paths)
-      for img_path, caption in zip(img_paths, captions):
-        info = ImageInfo(img_path, n_repeats, caption, False, img_path)
-        self.register_image(info)
-    print(f"{num_train_images} train images with repeating.")
-    self.num_train_images = num_train_images
+      # no upsample in up_blocks.3
+      hf_upsample_prefix = f"up_blocks.{i}.upsamplers.0."
+      sd_upsample_prefix = f"output_blocks.{3*i + 2}.{1 if i == 0 else 2}."
+      unet_conversion_map_layer.append((sd_upsample_prefix, hf_upsample_prefix))
 
-    # reg imageは数を数えて学習画像と同じ枚数にする
-    num_reg_images = 0
-    if reg_data_dir:
-      print("prepare reg images.")
-      reg_infos: list[ImageInfo] = []
+  hf_mid_atn_prefix = "mid_block.attentions.0."
+  sd_mid_atn_prefix = "middle_block.1."
+  unet_conversion_map_layer.append((sd_mid_atn_prefix, hf_mid_atn_prefix))
 
-      reg_dirs = os.listdir(reg_data_dir)
-      for dir in reg_dirs:
-        n_repeats, img_paths, captions = load_dreambooth_dir(os.path.join(reg_data_dir, dir))
-        num_reg_images += n_repeats * len(img_paths)
-        for img_path, caption in zip(img_paths, captions):
-          info = ImageInfo(img_path, n_repeats, caption, True, img_path)
-          reg_infos.append(info)
+  for j in range(2):
+    hf_mid_res_prefix = f"mid_block.resnets.{j}."
+    sd_mid_res_prefix = f"middle_block.{2*j}."
+    unet_conversion_map_layer.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
-      print(f"{num_reg_images} reg images.")
-      if num_train_images < num_reg_images:
-        print("some of reg images are not used / 正則化画像の数が多いので、一部使用されない正則化画像があります")
+  # buyer beware: this is a *brittle* function,
+  # and correct output requires that all of these pieces interact in
+  # the exact order in which I have arranged them.
+  mapping = {k: k for k in unet_state_dict.keys()}
+  for sd_name, hf_name in unet_conversion_map:
+    mapping[hf_name] = sd_name
+  for k, v in mapping.items():
+    if "resnets" in k:
+      for sd_part, hf_part in unet_conversion_map_resnet:
+        v = v.replace(hf_part, sd_part)
+      mapping[k] = v
+  for k, v in mapping.items():
+    for sd_part, hf_part in unet_conversion_map_layer:
+      v = v.replace(hf_part, sd_part)
+    mapping[k] = v
+  new_state_dict = {v: unet_state_dict[k] for k, v in mapping.items()}
 
-      if num_reg_images == 0:
-        print("no regularization images / 正則化画像が見つかりませんでした")
+  if v2:
+    conv_transformer_to_linear(new_state_dict)
+
+  return new_state_dict
+
+
+# ================#
+# VAE Conversion #
+# ================#
+
+def reshape_weight_for_sd(w):
+    # convert HF linear weights to SD conv2d weights
+  return w.reshape(*w.shape, 1, 1)
+
+
+def convert_vae_state_dict(vae_state_dict):
+  vae_conversion_map = [
+      # (stable-diffusion, HF Diffusers)
+      ("nin_shortcut", "conv_shortcut"),
+      ("norm_out", "conv_norm_out"),
+      ("mid.attn_1.", "mid_block.attentions.0."),
+  ]
+
+  for i in range(4):
+    # down_blocks have two resnets
+    for j in range(2):
+      hf_down_prefix = f"encoder.down_blocks.{i}.resnets.{j}."
+      sd_down_prefix = f"encoder.down.{i}.block.{j}."
+      vae_conversion_map.append((sd_down_prefix, hf_down_prefix))
+
+    if i < 3:
+      hf_downsample_prefix = f"down_blocks.{i}.downsamplers.0."
+      sd_downsample_prefix = f"down.{i}.downsample."
+      vae_conversion_map.append((sd_downsample_prefix, hf_downsample_prefix))
+
+      hf_upsample_prefix = f"up_blocks.{i}.upsamplers.0."
+      sd_upsample_prefix = f"up.{3-i}.upsample."
+      vae_conversion_map.append((sd_upsample_prefix, hf_upsample_prefix))
+
+    # up_blocks have three resnets
+    # also, up blocks in hf are numbered in reverse from sd
+    for j in range(3):
+      hf_up_prefix = f"decoder.up_blocks.{i}.resnets.{j}."
+      sd_up_prefix = f"decoder.up.{3-i}.block.{j}."
+      vae_conversion_map.append((sd_up_prefix, hf_up_prefix))
+
+  # this part accounts for mid blocks in both the encoder and the decoder
+  for i in range(2):
+    hf_mid_res_prefix = f"mid_block.resnets.{i}."
+    sd_mid_res_prefix = f"mid.block_{i+1}."
+    vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
+
+  vae_conversion_map_attn = [
+      # (stable-diffusion, HF Diffusers)
+      ("norm.", "group_norm."),
+      ("q.", "query."),
+      ("k.", "key."),
+      ("v.", "value."),
+      ("proj_out.", "proj_attn."),
+  ]
+
+  mapping = {k: k for k in vae_state_dict.keys()}
+  for k, v in mapping.items():
+    for sd_part, hf_part in vae_conversion_map:
+      v = v.replace(hf_part, sd_part)
+    mapping[k] = v
+  for k, v in mapping.items():
+    if "attentions" in k:
+      for sd_part, hf_part in vae_conversion_map_attn:
+        v = v.replace(hf_part, sd_part)
+      mapping[k] = v
+  new_state_dict = {v: vae_state_dict[k] for k, v in mapping.items()}
+  weights_to_convert = ["q", "k", "v", "proj_out"]
+  for k, v in new_state_dict.items():
+    for weight_name in weights_to_convert:
+      if f"mid.attn_1.{weight_name}.weight" in k:
+        # print(f"Reshaping {k} for SD format")
+        new_state_dict[k] = reshape_weight_for_sd(v)
+
+  return new_state_dict
+
+
+# endregion
+
+# region 自作のモデル読み書きなど
+
+def is_safetensors(path):
+  return os.path.splitext(path)[1].lower() == '.safetensors'
+
+
+def load_checkpoint_with_text_encoder_conversion(ckpt_path):
+  # text encoderの格納形式が違うモデルに対応する ('text_model'がない)
+  TEXT_ENCODER_KEY_REPLACEMENTS = [
+      ('cond_stage_model.transformer.embeddings.', 'cond_stage_model.transformer.text_model.embeddings.'),
+      ('cond_stage_model.transformer.encoder.', 'cond_stage_model.transformer.text_model.encoder.'),
+      ('cond_stage_model.transformer.final_layer_norm.', 'cond_stage_model.transformer.text_model.final_layer_norm.')
+  ]
+
+  checkpoint = (load_file(ckpt_path, "cpu") if is_safetensors(ckpt_path) 
+                else torch.load(ckpt_path, map_location="cpu"))
+  state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
+  if not "state_dict" in checkpoint: checkpoint = None
+
+  key_reps = []
+  for rep_from, rep_to in TEXT_ENCODER_KEY_REPLACEMENTS:
+    for key in state_dict.keys():
+      if key.startswith(rep_from):
+        new_key = rep_to + key[len(rep_from):]
+        key_reps.append((key, new_key))
+
+  for key, new_key in key_reps:
+    state_dict[new_key] = state_dict[key]
+    del state_dict[key]
+
+  return checkpoint, state_dict
+
+
+# TODO dtype指定の動作が怪しいので確認する text_encoderを指定形式で作れるか未確認
+def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
+  _, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path)
+  if dtype is not None:
+    for k, v in state_dict.items():
+      if type(v) is torch.Tensor:
+        state_dict[k] = v.to(dtype)
+
+  # Convert the UNet2DConditionModel model.
+  unet_config = create_unet_diffusers_config(v2)
+  converted_unet_checkpoint = convert_ldm_unet_checkpoint(v2, state_dict, unet_config)
+
+  unet = UNet2DConditionModel(**unet_config)
+  info = unet.load_state_dict(converted_unet_checkpoint)
+  print("loading u-net:", info)
+
+  # Convert the VAE model.
+  vae_config = create_vae_diffusers_config()
+  converted_vae_checkpoint = convert_ldm_vae_checkpoint(state_dict, vae_config)
+
+  vae = AutoencoderKL(**vae_config)
+  info = vae.load_state_dict(converted_vae_checkpoint)
+  print("loadint vae:", info)
+
+  # convert text_model
+  if v2:
+    converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v2(state_dict, 77)
+    cfg = CLIPTextConfig(
+        vocab_size=49408,
+        hidden_size=1024,
+        intermediate_size=4096,
+        num_hidden_layers=23,
+        num_attention_heads=16,
+        max_position_embeddings=77,
+        hidden_act="gelu",
+        layer_norm_eps=1e-05,
+        dropout=0.0,
+        attention_dropout=0.0,
+        initializer_range=0.02,
+        initializer_factor=1.0,
+        pad_token_id=1,
+        bos_token_id=0,
+        eos_token_id=2,
+        model_type="clip_text_model",
+        projection_dim=512,
+        torch_dtype="float32",
+        transformers_version="4.25.0.dev0",
+    )
+    text_model = CLIPTextModel._from_config(cfg)
+    info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+  else:
+    converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
+    text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
+    info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+  print("loading text encoder:", info)
+
+  return text_model, vae, unet
+
+
+def convert_text_encoder_state_dict_to_sd_v2(checkpoint, make_dummy_weights=False):
+  def convert_key(key):
+    # position_idsの除去
+    if ".position_ids" in key:
+      return None
+
+    # common
+    key = key.replace("text_model.encoder.", "transformer.")
+    key = key.replace("text_model.", "")
+    if "layers" in key:
+      # resblocks conversion
+      key = key.replace(".layers.", ".resblocks.")
+      if ".layer_norm" in key:
+        key = key.replace(".layer_norm", ".ln_")
+      elif ".mlp." in key:
+        key = key.replace(".fc1.", ".c_fc.")
+        key = key.replace(".fc2.", ".c_proj.")
+      elif '.self_attn.out_proj' in key:
+        key = key.replace(".self_attn.out_proj.", ".attn.out_proj.")
+      elif '.self_attn.' in key:
+        key = None                  # 特殊なので後で処理する
       else:
-        # num_repeatsを計算する：どうせ大した数ではないのでループで処理する
-        n = 0
-        first_loop = True
-        while n < num_train_images:
-          for info in reg_infos:
-            if first_loop:
-              self.register_image(info)
-              n += info.num_repeats
-            else:
-              info.num_repeats += 1
-              n += 1
-            if n >= num_train_images:
-              break
-          first_loop = False
+        raise ValueError(f"unexpected key in DiffUsers model: {key}")
+    elif '.position_embedding' in key:
+      key = key.replace("embeddings.position_embedding.weight", "positional_embedding")
+    elif '.token_embedding' in key:
+      key = key.replace("embeddings.token_embedding.weight", "token_embedding.weight")
+    elif 'final_layer_norm' in key:
+      key = key.replace("final_layer_norm", "ln_final")
+    return key
 
-    self.num_reg_images = num_reg_images
+  keys = list(checkpoint.keys())
+  new_sd = {}
+  for key in keys:
+    new_key = convert_key(key)
+    if new_key is None:
+      continue
+    new_sd[new_key] = checkpoint[key]
+
+  # attnの変換
+  for key in keys:
+    if 'layers' in key and 'q_proj' in key:
+      # 三つを結合
+      key_q = key
+      key_k = key.replace("q_proj", "k_proj")
+      key_v = key.replace("q_proj", "v_proj")
+
+      value_q = checkpoint[key_q]
+      value_k = checkpoint[key_k]
+      value_v = checkpoint[key_v]
+      value = torch.cat([value_q, value_k, value_v])
+
+      new_key = key.replace("text_model.encoder.layers.", "transformer.resblocks.")
+      new_key = new_key.replace(".self_attn.q_proj.", ".attn.in_proj_")
+      new_sd[new_key] = value
+
+  # 最後の層などを捏造するか
+  if make_dummy_weights:
+    print("make dummy weights for resblock.23, text_projection and logit scale.")
+    keys = list(new_sd.keys())
+    for key in keys:
+      if key.startswith("transformer.resblocks.22."):
+        new_sd[key.replace(".22.", ".23.")] = new_sd[key].clone()          # copyしないとsafetensorsの保存で落ちる
+
+    # Diffusersに含まれない重みを作っておく
+    new_sd['text_projection'] = torch.ones((1024, 1024), dtype=new_sd[keys[0]].dtype, device=new_sd[keys[0]].device)
+    new_sd['logit_scale'] = torch.tensor(1)
+
+  return new_sd
 
 
-class FineTuningDataset(BaseDataset):
-  def __init__(self, json_file_name, batch_size, train_data_dir, tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens, resolution, enable_bucket, min_bucket_reso, max_bucket_reso, flip_aug, color_aug, face_crop_aug_range, random_crop, dataset_repeats, debug_dataset) -> None:
-    super().__init__(tokenizer, max_token_length, shuffle_caption, shuffle_keep_tokens,
-                     resolution, flip_aug, color_aug, face_crop_aug_range, random_crop, debug_dataset)
-
-    # メタデータを読み込む
-    if os.path.exists(json_file_name):
-      print(f"loading existing metadata: {json_file_name}")
-      with open(json_file_name, "rt", encoding='utf-8') as f:
-        metadata = json.load(f)
+def save_stable_diffusion_checkpoint(v2, output_file, text_encoder, unet, ckpt_path, epochs, steps, save_dtype=None, vae=None):
+  if ckpt_path is not None:
+    # epoch/stepを参照する。またVAEがメモリ上にないときなど、もう一度VAEを含めて読み込む
+    checkpoint, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path)
+    if checkpoint is None:                # safetensors または state_dictのckpt
+      checkpoint = {}
+      strict = False
     else:
-      raise ValueError(f"no metadata / メタデータファイルがありません: {json_file_name}")
+      strict = True
+    if "state_dict" in state_dict:
+      del state_dict["state_dict"]
+  else:
+    # 新しく作る
+    assert vae is not None, "VAE is required to save a checkpoint without a given checkpoint"
+    checkpoint = {}
+    state_dict = {}
+    strict = False
 
-    self.metadata = metadata
-    self.train_data_dir = train_data_dir
-    self.batch_size = batch_size
+  def update_sd(prefix, sd):
+    for k, v in sd.items():
+      key = prefix + k
+      assert not strict or key in state_dict, f"Illegal key in save SD: {key}"
+      if save_dtype is not None:
+        v = v.detach().clone().to("cpu").to(save_dtype)
+      state_dict[key] = v
 
-    for image_key, img_md in metadata.items():
-      # path情報を作る
-      if os.path.exists(image_key):
-        abs_path = image_key
-      else:
-        # わりといい加減だがいい方法が思いつかん
-        abs_path = glob_images(train_data_dir, image_key)
-        assert len(abs_path) >= 1, f"no image / 画像がありません: {abs_path}"
-        abs_path = abs_path[0]
+  # Convert the UNet model
+  unet_state_dict = convert_unet_state_dict_to_sd(v2, unet.state_dict())
+  update_sd("model.diffusion_model.", unet_state_dict)
 
-      caption = img_md.get('caption')
-      tags = img_md.get('tags')
-      if caption is None:
-        caption = tags
-      elif tags is not None and len(tags) > 0:
-        caption = caption + ', ' + tags
-      assert caption is not None and len(caption) > 0, f"caption or tag is required / キャプションまたはタグは必須です:{abs_path}"
+  # Convert the text encoder model
+  if v2:
+    make_dummy = ckpt_path is None                 # 参照元のcheckpointがない場合は最後の層を前の層から複製して作るなどダミーの重みを入れる
+    text_enc_dict = convert_text_encoder_state_dict_to_sd_v2(text_encoder.state_dict(), make_dummy)
+    update_sd("cond_stage_model.model.", text_enc_dict)
+  else:
+    text_enc_dict = text_encoder.state_dict()
+    update_sd("cond_stage_model.transformer.", text_enc_dict)
 
-      image_info = ImageInfo(image_key, dataset_repeats, caption, False, abs_path)
-      image_info.image_size = img_md.get('train_resolution')
+  # Convert the VAE
+  if vae is not None:
+    vae_dict = convert_vae_state_dict(vae.state_dict())
+    update_sd("first_stage_model.", vae_dict)
 
-      if not self.color_aug:
-        # if npz exists, use them
-        image_info.latents_npz, image_info.latents_npz_flipped = self.image_key_to_npz_file(image_key)
+  # Put together new checkpoint
+  key_count = len(state_dict.keys())
+  new_ckpt = {'state_dict': state_dict}
 
-      self.register_image(image_info)
-    self.num_train_images = len(metadata) * dataset_repeats
-    self.num_reg_images = 0
+  if 'epoch' in checkpoint:
+    epochs += checkpoint['epoch']
+  if 'global_step' in checkpoint:
+    steps += checkpoint['global_step']
 
-    # check existence of all npz files
-    if not self.color_aug:
-      npz_any = False
-      npz_all = True
-      for image_info in self.image_data.values():
-        has_npz = image_info.latents_npz is not None
-        npz_any = npz_any or has_npz
+  new_ckpt['epoch'] = epochs
+  new_ckpt['global_step'] = steps
 
-        if self.flip_aug:
-          has_npz = has_npz and image_info.latents_npz_flipped is not None
-        npz_all = npz_all and has_npz
+  if is_safetensors(output_file):
+    # TODO Tensor以外のdictの値を削除したほうがいいか
+    save_file(state_dict, output_file)
+  else:
+    torch.save(new_ckpt, output_file)
 
-        if npz_any and not npz_all:
-          break
+  return key_count
 
-      if not npz_any:
-        print(f"npz file does not exist. make latents with VAE / npzファイルが見つからないためVAEを使ってlatentsを取得します")
-      elif not npz_all:
-        print(f"some of npz file does not exist. ignore npz files / いくつかのnpzファイルが見つからないためnpzファイルを無視します")
-        for image_info in self.image_data.values():
-          image_info.latents_npz = image_info.latents_npz_flipped = None
 
-    # check min/max bucket size
-    sizes = set()
-    resos = set()
-    for image_info in self.image_data.values():
-      if image_info.image_size is None:
-        sizes = None                  # not calculated
-        break
-      sizes.add(image_info.image_size[0])
-      sizes.add(image_info.image_size[1])
-      resos.add(tuple(image_info.image_size))
-
-    if sizes is None:
-      assert resolution is not None, "if metadata doesn't have bucket info, resolution is required / メタデータにbucket情報がない場合はresolutionを指定してください"
-
-      self.enable_bucket = enable_bucket
-      if self.enable_bucket:
-        assert min(resolution) >= min_bucket_reso, f"min_bucket_reso must be equal or less than resolution / min_bucket_resoは最小解像度より大きくできません。解像度を大きくするかmin_bucket_resoを小さくしてください"
-        assert max(resolution) <= max_bucket_reso, f"max_bucket_reso must be equal or greater than resolution / max_bucket_resoは最大解像度より小さくできません。解像度を小さくするかmin_bucket_resoを大きくしてください"
-        self.bucket_resos, self.bucket_aspect_ratios = model_util.make_bucket_resolutions(
-            (self.width, self.height), min_bucket_reso, max_bucket_reso)
-      else:
-        self.bucket_resos = [(self.width, self.height)]
-        self.bucket_aspect_ratios = [self.width / self.height]
+def save_diffusers_checkpoint(v2, output_dir, text_encoder, unet, pretrained_model_name_or_path, vae=None, use_safetensors=False):
+  if pretrained_model_name_or_path is None:
+    # load default settings for v1/v2
+    if v2:
+      pretrained_model_name_or_path = DIFFUSERS_REF_MODEL_ID_V2
     else:
-      if not enable_bucket:
-        print("metadata has bucket info, enable bucketing / メタデータにbucket情報があるためbucketを有効にします")
-      print("using bucket info in metadata / メタデータ内のbucket情報を使います")
-      self.enable_bucket = True
-      self.bucket_resos = list(resos)
-      self.bucket_resos.sort()
-      self.bucket_aspect_ratios = [w / h for w, h in self.bucket_resos]
+      pretrained_model_name_or_path = DIFFUSERS_REF_MODEL_ID_V1
 
-  def image_key_to_npz_file(self, image_key):
-    base_name = os.path.splitext(image_key)[0]
-    npz_file_norm = base_name + '.npz'
+  scheduler = DDIMScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler")
+  tokenizer = CLIPTokenizer.from_pretrained(pretrained_model_name_or_path, subfolder="tokenizer")
+  if vae is None:
+    vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae")
 
-    if os.path.exists(npz_file_norm):
-      # image_key is full path
-      npz_file_flip = base_name + '_flip.npz'
-      if not os.path.exists(npz_file_flip):
-        npz_file_flip = None
-      return npz_file_norm, npz_file_flip
-
-    # image_key is relative path
-    npz_file_norm = os.path.join(self.train_data_dir, image_key + '.npz')
-    npz_file_flip = os.path.join(self.train_data_dir, image_key + '_flip.npz')
-
-    if not os.path.exists(npz_file_norm):
-      npz_file_norm = None
-      npz_file_flip = None
-    elif not os.path.exists(npz_file_flip):
-      npz_file_flip = None
-
-    return npz_file_norm, npz_file_flip
+  pipeline = StableDiffusionPipeline(
+      unet=unet,
+      text_encoder=text_encoder,
+      vae=vae,
+      scheduler=scheduler,
+      tokenizer=tokenizer,
+      safety_checker=None,
+      feature_extractor=None,
+      requires_safety_checker=None,
+  )
+  pipeline.save_pretrained(output_dir, safe_serialization=use_safetensors)
 
 
-def debug_dataset(train_dataset):
-  print(f"Total dataset length (steps) / データセットの長さ（ステップ数）: {len(train_dataset)}")
-  print("Escape for exit. / Escキーで中断、終了します")
-  k = 0
-  for example in train_dataset:
-    if example['latents'] is not None:
-      print("sample has latents from npz file")
-    for j, (ik, cap, lw) in enumerate(zip(example['image_keys'], example['captions'], example['loss_weights'])):
-      print(f'{ik}, size: {train_dataset.image_data[ik].image_size}, caption: "{cap}", loss weight: {lw}')
-      if example['images'] is not None:
-        im = example['images'][j]
-        im = ((im.numpy() + 1.0) * 127.5).astype(np.uint8)
-        im = np.transpose(im, (1, 2, 0))                # c,H,W -> H,W,c
-        im = im[:, :, ::-1]                             # RGB -> BGR (OpenCV)
-        cv2.imshow("img", im)
-        k = cv2.waitKey()
-        cv2.destroyAllWindows()
-        if k == 27:
-          break
-    if k == 27 or example['images'] is None:
+VAE_PREFIX = "first_stage_model."
+
+
+def load_vae(vae_id, dtype):
+  print(f"load VAE: {vae_id}")
+  if os.path.isdir(vae_id) or not os.path.isfile(vae_id):
+    # Diffusers local/remote
+    try:
+      vae = AutoencoderKL.from_pretrained(vae_id, subfolder=None, torch_dtype=dtype)
+    except EnvironmentError as e:
+      print(f"exception occurs in loading vae: {e}")
+      print("retry with subfolder='vae'")
+      vae = AutoencoderKL.from_pretrained(vae_id, subfolder="vae", torch_dtype=dtype)
+    return vae
+
+  # local
+  vae_config = create_vae_diffusers_config()
+
+  vae_model = (load_file(vae_id, "cpu") if is_safetensors(vae_id)
+              else torch.load(vae_id, map_location="cpu"))
+  vae_sd = vae_model['state_dict'] if 'state_dict' in vae_model else vae_model
+  
+  full_model = False
+  for vae_key in vae_sd:
+    if vae_key.startswith(VAE_PREFIX):
+      full_model = True
       break
+    if not full_model:
+      sd = {}
+      for key, value in vae_sd.items():
+        sd[VAE_PREFIX + key] = value
+      vae_sd = sd
+      del sd
 
+  converted_vae_checkpoint = convert_ldm_vae_checkpoint(vae_sd, vae_config)
+  vae = AutoencoderKL(**vae_config)
+  vae.load_state_dict(converted_vae_checkpoint)
+  return vae
 
-def glob_images(dir, base):
-  img_paths = []
-  for ext in IMAGE_EXTENSIONS:
-    if base == '*':
-      img_paths.extend(glob.glob(os.path.join(glob.escape(dir), base + ext)))
-    else:
-      img_paths.extend(glob.glob(glob.escape(os.path.join(dir, base + ext))))
-  return img_paths
 
 # endregion
 
 
-# region モジュール入れ替え部
-"""
-高速化のためのモジュール入れ替え
-"""
-
-# FlashAttentionを使うCrossAttention
-# based on https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/memory_efficient_attention_pytorch/flash_attention.py
-# LICENSE MIT https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/LICENSE
-
-# constants
-
-EPSILON = 1e-6
-
-# helper functions
-
-
-def exists(val):
-  return val is not None
-
-
-def default(val, d):
-  return val if exists(val) else d
-
-
-def model_hash(filename):
-  try:
-    with open(filename, "rb") as file:
-      import hashlib
-      m = hashlib.sha256()
-
-      file.seek(0x100000)
-      m.update(file.read(0x10000))
-      return m.hexdigest()[0:8]
-  except FileNotFoundError:
-    return 'NOFILE'
-
-
-# flash attention forwards and backwards
-
-# https://arxiv.org/abs/2205.14135
-
-
-class FlashAttentionFunction(torch.autograd.function.Function):
-  @ staticmethod
-  @ torch.no_grad()
-  def forward(ctx, q, k, v, mask, causal, q_bucket_size, k_bucket_size):
-    """ Algorithm 2 in the paper """
-
-    device = q.device
-    dtype = q.dtype
-    max_neg_value = -torch.finfo(q.dtype).max
-    qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-    o = torch.zeros_like(q)
-    all_row_sums = torch.zeros((*q.shape[:-1], 1), dtype=dtype, device=device)
-    all_row_maxes = torch.full((*q.shape[:-1], 1), max_neg_value, dtype=dtype, device=device)
-
-    scale = (q.shape[-1] ** -0.5)
-
-    if not exists(mask):
-      mask = (None,) * math.ceil(q.shape[-2] / q_bucket_size)
-    else:
-      mask = rearrange(mask, 'b n -> b 1 1 n')
-      mask = mask.split(q_bucket_size, dim=-1)
-
-    row_splits = zip(
-        q.split(q_bucket_size, dim=-2),
-        o.split(q_bucket_size, dim=-2),
-        mask,
-        all_row_sums.split(q_bucket_size, dim=-2),
-        all_row_maxes.split(q_bucket_size, dim=-2),
-    )
-
-    for ind, (qc, oc, row_mask, row_sums, row_maxes) in enumerate(row_splits):
-      q_start_index = ind * q_bucket_size - qk_len_diff
-
-      col_splits = zip(
-          k.split(k_bucket_size, dim=-2),
-          v.split(k_bucket_size, dim=-2),
-      )
-
-      for k_ind, (kc, vc) in enumerate(col_splits):
-        k_start_index = k_ind * k_bucket_size
-
-        attn_weights = einsum('... i d, ... j d -> ... i j', qc, kc) * scale
-
-        if exists(row_mask):
-          attn_weights.masked_fill_(~row_mask, max_neg_value)
-
-        if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-          causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool,
-                                   device=device).triu(q_start_index - k_start_index + 1)
-          attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-        block_row_maxes = attn_weights.amax(dim=-1, keepdims=True)
-        attn_weights -= block_row_maxes
-        exp_weights = torch.exp(attn_weights)
-
-        if exists(row_mask):
-          exp_weights.masked_fill_(~row_mask, 0.)
-
-        block_row_sums = exp_weights.sum(dim=-1, keepdims=True).clamp(min=EPSILON)
-
-        new_row_maxes = torch.maximum(block_row_maxes, row_maxes)
-
-        exp_values = einsum('... i j, ... j d -> ... i d', exp_weights, vc)
-
-        exp_row_max_diff = torch.exp(row_maxes - new_row_maxes)
-        exp_block_row_max_diff = torch.exp(block_row_maxes - new_row_maxes)
-
-        new_row_sums = exp_row_max_diff * row_sums + exp_block_row_max_diff * block_row_sums
-
-        oc.mul_((row_sums / new_row_sums) * exp_row_max_diff).add_((exp_block_row_max_diff / new_row_sums) * exp_values)
-
-        row_maxes.copy_(new_row_maxes)
-        row_sums.copy_(new_row_sums)
-
-    ctx.args = (causal, scale, mask, q_bucket_size, k_bucket_size)
-    ctx.save_for_backward(q, k, v, o, all_row_sums, all_row_maxes)
-
-    return o
-
-  @ staticmethod
-  @ torch.no_grad()
-  def backward(ctx, do):
-    """ Algorithm 4 in the paper """
-
-    causal, scale, mask, q_bucket_size, k_bucket_size = ctx.args
-    q, k, v, o, l, m = ctx.saved_tensors
-
-    device = q.device
-
-    max_neg_value = -torch.finfo(q.dtype).max
-    qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-    dq = torch.zeros_like(q)
-    dk = torch.zeros_like(k)
-    dv = torch.zeros_like(v)
-
-    row_splits = zip(
-        q.split(q_bucket_size, dim=-2),
-        o.split(q_bucket_size, dim=-2),
-        do.split(q_bucket_size, dim=-2),
-        mask,
-        l.split(q_bucket_size, dim=-2),
-        m.split(q_bucket_size, dim=-2),
-        dq.split(q_bucket_size, dim=-2)
-    )
-
-    for ind, (qc, oc, doc, row_mask, lc, mc, dqc) in enumerate(row_splits):
-      q_start_index = ind * q_bucket_size - qk_len_diff
-
-      col_splits = zip(
-          k.split(k_bucket_size, dim=-2),
-          v.split(k_bucket_size, dim=-2),
-          dk.split(k_bucket_size, dim=-2),
-          dv.split(k_bucket_size, dim=-2),
-      )
-
-      for k_ind, (kc, vc, dkc, dvc) in enumerate(col_splits):
-        k_start_index = k_ind * k_bucket_size
-
-        attn_weights = einsum('... i d, ... j d -> ... i j', qc, kc) * scale
-
-        if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-          causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool,
-                                   device=device).triu(q_start_index - k_start_index + 1)
-          attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-        exp_attn_weights = torch.exp(attn_weights - mc)
-
-        if exists(row_mask):
-          exp_attn_weights.masked_fill_(~row_mask, 0.)
-
-        p = exp_attn_weights / lc
-
-        dv_chunk = einsum('... i j, ... i d -> ... j d', p, doc)
-        dp = einsum('... i d, ... j d -> ... i j', doc, vc)
-
-        D = (doc * oc).sum(dim=-1, keepdims=True)
-        ds = p * scale * (dp - D)
-
-        dq_chunk = einsum('... i j, ... j d -> ... i d', ds, kc)
-        dk_chunk = einsum('... i j, ... i d -> ... j d', ds, qc)
-
-        dqc.add_(dq_chunk)
-        dkc.add_(dk_chunk)
-        dvc.add_(dv_chunk)
-
-    return dq, dk, dv, None, None, None, None
-
-
-def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers):
-  if mem_eff_attn:
-    replace_unet_cross_attn_to_memory_efficient()
-  elif xformers:
-    replace_unet_cross_attn_to_xformers()
-
-
-def replace_unet_cross_attn_to_memory_efficient():
-  print("Replace CrossAttention.forward to use FlashAttention (not xformers)")
-  flash_func = FlashAttentionFunction
-
-  def forward_flash_attn(self, x, context=None, mask=None):
-    q_bucket_size = 512
-    k_bucket_size = 1024
-
-    h = self.heads
-    q = self.to_q(x)
-
-    context = context if context is not None else x
-    context = context.to(x.dtype)
-
-    if hasattr(self, 'hypernetwork') and self.hypernetwork is not None:
-      context_k, context_v = self.hypernetwork.forward(x, context)
-      context_k = context_k.to(x.dtype)
-      context_v = context_v.to(x.dtype)
-    else:
-      context_k = context
-      context_v = context
-
-    k = self.to_k(context_k)
-    v = self.to_v(context_v)
-    del context, x
-
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
-
-    out = flash_func.apply(q, k, v, mask, False, q_bucket_size, k_bucket_size)
-
-    out = rearrange(out, 'b h n d -> b n (h d)')
-
-    # diffusers 0.7.0~  わざわざ変えるなよ (;´Д｀)
-    out = self.to_out[0](out)
-    out = self.to_out[1](out)
-    return out
-
-  diffusers.models.attention.CrossAttention.forward = forward_flash_attn
-
-
-def replace_unet_cross_attn_to_xformers():
-  print("Replace CrossAttention.forward to use xformers")
-  try:
-    import xformers.ops
-  except ImportError:
-    raise ImportError("No xformers / xformersがインストールされていないようです")
-
-  def forward_xformers(self, x, context=None, mask=None):
-    h = self.heads
-    q_in = self.to_q(x)
-
-    context = default(context, x)
-    context = context.to(x.dtype)
-
-    if hasattr(self, 'hypernetwork') and self.hypernetwork is not None:
-      context_k, context_v = self.hypernetwork.forward(x, context)
-      context_k = context_k.to(x.dtype)
-      context_v = context_v.to(x.dtype)
-    else:
-      context_k = context
-      context_v = context
-
-    k_in = self.to_k(context_k)
-    v_in = self.to_v(context_v)
-
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b n h d', h=h), (q_in, k_in, v_in))
-    del q_in, k_in, v_in
-
-    q = q.contiguous()
-    k = k.contiguous()
-    v = v.contiguous()
-    out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)        # 最適なのを選んでくれる
-
-    out = rearrange(out, 'b n h d -> b n (h d)', h=h)
-
-    # diffusers 0.7.0~
-    out = self.to_out[0](out)
-    out = self.to_out[1](out)
-    return out
-
-  diffusers.models.attention.CrossAttention.forward = forward_xformers
-# endregion
-
-
-# region arguments
-
-def add_sd_models_arguments(parser: argparse.ArgumentParser):
-  # for pretrained models
-  parser.add_argument("--v2", action='store_true',
-                      help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
-  parser.add_argument("--v_parameterization", action='store_true',
-                      help='enable v-parameterization training / v-parameterization学習を有効にする')
-  parser.add_argument("--pretrained_model_name_or_path", type=str, default=None,
-                      help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル")
-
-
-def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool):
-  parser.add_argument("--output_dir", type=str, default=None,
-                      help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
-  parser.add_argument("--output_name", type=str, default=None,
-                      help="base name of trained model file / 学習後のモデルの拡張子を除くファイル名")
-  parser.add_argument("--save_precision", type=str, default=None,
-                      choices=[None, "float", "fp16", "bf16"], help="precision in saving / 保存時に精度を変更して保存する")
-  parser.add_argument("--save_every_n_epochs", type=int, default=None,
-                      help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
-  parser.add_argument("--save_last_n_epochs", type=int, default=None, help="save last N checkpoints / 最大Nエポック保存する")
-  parser.add_argument("--save_state", action="store_true",
-                      help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
-  parser.add_argument("--resume", type=str, default=None, help="saved state to resume training / 学習再開するモデルのstate")
-
-  parser.add_argument("--train_batch_size", type=int, default=1, help="batch size for training / 学習時のバッチサイズ")
-  parser.add_argument("--max_token_length", type=int, default=None, choices=[None, 150, 225],
-                      help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
-  parser.add_argument("--use_8bit_adam", action="store_true",
-                      help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
-  parser.add_argument("--mem_eff_attn", action="store_true",
-                      help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
-  parser.add_argument("--xformers", action="store_true",
-                      help="use xformers for CrossAttention / CrossAttentionにxformersを使う")
-  parser.add_argument("--vae", type=str, default=None,
-                      help="path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ")
-
-  parser.add_argument("--learning_rate", type=float, default=2.0e-6, help="learning rate / 学習率")
-  parser.add_argument("--max_train_steps", type=int, default=1600, help="training steps / 学習ステップ数")
-  parser.add_argument("--seed", type=int, default=None, help="random seed for training / 学習時の乱数のseed")
-  parser.add_argument("--gradient_checkpointing", action="store_true",
-                      help="enable gradient checkpointing / grandient checkpointingを有効にする")
-  parser.add_argument("--gradient_accumulation_steps", type=int, default=1,
-                      help="Number of updates steps to accumulate before performing a backward/update pass / 学習時に逆伝播をする前に勾配を合計するステップ数")
-  parser.add_argument("--mixed_precision", type=str, default="no",
-                      choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
-  parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
-  parser.add_argument("--clip_skip", type=int, default=None,
-                      help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
-  parser.add_argument("--logging_dir", type=str, default=None,
-                      help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する")
-  parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
-  parser.add_argument("--lr_scheduler", type=str, default="constant",
-                      help="scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial, constant (default), constant_with_warmup")
-  parser.add_argument("--lr_warmup_steps", type=int, default=0,
-                      help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
-
-  if support_dreambooth:
-    # DreamBooth training
-    parser.add_argument("--prior_loss_weight", type=float, default=1.0,
-                        help="loss weight for regularization images / 正則化画像のlossの重み")
-
-
-def verify_training_args(args: argparse.Namespace):
-  if args.v_parameterization and not args.v2:
-    print("v_parameterization should be with v2 / v1でv_parameterizationを使用することは想定されていません")
-  if args.v2 and args.clip_skip is not None:
-    print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
-
-
-def add_dataset_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool, support_caption: bool):
-  # dataset common
-  parser.add_argument("--train_data_dir", type=str, default=None, help="directory for train images / 学習画像データのディレクトリ")
-  parser.add_argument("--shuffle_caption", action="store_true",
-                      help="shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする")
-  parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
-  parser.add_argument("--caption_extention", type=str, default=None,
-                      help="extension of caption files (backward compatibility) / 読み込むcaptionファイルの拡張子（スペルミスを残してあります）")
-  parser.add_argument("--keep_tokens", type=int, default=None,
-                      help="keep heading N tokens when shuffling caption tokens / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す")
-  parser.add_argument("--color_aug", action="store_true", help="enable weak color augmentation / 学習時に色合いのaugmentationを有効にする")
-  parser.add_argument("--flip_aug", action="store_true", help="enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする")
-  parser.add_argument("--face_crop_aug_range", type=str, default=None,
-                      help="enable face-centered crop augmentation and its range (e.g. 2.0,4.0) / 学習時に顔を中心とした切り出しaugmentationを有効にするときは倍率を指定する（例：2.0,4.0）")
-  parser.add_argument("--random_crop", action="store_true",
-                      help="enable random crop (for style training in face-centered crop augmentation) / ランダムな切り出しを有効にする（顔を中心としたaugmentationを行うときに画風の学習用に指定する）")
-  parser.add_argument("--debug_dataset", action="store_true",
-                      help="show images for debugging (do not train) / デバッグ用に学習データを画面表示する（学習は行わない）")
-  parser.add_argument("--resolution", type=str, default=None,
-                      help="resolution in training ('size' or 'width,height') / 学習時の画像解像度（'サイズ'指定、または'幅,高さ'指定）")
-  parser.add_argument("--cache_latents", action="store_true",
-                      help="cache latents to reduce memory (augmentations must be disabled) / メモリ削減のためにlatentをcacheする（augmentationは使用不可）")
-  parser.add_argument("--enable_bucket", action="store_true",
-                      help="enable buckets for multi aspect ratio training / 複数解像度学習のためのbucketを有効にする")
-  parser.add_argument("--min_bucket_reso", type=int, default=256, help="minimum resolution for buckets / bucketの最小解像度")
-  parser.add_argument("--max_bucket_reso", type=int, default=1024, help="maximum resolution for buckets / bucketの最大解像度")
-
-  if support_dreambooth:
-    # DreamBooth dataset
-    parser.add_argument("--reg_data_dir", type=str, default=None, help="directory for regularization images / 正則化画像データのディレクトリ")
-
-  if support_caption:
-    # caption dataset
-    parser.add_argument("--in_json", type=str, default=None, help="json metadata for dataset / データセットのmetadataのjsonファイル")
-    parser.add_argument("--dataset_repeats", type=int, default=1,
-                        help="repeat dataset when training with captions / キャプションでの学習時にデータセットを繰り返す回数")
-
-
-def add_sd_saving_arguments(parser: argparse.ArgumentParser):
-  parser.add_argument("--save_model_as", type=str, default=None, choices=[None, "ckpt", "safetensors", "diffusers", "diffusers_safetensors"],
-                      help="format to save the model (default is same to original) / モデル保存時の形式（未指定時は元モデルと同じ）")
-  parser.add_argument("--use_safetensors", action='store_true',
-                      help="use safetensors format to save (if save_model_as is not specified) / checkpoint、モデルをsafetensors形式で保存する（save_model_as未指定時）")
-
-# endregion
-
-# region utils
-
-
-def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
-  # backward compatibility
-  if args.caption_extention is not None:
-    args.caption_extension = args.caption_extention
-    args.caption_extention = None
-
-  if args.cache_latents:
-    assert not args.color_aug, "when caching latents, color_aug cannot be used / latentをキャッシュするときはcolor_augは使えません"
-
-  # assert args.resolution is not None, f"resolution is required / resolution（解像度）を指定してください"
-  if args.resolution is not None:
-    args.resolution = tuple([int(r) for r in args.resolution.split(',')])
-    if len(args.resolution) == 1:
-      args.resolution = (args.resolution[0], args.resolution[0])
-    assert len(args.resolution) == 2, \
-        f"resolution must be 'size' or 'width,height' / resolution（解像度）は'サイズ'または'幅','高さ'で指定してください: {args.resolution}"
-
-  if args.face_crop_aug_range is not None:
-    args.face_crop_aug_range = tuple([float(r) for r in args.face_crop_aug_range.split(',')])
-    assert len(args.face_crop_aug_range) == 2, \
-        f"face_crop_aug_range must be two floats / face_crop_aug_rangeは'下限,上限'で指定してください: {args.face_crop_aug_range}"
-  else:
-    args.face_crop_aug_range = None
-
-  if support_metadata:
-    if args.in_json is not None and args.color_aug:
-      print(f"latents in npz is ignored when color_aug is True / color_augを有効にした場合、npzファイルのlatentsは無視されます")
-
-
-def load_tokenizer(args: argparse.Namespace):
-  print("prepare tokenizer")
-  if args.v2:
-    tokenizer = CLIPTokenizer.from_pretrained(V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
-  else:
-    tokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)
-  if args.max_token_length is not None:
-    print(f"update token length: {args.max_token_length}")
-  return tokenizer
-
-
-def prepare_accelerator(args: argparse.Namespace):
-  if args.logging_dir is None:
-    log_with = None
-    logging_dir = None
-  else:
-    log_with = "tensorboard"
-    log_prefix = "" if args.log_prefix is None else args.log_prefix
-    logging_dir = args.logging_dir + "/" + log_prefix + time.strftime('%Y%m%d%H%M%S', time.localtime())
-
-  accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, mixed_precision=args.mixed_precision,
-                            log_with=log_with, logging_dir=logging_dir)
-
-  # accelerateの互換性問題を解決する
-  accelerator_0_15 = True
-  try:
-    accelerator.unwrap_model("dummy", True)
-    print("Using accelerator 0.15.0 or above.")
-  except TypeError:
-    accelerator_0_15 = False
-
-  def unwrap_model(model):
-    if accelerator_0_15:
-      return accelerator.unwrap_model(model, True)
-    return accelerator.unwrap_model(model)
-
-  return accelerator, unwrap_model
-
-
-def prepare_dtype(args: argparse.Namespace):
-  weight_dtype = torch.float32
-  if args.mixed_precision == "fp16":
-    weight_dtype = torch.float16
-  elif args.mixed_precision == "bf16":
-    weight_dtype = torch.bfloat16
-
-  save_dtype = None
-  if args.save_precision == "fp16":
-    save_dtype = torch.float16
-  elif args.save_precision == "bf16":
-    save_dtype = torch.bfloat16
-  elif args.save_precision == "float":
-    save_dtype = torch.float32
-
-  return weight_dtype, save_dtype
-
-
-def load_target_model(args: argparse.Namespace, weight_dtype):
-  load_stable_diffusion_format = os.path.isfile(args.pretrained_model_name_or_path)           # determine SD or Diffusers
-  if load_stable_diffusion_format:
-    print("load StableDiffusion checkpoint")
-    text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.pretrained_model_name_or_path)
-  else:
-    print("load Diffusers pretrained models")
-    pipe = StableDiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, tokenizer=None, safety_checker=None)
-    text_encoder = pipe.text_encoder
-    vae = pipe.vae
-    unet = pipe.unet
-    del pipe
-
-  # VAEを読み込む
-  if args.vae is not None:
-    vae = model_util.load_vae(args.vae, weight_dtype)
-    print("additional VAE loaded")
-
-  return text_encoder, vae, unet, load_stable_diffusion_format
-
-
-def patch_accelerator_for_fp16_training(accelerator):
-  org_unscale_grads = accelerator.scaler._unscale_grads_
-
-  def _unscale_grads_replacer(optimizer, inv_scale, found_inf, allow_fp16):
-    return org_unscale_grads(optimizer, inv_scale, found_inf, True)
-
-  accelerator.scaler._unscale_grads_ = _unscale_grads_replacer
-
-
-def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encoder, weight_dtype=None):
-  # with no_token_padding, the length is not max length, return result immediately
-  if input_ids.size()[-1] != tokenizer.model_max_length:
-    return text_encoder(input_ids)[0]
-
-  b_size = input_ids.size()[0]
-  input_ids = input_ids.reshape((-1, tokenizer.model_max_length))     # batch_size*3, 77
-
-  if args.clip_skip is None:
-    encoder_hidden_states = text_encoder(input_ids)[0]
-  else:
-    enc_out = text_encoder(input_ids, output_hidden_states=True, return_dict=True)
-    encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
-    if weight_dtype is not None:
-      # this is required for additional network training
-      encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
-    encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
-
-  # bs*3, 77, 768 or 1024
-  encoder_hidden_states = encoder_hidden_states.reshape((b_size, -1, encoder_hidden_states.shape[-1]))
-
-  if args.max_token_length is not None:
-    if args.v2:
-        # v2: <BOS>...<EOS> <PAD> ... の三連を <BOS>...<EOS> <PAD> ... へ戻す　正直この実装でいいのかわからん
-      states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
-      for i in range(1, args.max_token_length, tokenizer.model_max_length):
-        chunk = encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2]              # <BOS> の後から 最後の前まで
-        if i > 0:
-          for j in range(len(chunk)):
-            if input_ids[j, 1] == tokenizer.eos_token:                                      # 空、つまり <BOS> <EOS> <PAD> ...のパターン
-              chunk[j, 0] = chunk[j, 1]                                                     # 次の <PAD> の値をコピーする
-        states_list.append(chunk)  # <BOS> の後から <EOS> の前まで
-      states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS> か <PAD> のどちらか
-      encoder_hidden_states = torch.cat(states_list, dim=1)
-    else:
-      # v1: <BOS>...<EOS> の三連を <BOS>...<EOS> へ戻す
-      states_list = [encoder_hidden_states[:, 0].unsqueeze(1)]                              # <BOS>
-      for i in range(1, args.max_token_length, tokenizer.model_max_length):
-        states_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])  # <BOS> の後から <EOS> の前まで
-      states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS>
-      encoder_hidden_states = torch.cat(states_list, dim=1)
-
-  return encoder_hidden_states
-
-
-def get_epoch_ckpt_name(args: argparse.Namespace, use_safetensors, epoch):
-  model_name = DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
-  ckpt_name = EPOCH_FILE_NAME.format(model_name, epoch) + (".safetensors" if use_safetensors else ".ckpt")
-  return model_name, ckpt_name
-
-
-def save_on_epoch_end(args: argparse.Namespace, save_func, remove_old_func, epoch_no: int, num_train_epochs: int):
-  saving = epoch_no % args.save_every_n_epochs == 0 and epoch_no < num_train_epochs
-  remove_epoch_no = None
-  if saving:
-    os.makedirs(args.output_dir, exist_ok=True)
-    save_func()
-
-    if args.save_last_n_epochs is not None:
-      remove_epoch_no = epoch_no - args.save_every_n_epochs * args.save_last_n_epochs
-      remove_old_func(remove_epoch_no)
-  return saving, remove_epoch_no
-
-
-def save_sd_model_on_epoch_end(args: argparse.Namespace, accelerator, src_path: str, save_stable_diffusion_format: bool, use_safetensors: bool, save_dtype: torch.dtype, epoch: int, num_train_epochs: int, global_step: int, text_encoder, unet, vae):
-  epoch_no = epoch + 1
-  model_name, ckpt_name = get_epoch_ckpt_name(args, use_safetensors, epoch_no)
-
-  if save_stable_diffusion_format:
-    def save_sd():
-      ckpt_file = os.path.join(args.output_dir, ckpt_name)
-      print(f"saving checkpoint: {ckpt_file}")
-      model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, text_encoder, unet,
-                                                  src_path, epoch_no, global_step, save_dtype, vae)
-
-    def remove_sd(old_epoch_no):
-      _, old_ckpt_name = get_epoch_ckpt_name(args,  use_safetensors, old_epoch_no)
-      old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
-      if os.path.exists(old_ckpt_file):
-        print(f"removing old checkpoint: {old_ckpt_file}")
-        os.remove(old_ckpt_file)
-
-    save_func = save_sd
-    remove_old_func = remove_sd
-  else:
-    def save_du():
-      out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, epoch_no))
-      print(f"saving model: {out_dir}")
-      os.makedirs(out_dir, exist_ok=True)
-      model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet,
-                                           src_path, vae=vae, use_safetensors=use_safetensors)
-
-    def remove_du(old_epoch_no):
-      out_dir_old = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, old_epoch_no))
-      if os.path.exists(out_dir_old):
-        print(f"removing old model: {out_dir_old}")
-        shutil.rmtree(out_dir_old)
-
-    save_func = save_du
-    remove_old_func = remove_du
-
-  saving, remove_epoch_no = save_on_epoch_end(args, save_func, remove_old_func, epoch_no, num_train_epochs)
-  if saving and args.save_state:
-    save_state_on_epoch_end(args, accelerator, model_name, epoch_no, remove_epoch_no)
-
-
-def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, epoch_no, remove_epoch_no):
-  print("saving state.")
-  accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no)))
-  if remove_epoch_no is not None:
-    state_dir_old = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, remove_epoch_no))
-    if os.path.exists(state_dir_old):
-      print(f"removing old state: {state_dir_old}")
-      shutil.rmtree(state_dir_old)
-
-
-def save_sd_model_on_train_end(args: argparse.Namespace, src_path: str, save_stable_diffusion_format: bool, use_safetensors: bool, save_dtype: torch.dtype, epoch: int, global_step: int, text_encoder, unet, vae):
-  model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-
-  if save_stable_diffusion_format:
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    ckpt_name = model_name + (".safetensors" if use_safetensors else ".ckpt")
-    ckpt_file = os.path.join(args.output_dir, ckpt_name)
-
-    print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
-    model_util.save_stable_diffusion_checkpoint(args.v2, ckpt_file, text_encoder, unet,
-                                                src_path, epoch, global_step, save_dtype, vae)
-  else:
-    out_dir = os.path.join(args.output_dir, model_name)
-    os.makedirs(out_dir, exist_ok=True)
-
-    print(f"save trained model as Diffusers to {out_dir}")
-    model_util.save_diffusers_checkpoint(args.v2, out_dir, text_encoder, unet,
-                                         src_path, vae=vae, use_safetensors=use_safetensors)
-
-
-def save_state_on_train_end(args: argparse.Namespace, accelerator):
-  print("saving last state.")
-  os.makedirs(args.output_dir, exist_ok=True)
-  model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-  accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name)))
-
-
-# endregion
+def make_bucket_resolutions(max_reso, min_size=256, max_size=1024, divisible=64):
+  max_width, max_height = max_reso
+  max_area = (max_width // divisible) * (max_height // divisible)
+
+  resos = set()
+
+  size = int(math.sqrt(max_area)) * divisible
+  resos.add((size, size))
+
+  size = min_size
+  while size <= max_size:
+    width = size
+    height = min(max_size, (max_area // (width // divisible)) * divisible)
+    resos.add((width, height))
+    resos.add((height, width))
+
+    # # make additional resos
+    # if width >= height and width - divisible >= min_size:
+    #   resos.add((width - divisible, height))
+    #   resos.add((height, width - divisible))
+    # if height >= width and height - divisible >= min_size:
+    #   resos.add((width, height - divisible))
+    #   resos.add((height - divisible, width))
+
+    size += divisible
+
+  resos = list(resos)
+  resos.sort()
+
+  aspect_ratios = [w / h for w, h in resos]
+  return resos, aspect_ratios
+
+
+if __name__ == '__main__':
+  resos, aspect_ratios = make_bucket_resolutions((512, 768))
+  print(len(resos))
+  print(resos)
+  print(aspect_ratios)
+
+  ars = set()
+  for ar in aspect_ratios:
+    if ar in ars:
+      print("error! duplicate ar:", ar)
+    ars.add(ar)
