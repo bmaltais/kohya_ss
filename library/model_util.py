@@ -839,10 +839,16 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path):
       ('cond_stage_model.transformer.final_layer_norm.', 'cond_stage_model.transformer.text_model.final_layer_norm.')
   ]
 
-  checkpoint = (load_file(ckpt_path, "cpu") if is_safetensors(ckpt_path) 
-                else torch.load(ckpt_path, map_location="cpu"))
-  state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
-  if not "state_dict" in checkpoint: checkpoint = None
+  if is_safetensors(ckpt_path):
+    checkpoint = None
+    state_dict = load_file(ckpt_path, "cpu")
+  else:
+    checkpoint = torch.load(ckpt_path, map_location="cpu")
+    if "state_dict" in checkpoint:
+      state_dict = checkpoint["state_dict"]
+    else:
+      state_dict = checkpoint
+      checkpoint = None
 
   key_reps = []
   for rep_from, rep_to in TEXT_ENCODER_KEY_REPLACEMENTS:
@@ -856,6 +862,7 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path):
     del state_dict[key]
 
   return checkpoint, state_dict
+
 
 
 # TODO dtype指定の動作が怪しいので確認する text_encoderを指定形式で作れるか未確認
