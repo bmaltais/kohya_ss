@@ -705,7 +705,7 @@ class PipelineLike():
     if negative_scale is not None:
       _, real_uncond_embeddings, _ = get_weighted_text_embeddings(
           pipe=self,
-          prompt=[""]*batch_size,
+          prompt=prompt,                                   # こちらのトークン長に合わせてuncondを作るので75トークン超で必須
           uncond_prompt=[""]*batch_size,
           max_embeddings_multiples=max_embeddings_multiples,
           clip_skip=self.clip_skip,
