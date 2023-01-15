@@ -2,6 +2,14 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 ## Updates
 
+- 15 Jan. 2023, 2023/1/15
+  - Added ``--max_train_epochs`` and ``--max_data_loader_n_workers`` option for each training script. 
+  - If you specify the number of training epochs with ``--max_train_epochs``, the number of steps is calculated from the number of epochs automatically.
+  - You can set the number of workers for DataLoader with ``--max_data_loader_n_workers``, default is 8. The lower number may reduce the main memory usage and the time between epochs, but may cause slower dataloading (training).
+  - ``--max_train_epochs`` と ``--max_data_loader_n_workers`` のオプションが学習スクリプトに追加されました。
+  - ``--max_train_epochs`` で学習したいエポック数を指定すると、必要なステップ数が自動的に計算され設定されます。
+  - ``--max_data_loader_n_workers`` で DataLoader の worker 数が指定できます（デフォルトは8）。値を小さくするとメインメモリの使用量が減り、エポック間の待ち時間も短くなるようです。ただしデータ読み込み（学習時間）は長くなる可能性があります。
+
 Please read [release version 0.3.0](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.3.0) for recent updates.
 最近の更新情報は [release version 0.3.0](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.3.0) をご覧ください。
 
