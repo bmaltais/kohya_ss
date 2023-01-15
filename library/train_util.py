@@ -1029,8 +1029,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
                       help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
   parser.add_argument("--save_last_n_epochs", type=int, default=None, help="save last N checkpoints / 最大Nエポック保存する")
-  parser.add_argument("--save_last_n_epochs_model", type=int, default=None, help="save last N checkpoints / 最大Nエポックモデル保存する")
-  parser.add_argument("--save_last_n_epochs_state", type=int, default=None, help="save last N checkpoints / 最大Nエポックstate保存する")
+  parser.add_argument("--save_last_n_epochs_model", type=int, default=None, help="save last N checkpoints of model (overrides the value of --save_last_n_epochs) / 最大Nエポックモデルを保存する(--save_last_n_epochsの指定を上書きします)")
+  parser.add_argument("--save_last_n_epochs_state", type=int, default=None, help="save last N checkpoints of state (overrides the value of --save_last_n_epochs)/ 最大Nエポックstateを保存する(--save_last_n_epochsの指定を上書きします)")
   parser.add_argument("--save_state", action="store_true",
                       help="save training state additionally (including optimizer states etc.) / optimizerなど学習状態も含めたstateを追加で保存する")
   parser.add_argument("--resume", type=str, default=None, help="saved state to resume training / 学習再開するモデルのstate")
