@@ -92,7 +92,7 @@ class LoRANetwork(torch.nn.Module):
 
   def load_weights(self, file):
     if os.path.splitext(file)[1] == '.safetensors':
-      from safetensors.torch import load_file
+      from safetensors.torch import load_file, safe_open
       self.weights_sd = load_file(file)
     else:
       self.weights_sd = torch.load(file, map_location='cpu')
@@ -174,7 +174,10 @@ class LoRANetwork(torch.nn.Module):
   def get_trainable_params(self):
     return self.parameters()
 
-  def save_weights(self, file, dtype):
+  def save_weights(self, file, dtype, metadata):
+    if metadata is not None and len(metadata) == 0:
+      metadata = None
+
     state_dict = self.state_dict()
 
     if dtype is not None:
@@ -185,6 +188,6 @@ class LoRANetwork(torch.nn.Module):
 
     if os.path.splitext(file)[1] == '.safetensors':
       from safetensors.torch import save_file
-      save_file(state_dict, file)
+      save_file(state_dict, file, metadata)
     else:
       torch.save(state_dict, file)
