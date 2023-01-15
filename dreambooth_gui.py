@@ -77,7 +77,8 @@ def save_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,mem_eff_attn,
+    gradient_accumulation_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -158,7 +159,8 @@ def open_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,mem_eff_attn,
+    gradient_accumulation_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -223,7 +225,8 @@ def train_model(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,mem_eff_attn,
+    gradient_accumulation_steps,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -322,24 +325,12 @@ def train_model(
         run_cmd += ' --cache_latents'
     if enable_bucket:
         run_cmd += ' --enable_bucket'
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-    if full_fp16:
-        run_cmd += ' --full_fp16'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
     if use_8bit_adam:
         run_cmd += ' --use_8bit_adam'
     if xformers:
         run_cmd += ' --xformers'
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
-    # if save_state:
-    #     run_cmd += ' --save_state'
-    if color_aug:
-        run_cmd += ' --color_aug'
-    if flip_aug:
-        run_cmd += ' --flip_aug'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -353,8 +344,6 @@ def train_model(
     run_cmd += f' --lr_scheduler={lr_scheduler}'
     run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
     run_cmd += f' --max_train_steps={max_train_steps}'
-    run_cmd += f' --use_8bit_adam'
-    run_cmd += f' --xformers'
     run_cmd += f' --mixed_precision={mixed_precision}'
     run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
     run_cmd += f' --seed={seed}'
@@ -372,8 +361,6 @@ def train_model(
     #     run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={str(clip_skip)}'
     if not vae == '':
         run_cmd += f' --vae="{vae}"'
     if not output_name == '':
@@ -384,12 +371,23 @@ def train_model(
         run_cmd += f' --max_train_epochs="{max_train_epochs}"'
     if not max_data_loader_n_workers == '':
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     run_cmd += run_cmd_advanced_training(
         max_train_epochs=max_train_epochs,
         max_data_loader_n_workers=max_data_loader_n_workers,
         max_token_length=max_token_length,
         resume=resume,
         save_state=save_state,
+        mem_eff_attn=mem_eff_attn,
+        clip_skip=clip_skip,
+        flip_aug=flip_aug,
+        color_aug=color_aug,
+        shuffle_caption=shuffle_caption,
+        gradient_checkpointing=gradient_checkpointing,
+        full_fp16=full_fp16,
+        xformers=xformers,
+        use_8bit_adam=use_8bit_adam,
     )
 
     print(run_cmd)
@@ -668,36 +666,13 @@ def dreambooth_tab(
         with gr.Row():
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
             cache_latent = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-            xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                full_fp16 = gr.Checkbox(
-                    label='Full fp16 training (experimental)', value=False
-                )
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
-
-                gradient_checkpointing = gr.Checkbox(
-                    label='Gradient checkpointing', value=False
-                )
-
-                shuffle_caption = gr.Checkbox(
-                    label='Shuffle caption', value=False
-                )
-            with gr.Row():
-                color_aug = gr.Checkbox(
-                    label='Color augmentation', value=False
-                )
-                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-                color_aug.change(
-                    color_aug_changed,
-                    inputs=[color_aug],
-                    outputs=[cache_latent],
-                )
-                clip_skip = gr.Slider(
-                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
@@ -709,7 +684,27 @@ def dreambooth_tab(
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
                 vae_button.click(get_any_file_path, outputs=vae)
-            save_state, resume, max_token_length, max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
+            (
+                use_8bit_adam,
+                xformers,
+                full_fp16,
+                gradient_checkpointing,
+                shuffle_caption,
+                color_aug,
+                flip_aug,
+                clip_skip,
+                mem_eff_attn,
+                save_state,
+                resume,
+                max_token_length,
+                max_train_epochs,
+                max_data_loader_n_workers,
+            ) = gradio_advanced_training()
+            color_aug.change(
+                color_aug_changed,
+                inputs=[color_aug],
+                outputs=[cache_latent],
+            )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -763,7 +758,8 @@ def dreambooth_tab(
         output_name,
         max_token_length,
         max_train_epochs,
-        max_data_loader_n_workers,
+        max_data_loader_n_workers,mem_eff_attn,
+        gradient_accumulation_steps,
     ]
 
     button_open_config.click(

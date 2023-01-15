@@ -340,26 +340,8 @@ def train_model(
         run_cmd += ' --cache_latents'
     if enable_bucket:
         run_cmd += ' --enable_bucket'
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-    if full_fp16:
-        run_cmd += ' --full_fp16'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
-    if use_8bit_adam:
-        run_cmd += ' --use_8bit_adam'
-    if xformers:
-        run_cmd += ' --xformers'
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
-    # if save_state:
-    #     run_cmd += ' --save_state'
-    if color_aug:
-        run_cmd += ' --color_aug'
-    if flip_aug:
-        run_cmd += ' --flip_aug'
-    if mem_eff_attn:
-        run_cmd += ' --mem_eff_attn'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -408,8 +390,6 @@ def train_model(
     run_cmd += f' --network_dim={network_dim}'
     if not lora_network_weights == '':
         run_cmd += f' --network_weights="{lora_network_weights}"'
-    if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={str(clip_skip)}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     # if not vae == '':
@@ -424,6 +404,15 @@ def train_model(
         max_token_length=max_token_length,
         resume=resume,
         save_state=save_state,
+        mem_eff_attn=mem_eff_attn,
+        clip_skip=clip_skip,
+        flip_aug=flip_aug,
+        color_aug=color_aug,
+        shuffle_caption=shuffle_caption,
+        gradient_checkpointing=gradient_checkpointing,
+        full_fp16=full_fp16,
+        xformers=xformers,
+        use_8bit_adam=use_8bit_adam,
     )
 
     print(run_cmd)
@@ -729,53 +718,39 @@ def lora_tab(
         with gr.Row():
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
             cache_latent = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-            xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                full_fp16 = gr.Checkbox(
-                    label='Full fp16 training (experimental)', value=False
-                )
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
-
-                gradient_checkpointing = gr.Checkbox(
-                    label='Gradient checkpointing', value=False
-                )
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
-                )
-
-                shuffle_caption = gr.Checkbox(
-                    label='Shuffle caption', value=False
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
-                color_aug = gr.Checkbox(
-                    label='Color augmentation', value=False
-                )
-                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-                color_aug.change(
-                    color_aug_changed,
-                    inputs=[color_aug],
-                    outputs=[cache_latent],
-                )
-                clip_skip = gr.Slider(
-                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
-                )
-                mem_eff_attn = gr.Checkbox(
-                    label='Memory efficient attention', value=False
-                )
             (
+                use_8bit_adam,
+                xformers,
+                full_fp16,
+                gradient_checkpointing,
+                shuffle_caption,
+                color_aug,
+                flip_aug,
+                clip_skip,
+                mem_eff_attn,
                 save_state,
                 resume,
                 max_token_length,
                 max_train_epochs,
                 max_data_loader_n_workers,
             ) = gradio_advanced_training()
+            color_aug.change(
+                color_aug_changed,
+                inputs=[color_aug],
+                outputs=[cache_latent],
+            )
 
     with gr.Tab('Tools'):
         gr.Markdown(

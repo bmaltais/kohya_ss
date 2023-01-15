@@ -13,7 +13,8 @@ from library.common_gui import (
     get_saveasfile_path,
     save_inference_file,
     set_pretrained_model_name_or_path_input,
-    gradio_advanced_training,run_cmd_advanced_training
+    gradio_advanced_training,run_cmd_advanced_training,
+    color_aug_changed,
 )
 from library.utilities import utilities_tab
 
@@ -69,7 +70,7 @@ def save_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,full_fp16,color_aug,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -154,7 +155,7 @@ def open_config_file(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,full_fp16,color_aug,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -224,7 +225,7 @@ def train_model(
     output_name,
     max_token_length,
     max_train_epochs,
-    max_data_loader_n_workers,
+    max_data_loader_n_workers,full_fp16,color_aug,
 ):
     # create caption json file
     if generate_caption_database:
@@ -262,8 +263,8 @@ def train_model(
         run_cmd += f' --min_bucket_reso={min_bucket_reso}'
         run_cmd += f' --max_bucket_reso={max_bucket_reso}'
         run_cmd += f' --mixed_precision={mixed_precision}'
-        if flip_aug:
-            run_cmd += f' --flip_aug'
+        # if flip_aug:
+        #     run_cmd += f' --flip_aug'
         if full_path:
             run_cmd += f' --full_path'
 
@@ -301,16 +302,6 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
-    if use_8bit_adam:
-        run_cmd += f' --use_8bit_adam'
-    if xformers:
-        run_cmd += f' --xformers'
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-    if mem_eff_attn:
-        run_cmd += ' --mem_eff_attn'
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -331,8 +322,6 @@ def train_model(
     run_cmd += f' --save_precision={save_precision}'
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={str(clip_skip)}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     # if save_state:
@@ -349,6 +338,15 @@ def train_model(
         max_token_length=max_token_length,
         resume=resume,
         save_state=save_state,
+        mem_eff_attn=mem_eff_attn,
+        clip_skip=clip_skip,
+        flip_aug=flip_aug,
+        color_aug=color_aug,
+        shuffle_caption=shuffle_caption,
+        gradient_checkpointing=gradient_checkpointing,
+        full_fp16=full_fp16,
+        xformers=xformers,
+        use_8bit_adam=use_8bit_adam,
     )
 
     print(run_cmd)
@@ -565,7 +563,6 @@ def finetune_tab():
                     label='Latent metadata filename', value='meta_lat.json'
                 )
                 full_path = gr.Checkbox(label='Use full path', value=True)
-                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
     with gr.Tab('Training parameters'):
         with gr.Row():
             learning_rate_input = gr.Textbox(label='Learning rate', value=1e-6)
@@ -634,25 +631,30 @@ def finetune_tab():
             )
         with gr.Accordion('Advanced parameters', open=False):
             with gr.Row():
-                use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-                xformers = gr.Checkbox(label='Use xformers', value=True)
-                clip_skip = gr.Slider(
-                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
-                )
-                mem_eff_attn = gr.Checkbox(
-                    label='Memory efficient attention', value=False
-                )
-                shuffle_caption = gr.Checkbox(
-                    label='Shuffle caption', value=False
-                )
-            with gr.Row():
-                gradient_checkpointing = gr.Checkbox(
-                    label='Gradient checkpointing', value=False
-                )
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
-            save_state, resume, max_token_length, max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
+            (
+                use_8bit_adam,
+                xformers,
+                full_fp16,
+                gradient_checkpointing,
+                shuffle_caption,
+                color_aug,
+                flip_aug,
+                clip_skip,
+                mem_eff_attn,
+                save_state,
+                resume,
+                max_token_length,
+                max_train_epochs,
+                max_data_loader_n_workers,
+            ) = gradio_advanced_training()
+            # color_aug.change(
+            #     color_aug_changed,
+            #     inputs=[color_aug],
+            #     # outputs=[cache_latent], # Not applicable to fine_tune.py
+            # )
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -708,7 +710,7 @@ def finetune_tab():
         output_name,
         max_token_length,
         max_train_epochs,
-        max_data_loader_n_workers,
+        max_data_loader_n_workers,full_fp16,color_aug,
     ]
 
     button_run.click(train_model, inputs=settings_list)

@@ -304,13 +304,28 @@ def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
 
 def gradio_advanced_training():
     with gr.Row():
-        save_state = gr.Checkbox(label='Save training state', value=False)
-        resume = gr.Textbox(
-            label='Resume from saved training state',
-            placeholder='path to "last-state" state folder to resume from',
+        full_fp16 = gr.Checkbox(
+            label='Full fp16 training (experimental)', value=False
         )
-        resume_button = gr.Button('📂', elem_id='open_folder_small')
-        resume_button.click(get_folder_path, outputs=resume)
+        gradient_checkpointing = gr.Checkbox(
+            label='Gradient checkpointing', value=False
+        )
+        shuffle_caption = gr.Checkbox(
+            label='Shuffle caption', value=False
+        )
+        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+        xformers = gr.Checkbox(label='Use xformers', value=True)
+    with gr.Row():
+        color_aug = gr.Checkbox(
+            label='Color augmentation', value=False
+        )
+        flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+        clip_skip = gr.Slider(
+            label='Clip skip', value='1', minimum=1, maximum=12, step=1
+        )
+        mem_eff_attn = gr.Checkbox(
+            label='Memory efficient attention', value=False
+        )
         max_token_length = gr.Dropdown(
             label='Max Token Length',
             choices=[
@@ -321,6 +336,13 @@ def gradio_advanced_training():
             value='75',
         )
     with gr.Row():
+        save_state = gr.Checkbox(label='Save training state', value=False)
+        resume = gr.Textbox(
+            label='Resume from saved training state',
+            placeholder='path to "last-state" state folder to resume from',
+        )
+        resume_button = gr.Button('📂', elem_id='open_folder_small')
+        resume_button.click(get_folder_path, outputs=resume)
         max_train_epochs = gr.Textbox(
             label='Max train epoch',
             placeholder='(Optional) Override number of epoch',
@@ -330,6 +352,15 @@ def gradio_advanced_training():
             placeholder='(Optional) Override number of epoch. Default: 8',
         )
     return (
+        use_8bit_adam,
+        xformers,
+        full_fp16,
+        gradient_checkpointing,
+        shuffle_caption,
+        color_aug,
+        flip_aug,
+        clip_skip,
+        mem_eff_attn,
         save_state,
         resume,
         max_token_length,
@@ -343,16 +374,41 @@ def run_cmd_advanced_training(**kwargs):
         f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
         if kwargs.get('max_train_epochs')
         else '',
+        
         f' --max_data_loader_n_workers="{kwargs.get("max_data_loader_n_workers", "")}"'
         if kwargs.get('max_data_loader_n_workers')
         else '',
+        
         f' --max_token_length={kwargs.get("max_token_length", "")}'
-        if int(kwargs.get('max_token_length', 0)) > 75
+        if int(kwargs.get('max_token_length', 75)) > 75
         else '',
+        
+        f' --clip_skip={kwargs.get("clip_skip", "")}'
+        if int(kwargs.get('clip_skip', 1)) > 1
+        else '',
+        
         f' --resume="{kwargs.get("resume", "")}"'
         if kwargs.get('resume')
         else '',
+        
         ' --save_state' if kwargs.get('save_state') else '',
+        
+        ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
+        
+        ' --color_aug' if kwargs.get('color_aug') else '',
+        
+        ' --flip_aug' if kwargs.get('flip_aug') else '',
+        
+        ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
+        
+        ' --gradient_checkpointing' if kwargs.get('gradient_checkpointing') else '',
+        
+        ' --full_fp16' if kwargs.get('full_fp16') else '',
+        
+        ' --xformers' if kwargs.get('xformers') else '',
+        
+        ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
+        
     ]
     run_cmd = ''.join(options)
     return run_cmd
