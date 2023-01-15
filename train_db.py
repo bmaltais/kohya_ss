@@ -134,9 +134,14 @@ def train(args):
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
-  n_workers = min(8, os.cpu_count() - 1)      # cpu_count-1 ただし最大8
+  n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers)
+
+  # 学習ステップ数を計算する
+  if args.max_train_epochs is not None:
+    args.max_train_steps = args.max_train_epochs * len(train_dataloader)
+    print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
   lr_scheduler = diffusers.optimization.get_scheduler(

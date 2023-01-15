@@ -715,7 +715,10 @@ def debug_dataset(train_dataset):
 def glob_images(dir, base):
   img_paths = []
   for ext in IMAGE_EXTENSIONS:
-    img_paths.extend(glob.glob(os.path.join(dir, base + ext)))
+    if base == '*':
+      img_paths.extend(glob.glob(os.path.join(glob.escape(dir), base + ext)))
+    else:
+      img_paths.extend(glob.glob(glob.escape(os.path.join(dir, base + ext))))
   return img_paths
 
 # endregion
@@ -743,6 +746,20 @@ def exists(val):
 
 def default(val, d):
   return val if exists(val) else d
+
+
+def model_hash(filename):
+  try:
+    with open(filename, "rb") as file:
+      import hashlib
+      m = hashlib.sha256()
+
+      file.seek(0x100000)
+      m.update(file.read(0x10000))
+      return m.hexdigest()[0:8]
+  except FileNotFoundError:
+    return 'NOFILE'
+
 
 # flash attention forwards and backwards
 
@@ -1030,6 +1047,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
 
   parser.add_argument("--learning_rate", type=float, default=2.0e-6, help="learning rate / 学習率")
   parser.add_argument("--max_train_steps", type=int, default=1600, help="training steps / 学習ステップ数")
+  parser.add_argument("--max_train_epochs", type=int, default=None, help="training epochs (overrides max_train_steps) / 学習エポック数（max_train_stepsを上書きします）")
+  parser.add_argument("--max_data_loader_n_workers", type=int, default=8, help="max num workers for DataLoader (lower is less main RAM usage, faster epoch start and slower data loading) / DataLoaderの最大プロセス数（小さい値ではメインメモリの使用量が減りエポック間の待ち時間が減りますが、データ読み込みは遅くなります）")
   parser.add_argument("--seed", type=int, default=None, help="random seed for training / 学習時の乱数のseed")
   parser.add_argument("--gradient_checkpointing", action="store_true",
                       help="enable gradient checkpointing / grandient checkpointingを有効にする")

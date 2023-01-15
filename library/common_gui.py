@@ -262,3 +262,30 @@ def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
         v_parameterization = False
 
         return value, v2, v_parameterization
+    
+    ###
+    ### Gradio common GUI section
+    ###
+    
+def gradio_advanced_training():
+    with gr.Row():
+            max_train_epochs = gr.Textbox(
+                label='Max train epoch',
+                placeholder='(Optional) Override number of epoch',
+            )
+            max_data_loader_n_workers = gr.Textbox(
+                label='Max num workers for DataLoader',
+                placeholder='(Optional) Override number of epoch. Default: 8',
+            )
+    return max_train_epochs, max_data_loader_n_workers
+
+def run_cmd_advanced_training(**kwargs):
+    run_cmd = ''
+    max_train_epochs = kwargs.get('max_train_epochs', '')
+    max_data_loader_n_workers = kwargs.get('max_data_loader_n_workers', '')
+    if not max_train_epochs == '':
+        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
+    if not max_data_loader_n_workers == '':
+        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+
+    return run_cmd

@@ -13,6 +13,7 @@ from library.common_gui import (
     get_saveasfile_path,
     save_inference_file,
     set_pretrained_model_name_or_path_input,
+    gradio_advanced_training,run_cmd_advanced_training
 )
 from library.utilities import utilities_tab
 
@@ -67,6 +68,8 @@ def save_configuration(
     shuffle_caption,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -150,6 +153,8 @@ def open_config_file(
     shuffle_caption,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -218,6 +223,8 @@ def train_model(
     shuffle_caption,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # create caption json file
     if generate_caption_database:
@@ -336,6 +343,7 @@ def train_model(
         run_cmd += f' --output_name="{output_name}"'
     if (int(max_token_length) > 75):
         run_cmd += f' --max_token_length={max_token_length}'
+    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
 
     print(run_cmd)
     # Run the command
@@ -656,6 +664,7 @@ def finetune_tab():
                     ],
                     value='75',
                 )
+            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(
@@ -710,6 +719,8 @@ def finetune_tab():
         shuffle_caption,
         output_name,
         max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
     ]
 
     button_run.click(train_model, inputs=settings_list)

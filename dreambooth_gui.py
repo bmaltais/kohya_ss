@@ -20,6 +20,8 @@ from library.common_gui import (
     color_aug_changed,
     save_inference_file,
     set_pretrained_model_name_or_path_input,
+    gradio_advanced_training,
+    run_cmd_advanced_training,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -74,6 +76,8 @@ def save_configuration(
     vae,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -153,6 +157,8 @@ def open_configuration(
     vae,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -216,6 +222,8 @@ def train_model(
     vae,
     output_name,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -372,6 +380,11 @@ def train_model(
         run_cmd += f' --output_name="{output_name}"'
     if (int(max_token_length) > 75):
         run_cmd += f' --max_token_length={max_token_length}'
+    if not max_train_epochs == '':
+        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
+    if not max_data_loader_n_workers == '':
+        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
 
     print(run_cmd)
     # Run the command
@@ -708,6 +721,16 @@ def dreambooth_tab(
                     ],
                     value='75',
                 )
+            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
+            # with gr.Row():
+            #     max_train_epochs = gr.Textbox(
+            #         label='Max train epoch',
+            #         placeholder='(Optional) Override number of epoch',
+            #     )
+            #     max_data_loader_n_workers = gr.Textbox(
+            #         label='Max num workers for DataLoader',
+            #         placeholder='(Optional) Override number of epoch. Default: 8',
+            #     )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -760,6 +783,8 @@ def dreambooth_tab(
         vae,
         output_name,
         max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
     ]
 
     button_open_config.click(

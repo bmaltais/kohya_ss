@@ -19,7 +19,7 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
-    set_pretrained_model_name_or_path_input,
+    set_pretrained_model_name_or_path_input, gradio_advanced_training,run_cmd_advanced_training,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -81,6 +81,8 @@ def save_configuration(
     output_name,
     model_list,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -165,6 +167,8 @@ def open_configuration(
     output_name,
     model_list,
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -233,6 +237,8 @@ def train_model(
     output_name,
     model_list, # Keep this. Yes, it is unused here but required given the common list used
     max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -410,6 +416,7 @@ def train_model(
         run_cmd += f' --output_name="{output_name}"'
     if (int(max_token_length) > 75):
         run_cmd += f' --max_token_length={max_token_length}'
+    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
 
     print(run_cmd)
     # Run the command
@@ -795,6 +802,7 @@ def lora_tab(
                     ],
                     value='75',
                 )
+            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
                 
     with gr.Tab('Tools'):
         gr.Markdown(
@@ -854,7 +862,9 @@ def lora_tab(
         mem_eff_attn,
         output_name,
         model_list,
-        max_token_length
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
     ]
 
     button_open_config.click(
