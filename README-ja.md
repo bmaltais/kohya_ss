@@ -99,7 +99,7 @@ accelerate configの質問には以下のように答えてください。（bf1
 ```
 
 ※場合によって ``ValueError: fp16 mixed precision requires a GPU`` というエラーが出ることがあるようです。この場合、6番目の質問（
-``What GPU(s) (by id) should be used for training on this machine as a comma-seperated list? [all]:``）に「0」と答えてください。（id `0`のGPUが使われます。）
+``What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:``）に「0」と答えてください。（id `0`のGPUが使われます。）
 
 ## アップグレード
 
