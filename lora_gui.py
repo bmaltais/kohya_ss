@@ -19,7 +19,9 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
-    set_pretrained_model_name_or_path_input, gradio_advanced_training,run_cmd_advanced_training,
+    set_pretrained_model_name_or_path_input,
+    gradio_advanced_training,
+    run_cmd_advanced_training,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -172,7 +174,7 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
@@ -180,11 +182,11 @@ def open_configuration(
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            print("Loading config...")
+            print('Loading config...')
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
-            
+
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
@@ -235,7 +237,7 @@ def train_model(
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
-    model_list, # Keep this. Yes, it is unused here but required given the common list used
+    model_list,  # Keep this. Yes, it is unused here but required given the common list used
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
@@ -350,8 +352,8 @@ def train_model(
         run_cmd += ' --xformers'
     if shuffle_caption:
         run_cmd += ' --shuffle_caption'
-    if save_state:
-        run_cmd += ' --save_state'
+    # if save_state:
+    #     run_cmd += ' --save_state'
     if color_aug:
         run_cmd += ' --color_aug'
     if flip_aug:
@@ -386,8 +388,8 @@ def train_model(
         )
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if not resume == '':
-        run_cmd += f' --resume="{resume}"'
+    # if not resume == '':
+    #     run_cmd += f' --resume="{resume}"'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
@@ -414,9 +416,15 @@ def train_model(
     #     run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
-    if (int(max_token_length) > 75):
-        run_cmd += f' --max_token_length={max_token_length}'
-    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
+    # if (int(max_token_length) > 75):
+    #     run_cmd += f' --max_token_length={max_token_length}'
+    run_cmd += run_cmd_advanced_training(
+        max_train_epochs=max_train_epochs,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_token_length=max_token_length,
+        resume=resume,
+        save_state=save_state,
+    )
 
     print(run_cmd)
     # Run the command
@@ -564,9 +572,7 @@ def lora_tab(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
+            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
             train_data_dir_folder.click(
                 get_folder_path, outputs=train_data_dir
             )
@@ -574,33 +580,21 @@ def lora_tab(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            reg_data_dir_folder.click(
-                get_folder_path, outputs=reg_data_dir
-            )
+            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            reg_data_dir_folder.click(get_folder_path, outputs=reg_data_dir)
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            output_dir_folder.click(
-                get_folder_path, outputs=output_dir
-            )
+            output_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            output_dir_folder.click(get_folder_path, outputs=output_dir)
             logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            logging_dir_folder.click(
-                get_folder_path, outputs=logging_dir
-            )
+            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            logging_dir_folder.click(get_folder_path, outputs=logging_dir)
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
@@ -659,11 +653,13 @@ def lora_tab(
         with gr.Row():
             text_encoder_lr = gr.Textbox(
                 label='Text Encoder learning rate',
-                value="5e-5",
+                value='5e-5',
                 placeholder='Optional',
             )
             unet_lr = gr.Textbox(
-                label='Unet learning rate', value="1e-3", placeholder='Optional'
+                label='Unet learning rate',
+                value='1e-3',
+                placeholder='Optional',
             )
             network_dim = gr.Slider(
                 minimum=1,
@@ -731,13 +727,9 @@ def lora_tab(
                 label='Stop text encoder training',
             )
         with gr.Row():
-            enable_bucket = gr.Checkbox(
-                label='Enable buckets', value=True
-            )
+            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
             cache_latent = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam = gr.Checkbox(
-                label='Use 8bit adam', value=True
-            )
+            use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
             xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
@@ -777,33 +769,14 @@ def lora_tab(
                 mem_eff_attn = gr.Checkbox(
                     label='Memory efficient attention', value=False
                 )
-            with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
-                )
-                resume = gr.Textbox(
-                    label='Resume from saved training state',
-                    placeholder='path to "last-state" state folder to resume from',
-                )
-                resume_button = gr.Button('📂', elem_id='open_folder_small')
-                resume_button.click(get_folder_path, outputs=resume)
-                # vae = gr.Textbox(
-                #     label='VAE',
-                #     placeholder='(Optiona) path to checkpoint of vae to replace for training',
-                # )
-                # vae_button = gr.Button('📂', elem_id='open_folder_small')
-                # vae_button.click(get_any_file_path, outputs=vae)
-                max_token_length = gr.Dropdown(
-                    label='Max Token Length',
-                    choices=[
-                        '75',
-                        '150',
-                        '225',
-                    ],
-                    value='75',
-                )
-            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
-                
+            (
+                save_state,
+                resume,
+                max_token_length,
+                max_train_epochs,
+                max_data_loader_n_workers,
+            ) = gradio_advanced_training()
+
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'

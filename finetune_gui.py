@@ -335,15 +335,21 @@ def train_model(
         run_cmd += f' --clip_skip={str(clip_skip)}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    if save_state:
-        run_cmd += ' --save_state'
-    if not resume == '':
-        run_cmd += f' --resume={resume}'
+    # if save_state:
+    #     run_cmd += ' --save_state'
+    # if not resume == '':
+    #     run_cmd += f' --resume={resume}'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
     if (int(max_token_length) > 75):
         run_cmd += f' --max_token_length={max_token_length}'
-    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
+    run_cmd += run_cmd_advanced_training(
+        max_train_epochs=max_train_epochs,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_token_length=max_token_length,
+        resume=resume,
+        save_state=save_state,
+    )
 
     print(run_cmd)
     # Run the command
@@ -640,31 +646,13 @@ def finetune_tab():
                     label='Shuffle caption', value=False
                 )
             with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
-                )
-                resume = gr.Textbox(
-                    label='Resume from saved training state',
-                    placeholder='path to "last-state" state folder to resume from',
-                )
-                resume_button = gr.Button('📂', elem_id='open_folder_small')
-                resume_button.click(get_folder_path, outputs=resume)
                 gradient_checkpointing = gr.Checkbox(
                     label='Gradient checkpointing', value=False
                 )
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
-                max_token_length = gr.Dropdown(
-                    label='Max Token Length',
-                    choices=[
-                        '75',
-                        '150',
-                        '225',
-                    ],
-                    value='75',
-                )
-            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
+            save_state, resume, max_token_length, max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
     with gr.Box():
         with gr.Row():
             create_caption = gr.Checkbox(

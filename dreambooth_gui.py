@@ -334,8 +334,8 @@ def train_model(
         run_cmd += ' --xformers'
     if shuffle_caption:
         run_cmd += ' --shuffle_caption'
-    if save_state:
-        run_cmd += ' --save_state'
+    # if save_state:
+    #     run_cmd += ' --save_state'
     if color_aug:
         run_cmd += ' --color_aug'
     if flip_aug:
@@ -368,8 +368,8 @@ def train_model(
         )
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if not resume == '':
-        run_cmd += f' --resume={resume}'
+    # if not resume == '':
+    #     run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     if int(clip_skip) > 1:
@@ -384,7 +384,13 @@ def train_model(
         run_cmd += f' --max_train_epochs="{max_train_epochs}"'
     if not max_data_loader_n_workers == '':
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
-    run_cmd += run_cmd_advanced_training(max_train_epochs=max_train_epochs, max_data_loader_n_workers=max_data_loader_n_workers)
+    run_cmd += run_cmd_advanced_training(
+        max_train_epochs=max_train_epochs,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_token_length=max_token_length,
+        resume=resume,
+        save_state=save_state,
+    )
 
     print(run_cmd)
     # Run the command
@@ -681,9 +687,6 @@ def dreambooth_tab(
                     label='Shuffle caption', value=False
                 )
             with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
-                )
                 color_aug = gr.Checkbox(
                     label='Color augmentation', value=False
                 )
@@ -697,12 +700,6 @@ def dreambooth_tab(
                     label='Clip skip', value='1', minimum=1, maximum=12, step=1
                 )
             with gr.Row():
-                resume = gr.Textbox(
-                    label='Resume from saved training state',
-                    placeholder='path to "last-state" state folder to resume from',
-                )
-                resume_button = gr.Button('📂', elem_id='open_folder_small')
-                resume_button.click(get_folder_path, outputs=resume)
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
@@ -712,25 +709,7 @@ def dreambooth_tab(
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
                 vae_button.click(get_any_file_path, outputs=vae)
-                max_token_length = gr.Dropdown(
-                    label='Max Token Length',
-                    choices=[
-                        '75',
-                        '150',
-                        '225',
-                    ],
-                    value='75',
-                )
-            max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
-            # with gr.Row():
-            #     max_train_epochs = gr.Textbox(
-            #         label='Max train epoch',
-            #         placeholder='(Optional) Override number of epoch',
-            #     )
-            #     max_data_loader_n_workers = gr.Textbox(
-            #         label='Max num workers for DataLoader',
-            #         placeholder='(Optional) Override number of epoch. Default: 8',
-            #     )
+            save_state, resume, max_token_length, max_train_epochs, max_data_loader_n_workers = gradio_advanced_training()
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
