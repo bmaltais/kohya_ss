@@ -1,8 +1,6 @@
-# Kohya's dreambooth and finetuning
+# Kohya's GUI
 
-This repository now includes the solutions provided by Kohya_ss in a single location. I have combined both solutions under one repository to align with the new official Kohya repository where he will maintain his code from now on: https://github.com/kohya-ss/sd-scripts.
-
-A note accompanying the release of his new repository can be found here: https://note.com/kohya_ss/n/nba4eceaa4594
+This repository repository is providing a Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
 
 ## Required Dependencies
 
@@ -11,15 +9,15 @@ Python 3.10.6+ and Git:
 - Python 3.10.6+: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
 - git: https://git-scm.com/download/win
 
+## Installation
+
 Give unrestricted script access to powershell so venv can work:
 
 - Open an administrator powershell window
 - Type `Set-ExecutionPolicy Unrestricted` and answer A
 - Close admin powershell window
 
-## Installation
-
-Open a regular Powershell terminal and type the following inside:
+Open a regular user Powershell terminal and type the following inside:
 
 ```powershell
 git clone https://github.com/bmaltais/kohya_ss.git
@@ -101,6 +99,18 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
+* 2023/01/16 (v20.2.1):
+    - Merging latest code update from kohya
+    - Added `--max_train_epochs` and `--max_data_loader_n_workers` option for each training script.
+    - If you specify the number of training epochs with `--max_train_epochs`, the number of steps is calculated from the number of epochs automatically.
+    - You can set the number of workers for DataLoader with `--max_data_loader_n_workers`, default is 8. The lower number may reduce the main memory usage and the time between epochs, but may cause slower dataloading (training).
+    - Fix loading some VAE or .safetensors as VAE is failed for `--vae` option. Thanks to Fannovel16!
+    - Add negative prompt scaling for `gen_img_diffusers.py` You can set another conditioning scale to the negative prompt with `--negative_scale` option, and `--nl` option for the prompt. Thanks to laksjdjf!
+    - Refactoring of GUI code and fixing mismatch... and possibly introducing bugs...
+* 2023/01/11 (v20.2.0):
+    - Add support for max token lenght
+* 2023/01/10 (v20.1.1):
+    - Fix issue with LoRA config loading
 * 2023/01/10 (v20.1):
     - Add support for `--output_name` to trainers
     - Refactor code for easier maintenance

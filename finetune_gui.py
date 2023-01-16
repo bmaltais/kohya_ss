@@ -4,15 +4,20 @@ import math
 import os
 import subprocess
 import pathlib
-import shutil
 import argparse
 from library.common_gui import (
     get_folder_path,
     get_file_path,
-    get_any_file_path,
     get_saveasfile_path,
     save_inference_file,
-    set_pretrained_model_name_or_path_input,
+    gradio_advanced_training,
+    run_cmd_advanced_training,
+    gradio_training,
+    run_cmd_advanced_training,
+    gradio_config,
+    gradio_source_model,
+    color_aug_changed,
+    run_cmd_training,
 )
 from library.utilities import utilities_tab
 
@@ -66,10 +71,18 @@ def save_configuration(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    full_fp16,
+    color_aug,
+    model_list,
+    cache_latents,
+    use_latent_files,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     original_file_path = file_path
 
     save_as_bool = True if save_as.get('label') == 'True' else False
@@ -148,10 +161,18 @@ def open_config_file(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    full_fp16,
+    color_aug,
+    model_list,
+    cache_latents,
+    use_latent_files,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
@@ -163,7 +184,7 @@ def open_config_file(
     else:
         file_path = original_file_path   # In case a file_path was provided and the user decide to cancel the open action
         my_data_ft = {}
-    
+
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data_ft`, or the default value if not found
@@ -215,6 +236,14 @@ def train_model(
     mem_eff_attn,
     shuffle_caption,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    full_fp16,
+    color_aug,
+    model_list,  # Keep this. Yes, it is unused here but required given the common list used
+    cache_latents,
+    use_latent_files,
 ):
     # create caption json file
     if generate_caption_database:
@@ -225,7 +254,7 @@ def train_model(
             f'./venv/Scripts/python.exe finetune/merge_captions_to_metadata.py'
         )
         if caption_extension == '':
-            run_cmd += f' --caption_extension=".txt"'
+            run_cmd += f' --caption_extension=".caption"'
         else:
             run_cmd += f' --caption_extension={caption_extension}'
         run_cmd += f' "{image_folder}"'
@@ -252,8 +281,8 @@ def train_model(
         run_cmd += f' --min_bucket_reso={min_bucket_reso}'
         run_cmd += f' --max_bucket_reso={max_bucket_reso}'
         run_cmd += f' --mixed_precision={mixed_precision}'
-        if flip_aug:
-            run_cmd += f' --flip_aug'
+        # if flip_aug:
+        #     run_cmd += f' --flip_aug'
         if full_path:
             run_cmd += f' --full_path'
 
@@ -291,46 +320,68 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
-    if use_8bit_adam:
-        run_cmd += f' --use_8bit_adam'
-    if xformers:
-        run_cmd += f' --xformers'
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-    if mem_eff_attn:
-        run_cmd += ' --mem_eff_attn'
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
-    run_cmd += f' --in_json="{train_dir}/{latent_metadata_filename}"'
+    if use_latent_files == 'Yes':
+        run_cmd += f' --in_json="{train_dir}/{latent_metadata_filename}"'
+    else:
+        run_cmd += f' --in_json="{train_dir}/{caption_metadata_filename}"'
     run_cmd += f' --train_data_dir="{image_folder}"'
     run_cmd += f' --output_dir="{output_dir}"'
     if not logging_dir == '':
         run_cmd += f' --logging_dir="{logging_dir}"'
-    run_cmd += f' --train_batch_size={train_batch_size}'
     run_cmd += f' --dataset_repeats={dataset_repeats}'
     run_cmd += f' --learning_rate={learning_rate}'
-    run_cmd += f' --lr_scheduler={lr_scheduler}'
-    run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
-    run_cmd += f' --max_train_steps={max_train_steps}'
-    run_cmd += f' --mixed_precision={mixed_precision}'
-    run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
-    run_cmd += f' --seed={seed}'
-    run_cmd += f' --save_precision={save_precision}'
+
+    run_cmd += ' --enable_bucket'
+    run_cmd += f' --resolution={max_resolution}'
+    run_cmd += f' --min_bucket_reso={min_bucket_reso}'
+    run_cmd += f' --max_bucket_reso={max_bucket_reso}'
+
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={str(clip_skip)}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    if save_state:
-        run_cmd += ' --save_state'
-    if not resume == '':
-        run_cmd += f' --resume={resume}'
+    # if save_state:
+    #     run_cmd += ' --save_state'
+    # if not resume == '':
+    #     run_cmd += f' --resume={resume}'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if int(max_token_length) > 75:
+        run_cmd += f' --max_token_length={max_token_length}'
+
+    run_cmd += run_cmd_training(
+        learning_rate=learning_rate,
+        lr_scheduler=lr_scheduler,
+        lr_warmup_steps=lr_warmup_steps,
+        train_batch_size=train_batch_size,
+        max_train_steps=max_train_steps,
+        save_every_n_epochs=save_every_n_epochs,
+        mixed_precision=mixed_precision,
+        save_precision=save_precision,
+        seed=seed,
+        caption_extension=caption_extension,
+        cache_latents=cache_latents,
+    )
+
+    run_cmd += run_cmd_advanced_training(
+        max_train_epochs=max_train_epochs,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_token_length=max_token_length,
+        resume=resume,
+        save_state=save_state,
+        mem_eff_attn=mem_eff_attn,
+        clip_skip=clip_skip,
+        flip_aug=flip_aug,
+        color_aug=color_aug,
+        shuffle_caption=shuffle_caption,
+        gradient_checkpointing=gradient_checkpointing,
+        full_fp16=full_fp16,
+        xformers=xformers,
+        use_8bit_adam=use_8bit_adam,
+    )
 
     print(run_cmd)
     # Run the command
@@ -379,99 +430,34 @@ def finetune_tab():
     dummy_ft_true = gr.Label(value=True, visible=False)
     dummy_ft_false = gr.Label(value=False, visible=False)
     gr.Markdown('Train a custom model using kohya finetune python code...')
-    with gr.Accordion('Configuration file', open=False):
-        with gr.Row():
-            button_open_config = gr.Button(
-                f'Open {folder_symbol}', elem_id='open_folder'
-            )
-            button_save_config = gr.Button(
-                f'Save {save_style_symbol}', elem_id='open_folder'
-            )
-            button_save_as_config = gr.Button(
-                f'Save as... {save_style_symbol}',
-                elem_id='open_folder',
-            )
-        config_file_name = gr.Textbox(
-            label='', placeholder='type file path or use buttons...'
-        )
-        config_file_name.change(
-            remove_doublequote,
-            inputs=[config_file_name],
-            outputs=[config_file_name],
-        )
-    with gr.Tab('Source model'):
-        # Define the input elements
-        with gr.Row():
-            pretrained_model_name_or_path_input = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
-            )
-            pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_file.click(
-                get_any_file_path,
-                inputs=pretrained_model_name_or_path_input,
-                outputs=pretrained_model_name_or_path_input,
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path,
-                inputs=pretrained_model_name_or_path_input,
-                outputs=pretrained_model_name_or_path_input,
-            )
-            model_list = gr.Dropdown(
-                label='(Optional) Model Quick Pick',
-                choices=[
-                    'custom',
-                    'stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
-                ],
-            )
-            save_model_as_dropdown = gr.Dropdown(
-                label='Save trained model as',
-                choices=[
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ],
-                value='same as source model',
-            )
 
-        with gr.Row():
-            v2_input = gr.Checkbox(label='v2', value=True)
-            v_parameterization_input = gr.Checkbox(
-                label='v_parameterization', value=False
-            )
-        model_list.change(
-            set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2_input, v_parameterization_input],
-            outputs=[
-                pretrained_model_name_or_path_input,
-                v2_input,
-                v_parameterization_input,
-            ],
-        )
+    (
+        button_open_config,
+        button_save_config,
+        button_save_as_config,
+        config_file_name,
+    ) = gradio_config()
+
+    (
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        save_model_as,
+        model_list,
+    ) = gradio_source_model()
+
     with gr.Tab('Folders'):
         with gr.Row():
-            train_dir_input = gr.Textbox(
+            train_dir = gr.Textbox(
                 label='Training config folder',
                 placeholder='folder where the training configuration files will be saved',
             )
             train_dir_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
-            train_dir_folder.click(get_folder_path, outputs=train_dir_input)
+            train_dir_folder.click(get_folder_path, outputs=train_dir)
 
-            image_folder_input = gr.Textbox(
+            image_folder = gr.Textbox(
                 label='Training Image folder',
                 placeholder='folder where the training images are located',
             )
@@ -479,21 +465,19 @@ def finetune_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             image_folder_input_folder.click(
-                get_folder_path, outputs=image_folder_input
+                get_folder_path, outputs=image_folder
             )
         with gr.Row():
-            output_dir_input = gr.Textbox(
+            output_dir = gr.Textbox(
                 label='Model output folder',
                 placeholder='folder where the model will be saved',
             )
             output_dir_input_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
-            output_dir_input_folder.click(
-                get_folder_path, outputs=output_dir_input
-            )
+            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
 
-            logging_dir_input = gr.Textbox(
+            logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
@@ -501,7 +485,7 @@ def finetune_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir_input
+                get_folder_path, outputs=logging_dir
             )
         with gr.Row():
             output_name = gr.Textbox(
@@ -510,24 +494,24 @@ def finetune_tab():
                 value='last',
                 interactive=True,
             )
-        train_dir_input.change(
+        train_dir.change(
             remove_doublequote,
-            inputs=[train_dir_input],
-            outputs=[train_dir_input],
+            inputs=[train_dir],
+            outputs=[train_dir],
         )
-        image_folder_input.change(
+        image_folder.change(
             remove_doublequote,
-            inputs=[image_folder_input],
-            outputs=[image_folder_input],
+            inputs=[image_folder],
+            outputs=[image_folder],
         )
-        output_dir_input.change(
+        output_dir.change(
             remove_doublequote,
-            inputs=[output_dir_input],
-            outputs=[output_dir_input],
+            inputs=[output_dir],
+            outputs=[output_dir],
         )
     with gr.Tab('Dataset preparation'):
         with gr.Row():
-            max_resolution_input = gr.Textbox(
+            max_resolution = gr.Textbox(
                 label='Resolution (width,height)', value='512,512'
             )
             min_bucket_reso = gr.Textbox(
@@ -537,6 +521,21 @@ def finetune_tab():
                 label='Max bucket resolution', value='1024'
             )
             batch_size = gr.Textbox(label='Batch size', value='1')
+        with gr.Row():
+            create_caption = gr.Checkbox(
+                label='Generate caption metadata', value=True
+            )
+            create_buckets = gr.Checkbox(
+                label='Generate image buckets metadata', value=True
+            )
+            use_latent_files = gr.Dropdown(
+                label='Use latent files',
+                choices=[
+                    'No',
+                    'Yes',
+                ],
+                value='Yes',
+            )
         with gr.Accordion('Advanced parameters', open=False):
             with gr.Row():
                 caption_metadata_filename = gr.Textbox(
@@ -546,122 +545,64 @@ def finetune_tab():
                     label='Latent metadata filename', value='meta_lat.json'
                 )
                 full_path = gr.Checkbox(label='Use full path', value=True)
-                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
     with gr.Tab('Training parameters'):
+        (
+            learning_rate,
+            lr_scheduler,
+            lr_warmup,
+            train_batch_size,
+            epoch,
+            save_every_n_epochs,
+            mixed_precision,
+            save_precision,
+            num_cpu_threads_per_process,
+            seed,
+            caption_extension,
+            cache_latents,
+        ) = gradio_training(learning_rate_value='1e-5')
         with gr.Row():
-            learning_rate_input = gr.Textbox(label='Learning rate', value=1e-6)
-            lr_scheduler_input = gr.Dropdown(
-                label='LR Scheduler',
-                choices=[
-                    'constant',
-                    'constant_with_warmup',
-                    'cosine',
-                    'cosine_with_restarts',
-                    'linear',
-                    'polynomial',
-                ],
-                value='constant',
-            )
-            lr_warmup_input = gr.Textbox(label='LR warmup', value=0)
-        with gr.Row():
-            dataset_repeats_input = gr.Textbox(
-                label='Dataset repeats', value=40
-            )
-            train_batch_size_input = gr.Slider(
-                minimum=1,
-                maximum=32,
-                label='Train batch size',
-                value=1,
-                step=1,
-            )
-            epoch_input = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs_input = gr.Textbox(
-                label='Save every N epochs', value=1
-            )
-        with gr.Row():
-            mixed_precision_input = gr.Dropdown(
-                label='Mixed precision',
-                choices=[
-                    'no',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            save_precision_input = gr.Dropdown(
-                label='Save precision',
-                choices=[
-                    'float',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            num_cpu_threads_per_process_input = gr.Slider(
-                minimum=1,
-                maximum=os.cpu_count(),
-                step=1,
-                label='Number of CPU threads per process',
-                value=os.cpu_count(),
-            )
-            seed_input = gr.Textbox(label='Seed', value=1234)
-        with gr.Row():
-            caption_extention_input = gr.Textbox(
-                label='Caption Extension',
-                placeholder='(Optional) Extension for caption files. default: .txt',
-            )
-            train_text_encoder_input = gr.Checkbox(
+            dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
+            train_text_encoder = gr.Checkbox(
                 label='Train text encoder', value=True
             )
         with gr.Accordion('Advanced parameters', open=False):
             with gr.Row():
-                use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-                xformers = gr.Checkbox(label='Use xformers', value=True)
-                clip_skip = gr.Slider(
-                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
-                )
-                mem_eff_attn = gr.Checkbox(
-                    label='Memory efficient attention', value=False
-                )
-                shuffle_caption = gr.Checkbox(
-                    label='Shuffle caption', value=False
-                )
-            with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
-                )
-                resume = gr.Textbox(
-                    label='Resume from saved training state',
-                    placeholder='path to "last-state" state folder to resume from',
-                )
-                resume_button = gr.Button('📂', elem_id='open_folder_small')
-                resume_button.click(get_folder_path, outputs=resume)
-                gradient_checkpointing = gr.Checkbox(
-                    label='Gradient checkpointing', value=False
-                )
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
-    with gr.Box():
-        with gr.Row():
-            create_caption = gr.Checkbox(
-                label='Generate caption metadata', value=True
-            )
-            create_buckets = gr.Checkbox(
-                label='Generate image buckets metadata', value=True
+            (
+                use_8bit_adam,
+                xformers,
+                full_fp16,
+                gradient_checkpointing,
+                shuffle_caption,
+                color_aug,
+                flip_aug,
+                clip_skip,
+                mem_eff_attn,
+                save_state,
+                resume,
+                max_token_length,
+                max_train_epochs,
+                max_data_loader_n_workers,
+            ) = gradio_advanced_training()
+            color_aug.change(
+                color_aug_changed,
+                inputs=[color_aug],
+                outputs=[cache_latents],  # Not applicable to fine_tune.py
             )
 
     button_run = gr.Button('Train model')
 
     settings_list = [
-        pretrained_model_name_or_path_input,
-        v2_input,
-        v_parameterization_input,
-        train_dir_input,
-        image_folder_input,
-        output_dir_input,
-        logging_dir_input,
-        max_resolution_input,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        train_dir,
+        image_folder,
+        output_dir,
+        logging_dir,
+        max_resolution,
         min_bucket_reso,
         max_bucket_reso,
         batch_size,
@@ -669,22 +610,22 @@ def finetune_tab():
         caption_metadata_filename,
         latent_metadata_filename,
         full_path,
-        learning_rate_input,
-        lr_scheduler_input,
-        lr_warmup_input,
-        dataset_repeats_input,
-        train_batch_size_input,
-        epoch_input,
-        save_every_n_epochs_input,
-        mixed_precision_input,
-        save_precision_input,
-        seed_input,
-        num_cpu_threads_per_process_input,
-        train_text_encoder_input,
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        dataset_repeats,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        train_text_encoder,
         create_caption,
         create_buckets,
-        save_model_as_dropdown,
-        caption_extention_input,
+        save_model_as,
+        caption_extension,
         use_8bit_adam,
         xformers,
         clip_skip,
@@ -695,6 +636,14 @@ def finetune_tab():
         mem_eff_attn,
         shuffle_caption,
         output_name,
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
+        full_fp16,
+        color_aug,
+        model_list,
+        cache_latents,
+        use_latent_files,
     ]
 
     button_run.click(train_model, inputs=settings_list)

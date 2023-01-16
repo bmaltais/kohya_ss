@@ -9,7 +9,6 @@ import math
 import os
 import subprocess
 import pathlib
-import shutil
 import argparse
 from library.common_gui import (
     get_folder_path,
@@ -19,7 +18,12 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
-    set_pretrained_model_name_or_path_input,
+    gradio_advanced_training,
+    run_cmd_advanced_training,
+    run_cmd_training,
+    gradio_training,
+    gradio_config,
+    gradio_source_model,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -54,8 +58,8 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
-    caption_extention,
+    cache_latents,
+    caption_extension,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -73,6 +77,12 @@ def save_configuration(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -132,8 +142,8 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
-    caption_extention,
+    cache_latents,
+    caption_extension,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -151,6 +161,12 @@ def open_configuration(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -162,7 +178,7 @@ def open_configuration(
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data_db = json.load(f)
-            print("Loading config...")
+            print('Loading config...')
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data_db = {}
@@ -174,7 +190,7 @@ def open_configuration(
             values.append(my_data_db.get(key, value))
     return tuple(values)
 
-    
+
 def train_model(
     pretrained_model_name_or_path,
     v2,
@@ -194,7 +210,7 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
+    cache_latents,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -213,6 +229,12 @@ def train_model(
     clip_skip,
     vae,
     output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,  # Keep this. Yes, it is unused here but required given the common list used
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -307,28 +329,14 @@ def train_model(
         run_cmd += ' --v2'
     if v_parameterization:
         run_cmd += ' --v_parameterization'
-    if cache_latent:
-        run_cmd += ' --cache_latents'
     if enable_bucket:
         run_cmd += ' --enable_bucket'
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-    if full_fp16:
-        run_cmd += ' --full_fp16'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
     if use_8bit_adam:
         run_cmd += ' --use_8bit_adam'
     if xformers:
         run_cmd += ' --xformers'
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
-    if save_state:
-        run_cmd += ' --save_state'
-    if color_aug:
-        run_cmd += ' --color_aug'
-    if flip_aug:
-        run_cmd += ' --flip_aug'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -337,36 +345,62 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --train_batch_size={train_batch_size}'
-    run_cmd += f' --learning_rate={learning_rate}'
-    run_cmd += f' --lr_scheduler={lr_scheduler}'
-    run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
-    run_cmd += f' --max_train_steps={max_train_steps}'
-    run_cmd += f' --use_8bit_adam'
-    run_cmd += f' --xformers'
-    run_cmd += f' --mixed_precision={mixed_precision}'
-    run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
-    run_cmd += f' --seed={seed}'
-    run_cmd += f' --save_precision={save_precision}'
     run_cmd += f' --logging_dir="{logging_dir}"'
-    if not caption_extension == '':
-        run_cmd += f' --caption_extension={caption_extension}'
     if not stop_text_encoder_training == 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
         )
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    if not resume == '':
-        run_cmd += f' --resume={resume}'
+    # if not resume == '':
+    #     run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if int(clip_skip) > 1:
-        run_cmd += f' --clip_skip={str(clip_skip)}'
     if not vae == '':
         run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if int(max_token_length) > 75:
+        run_cmd += f' --max_token_length={max_token_length}'
+    if not max_train_epochs == '':
+        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
+    if not max_data_loader_n_workers == '':
+        run_cmd += (
+            f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+        )
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
+
+    run_cmd += run_cmd_training(
+        learning_rate=learning_rate,
+        lr_scheduler=lr_scheduler,
+        lr_warmup_steps=lr_warmup_steps,
+        train_batch_size=train_batch_size,
+        max_train_steps=max_train_steps,
+        save_every_n_epochs=save_every_n_epochs,
+        mixed_precision=mixed_precision,
+        save_precision=save_precision,
+        seed=seed,
+        caption_extension=caption_extension,
+        cache_latents=cache_latents,
+    )
+
+    run_cmd += run_cmd_advanced_training(
+        max_train_epochs=max_train_epochs,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_token_length=max_token_length,
+        resume=resume,
+        save_state=save_state,
+        mem_eff_attn=mem_eff_attn,
+        clip_skip=clip_skip,
+        flip_aug=flip_aug,
+        color_aug=color_aug,
+        shuffle_caption=shuffle_caption,
+        gradient_checkpointing=gradient_checkpointing,
+        full_fp16=full_fp16,
+        xformers=xformers,
+        use_8bit_adam=use_8bit_adam,
+    )
 
     print(run_cmd)
     # Run the command
@@ -423,82 +457,20 @@ def dreambooth_tab(
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     gr.Markdown('Train a custom model using kohya dreambooth python code...')
-    with gr.Accordion('Configuration file', open=False):
-        with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
-            button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder'
-            )
-            config_file_name = gr.Textbox(
-                label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
-                interactive=True,
-            )
-    with gr.Tab('Source model'):
-        # Define the input elements
-        with gr.Row():
-            pretrained_model_name_or_path = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
-            )
-            pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_file.click(
-                get_any_file_path,
-                inputs=[pretrained_model_name_or_path],
-                outputs=pretrained_model_name_or_path,
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path,
-                outputs=pretrained_model_name_or_path,
-            )
-            model_list = gr.Dropdown(
-                label='(Optional) Model Quick Pick',
-                choices=[
-                    'custom',
-                    'stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
-                ],
-            )
-            save_model_as = gr.Dropdown(
-                label='Save trained model as',
-                choices=[
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ],
-                value='same as source model',
-            )
-        with gr.Row():
-            v2 = gr.Checkbox(label='v2', value=True)
-            v_parameterization = gr.Checkbox(
-                label='v_parameterization', value=False
-            )
-        pretrained_model_name_or_path.change(
-            remove_doublequote,
-            inputs=[pretrained_model_name_or_path],
-            outputs=[pretrained_model_name_or_path],
-        )
-        model_list.change(
-            set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2, v_parameterization],
-            outputs=[
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-            ],
-        )
+    (
+        button_open_config,
+        button_save_config,
+        button_save_as_config,
+        config_file_name,
+    ) = gradio_config()
+
+    (
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        save_model_as,
+        model_list,
+    ) = gradio_source_model()
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -569,70 +541,29 @@ def dreambooth_tab(
             outputs=[logging_dir],
         )
     with gr.Tab('Training parameters'):
+        (
+            learning_rate,
+            lr_scheduler,
+            lr_warmup,
+            train_batch_size,
+            epoch,
+            save_every_n_epochs,
+            mixed_precision,
+            save_precision,
+            num_cpu_threads_per_process,
+            seed,
+            caption_extension,
+            cache_latents,
+        ) = gradio_training(
+            learning_rate_value='1e-5',
+            lr_scheduler_value='cosine',
+            lr_warmup_value='10',
+        )
         with gr.Row():
-            learning_rate = gr.Textbox(label='Learning rate', value=1e-6)
-            lr_scheduler = gr.Dropdown(
-                label='LR Scheduler',
-                choices=[
-                    'constant',
-                    'constant_with_warmup',
-                    'cosine',
-                    'cosine_with_restarts',
-                    'linear',
-                    'polynomial',
-                ],
-                value='constant',
-            )
-            lr_warmup = gr.Textbox(label='LR warmup', value=0)
-        with gr.Row():
-            train_batch_size = gr.Slider(
-                minimum=1,
-                maximum=32,
-                label='Train batch size',
-                value=1,
-                step=1,
-            )
-            epoch = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs = gr.Textbox(
-                label='Save every N epochs', value=1
-            )
-        with gr.Row():
-            mixed_precision = gr.Dropdown(
-                label='Mixed precision',
-                choices=[
-                    'no',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            save_precision = gr.Dropdown(
-                label='Save precision',
-                choices=[
-                    'float',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            num_cpu_threads_per_process = gr.Slider(
-                minimum=1,
-                maximum=os.cpu_count(),
-                step=1,
-                label='Number of CPU threads per process',
-                value=os.cpu_count(),
-            )
-        with gr.Row():
-            seed = gr.Textbox(label='Seed', value=1234)
             max_resolution = gr.Textbox(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
-            )
-        with gr.Row():
-            caption_extention = gr.Textbox(
-                label='Caption Extension',
-                placeholder='(Optional) Extension for caption files. default: .caption',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -641,50 +572,16 @@ def dreambooth_tab(
                 step=1,
                 label='Stop text encoder training',
             )
-        with gr.Row():
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
-            cache_latent = gr.Checkbox(label='Cache latent', value=True)
-            use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-            xformers = gr.Checkbox(label='Use xformers', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                full_fp16 = gr.Checkbox(
-                    label='Full fp16 training (experimental)', value=False
-                )
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
-
-                gradient_checkpointing = gr.Checkbox(
-                    label='Gradient checkpointing', value=False
-                )
-
-                shuffle_caption = gr.Checkbox(
-                    label='Shuffle caption', value=False
+                gradient_accumulation_steps = gr.Number(
+                    label='Gradient accumulate steps', value='1'
                 )
             with gr.Row():
-                save_state = gr.Checkbox(
-                    label='Save training state', value=False
-                )
-                color_aug = gr.Checkbox(
-                    label='Color augmentation', value=False
-                )
-                flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-                color_aug.change(
-                    color_aug_changed,
-                    inputs=[color_aug],
-                    outputs=[cache_latent],
-                )
-                clip_skip = gr.Slider(
-                    label='Clip skip', value='1', minimum=1, maximum=12, step=1
-                )
-            with gr.Row():
-                resume = gr.Textbox(
-                    label='Resume from saved training state',
-                    placeholder='path to "last-state" state folder to resume from',
-                )
-                resume_button = gr.Button('📂', elem_id='open_folder_small')
-                resume_button.click(get_folder_path, outputs=resume)
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
@@ -694,6 +591,27 @@ def dreambooth_tab(
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
                 vae_button.click(get_any_file_path, outputs=vae)
+            (
+                use_8bit_adam,
+                xformers,
+                full_fp16,
+                gradient_checkpointing,
+                shuffle_caption,
+                color_aug,
+                flip_aug,
+                clip_skip,
+                mem_eff_attn,
+                save_state,
+                resume,
+                max_token_length,
+                max_train_epochs,
+                max_data_loader_n_workers,
+            ) = gradio_advanced_training()
+            color_aug.change(
+                color_aug_changed,
+                inputs=[color_aug],
+                outputs=[cache_latents],
+            )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -726,8 +644,8 @@ def dreambooth_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latent,
-        caption_extention,
+        cache_latents,
+        caption_extension,
         enable_bucket,
         gradient_checkpointing,
         full_fp16,
@@ -745,6 +663,12 @@ def dreambooth_tab(
         clip_skip,
         vae,
         output_name,
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
+        mem_eff_attn,
+        gradient_accumulation_steps,
+        model_list,
     ]
 
     button_open_config.click(
