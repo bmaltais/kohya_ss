@@ -71,7 +71,14 @@ Once the commands have completed successfully you should be ready to use the new
 To run the GUI you simply use this command:
 
 ```
-gui.ps1
+.\gui.ps1
+```
+
+or you can alsi do:
+
+```
+.\venv\Scripts\activate
+python.exe .\kohya_gui.py
 ```
 
 ## Dreambooth
