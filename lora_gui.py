@@ -9,7 +9,6 @@ import math
 import os
 import subprocess
 import pathlib
-import shutil
 import argparse
 from library.common_gui import (
     get_folder_path,
@@ -19,9 +18,12 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
-    set_pretrained_model_name_or_path_input,
     gradio_advanced_training,
     run_cmd_advanced_training,
+    gradio_training,
+    gradio_config,
+    gradio_source_model,
+    run_cmd_training,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -48,6 +50,7 @@ def save_configuration(
     reg_data_dir,
     output_dir,
     max_resolution,
+    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -57,8 +60,8 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
-    caption_extention,
+    cache_latents,
+    caption_extension,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -134,6 +137,7 @@ def open_configuration(
     reg_data_dir,
     output_dir,
     max_resolution,
+    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -143,8 +147,8 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
-    caption_extention,
+    cache_latents,
+    caption_extension,
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
@@ -204,6 +208,7 @@ def train_model(
     reg_data_dir,
     output_dir,
     max_resolution,
+    learning_rate,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -213,7 +218,7 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latent,
+    cache_latents,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -336,8 +341,6 @@ def train_model(
         run_cmd += ' --v2'
     if v_parameterization:
         run_cmd += ' --v_parameterization'
-    if cache_latent:
-        run_cmd += ' --cache_latents'
     if enable_bucket:
         run_cmd += ' --enable_bucket'
     if no_token_padding:
@@ -350,28 +353,15 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --train_batch_size={train_batch_size}'
-    # run_cmd += f' --learning_rate={learning_rate}'
-    run_cmd += f' --lr_scheduler={lr_scheduler}'
-    run_cmd += f' --lr_warmup_steps={lr_warmup_steps}'
-    run_cmd += f' --max_train_steps={max_train_steps}'
     run_cmd += f' --use_8bit_adam'
     run_cmd += f' --xformers'
-    run_cmd += f' --mixed_precision={mixed_precision}'
-    run_cmd += f' --save_every_n_epochs={save_every_n_epochs}'
-    run_cmd += f' --seed={seed}'
-    run_cmd += f' --save_precision={save_precision}'
     run_cmd += f' --logging_dir="{logging_dir}"'
-    if not caption_extension == '':
-        run_cmd += f' --caption_extension={caption_extension}'
     if not stop_text_encoder_training == 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
         )
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
-    # if not resume == '':
-    #     run_cmd += f' --resume="{resume}"'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
@@ -383,21 +373,28 @@ def train_model(
         run_cmd += f' --unet_lr={unet_lr}'
     else:
         run_cmd += f' --network_train_text_encoder_only'
-    # if network_train == 'Text encoder only':
-    #     run_cmd += f' --network_train_text_encoder_only'
-    # elif network_train == 'Unet only':
-    #     run_cmd += f' --network_train_unet_only'
     run_cmd += f' --network_dim={network_dim}'
     if not lora_network_weights == '':
         run_cmd += f' --network_weights="{lora_network_weights}"'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    # if not vae == '':
-    #     run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
-    # if (int(max_token_length) > 75):
-    #     run_cmd += f' --max_token_length={max_token_length}'
+
+    run_cmd += run_cmd_training(
+        learning_rate=learning_rate,
+        lr_scheduler=lr_scheduler,
+        lr_warmup_steps=lr_warmup_steps,
+        train_batch_size=train_batch_size,
+        max_train_steps=max_train_steps,
+        save_every_n_epochs=save_every_n_epochs,
+        mixed_precision=mixed_precision,
+        save_precision=save_precision,
+        seed=seed,
+        caption_extension=caption_extension,
+        cache_latents=cache_latents,
+    )
+
     run_cmd += run_cmd_advanced_training(
         max_train_epochs=max_train_epochs,
         max_data_loader_n_workers=max_data_loader_n_workers,
@@ -472,88 +469,20 @@ def lora_tab(
     gr.Markdown(
         'Train a custom model using kohya train network LoRA python code...'
     )
-    with gr.Accordion('Configuration file', open=False):
-        with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
-            button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder'
-            )
-            config_file_name = gr.Textbox(
-                label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
-                interactive=True,
-            )
-        # config_file_name.change(
-        #     remove_doublequote,
-        #     inputs=[config_file_name],
-        #     outputs=[config_file_name],
-        # )
-    with gr.Tab('Source model'):
-        # Define the input elements
-        with gr.Row():
-            pretrained_model_name_or_path = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
-            )
-            pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_file.click(
-                get_any_file_path,
-                inputs=[pretrained_model_name_or_path],
-                outputs=pretrained_model_name_or_path,
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path,
-                outputs=pretrained_model_name_or_path,
-            )
-            model_list = gr.Dropdown(
-                label='(Optional) Model Quick Pick',
-                choices=[
-                    'custom',
-                    'stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
-                ],
-            )
-            save_model_as_dropdown = gr.Dropdown(
-                label='Save trained model as',
-                choices=[
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ],
-                value='same as source model',
-            )
+    (
+        button_open_config,
+        button_save_config,
+        button_save_as_config,
+        config_file_name,
+    ) = gradio_config()
 
-        with gr.Row():
-            v2 = gr.Checkbox(label='v2', value=True)
-            v_parameterization = gr.Checkbox(
-                label='v_parameterization', value=False
-            )
-        pretrained_model_name_or_path.change(
-            remove_doublequote,
-            inputs=[pretrained_model_name_or_path],
-            outputs=[pretrained_model_name_or_path],
-        )
-        model_list.change(
-            set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2, v_parameterization],
-            outputs=[
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-            ],
-        )
+    (
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        save_model_as,
+        model_list,
+    ) = gradio_source_model()
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -625,20 +554,24 @@ def lora_tab(
                 inputs=[lora_network_weights],
                 outputs=lora_network_weights,
             )
-        with gr.Row():
-            lr_scheduler = gr.Dropdown(
-                label='LR Scheduler',
-                choices=[
-                    'constant',
-                    'constant_with_warmup',
-                    'cosine',
-                    'cosine_with_restarts',
-                    'linear',
-                    'polynomial',
-                ],
-                value='cosine',
-            )
-            lr_warmup = gr.Textbox(label='LR warmup (% of steps)', value=10)
+        (
+            learning_rate,
+            lr_scheduler,
+            lr_warmup,
+            train_batch_size,
+            epoch,
+            save_every_n_epochs,
+            mixed_precision,
+            save_precision,
+            num_cpu_threads_per_process,
+            seed,
+            caption_extension,
+            cache_latents,
+        ) = gradio_training(
+            learning_rate_value='1e-5',
+            lr_scheduler_value='cosine',
+            lr_warmup_value='10',
+        )
         with gr.Row():
             text_encoder_lr = gr.Textbox(
                 label='Text Encoder learning rate',
@@ -659,54 +592,10 @@ def lora_tab(
                 interactive=True,
             )
         with gr.Row():
-            train_batch_size = gr.Slider(
-                minimum=1,
-                maximum=32,
-                label='Train batch size',
-                value=1,
-                step=1,
-            )
-            epoch = gr.Textbox(label='Epoch', value=1)
-            save_every_n_epochs = gr.Textbox(
-                label='Save every N epochs', value=1
-            )
-        with gr.Row():
-            mixed_precision = gr.Dropdown(
-                label='Mixed precision',
-                choices=[
-                    'no',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            save_precision = gr.Dropdown(
-                label='Save precision',
-                choices=[
-                    'float',
-                    'fp16',
-                    'bf16',
-                ],
-                value='fp16',
-            )
-            num_cpu_threads_per_process = gr.Slider(
-                minimum=1,
-                maximum=os.cpu_count(),
-                step=1,
-                label='Number of CPU threads per process',
-                value=os.cpu_count(),
-            )
-        with gr.Row():
-            seed = gr.Textbox(label='Seed', value=1234)
             max_resolution = gr.Textbox(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
-            )
-        with gr.Row():
-            caption_extention = gr.Textbox(
-                label='Caption Extension',
-                placeholder='(Optional) Extension for caption files. default: .caption',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -715,9 +604,7 @@ def lora_tab(
                 step=1,
                 label='Stop text encoder training',
             )
-        with gr.Row():
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
-            cache_latent = gr.Checkbox(label='Cache latent', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
                 no_token_padding = gr.Checkbox(
@@ -749,7 +636,7 @@ def lora_tab(
             color_aug.change(
                 color_aug_changed,
                 inputs=[color_aug],
-                outputs=[cache_latent],
+                outputs=[cache_latents],
             )
 
     with gr.Tab('Tools'):
@@ -776,6 +663,7 @@ def lora_tab(
         reg_data_dir,
         output_dir,
         max_resolution,
+        learning_rate,
         lr_scheduler,
         lr_warmup,
         train_batch_size,
@@ -785,8 +673,8 @@ def lora_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latent,
-        caption_extention,
+        cache_latents,
+        caption_extension,
         enable_bucket,
         gradient_checkpointing,
         full_fp16,
@@ -794,7 +682,7 @@ def lora_tab(
         stop_text_encoder_training,
         use_8bit_adam,
         xformers,
-        save_model_as_dropdown,
+        save_model_as,
         shuffle_caption,
         save_state,
         resume,

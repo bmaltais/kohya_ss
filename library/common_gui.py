@@ -4,6 +4,10 @@ import gradio as gr
 from easygui import msgbox
 import shutil
 
+folder_symbol = '\U0001f4c2'  # 📂
+refresh_symbol = '\U0001f504'  # 🔄
+save_style_symbol = '\U0001f4be'  # 💾
+document_symbol = '\U0001F4C4'   # 📄
 
 def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
@@ -300,6 +304,208 @@ def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
     ###
     ### Gradio common GUI section
     ###
+    
+def gradio_config():
+    with gr.Accordion('Configuration file', open=False):
+        with gr.Row():
+            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
+            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
+            button_save_as_config = gr.Button(
+                'Save as... 💾', elem_id='open_folder'
+            )
+            config_file_name = gr.Textbox(
+                label='',
+                placeholder="type the configuration file path or use the 'Open' button above to select it...",
+                interactive=True,
+            )
+    return (button_open_config, button_save_config, button_save_as_config, config_file_name)
+
+def gradio_source_model():
+    with gr.Tab('Source model'):
+        # Define the input elements
+        with gr.Row():
+            pretrained_model_name_or_path = gr.Textbox(
+                label='Pretrained model name or path',
+                placeholder='enter the path to custom model or name of pretrained model',
+            )
+            pretrained_model_name_or_path_file = gr.Button(
+                document_symbol, elem_id='open_folder_small'
+            )
+            pretrained_model_name_or_path_file.click(
+                get_any_file_path,
+                inputs=pretrained_model_name_or_path,
+                outputs=pretrained_model_name_or_path,
+            )
+            pretrained_model_name_or_path_folder = gr.Button(
+                folder_symbol, elem_id='open_folder_small'
+            )
+            pretrained_model_name_or_path_folder.click(
+                get_folder_path,
+                inputs=pretrained_model_name_or_path,
+                outputs=pretrained_model_name_or_path,
+            )
+            model_list = gr.Dropdown(
+                label='(Optional) Model Quick Pick',
+                choices=[
+                    'custom',
+                    'stabilityai/stable-diffusion-2-1-base',
+                    'stabilityai/stable-diffusion-2-base',
+                    'stabilityai/stable-diffusion-2-1',
+                    'stabilityai/stable-diffusion-2',
+                    'runwayml/stable-diffusion-v1-5',
+                    'CompVis/stable-diffusion-v1-4',
+                ],
+            )
+            save_model_as = gr.Dropdown(
+                label='Save trained model as',
+                choices=[
+                    'same as source model',
+                    'ckpt',
+                    'diffusers',
+                    'diffusers_safetensors',
+                    'safetensors',
+                ],
+                value='same as source model',
+            )
+
+        with gr.Row():
+            v2 = gr.Checkbox(label='v2', value=True)
+            v_parameterization = gr.Checkbox(
+                label='v_parameterization', value=False
+            )
+        model_list.change(
+            set_pretrained_model_name_or_path_input,
+            inputs=[model_list, v2, v_parameterization],
+            outputs=[
+                pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
+            ],
+        )
+    return (pretrained_model_name_or_path, v2, v_parameterization, save_model_as, model_list)
+
+def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', lr_warmup_value='0'):
+    with gr.Row():
+        train_batch_size = gr.Slider(
+            minimum=1,
+            maximum=32,
+            label='Train batch size',
+            value=1,
+            step=1,
+        )
+        epoch = gr.Textbox(label='Epoch', value=1)
+        save_every_n_epochs = gr.Textbox(
+            label='Save every N epochs', value=1
+        )
+        caption_extension = gr.Textbox(
+            label='Caption Extension',
+            placeholder='(Optional) Extension for caption files. default: .caption',
+        )
+    with gr.Row():
+        mixed_precision = gr.Dropdown(
+            label='Mixed precision',
+            choices=[
+                'no',
+                'fp16',
+                'bf16',
+            ],
+            value='fp16',
+        )
+        save_precision = gr.Dropdown(
+            label='Save precision',
+            choices=[
+                'float',
+                'fp16',
+                'bf16',
+            ],
+            value='fp16',
+        )
+        num_cpu_threads_per_process = gr.Slider(
+            minimum=1,
+            maximum=os.cpu_count(),
+            step=1,
+            label='Number of CPU threads per process',
+            value=os.cpu_count(),
+        )
+        seed = gr.Textbox(label='Seed', value=1234)
+    with gr.Row():
+        learning_rate = gr.Textbox(label='Learning rate', value=learning_rate_value)
+        lr_scheduler = gr.Dropdown(
+            label='LR Scheduler',
+            choices=[
+                'constant',
+                'constant_with_warmup',
+                'cosine',
+                'cosine_with_restarts',
+                'linear',
+                'polynomial',
+            ],
+            value=lr_scheduler_value,
+        )
+        lr_warmup = gr.Textbox(label='LR warmup (% of steps)', value=lr_warmup_value)
+        cache_latents = gr.Checkbox(label='Cache latent', value=True)
+    return (
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        num_cpu_threads_per_process,
+        seed,
+        caption_extension,
+        cache_latents,
+    )
+
+def run_cmd_training(**kwargs):
+    options = [
+        f' --learning_rate="{kwargs.get("learning_rate", "")}"'
+        if kwargs.get('learning_rate')
+        else '',
+        
+        f' --lr_scheduler="{kwargs.get("lr_scheduler", "")}"'
+        if kwargs.get('lr_scheduler')
+        else '',
+        
+        f' --lr_warmup_steps="{kwargs.get("lr_warmup_steps", "")}"'
+        if kwargs.get('lr_warmup_steps')
+        else '',
+        
+        f' --train_batch_size="{kwargs.get("train_batch_size", "")}"'
+        if kwargs.get('train_batch_size')
+        else '',
+        
+        f' --max_train_steps="{kwargs.get("max_train_steps", "")}"'
+        if kwargs.get('max_train_steps')
+        else '',
+        
+        f' --save_every_n_epochs="{kwargs.get("save_every_n_epochs", "")}"'
+        if kwargs.get('save_every_n_epochs')
+        else '',
+        
+        f' --mixed_precision="{kwargs.get("mixed_precision", "")}"'
+        if kwargs.get('mixed_precision')
+        else '',
+        
+        f' --save_precision="{kwargs.get("save_precision", "")}"'
+        if kwargs.get('save_precision')
+        else '',
+        
+        f' --seed="{kwargs.get("seed", "")}"'
+        if kwargs.get('seed')
+        else '',
+        
+        f' --caption_extension="{kwargs.get("caption_extension", "")}"'
+        if kwargs.get('caption_extension')
+        else '',
+        
+        ' --cache_latents' if kwargs.get('cache_latents') else '',
+        
+    ]
+    run_cmd = ''.join(options)
+    return run_cmd
 
 
 def gradio_advanced_training():
@@ -368,7 +574,6 @@ def gradio_advanced_training():
         max_data_loader_n_workers,
     )
 
-
 def run_cmd_advanced_training(**kwargs):
     options = [
         f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
@@ -412,3 +617,4 @@ def run_cmd_advanced_training(**kwargs):
     ]
     run_cmd = ''.join(options)
     return run_cmd
+
