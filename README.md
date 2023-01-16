@@ -99,13 +99,14 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
-* 2023/01/15 (v20.2.1):
+* 2023/01/16 (v20.2.1):
     - Merging latest code update from kohya
     - Added `--max_train_epochs` and `--max_data_loader_n_workers` option for each training script.
     - If you specify the number of training epochs with `--max_train_epochs`, the number of steps is calculated from the number of epochs automatically.
     - You can set the number of workers for DataLoader with `--max_data_loader_n_workers`, default is 8. The lower number may reduce the main memory usage and the time between epochs, but may cause slower dataloading (training).
     - Fix loading some VAE or .safetensors as VAE is failed for `--vae` option. Thanks to Fannovel16!
     - Add negative prompt scaling for `gen_img_diffusers.py` You can set another conditioning scale to the negative prompt with `--negative_scale` option, and `--nl` option for the prompt. Thanks to laksjdjf!
+    - Refactoring of GUI code and fixing mismatch... and possibly introducing bugs...
 * 2023/01/11 (v20.2.0):
     - Add support for max token lenght
 * 2023/01/10 (v20.1.1):
