@@ -2,6 +2,11 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 ## Updates
 
+- 17 Jan. 2023, 2023/1/17
+  - __Important Notice__ 
+  It seems that only a part of LoRA modules are trained when ``gradient_checkpointing`` is enabled. The cause is under investigation, but for the time being, please train without ``gradient_checkpointing``.
+  - __重要なお知らせ__
+  ``gradient_checkpointing`` を有効にすると LoRA モジュールの一部しか学習されないようです。原因は調査中ですが当面は ``gradient_checkpointing`` を指定せずに学習してください。
 - 15 Jan. 2023, 2023/1/15
   - Added ``--max_train_epochs`` and ``--max_data_loader_n_workers`` option for each training script. 
   - If you specify the number of training epochs with ``--max_train_epochs``, the number of steps is calculated from the number of epochs automatically.
