@@ -330,20 +330,21 @@ def train(args):
         global_step += 1
 
       current_loss = loss.detach().item()
-      if args.logging_dir is not None:
-        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
-        accelerator.log(logs, step=global_step)
-
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
+      if args.logging_dir is not None:
+        logs = train_util.generate_step_logs(args, current_loss, avr_loss, lr_scheduler)
+
+        accelerator.log(logs, step=global_step)
+
       if global_step >= args.max_train_steps:
         break
 
     if args.logging_dir is not None:
-      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": loss_total / len(train_dataloader)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
