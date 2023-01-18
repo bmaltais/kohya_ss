@@ -79,6 +79,8 @@ class BaseDataset(torch.utils.data.Dataset):
     self.debug_dataset = debug_dataset
     self.random_crop = random_crop
     self.token_padding_disabled = False
+    self.dataset_dirs = {}
+    self.reg_dataset_dirs = {}
 
     self.tokenizer_max_length = self.tokenizer.model_max_length if max_token_length is None else max_token_length + 2
 
@@ -523,6 +525,7 @@ class DreamBoothDataset(BaseDataset):
       for img_path, caption in zip(img_paths, captions):
         info = ImageInfo(img_path, n_repeats, caption, False, img_path)
         self.register_image(info)
+      self.dataset_dirs[dir] = {"n_repeats": n_repeats, "img_count": len(img_paths)}
     print(f"{num_train_images} train images with repeating.")
     self.num_train_images = num_train_images
 
@@ -539,6 +542,7 @@ class DreamBoothDataset(BaseDataset):
         for img_path, caption in zip(img_paths, captions):
           info = ImageInfo(img_path, n_repeats, caption, True, img_path)
           reg_infos.append(info)
+        self.reg_dataset_dirs[dir] = {"n_repeats": n_repeats, "img_count": len(img_paths)}
 
       print(f"{num_reg_images} reg images.")
       if num_train_images < num_reg_images:
