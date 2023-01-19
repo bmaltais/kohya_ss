@@ -367,9 +367,9 @@ def train(args):
           print(f"removing old checkpoint: {old_ckpt_file}")
           os.remove(old_ckpt_file)
 
-      saving, remove_epoch_no = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
+      saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
       if saving and args.save_state:
-        train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1, remove_epoch_no)
+        train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
 
     # end of epoch
 
