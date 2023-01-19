@@ -2,11 +2,48 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 ## Updates
 
+- 19 Jan. 2023, 2023/1/19
+  - Fix a part of LoRA modules are not trained when ``gradient_checkpointing`` is enabled. 
+  - Add ``--save_last_n_epochs_state`` option. You can specify how many state folders to keep, apart from how many models to keep. Thanks to shirayu!
+  - Fix Text Encoder training stops at ``max_train_steps`` even if ``max_train_epochs`` is set in `train_db.py``.
+  - Added script to check LoRA weights. You can check weights by ``python networks\check_lora_weights.py <model file>``. If some modules are not trained, the value is ``0.0`` like following. 
+    - ``lora_te_text_model_encoder_layers_11_*`` is not trained with ``clip_skip=2``, so ``0.0`` is okay for these modules.
+  - 一部のLoRAモジュールが ``gradient_checkpointing`` を有効にすると学習されない不具合を修正しました。ご不便をおかけしました。
+  - ``--save_last_n_epochs_state`` オプションを追加しました。モデルの保存数とは別に、stateフォルダの保存数を指定できます。shirayu氏に感謝します。
+  - ``train_db.py`` で、``max_train_epochs`` を指定していても、``max_train_steps`` のステップでText Encoderの学習が停止してしまう不具合を修正しました。
+  - LoRAの重みをチェックするスクリプトを追加してあります。``python networks\check_lora_weights.py <model file>`` のように実行してください。学習していない重みがあると、値が 下のように ``0.0`` になります。
+       - ``lora_te_text_model_encoder_layers_11_`` で始まる部分は ``clip_skip=2`` の場合は学習されないため、``0.0`` で正常です。
+
+- example result of ``check_lora_weights.py``, Text Encoder and a part of U-Net are not trained:
+```
+number of LoRA-up modules: 264
+lora_te_text_model_encoder_layers_0_mlp_fc1.lora_up.weight,0.0
+lora_te_text_model_encoder_layers_0_mlp_fc2.lora_up.weight,0.0
+lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight,0.0
+:
+lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_0_proj.lora_up.weight,0.0
+lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_2.lora_up.weight,0.0
+lora_unet_mid_block_attentions_0_proj_in.lora_up.weight,0.003503334941342473
+lora_unet_mid_block_attentions_0_proj_out.lora_up.weight,0.004308608360588551
+:
+```
+
+- all modules are trained:
+```
+number of LoRA-up modules: 264
+lora_te_text_model_encoder_layers_0_mlp_fc1.lora_up.weight,0.0028684409335255623
+lora_te_text_model_encoder_layers_0_mlp_fc2.lora_up.weight,0.0029794853180646896
+lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight,0.002507600700482726
+lora_te_text_model_encoder_layers_0_self_attn_out_proj.lora_up.weight,0.002639499492943287
+:
+```
+
 - 17 Jan. 2023, 2023/1/17
-  - __Important Notice__ 
-  It seems that only a part of LoRA modules are trained when ``gradient_checkpointing`` is enabled. The cause is under investigation, but for the time being, please train without ``gradient_checkpointing``.
+  - __Important Notice__
+  It seems that only a part of LoRA modules are trained when ``gradient_checkpointing`` is enabled. The cause is under investigation, but for the time being, please train without ``gradient_checkpointing``. __The issue is fixed now.__
   - __重要なお知らせ__
-  ``gradient_checkpointing`` を有効にすると LoRA モジュールの一部しか学習されないようです。原因は調査中ですが当面は ``gradient_checkpointing`` を指定せずに学習してください。
+  ``gradient_checkpointing`` を有効にすると LoRA モジュールの一部しか学習されないようです。原因は調査中ですが当面は ``gradient_checkpointing`` を指定せずに学習してください。__問題は修正されました。__
+
 - 15 Jan. 2023, 2023/1/15
   - Added ``--max_train_epochs`` and ``--max_data_loader_n_workers`` option for each training script. 
   - If you specify the number of training epochs with ``--max_train_epochs``, the number of steps is calculated from the number of epochs automatically.
