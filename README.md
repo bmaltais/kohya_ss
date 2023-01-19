@@ -6,7 +6,7 @@ This repository repository is providing a Gradio GUI for kohya's Stable Diffusio
 
 Python 3.10.6+ and Git:
 
-- Python 3.10.6+: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
+- Python 3.10.6+: https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe
 - git: https://git-scm.com/download/win
 
 ## Installation
@@ -27,7 +27,7 @@ python -m venv --system-site-packages venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements.txt
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
 cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
@@ -61,7 +61,7 @@ When a new release comes out you can upgrade your repo with the following comman
 cd kohya_ss
 git pull
 .\venv\Scripts\activate
-pip install --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements.txt
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.
@@ -104,8 +104,48 @@ python lora_gui.py
 
 Once you have created the LoRA network you can generate images via auto1111 by installing the extension found here: https://github.com/kohya-ss/sd-webui-additional-networks
 
+## Troubleshooting
+
+### Page file limit
+
+- if get X error relating to `page file`, increase page file size limit in Windows
+
+### No module called tkinter
+
+- Re-install python 3.10.x on your system: https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe
+
 ## Change history
 
+* 2023/01/16 (v20.3.0)
+  - Fix a part of LoRA modules are not trained when ``gradient_checkpointing`` is enabled. 
+  - Add ``--save_last_n_epochs_state`` option. You can specify how many state folders to keep, apart from how many models to keep. Thanks to shirayu!
+  - Fix Text Encoder training stops at ``max_train_steps`` even if ``max_train_epochs`` is set in `train_db.py``.
+  - Added script to check LoRA weights. You can check weights by ``python networks\check_lora_weights.py <model file>``. If some modules are not trained, the value is ``0.0`` like following. 
+    - ``lora_te_text_model_encoder_layers_11_*`` is not trained with ``clip_skip=2``, so ``0.0`` is okay for these modules.
+
+- example result of ``check_lora_weights.py``, Text Encoder and a part of U-Net are not trained:
+```
+number of LoRA-up modules: 264
+lora_te_text_model_encoder_layers_0_mlp_fc1.lora_up.weight,0.0
+lora_te_text_model_encoder_layers_0_mlp_fc2.lora_up.weight,0.0
+lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight,0.0
+:
+lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_0_proj.lora_up.weight,0.0
+lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_2.lora_up.weight,0.0
+lora_unet_mid_block_attentions_0_proj_in.lora_up.weight,0.003503334941342473
+lora_unet_mid_block_attentions_0_proj_out.lora_up.weight,0.004308608360588551
+:
+```
+
+- all modules are trained:
+```
+number of LoRA-up modules: 264
+lora_te_text_model_encoder_layers_0_mlp_fc1.lora_up.weight,0.0028684409335255623
+lora_te_text_model_encoder_layers_0_mlp_fc2.lora_up.weight,0.0029794853180646896
+lora_te_text_model_encoder_layers_0_self_attn_k_proj.lora_up.weight,0.002507600700482726
+lora_te_text_model_encoder_layers_0_self_attn_out_proj.lora_up.weight,0.002639499492943287
+:
+```
 * 2023/01/16 (v20.2.1):
     - Merging latest code update from kohya
     - Added `--max_train_epochs` and `--max_data_loader_n_workers` option for each training script.
