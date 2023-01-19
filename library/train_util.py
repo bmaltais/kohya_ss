@@ -11,6 +11,7 @@ import glob
 import math
 import os
 import random
+import hashlib
 
 from tqdm import tqdm
 import torch
@@ -753,9 +754,9 @@ def default(val, d):
 
 
 def model_hash(filename):
+  """Old model hash used by stable-diffusion-webui"""
   try:
     with open(filename, "rb") as file:
-      import hashlib
       m = hashlib.sha256()
 
       file.seek(0x100000)
@@ -763,6 +764,18 @@ def model_hash(filename):
       return m.hexdigest()[0:8]
   except FileNotFoundError:
     return 'NOFILE'
+
+
+def calculate_sha256(filename):
+  """New model hash used by stable-diffusion-webui"""
+  hash_sha256 = hashlib.sha256()
+  blksize = 1024 * 1024
+
+  with open(filename, "rb") as f:
+    for chunk in iter(lambda: f.read(blksize), b""):
+      hash_sha256.update(chunk)
+
+  return hash_sha256.hexdigest()
 
 
 # flash attention forwards and backwards
