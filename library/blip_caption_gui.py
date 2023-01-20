@@ -26,6 +26,10 @@ def caption_images(
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
+    
+    if caption_file_ext == '':
+        msgbox('Please provide an extension for the caption files.')
+        return
 
     print(f'Captioning files in {train_data_dir}...')
     run_cmd = f'.\\venv\\Scripts\\python.exe "finetune/make_captions.py"'
@@ -82,7 +86,8 @@ def gradio_blip_caption_gui_tab():
         with gr.Row():
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='(Optional) Default: .caption',
+                placeholder='Extention for caption file. eg: .caption, .txt',
+                value='.txt',
                 interactive=True,
             )
 

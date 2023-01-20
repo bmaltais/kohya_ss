@@ -200,7 +200,7 @@ def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
 
     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
     for file in files:
-        with open(os.path.join(folder, file), 'r') as f:
+        with open(os.path.join(folder, file), 'r', errors="ignore") as f:
             content = f.read()
             f.close
         content = content.replace(find, replace)

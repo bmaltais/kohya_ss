@@ -14,6 +14,10 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
+    
+    if caption_extension == '':
+        msgbox('Please provide an extension for the caption files.')
+        return
 
     print(f'Captioning files in {train_data_dir}...')
     run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
@@ -56,7 +60,8 @@ def gradio_wd14_caption_gui_tab():
 
             caption_extension = gr.Textbox(
                 label='Caption file extension',
-                placeholder='(Optional) Default: .caption',
+                placeholder='Extention for caption file. eg: .caption, .txt',
+                value='.txt',
                 interactive=True,
             )
             thresh = gr.Number(value=0.35, label='Threshold')

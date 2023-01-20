@@ -16,6 +16,10 @@ def caption_images(
     if images_dir_input == '':
         msgbox('Image folder is missing...')
         return
+    
+    if caption_file_ext == '':
+        msgbox('Please provide an extension for the caption files.')
+        return
 
     if not caption_text_input == '':
         print(
@@ -83,7 +87,8 @@ def gradio_basic_caption_gui_tab():
             )
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='(Optional) Default: .caption',
+                placeholder='Extention for caption file. eg: .caption, .txt',
+                value='.txt',
                 interactive=True,
             )
             overwrite_input = gr.Checkbox(
