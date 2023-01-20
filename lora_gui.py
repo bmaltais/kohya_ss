@@ -353,8 +353,6 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --use_8bit_adam'
-    run_cmd += f' --xformers'
     run_cmd += f' --logging_dir="{logging_dir}"'
     if not stop_text_encoder_training == 0:
         run_cmd += (
