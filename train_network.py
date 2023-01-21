@@ -21,6 +21,20 @@ def collate_fn(examples):
   return examples[0]
 
 
+def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
+  logs = {"loss/current": current_loss, "loss/average": avr_loss}
+
+  if args.network_train_unet_only:
+    logs["lr/unet"] = lr_scheduler.get_last_lr()[0]
+  elif args.network_train_text_encoder_only:
+    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+  else:
+    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]          # may be same to textencoder
+
+  return logs
+
+
 def train(args):
   session_id = random.randint(0, 2**32)
   training_started_at = time.time()
@@ -353,8 +367,7 @@ def train(args):
       progress_bar.set_postfix(**logs)
 
       if args.logging_dir is not None:
-        logs = train_util.generate_step_logs(args, current_loss, avr_loss, lr_scheduler)
-
+        logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler)
         accelerator.log(logs, step=global_step)
 
       if global_step >= args.max_train_steps:
