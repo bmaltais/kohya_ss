@@ -333,10 +333,6 @@ def train_model(
         run_cmd += ' --enable_bucket'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
-    if use_8bit_adam:
-        run_cmd += ' --use_8bit_adam'
-    if xformers:
-        run_cmd += ' --xformers'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )

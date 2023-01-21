@@ -267,6 +267,10 @@ def train_model(
     if output_dir == '':
         msgbox('Output folder path is missing')
         return
+    
+    if stop_text_encoder_training_pct > 0:
+        msgbox('Output "stop text encoder training" is not yet supported. Ignoring')
+        stop_text_encoder_training_pct = 0
 
     # If string is empty set string to 0.
     if text_encoder_lr == '':
@@ -353,8 +357,6 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --use_8bit_adam'
-    run_cmd += f' --xformers'
     run_cmd += f' --logging_dir="{logging_dir}"'
     if not stop_text_encoder_training == 0:
         run_cmd += (
