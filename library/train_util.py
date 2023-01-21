@@ -1423,5 +1423,17 @@ def save_state_on_train_end(args: argparse.Namespace, accelerator):
   model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
   accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name)))
 
+def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
+    logs = {"loss/current": current_loss, "loss/average": avr_loss}
+
+    if args.network_train_unet_only:
+      logs["lr/unet"] = lr_scheduler.get_last_lr()[0]
+    elif args.network_train_text_encoder_only:
+      logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+    else:
+      logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+      logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]
+
+    return logs
 
 # endregion
