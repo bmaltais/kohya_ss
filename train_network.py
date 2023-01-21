@@ -223,6 +223,7 @@ def train(args):
       "ss_num_epochs": num_train_epochs,
       "ss_batch_size_per_device": args.train_batch_size,
       "ss_total_batch_size": total_batch_size,
+      "ss_gradient_checkpointing": args.gradient_checkpointing,
       "ss_gradient_accumulation_steps": args.gradient_accumulation_steps,
       "ss_max_train_steps": args.max_train_steps,
       "ss_lr_warmup_steps": args.lr_warmup_steps,
@@ -240,13 +241,13 @@ def train(args):
       "ss_random_crop": bool(args.random_crop),
       "ss_shuffle_caption": bool(args.shuffle_caption),
       "ss_cache_latents": bool(args.cache_latents),
-      "ss_enable_bucket": bool(train_dataset.enable_bucket),        # TODO move to BaseDataset from DB/FT
-      "ss_min_bucket_reso": args.min_bucket_reso,                   # TODO get from dataset
-      "ss_max_bucket_reso": args.max_bucket_reso,
+      "ss_enable_bucket": bool(train_dataset.enable_bucket),
+      "ss_min_bucket_reso": train_dataset.min_bucket_reso,
+      "ss_max_bucket_reso": train_dataset.max_bucket_reso,
       "ss_seed": args.seed,
       "ss_keep_tokens": args.keep_tokens,
-      "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs),
-      "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs),
+      "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs_info),
+      "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
   }
 
   # uncomment if another network is added
