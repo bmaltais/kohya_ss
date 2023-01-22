@@ -365,7 +365,7 @@ def gradio_source_model():
                     'diffusers_safetensors',
                     'safetensors',
                 ],
-                value='same as source model',
+                value='safetensors',
             )
 
         with gr.Row():
