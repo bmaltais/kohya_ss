@@ -138,7 +138,7 @@ v1で学習したLoRAとv2で学習したLoRA、次元数の異なるLoRAはマ�
 
 ## 当リポジトリ内の画像生成スクリプトで生成する
 
-gen_img_diffusers.pyに、--network_module、--network_weights、--network_dim（省略可）の各オプションを追加してください。意味は学習時と同様です。
+gen_img_diffusers.pyに、--network_module、--network_weightsの各オプションを追加してください。意味は学習時と同様です。
 
 --network_mulオプションで0~1.0の数値を指定すると、LoRAの適用率を変えられます。
 
