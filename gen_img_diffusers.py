@@ -1995,11 +1995,12 @@ def main(args):
         network_weight = args.network_weights[i]
         print("load network weights from:", network_weight)
 
-        from safetensors.torch import safe_open
-        with safe_open(network_weight, framework="pt") as f:
-          metadata = f.metadata()
-        if metadata is not None:
-          print(f"metadata for: {network_weight}: {metadata}")
+        if model_util.is_safetensors(network_weight):
+          from safetensors.torch import safe_open
+          with safe_open(network_weight, framework="pt") as f:
+            metadata = f.metadata()
+          if metadata is not None:
+            print(f"metadata for: {network_weight}: {metadata}")
 
         network = imported_module.create_network_from_weights(network_mul, network_weight, vae, text_encoder, unet, **net_kwargs)
       else:
