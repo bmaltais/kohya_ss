@@ -16,9 +16,10 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
-* note.com [環境整備とDreamBooth学習スクリプトについて](https://note.com/kohya_ss/n/nba4eceaa4594)
+* [DreamBoothの学習について](./train_db_README-ja.md)
 * [fine-tuningのガイド](./fine_tune_README_ja.md):
 BLIPによるキャプショニングと、DeepDanbooruまたはWD14 taggerによるタグ付けを含みます
+* [LoRAの学習について](./train_network_README-ja.md)
 * note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
 * note.com [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
 
@@ -44,12 +45,11 @@ PowerShellを使う場合、venvを使えるようにするためには以下の
 
 通常の（管理者ではない）PowerShellを開き以下を順に実行します。
 
-
 ```powershell
 git clone https://github.com/kohya-ss/sd-scripts.git
 cd sd-scripts
 
-python -m venv --system-site-packages venv
+python -m venv venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
@@ -70,7 +70,7 @@ accelerate config
 git clone https://github.com/kohya-ss/sd-scripts.git
 cd sd-scripts
 
-python -m venv --system-site-packages venv
+python -m venv venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
@@ -83,6 +83,8 @@ copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cud
 
 accelerate config
 ```
+
+（注:``python -m venv venv`` のほうが ``python -m venv --system-site-packages venv`` より安全そうなため書き換えました。globalなpythonにパッケージがインストールしてあると、後者だといろいろと問題が起きます。）
 
 accelerate configの質問には以下のように答えてください。（bf16で学習する場合、最後の質問にはbf16と答えてください。）
 
