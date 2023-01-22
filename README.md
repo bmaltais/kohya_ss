@@ -116,7 +116,23 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 ## Change history
 
-* 2023/01/16 (v20.3.0)
+* 2023/01/22 (v20.4.0):
+    - Add support for `network_alpha` under the Training tab and support for `--training_comment` under the Folders tab.
+    - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
+        - Details of the issue are described in https://github.com/kohya-ss/sd-webui-additional-networks/issues/49 .
+        - The default value is ``1``, scale ``1 / rank (or dimension)``. Set same value as ``network_dim`` for same behavior to old version.
+        - LoRA with a large dimension (rank) seems to require a higher learning rate with ``alpha=1`` (e.g. 1e-3 for 128-dim, still investigating).　
+    - For generating images in Web UI, __the latest version of the extension ``sd-webui-additional-networks`` (v0.3.0 or later) is required for the models trained with this release or later.__
+    - Add logging for the learning rate for U-Net and Text Encoder independently, and for running average epoch loss. Thanks to mgz-dev!  
+    - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See https://github.com/kohya-ss/sd-scripts/pull/77 for details. Thanks to space-nuko!
+        - __Now the metadata includes the folder name (the basename of the folder contains image files, not fullpath).__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
+    - Add ``--training_comment`` option. You can specify an arbitrary string and refer to it by the extension.
+
+It seems that the Stable Diffusion web UI now supports image generation using the LoRA model learned in this repository.
+
+Note: At this time, it appears that models learned with version 0.4.0 are not supported. If you want to use the generation function of the web UI, please continue to use version 0.3.2. Also, it seems that LoRA models for SD2.x are not supported.
+
+* 2023/01/16 (v20.3.0):
   - Fix a part of LoRA modules are not trained when ``gradient_checkpointing`` is enabled. 
   - Add ``--save_last_n_epochs_state`` option. You can specify how many state folders to keep, apart from how many models to keep. Thanks to shirayu!
   - Fix Text Encoder training stops at ``max_train_steps`` even if ``max_train_epochs`` is set in `train_db.py``.
