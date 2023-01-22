@@ -4,15 +4,14 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ Thank you for great work!!!
 
-Note: Currently the LoRA models trained by release 0.4.0 does not seem to be supported. If you use Web UI native LoRA support, please use release 0.3.2 for now. 
+Note: Currently the LoRA models trained by release v0.4.0 does not seem to be supported. If you use Web UI native LoRA support, please use release 0.3.2 for now. The LoRA models for SD 2.x is not supported too in Web UI.
 
-The LoRA models for SD 2.x is not supported too.
-
-- 22 Jan. 2023
+- Release v0.4.0: 22 Jan. 2023
   - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
     - Details of the issue are described in https://github.com/kohya-ss/sd-webui-additional-networks/issues/49 .
     - The default value is ``1``, scale ``1 / rank (or dimension)``. Set same value as ``network_dim`` for same behavior to old version.
     - LoRA with a large dimension (rank) seems to require a higher learning rate with ``alpha=1`` (e.g. 1e-3 for 128-dim, still investigating).　
+  - For generating images in Web UI, __the latest version of the extension ``sd-webui-additional-networks`` (v0.3.0 or later) is required for the models trained with this release or later.__
   - Add logging for the learning rate for U-Net and Text Encoder independently, and for running average epoch loss. Thanks to mgz-dev!  
   - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See https://github.com/kohya-ss/sd-scripts/pull/77 for details. Thanks to space-nuko!
     - __Now the metadata includes the folder name (the basename of the folder contains image files, not fullpath).__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
@@ -22,11 +21,12 @@ Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデル�
 
 注：現時点ではversion 0.4.0で学習したモデルはサポートされないようです。Web UI本体の生成機能を使う場合には、version 0.3.2を引き続きご利用ください。またSD2.x用のLoRAモデルもサポートされないようです。
 
-- 2023/1/22
+- Release 0.4.0: 2023/1/22
   - アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定する、``--network_alpha`` オプションを追加しました。CCRcmcpe 氏に感謝します。
     - 問題の詳細はこちらをご覧ください： https://github.com/kohya-ss/sd-webui-additional-networks/issues/49
     - デフォルト値は ``1`` で、LoRAの計算結果を ``1 / rank (dimension・次元数)`` 倍します（つまり小さくなります。これにより同じ効果を出すために必要なLoRAの重みの変化が大きくなるため、アンダーフローが避けられるようになります）。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
     -  ``alpha=1``の場合、次元数（rank）の多いLoRAモジュールでは学習率を高めにしたほうが良いようです（128次元で1e-3など）。
+    - __このバージョンのスクリプトで学習したモデルをWeb UIで使うためには ``sd-webui-additional-networks`` 拡張の最新版（v0.3.0以降）が必要となります。__
   - U-Net と Text Encoder のそれぞれの学習率、エポックの平均lossをログに記録するようになりました。mgz-dev 氏に感謝します。
   - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は https://github.com/kohya-ss/sd-scripts/pull/77 を参照）。space-nuko氏に感謝します。
     - __メタデータにフォルダ名が含まれるようになりました（画像を含むフォルダの名前のみで、フルパスではありません）。__ もし望まない場合には ``--no_metadata`` オプションでメタデータの記録を止めてください。
@@ -87,7 +87,7 @@ Open a regular Powershell terminal and type the following inside:
 git clone https://github.com/kohya-ss/sd-scripts.git
 cd sd-scripts
 
-python -m venv --system-site-packages venv
+python -m venv venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
@@ -99,8 +99,9 @@ cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\ce
 cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
 accelerate config
-
 ```
+
+update: ``python -m venv venv`` is seemed to be safer than ``python -m venv --system-site-packages venv`` (some user have packages in global python).
 
 Answers to accelerate config:
 
