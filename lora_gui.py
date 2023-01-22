@@ -31,6 +31,7 @@ from library.dreambooth_folder_creation_gui import (
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
+from library.verify_lora_gui import gradio_verify_lora_tab
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -675,6 +676,8 @@ def lora_tab(
         )
         gradio_dataset_balancing_tab()
         gradio_merge_lora_tab()
+        gradio_verify_lora_tab()
+        
 
     button_run = gr.Button('Train model')
 

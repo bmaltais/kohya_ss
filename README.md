@@ -114,8 +114,24 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 - Re-install python 3.10.x on your system: https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe
 
+### FileNotFoundError
+
+This is usually related to an installation issue. Make sure you do not have python modules installed locally that could conflict with the ones installed in the venv:
+
+1. Open a new powershell terminal and make sure no venv is active.
+2.  Run the following commands
+
+```
+pip freeze > uninstall.txt
+pip uninstall -r uninstall.txt
+```
+
+Then redo the installation instruction within the kohya_ss venv.
+
 ## Change history
 
+* 2023/01/22 (v20.4.1):
+    - Add new tool to verify LoRA weights produced by the trainer. Can be found under "Dreambooth LoRA/Tools/Verify LoRA"
 * 2023/01/22 (v20.4.0):
     - Add support for `network_alpha` under the Training tab and support for `--training_comment` under the Folders tab.
     - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
