@@ -12,8 +12,9 @@ The LoRA models for SD 2.x is not supported too.
   - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
     - Details of the issue are described in https://github.com/kohya-ss/sd-webui-additional-networks/issues/49 .
     - The default value is ``1``, scale ``1 / rank (or dimension)``. Set same value as ``network_dim`` for same behavior to old version.
+    - LoRA with a large dimension (rank) seems to require a higher learning rate with ``alpha=1`` (e.g. 1e-3 for 128-dim, still investigating).　
   - Add logging for the learning rate for U-Net and Text Encoder independently, and for running average epoch loss. Thanks to mgz-dev!  
-  - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See #77 for details. Thanks to space-nuko!
+  - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See https://github.com/kohya-ss/sd-scripts/pull/77 for details. Thanks to space-nuko!
     - __Now the metadata includes the folder name (the basename of the folder contains image files, not fullpath).__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
   - Add ``--training_comment`` option. You can specify an arbitrary string and refer to it by the extension.
 
@@ -25,8 +26,9 @@ Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデル�
   - アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定する、``--network_alpha`` オプションを追加しました。CCRcmcpe 氏に感謝します。
     - 問題の詳細はこちらをご覧ください： https://github.com/kohya-ss/sd-webui-additional-networks/issues/49
     - デフォルト値は ``1`` で、重みを ``1 / rank (dimension・次元数)`` します。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
+    -  ``alpha=1``の場合、次元数（rank）の多いLoRAモジュールでは学習率を高めにしたほうが良いようです（128次元で1e-3など）。
   - U-Net と Text Encoder のそれぞれの学習率、エポックの平均lossをログに記録するようになりました。mgz-dev 氏に感謝します。
-  - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は #77 を参照）。space-nuko氏に感謝します。
+  - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は https://github.com/kohya-ss/sd-scripts/pull/77 を参照）。space-nuko氏に感謝します。
     - __メタデータにフォルダ名が含まれるようになりました（画像を含むフォルダの名前のみで、フルパスではありません）。__ もし望まない場合には ``--no_metadata`` オプションでメタデータの記録を止めてください。
   - ``--training_comment`` オプションを追加しました。任意の文字列を指定でき、Web UI拡張から参照できます。
 
