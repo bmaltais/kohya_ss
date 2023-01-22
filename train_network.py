@@ -3,6 +3,9 @@ import argparse
 import gc
 import math
 import os
+import random
+import time
+import json
 
 from tqdm import tqdm
 import torch
@@ -18,7 +21,23 @@ def collate_fn(examples):
   return examples[0]
 
 
+def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
+  logs = {"loss/current": current_loss, "loss/average": avr_loss}
+
+  if args.network_train_unet_only:
+    logs["lr/unet"] = lr_scheduler.get_last_lr()[0]
+  elif args.network_train_text_encoder_only:
+    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+  else:
+    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]          # may be same to textencoder
+
+  return logs
+
+
 def train(args):
+  session_id = random.randint(0, 2**32)
+  training_started_at = time.time()
   train_util.verify_training_args(args)
   train_util.prepare_dataset_args(args, True)
 
@@ -88,7 +107,8 @@ def train(args):
       key, value = net_arg.split('=')
       net_kwargs[key] = value
 
-  network = network_module.create_network(1.0, args.network_dim, vae, text_encoder, unet, **net_kwargs)
+  # if a new network is added in future, add if ~ then blocks for each network (;'∀')
+  network = network_module.create_network(1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
   if network is None:
     return
 
@@ -206,21 +226,26 @@ def train(args):
   print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
 
   metadata = {
+      "ss_session_id": session_id,            # random integer indicating which group of epochs the model came from
+      "ss_training_started_at": training_started_at,          # unix timestamp
+      "ss_output_name": args.output_name,
       "ss_learning_rate": args.learning_rate,
       "ss_text_encoder_lr": args.text_encoder_lr,
       "ss_unet_lr": args.unet_lr,
-      "ss_num_train_images": train_dataset.num_train_images,          # includes repeating TODO more detailed data
+      "ss_num_train_images": train_dataset.num_train_images,          # includes repeating
       "ss_num_reg_images": train_dataset.num_reg_images,
       "ss_num_batches_per_epoch": len(train_dataloader),
       "ss_num_epochs": num_train_epochs,
       "ss_batch_size_per_device": args.train_batch_size,
       "ss_total_batch_size": total_batch_size,
+      "ss_gradient_checkpointing": args.gradient_checkpointing,
       "ss_gradient_accumulation_steps": args.gradient_accumulation_steps,
       "ss_max_train_steps": args.max_train_steps,
       "ss_lr_warmup_steps": args.lr_warmup_steps,
       "ss_lr_scheduler": args.lr_scheduler,
       "ss_network_module": args.network_module,
-      "ss_network_dim": args.network_dim,      # None means default because another network than LoRA may have another default dim
+      "ss_network_dim": args.network_dim,          # None means default because another network than LoRA may have another default dim
+      "ss_network_alpha": args.network_alpha,      # some networks may not use this value
       "ss_mixed_precision": args.mixed_precision,
       "ss_full_fp16": bool(args.full_fp16),
       "ss_v2": bool(args.v2),
@@ -232,10 +257,14 @@ def train(args):
       "ss_random_crop": bool(args.random_crop),
       "ss_shuffle_caption": bool(args.shuffle_caption),
       "ss_cache_latents": bool(args.cache_latents),
-      "ss_enable_bucket": bool(train_dataset.enable_bucket),        # TODO move to BaseDataset from DB/FT
-      "ss_min_bucket_reso": args.min_bucket_reso,                   # TODO get from dataset
-      "ss_max_bucket_reso": args.max_bucket_reso,
-      "ss_seed": args.seed
+      "ss_enable_bucket": bool(train_dataset.enable_bucket),
+      "ss_min_bucket_reso": train_dataset.min_bucket_reso,
+      "ss_max_bucket_reso": train_dataset.max_bucket_reso,
+      "ss_seed": args.seed,
+      "ss_keep_tokens": args.keep_tokens,
+      "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs_info),
+      "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
+      "ss_training_comment": args.training_comment        # will not be updated after training
   }
 
   # uncomment if another network is added
@@ -246,6 +275,7 @@ def train(args):
     sd_model_name = args.pretrained_model_name_or_path
     if os.path.exists(sd_model_name):
       metadata["ss_sd_model_hash"] = train_util.model_hash(sd_model_name)
+      metadata["ss_new_sd_model_hash"] = train_util.calculate_sha256(sd_model_name)
       sd_model_name = os.path.basename(sd_model_name)
     metadata["ss_sd_model_name"] = sd_model_name
 
@@ -253,6 +283,7 @@ def train(args):
     vae_name = args.vae
     if os.path.exists(vae_name):
       metadata["ss_vae_hash"] = train_util.model_hash(vae_name)
+      metadata["ss_new_vae_hash"] = train_util.calculate_sha256(vae_name)
       vae_name = os.path.basename(vae_name)
     metadata["ss_vae_name"] = vae_name
 
@@ -333,20 +364,20 @@ def train(args):
         global_step += 1
 
       current_loss = loss.detach().item()
-      if args.logging_dir is not None:
-        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
-        accelerator.log(logs, step=global_step)
-
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
+      if args.logging_dir is not None:
+        logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler)
+        accelerator.log(logs, step=global_step)
+
       if global_step >= args.max_train_steps:
         break
 
     if args.logging_dir is not None:
-      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": loss_total / len(train_dataloader)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
@@ -417,11 +448,15 @@ if __name__ == '__main__':
   parser.add_argument("--network_module", type=str, default=None, help='network module to train / 学習対象のネットワークのモジュール')
   parser.add_argument("--network_dim", type=int, default=None,
                       help='network dimensions (depends on each network) / モジュールの次元数（ネットワークにより定義は異なります）')
+  parser.add_argument("--network_alpha", type=float, default=1,
+                      help='alpha for LoRA weight scaling, default 1 (same as network_dim for same behavior as old version) / LoRaの重み調整のalpha値、デフォルト1（旧バージョンと同じ動作をするにはnetwork_dimと同じ値を指定）')
   parser.add_argument("--network_args", type=str, default=None, nargs='*',
                       help='additional argmuments for network (key=value) / ネットワークへの追加の引数')
   parser.add_argument("--network_train_unet_only", action="store_true", help="only training U-Net part / U-Net関連部分のみ学習する")
   parser.add_argument("--network_train_text_encoder_only", action="store_true",
                       help="only training Text Encoder part / Text Encoder関連部分のみ学習する")
+  parser.add_argument("--training_comment", type=str, default=None,
+                      help="arbitrary comment string stored in metadata / メタデータに記録する任意のコメント文字列")
 
   args = parser.parse_args()
   train(args)

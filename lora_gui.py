@@ -88,6 +88,8 @@ def save_configuration(
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
+    network_alpha,
+    training_comment,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -175,6 +177,8 @@ def open_configuration(
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
+    network_alpha,
+    training_comment,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -246,6 +250,8 @@ def train_model(
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
+    network_alpha,
+    training_comment,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -358,6 +364,9 @@ def train_model(
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
     run_cmd += f' --logging_dir="{logging_dir}"'
+    run_cmd += f' --network_alpha="{network_alpha}"'
+    if not training_comment == '':
+        run_cmd += f' --training_comment="{training_comment}"'
     if not stop_text_encoder_training == 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
@@ -518,8 +527,13 @@ def lora_tab(
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='Name of the model to output',
+                placeholder='(Name of the model to output)',
                 value='last',
+                interactive=True,
+            )
+            training_comment = gr.Textbox(
+                label='Training comment',
+                placeholder='(Optional) Add training comment to be included in metadata',
                 interactive=True,
             )
         train_data_dir.change(
@@ -588,8 +602,16 @@ def lora_tab(
             network_dim = gr.Slider(
                 minimum=1,
                 maximum=128,
-                label='Network Dimension',
+                label='Network Rank (Dimension)',
                 value=8,
+                step=1,
+                interactive=True,
+            )
+            network_alpha = gr.Slider(
+                minimum=1,
+                maximum=128,
+                label='Network Alpha',
+                value=1,
                 step=1,
                 interactive=True,
             )
@@ -703,6 +725,8 @@ def lora_tab(
         max_token_length,
         max_train_epochs,
         max_data_loader_n_workers,
+        network_alpha,
+        training_comment,
     ]
 
     button_open_config.click(
