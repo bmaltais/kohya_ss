@@ -15,12 +15,13 @@ def main(file):
 
   keys = list(sd.keys())
   for key in keys:
-    if 'lora_up' in key:
+    if 'lora_up' in key or 'lora_down' in key:
       values.append((key, sd[key]))
-  print(f"number of LoRA-up modules: {len(values)}")
+  print(f"number of LoRA modules: {len(values)}")
 
   for key, value in values:
-    print(f"{key},{torch.mean(torch.abs(value))}")
+    value = value.to(torch.float32)
+    print(f"{key},{torch.mean(torch.abs(value))},{torch.min(torch.abs(value))}")
 
 
 if __name__ == '__main__':
