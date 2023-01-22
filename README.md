@@ -2,11 +2,33 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 ## Updates
 
-- 22 Jan. 2023, 2023/1/22
-  - Fix script to check LoRA weights ``check_lora_weights.py``. Some layer weights were shown as ``0.0`` even if the layer is trained, because of the overflow of ``torch.mean``. Sorry for the confusion.
-  - Noe the script shows the mean of the absolute values of the weights, and the minimum of the absolute values of the weights.
-  - LoRAの重みをチェックするスクリプト ``check_lora_weights.py`` を修正しました。一部のレイヤーで学習されているにもかかわらず重みが ``0.0`` と表示されていました。混乱を招き申し訳ありません。
-  - スクリプトを「重みの絶対の平均」と「重みの絶対値の最小値」を表示するよう修正しました。
+__Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ Thank you for great work!!!
+
+Note: Currently the LoRA models trained by release 0.4.0 does not seem to be supported. If you use Web UI native LoRA support, please use release 0.3.2 for now. 
+
+The LoRA models for SD 2.x is not supported too.
+
+- 22 Jan. 2023
+  - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
+    - Details of the issue are described in https://github.com/kohya-ss/sd-webui-additional-networks/issues/49 .
+    - The default value is ``1``, scale ``1 / rank (or dimension)``. Set same value as ``network_dim`` for same behavior to old version.
+  - Add logging for the learning rate for U-Net and Text Encoder independently, and for running average epoch loss. Thanks to mgz-dev!  
+  - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See #77 for details. Thanks to space-nuko!
+    - __Now the metadata includes the folder name (the basename of the folder contains image files, not fullpath).__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
+  - Add ``--training_comment`` option. You can specify an arbitrary string and refer to it by the extension.
+
+Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデルによる画像生成がサポートされたようです。
+
+注：現時点ではversion 0.4.0で学習したモデルはサポートされないようです。Web UI本体の生成機能を使う場合には、version 0.3.2を引き続きご利用ください。またSD2.x用のLoRAモデルもサポートされないようです。
+
+- 2023/1/22
+  - アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定する、``--network_alpha`` オプションを追加しました。CCRcmcpe 氏に感謝します。
+    - 問題の詳細はこちらをご覧ください： https://github.com/kohya-ss/sd-webui-additional-networks/issues/49
+    - デフォルト値は ``1`` で、重みを ``1 / rank (dimension・次元数)`` します。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
+  - U-Net と Text Encoder のそれぞれの学習率、エポックの平均lossをログに記録するようになりました。mgz-dev 氏に感謝します。
+  - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は #77 を参照）。space-nuko氏に感謝します。
+    - __メタデータにフォルダ名が含まれるようになりました（画像を含むフォルダの名前のみで、フルパスではありません）。__ もし望まない場合には ``--no_metadata`` オプションでメタデータの記録を止めてください。
+  - ``--training_comment`` オプションを追加しました。任意の文字列を指定でき、Web UI拡張から参照できます。
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
