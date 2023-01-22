@@ -25,7 +25,7 @@ Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデル�
 - 2023/1/22
   - アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定する、``--network_alpha`` オプションを追加しました。CCRcmcpe 氏に感謝します。
     - 問題の詳細はこちらをご覧ください： https://github.com/kohya-ss/sd-webui-additional-networks/issues/49
-    - デフォルト値は ``1`` で、重みを ``1 / rank (dimension・次元数)`` します。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
+    - デフォルト値は ``1`` で、LoRAの計算結果を ``1 / rank (dimension・次元数)`` 倍します（つまり小さくなります。これにより同じ効果を出すために必要なLoRAの重みの変化が大きくなるため、アンダーフローが避けられるようになります）。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
     -  ``alpha=1``の場合、次元数（rank）の多いLoRAモジュールでは学習率を高めにしたほうが良いようです（128次元で1e-3など）。
   - U-Net と Text Encoder のそれぞれの学習率、エポックの平均lossをログに記録するようになりました。mgz-dev 氏に感謝します。
   - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は https://github.com/kohya-ss/sd-scripts/pull/77 を参照）。space-nuko氏に感謝します。
