@@ -449,7 +449,7 @@ if __name__ == '__main__':
   parser.add_argument("--network_dim", type=int, default=None,
                       help='network dimensions (depends on each network) / モジュールの次元数（ネットワークにより定義は異なります）')
   parser.add_argument("--network_alpha", type=float, default=1,
-                      help='alpha for LoRA weight scaling, default 1, 0 for no scaling (same as old version) / LoRaの重み調整のalpha値、デフォルト1、0で調整なし（旧バージョンと同じ）')
+                      help='alpha for LoRA weight scaling, default 1 (same as network_dim for same behavior as old version) / LoRaの重み調整のalpha値、デフォルト1（旧バージョンと同じ動作をするにはnetwork_dimと同じ値を指定）')
   parser.add_argument("--network_args", type=str, default=None, nargs='*',
                       help='additional argmuments for network (key=value) / ネットワークへの追加の引数')
   parser.add_argument("--network_train_unet_only", action="store_true", help="only training U-Net part / U-Net関連部分のみ学習する")
