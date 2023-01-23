@@ -92,10 +92,7 @@ def train(args):
     gc.collect()
 
   # 学習を準備する：モデルを適切な状態にする
-  if args.stop_text_encoder_training is None:
-    args.stop_text_encoder_training = args.max_train_steps + 1                # do not stop until end
-
-  train_text_encoder = args.stop_text_encoder_training >= 0
+  train_text_encoder = args.stop_text_encoder_training is None or args.stop_text_encoder_training >= 0
   unet.requires_grad_(True)                   # 念のため追加
   text_encoder.requires_grad_(train_text_encoder)
   if not train_text_encoder:
@@ -134,9 +131,17 @@ def train(args):
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
-  n_workers = min(8, os.cpu_count() - 1)      # cpu_count-1 ただし最大8
+  n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers)
+
+  # 学習ステップ数を計算する
+  if args.max_train_epochs is not None:
+    args.max_train_steps = args.max_train_epochs * len(train_dataloader)
+    print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+
+  if args.stop_text_encoder_training is None:
+    args.stop_text_encoder_training = args.max_train_steps + 1                # do not stop until end
 
   # lr schedulerを用意する
   lr_scheduler = diffusers.optimization.get_scheduler(

@@ -44,9 +44,9 @@ def svd(args):
   print(f"loading SD model : {args.model_tuned}")
   text_encoder_t, _, unet_t = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.model_tuned)
 
-  # create LoRA network to extract weights
-  lora_network_o = lora.create_network(1.0, args.dim, None, text_encoder_o, unet_o)
-  lora_network_t = lora.create_network(1.0, args.dim, None, text_encoder_t, unet_t)
+  # create LoRA network to extract weights: Use dim (rank) as alpha
+  lora_network_o = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_o, unet_o)
+  lora_network_t = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_t, unet_t)
   assert len(lora_network_o.text_encoder_loras) == len(
       lora_network_t.text_encoder_loras), f"model version is different (SD1.x vs SD2.x) / それぞれのモデルのバージョンが違います（SD1.xベースとSD2.xベース） "
 
@@ -77,10 +77,10 @@ def svd(args):
     module_t = lora_t.org_module
     diff = module_t.weight - module_o.weight
     diff = diff.float()
-    
+
     if args.device:
       diff = diff.to(args.device)
-      
+
     diffs[lora_name] = diff
 
   # make LoRA with svd
@@ -116,6 +116,9 @@ def svd(args):
   print(f"LoRA has {len(lora_sd)} weights.")
 
   for key in list(lora_sd.keys()):
+    if "alpha" in key:
+      continue
+
     lora_name = key.split('.')[0]
     i = 0 if "lora_up" in key else 1
 
@@ -124,7 +127,7 @@ def svd(args):
     if len(lora_sd[key].size()) == 4:
       weights = weights.unsqueeze(2).unsqueeze(3)
 
-    assert weights.size() == lora_sd[key].size()
+    assert weights.size() == lora_sd[key].size(), f"size unmatch: {key}"
     lora_sd[key] = weights
 
   # load state dict to LoRA and save it
@@ -135,7 +138,10 @@ def svd(args):
   if dir_name and not os.path.exists(dir_name):
     os.makedirs(dir_name, exist_ok=True)
 
-  lora_network_o.save_weights(args.save_to, save_dtype, {})
+  # minimum metadata
+  metadata = {"ss_network_dim": str(args.dim), "ss_network_alpha": str(args.dim)}
+
+  lora_network_o.save_weights(args.save_to, save_dtype, metadata)
   print(f"LoRA weights are saved to: {args.save_to}")
 
 
@@ -151,8 +157,8 @@ if __name__ == '__main__':
                       help="Stable Diffusion tuned model, LoRA is difference of `original to tuned`: ckpt or safetensors file / 派生モデル（生成されるLoRAは元→派生の差分になります）、ckptまたはsafetensors")
   parser.add_argument("--save_to", type=str, default=None,
                       help="destination file name: ckpt or safetensors file / 保存先のファイル名、ckptまたはsafetensors")
-  parser.add_argument("--dim", type=int, default=4, help="dimension of LoRA (default 4) / LoRAの次元数（デフォルト4）")
-  parser.add_argument("--device", type=str, default=None, help="device to use, 'cuda' for GPU / 計算を行うデバイス、'cuda'でGPUを使う")
+  parser.add_argument("--dim", type=int, default=4, help="dimension (rank) of LoRA (default 4) / LoRAの次元数（rank）（デフォルト4）")
+  parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
 
   args = parser.parse_args()
   svd(args)
