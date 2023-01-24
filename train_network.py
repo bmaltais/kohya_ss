@@ -440,8 +440,8 @@ if __name__ == '__main__':
   train_util.add_training_arguments(parser, True)
 
   parser.add_argument("--no_metadata", action='store_true', help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
-  parser.add_argument("--save_model_as", type=str, default="pt", choices=[None, "ckpt", "pt", "safetensors"],
-                      help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）")
+  parser.add_argument("--save_model_as", type=str, default="safetensors", choices=[None, "ckpt", "pt", "safetensors"],
+                      help="format to save the model (default is .safetensors) / モデル保存時の形式（デフォルトはsafetensors）")
 
   parser.add_argument("--unet_lr", type=float, default=None, help="learning rate for U-Net / U-Netの学習率")
   parser.add_argument("--text_encoder_lr", type=float, default=None, help="learning rate for Text Encoder / Text Encoderの学習率")
