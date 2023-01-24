@@ -2,35 +2,27 @@ This repository contains training, generation and utility scripts for Stable Dif
 
 ## Updates
 
-__Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ Thank you for great work!!!
+__Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ Thank you for great work!!! 
 
-Note: Currently the LoRA models trained by release v0.4.0 does not seem to be supported. If you use Web UI native LoRA support, please use release 0.3.2 for now. The LoRA models for SD 2.x is not supported too in Web UI.
+Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
-- Release v0.4.0: 22 Jan. 2023
-  - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!
-    - Details of the issue are described in https://github.com/kohya-ss/sd-webui-additional-networks/issues/49 .
-    - The default value is ``1``, scale ``1 / rank (or dimension)``. Set same value as ``network_dim`` for same behavior to old version.
-    - LoRA with a large dimension (rank) seems to require a higher learning rate with ``alpha=1`` (e.g. 1e-3 for 128-dim, still investigating).　
-  - For generating images in Web UI, __the latest version of the extension ``sd-webui-additional-networks`` (v0.3.0 or later) is required for the models trained with this release or later.__
-  - Add logging for the learning rate for U-Net and Text Encoder independently, and for running average epoch loss. Thanks to mgz-dev!  
-  - Add more metadata such as dataset/reg image dirs, session ID, output name etc... See https://github.com/kohya-ss/sd-scripts/pull/77 for details. Thanks to space-nuko!
-    - __Now the metadata includes the folder name (the basename of the folder contains image files, not fullpath).__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
-  - Add ``--training_comment`` option. You can specify an arbitrary string and refer to it by the extension.
+- 24 Jan. 2023, 2023/1/24
+  - Change the default save format to ``.safetensors`` for ``train_network.py``.
+  - Add ``--save_n_epoch_ratio`` option to specify how often to save. Thanks to forestsource! 
+    - For example, if 5 is specified, 5 (or 6) files will be saved in training.
+  - Add feature to pre-caclulate hash to reduce loading time in the extension. Thanks to space-nuko!
+  - Add bucketing matadata. Thanks to space-nuko!
+  - Fix an error with bf16 model in ``gen_img_diffusers.py``.
+  - ``train_network.py`` のモデル保存形式のデフォルトを ``.safetensors`` に変更しました。
+  - モデルを保存する頻度を指定する ``--save_n_epoch_ratio`` オプションが追加されました。forestsource氏に感謝します。
+    - たとえば 5 を指定すると、学習終了までに合計で5個（または6個）のファイルが保存されます。
+  - 拡張でモデル読み込み時間を短縮するためのハッシュ事前計算の機能を追加しました。space-nuko氏に感謝します。
+  - メタデータにbucket情報が追加されました。space-nuko氏に感謝します。
+  - ``gen_img_diffusers.py`` でbf16形式のモデルを読み込んだときのエラーを修正しました。
 
 Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデルによる画像生成がサポートされたようです。
 
-注：現時点ではversion 0.4.0で学習したモデルはサポートされないようです。Web UI本体の生成機能を使う場合には、version 0.3.2を引き続きご利用ください。またSD2.x用のLoRAモデルもサポートされないようです。
-
-- Release 0.4.0: 2023/1/22
-  - アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定する、``--network_alpha`` オプションを追加しました。CCRcmcpe 氏に感謝します。
-    - 問題の詳細はこちらをご覧ください： https://github.com/kohya-ss/sd-webui-additional-networks/issues/49
-    - デフォルト値は ``1`` で、LoRAの計算結果を ``1 / rank (dimension・次元数)`` 倍します（つまり小さくなります。これにより同じ効果を出すために必要なLoRAの重みの変化が大きくなるため、アンダーフローが避けられるようになります）。``network_dim`` と同じ値を指定すると旧バージョンと同じ動作になります。
-    -  ``alpha=1``の場合、次元数（rank）の多いLoRAモジュールでは学習率を高めにしたほうが良いようです（128次元で1e-3など）。
-    - __このバージョンのスクリプトで学習したモデルをWeb UIで使うためには ``sd-webui-additional-networks`` 拡張の最新版（v0.3.0以降）が必要となります。__
-  - U-Net と Text Encoder のそれぞれの学習率、エポックの平均lossをログに記録するようになりました。mgz-dev 氏に感謝します。
-  - 画像ディレクトリ、セッションID、出力名などいくつかの項目がメタデータに追加されました（詳細は https://github.com/kohya-ss/sd-scripts/pull/77 を参照）。space-nuko氏に感謝します。
-    - __メタデータにフォルダ名が含まれるようになりました（画像を含むフォルダの名前のみで、フルパスではありません）。__ もし望まない場合には ``--no_metadata`` オプションでメタデータの記録を止めてください。
-  - ``--training_comment`` オプションを追加しました。任意の文字列を指定でき、Web UI拡張から参照できます。
+注：SD2.x用のLoRAモデルはサポートされないようです。
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
