@@ -1057,6 +1057,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       choices=[None, "float", "fp16", "bf16"], help="precision in saving / 保存時に精度を変更して保存する")
   parser.add_argument("--save_every_n_epochs", type=int, default=None,
                       help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する")
+  parser.add_argument("--save_n_epoch_ratio", type=int, default=None,
+                      help="save checkpoint N epoch ratio / 学習中のモデルを指定のエポック割合で保存する")
   parser.add_argument("--save_last_n_epochs", type=int, default=None, help="save last N checkpoints / 最大Nエポック保存する")
   parser.add_argument("--save_last_n_epochs_state", type=int, default=None,
                       help="save last N checkpoints of state (overrides the value of --save_last_n_epochs)/ 最大Nエポックstateを保存する(--save_last_n_epochsの指定を上書きします)")
