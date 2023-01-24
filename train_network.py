@@ -212,6 +212,8 @@ def train(args):
   # epoch数を計算する
   num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
   num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+  if (args.save_n_epoch_ratio is not None) and (args.save_n_epoch_ratio > 0):
+    args.save_every_n_epochs = math.floor(num_train_epochs / args.save_n_epoch_ratio) or 1
 
   # 学習する
   total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
@@ -264,6 +266,7 @@ def train(args):
       "ss_keep_tokens": args.keep_tokens,
       "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs_info),
       "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
+      "ss_bucket_info": json.dumps(train_dataset.bucket_info),
       "ss_training_comment": args.training_comment        # will not be updated after training
   }
 
@@ -437,8 +440,8 @@ if __name__ == '__main__':
   train_util.add_training_arguments(parser, True)
 
   parser.add_argument("--no_metadata", action='store_true', help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
-  parser.add_argument("--save_model_as", type=str, default="pt", choices=[None, "ckpt", "pt", "safetensors"],
-                      help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）")
+  parser.add_argument("--save_model_as", type=str, default="safetensors", choices=[None, "ckpt", "pt", "safetensors"],
+                      help="format to save the model (default is .safetensors) / モデル保存時の形式（デフォルトはsafetensors）")
 
   parser.add_argument("--unet_lr", type=float, default=None, help="learning rate for U-Net / U-Netの学習率")
   parser.add_argument("--text_encoder_lr", type=float, default=None, help="learning rate for Text Encoder / Text Encoderの学習率")
