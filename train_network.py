@@ -264,6 +264,7 @@ def train(args):
       "ss_keep_tokens": args.keep_tokens,
       "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs_info),
       "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
+      "ss_tag_frequency": json.dumps(train_dataset.tag_frequency),
       "ss_training_comment": args.training_comment        # will not be updated after training
   }
 
