@@ -112,6 +112,11 @@ note: Some user reports ``ValueError: fp16 mixed precision requires a GPU`` is o
 
 (Single GPU with id `0` will be used.)
 
+### about PyTorch and xformers
+
+Other versions of PyTorch and xformers seem to have problems with training.
+If there is no other reason, please install the specified version.
+
 ## Upgrade
 
 When a new release comes out you can upgrade your repo with the following command:
