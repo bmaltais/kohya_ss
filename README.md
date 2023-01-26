@@ -13,8 +13,8 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
   - Change the default save format to ``.safetensors`` for ``train_network.py``.
   - Add ``--save_n_epoch_ratio`` option to specify how often to save. Thanks to forestsource! 
     - For example, if 5 is specified, 5 (or 6) files will be saved in training.
-  - Add feature to pre-caclulate hash to reduce loading time in the extension. Thanks to space-nuko!
-  - Add bucketing matadata. Thanks to space-nuko!
+  - Add feature to pre-calculate hash to reduce loading time in the extension. Thanks to space-nuko!
+  - Add bucketing metadata. Thanks to space-nuko!
   - Fix an error with bf16 model in ``gen_img_diffusers.py``.
   - ``train_network.py`` のモデル保存形式のデフォルトを ``.safetensors`` に変更しました。
   - モデルを保存する頻度を指定する ``--save_n_epoch_ratio`` オプションが追加されました。forestsource氏に感謝します。
