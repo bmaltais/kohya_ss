@@ -20,7 +20,6 @@
 accelerate launch --num_cpu_threads_per_process 1 train_textual_inversion.py 
     --pretrained_model_name_or_path=..\models\model.ckpt 
     --train_data_dir=..\data\db\char1 --output_dir=..\ti_train1 
-    --reg_data_dir=..\data\db\reg1 --prior_loss_weight=1.0 
     --resolution=448,640 --train_batch_size=1 --learning_rate=1e-4 
     --max_train_steps=400 --use_8bit_adam --xformers --mixed_precision=fp16 
     --save_every_n_epochs=1 --save_model_as=safetensors --clip_skip=2 --seed=42 --color_aug 
