@@ -3,6 +3,7 @@ import os
 import argparse
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
+from textual_inversion_gui import ti_tab
 from library.utilities import utilities_tab
 from library.extract_lora_gui import gradio_extract_lora_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
@@ -30,6 +31,8 @@ def UI(username, password):
             ) = dreambooth_tab()
         with gr.Tab('Dreambooth LoRA'):
             lora_tab()
+        with gr.Tab('Dreambooth TI'):
+            ti_tab()
         with gr.Tab('Finetune'):
             finetune_tab()
         with gr.Tab('Utilities'):
