@@ -6,6 +6,9 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
+- 26 Jan. 2023, 2023/1/26
+  - Add Textual Inversion training. Documentation is [here](./train_ti_README-ja.md) (in Japanese.)
+  - Textual Inversionの学習をサポートしました。ドキュメントは[こちら](./train_ti_README-ja.md)。
 - 24 Jan. 2023, 2023/1/24
   - Change the default save format to ``.safetensors`` for ``train_network.py``.
   - Add ``--save_n_epoch_ratio`` option to specify how often to save. Thanks to forestsource! 
@@ -55,6 +58,7 @@ All documents are in Japanese currently, and CUI based.
 * [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
 Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
 * [training LoRA](./train_network_README-ja.md)
+* [training Textual Inversion](./train_ti_README-ja.md)
 * note.com [Image generation](https://note.com/kohya_ss/n/n2693183a798e)
 * note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 
