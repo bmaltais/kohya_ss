@@ -1,7 +1,7 @@
 ## リポジトリについて
 Stable Diffusionの学習、画像生成、その他のスクリプトを入れたリポジトリです。
 
-[README in English](./README.md)
+[README in English](./README.md) ←更新情報はこちらにあります
 
 GUIやPowerShellスクリプトなど、より使いやすくする機能が[bmaltais氏のリポジトリ](https://github.com/bmaltais/kohya_ss)で提供されています（英語です）のであわせてご覧ください。bmaltais氏に感謝します。
 
@@ -102,6 +102,10 @@ accelerate configの質問には以下のように答えてください。（bf1
 
 ※場合によって ``ValueError: fp16 mixed precision requires a GPU`` というエラーが出ることがあるようです。この場合、6番目の質問（
 ``What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:``）に「0」と答えてください。（id `0`のGPUが使われます。）
+
+### PyTorchとxformersのバージョンについて
+
+他のバージョンでは学習がうまくいかない場合があるようです。特に他の理由がなければ指定のバージョンをお使いください。
 
 ## アップグレード
 
