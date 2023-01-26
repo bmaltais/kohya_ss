@@ -12,7 +12,7 @@ def main(args):
   
   image_paths = None
   train_data_dir_path = Path(args.train_data_dir)
-  if args.recursive_data_dir:
+  if args.recursive:
     image_paths = list(train_data_dir_path.rglob('*.jpg')) + \
                   list(train_data_dir_path.rglob('*.png')) + \
                   list(train_data_dir_path.rglob('*.webp')) 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
   parser.add_argument("--in_json", type=str, help="metadata file to input (if omitted and out_json exists, existing out_json is read) / 読み込むメタデータファイル（省略時、out_jsonが存在すればそれを読み込む）")
   parser.add_argument("--full_path", action="store_true",
                       help="use full path as image-key in metadata (supports multiple directories) / メタデータで画像キーをフルパスにする（複数の学習画像ディレクトリに対応）")
-  parser.add_argument("--recursive_data_dir", action="store_true", help="recursively look for training tags in all child folders of train_data_dir / train_data_dirのすべての子フォルダにある学習タグを再帰的に探す")
+  parser.add_argument("--recursive", action="store_true", help="recursively look for training tags in all child folders of train_data_dir / train_data_dirのすべての子フォルダにある学習タグを再帰的に探す")
   parser.add_argument("--debug", action="store_true", help="debug mode, print tags")
 
   args = parser.parse_args()
