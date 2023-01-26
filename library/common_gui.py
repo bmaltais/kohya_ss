@@ -365,7 +365,7 @@ def gradio_source_model():
                     'diffusers_safetensors',
                     'safetensors',
                 ],
-                value='same as source model',
+                value='safetensors',
             )
 
         with gr.Row():
@@ -424,8 +424,8 @@ def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', l
             minimum=1,
             maximum=os.cpu_count(),
             step=1,
-            label='Number of CPU threads per process',
-            value=os.cpu_count(),
+            label='Number of CPU threads per core',
+            value=2,
         )
         seed = gr.Textbox(label='Seed', value=1234)
     with gr.Row():

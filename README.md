@@ -6,8 +6,9 @@ This repository repository is providing a Gradio GUI for kohya's Stable Diffusio
 
 Python 3.10.6+ and Git:
 
-- Python 3.10.6+: https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe
+- Install Python 3.10 using https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe (make sure to tick the box to add Python to the environment path)
 - git: https://git-scm.com/download/win
+- Visual Studio 2015, 2017, 2019, and 2022 redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe
 
 ## Installation
 
@@ -23,7 +24,7 @@ Open a regular user Powershell terminal and type the following inside:
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 
-python -m venv --system-site-packages venv
+python -m venv venv
 .\venv\Scripts\activate
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
@@ -40,7 +41,7 @@ accelerate config
 
 ### Optional: CUDNN 8.6
 
-This step is optional but can improve the learning speed for NVidia 4090 owners...
+This step is optional but can improve the learning speed for NVidia 30X0/40X0 owners... It allows larger training batch size and faster training speed
 
 Due to the filesize I can't host the DLLs needed for CUDNN 8.6 on Github, I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090) you can download them from here: https://b1.thefileditch.ch/mwxKTEtelILoIbMbruuM.zip
 
@@ -114,8 +115,27 @@ Once you have created the LoRA network you can generate images via auto1111 by i
 
 - Re-install python 3.10.x on your system: https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe
 
+### FileNotFoundError
+
+This is usually related to an installation issue. Make sure you do not have python modules installed locally that could conflict with the ones installed in the venv:
+
+1. Open a new powershell terminal and make sure no venv is active.
+2.  Run the following commands
+
+```
+pip freeze > uninstall.txt
+pip uninstall -r uninstall.txt
+```
+
+Then redo the installation instruction within the kohya_ss venv.
+
 ## Change history
 
+* 2023/01/26 (v20.5.0):
+    - Add new `Dreambooth TI` tab for training of Textual Inversion embeddings
+    - Add Textual Inversion training. Documentation is [here](./train_ti_README-ja.md) (in Japanese.)
+* 2023/01/22 (v20.4.1):
+    - Add new tool to verify LoRA weights produced by the trainer. Can be found under "Dreambooth LoRA/Tools/Verify LoRA"
 * 2023/01/22 (v20.4.0):
     - Add support for `network_alpha` under the Training tab and support for `--training_comment` under the Folders tab.
     - Add ``--network_alpha`` option to specify ``alpha`` value to prevent underflows for stable training. Thanks to CCRcmcpe!

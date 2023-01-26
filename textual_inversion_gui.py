@@ -20,18 +20,15 @@ from library.common_gui import (
     save_inference_file,
     gradio_advanced_training,
     run_cmd_advanced_training,
+    run_cmd_training,
     gradio_training,
     gradio_config,
     gradio_source_model,
-    run_cmd_training,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.verify_lora_gui import gradio_verify_lora_tab
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -75,22 +72,17 @@ def save_configuration(
     save_state,
     resume,
     prior_loss_weight,
-    text_encoder_lr,
-    unet_lr,
-    network_dim,
-    lora_network_weights,
     color_aug,
     flip_aug,
     clip_skip,
-    gradient_accumulation_steps,
-    mem_eff_attn,
+    vae,
     output_name,
-    model_list,
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
-    network_alpha,
-    training_comment,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -159,27 +151,22 @@ def open_configuration(
     stop_text_encoder_training,
     use_8bit_adam,
     xformers,
-    save_model_as_dropdown,
+    save_model_as,
     shuffle_caption,
     save_state,
     resume,
     prior_loss_weight,
-    text_encoder_lr,
-    unet_lr,
-    network_dim,
-    lora_network_weights,
     color_aug,
     flip_aug,
     clip_skip,
-    gradient_accumulation_steps,
-    mem_eff_attn,
+    vae,
     output_name,
-    model_list,
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
-    network_alpha,
-    training_comment,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -190,17 +177,17 @@ def open_configuration(
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data = json.load(f)
+            my_data_db = json.load(f)
             print('Loading config...')
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data = {}
+        my_data_db = {}
 
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data.get(key, value))
+            values.append(my_data_db.get(key, value))
     return tuple(values)
 
 
@@ -237,22 +224,18 @@ def train_model(
     save_state,
     resume,
     prior_loss_weight,
-    text_encoder_lr,
-    unet_lr,
-    network_dim,
-    lora_network_weights,
     color_aug,
     flip_aug,
     clip_skip,
-    gradient_accumulation_steps,
-    mem_eff_attn,
+    vae,
     output_name,
-    model_list,  # Keep this. Yes, it is unused here but required given the common list used
     max_token_length,
     max_train_epochs,
     max_data_loader_n_workers,
-    network_alpha,
-    training_comment,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,  # Keep this. Yes, it is unused here but required given the common list used
+    token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -275,24 +258,16 @@ def train_model(
         msgbox('Output folder path is missing')
         return
     
+    if token_string == '':
+        msgbox('Token string is missing')
+        return
+    
+    if init_word == '':
+        msgbox('Init word is missing')
+        return
+    
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
-    if stop_text_encoder_training_pct > 0:
-        msgbox('Output "stop text encoder training" is not yet supported. Ignoring')
-        stop_text_encoder_training_pct = 0
-
-    # If string is empty set string to 0.
-    if text_encoder_lr == '':
-        text_encoder_lr = 0
-    if unet_lr == '':
-        unet_lr = 0
-
-    if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-        msgbox(
-            'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
-        )
-        return
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -327,15 +302,30 @@ def train_model(
         # Print the result
         print(f'Folder {folder}: {steps} steps')
 
-    # calculate max_train_steps
-    max_train_steps = int(
-        math.ceil(
-            float(total_steps)
-            / int(train_batch_size)
-            * int(epoch)
-            # * int(reg_factor)
+    # Print the result
+    # print(f"{total_steps} total steps")
+
+    if reg_data_dir == '':
+        reg_factor = 1
+    else:
+        print(
+            'Regularisation images are used... Will double the number of steps required...'
         )
-    )
+        reg_factor = 2
+
+    # calculate max_train_steps
+    if max_train_steps == '':
+        max_train_steps = int(
+            math.ceil(
+                float(total_steps)
+                / int(train_batch_size)
+                * int(epoch)
+                * int(reg_factor)
+            )
+        )
+    else:
+        max_train_steps = int(max_train_steps)
+        
     print(f'max_train_steps = {max_train_steps}')
 
     # calculate stop encoder training
@@ -350,7 +340,7 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     print(f'lr_warmup_steps = {lr_warmup_steps}')
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
+    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_textual_inversion.py"'
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -368,33 +358,30 @@ def train_model(
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
     run_cmd += f' --logging_dir="{logging_dir}"'
-    run_cmd += f' --network_alpha="{network_alpha}"'
-    if not training_comment == '':
-        run_cmd += f' --training_comment="{training_comment}"'
     if not stop_text_encoder_training == 0:
         run_cmd += (
             f' --stop_text_encoder_training={stop_text_encoder_training}'
         )
     if not save_model_as == 'same as source model':
         run_cmd += f' --save_model_as={save_model_as}'
+    # if not resume == '':
+    #     run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    run_cmd += f' --network_module=networks.lora'
-    if not float(text_encoder_lr) == 0:
-        run_cmd += f' --text_encoder_lr={text_encoder_lr}'
-    else:
-        run_cmd += f' --network_train_unet_only'
-    if not float(unet_lr) == 0:
-        run_cmd += f' --unet_lr={unet_lr}'
-    else:
-        run_cmd += f' --network_train_text_encoder_only'
-    run_cmd += f' --network_dim={network_dim}'
-    if not lora_network_weights == '':
-        run_cmd += f' --network_weights="{lora_network_weights}"'
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
+    if not vae == '':
+        run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if int(max_token_length) > 75:
+        run_cmd += f' --max_token_length={max_token_length}'
+    if not max_train_epochs == '':
+        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
+    if not max_data_loader_n_workers == '':
+        run_cmd += (
+            f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+        )
+    if int(gradient_accumulation_steps) > 1:
+        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -426,7 +413,16 @@ def train_model(
         xformers=xformers,
         use_8bit_adam=use_8bit_adam,
     )
-
+    run_cmd += f' --token_string={token_string}'
+    run_cmd += f' --init_word={init_word}'
+    run_cmd += f' --num_vectors_per_token={num_vectors_per_token}'
+    if not weights == '':
+        run_cmd += f' --weights="{weights}"'
+    if template == 'object template':
+        run_cmd += f' --use_object_template'
+    elif template == 'style template':
+        run_cmd += f' --use_style_template'
+        
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
@@ -450,13 +446,13 @@ def UI(username, password):
     interface = gr.Blocks(css=css)
 
     with interface:
-        with gr.Tab('LoRA'):
+        with gr.Tab('Dreambooth TI'):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = lora_tab()
+            ) = ti_tab()
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -473,17 +469,15 @@ def UI(username, password):
         interface.launch()
 
 
-def lora_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+def ti_tab(
+    train_data_dir=gr.Textbox(),
+    reg_data_dir=gr.Textbox(),
+    output_dir=gr.Textbox(),
+    logging_dir=gr.Textbox(),
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
-    gr.Markdown(
-        'Train a custom model using kohya train network LoRA python code...'
-    )
+    gr.Markdown('Train a TI using kohya textual inversion python code...')
     (
         button_open_config,
         button_save_config,
@@ -505,39 +499,46 @@ def lora_tab(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            train_data_dir_folder.click(
+            train_data_dir_input_folder = gr.Button(
+                '📂', elem_id='open_folder_small'
+            )
+            train_data_dir_input_folder.click(
                 get_folder_path, outputs=train_data_dir
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            reg_data_dir_folder.click(get_folder_path, outputs=reg_data_dir)
+            reg_data_dir_input_folder = gr.Button(
+                '📂', elem_id='open_folder_small'
+            )
+            reg_data_dir_input_folder.click(
+                get_folder_path, outputs=reg_data_dir
+            )
         with gr.Row():
             output_dir = gr.Textbox(
-                label='Output folder',
+                label='Model output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            output_dir_folder.click(get_folder_path, outputs=output_dir)
+            output_dir_input_folder = gr.Button(
+                '📂', elem_id='open_folder_small'
+            )
+            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
             logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            logging_dir_folder.click(get_folder_path, outputs=logging_dir)
+            logging_dir_input_folder = gr.Button(
+                '📂', elem_id='open_folder_small'
+            )
+            logging_dir_input_folder.click(
+                get_folder_path, outputs=logging_dir
+            )
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='(Name of the model to output)',
+                placeholder='Name of the model to output',
                 value='last',
-                interactive=True,
-            )
-            training_comment = gr.Textbox(
-                label='Training comment',
-                placeholder='(Optional) Add training comment to be included in metadata',
                 interactive=True,
             )
         train_data_dir.change(
@@ -562,17 +563,42 @@ def lora_tab(
         )
     with gr.Tab('Training parameters'):
         with gr.Row():
-            lora_network_weights = gr.Textbox(
-                label='LoRA network weights',
-                placeholder='{Optional) Path to existing LoRA network weights to resume training',
+            weights = gr.Textbox(
+                label='Resume TI training',
+                placeholder='(Optional) Path to existing TI embeding file to keep training',
             )
-            lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+            weights_file_input = gr.Button(
+                '📂', elem_id='open_folder_small'
             )
-            lora_network_weights_file.click(
-                get_any_file_path,
-                inputs=[lora_network_weights],
-                outputs=lora_network_weights,
+            weights_file_input.click(get_file_path, outputs=weights)
+        with gr.Row():
+            token_string = gr.Textbox(
+                label='Token string',
+                placeholder='eg: cat',
+            )
+            init_word = gr.Textbox(
+                label='Init word',
+                value='*',
+            )
+            num_vectors_per_token = gr.Slider(
+                minimum=1,
+                maximum=75,
+                value=1,
+                step=1,
+                label='Vectors',
+            )
+            max_train_steps = gr.Textbox(
+                label='Max train steps',
+                placeholder='(Optional) Maximum number of steps',
+            )
+            template = gr.Dropdown(
+                label='Template',
+                choices=[
+                    'caption',
+                    'object template',
+                    'style template',
+                ],
+                value='caption',
             )
         (
             learning_rate,
@@ -592,33 +618,6 @@ def lora_tab(
             lr_scheduler_value='cosine',
             lr_warmup_value='10',
         )
-        with gr.Row():
-            text_encoder_lr = gr.Textbox(
-                label='Text Encoder learning rate',
-                value='5e-5',
-                placeholder='Optional',
-            )
-            unet_lr = gr.Textbox(
-                label='Unet learning rate',
-                value='1e-3',
-                placeholder='Optional',
-            )
-            network_dim = gr.Slider(
-                minimum=1,
-                maximum=128,
-                label='Network Rank (Dimension)',
-                value=8,
-                step=1,
-                interactive=True,
-            )
-            network_alpha = gr.Slider(
-                minimum=1,
-                maximum=128,
-                label='Network Alpha',
-                value=1,
-                step=1,
-                interactive=True,
-            )
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
@@ -645,6 +644,12 @@ def lora_tab(
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
+                vae = gr.Textbox(
+                    label='VAE',
+                    placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                )
+                vae_button = gr.Button('📂', elem_id='open_folder_small')
+                vae_button.click(get_any_file_path, outputs=vae)
             (
                 use_8bit_adam,
                 xformers,
@@ -666,7 +671,6 @@ def lora_tab(
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
-
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -677,12 +681,8 @@ def lora_tab(
             output_dir_input=output_dir,
             logging_dir_input=logging_dir,
         )
-        gradio_dataset_balancing_tab()
-        gradio_merge_lora_tab()
-        gradio_verify_lora_tab()
-        
 
-    button_run = gr.Button('Train model')
+    button_run = gr.Button('Train TI')
 
     settings_list = [
         pretrained_model_name_or_path,
@@ -717,22 +717,18 @@ def lora_tab(
         save_state,
         resume,
         prior_loss_weight,
-        text_encoder_lr,
-        unet_lr,
-        network_dim,
-        lora_network_weights,
         color_aug,
         flip_aug,
         clip_skip,
-        gradient_accumulation_steps,
-        mem_eff_attn,
+        vae,
         output_name,
-        model_list,
         max_token_length,
         max_train_epochs,
         max_data_loader_n_workers,
-        network_alpha,
-        training_comment,
+        mem_eff_attn,
+        gradient_accumulation_steps,
+        model_list,
+        token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
     ]
 
     button_open_config.click(

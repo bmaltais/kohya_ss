@@ -24,7 +24,7 @@ DreamBoothの手法（identifier（sksなど）とclass、オプションで正�
 
 [DreamBoothのガイド](./train_db_README-ja.md) を参照してデータを用意してください。
 
-学習するとき、train_db.pyの代わりにtrain_network.pyを指定してください。
+学習するとき、train_db.pyの代わりにtrain_network.pyを指定してください。そして「LoRAの学習のためのオプション」にあるようにLoRA関連のオプション（``network_dim``や``network_alpha``など）を追加してください。
 
 ほぼすべてのオプション（Stable Diffusionのモデル保存関係を除く）が使えますが、stop_text_encoder_trainingはサポートしていません。
 
@@ -32,7 +32,7 @@ DreamBoothの手法（identifier（sksなど）とclass、オプションで正�
 
 [fine-tuningのガイド](./fine_tune_README_ja.md) を参照し、各手順を実行してください。
 
-学習するとき、fine_tune.pyの代わりにtrain_network.pyを指定してください。ほぼすべてのオプション（モデル保存関係を除く）がそのまま使えます。
+学習するとき、fine_tune.pyの代わりにtrain_network.pyを指定してください。ほぼすべてのオプション（モデル保存関係を除く）がそのまま使えます。そして「LoRAの学習のためのオプション」にあるようにLoRA関連のオプション（``network_dim``や``network_alpha``など）を追加してください。
 
 なお「latentsの事前取得」は行わなくても動作します。VAEから学習時（またはキャッシュ時）にlatentを取得するため学習速度は遅くなりますが、代わりにcolor_augが使えるようになります。
 
@@ -45,7 +45,7 @@ train_network.pyでは--network_moduleオプションに、学習対象のモジ
 以下はコマンドラインの例です（DreamBooth手法）。
 
 ```
-accelerate launch --num_cpu_threads_per_process 12 train_network.py 
+accelerate launch --num_cpu_threads_per_process 1 train_network.py 
     --pretrained_model_name_or_path=..\models\model.ckpt 
     --train_data_dir=..\data\db\char1 --output_dir=..\lora_train1 
     --reg_data_dir=..\data\db\reg1 --prior_loss_weight=1.0 
@@ -60,7 +60,9 @@ accelerate launch --num_cpu_threads_per_process 12 train_network.py
 その他、以下のオプションが指定できます。
 
 * --network_dim
-  * LoRAの次元数を指定します（``--networkdim=4``など）。省略時は4になります。数が多いほど表現力は増しますが、学習に必要なメモリ、時間は増えます。また闇雲に増やしても良くないようです。
+  * LoRAのRANKを指定します（``--networkdim=4``など）。省略時は4になります。数が多いほど表現力は増しますが、学習に必要なメモリ、時間は増えます。また闇雲に増やしても良くないようです。
+* --network_alpha
+  *  アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定します。デフォルトは1です。``network_dim``と同じ値を指定すると以前のバージョンと同じ動作になります。
 * --network_weights
   * 学習前に学習済みのLoRAの重みを読み込み、そこから追加で学習します。
 * --network_train_unet_only
@@ -126,7 +128,7 @@ python networks\merge_lora.py
 
 --ratiosにそれぞれのモデルの比率（どのくらい重みを元モデルに反映するか）を0~1.0の数値で指定します。二つのモデルを一対一でマージす場合は、「0.5 0.5」になります。「1.0 1.0」では合計の重みが大きくなりすぎて、恐らく結果はあまり望ましくないものになると思われます。
 
-v1で学習したLoRAとv2で学習したLoRA、次元数の異なるLoRAはマージできません。U-NetだけのLoRAとU-Net+Text EncoderのLoRAはマージできるはずですが、結果は未知数です。
+v1で学習したLoRAとv2で学習したLoRA、rank（次元数）や``alpha``の異なるLoRAはマージできません。U-NetだけのLoRAとU-Net+Text EncoderのLoRAはマージできるはずですが、結果は未知数です。
 
 
 ### その他のオプション
