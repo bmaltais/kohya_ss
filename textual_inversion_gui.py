@@ -104,6 +104,10 @@ def save_configuration(
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # Return the values of the variables as a dictionary
     variables = {
         name: value
