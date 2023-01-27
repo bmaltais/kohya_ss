@@ -131,6 +131,8 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/01/27 (v20.5.1):
+    - Fix issue https://github.com/bmaltais/kohya_ss/issues/71
 * 2023/01/26 (v20.5.0):
     - Add new `Dreambooth TI` tab for training of Textual Inversion embeddings
     - Add Textual Inversion training. Documentation is [here](./train_ti_README-ja.md) (in Japanese.)

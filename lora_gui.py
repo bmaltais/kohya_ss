@@ -159,7 +159,7 @@ def open_configuration(
     stop_text_encoder_training,
     use_8bit_adam,
     xformers,
-    save_model_as_dropdown,
+    save_model_as,
     shuffle_caption,
     save_state,
     resume,
