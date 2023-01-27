@@ -82,7 +82,7 @@ def save_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list,
+    model_list, keep_tokens,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -166,7 +166,7 @@ def open_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list,
+    model_list, keep_tokens,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -235,6 +235,7 @@ def train_model(
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
+    keep_tokens,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -396,6 +397,7 @@ def train_model(
         full_fp16=full_fp16,
         xformers=xformers,
         use_8bit_adam=use_8bit_adam,
+        keep_tokens=keep_tokens,
     )
 
     print(run_cmd)
@@ -602,6 +604,7 @@ def dreambooth_tab(
                 max_token_length,
                 max_train_epochs,
                 max_data_loader_n_workers,
+                keep_tokens,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -665,6 +668,7 @@ def dreambooth_tab(
         mem_eff_attn,
         gradient_accumulation_steps,
         model_list,
+        keep_tokens,
     ]
 
     button_open_config.click(

@@ -82,7 +82,7 @@ def save_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
+    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -170,7 +170,7 @@ def open_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
+    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -239,7 +239,7 @@ def train_model(
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
-    token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
+    token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -416,6 +416,7 @@ def train_model(
         full_fp16=full_fp16,
         xformers=xformers,
         use_8bit_adam=use_8bit_adam,
+        keep_tokens=keep_tokens,
     )
     run_cmd += f' --token_string={token_string}'
     run_cmd += f' --init_word={init_word}'
@@ -669,6 +670,7 @@ def ti_tab(
                 max_token_length,
                 max_train_epochs,
                 max_data_loader_n_workers,
+                keep_tokens,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -733,6 +735,7 @@ def ti_tab(
         gradient_accumulation_steps,
         model_list,
         token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
+        keep_tokens,
     ]
 
     button_open_config.click(
