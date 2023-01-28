@@ -2,6 +2,16 @@
 
 This repository repository is providing a Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
 
+## Tutorials
+
+How to create a LoRA part 1, dataset preparation:
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
+
+How to create a LoRA part 2, training the model:
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
+
 ## Required Dependencies
 
 Python 3.10.6+ and Git:
