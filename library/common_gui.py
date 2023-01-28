@@ -519,6 +519,9 @@ def gradio_advanced_training():
         shuffle_caption = gr.Checkbox(
             label='Shuffle caption', value=False
         )
+        keep_tokens = gr.Slider(
+            label='Keen n tokens', value='0', minimum=0, maximum=32, step=1
+        )
         use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
         xformers = gr.Checkbox(label='Use xformers', value=True)
     with gr.Row():
@@ -572,6 +575,7 @@ def gradio_advanced_training():
         max_token_length,
         max_train_epochs,
         max_data_loader_n_workers,
+        keep_tokens,
     )
 
 def run_cmd_advanced_training(**kwargs):
@@ -594,6 +598,10 @@ def run_cmd_advanced_training(**kwargs):
         
         f' --resume="{kwargs.get("resume", "")}"'
         if kwargs.get('resume')
+        else '',
+        
+        f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
+        if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
         
         ' --save_state' if kwargs.get('save_state') else '',
