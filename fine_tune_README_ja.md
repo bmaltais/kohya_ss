@@ -324,7 +324,7 @@ __※引数を都度書き換えて、別のメタデータファイルに書き
 ## 学習の実行
 たとえば以下のように実行します。以下は省メモリ化のための設定です。
 ```
-accelerate launch --num_cpu_threads_per_process 8 fine_tune.py 
+accelerate launch --num_cpu_threads_per_process 1 fine_tune.py 
     --pretrained_model_name_or_path=model.ckpt 
     --in_json meta_lat.json 
     --train_data_dir=train_data 
@@ -336,7 +336,7 @@ accelerate launch --num_cpu_threads_per_process 8 fine_tune.py
     --save_every_n_epochs=4
 ```
 
-accelerateのnum_cpu_threads_per_processにはCPUのコア数を指定するとよいようです。
+accelerateのnum_cpu_threads_per_processには通常は1を指定するとよいようです。
 
 pretrained_model_name_or_pathに学習対象のモデルを指定します（Stable DiffusionのcheckpointかDiffusersのモデル）。Stable Diffusionのcheckpointは.ckptと.safetensorsに対応しています（拡張子で自動判定）。
 

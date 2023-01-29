@@ -72,7 +72,7 @@ identifierとclassを使い、たとえば「shs dog」などでモデルを学�
 ※LoRA等の追加ネットワークを学習する場合のコマンドは ``train_db.py`` ではなく ``train_network.py`` となります。また追加でnetwork_\*オプションが必要となりますので、LoRAのガイドを参照してください。
 
 ```
-accelerate launch --num_cpu_threads_per_process 8 train_db.py 
+accelerate launch --num_cpu_threads_per_process 1 train_db.py 
     --pretrained_model_name_or_path=<.ckptまたは.safetensordまたはDiffusers版モデルのディレクトリ> 
     --train_data_dir=<学習用データのディレクトリ> 
     --reg_data_dir=<正則化画像のディレクトリ> 
@@ -89,7 +89,7 @@ accelerate launch --num_cpu_threads_per_process 8 train_db.py
     --gradient_checkpointing
 ```
 
-num_cpu_threads_per_processにはCPUコア数を指定するとよいようです。
+num_cpu_threads_per_processには通常は1を指定するとよいようです。
 
 pretrained_model_name_or_pathに追加学習を行う元となるモデルを指定します。Stable Diffusionのcheckpointファイル（.ckptまたは.safetensors）、Diffusersのローカルディスクにあるモデルディレクトリ、DiffusersのモデルID（"stabilityai/stable-diffusion-2"など）が指定できます。学習後のモデルの保存形式はデフォルトでは元のモデルと同じになります（save_model_asオプションで変更できます）。
 
@@ -159,7 +159,7 @@ v2.xモデルでWebUIで画像生成する場合、モデルの仕様が記述�
 
 ![image](https://user-images.githubusercontent.com/52813779/210776915-061d79c3-6582-42c2-8884-8b91d2f07313.png)
 
-各yamlファイルは[https://github.com/Stability-AI/stablediffusion/tree/main/configs/stable-diffusion](Stability AIのSD2.0のリポジトリ)にあります。
+各yamlファイルは[Stability AIのSD2.0のリポジトリ](https://github.com/Stability-AI/stablediffusion/tree/main/configs/stable-diffusion)にあります。
 
 # その他の学習オプション
 
