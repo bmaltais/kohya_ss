@@ -1,6 +1,8 @@
 # Kohya's GUI
 
-This repository repository is providing a Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
+This repository repository is providing a Windows focussed Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
+
+If you run on linux and would like to use the GUI there is now a port of it as a docker container. You can find the project here: https://github.com/P2Enjoy/kohya_ss-docker
 
 ## Tutorials
 
