@@ -418,8 +418,8 @@ def train_model(
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
     )
-    run_cmd += f' --token_string={token_string}'
-    run_cmd += f' --init_word={init_word}'
+    run_cmd += f' --token_string="{token_string}"'
+    run_cmd += f' --init_word="{init_word}"'
     run_cmd += f' --num_vectors_per_token={num_vectors_per_token}'
     if not weights == '':
         run_cmd += f' --weights="{weights}"'

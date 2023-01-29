@@ -1,8 +1,4 @@
 # convert Diffusers v1.x/v2.0 model to original Stable Diffusion
-# v1: initial version
-# v2: support safetensors
-# v3: fix to support another format
-# v4: support safetensors in Diffusers
 
 import argparse
 import os
