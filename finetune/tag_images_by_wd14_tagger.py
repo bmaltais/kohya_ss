@@ -36,7 +36,7 @@ def main(args):
           args.model_dir, SUB_DIR), force_download=True, force_filename=file)
 
   # 画像を読み込む
-  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
+  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + glob.glob(os.path.join(args.train_data_dir, "*.jpeg")) + \
       glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
   print(f"found {len(image_paths)} images.")
 
