@@ -520,7 +520,7 @@ def gradio_advanced_training():
             label='Shuffle caption', value=False
         )
         keep_tokens = gr.Slider(
-            label='Keen n tokens', value='0', minimum=0, maximum=32, step=1
+            label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
         )
         use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
         xformers = gr.Checkbox(label='Use xformers', value=True)

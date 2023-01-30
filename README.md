@@ -143,7 +143,7 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
-* 2023/01/29 (v20.5.2):
+* 2023/01/30 (v20.5.2):
   - Add ``--lr_scheduler_num_cycles`` and ``--lr_scheduler_power`` options for ``train_network.py`` for cosine_with_restarts and polynomial learning rate schedulers. Thanks to mgz-dev!
   - Fixed U-Net ``sample_size`` parameter to ``64`` when converting from SD to Diffusers format, in ``convert_diffusers20_original_sd.py``
 * 2023/01/27 (v20.5.1):
