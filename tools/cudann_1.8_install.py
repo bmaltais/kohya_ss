@@ -100,5 +100,7 @@ if os.name == "nt":
                 if os.path.exists(dest_file):
                     shutil.copy2(src_file, cudnn_dest)
             print("Copied CUDNN 8.6 files to destination")
+    else: 
+        print(f"Installation Failed: \"{cudnn_src}\" could not be found. ")
 
             

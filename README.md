@@ -1,6 +1,8 @@
 # Kohya's GUI
 
-This repository repository is providing a Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
+This repository repository is providing a Windows focussed Gradio GUI for kohya's Stable Diffusion trainers found here: https://github.com/kohya-ss/sd-scripts. The GUI allow you to set the training parameters and generate and run the required CLI command to train the model.
+
+If you run on Linux and would like to use the GUI there is now a port of it as a docker container. You can find the project here: https://github.com/P2Enjoy/kohya_ss-docker
 
 ## Tutorials
 
@@ -55,7 +57,7 @@ This step is optional but can improve the learning speed for NVidia 30X0/40X0 ow
 
 Due to the filesize I can't host the DLLs needed for CUDNN 8.6 on Github, I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090) you can download them from here: https://b1.thefileditch.ch/mwxKTEtelILoIbMbruuM.zip
 
-To install simply unzip the directory and place the cudnn_windows folder in the root of the kohya_diffusers_fine_tuning repo.
+To install simply unzip the directory and place the `cudnn_windows` folder in the root of the kohya_ss repo.
 
 Run the following command to install:
 
@@ -141,6 +143,9 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/01/30 (v20.5.2):
+  - Add ``--lr_scheduler_num_cycles`` and ``--lr_scheduler_power`` options for ``train_network.py`` for cosine_with_restarts and polynomial learning rate schedulers. Thanks to mgz-dev!
+  - Fixed U-Net ``sample_size`` parameter to ``64`` when converting from SD to Diffusers format, in ``convert_diffusers20_original_sd.py``
 * 2023/01/27 (v20.5.1):
     - Fix issue: https://github.com/bmaltais/kohya_ss/issues/70
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/71

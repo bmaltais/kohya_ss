@@ -91,6 +91,7 @@ def save_configuration(
     max_data_loader_n_workers,
     network_alpha,
     training_comment, keep_tokens,
+    lr_scheduler_num_cycles, lr_scheduler_power,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -180,6 +181,7 @@ def open_configuration(
     max_data_loader_n_workers,
     network_alpha,
     training_comment, keep_tokens,
+    lr_scheduler_num_cycles, lr_scheduler_power,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -253,6 +255,7 @@ def train_model(
     max_data_loader_n_workers,
     network_alpha,
     training_comment, keep_tokens,
+    lr_scheduler_num_cycles, lr_scheduler_power,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -395,6 +398,10 @@ def train_model(
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if not lr_scheduler_num_cycles == '':
+        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
+    if not lr_scheduler_power == '':
+        run_cmd += f' --output_name="{lr_scheduler_power}"'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -646,6 +653,13 @@ def lora_tab(
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
+                lr_scheduler_num_cycles = gr.Textbox(
+                    label='LR number of cycles', placeholder='(Optional) For Cosine with restart and polynomial only'
+                )
+                
+                lr_scheduler_power = gr.Textbox(
+                    label='LR power', placeholder='(Optional) For Cosine with restart and polynomial only'
+                )
             (
                 use_8bit_adam,
                 xformers,
@@ -736,6 +750,7 @@ def lora_tab(
         network_alpha,
         training_comment,
         keep_tokens,
+        lr_scheduler_num_cycles, lr_scheduler_power,
     ]
 
     button_open_config.click(
