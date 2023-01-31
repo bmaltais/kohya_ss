@@ -87,6 +87,7 @@ class BaseDataset(torch.utils.data.Dataset):
     self.enable_bucket = False
     self.min_bucket_reso = None
     self.max_bucket_reso = None
+    self.tag_frequency = {}
     self.bucket_info = None
 
     self.tokenizer_max_length = self.tokenizer.model_max_length if max_token_length is None else max_token_length + 2
@@ -544,6 +545,15 @@ class DreamBoothDataset(BaseDataset):
       for img_path in img_paths:
         cap_for_img = read_caption(img_path)
         captions.append(caption_by_folder if cap_for_img is None else cap_for_img)
+
+      frequency_for_dir = self.tag_frequency.get(os.path.basename(dir), {})
+      self.tag_frequency[os.path.basename(dir)] = frequency_for_dir
+      for caption in captions:
+        for tag in caption.split(","):
+          if tag and not tag.isspace():
+            tag = tag.lower()
+            frequency = frequency_for_dir.get(tag, 0)
+            frequency_for_dir[tag] = frequency + 1
 
       return n_repeats, img_paths, captions
 
