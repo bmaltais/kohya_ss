@@ -36,7 +36,7 @@ def get_latents(vae, images, weight_dtype):
 
 
 def main(args):
-  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
+  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + glob.glob(os.path.join(args.train_data_dir, "*.jpeg")) + \
       glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
   print(f"found {len(image_paths)} images.")
 

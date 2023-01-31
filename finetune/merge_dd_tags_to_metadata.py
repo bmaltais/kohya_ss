@@ -9,15 +9,16 @@ from tqdm import tqdm
 
 
 def main(args):
-  
   image_paths = None
   train_data_dir_path = Path(args.train_data_dir)
   if args.recursive:
     image_paths = list(train_data_dir_path.rglob('*.jpg')) + \
+                  list(train_data_dir_path.rglob('*.jpeg')) + \
                   list(train_data_dir_path.rglob('*.png')) + \
                   list(train_data_dir_path.rglob('*.webp')) 
   else:
     image_paths = list(train_data_dir_path.glob('*.jpg')) + \
+                  list(train_data_dir_path.glob('*.jpeg')) + \
                   list(train_data_dir_path.glob('*.png')) + \
                   list(train_data_dir_path.glob('*.webp')) 
 
