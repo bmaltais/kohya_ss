@@ -214,7 +214,7 @@ def train(args):
   # DataLoaderのプロセス数：0はメインプロセスになる
   n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
-      train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers)
+      train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers, persistent_workers=args.persistent_data_loader_workers)
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
@@ -224,7 +224,7 @@ def train(args):
   # lr schedulerを用意する
   # lr_scheduler = diffusers.optimization.get_scheduler(
   lr_scheduler = get_scheduler_fix(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, 
+      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
       num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
       num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
