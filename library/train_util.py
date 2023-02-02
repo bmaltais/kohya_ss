@@ -747,7 +747,8 @@ def debug_dataset(train_dataset, show_input_ids=False):
         im = ((im.numpy() + 1.0) * 127.5).astype(np.uint8)
         im = np.transpose(im, (1, 2, 0))                # c,H,W -> H,W,c
         im = im[:, :, ::-1]                             # RGB -> BGR (OpenCV)
-        cv2.imshow("img", im)
+        if os.name == 'nt':                             # only windows
+          cv2.imshow("img", im)
         k = cv2.waitKey()
         cv2.destroyAllWindows()
         if k == 27:
