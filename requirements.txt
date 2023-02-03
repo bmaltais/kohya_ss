@@ -1,5 +1,5 @@
 accelerate==0.15.0
-transformers==4.25.1
+transformers==4.26.0
 ftfy
 albumentations
 opencv-python
@@ -9,14 +9,13 @@ pytorch_lightning
 bitsandbytes==0.35.0
 tensorboard
 safetensors==0.2.6
-gradio==3.15.0
+gradio
 altair
 easygui
-tk
 # for BLIP captioning
 requests
-timm
-fairscale
+timm==0.4.12
+fairscale==0.4.4
 # for WD14 captioning
 tensorflow<2.11
 huggingface-hub

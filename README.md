@@ -143,6 +143,23 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/02/03
+    - Increase max LoRA rank (dim) size to 1024.
+    - Update finetune preprocessing scripts.
+        - ``.bmp`` and ``.jpeg`` are supported. Thanks to breakcore2 and p1atdev!
+        - The default weights of ``tag_images_by_wd14_tagger.py`` is now ``SmilingWolf/wd-v1-4-convnext-tagger-v2``. You can specify another model id from ``SmilingWolf`` by ``--repo_id`` option. Thanks to SmilingWolf for the great work.
+        - To change the weight, remove ``wd14_tagger_model`` folder, and run the script again.
+        - ``--max_data_loader_n_workers`` option is added to each script. This option uses the DataLoader for data loading to speed up loading, 20%~30% faster.
+        - Please specify 2 or 4, depends on the number of CPU cores.
+        - ``--recursive`` option is added to ``merge_dd_tags_to_metadata.py`` and ``merge_captions_to_metadata.py``, only works with ``--full_path``.
+        - ``make_captions_by_git.py`` is added. It uses [GIT microsoft/git-large-textcaps](https://huggingface.co/microsoft/git-large-textcaps) for captioning. 
+        - ``requirements.txt`` is updated. If you use this script, [please update the libraries](https://github.com/kohya-ss/sd-scripts#upgrade).
+        - Usage is almost the same as ``make_captions.py``, but batch size should be smaller.
+        - ``--remove_words`` option removes as much text as possible (such as ``the word "XXXX" on it``).
+        - ``--skip_existing`` option is added to ``prepare_buckets_latents.py``. Images with existing npz files are ignored by this option.
+        - ``clean_captions_and_tags.py`` is updated to remove duplicated or conflicting tags, e.g. ``shirt`` is removed when ``white shirt`` exists. if ``black hair`` is with ``red hair``, both are removed.
+    - Tag frequency is added to the metadata in ``train_network.py``. Thanks to space-nuko!
+        - __All tags and number of occurrences of the tag are recorded.__ If you do not want it, disable metadata storing with ``--no_metadata`` option.
 * 2023/01/30 (v20.5.2):
   - Add ``--lr_scheduler_num_cycles`` and ``--lr_scheduler_power`` options for ``train_network.py`` for cosine_with_restarts and polynomial learning rate schedulers. Thanks to mgz-dev!
   - Fixed U-Net ``sample_size`` parameter to ``64`` when converting from SD to Diffusers format, in ``convert_diffusers20_original_sd.py``

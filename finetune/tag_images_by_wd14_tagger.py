@@ -1,6 +1,3 @@
-# このスクリプトのライセンスは、Apache License 2.0とします
-# (c) 2022 Kohya S. @kohya_ss
-
 import argparse
 import csv
 import glob
@@ -12,15 +9,69 @@ from tqdm import tqdm
 import numpy as np
 from tensorflow.keras.models import load_model
 from huggingface_hub import hf_hub_download
+import torch
+
+import library.train_util as train_util
 
 # from wd14 tagger
 IMAGE_SIZE = 448
 
-WD14_TAGGER_REPO = 'SmilingWolf/wd-v1-4-vit-tagger'
+# wd-v1-4-swinv2-tagger-v2 / wd-v1-4-vit-tagger / wd-v1-4-vit-tagger-v2/ wd-v1-4-convnext-tagger / wd-v1-4-convnext-tagger-v2
+DEFAULT_WD14_TAGGER_REPO = 'SmilingWolf/wd-v1-4-convnext-tagger-v2'
 FILES = ["keras_metadata.pb", "saved_model.pb", "selected_tags.csv"]
 SUB_DIR = "variables"
 SUB_DIR_FILES = ["variables.data-00000-of-00001", "variables.index"]
 CSV_FILE = FILES[-1]
+
+
+def preprocess_image(image):
+  image = np.array(image)
+  image = image[:, :, ::-1]                         # RGB->BGR
+
+  # pad to square
+  size = max(image.shape[0:2])
+  pad_x = size - image.shape[1]
+  pad_y = size - image.shape[0]
+  pad_l = pad_x // 2
+  pad_t = pad_y // 2
+  image = np.pad(image, ((pad_t, pad_y - pad_t), (pad_l, pad_x - pad_l), (0, 0)), mode='constant', constant_values=255)
+
+  interp = cv2.INTER_AREA if size > IMAGE_SIZE else cv2.INTER_LANCZOS4
+  image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=interp)
+
+  image = image.astype(np.float32)
+  return image
+
+
+class ImageLoadingPrepDataset(torch.utils.data.Dataset):
+  def __init__(self, image_paths):
+    self.images = image_paths
+
+  def __len__(self):
+    return len(self.images)
+
+  def __getitem__(self, idx):
+    img_path = self.images[idx]
+
+    try:
+      image = Image.open(img_path).convert("RGB")
+      image = preprocess_image(image)
+      tensor = torch.tensor(image)
+    except Exception as e:
+      print(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
+      return None
+
+    return (tensor, img_path)
+
+
+def collate_fn_remove_corrupted(batch):
+  """Collate function that allows to remove corrupted examples in the
+  dataloader. It expects that the dataloader returns 'None' when that occurs.
+  The 'None's in the batch are removed.
+  """
+  # Filter out all the Nones (corrupted examples)
+  batch = list(filter(lambda x: x is not None, batch))
+  return batch
 
 
 def main(args):
@@ -28,16 +79,17 @@ def main(args):
   # depreacatedの警告が出るけどなくなったらその時
   # https://github.com/toriato/stable-diffusion-webui-wd14-tagger/issues/22
   if not os.path.exists(args.model_dir) or args.force_download:
-    print("downloading wd14 tagger model from hf_hub")
+    print(f"downloading wd14 tagger model from hf_hub. id: {args.repo_id}")
     for file in FILES:
       hf_hub_download(args.repo_id, file, cache_dir=args.model_dir, force_download=True, force_filename=file)
     for file in SUB_DIR_FILES:
       hf_hub_download(args.repo_id, file, subfolder=SUB_DIR, cache_dir=os.path.join(
           args.model_dir, SUB_DIR), force_download=True, force_filename=file)
+  else:
+    print("using existing wd14 tagger model")
 
   # 画像を読み込む
-  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
-      glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
+  image_paths = train_util.glob_images(args.train_data_dir)
   print(f"found {len(image_paths)} images.")
 
   print("loading model and labels")
@@ -72,7 +124,7 @@ def main(args):
       # Everything else is tags: pick any where prediction confidence > threshold
       tag_text = ""
       for i, p in enumerate(prob[4:]):                # numpyとか使うのが良いけど、まあそれほど数も多くないのでループで
-        if p >= args.thresh:
+        if p >= args.thresh and i < len(tags):
           tag_text += ", " + tags[i]
 
       if len(tag_text) > 0:
@@ -83,34 +135,37 @@ def main(args):
         if args.debug:
           print(image_path, tag_text)
 
+  # 読み込みの高速化のためにDataLoaderを使うオプション
+  if args.max_data_loader_n_workers is not None:
+    dataset = ImageLoadingPrepDataset(image_paths)
+    data = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
+                                       num_workers=args.max_data_loader_n_workers, collate_fn=collate_fn_remove_corrupted, drop_last=False)
+  else:
+    data = [[(None, ip)] for ip in image_paths]
+
   b_imgs = []
-  for image_path in tqdm(image_paths, smoothing=0.0):
-    img = Image.open(image_path)                  # cv2は日本語ファイル名で死ぬのとモード変換したいのでpillowで開く
-    if img.mode != 'RGB':
-      img = img.convert("RGB")
-    img = np.array(img)
-    img = img[:, :, ::-1]                         # RGB->BGR
+  for data_entry in tqdm(data, smoothing=0.0):
+    for data in data_entry:
+      if data is None:
+        continue
 
-    # pad to square
-    size = max(img.shape[0:2])
-    pad_x = size - img.shape[1]
-    pad_y = size - img.shape[0]
-    pad_l = pad_x // 2
-    pad_t = pad_y // 2
-    img = np.pad(img, ((pad_t, pad_y - pad_t), (pad_l, pad_x - pad_l), (0, 0)), mode='constant', constant_values=255)
+      image, image_path = data
+      if image is not None:
+        image = image.detach().numpy()
+      else:
+        try:
+          image = Image.open(image_path)
+          if image.mode != 'RGB':
+            image = image.convert("RGB")
+          image = preprocess_image(image)
+        except Exception as e:
+          print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
+          continue
+      b_imgs.append((image_path, image))
 
-    interp = cv2.INTER_AREA if size > IMAGE_SIZE else cv2.INTER_LANCZOS4
-    img = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=interp)
-    # cv2.imshow("img", img)
-    # cv2.waitKey()
-    # cv2.destroyAllWindows()
-
-    img = img.astype(np.float32)
-    b_imgs.append((image_path, img))
-
-    if len(b_imgs) >= args.batch_size:
-      run_batch(b_imgs)
-      b_imgs.clear()
+      if len(b_imgs) >= args.batch_size:
+        run_batch(b_imgs)
+        b_imgs.clear()
 
   if len(b_imgs) > 0:
     run_batch(b_imgs)
@@ -121,7 +176,7 @@ def main(args):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
-  parser.add_argument("--repo_id", type=str, default=WD14_TAGGER_REPO,
+  parser.add_argument("--repo_id", type=str, default=DEFAULT_WD14_TAGGER_REPO,
                       help="repo id for wd14 tagger on Hugging Face / Hugging Faceのwd14 taggerのリポジトリID")
   parser.add_argument("--model_dir", type=str, default="wd14_tagger_model",
                       help="directory to store wd14 tagger model / wd14 taggerのモデルを格納するディレクトリ")
@@ -129,6 +184,8 @@ if __name__ == '__main__':
                       help="force downloading wd14 tagger models / wd14 taggerのモデルを再ダウンロードします")
   parser.add_argument("--thresh", type=float, default=0.35, help="threshold of confidence to add a tag / タグを追加するか判定する閾値")
   parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
+  parser.add_argument("--max_data_loader_n_workers", type=int, default=None,
+                      help="enable image reading by DataLoader with this number of workers (faster) / DataLoaderによる画像読み込みを有効にしてこのワーカー数を適用する（読み込みを高速化）")
   parser.add_argument("--caption_extention", type=str, default=None,
                       help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".txt", help="extension of caption file / 出力されるキャプションファイルの拡張子")
