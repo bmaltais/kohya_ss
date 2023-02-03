@@ -1845,12 +1845,12 @@ def main(args):
     text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.ckpt)
   else:
     print("load Diffusers pretrained models")
-    pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=dtype)
-    text_encoder = pipe.text_encoder
-    vae = pipe.vae
-    unet = pipe.unet
-    tokenizer = pipe.tokenizer
-    del pipe
+    loading_pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=dtype)
+    text_encoder = loading_pipe.text_encoder
+    vae = loading_pipe.vae
+    unet = loading_pipe.unet
+    tokenizer = loading_pipe.tokenizer
+    del loading_pipe
 
   # VAEを読み込む
   if args.vae is not None:
