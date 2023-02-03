@@ -15,6 +15,7 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
       - Please specify 2 or 4, depends on the number of CPU cores.
     - ``--recursive`` option is added to ``merge_dd_tags_to_metadata.py`` and ``merge_captions_to_metadata.py``, only works with ``--full_path``.
     - ``make_captions_by_git.py`` is added. It uses [GIT microsoft/git-large-textcaps](https://huggingface.co/microsoft/git-large-textcaps) for captioning. 
+      - ``requirements.txt`` is updated. If you use this script, [please update the libraries](https://github.com/kohya-ss/sd-scripts#upgrade).
       - Usage is almost the same as ``make_captions.py``, but batch size should be smaller.
       - ``--remove_words`` option removes as much text as possible (such as ``the word "XXXX" on it``).
     - ``--skip_existing`` option is added to ``prepare_buckets_latents.py``. Images with existing npz files are ignored by this option.
@@ -30,6 +31,7 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
       - CPUのコア数に応じて2~4程度の値を指定してください。
     - ``--recursive`` オプションを ``merge_dd_tags_to_metadata.py`` と ``merge_captions_to_metadata.py`` に追加しました。``--full_path`` を指定したときのみ使用可能です。
     - ``make_captions_by_git.py`` を追加しました。[GIT microsoft/git-large-textcaps](https://huggingface.co/microsoft/git-large-textcaps) を用いてキャプションニングを行います。
+      - ``requirements.txt`` が更新されていますので、[ライブラリをアップデート](https://github.com/kohya-ss/sd-scripts/blob/main/README-ja.md#%E3%82%A2%E3%83%83%E3%83%97%E3%82%B0%E3%83%AC%E3%83%BC%E3%83%89)してください。
       - 使用法は ``make_captions.py``とほぼ同じですがバッチサイズは小さめにしてください。
       - ``--remove_words`` オプションを指定するとテキスト読み取りを可能な限り削除します（``the word "XXXX" on it``のようなもの）。    
     - ``--skip_existing`` を ``prepare_buckets_latents.py`` に追加しました。すでにnpzファイルがある画像の処理をスキップします。
@@ -37,27 +39,6 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
   - ``train_network.py``で使用されているタグと回数をメタデータに記録するようになりました。space-nuko氏に感謝します。
     - __すべてのタグと回数がメタデータに記録されます__ 望まない場合には``--no_metadata option``オプションでメタデータの記録を停止してください。
     
-- 29 Jan. 2023, 2023/1/29
-  - Add ``--lr_scheduler_num_cycles`` and ``--lr_scheduler_power`` options for ``train_network.py`` for cosine_with_restarts and polynomial learning rate schedulers. Thanks to mgz-dev!
-  - Fixed U-Net ``sample_size`` parameter to ``64`` when converting from SD to Diffusers format, in ``convert_diffusers20_original_sd.py``
-  - ``--lr_scheduler_num_cycles`` と ``--lr_scheduler_power`` オプションを ``train_network.py`` に追加しました。前者は cosine_with_restarts、後者は polynomial の学習率スケジューラに有効です。mgz-dev氏に感謝します。
-  - ``convert_diffusers20_original_sd.py`` で SD 形式から Diffusers に変換するときの U-Net の ``sample_size`` パラメータを ``64`` に修正しました。
-- 26 Jan. 2023, 2023/1/26
-  - Add Textual Inversion training. Documentation is [here](./train_ti_README-ja.md) (in Japanese.)
-  - Textual Inversionの学習をサポートしました。ドキュメントは[こちら](./train_ti_README-ja.md)。
-- 24 Jan. 2023, 2023/1/24
-  - Change the default save format to ``.safetensors`` for ``train_network.py``.
-  - Add ``--save_n_epoch_ratio`` option to specify how often to save. Thanks to forestsource! 
-    - For example, if 5 is specified, 5 (or 6) files will be saved in training.
-  - Add feature to pre-calculate hash to reduce loading time in the extension. Thanks to space-nuko!
-  - Add bucketing metadata. Thanks to space-nuko!
-  - Fix an error with bf16 model in ``gen_img_diffusers.py``.
-  - ``train_network.py`` のモデル保存形式のデフォルトを ``.safetensors`` に変更しました。
-  - モデルを保存する頻度を指定する ``--save_n_epoch_ratio`` オプションが追加されました。forestsource氏に感謝します。
-    - たとえば 5 を指定すると、学習終了までに合計で5個（または6個）のファイルが保存されます。
-  - 拡張でモデル読み込み時間を短縮するためのハッシュ事前計算の機能を追加しました。space-nuko氏に感謝します。
-  - メタデータにbucket情報が追加されました。space-nuko氏に感謝します。
-  - ``gen_img_diffusers.py`` でbf16形式のモデルを読み込んだときのエラーを修正しました。
 
 Stable Diffusion web UI本体で当リポジトリで学習したLoRAモデルによる画像生成がサポートされたようです。
 
