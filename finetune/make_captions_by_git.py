@@ -13,17 +13,26 @@ import library.train_util as train_util
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-PATTERN_REPLACE = [re.compile(r'with the (words?|letters?) (" ?[^"]*"|\w+)( on (the)? ?\w+)?'),
-                   re.compile(r'that says (" ?[^"]*"|\w+)')]
-
+PATTERN_REPLACE = [
+    re.compile(r'(has|with|and) the (words?|letters?|name) (" ?[^"]*"|\w+)( ?(is )?(on|in) (the |her |their |him )?\w+)?'),
+    re.compile(r'(with a sign )?that says ?(" ?[^"]*"|\w+)( ?on it)?'),
+    re.compile(r"(with a sign )?that says ?(' ?(i'm)?[^']*'|\w+)( ?on it)?"),
+    re.compile(r'with the number \d+ on (it|\w+ \w+)'),
+    re.compile(r'with the words "'),
+    re.compile(r'word \w+ on it'),
+    re.compile(r'that says the word \w+ on it'),
+    re.compile('that says\'the word "( on it)?'),
+]
 
 # 誤検知しまくりの with the word xxxx を消す
+
+
 def remove_words(captions, debug):
   removed_caps = []
   for caption in captions:
     cap = caption
     for pat in PATTERN_REPLACE:
-      cap = pat.sub("", caption)
+      cap = pat.sub("", cap)
     if debug and cap != caption:
       print(caption)
       print(cap)
@@ -87,7 +96,7 @@ def main(args):
   if args.max_data_loader_n_workers is not None:
     dataset = train_util.ImageLoadingDataset(image_paths)
     data = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
-                                      num_workers=args.max_data_loader_n_workers, collate_fn=collate_fn_remove_corrupted, drop_last=False)
+                                       num_workers=args.max_data_loader_n_workers, collate_fn=collate_fn_remove_corrupted, drop_last=False)
   else:
     data = [[(None, ip)] for ip in image_paths]
 
@@ -96,7 +105,7 @@ def main(args):
     for data in data_entry:
       if data is None:
         continue
-    
+
       image, image_path = data
       if image is None:
         try:
