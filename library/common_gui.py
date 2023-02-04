@@ -510,30 +510,11 @@ def run_cmd_training(**kwargs):
 
 def gradio_advanced_training():
     with gr.Row():
-        full_fp16 = gr.Checkbox(
-            label='Full fp16 training (experimental)', value=False
-        )
-        gradient_checkpointing = gr.Checkbox(
-            label='Gradient checkpointing', value=False
-        )
-        shuffle_caption = gr.Checkbox(
-            label='Shuffle caption', value=False
-        )
         keep_tokens = gr.Slider(
             label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
         )
-        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
-        xformers = gr.Checkbox(label='Use xformers', value=True)
-    with gr.Row():
-        color_aug = gr.Checkbox(
-            label='Color augmentation', value=False
-        )
-        flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
         clip_skip = gr.Slider(
             label='Clip skip', value='1', minimum=1, maximum=12, step=1
-        )
-        mem_eff_attn = gr.Checkbox(
-            label='Memory efficient attention', value=False
         )
         max_token_length = gr.Dropdown(
             label='Max Token Length',
@@ -544,6 +525,29 @@ def gradio_advanced_training():
             ],
             value='75',
         )
+        full_fp16 = gr.Checkbox(
+            label='Full fp16 training (experimental)', value=False
+        )
+    with gr.Row():
+        gradient_checkpointing = gr.Checkbox(
+            label='Gradient checkpointing', value=False
+        )
+        shuffle_caption = gr.Checkbox(
+            label='Shuffle caption', value=False
+        )
+        persistent_data_loader_workers = gr.Checkbox(
+            label='Persistent data loader', value=False
+        )
+        mem_eff_attn = gr.Checkbox(
+            label='Memory efficient attention', value=False
+        )
+    with gr.Row():
+        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+        xformers = gr.Checkbox(label='Use xformers', value=True)
+        color_aug = gr.Checkbox(
+            label='Color augmentation', value=False
+        )
+        flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
         resume = gr.Textbox(
@@ -576,6 +580,7 @@ def gradio_advanced_training():
         max_train_epochs,
         max_data_loader_n_workers,
         keep_tokens,
+        persistent_data_loader_workers,
     )
 
 def run_cmd_advanced_training(**kwargs):
@@ -621,6 +626,8 @@ def run_cmd_advanced_training(**kwargs):
         ' --xformers' if kwargs.get('xformers') else '',
         
         ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
+        
+        ' --persistent_data_loader_workers' if kwargs.get('persistent_data_loader_workers') else '',
         
     ]
     run_cmd = ''.join(options)
