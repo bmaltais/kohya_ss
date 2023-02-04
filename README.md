@@ -6,6 +6,17 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
+- 4 Feb. 2023, 2023/2/4
+  - ``--persistent_data_loader_workers`` option is added to ``fine_tune.py``, ``train_db.py`` and ``train_network.py``. This option may significantly reduce the waiting time between epochs. Thanks to hitomi!
+  - ``--debug_dataset`` option is now working on non-Windows environment. Thanks to tsukimiya!
+  - ``networks/resize_lora.py`` script is added. This can approximate the higher-rank (dim) LoRA model by a lower-rank LoRA model, e.g. 128 by 4. Thanks to mgz-dev!
+    - ``--help`` option shows usage.
+    - Currently the metadata is not copied. This will be fixed in the near future.
+  -  ``--persistent_data_loader_workers``オプションが ``fine_tune.py``、 ``train_db.py``、``train_network.py``の各スクリプトに追加されました。このオプションを指定するとエポック間の待ち時間が大幅に短縮される可能性があります。hitomi氏に感謝します。
+  - ``--debug_dataset``オプションがWindows環境以外でも動くようになりました。tsukimiya氏に感謝します。
+  - ``networks/resize_lora.py``スクリプトを追加しました。高rankのLoRAモデルを低rankのLoRAモデルで近似します（つまり128 rank (dim)のLoRAに似た、4 rank (dim)のLoRAを作ることができます）。mgz-dev氏に感謝します。
+    - 使い方は``--help``オプションを指定して参照してください。
+    - 現時点ではメタデータはコピーされません。近日中に対応予定です。
 - 3 Feb. 2023, 2023/2/3
   - Update finetune preprocessing scripts.
     - ``.bmp`` and ``.jpeg`` are supported. Thanks to breakcore2 and p1atdev!
