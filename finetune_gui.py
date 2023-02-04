@@ -292,7 +292,7 @@ def train_model(
         subprocess.run(run_cmd)
 
     image_num = len(
-        [f for f in os.listdir(image_folder) if f.endswith('.npz')]
+        [f for f in os.listdir(image_folder) if f.endswith('.jpg') or f.endswith('.png') or f.endswith('.webp')]
     )
     print(f'image_num = {image_num}')
 

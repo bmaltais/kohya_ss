@@ -11,18 +11,59 @@ import torch
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 from blip.blip import blip_decoder
-# from Salesforce_BLIP.models.blip import blip_decoder
+import library.train_util as train_util
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
+IMAGE_SIZE = 384
+
+# 正方形でいいのか？　という気がするがソースがそうなので
+IMAGE_TRANSFORM = transforms.Compose([
+    transforms.Resize((IMAGE_SIZE, IMAGE_SIZE), interpolation=InterpolationMode.BICUBIC),
+    transforms.ToTensor(),
+    transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+])
+
+# 共通化したいが微妙に処理が異なる……
+class ImageLoadingTransformDataset(torch.utils.data.Dataset):
+  def __init__(self, image_paths):
+    self.images = image_paths
+
+  def __len__(self):
+    return len(self.images)
+
+  def __getitem__(self, idx):
+    img_path = self.images[idx]
+
+    try:
+      image = Image.open(img_path).convert("RGB")
+      # convert to tensor temporarily so dataloader will accept it
+      tensor = IMAGE_TRANSFORM(image)
+    except Exception as e:
+      print(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
+      return None
+
+    return (tensor, img_path)
+
+
+def collate_fn_remove_corrupted(batch):
+  """Collate function that allows to remove corrupted examples in the
+  dataloader. It expects that the dataloader returns 'None' when that occurs.
+  The 'None's in the batch are removed.
+  """
+  # Filter out all the Nones (corrupted examples)
+  batch = list(filter(lambda x: x is not None, batch))
+  return batch
+
+
 def main(args):
   # fix the seed for reproducibility
-  seed = args.seed # + utils.get_rank()
+  seed = args.seed  # + utils.get_rank()
   torch.manual_seed(seed)
   np.random.seed(seed)
   random.seed(seed)
-    
+
   if not os.path.exists("blip"):
     args.train_data_dir = os.path.abspath(args.train_data_dir)        # convert to absolute path
 
@@ -31,23 +72,14 @@ def main(args):
     os.chdir('finetune')
 
   print(f"load images from {args.train_data_dir}")
-  image_paths = glob.glob(os.path.join(args.train_data_dir, "*.jpg")) + \
-      glob.glob(os.path.join(args.train_data_dir, "*.png")) + glob.glob(os.path.join(args.train_data_dir, "*.webp"))
+  image_paths = train_util.glob_images(args.train_data_dir)
   print(f"found {len(image_paths)} images.")
 
   print(f"loading BLIP caption: {args.caption_weights}")
-  image_size = 384
-  model = blip_decoder(pretrained=args.caption_weights, image_size=image_size, vit='large', med_config="./blip/med_config.json")
+  model = blip_decoder(pretrained=args.caption_weights, image_size=IMAGE_SIZE, vit='large', med_config="./blip/med_config.json")
   model.eval()
   model = model.to(DEVICE)
   print("BLIP loaded")
-
-  # 正方形でいいのか？　という気がするがソースがそうなので
-  transform = transforms.Compose([
-      transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
-      transforms.ToTensor(),
-      transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-  ])
 
   # captioningする
   def run_batch(path_imgs):
@@ -66,18 +98,35 @@ def main(args):
         if args.debug:
           print(image_path, caption)
 
-  b_imgs = []
-  for image_path in tqdm(image_paths, smoothing=0.0):
-    raw_image = Image.open(image_path)
-    if raw_image.mode != "RGB":
-      print(f"convert image mode {raw_image.mode} to RGB: {image_path}")
-      raw_image = raw_image.convert("RGB")
+  # 読み込みの高速化のためにDataLoaderを使うオプション
+  if args.max_data_loader_n_workers is not None:
+    dataset = ImageLoadingTransformDataset(image_paths)
+    data = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
+                                      num_workers=args.max_data_loader_n_workers, collate_fn=collate_fn_remove_corrupted, drop_last=False)
+  else:
+    data = [[(None, ip)] for ip in image_paths]
 
-    image = transform(raw_image)
-    b_imgs.append((image_path, image))
-    if len(b_imgs) >= args.batch_size:
-      run_batch(b_imgs)
-      b_imgs.clear()
+  b_imgs = []
+  for data_entry in tqdm(data, smoothing=0.0):
+    for data in data_entry:
+      if data is None:
+        continue
+
+      img_tensor, image_path = data
+      if img_tensor is None:
+        try:
+          raw_image = Image.open(image_path)
+          if raw_image.mode != 'RGB':
+            raw_image = raw_image.convert("RGB")
+          img_tensor = IMAGE_TRANSFORM(raw_image)
+        except Exception as e:
+          print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
+          continue
+
+      b_imgs.append((image_path, img_tensor))
+      if len(b_imgs) >= args.batch_size:
+        run_batch(b_imgs)
+        b_imgs.clear()
   if len(b_imgs) > 0:
     run_batch(b_imgs)
 
@@ -95,6 +144,8 @@ if __name__ == '__main__':
   parser.add_argument("--beam_search", action="store_true",
                       help="use beam search (default Nucleus sampling) / beam searchを使う（このオプション未指定時はNucleus sampling）")
   parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
+  parser.add_argument("--max_data_loader_n_workers", type=int, default=None,
+                      help="enable image reading by DataLoader with this number of workers (faster) / DataLoaderによる画像読み込みを有効にしてこのワーカー数を適用する（読み込みを高速化）")
   parser.add_argument("--num_beams", type=int, default=1, help="num of beams in beam search /beam search時のビーム数（多いと精度が上がるが時間がかかる）")
   parser.add_argument("--top_p", type=float, default=0.9, help="top_p in Nucleus sampling / Nucleus sampling時のtop_p")
   parser.add_argument("--max_length", type=int, default=75, help="max length of caption / captionの最大長")
