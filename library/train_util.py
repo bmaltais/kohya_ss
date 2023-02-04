@@ -1192,6 +1192,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="training epochs (overrides max_train_steps) / 学習エポック数（max_train_stepsを上書きします）")
   parser.add_argument("--max_data_loader_n_workers", type=int, default=8,
                       help="max num workers for DataLoader (lower is less main RAM usage, faster epoch start and slower data loading) / DataLoaderの最大プロセス数（小さい値ではメインメモリの使用量が減りエポック間の待ち時間が減りますが、データ読み込みは遅くなります）")
+  parser.add_argument("--persistent_data_loader_workers", action="store_true",
+                      help="persistent DataLoader workers (useful for reduce time gap between epoch, but may use more memory) / DataLoader のワーカーを持続させる (エポック間の時間差を少なくするのに有効だが、より多くのメモリを消費する可能性がある)")
   parser.add_argument("--seed", type=int, default=None, help="random seed for training / 学習時の乱数のseed")
   parser.add_argument("--gradient_checkpointing", action="store_true",
                       help="enable gradient checkpointing / grandient checkpointingを有効にする")
