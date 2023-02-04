@@ -109,11 +109,11 @@ def gradio_extract_lora_tab():
             )
         with gr.Row():
             dim = gr.Slider(
-                minimum=1,
-                maximum=128,
+                minimum=4,
+                maximum=1024,
                 label='Network Dimension',
-                value=8,
-                step=1,
+                value=128,
+                step=4,
                 interactive=True,
             )
             v2 = gr.Checkbox(label='v2', value=False, interactive=True)

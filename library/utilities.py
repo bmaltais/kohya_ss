@@ -9,6 +9,7 @@ import argparse
 from library.basic_caption_gui import gradio_basic_caption_gui_tab
 from library.convert_model_gui import gradio_convert_model_tab
 from library.blip_caption_gui import gradio_blip_caption_gui_tab
+from library.git_caption_gui import gradio_git_caption_gui_tab
 from library.wd14_caption_gui import gradio_wd14_caption_gui_tab
 
 
@@ -23,6 +24,7 @@ def utilities_tab(
     with gr.Tab('Captioning'):
         gradio_basic_caption_gui_tab()
         gradio_blip_caption_gui_tab()
+        gradio_git_caption_gui_tab()
         gradio_wd14_caption_gui_tab()
     gradio_convert_model_tab()
 

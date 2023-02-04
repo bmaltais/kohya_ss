@@ -291,11 +291,11 @@ def train_model(
     if unet_lr == '':
         unet_lr = 0
 
-    if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-        msgbox(
-            'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
-        )
-        return
+    # if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
+    #     msgbox(
+    #         'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
+    #     )
+    #     return
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -383,15 +383,26 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
-    if not float(text_encoder_lr) == 0:
-        run_cmd += f' --text_encoder_lr={text_encoder_lr}'
+    
+    if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
+        if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
+            run_cmd += f' --text_encoder_lr={text_encoder_lr}'
+            run_cmd += f' --unet_lr={unet_lr}'
+        elif not (float(text_encoder_lr) == 0):
+            run_cmd += f' --text_encoder_lr={text_encoder_lr}'
+            run_cmd += f' --network_train_text_encoder_only'
+        else:
+            run_cmd += f' --unet_lr={unet_lr}'
+            run_cmd += f' --network_train_unet_only'
     else:
-        run_cmd += f' --network_train_unet_only'
-    if not float(unet_lr) == 0:
-        run_cmd += f' --unet_lr={unet_lr}'
-    else:
-        run_cmd += f' --network_train_text_encoder_only'
+        if float(text_encoder_lr) == 0: 
+            msgbox(
+                'Please input learning rate values.'
+            )
+            return
+        
     run_cmd += f' --network_dim={network_dim}'
+    
     if not lora_network_weights == '':
         run_cmd += f' --network_weights="{lora_network_weights}"'
     if int(gradient_accumulation_steps) > 1:
@@ -400,6 +411,8 @@ def train_model(
         run_cmd += f' --output_name="{output_name}"'
     if not lr_scheduler_num_cycles == '':
         run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
+    else:
+        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
     if not lr_scheduler_power == '':
         run_cmd += f' --output_name="{lr_scheduler_power}"'
 
@@ -612,19 +625,19 @@ def lora_tab(
                 placeholder='Optional',
             )
             network_dim = gr.Slider(
-                minimum=1,
-                maximum=128,
+                minimum=4,
+                maximum=1024,
                 label='Network Rank (Dimension)',
                 value=8,
-                step=1,
+                step=4,
                 interactive=True,
             )
             network_alpha = gr.Slider(
-                minimum=1,
-                maximum=128,
+                minimum=4,
+                maximum=1024,
                 label='Network Alpha',
                 value=1,
-                step=1,
+                step=4,
                 interactive=True,
             )
         with gr.Row():

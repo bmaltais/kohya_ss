@@ -19,7 +19,7 @@ def UI(username, password):
             print('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css)
+    interface = gr.Blocks(css=css, title="Kohya_ss GUI")
 
     with interface:
         with gr.Tab('Dreambooth'):
