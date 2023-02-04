@@ -79,6 +79,7 @@ def save_configuration(
     model_list,
     cache_latents,
     use_latent_files, keep_tokens,
+    persistent_data_loader_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -169,6 +170,7 @@ def open_config_file(
     model_list,
     cache_latents,
     use_latent_files, keep_tokens,
+    persistent_data_loader_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -244,6 +246,7 @@ def train_model(
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     cache_latents,
     use_latent_files, keep_tokens,
+    persistent_data_loader_workers,
 ):
     # create caption json file
     if generate_caption_database:
@@ -382,6 +385,7 @@ def train_model(
         xformers=xformers,
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
+        persistent_data_loader_workers=persistent_data_loader_workers,
     )
 
     print(run_cmd)
@@ -587,6 +591,7 @@ def finetune_tab():
                 max_train_epochs,
                 max_data_loader_n_workers,
                 keep_tokens,
+                persistent_data_loader_workers,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -647,6 +652,7 @@ def finetune_tab():
         cache_latents,
         use_latent_files,
         keep_tokens,
+        persistent_data_loader_workers,
     ]
 
     button_run.click(train_model, inputs=settings_list)

@@ -32,6 +32,7 @@ from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
+from library.resize_lora_gui import gradio_resize_lora_tab
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -92,6 +93,7 @@ def save_configuration(
     network_alpha,
     training_comment, keep_tokens,
     lr_scheduler_num_cycles, lr_scheduler_power,
+    persistent_data_loader_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -182,6 +184,7 @@ def open_configuration(
     network_alpha,
     training_comment, keep_tokens,
     lr_scheduler_num_cycles, lr_scheduler_power,
+    persistent_data_loader_workers,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -256,6 +259,7 @@ def train_model(
     network_alpha,
     training_comment, keep_tokens,
     lr_scheduler_num_cycles, lr_scheduler_power,
+    persistent_data_loader_workers,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -446,6 +450,7 @@ def train_model(
         xformers=xformers,
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
+        persistent_data_loader_workers=persistent_data_loader_workers,
     )
 
     print(run_cmd)
@@ -689,6 +694,7 @@ def lora_tab(
                 max_train_epochs,
                 max_data_loader_n_workers,
                 keep_tokens,
+                persistent_data_loader_workers,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -708,6 +714,7 @@ def lora_tab(
         )
         gradio_dataset_balancing_tab()
         gradio_merge_lora_tab()
+        gradio_resize_lora_tab()
         gradio_verify_lora_tab()
         
 
@@ -764,6 +771,7 @@ def lora_tab(
         training_comment,
         keep_tokens,
         lr_scheduler_num_cycles, lr_scheduler_power,
+        persistent_data_loader_workers,
     ]
 
     button_open_config.click(

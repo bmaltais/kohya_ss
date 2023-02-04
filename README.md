@@ -143,7 +143,13 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
-* 2023/02/03
+* 2023/02/04 (v20.6.1)
+  - ``--persistent_data_loader_workers`` option is added to ``fine_tune.py``, ``train_db.py`` and ``train_network.py``. This option may significantly reduce the waiting time between epochs. Thanks to hitomi!
+  - ``--debug_dataset`` option is now working on non-Windows environment. Thanks to tsukimiya!
+  - ``networks/resize_lora.py`` script is added. This can approximate the higher-rank (dim) LoRA model by a lower-rank LoRA model, e.g. 128 by 4. Thanks to mgz-dev!
+    - ``--help`` option shows usage.
+    - Currently the metadata is not copied. This will be fixed in the near future.
+* 2023/02/03 (v20.6.0)
     - Increase max LoRA rank (dim) size to 1024.
     - Update finetune preprocessing scripts.
         - ``.bmp`` and ``.jpeg`` are supported. Thanks to breakcore2 and p1atdev!
