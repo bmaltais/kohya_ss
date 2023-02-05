@@ -358,6 +358,9 @@ def train_model(
     print(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
+    
+    run_cmd += f' --bucket_reso_steps=1 --bucket_no_upscale' # --random_crop'
+    
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:

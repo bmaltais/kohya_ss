@@ -143,13 +143,15 @@ def train(args):
     print("Use DreamBooth method.")
     train_dataset = DreamBoothDataset(args.train_batch_size, args.train_data_dir, args.reg_data_dir,
                                       tokenizer, args.max_token_length, args.caption_extension, args.shuffle_caption, args.keep_tokens,
-                                      args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso, args.prior_loss_weight,
-                                      args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop, args.debug_dataset)
+                                      args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
+                                      args.bucket_reso_steps, args.bucket_no_upscale,
+                                      args.prior_loss_weight, args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop, args.debug_dataset)
   else:
     print("Train with captions.")
     train_dataset = FineTuningDataset(args.in_json, args.train_batch_size, args.train_data_dir,
                                       tokenizer, args.max_token_length, args.shuffle_caption, args.keep_tokens,
                                       args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
+                                      args.bucket_reso_steps, args.bucket_no_upscale,
                                       args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop,
                                       args.dataset_repeats, args.debug_dataset)
 
@@ -217,7 +219,7 @@ def train(args):
   # DataLoaderのプロセス数：0はメインプロセスになる
   n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
-      train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers)
+      train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers, persistent_workers=args.persistent_data_loader_workers)
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
@@ -312,7 +314,8 @@ def train(args):
 
         # Get the text embedding for conditioning
         input_ids = batch["input_ids"].to(accelerator.device)
-        encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, torch.float) # weight_dtype) use float instead of fp16/bf16 because text encoder is float
+        # weight_dtype) use float instead of fp16/bf16 because text encoder is float
+        encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, torch.float)
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)

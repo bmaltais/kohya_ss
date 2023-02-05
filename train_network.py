@@ -120,13 +120,16 @@ def train(args):
     print("Use DreamBooth method.")
     train_dataset = DreamBoothDataset(args.train_batch_size, args.train_data_dir, args.reg_data_dir,
                                       tokenizer, args.max_token_length, args.caption_extension, args.shuffle_caption, args.keep_tokens,
-                                      args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso, args.prior_loss_weight,
-                                      args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop, args.debug_dataset)
+                                      args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso, 
+                                      args.bucket_reso_steps, args.bucket_no_upscale, 
+                                      args.prior_loss_weight, args.flip_aug, args.color_aug, args.face_crop_aug_range, 
+                                      args.random_crop, args.debug_dataset)
   else:
     print("Train with captions.")
     train_dataset = FineTuningDataset(args.in_json, args.train_batch_size, args.train_data_dir,
                                       tokenizer, args.max_token_length, args.shuffle_caption, args.keep_tokens,
                                       args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
+                                      args.bucket_reso_steps, args.bucket_no_upscale, 
                                       args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop,
                                       args.dataset_repeats, args.debug_dataset)
   train_dataset.make_buckets()
