@@ -1163,15 +1163,14 @@ def make_bucket_resolutions(max_reso, min_size=256, max_size=1024, divisible=64)
 
   resos = list(resos)
   resos.sort()
-
-  aspect_ratios = [w / h for w, h in resos]
-  return resos, aspect_ratios
+  return resos
 
 
 if __name__ == '__main__':
-  resos, aspect_ratios = make_bucket_resolutions((512, 768))
+  resos = make_bucket_resolutions((512, 768))
   print(len(resos))
   print(resos)
+  aspect_ratios = [w / h for w, h in resos]
   print(aspect_ratios)
 
   ars = set()

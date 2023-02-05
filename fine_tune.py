@@ -33,6 +33,7 @@ def train(args):
   train_dataset = train_util.FineTuningDataset(args.in_json, args.train_batch_size, args.train_data_dir,
                                                tokenizer, args.max_token_length, args.shuffle_caption, args.keep_tokens,
                                                args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
+                                               args.bucket_reso_steps, args.bucket_no_upscale,
                                                args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop,
                                                args.dataset_repeats, args.debug_dataset)
   train_dataset.make_buckets()
