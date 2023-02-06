@@ -2,7 +2,11 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
-from .common_gui import get_saveasfilename_path, get_any_file_path, get_file_path
+from .common_gui import (
+    get_saveasfilename_path,
+    get_any_file_path,
+    get_file_path,
+)
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -30,9 +34,11 @@ def verify_lora(
 
     # Run the command
     subprocess.run(run_cmd)
-    process = subprocess.Popen(run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(
+        run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     output, error = process.communicate()
-    
+
     return (output.decode(), error.decode())
 
 
@@ -46,10 +52,10 @@ def gradio_verify_lora_tab():
         gr.Markdown(
             'This utility can verify a LoRA network to make sure it is properly trained.'
         )
-        
+
         lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
-        
+
         with gr.Row():
             lora_model = gr.Textbox(
                 label='LoRA model',
@@ -64,7 +70,7 @@ def gradio_verify_lora_tab():
                 inputs=[lora_model, lora_ext, lora_ext_name],
                 outputs=lora_model,
             )
-            verify_button = gr.Button('Verify', variant="primary")
+            verify_button = gr.Button('Verify', variant='primary')
 
         lora_model_verif_output = gr.Textbox(
             label='Output',
@@ -73,7 +79,7 @@ def gradio_verify_lora_tab():
             lines=1,
             max_lines=10,
         )
-        
+
         lora_model_verif_error = gr.Textbox(
             label='Error',
             placeholder='Verification error',
@@ -87,5 +93,5 @@ def gradio_verify_lora_tab():
             inputs=[
                 lora_model,
             ],
-            outputs=[lora_model_verif_output, lora_model_verif_error]
+            outputs=[lora_model_verif_output, lora_model_verif_error],
         )

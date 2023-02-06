@@ -191,9 +191,7 @@ def gradio_dreambooth_folder_creation_tab(
                 util_training_dir_output,
             ],
         )
-        button_copy_info_to_Folders_tab = gr.Button(
-            'Copy info to Folders Tab'
-        )
+        button_copy_info_to_Folders_tab = gr.Button('Copy info to Folders Tab')
         button_copy_info_to_Folders_tab.click(
             copy_info_to_Folders_tab,
             inputs=[util_training_dir_output],

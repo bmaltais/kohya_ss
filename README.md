@@ -143,12 +143,27 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/02/06 (v20.7.0)
+    - ``--bucket_reso_steps`` and ``--bucket_no_upscale`` options are added to training scripts (fine tuning, DreamBooth, LoRA and Textual Inversion) and ``prepare_buckets_latents.py``.
+    - ``--bucket_reso_steps`` takes the steps for buckets in aspect ratio bucketing. Default is 64, same as before.
+        - Any value greater than or equal to 1 can be specified; 64 is highly recommended and a value divisible by 8 is recommended.
+        - If less than 64 is specified, padding will occur within U-Net. The result is unknown.
+        - If you specify a value that is not divisible by 8, it will be truncated to divisible by 8 inside VAE, because the size of the latent is 1/8 of the image size.
+    - If ``--bucket_no_upscale`` option is specified, images smaller than the bucket size will be processed without upscaling.
+        - Internally, a bucket smaller than the image size is created (for example, if the image is 300x300 and ``bucket_reso_steps=64``, the bucket is 256x256). The image will be trimmed.
+        - Implementation of [#130](https://github.com/kohya-ss/sd-scripts/issues/130).
+        - Images with an area larger than the maximum size specified by ``--resolution`` are downsampled to the max bucket size.
+    - Now the number of data in each batch is limited to the number of actual images (not duplicated). Because a certain bucket may contain smaller number of actual images, so the batch may contain same (duplicated) images.
+    - ``--random_crop`` now also works with buckets enabled.
+        - Instead of always cropping the center of the image, the image is shifted left, right, up, and down to be used as the training data. This is expected to train to the edges of the image.
+        - Implementation of discussion [#34](https://github.com/kohya-ss/sd-scripts/discussions/34).
 * 2023/02/04 (v20.6.1)
-  - ``--persistent_data_loader_workers`` option is added to ``fine_tune.py``, ``train_db.py`` and ``train_network.py``. This option may significantly reduce the waiting time between epochs. Thanks to hitomi!
-  - ``--debug_dataset`` option is now working on non-Windows environment. Thanks to tsukimiya!
-  - ``networks/resize_lora.py`` script is added. This can approximate the higher-rank (dim) LoRA model by a lower-rank LoRA model, e.g. 128 by 4. Thanks to mgz-dev!
-    - ``--help`` option shows usage.
-    - Currently the metadata is not copied. This will be fixed in the near future.
+    - Add new LoRA resize GUI
+    - ``--persistent_data_loader_workers`` option is added to ``fine_tune.py``, ``train_db.py`` and ``train_network.py``. This option may significantly reduce the waiting time between epochs. Thanks to hitomi!
+    - ``--debug_dataset`` option is now working on non-Windows environment. Thanks to tsukimiya!
+    - ``networks/resize_lora.py`` script is added. This can approximate the higher-rank (dim) LoRA model by a lower-rank LoRA model, e.g. 128 to 4. Thanks to mgz-dev!
+        - ``--help`` option shows usage.
+        - Currently the metadata is not copied. This will be fixed in the near future.
 * 2023/02/03 (v20.6.0)
     - Increase max LoRA rank (dim) size to 1024.
     - Update finetune preprocessing scripts.
