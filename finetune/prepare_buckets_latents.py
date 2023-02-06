@@ -52,6 +52,10 @@ def get_npz_filename_wo_ext(data_dir, image_key, is_full_path, flip):
 
 
 def main(args):
+  # assert args.bucket_reso_steps % 8 == 0, f"bucket_reso_steps must be divisible by 8 / bucket_reso_stepは8で割り切れる必要があります"
+  if args.bucket_reso_steps % 8 > 0:
+    print(f"resolution of buckets in training time is a multiple of 8 / 学習時の各bucketの解像度は8単位になります")
+
   image_paths = train_util.glob_images(args.train_data_dir)
   print(f"found {len(image_paths)} images.")
 
@@ -77,32 +81,41 @@ def main(args):
   max_reso = tuple([int(t) for t in args.max_resolution.split(',')])
   assert len(max_reso) == 2, f"illegal resolution (not 'width,height') / 画像サイズに誤りがあります。'幅,高さ'で指定してください: {args.max_resolution}"
 
-  bucket_resos, bucket_aspect_ratios = model_util.make_bucket_resolutions(
-      max_reso, args.min_bucket_reso, args.max_bucket_reso)
+  bucket_manager = train_util.BucketManager(args.bucket_no_upscale, max_reso,
+                                            args.min_bucket_reso, args.max_bucket_reso, args.bucket_reso_steps)
+  if not args.bucket_no_upscale:
+    bucket_manager.make_buckets()
+  else:
+    print("min_bucket_reso and max_bucket_reso are ignored if bucket_no_upscale is set, because bucket reso is defined by image size automatically / bucket_no_upscaleが指定された場合は、bucketの解像度は画像サイズから自動計算されるため、min_bucket_resoとmax_bucket_resoは無視されます")
 
   # 画像をひとつずつ適切なbucketに割り当てながらlatentを計算する
-  bucket_aspect_ratios = np.array(bucket_aspect_ratios)
-  buckets_imgs = [[] for _ in range(len(bucket_resos))]
-  bucket_counts = [0 for _ in range(len(bucket_resos))]
   img_ar_errors = []
 
   def process_batch(is_last):
-    for j in range(len(buckets_imgs)):
-      bucket = buckets_imgs[j]
+    for bucket in bucket_manager.buckets:
       if (is_last and len(bucket) > 0) or len(bucket) >= args.batch_size:
-        latents = get_latents(vae, [img for _, _, img in bucket], weight_dtype)
+        latents = get_latents(vae, [img for _, img in bucket], weight_dtype)
+        assert latents.shape[2] == bucket[0][1].shape[0] // 8 and latents.shape[3] == bucket[0][1].shape[1] // 8, \
+            f"latent shape {latents.shape}, {bucket[0][1].shape}"
 
-        for (image_key, _, _), latent in zip(bucket, latents):
+        for (image_key, _), latent in zip(bucket, latents):
           npz_file_name = get_npz_filename_wo_ext(args.train_data_dir, image_key, args.full_path, False)
           np.savez(npz_file_name, latent)
 
         # flip
         if args.flip_aug:
-          latents = get_latents(vae, [img[:, ::-1].copy() for _, _, img in bucket], weight_dtype)   # copyがないとTensor変換できない
+          latents = get_latents(vae, [img[:, ::-1].copy() for _, img in bucket], weight_dtype)   # copyがないとTensor変換できない
 
-          for (image_key, _, _), latent in zip(bucket, latents):
+          for (image_key, _), latent in zip(bucket, latents):
             npz_file_name = get_npz_filename_wo_ext(args.train_data_dir, image_key, args.full_path, True)
             np.savez(npz_file_name, latent)
+        else:
+          # remove existing flipped npz
+          for image_key, _ in bucket:
+            npz_file_name = get_npz_filename_wo_ext(args.train_data_dir, image_key, args.full_path, True) + ".npz"
+            if os.path.isfile(npz_file_name):
+              print(f"remove existing flipped npz / 既存のflipされたnpzファイルを削除します: {npz_file_name}")
+              os.remove(npz_file_name)
 
         bucket.clear()
 
@@ -114,6 +127,7 @@ def main(args):
   else:
     data = [[(None, ip)] for ip in image_paths]
 
+  bucket_counts = {}
   for data_entry in tqdm(data, smoothing=0.0):
     if data_entry[0] is None:
       continue
@@ -134,29 +148,24 @@ def main(args):
     if image_key not in metadata:
       metadata[image_key] = {}
 
-    # 本当はこの部分もDataSetに持っていけば高速化できるがいろいろ大変
-    aspect_ratio = image.width / image.height
-    ar_errors = bucket_aspect_ratios - aspect_ratio
-    bucket_id = np.abs(ar_errors).argmin()
-    reso = bucket_resos[bucket_id]
-    ar_error = ar_errors[bucket_id]
+    # 本当はこのあとの部分もDataSetに持っていけば高速化できるがいろいろ大変
+
+    reso, resized_size, ar_error = bucket_manager.select_bucket(image.width, image.height)
     img_ar_errors.append(abs(ar_error))
+    bucket_counts[reso] = bucket_counts.get(reso, 0) + 1
 
-    # どのサイズにリサイズするか→トリミングする方向で
-    if ar_error <= 0:                   # 横が長い→縦を合わせる
-      scale = reso[1] / image.height
-    else:
-      scale = reso[0] / image.width
+    # メタデータに記録する解像度はlatent単位とするので、8単位で切り捨て
+    metadata[image_key]['train_resolution'] = (reso[0] - reso[0] % 8, reso[1] - reso[1] % 8)
 
-    resized_size = (int(image.width * scale + .5), int(image.height * scale + .5))
+    if not args.bucket_no_upscale:
+      # upscaleを行わないときには、resize後のサイズは、bucketのサイズと、縦横どちらかが同じであることを確認する
+      assert resized_size[0] == reso[0] or resized_size[1] == reso[
+          1], f"internal error, resized size not match: {reso}, {resized_size}, {image.width}, {image.height}"
+      assert resized_size[0] >= reso[0] and resized_size[1] >= reso[
+          1], f"internal error, resized size too small: {reso}, {resized_size}, {image.width}, {image.height}"
 
-    # print(image.width, image.height, bucket_id, bucket_resos[bucket_id], ar_errors[bucket_id], resized_size,
-    #       bucket_resos[bucket_id][0] - resized_size[0], bucket_resos[bucket_id][1] - resized_size[1])
-
-    assert resized_size[0] == reso[0] or resized_size[1] == reso[
-        1], f"internal error, resized size not match: {reso}, {resized_size}, {image.width}, {image.height}"
     assert resized_size[0] >= reso[0] and resized_size[1] >= reso[
-        1], f"internal error, resized size too small: {reso}, {resized_size}, {image.width}, {image.height}"
+        1], f"internal error resized size is small: {resized_size}, {reso}"
 
     # 既に存在するファイルがあればshapeを確認して同じならskipする
     if args.skip_existing:
@@ -180,22 +189,24 @@ def main(args):
     # 画像をリサイズしてトリミングする
     # PILにinter_areaがないのでcv2で……
     image = np.array(image)
-    image = cv2.resize(image, resized_size, interpolation=cv2.INTER_AREA)
+    if resized_size[0] != image.shape[1] or resized_size[1] != image.shape[0]:            # リサイズ処理が必要？
+      image = cv2.resize(image, resized_size, interpolation=cv2.INTER_AREA)
+
     if resized_size[0] > reso[0]:
       trim_size = resized_size[0] - reso[0]
       image = image[:, trim_size//2:trim_size//2 + reso[0]]
-    elif resized_size[1] > reso[1]:
+
+    if resized_size[1] > reso[1]:
       trim_size = resized_size[1] - reso[1]
       image = image[trim_size//2:trim_size//2 + reso[1]]
+
     assert image.shape[0] == reso[1] and image.shape[1] == reso[0], f"internal error, illegal trimmed size: {image.shape}, {reso}"
 
     # # debug
-    # cv2.imwrite(f"r:\\test\\img_{i:05d}.jpg", image[:, :, ::-1])
+    # cv2.imwrite(f"r:\\test\\img_{len(img_ar_errors)}.jpg", image[:, :, ::-1])
 
     # バッチへ追加
-    buckets_imgs[bucket_id].append((image_key, reso, image))
-    bucket_counts[bucket_id] += 1
-    metadata[image_key]['train_resolution'] = reso
+    bucket_manager.add_image(reso, (image_key, image))
 
     # バッチを推論するか判定して推論する
     process_batch(False)
@@ -203,8 +214,11 @@ def main(args):
   # 残りを処理する
   process_batch(True)
 
-  for i, (reso, count) in enumerate(zip(bucket_resos, bucket_counts)):
-    print(f"bucket {i} {reso}: {count}")
+  bucket_manager.sort()
+  for i, reso in enumerate(bucket_manager.resos):
+    count = bucket_counts.get(reso, 0)
+    if count > 0:
+      print(f"bucket {i} {reso}: {count}")
   img_ar_errors = np.array(img_ar_errors)
   print(f"mean ar error: {np.mean(img_ar_errors)}")
 
@@ -230,6 +244,10 @@ if __name__ == '__main__':
                       help="max resolution in fine tuning (width,height) / fine tuning時の最大画像サイズ 「幅,高さ」（使用メモリ量に関係します）")
   parser.add_argument("--min_bucket_reso", type=int, default=256, help="minimum resolution for buckets / bucketの最小解像度")
   parser.add_argument("--max_bucket_reso", type=int, default=1024, help="maximum resolution for buckets / bucketの最小解像度")
+  parser.add_argument("--bucket_reso_steps", type=int, default=64,
+                      help="steps of resolution for buckets, divisible by 8 is recommended / bucketの解像度の単位、8で割り切れる値を推奨します")
+  parser.add_argument("--bucket_no_upscale", action="store_true",
+                      help="make bucket for each image without upscaling / 画像を拡大せずbucketを作成します")
   parser.add_argument("--mixed_precision", type=str, default="no",
                       choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度")
   parser.add_argument("--full_path", action="store_true",
