@@ -67,7 +67,7 @@ def main():
     parser = argparse.ArgumentParser(description='Resize images in a folder to a specified max resolution(s)')
     parser.add_argument('src_img_folder', type=str, help='Source folder containing the images')
     parser.add_argument('dst_img_folder', type=str, help='Destination folder to save the resized images')
-    parser.add_argument('--max_resolution', type=str, help='Maximum resolution(s) in the format "512x512,384x384, etc, etc"', default="512x512,384x384,256x256,128x128")
+    parser.add_argument('--max_resolution', type=str, help='Maximum resolution(s) in the format "512x512,448x448,384x384, etc, etc"', default="512x512,448x448,384x384")
     parser.add_argument('--divisible_by', type=int, help='Ensure new dimensions are divisible by this value', default=1)
     args = parser.parse_args()
     resize_images(args.src_img_folder, args.dst_img_folder, args.max_resolution)
