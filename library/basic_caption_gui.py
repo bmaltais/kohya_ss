@@ -10,13 +10,15 @@ def caption_images(
     overwrite_input,
     caption_file_ext,
     prefix,
-    postfix, find, replace
+    postfix,
+    find,
+    replace,
 ):
     # Check for images_dir_input
     if images_dir_input == '':
         msgbox('Image folder is missing...')
         return
-    
+
     if caption_file_ext == '':
         msgbox('Please provide an extension for the caption files.')
         return
@@ -39,7 +41,7 @@ def caption_images(
         subprocess.run(run_cmd)
 
     if overwrite_input:
-        if not prefix=='' or not postfix=='':
+        if not prefix == '' or not postfix == '':
             # Add prefix and postfix
             add_pre_postfix(
                 folder=images_dir_input,
@@ -47,7 +49,7 @@ def caption_images(
                 prefix=prefix,
                 postfix=postfix,
             )
-        if not find=='':
+        if not find == '':
             find_replace(
                 folder=images_dir_input,
                 caption_file_ext=caption_file_ext,
@@ -134,6 +136,7 @@ def gradio_basic_caption_gui_tab():
                 caption_file_ext,
                 prefix,
                 postfix,
-                find, replace
+                find,
+                replace,
             ],
         )

@@ -82,8 +82,12 @@ def save_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, keep_tokens,
+    model_list,
+    keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -167,8 +171,12 @@ def open_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, keep_tokens,
+    model_list,
+    keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -239,6 +247,9 @@ def train_model(
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -402,6 +413,9 @@ def train_model(
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
+        bucket_no_upscale=bucket_no_upscale,
+        random_crop=random_crop,
+        bucket_reso_steps=bucket_reso_steps,
     )
 
     print(run_cmd)
@@ -610,6 +624,9 @@ def dreambooth_tab(
                 max_data_loader_n_workers,
                 keep_tokens,
                 persistent_data_loader_workers,
+                bucket_no_upscale,
+                random_crop,
+                bucket_reso_steps,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -675,6 +692,9 @@ def dreambooth_tab(
         model_list,
         keep_tokens,
         persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
     ]
 
     button_open_config.click(

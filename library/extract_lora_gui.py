@@ -2,7 +2,11 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
-from .common_gui import get_saveasfilename_path, get_any_file_path, get_file_path
+from .common_gui import (
+    get_saveasfilename_path,
+    get_any_file_path,
+    get_file_path,
+)
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -11,13 +15,18 @@ document_symbol = '\U0001F4C4'   # 📄
 
 
 def extract_lora(
-    model_tuned, model_org, save_to, save_precision, dim, v2,
+    model_tuned,
+    model_org,
+    save_to,
+    save_precision,
+    dim,
+    v2,
 ):
     # Check for caption_text_input
     if model_tuned == '':
         msgbox('Invalid finetuned model file')
         return
-    
+
     if model_org == '':
         msgbox('Invalid base model file')
         return
@@ -26,12 +35,14 @@ def extract_lora(
     if not os.path.isfile(model_tuned):
         msgbox('The provided finetuned model is not a file')
         return
-    
+
     if not os.path.isfile(model_org):
         msgbox('The provided base model is not a file')
         return
 
-    run_cmd = f'.\\venv\Scripts\python.exe "networks\extract_lora_from_models.py"'
+    run_cmd = (
+        f'.\\venv\Scripts\python.exe "networks\extract_lora_from_models.py"'
+    )
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
     run_cmd += f' --model_org "{model_org}"'
@@ -60,7 +71,7 @@ def gradio_extract_lora_tab():
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
         model_ext = gr.Textbox(value='*.ckpt *.safetensors', visible=False)
         model_ext_name = gr.Textbox(value='Model types', visible=False)
-        
+
         with gr.Row():
             model_tuned = gr.Textbox(
                 label='Finetuned model',
@@ -75,7 +86,7 @@ def gradio_extract_lora_tab():
                 inputs=[model_tuned, model_ext, model_ext_name],
                 outputs=model_tuned,
             )
-            
+
             model_org = gr.Textbox(
                 label='Stable Diffusion base model',
                 placeholder='Stable Diffusion original model: ckpt or safetensors file',
@@ -99,7 +110,9 @@ def gradio_extract_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_saveasfilename_path, inputs=[save_to, lora_ext, lora_ext_name], outputs=save_to
+                get_saveasfilename_path,
+                inputs=[save_to, lora_ext, lora_ext_name],
+                outputs=save_to,
             )
             save_precision = gr.Dropdown(
                 label='Save precison',
@@ -122,6 +135,5 @@ def gradio_extract_lora_tab():
 
         extract_button.click(
             extract_lora,
-            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2
-            ],
+            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2],
         )

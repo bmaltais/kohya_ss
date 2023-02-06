@@ -15,11 +15,11 @@ def caption_images(
     prefix,
     postfix,
 ):
-        # Check for images_dir_input
+    # Check for images_dir_input
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
-    
+
     if caption_ext == '':
         msgbox('Please provide an extension for the caption files.')
         return
@@ -29,7 +29,9 @@ def caption_images(
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
-    run_cmd += f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
+    run_cmd += (
+        f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
+    )
     run_cmd += f' --max_length="{int(max_length)}"'
     if caption_ext != '':
         run_cmd += f' --caption_extension="{caption_ext}"'
@@ -105,8 +107,9 @@ def gradio_git_caption_gui_tab():
                 value=75, label='Max length', interactive=True
             )
             model_id = gr.Textbox(
-                label="Model",
-                placeholder="(Optional) model id for GIT in Hugging Face", interactive=True
+                label='Model',
+                placeholder='(Optional) model id for GIT in Hugging Face',
+                interactive=True,
             )
 
         caption_button = gr.Button('Caption images')

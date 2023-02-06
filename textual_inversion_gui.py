@@ -82,8 +82,18 @@ def save_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
+    model_list,
+    token_string,
+    init_word,
+    num_vectors_per_token,
+    max_train_steps,
+    weights,
+    template,
+    keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -171,8 +181,18 @@ def open_configuration(
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
-    model_list, token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
+    model_list,
+    token_string,
+    init_word,
+    num_vectors_per_token,
+    max_train_steps,
+    weights,
+    template,
+    keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -241,8 +261,17 @@ def train_model(
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
-    token_string, init_word, num_vectors_per_token, max_train_steps, weights, template, keep_tokens,
+    token_string,
+    init_word,
+    num_vectors_per_token,
+    max_train_steps,
+    weights,
+    template,
+    keep_tokens,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -264,15 +293,15 @@ def train_model(
     if output_dir == '':
         msgbox('Output folder path is missing')
         return
-    
+
     if token_string == '':
         msgbox('Token string is missing')
         return
-    
+
     if init_word == '':
         msgbox('Init word is missing')
         return
-    
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -332,7 +361,7 @@ def train_model(
         )
     else:
         max_train_steps = int(max_train_steps)
-        
+
     print(f'max_train_steps = {max_train_steps}')
 
     # calculate stop encoder training
@@ -421,6 +450,9 @@ def train_model(
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
+        bucket_no_upscale=bucket_no_upscale,
+        random_crop=random_crop,
+        bucket_reso_steps=bucket_reso_steps,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -431,7 +463,7 @@ def train_model(
         run_cmd += f' --use_object_template'
     elif template == 'style template':
         run_cmd += f' --use_style_template'
-        
+
     print(run_cmd)
     # Run the command
     subprocess.run(run_cmd)
@@ -576,9 +608,7 @@ def ti_tab(
                 label='Resume TI training',
                 placeholder='(Optional) Path to existing TI embeding file to keep training',
             )
-            weights_file_input = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
+            weights_file_input = gr.Button('📂', elem_id='open_folder_small')
             weights_file_input.click(get_file_path, outputs=weights)
         with gr.Row():
             token_string = gr.Textbox(
@@ -676,6 +706,9 @@ def ti_tab(
                 max_data_loader_n_workers,
                 keep_tokens,
                 persistent_data_loader_workers,
+                bucket_no_upscale,
+                random_crop,
+                bucket_reso_steps,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -739,9 +772,17 @@ def ti_tab(
         mem_eff_attn,
         gradient_accumulation_steps,
         model_list,
-        token_string, init_word, num_vectors_per_token, max_train_steps, weights, template,
+        token_string,
+        init_word,
+        num_vectors_per_token,
+        max_train_steps,
+        weights,
+        template,
         keep_tokens,
         persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
     ]
 
     button_open_config.click(

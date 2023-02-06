@@ -91,9 +91,14 @@ def save_configuration(
     max_train_epochs,
     max_data_loader_n_workers,
     network_alpha,
-    training_comment, keep_tokens,
-    lr_scheduler_num_cycles, lr_scheduler_power,
+    training_comment,
+    keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -182,9 +187,14 @@ def open_configuration(
     max_train_epochs,
     max_data_loader_n_workers,
     network_alpha,
-    training_comment, keep_tokens,
-    lr_scheduler_num_cycles, lr_scheduler_power,
+    training_comment,
+    keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -257,9 +267,14 @@ def train_model(
     max_train_epochs,
     max_data_loader_n_workers,
     network_alpha,
-    training_comment, keep_tokens,
-    lr_scheduler_num_cycles, lr_scheduler_power,
+    training_comment,
+    keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -281,12 +296,18 @@ def train_model(
     if output_dir == '':
         msgbox('Output folder path is missing')
         return
-    
+
+    if int(bucket_reso_steps) < 1:
+        msgbox('Bucket resolution steps need to be greater than 0')
+        return
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
+
     if stop_text_encoder_training_pct > 0:
-        msgbox('Output "stop text encoder training" is not yet supported. Ignoring')
+        msgbox(
+            'Output "stop text encoder training" is not yet supported. Ignoring'
+        )
         stop_text_encoder_training_pct = 0
 
     # If string is empty set string to 0.
@@ -358,9 +379,9 @@ def train_model(
     print(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
-    
-    run_cmd += f' --bucket_reso_steps=1 --bucket_no_upscale' # --random_crop'
-    
+
+    run_cmd += f' --bucket_reso_steps=1 --bucket_no_upscale'   # --random_crop'
+
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -390,7 +411,7 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     run_cmd += f' --network_module=networks.lora'
-    
+
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
         if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
             run_cmd += f' --text_encoder_lr={text_encoder_lr}'
@@ -402,14 +423,12 @@ def train_model(
             run_cmd += f' --unet_lr={unet_lr}'
             run_cmd += f' --network_train_unet_only'
     else:
-        if float(text_encoder_lr) == 0: 
-            msgbox(
-                'Please input learning rate values.'
-            )
+        if float(text_encoder_lr) == 0:
+            msgbox('Please input learning rate values.')
             return
-        
+
     run_cmd += f' --network_dim={network_dim}'
-    
+
     if not lora_network_weights == '':
         run_cmd += f' --network_weights="{lora_network_weights}"'
     if int(gradient_accumulation_steps) > 1:
@@ -454,6 +473,9 @@ def train_model(
         use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
+        bucket_no_upscale=bucket_no_upscale,
+        random_crop=random_crop,
+        bucket_reso_steps=bucket_reso_steps,
     )
 
     print(run_cmd)
@@ -675,11 +697,13 @@ def lora_tab(
                     label='Prior loss weight', value=1.0
                 )
                 lr_scheduler_num_cycles = gr.Textbox(
-                    label='LR number of cycles', placeholder='(Optional) For Cosine with restart and polynomial only'
+                    label='LR number of cycles',
+                    placeholder='(Optional) For Cosine with restart and polynomial only',
                 )
-                
+
                 lr_scheduler_power = gr.Textbox(
-                    label='LR power', placeholder='(Optional) For Cosine with restart and polynomial only'
+                    label='LR power',
+                    placeholder='(Optional) For Cosine with restart and polynomial only',
                 )
             (
                 use_8bit_adam,
@@ -698,6 +722,9 @@ def lora_tab(
                 max_data_loader_n_workers,
                 keep_tokens,
                 persistent_data_loader_workers,
+                bucket_no_upscale,
+                random_crop,
+                bucket_reso_steps,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -719,7 +746,6 @@ def lora_tab(
         gradio_merge_lora_tab()
         gradio_resize_lora_tab()
         gradio_verify_lora_tab()
-        
 
     button_run = gr.Button('Train model')
 
@@ -773,8 +799,12 @@ def lora_tab(
         network_alpha,
         training_comment,
         keep_tokens,
-        lr_scheduler_num_cycles, lr_scheduler_power,
+        lr_scheduler_num_cycles,
+        lr_scheduler_power,
         persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
     ]
 
     button_open_config.click(

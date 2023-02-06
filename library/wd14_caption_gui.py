@@ -14,7 +14,7 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
-    
+
     if caption_extension == '':
         msgbox('Please provide an extension for the caption files.')
         return

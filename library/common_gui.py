@@ -9,6 +9,7 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+
 def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
     return (dir_path, file_name)
@@ -200,7 +201,7 @@ def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
 
     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
     for file in files:
-        with open(os.path.join(folder, file), 'r', errors="ignore") as f:
+        with open(os.path.join(folder, file), 'r', errors='ignore') as f:
             content = f.read()
             f.close
         content = content.replace(find, replace)
@@ -304,7 +305,8 @@ def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
     ###
     ### Gradio common GUI section
     ###
-    
+
+
 def gradio_config():
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
@@ -318,7 +320,13 @@ def gradio_config():
                 placeholder="type the configuration file path or use the 'Open' button above to select it...",
                 interactive=True,
             )
-    return (button_open_config, button_save_config, button_save_as_config, config_file_name)
+    return (
+        button_open_config,
+        button_save_config,
+        button_save_as_config,
+        config_file_name,
+    )
+
 
 def gradio_source_model():
     with gr.Tab('Source model'):
@@ -382,9 +390,20 @@ def gradio_source_model():
                 v_parameterization,
             ],
         )
-    return (pretrained_model_name_or_path, v2, v_parameterization, save_model_as, model_list)
+    return (
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        save_model_as,
+        model_list,
+    )
 
-def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', lr_warmup_value='0'):
+
+def gradio_training(
+    learning_rate_value='1e-6',
+    lr_scheduler_value='constant',
+    lr_warmup_value='0',
+):
     with gr.Row():
         train_batch_size = gr.Slider(
             minimum=1,
@@ -394,9 +413,7 @@ def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', l
             step=1,
         )
         epoch = gr.Textbox(label='Epoch', value=1)
-        save_every_n_epochs = gr.Textbox(
-            label='Save every N epochs', value=1
-        )
+        save_every_n_epochs = gr.Textbox(label='Save every N epochs', value=1)
         caption_extension = gr.Textbox(
             label='Caption Extension',
             placeholder='(Optional) Extension for caption files. default: .caption',
@@ -429,7 +446,9 @@ def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', l
         )
         seed = gr.Textbox(label='Seed', value=1234)
     with gr.Row():
-        learning_rate = gr.Textbox(label='Learning rate', value=learning_rate_value)
+        learning_rate = gr.Textbox(
+            label='Learning rate', value=learning_rate_value
+        )
         lr_scheduler = gr.Dropdown(
             label='LR Scheduler',
             choices=[
@@ -442,7 +461,9 @@ def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', l
             ],
             value=lr_scheduler_value,
         )
-        lr_warmup = gr.Textbox(label='LR warmup (% of steps)', value=lr_warmup_value)
+        lr_warmup = gr.Textbox(
+            label='LR warmup (% of steps)', value=lr_warmup_value
+        )
         cache_latents = gr.Checkbox(label='Cache latent', value=True)
     return (
         learning_rate,
@@ -459,50 +480,38 @@ def gradio_training(learning_rate_value='1e-6', lr_scheduler_value='constant', l
         cache_latents,
     )
 
+
 def run_cmd_training(**kwargs):
     options = [
         f' --learning_rate="{kwargs.get("learning_rate", "")}"'
         if kwargs.get('learning_rate')
         else '',
-        
         f' --lr_scheduler="{kwargs.get("lr_scheduler", "")}"'
         if kwargs.get('lr_scheduler')
         else '',
-        
         f' --lr_warmup_steps="{kwargs.get("lr_warmup_steps", "")}"'
         if kwargs.get('lr_warmup_steps')
         else '',
-        
         f' --train_batch_size="{kwargs.get("train_batch_size", "")}"'
         if kwargs.get('train_batch_size')
         else '',
-        
         f' --max_train_steps="{kwargs.get("max_train_steps", "")}"'
         if kwargs.get('max_train_steps')
         else '',
-        
         f' --save_every_n_epochs="{kwargs.get("save_every_n_epochs", "")}"'
         if kwargs.get('save_every_n_epochs')
         else '',
-        
         f' --mixed_precision="{kwargs.get("mixed_precision", "")}"'
         if kwargs.get('mixed_precision')
         else '',
-        
         f' --save_precision="{kwargs.get("save_precision", "")}"'
         if kwargs.get('save_precision')
         else '',
-        
-        f' --seed="{kwargs.get("seed", "")}"'
-        if kwargs.get('seed')
-        else '',
-        
+        f' --seed="{kwargs.get("seed", "")}"' if kwargs.get('seed') else '',
         f' --caption_extension="{kwargs.get("caption_extension", "")}"'
         if kwargs.get('caption_extension')
         else '',
-        
         ' --cache_latents' if kwargs.get('cache_latents') else '',
-        
     ]
     run_cmd = ''.join(options)
     return run_cmd
@@ -532,9 +541,7 @@ def gradio_advanced_training():
         gradient_checkpointing = gr.Checkbox(
             label='Gradient checkpointing', value=False
         )
-        shuffle_caption = gr.Checkbox(
-            label='Shuffle caption', value=False
-        )
+        shuffle_caption = gr.Checkbox(label='Shuffle caption', value=False)
         persistent_data_loader_workers = gr.Checkbox(
             label='Persistent data loader', value=False
         )
@@ -544,10 +551,18 @@ def gradio_advanced_training():
     with gr.Row():
         use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
         xformers = gr.Checkbox(label='Use xformers', value=True)
-        color_aug = gr.Checkbox(
-            label='Color augmentation', value=False
-        )
+        color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+    with gr.Row():
+        bucket_no_upscale = gr.Checkbox(
+            label="Don't upscale bucket resolution", value=True
+        )
+        random_crop = gr.Checkbox(
+            label='Random crop instead of center crop', value=False
+        )
+        bucket_reso_steps = gr.Number(
+            label='Bucket resolution steps', value=64
+        )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
         resume = gr.Textbox(
@@ -581,55 +596,53 @@ def gradio_advanced_training():
         max_data_loader_n_workers,
         keep_tokens,
         persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
     )
+
 
 def run_cmd_advanced_training(**kwargs):
     options = [
         f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
         if kwargs.get('max_train_epochs')
         else '',
-        
         f' --max_data_loader_n_workers="{kwargs.get("max_data_loader_n_workers", "")}"'
         if kwargs.get('max_data_loader_n_workers')
         else '',
-        
         f' --max_token_length={kwargs.get("max_token_length", "")}'
         if int(kwargs.get('max_token_length', 75)) > 75
         else '',
-        
         f' --clip_skip={kwargs.get("clip_skip", "")}'
         if int(kwargs.get('clip_skip', 1)) > 1
         else '',
-        
         f' --resume="{kwargs.get("resume", "")}"'
         if kwargs.get('resume')
         else '',
-        
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
         
+        f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
+        if int(kwargs.get('bucket_reso_steps', 64)) >= 1
+        else '',
+        
         ' --save_state' if kwargs.get('save_state') else '',
-        
         ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
-        
         ' --color_aug' if kwargs.get('color_aug') else '',
-        
         ' --flip_aug' if kwargs.get('flip_aug') else '',
-        
         ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
-        
-        ' --gradient_checkpointing' if kwargs.get('gradient_checkpointing') else '',
-        
+        ' --gradient_checkpointing'
+        if kwargs.get('gradient_checkpointing')
+        else '',
         ' --full_fp16' if kwargs.get('full_fp16') else '',
-        
         ' --xformers' if kwargs.get('xformers') else '',
-        
         ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
-        
-        ' --persistent_data_loader_workers' if kwargs.get('persistent_data_loader_workers') else '',
-        
+        ' --persistent_data_loader_workers'
+        if kwargs.get('persistent_data_loader_workers')
+        else '',
+        ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
+        ' --random_crop' if kwargs.get('random_crop') else '',
     ]
     run_cmd = ''.join(options)
     return run_cmd
-

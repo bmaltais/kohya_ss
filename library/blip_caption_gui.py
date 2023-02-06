@@ -26,7 +26,7 @@ def caption_images(
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
-    
+
     if caption_file_ext == '':
         msgbox('Please provide an extension for the caption files.')
         return

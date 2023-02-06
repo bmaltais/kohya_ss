@@ -11,7 +11,11 @@ document_symbol = '\U0001F4C4'   # 📄
 
 
 def resize_lora(
-    model, new_rank, save_to, save_precision, device,
+    model,
+    new_rank,
+    save_to,
+    save_precision,
+    device,
 ):
     # Check for caption_text_input
     if model == '':
@@ -22,7 +26,7 @@ def resize_lora(
     if not os.path.isfile(model):
         msgbox('The provided model is not a file')
         return
-    
+
     if device == '':
         device = 'cuda'
 
@@ -46,13 +50,11 @@ def resize_lora(
 
 def gradio_resize_lora_tab():
     with gr.Tab('Resize LoRA'):
-        gr.Markdown(
-            'This utility can resize a LoRA.'
-        )
-        
+        gr.Markdown('This utility can resize a LoRA.')
+
         lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
-        
+
         with gr.Row():
             model = gr.Textbox(
                 label='Source LoRA',
@@ -68,9 +70,15 @@ def gradio_resize_lora_tab():
                 outputs=model,
             )
         with gr.Row():
-            new_rank = gr.Slider(label="Desired LoRA rank", minimum=1, maximum=1024, step=1, value=4,
-                interactive=True,)
-        
+            new_rank = gr.Slider(
+                label='Desired LoRA rank',
+                minimum=1,
+                maximum=1024,
+                step=1,
+                value=4,
+                interactive=True,
+            )
+
         with gr.Row():
             save_to = gr.Textbox(
                 label='Save to',
@@ -81,7 +89,9 @@ def gradio_resize_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_saveasfilename_path, inputs=[save_to, lora_ext, lora_ext_name], outputs=save_to
+                get_saveasfilename_path,
+                inputs=[save_to, lora_ext, lora_ext_name],
+                outputs=save_to,
             )
             save_precision = gr.Dropdown(
                 label='Save precison',
@@ -99,6 +109,11 @@ def gradio_resize_lora_tab():
 
         convert_button.click(
             resize_lora,
-            inputs=[model, new_rank, save_to, save_precision, device,
+            inputs=[
+                model,
+                new_rank,
+                save_to,
+                save_precision,
+                device,
             ],
         )
