@@ -6,6 +6,24 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
+- 現在作業中：
+  - ``--bucket_reso_steps``および``--bucket_no_upscale``オプションを、学習スクリプトおよび``prepare_buckets_latents.py``に追加しました。
+  - ``--bucket_reso_steps``オプションでは、bucketの解像度の単位を指定できます。デフォルトは64で、今までと同じ動作です。
+    - 1以上の任意の値を指定できます。8で割り切れる値を推奨します。
+    - 64未満を指定するとU-Netの内部でpaddingが発生します。どのような結果になるかは未知数です。
+    - 8で割り切れない値を指定するとVAE内部で切り捨てられ、latentは8単位になります。
+  - ``--bucket_no_upscale``オプションを指定すると、bucketサイズよりも小さい画像は拡大せずそのまま処理します。
+    - 内部的には画像サイズ以下のサイズのbucketを作成します（たとえば画像が300x300で``bucket_reso_steps=64``の場合、256x256のbucket）。余りは都度trimmingされます。
+    - [#130](https://github.com/kohya-ss/sd-scripts/issues/130) を実装したものです。
+    - ``--resolution``で指定した最大サイズよりも面積が大きい画像は、最大サイズと同じ面積になるようアスペクト比を維持したまま縮小され、そのサイズを元にbucketが作られます。
+  - これらのオプションによりbucketが細分化され、ひとつのバッチ内に同一画像が重複して存在することが増えたため、バッチサイズを``そのbucketの画像種類数``までに制限する機能を追加しました。
+    - たとえば繰り返し回数10で、あるbucketに1枚しか画像がなく、バッチサイズが10以上のとき、今まではepoch内で、同一画像を10枚含むバッチが1回だけ使用されていました。
+    - 機能追加後はepoch内にサイズ1のバッチが10回、使用されます。
+  - ``--random_crop``がbucketを有効にした場合にも機能するようになりました。
+    - 常に画像の中央を切り取るのではなく、左右、上下にずらして教師データにします。これにより画像端まで学習されることが期待されます。
+    - discussionの[#34](https://github.com/kohya-ss/sd-scripts/discussions/34)を実装したものです。
+
+
 - 4 Feb. 2023, 2023/2/4
   - ``--persistent_data_loader_workers`` option is added to ``fine_tune.py``, ``train_db.py`` and ``train_network.py``. This option may significantly reduce the waiting time between epochs. Thanks to hitomi!
   - ``--debug_dataset`` option is now working on non-Windows environment. Thanks to tsukimiya!
