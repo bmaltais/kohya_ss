@@ -9,7 +9,7 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
 - 6 Feb. 2023, 2023/2/6：
   - ``--bucket_reso_steps`` and ``--bucket_no_upscale`` options are added to training scripts (fine tuning, DreamBooth, LoRA and Textual Inversion) and ``prepare_buckets_latents.py``.
   - ``--bucket_reso_steps`` takes the steps for buckets in aspect ratio bucketing. Default is 64, same as before.
-    - Any value greater than or equal to 1 can be specified; a value divisible by 8 is recommended.
+    - Any value greater than or equal to 1 can be specified; 64 is highly recommended and a value divisible by 8 is recommended.
     - If less than 64 is specified, padding will occur within U-Net. The result is unknown.
     - If you specify a value that is not divisible by 8, it will be truncated to divisible by 8 inside VAE, because the size of the latent is 1/8 of the image size.
   - If ``--bucket_no_upscale`` option is specified, images smaller than the bucket size will be processed without upscaling.
@@ -23,9 +23,9 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
   - ``--bucket_reso_steps``および``--bucket_no_upscale``オプションを、学習スクリプトおよび``prepare_buckets_latents.py``に追加しました。
   - ``--bucket_reso_steps``オプションでは、bucketの解像度の単位を指定できます。デフォルトは64で、今までと同じ動作です。
-    - 1以上の任意の値を指定できます。8で割り切れる値を推奨します。
+    - 1以上の任意の値を指定できます。基本的には64を推奨します。64以外の値では、8で割り切れる値を推奨します。
     - 64未満を指定するとU-Netの内部でpaddingが発生します。どのような結果になるかは未知数です。
-    - 8で割り切れない値を指定するとVAE内部で切り捨てられ、latentは8単位になります。
+    - 8で割り切れない値を指定すると余りはVAE内部で切り捨てられます。
   - ``--bucket_no_upscale``オプションを指定すると、bucketサイズよりも小さい画像は拡大せずそのまま処理します。
     - 内部的には画像サイズ以下のサイズのbucketを作成します（たとえば画像が300x300で``bucket_reso_steps=64``の場合、256x256のbucket）。余りは都度trimmingされます。
     - [#130](https://github.com/kohya-ss/sd-scripts/issues/130) を実装したものです。
