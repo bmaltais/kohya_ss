@@ -478,7 +478,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
 
   train_util.add_sd_models_arguments(parser)
-  train_util.add_dataset_arguments(parser, True, True)
+  train_util.add_dataset_arguments(parser, True, True, False)
   train_util.add_training_arguments(parser, True)
 
   parser.add_argument("--save_model_as", type=str, default="pt", choices=[None, "ckpt", "pt", "safetensors"],

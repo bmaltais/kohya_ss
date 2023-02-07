@@ -36,6 +36,10 @@ def train(args):
                                                args.bucket_reso_steps, args.bucket_no_upscale,
                                                args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop,
                                                args.dataset_repeats, args.debug_dataset)
+
+  # 学習データのdropout率を設定する
+  train_dataset.set_caption_dropout(args.caption_dropout_rate, args.caption_dropout_every_n_epochs)
+
   train_dataset.make_buckets()
 
   if args.debug_dataset:
@@ -170,10 +174,6 @@ def train(args):
   if args.max_train_epochs is not None:
     args.max_train_steps = args.max_train_epochs * len(train_dataloader)
     print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
-
-  # 学習データのdropout率を設定する
-  train_dataset.dropout_rate = args.dropout_rate
-  train_dataset.dropout_every_n_epochs = args.dropout_every_n_epochs
 
   # lr schedulerを用意する
   lr_scheduler = diffusers.optimization.get_scheduler(
@@ -339,7 +339,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
 
   train_util.add_sd_models_arguments(parser)
-  train_util.add_dataset_arguments(parser, False, True)
+  train_util.add_dataset_arguments(parser, False, True, True)
   train_util.add_training_arguments(parser, False)
   train_util.add_sd_saving_arguments(parser)
 
