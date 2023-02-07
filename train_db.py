@@ -136,6 +136,10 @@ def train(args):
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers, persistent_workers=args.persistent_data_loader_workers)
 
+  # 学習データのdropout率を設定する
+  train_dataset.dropout_rate = args.dropout_rate
+  train_dataset.dropout_every_n_epochs = args.dropout_every_n_epochs
+
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
     args.max_train_steps = args.max_train_epochs * len(train_dataloader)
@@ -203,6 +207,8 @@ def train(args):
 
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
+
+    train_dataset.epoch_current = epoch + 1
 
     # 指定したステップ数までText Encoderを学習する：epoch最初の状態
     unet.train()
