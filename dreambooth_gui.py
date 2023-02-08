@@ -88,6 +88,7 @@ def save_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -177,6 +178,7 @@ def open_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -250,6 +252,7 @@ def train_model(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -416,6 +419,8 @@ def train_model(
         bucket_no_upscale=bucket_no_upscale,
         random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
+        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
+        caption_dropout_rate=caption_dropout_rate,
     )
 
     print(run_cmd)
@@ -627,6 +632,7 @@ def dreambooth_tab(
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
+                caption_dropout_every_n_epochs, caption_dropout_rate,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -695,6 +701,7 @@ def dreambooth_tab(
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
+        caption_dropout_every_n_epochs, caption_dropout_rate,
     ]
 
     button_open_config.click(

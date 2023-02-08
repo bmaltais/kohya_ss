@@ -4,7 +4,7 @@ import argparse
 import shutil
 import math
 
-def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2):
+def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=1):
     # Split the max_resolution string by "," and strip any whitespaces
     max_resolutions = [res.strip() for res in max_resolution.split(',')]
     
@@ -57,7 +57,11 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
             # Split filename into base and extension
             base, ext = os.path.splitext(filename)
             new_filename = base + '+' + max_resolution + '.jpg'
-
+            
+            # copy caption file with right name if one exist
+            if os.path.exists(os.path.join(src_img_folder, base + '.txt')):
+                shutil.copy(os.path.join(src_img_folder, base + '.txt'), os.path.join(dst_img_folder, new_filename + '.txt'))
+            
             # Save resized image in dst_img_folder
             cv2.imwrite(os.path.join(dst_img_folder, new_filename), img, [cv2.IMWRITE_JPEG_QUALITY, 100])
             print(f"Resized image: {filename} with size {img.shape[0]}x{img.shape[1]} as {new_filename}")

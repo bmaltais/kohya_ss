@@ -99,6 +99,7 @@ def save_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -195,6 +196,7 @@ def open_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -275,7 +277,8 @@ def train_model(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
-):
+    caption_dropout_every_n_epochs, caption_dropout_rate,
+):  
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -380,7 +383,7 @@ def train_model(
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
 
-    run_cmd += f' --bucket_reso_steps=1 --bucket_no_upscale'   # --random_crop'
+    # run_cmd += f' --caption_dropout_rate="0.1" --caption_dropout_every_n_epochs=1'   # --random_crop'
 
     if v2:
         run_cmd += ' --v2'
@@ -440,7 +443,7 @@ def train_model(
     else:
         run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
     if not lr_scheduler_power == '':
-        run_cmd += f' --output_name="{lr_scheduler_power}"'
+        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -476,6 +479,8 @@ def train_model(
         bucket_no_upscale=bucket_no_upscale,
         random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
+        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
+        caption_dropout_rate=caption_dropout_rate,
     )
 
     print(run_cmd)
@@ -725,6 +730,7 @@ def lora_tab(
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
+                caption_dropout_every_n_epochs, caption_dropout_rate,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -805,6 +811,7 @@ def lora_tab(
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
+        caption_dropout_every_n_epochs, caption_dropout_rate,
     ]
 
     button_open_config.click(

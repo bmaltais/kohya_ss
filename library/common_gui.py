@@ -564,6 +564,15 @@ def gradio_advanced_training():
             label='Random crop instead of center crop', value=False
         )
     with gr.Row():
+        caption_dropout_every_n_epochs = gr.Number(
+            label="Dropout caption every n epochs",
+            value=0
+        )
+        caption_dropout_rate = gr.Number(
+            label="Rate of caption dropout",
+            value=0
+        )
+    with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
         resume = gr.Textbox(
             label='Resume from saved training state',
@@ -599,6 +608,7 @@ def gradio_advanced_training():
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
+        caption_dropout_every_n_epochs, caption_dropout_rate,
     )
 
 
@@ -621,6 +631,12 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
+        else '',
+        f' --caption_dropout_every_n_epochs="{kwargs.get("caption_dropout_every_n_epochs", "")}"'
+        if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
+        else '',
+        f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
+        if float(kwargs.get('caption_dropout_rate', 0)) > 0
         else '',
         
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
