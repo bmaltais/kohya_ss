@@ -417,11 +417,11 @@ def train(args):
 
         # Add noise to the latents according to the noise magnitude at each timestep
         # (this is the forward diffusion process)
-        with autocast():
-          noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+        noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
         # Predict the noise residual
-        noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+        with autocast():
+          noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
         if args.v_parameterization:
           # v-parameterization training
