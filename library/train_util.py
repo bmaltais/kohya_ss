@@ -1560,9 +1560,10 @@ def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encod
   else:
     enc_out = text_encoder(input_ids, output_hidden_states=True, return_dict=True)
     encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
-    if weight_dtype is not None:
-      # this is required for additional network training
-      encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
+    # uncomment code may raise expected scalar type Half but found Float when using DDP
+    # if weight_dtype is not None:
+    #   # this is required for additional network training
+    #   encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
     encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
 
   # bs*3, 77, 768 or 1024
