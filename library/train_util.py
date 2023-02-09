@@ -1451,7 +1451,7 @@ def add_dataset_arguments(parser: argparse.ArgumentParser, support_dreambooth: b
     parser.add_argument("--caption_dropout_every_n_epochs", type=int, default=None,
                         help="Dropout all captions every N epochs / captionを指定エポックごとにdropoutする")
     parser.add_argument("--caption_tag_dropout_rate", type=float, default=0,
-                        help="Rate out dropout comma seperated tokens(0.0~1.0) / カンマ区切りのタグをdropoutする割合")
+                        help="Rate out dropout comma separated tokens(0.0~1.0) / カンマ区切りのタグをdropoutする割合")
 
   if support_dreambooth:
     # DreamBooth dataset
