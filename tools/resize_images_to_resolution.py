@@ -1,3 +1,4 @@
+import glob
 import os
 import cv2
 import argparse
@@ -5,7 +6,7 @@ import shutil
 import math
 
 
-def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2, interpolation=None, save_as_png=False):
+def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2, interpolation=None, save_as_png=False, copy_associated_files=False):
   # Split the max_resolution string by "," and strip any whitespaces
   max_resolutions = [res.strip() for res in max_resolution.split(',')]
 
@@ -36,6 +37,7 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
     # Load image
     img = cv2.imread(os.path.join(src_img_folder, filename))
 
+    base, _ = os.path.splitext(filename)
     for max_resolution in max_resolutions:
       # Calculate max_pixels from max_resolution string
       max_pixels = int(max_resolution.split("x")[0]) * int(max_resolution.split("x")[1])
@@ -67,13 +69,24 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       img = img[y:y + new_height, x:x + new_width]
 
       # Split filename into base and extension
-      base, ext = os.path.splitext(filename)
       new_filename = base + '+' + max_resolution + ('.png' if save_as_png else '.jpg')
 
       # Save resized image in dst_img_folder
       cv2.imwrite(os.path.join(dst_img_folder, new_filename), img, [cv2.IMWRITE_JPEG_QUALITY, 100])
       proc = "Resized" if current_pixels > max_pixels else "Saved"
       print(f"{proc} image: {filename} with size {img.shape[0]}x{img.shape[1]} as {new_filename}")
+
+    # If other files with same basename, copy them with resolution suffix
+    if copy_associated_files:
+      asoc_files = glob.glob(os.path.join(src_img_folder, base + ".*"))
+      for asoc_file in asoc_files:
+        ext = os.path.splitext(asoc_file)[1]
+        if ext in img_exts:
+          continue
+        for max_resolution in max_resolutions:
+          new_asoc_file = base + '+' + max_resolution + ext
+          print(f"Copy {asoc_file} as {new_asoc_file}")
+          shutil.copy(os.path.join(src_img_folder, asoc_file), os.path.join(dst_img_folder, new_asoc_file))
 
 
 def main():
@@ -88,10 +101,12 @@ def main():
   parser.add_argument('--interpolation', type=str, choices=['area', 'cubic', 'lanczos4'],
                       default='area', help='Interpolation method for resizing / リサイズ時の補完方法')
   parser.add_argument('--save_as_png', action='store_true', help='Save as png format / png形式で保存')
+  parser.add_argument('--copy_associated_files', action='store_true',
+                      help='Copy files with same base name to images (captions etc) / 画像と同じファイル名（拡張子を除く）のファイルもコピーする')
 
   args = parser.parse_args()
   resize_images(args.src_img_folder, args.dst_img_folder, args.max_resolution,
-                args.divisible_by, args.interpolation, args.save_as_png)
+                args.divisible_by, args.interpolation, args.save_as_png, args.copy_associated_files)
 
 
 if __name__ == '__main__':
