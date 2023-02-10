@@ -6,6 +6,9 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
+- 10 Feb. 2023, 2023/2/10:
+  - Updated ``requirements.txt`` to prevent upgrading with pip taking a long time or failure to upgrade.
+  - pipでの更新が長時間掛かったり、更新に失敗したりするのを防ぐため、``requirements.txt``を更新しました。
 - 9 Feb. 2023, 2023/2/9:
   - Caption dropout is supported in ``train_db.py``, ``fine_tune.py`` and ``train_network.py``. Thanks to forestsource!
     - ``--caption_dropout_rate`` option specifies the dropout rate for captions (0~1.0, 0.1 means 10% chance for dropout). If dropout occurs, the image is trained with the empty caption. Default is 0 (no dropout).
@@ -158,7 +161,7 @@ When a new release comes out you can upgrade your repo with the following comman
 cd sd-scripts
 git pull
 .\venv\Scripts\activate
-pip install --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements.txt
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.
