@@ -84,6 +84,7 @@ def save_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -179,6 +180,7 @@ def open_config_file(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -259,6 +261,7 @@ def train_model(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    caption_dropout_every_n_epochs, caption_dropout_rate,
 ):
     # create caption json file
     if generate_caption_database:
@@ -405,6 +408,8 @@ def train_model(
         bucket_no_upscale=bucket_no_upscale,
         random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
+        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
+        caption_dropout_rate=caption_dropout_rate,
     )
 
     print(run_cmd)
@@ -614,6 +619,7 @@ def finetune_tab():
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
+                caption_dropout_every_n_epochs, caption_dropout_rate,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -678,6 +684,7 @@ def finetune_tab():
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
+        caption_dropout_every_n_epochs, caption_dropout_rate,
     ]
 
     button_run.click(train_model, inputs=settings_list)
