@@ -4,6 +4,8 @@ import cv2
 import argparse
 import shutil
 import math
+from PIL import Image
+import numpy as np
 
 
 def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2, interpolation=None, save_as_png=False, copy_associated_files=False):
@@ -35,7 +37,11 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       continue
 
     # Load image
-    img = cv2.imread(os.path.join(src_img_folder, filename))
+    # img = cv2.imread(os.path.join(src_img_folder, filename))
+    image = Image.open(os.path.join(src_img_folder, filename))
+    if not image.mode == "RGB":
+      image = image.convert("RGB")
+    img = np.array(image, np.uint8)
 
     base, _ = os.path.splitext(filename)
     for max_resolution in max_resolutions:
@@ -72,7 +78,10 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       new_filename = base + '+' + max_resolution + ('.png' if save_as_png else '.jpg')
 
       # Save resized image in dst_img_folder
-      cv2.imwrite(os.path.join(dst_img_folder, new_filename), img, [cv2.IMWRITE_JPEG_QUALITY, 100])
+      # cv2.imwrite(os.path.join(dst_img_folder, new_filename), img, [cv2.IMWRITE_JPEG_QUALITY, 100])
+      image = Image.fromarray(img)
+      image.save(os.path.join(dst_img_folder, new_filename), quality=100)
+
       proc = "Resized" if current_pixels > max_pixels else "Saved"
       print(f"{proc} image: {filename} with size {img.shape[0]}x{img.shape[1]} as {new_filename}")
 
