@@ -842,6 +842,7 @@ class FineTuningDataset(BaseDataset):
     self.num_train_images = len(metadata) * dataset_repeats
     self.num_reg_images = 0
 
+    # TODO do not record tag freq when no tag
     self.set_tag_frequency(os.path.basename(json_file_name), tags_list)
     self.dataset_dirs_info[os.path.basename(json_file_name)] = {"n_repeats": dataset_repeats, "img_count": len(metadata)}
 
