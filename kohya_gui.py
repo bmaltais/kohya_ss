@@ -10,8 +10,7 @@ from library.merge_lora_gui import gradio_merge_lora_tab
 from lora_gui import lora_tab
 
 
-def UI(username, password, inbrowser, server_port):
-
+def UI(**kwargs):
     css = ''
 
     if os.path.exists('./style.css'):
@@ -47,13 +46,18 @@ def UI(username, password, inbrowser, server_port):
             gradio_merge_lora_tab()
 
     # Show the interface
-    kwargs = {}
-    if username:
-        kwargs["auth"] = (username, password)
+    launch_kwargs = {}
+    username = kwargs.get('username')
+    password = kwargs.get('password')
+    server_port = kwargs.get('server_port', 0)
+    inbrowser = kwargs.get('inbrowser', False)
+    if username and password:
+        launch_kwargs["auth"] = (username, password)
     if server_port > 0:
-        kwargs["server_port"] = server_port
-    kwargs["inbrowser"] = inbrowser
-    interface.launch(**kwargs)
+        launch_kwargs["server_port"] = server_port
+    if inbrowser:
+        launch_kwargs["inbrowser"] = inbrowser
+    interface.launch(**launch_kwargs)
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)

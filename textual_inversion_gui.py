@@ -481,40 +481,6 @@ def train_model(
         save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def UI(username, password):
-    css = ''
-
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
-            css += file.read() + '\n'
-
-    interface = gr.Blocks(css=css)
-
-    with interface:
-        with gr.Tab('Dreambooth TI'):
-            (
-                train_data_dir_input,
-                reg_data_dir_input,
-                output_dir_input,
-                logging_dir_input,
-            ) = ti_tab()
-        with gr.Tab('Utilities'):
-            utilities_tab(
-                train_data_dir_input=train_data_dir_input,
-                reg_data_dir_input=reg_data_dir_input,
-                output_dir_input=output_dir_input,
-                logging_dir_input=logging_dir_input,
-                enable_copy_info_button=True,
-            )
-
-        # Show the interface
-    if not username == '':
-        interface.launch(auth=(username, password))
-    else:
-        interface.launch()
-
-
 def ti_tab(
     train_data_dir=gr.Textbox(),
     reg_data_dir=gr.Textbox(),
@@ -823,6 +789,45 @@ def ti_tab(
     )
 
 
+def UI(**kwargs):
+    css = ''
+
+    if os.path.exists('./style.css'):
+        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
+            print('Load CSS...')
+            css += file.read() + '\n'
+
+    interface = gr.Blocks(css=css)
+
+    with interface:
+        with gr.Tab('Dreambooth TI'):
+            (
+                train_data_dir_input,
+                reg_data_dir_input,
+                output_dir_input,
+                logging_dir_input,
+            ) = ti_tab()
+        with gr.Tab('Utilities'):
+            utilities_tab(
+                train_data_dir_input=train_data_dir_input,
+                reg_data_dir_input=reg_data_dir_input,
+                output_dir_input=output_dir_input,
+                logging_dir_input=logging_dir_input,
+                enable_copy_info_button=True,
+            )
+
+    # Show the interface
+    launch_kwargs={}
+    if not kwargs.get('username', None) == '':
+        launch_kwargs["auth"] = (kwargs.get('username', None), kwargs.get('password', None))
+    if kwargs.get('server_port', 0) > 0:
+        launch_kwargs["server_port"] = kwargs.get('server_port', 0)
+    if kwargs.get('inbrowser', False):        
+        launch_kwargs["inbrowser"] = kwargs.get('inbrowser', False)
+    print(launch_kwargs)
+    interface.launch(**launch_kwargs)
+        
+
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
@@ -832,7 +837,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--password', type=str, default='', help='Password for authentication'
     )
+    parser.add_argument(
+        '--server_port', type=int, default=0, help='Port to run the server listener on'
+    )
+    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
 
     args = parser.parse_args()
 
-    UI(username=args.username, password=args.password)
+    UI(username=args.username, password=args.password, inbrowser=args.inbrowser, server_port=args.server_port)
