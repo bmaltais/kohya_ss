@@ -1,5 +1,5 @@
 
-import math
+
 import argparse
 import os
 import torch
@@ -85,76 +85,43 @@ def merge_to_sd_model(text_encoder, unet, models, ratios, merge_dtype):
           weight = weight + ratio * (up_weight @ down_weight) * scale
         else:
           # conv2d
-          weight = weight + ratio * (up_weight.squeeze(3).squeeze(2) @ down_weight.squeeze(3).squeeze(2)
-                                     ).unsqueeze(2).unsqueeze(3) * scale
+          weight = weight + ratio * (up_weight.squeeze(3).squeeze(2) @ down_weight.squeeze(3).squeeze(2)).unsqueeze(2).unsqueeze(3) * scale
 
         module.weight = torch.nn.Parameter(weight)
 
 
 def merge_lora_models(models, ratios, merge_dtype):
-  base_alphas = {}                          # alpha for merged model
-  base_dims = {}
-
   merged_sd = {}
+
+  alpha = None
+  dim = None
   for model, ratio in zip(models, ratios):
     print(f"loading: {model}")
     lora_sd = load_state_dict(model, merge_dtype)
 
-    # get alpha and dim
-    alphas = {}                             # alpha for current model
-    dims = {}                               # dims for current model
-    for key in lora_sd.keys():
-      if 'alpha' in key:
-        lora_module_name = key[:key.rfind(".alpha")]
-        alpha = float(lora_sd[key].detach().numpy())
-        alphas[lora_module_name] = alpha
-        if lora_module_name not in base_alphas:
-          base_alphas[lora_module_name] = alpha
-      elif "lora_down" in key:
-        lora_module_name = key[:key.rfind(".lora_down")]
-        dim = lora_sd[key].size()[0]
-        dims[lora_module_name] = dim
-        if lora_module_name not in base_dims:
-          base_dims[lora_module_name] = dim
-
-    for lora_module_name in dims.keys():
-      if lora_module_name not in alphas:
-        alpha = dims[lora_module_name]
-        alphas[lora_module_name] = alpha
-        if lora_module_name not in base_alphas:
-          base_alphas[lora_module_name] = alpha
-    
-    print(f"dim: {list(set(dims.values()))}, alpha: {list(set(alphas.values()))}")
-
-    # merge
     print(f"merging...")
     for key in lora_sd.keys():
       if 'alpha' in key:
-        continue
-
-      lora_module_name = key[:key.rfind(".lora_")]
-
-      base_alpha = base_alphas[lora_module_name]
-      alpha = alphas[lora_module_name]
-
-      scale = math.sqrt(alpha / base_alpha) * ratio
-
-      if key in merged_sd:
-        assert merged_sd[key].size() == lora_sd[key].size(
-        ), f"weights shape mismatch merging v1 and v2, different dims? / 重みのサイズが合いません。v1とv2、または次元数の異なるモデルはマージできません"
-        merged_sd[key] = merged_sd[key] + lora_sd[key] * scale
+        if key in merged_sd:
+          assert merged_sd[key] == lora_sd[key], f"alpha mismatch / alphaが異なる場合、現時点ではマージできません"
+        else:
+          alpha = lora_sd[key].detach().numpy()
+          merged_sd[key] = lora_sd[key]
       else:
-        merged_sd[key] = lora_sd[key] * scale
-  
-  # set alpha to sd
-  for lora_module_name, alpha in base_alphas.items():
-    key = lora_module_name + ".alpha"
-    merged_sd[key] = torch.tensor(alpha)
+        if key in merged_sd:
+          assert merged_sd[key].size() == lora_sd[key].size(
+          ), f"weights shape mismatch merging v1 and v2, different dims? / 重みのサイズが合いません。v1とv2、または次元数の異なるモデルはマージできません"
+          merged_sd[key] = merged_sd[key] + lora_sd[key] * ratio
+        else:
+          if "lora_down" in key:
+            dim = lora_sd[key].size()[0]
+          merged_sd[key] = lora_sd[key] * ratio
 
-  print("merged model")
-  print(f"dim: {list(set(base_dims.values()))}, alpha: {list(set(base_alphas.values()))}")
+  print(f"dim (rank): {dim}, alpha: {alpha}")
+  if alpha is None:
+    alpha = dim
 
-  return merged_sd
+  return merged_sd, dim, alpha
 
 
 def merge(args):
@@ -185,7 +152,7 @@ def merge(args):
     model_util.save_stable_diffusion_checkpoint(args.v2, args.save_to, text_encoder, unet,
                                                 args.sd_model, 0, 0, save_dtype, vae)
   else:
-    state_dict = merge_lora_models(args.models, args.ratios, merge_dtype)
+    state_dict, _, _ = merge_lora_models(args.models, args.ratios, merge_dtype)
 
     print(f"saving model to: {args.save_to}")
     save_to_file(args.save_to, state_dict, state_dict, save_dtype)
