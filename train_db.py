@@ -43,7 +43,7 @@ def train(args):
     train_dataset.disable_token_padding()
 
   # 学習データのdropout率を設定する
-  train_dataset.set_caption_dropout(args.caption_dropout_rate, args.caption_dropout_every_n_epochs)
+  train_dataset.set_caption_dropout(args.caption_dropout_rate, args.caption_dropout_every_n_epochs, args.caption_tag_dropout_rate)
 
   train_dataset.make_buckets()
 
@@ -208,8 +208,7 @@ def train(args):
 
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
-
-    train_dataset.epoch_current = epoch + 1
+    train_dataset.set_current_epoch(epoch + 1)
 
     # 指定したステップ数までText Encoderを学習する：epoch最初の状態
     unet.train()
