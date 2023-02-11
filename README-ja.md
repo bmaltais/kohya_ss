@@ -116,7 +116,7 @@ accelerate configの質問には以下のように答えてください。（bf1
 cd sd-scripts
 git pull
 .\venv\Scripts\activate
-pip install --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements.txt
 ```
 
 コマンドが成功すれば新しいバージョンが使用できます。
