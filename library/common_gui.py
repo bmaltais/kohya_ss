@@ -568,9 +568,11 @@ def gradio_advanced_training():
             label="Dropout caption every n epochs",
             value=0
         )
-        caption_dropout_rate = gr.Number(
+        caption_dropout_rate = gr.Slider(
             label="Rate of caption dropout",
-            value=0
+            value=0,
+            minimum=0,
+            maximum=1
         )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)

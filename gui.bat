@@ -1,10 +1,6 @@
 @echo off
 
-set VENV_DIR=.\venv
-set PYTHON=python
-
-call %VENV_DIR%\Scripts\activate.bat
-
-%PYTHON% kohya_gui.py
+call venv\Scripts\activate.bat
+python.exe kohya_gui.py %*
 
 pause

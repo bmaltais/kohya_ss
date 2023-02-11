@@ -431,30 +431,6 @@ def remove_doublequote(file_path):
     return file_path
 
 
-def UI(username, password):
-
-    css = ''
-
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
-            css += file.read() + '\n'
-
-    interface = gr.Blocks(css=css)
-
-    with interface:
-        with gr.Tab('Finetune'):
-            finetune_tab()
-        with gr.Tab('Utilities'):
-            utilities_tab(enable_dreambooth_tab=False)
-
-    # Show the interface
-    if not username == '':
-        interface.launch(auth=(username, password))
-    else:
-        interface.launch()
-
-
 def finetune_tab():
     dummy_ft_true = gr.Label(value=True, visible=False)
     dummy_ft_false = gr.Label(value=False, visible=False)
@@ -708,6 +684,35 @@ def finetune_tab():
     )
 
 
+def UI(**kwargs):
+
+    css = ''
+
+    if os.path.exists('./style.css'):
+        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
+            print('Load CSS...')
+            css += file.read() + '\n'
+
+    interface = gr.Blocks(css=css)
+
+    with interface:
+        with gr.Tab('Finetune'):
+            finetune_tab()
+        with gr.Tab('Utilities'):
+            utilities_tab(enable_dreambooth_tab=False)
+
+    # Show the interface
+    launch_kwargs={}
+    if not kwargs.get('username', None) == '':
+        launch_kwargs["auth"] = (kwargs.get('username', None), kwargs.get('password', None))
+    if kwargs.get('server_port', 0) > 0:
+        launch_kwargs["server_port"] = kwargs.get('server_port', 0)
+    if kwargs.get('inbrowser', False):        
+        launch_kwargs["inbrowser"] = kwargs.get('inbrowser', False)
+    print(launch_kwargs)
+    interface.launch(**launch_kwargs)
+        
+
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
@@ -717,7 +722,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--password', type=str, default='', help='Password for authentication'
     )
+    parser.add_argument(
+        '--server_port', type=int, default=0, help='Port to run the server listener on'
+    )
+    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
 
     args = parser.parse_args()
 
-    UI(username=args.username, password=args.password)
+    UI(username=args.username, password=args.password, inbrowser=args.inbrowser, server_port=args.server_port)
