@@ -101,7 +101,7 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, verbose):
           s_sum = torch.sum(torch.abs(S))
           s_rank = torch.sum(torch.abs(S[:new_rank]))
           verbose_str+=f"{block_down_name:76} | "
-          verbose_str+=f"sum(S) retained: {(s_rank)/s_sum:.1%}%, max(S) to max(S_dropped) ratio: {S[0]/S[new_rank]:0.1f}\n"
+          verbose_str+=f"sum(S) retained: {(s_rank)/s_sum:.1%}, max(S) ratio: {S[0]/S[new_rank]:0.1f}\n"
 
         U = U[:, :new_rank]
         S = S[:new_rank]
