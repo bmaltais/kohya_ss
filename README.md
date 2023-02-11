@@ -8,7 +8,18 @@ Note: The LoRA models for SD 2.x is not supported too in Web UI.
 
 - 10 Feb. 2023, 2023/2/10:
   - Updated ``requirements.txt`` to prevent upgrading with pip taking a long time or failure to upgrade.
+  - ``resize_lora.py`` keeps the metadata of the model. ``dimension is resized from ...`` is added to the top of  ``ss_training_comment``.
+  - ``merge_lora.py`` supports models with different ``alpha``s. If there is a problem, old version is ``merge_lora_old.py``.
+  - ``svd_merge_lora.py`` is added. This script merges LoRA models with any rank (dim) and alpha, and approximate a new LoRA with svd for a specified rank (dim).
+  - Note: merging scripts erase the metadata currently.
+  - ``resize_images_to_resolution.py`` supports multibyte characters in filenames.
   - pipでの更新が長時間掛かったり、更新に失敗したりするのを防ぐため、``requirements.txt``を更新しました。
+  - ``resize_lora.py``がメタデータを保持するようになりました。 ``dimension is resized from ...`` という文字列が ``ss_training_comment`` の先頭に追加されます。
+  - ``merge_lora.py``がalphaが異なるモデルをサポートしました。 何か問題がありましたら旧バージョン ``merge_lora_old.py`` をお使いください。
+  - ``svd_merge_lora.py`` を追加しました。 複数の任意のdim (rank)、alphaのLoRAモデルをマージし、svdで任意dim(rank)のLoRAで近似します。 
+  - 注：マージ系のスクリプトは現時点ではメタデータを消去しますのでご注意ください。
+  - ``resize_images_to_resolution.py``が日本語ファイル名をサポートしました。
+  
 - 9 Feb. 2023, 2023/2/9:
   - Caption dropout is supported in ``train_db.py``, ``fine_tune.py`` and ``train_network.py``. Thanks to forestsource!
     - ``--caption_dropout_rate`` option specifies the dropout rate for captions (0~1.0, 0.1 means 10% chance for dropout). If dropout occurs, the image is trained with the empty caption. Default is 0 (no dropout).
