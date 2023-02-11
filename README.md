@@ -129,10 +129,16 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - For LoRAs where the activation word is unknown, this script compares the output of Text Encoder after applying LoRA to that of unapplied to find out which token is affected by LoRA. Hopefully you can figure out the activation word. LoRA trained with captions does not seem to be able to interrogate.
     - Batch size can be large (like 64 or 128).
   - ``train_textual_inversion.py`` now supports multiple init words.
+  - Following feature is reverted to be the same as before. Sorry for confusion:
+    > Now the number of data in each batch is limited to the number of actual images (not duplicated). Because a certain bucket may contain smaller number of actual images, so the batch may contain same (duplicated) images.
+  
   - ``lora_interrogator.py`` を ``network``フォルダに追加しました。使用法は ``python networks\lora_interrogator.py -h`` でご確認ください。
     - このスクリプトは、起動promptがわからないLoRAについて、LoRA適用前後のText Encoderの出力を比較することで、どのtokenの出力が変化しているかを調べます。運が良ければ起動用の単語が分かります。キャプション付きで学習されたLoRAは影響が広範囲に及ぶため、調査は難しいようです。
     - バッチサイズはわりと大きくできます（64や128など）。
   - ``train_textual_inversion.py`` で複数のinit_word指定が可能になりました。
+  - 次の機能を削除し元に戻しました。混乱を招き申し訳ありません。
+    >  これらのオプションによりbucketが細分化され、ひとつのバッチ内に同一画像が重複して存在することが増えたため、バッチサイズを``そのbucketの画像種類数``までに制限する機能を追加しました。
+
 - 10 Feb. 2023, 2023/2/10:
   - Updated ``requirements.txt`` to prevent upgrading with pip taking a long time or failure to upgrade.
   - ``resize_lora.py`` keeps the metadata of the model. ``dimension is resized from ...`` is added to the top of  ``ss_training_comment``.
