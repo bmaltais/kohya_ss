@@ -1,10 +1,9 @@
 This repository contains training, generation and utility scripts for Stable Diffusion.
 
-__Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ (SD 1.x based only) Thank you for great work!!! 
+[__Change History__](#change-history) is moved to the bottom of the page.
+更新履歴は[ページ末尾](#change-history)に移しました。
 
 [日本語版README](./README-ja.md)
-
-[__Change History__](#change-history) is moved to the bottom of the page.
 
 For easier use (GUI and PowerShell scripts etc...), please visit [the repository maintained by bmaltais](https://github.com/bmaltais/kohya_ss). Thanks to @bmaltais!
 
@@ -16,6 +15,8 @@ This repository contains the scripts for:
 * Texutl Inversion training
 * Image generation
 * Model conversion (supports 1.x and 2.x, Stable Diffision ckpt/safetensors and Diffusers)
+
+__Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ (SD 1.x based only) Thank you for great work!!! 
 
 ## About requirements.txt
 
