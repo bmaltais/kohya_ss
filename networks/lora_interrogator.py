@@ -80,6 +80,8 @@ def interrogate(args):
   network.apply_to(text_encoder, unet, True, len(network.unet_loras) > 0)
   network.to(DEVICE)
   network.eval()
+
+  print("You can ignore warning messages start with '_IncompatibleKeys' (LoRA model does not have alpha because trained by older script) / '_IncompatibleKeys'の警告は無視して構いません（以前のスクリプトで学習されたLoRAモデルのためalphaの定義がありません）")
   print("get text encoder embeddings with lora.")
   lora_embs = get_all_embeddings(text_encoder)
 
