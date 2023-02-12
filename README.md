@@ -144,10 +144,10 @@ Then redo the installation instruction within the kohya_ss venv.
 ## Change history
 
 * 2023/02/11 (v20.7.2):
-    - ``lora_interrogator.py`` is added in ``networks`` folder. See ``python networks\lora_interrogator.py -h`` for usage.
+    - `lora_interrogator.py` is added in `networks` folder. See `python networks\lora_interrogator.py -h` for usage.
         - For LoRAs where the activation word is unknown, this script compares the output of Text Encoder after applying LoRA to that of unapplied to find out which token is affected by LoRA. Hopefully you can figure out the activation word. LoRA trained with captions does not seem to be able to interrogate.
         - Batch size can be large (like 64 or 128).
-    - ``train_textual_inversion.py`` now supports multiple init words.
+    - `train_textual_inversion.py` now supports multiple init words.
     - Following feature is reverted to be the same as before. Sorry for confusion:
         > Now the number of data in each batch is limited to the number of actual images (not duplicated). Because a certain bucket may contain smaller number of actual images, so the batch may contain same (duplicated) images.
     - Add new tool to sort, group and average crop image in a dataset
