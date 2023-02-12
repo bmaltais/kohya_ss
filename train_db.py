@@ -38,8 +38,13 @@ def train(args):
                                     args.resolution, args.enable_bucket, args.min_bucket_reso, args.max_bucket_reso,
                                     args.bucket_reso_steps, args.bucket_no_upscale,
                                     args.prior_loss_weight, args.flip_aug, args.color_aug, args.face_crop_aug_range, args.random_crop, args.debug_dataset)
+
   if args.no_token_padding:
     train_dataset.disable_token_padding()
+
+  # 学習データのdropout率を設定する
+  train_dataset.set_caption_dropout(args.caption_dropout_rate, args.caption_dropout_every_n_epochs, args.caption_tag_dropout_rate)
+
   train_dataset.make_buckets()
 
   if args.debug_dataset:
@@ -203,6 +208,7 @@ def train(args):
 
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
+    train_dataset.set_current_epoch(epoch + 1)
 
     # 指定したステップ数までText Encoderを学習する：epoch最初の状態
     unet.train()
@@ -327,7 +333,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
 
   train_util.add_sd_models_arguments(parser)
-  train_util.add_dataset_arguments(parser, True, False)
+  train_util.add_dataset_arguments(parser, True, False, True)
   train_util.add_training_arguments(parser, True)
   train_util.add_sd_saving_arguments(parser)
 
