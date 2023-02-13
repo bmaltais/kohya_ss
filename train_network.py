@@ -344,7 +344,8 @@ def train(args):
       "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
       "ss_tag_frequency": json.dumps(train_dataset.tag_frequency),
       "ss_bucket_info": json.dumps(train_dataset.bucket_info),
-      "ss_training_comment": args.training_comment        # will not be updated after training
+      "ss_training_comment": args.training_comment,       # will not be updated after training
+      "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash()
   }
 
   # uncomment if another network is added
