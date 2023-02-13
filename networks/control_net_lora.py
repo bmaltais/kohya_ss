@@ -7,11 +7,12 @@ import math
 import os
 from typing import List
 import torch
+from diffusers import UNet2DConditionModel
 
 from library import train_util
 
 
-class LoRAModule(torch.nn.Module):
+class ControlLoRAModule(torch.nn.Module):
   """
   replaces forward method of the original Linear, instead of replacing the original Linear module.
   """
@@ -25,17 +26,25 @@ class LoRAModule(torch.nn.Module):
     if org_module.__class__.__name__ == 'Conv2d':
       in_dim = org_module.in_channels
       out_dim = org_module.out_channels
-      self.lora_down = torch.nn.Conv2d(in_dim, lora_dim, (1, 1), bias=False)
-      self.lora_up = torch.nn.Conv2d(lora_dim, out_dim, (1, 1), bias=False)
+
+      self.lora_dim = min(self.lora_dim, in_dim, out_dim)
+      if self.lora_dim != lora_dim:
+        print(f"{lora_name} dim (rank) is changed: {self.lora_dim}")
+
+      kernel_size = org_module.kernel_size
+      stride = org_module.stride
+      padding = org_module.padding
+      self.lora_down = torch.nn.Conv2d(in_dim, self.lora_dim, kernel_size, stride, padding, bias=False)
+      self.lora_up = torch.nn.Conv2d(self.lora_dim, out_dim, (1, 1), (1, 1), bias=False)
     else:
       in_dim = org_module.in_features
       out_dim = org_module.out_features
-      self.lora_down = torch.nn.Linear(in_dim, lora_dim, bias=False)
-      self.lora_up = torch.nn.Linear(lora_dim, out_dim, bias=False)
+      self.lora_down = torch.nn.Linear(in_dim, self.lora_dim, bias=False)
+      self.lora_up = torch.nn.Linear(self.lora_dim, out_dim, bias=False)
 
     if type(alpha) == torch.Tensor:
       alpha = alpha.detach().float().numpy()                              # without casting, bf16 causes error
-    alpha = lora_dim if alpha is None or alpha == 0 else alpha
+    alpha = self.lora_dim if alpha is None or alpha == 0 else alpha
     self.scale = alpha / self.lora_dim
     self.register_buffer('alpha', torch.tensor(alpha))                    # 定数として扱える
 
@@ -55,138 +64,322 @@ class LoRAModule(torch.nn.Module):
     self.is_control_path = control_path
 
   def forward(self, x):
-    if self.is_control_path:
-      lora_x = self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
-      self.previous_lora_x = lora_x
-    else:
-      lora_x = self.previous_lora_x
-      del self.previous_lora_x
-    return self.org_forward(x) + lora_x
+    if not self.is_control_path:
+      return self.org_forward(x)
+    return self.org_forward(x) + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
 
 
-def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, unet, **kwargs):
-  if network_dim is None:
-    network_dim = 4                     # default
-  network = LoRANetwork(text_encoder, unet, multiplier=multiplier, lora_dim=network_dim, alpha=network_alpha)
-  return network
-
-
-def create_network_from_weights(multiplier, file, vae, text_encoder, unet, **kwargs):
-  if os.path.splitext(file)[1] == '.safetensors':
-    from safetensors.torch import load_file, safe_open
-    weights_sd = load_file(file)
-  else:
-    weights_sd = torch.load(file, map_location='cpu')
-
-  # get dim (rank)
-  network_alpha = None
-  network_dim = None
-  for key, value in weights_sd.items():
-    if network_alpha is None and 'alpha' in key:
-      network_alpha = value
-    if network_dim is None and 'lora_down' in key and len(value.size()) == 2:
-      network_dim = value.size()[0]
-
-  if network_alpha is None:
-    network_alpha = network_dim
-
-  network = LoRANetwork(text_encoder, unet, multiplier=multiplier, lora_dim=network_dim, alpha=network_alpha)
-  network.weights_sd = weights_sd
-  return network
-
-
-class LoRANetwork(torch.nn.Module):
-  UNET_TARGET_REPLACE_MODULE = ["Transformer2DModel", "Attention"]
-  TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
+class ControlLoRANetwork(torch.nn.Module):
+  # UNET_TARGET_REPLACE_MODULE = ["Transformer2DModel", "Attention"]
+  # TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
   LORA_PREFIX_UNET = 'lora_unet'
   LORA_PREFIX_TEXT_ENCODER = 'lora_te'
 
-  def __init__(self, text_encoder, unet, multiplier=1.0, lora_dim=4, alpha=1) -> None:
+  def __init__(self, unet, weights_sd, multiplier=1.0, lora_dim=4, alpha=1) -> None:
     super().__init__()
     self.multiplier = multiplier
     self.lora_dim = lora_dim
     self.alpha = alpha
 
     # create module instances
-    def create_modules(prefix, root_module: torch.nn.Module, target_replace_modules) -> List[LoRAModule]:
+    def create_modules(prefix, root_module: torch.nn.Module) -> List[ControlLoRAModule]:  # , target_replace_modules
       loras = []
       for name, module in root_module.named_modules():
-        if module.__class__.__name__ in target_replace_modules:
-          for child_name, child_module in module.named_modules():
-            if child_module.__class__.__name__ == "Linear" or (child_module.__class__.__name__ == "Conv2d" and child_module.kernel_size == (1, 1)):
-              lora_name = prefix + '.' + name + '.' + child_name
-              lora_name = lora_name.replace('.', '_')
-              lora = LoRAModule(lora_name, child_module, self.multiplier, self.lora_dim, self.alpha)
-              loras.append(lora)
+        # # if module.__class__.__name__ in target_replace_modules:
+        # for child_name, child_module in module.named_modules():
+        if module.__class__.__name__ == "Linear" or module.__class__.__name__ == "Conv2d":  # and module.kernel_size == (1, 1)):
+          lora_name = prefix + '.' + name  # + '.' + child_name
+          lora_name = lora_name.replace('.', '_')
+
+          if weights_sd is None:
+            dim, alpha = self.lora_dim, self.alpha
+          else:
+            down_weight = weights_sd.get(lora_name + ".lora_down.weight", None)
+            if down_weight is None:
+              continue
+            dim = down_weight.size()[0]
+            alpha = weights_sd.get(lora_name + ".alpha", dim)
+
+          lora = ControlLoRAModule(lora_name, module, self.multiplier, dim, alpha)
+          loras.append(lora)
       return loras
 
-    self.text_encoder_loras = create_modules(LoRANetwork.LORA_PREFIX_TEXT_ENCODER,
-                                             text_encoder, LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE)
-    print(f"create LoRA for Text Encoder: {len(self.text_encoder_loras)} modules.")
-
-    self.unet_loras = create_modules(LoRANetwork.LORA_PREFIX_UNET, unet, LoRANetwork.UNET_TARGET_REPLACE_MODULE)
+    self.unet_loras = create_modules(ControlLoRANetwork.LORA_PREFIX_UNET, unet)  # , LoRANetwork.UNET_TARGET_REPLACE_MODULE)
     print(f"create LoRA for U-Net: {len(self.unet_loras)} modules.")
 
-    self.weights_sd = None
+    # make control model
+    self.control_model = torch.nn.Module()
 
-    # assertion
-    names = set()
-    for lora in self.text_encoder_loras + self.unet_loras:
-      assert lora.lora_name not in names, f"duplicated lora name: {lora.lora_name}"
-      names.add(lora.lora_name)
+    dims = [320, 320, 320, 320, 640, 640, 640, 1280, 1280, 1280, 1280, 1280]
+    zero_convs = torch.nn.ModuleList()
+    for i, dim in enumerate(dims):
+      sub_list = torch.nn.ModuleList([torch.nn.Conv2d(dim, dim, 1)])
+      zero_convs.append(sub_list)
+    self.control_model.add_module("zero_convs", zero_convs)
 
-  def load_weights(self, file):
-    if os.path.splitext(file)[1] == '.safetensors':
-      from safetensors.torch import load_file, safe_open
-      self.weights_sd = load_file(file)
-    else:
-      self.weights_sd = torch.load(file, map_location='cpu')
+    middle_block_out = torch.nn.Conv2d(1280, 1280, 1)
+    self.control_model.add_module("middle_block_out", torch.nn.ModuleList([middle_block_out]))
 
-  def apply_to(self, text_encoder, unet, apply_text_encoder=None, apply_unet=None):
-    if self.weights_sd:
-      weights_has_text_encoder = weights_has_unet = False
-      for key in self.weights_sd.keys():
-        if key.startswith(LoRANetwork.LORA_PREFIX_TEXT_ENCODER):
-          weights_has_text_encoder = True
-        elif key.startswith(LoRANetwork.LORA_PREFIX_UNET):
-          weights_has_unet = True
+    dims = [16, 16, 32, 32, 96, 96, 256, 320]
+    strides = [1, 1, 2, 1, 2, 1, 2, 1]
+    prev_dim = 3
+    input_hint_block = torch.nn.Sequential()
+    for i, (dim, stride) in enumerate(zip(dims, strides)):
+      input_hint_block.append(torch.nn.Conv2d(prev_dim, dim, 3, stride, 1))
+      if i < len(dims) - 1:
+        input_hint_block.append(torch.nn.SiLU())
+      prev_dim = dim
+    self.control_model.add_module("input_hint_block", input_hint_block)
 
-      if apply_text_encoder is None:
-        apply_text_encoder = weights_has_text_encoder
-      else:
-        assert apply_text_encoder == weights_has_text_encoder, f"text encoder weights: {weights_has_text_encoder} but text encoder flag: {apply_text_encoder} / 重みとText Encoderのフラグが矛盾しています"
 
-      if apply_unet is None:
-        apply_unet = weights_has_unet
-      else:
-        assert apply_unet == weights_has_unet, f"u-net weights: {weights_has_unet} but u-net flag: {apply_unet} / 重みとU-Netのフラグが矛盾しています"
-    else:
-      assert apply_text_encoder is not None and apply_unet is not None, f"internal error: flag not set"
+  # def load_weights(self, file):
+  #   if os.path.splitext(file)[1] == '.safetensors':
+  #     from safetensors.torch import load_file, safe_open
+  #     self.weights_sd = load_file(file)
+  #   else:
+  #     self.weights_sd = torch.load(file, map_location='cpu')
 
-    assert not apply_text_encoder, "ControlNet does not support for text encoder"
-
-    if apply_text_encoder:
-      print("enable LoRA for text encoder")
-    else:
-      self.text_encoder_loras = []
-
-    if apply_unet:
-      print("enable LoRA for U-Net")
-    else:
-      self.unet_loras = []
-
-    for lora in self.text_encoder_loras + self.unet_loras:
+  def apply_to(self):
+    for lora in self.unet_loras:
       lora.apply_to()
       self.add_module(lora.lora_name, lora)
 
-    if self.weights_sd:
-      # if some weights are not in state dict, it is ok because initial LoRA does nothing (lora_up is initialized by zeros)
-      info = self.load_state_dict(self.weights_sd, False)
-      print(f"weights are loaded: {info}")
+  def call_unet(self, unet, hint, sample, timestep, encoder_hidden_states):
+    # control path
+    hint = hint.to(sample.dtype).to(sample.device)
+    guided_hint = self.control_model.input_hint_block(hint)
 
-  def set_as_control_path(self, control_path):
-    for lora in self.text_encoder_loras + self.unet_loras:
-      lora.set_as_control_path(control_path)
+    for lora_module in self.unet_loras:
+      lora_module.set_as_control_path(True)
+
+    outs = self.unet_forward(unet, guided_hint, None, sample, timestep, encoder_hidden_states)
+
+    # U-Net
+    for lora_module in self.unet_loras:
+      lora_module.set_as_control_path(False)
+
+    sample = self.unet_forward(unet, None, outs, sample, timestep, encoder_hidden_states)
+
+    return sample
+
+  def unet_forward(self, unet: UNet2DConditionModel, guided_hint, ctrl_outs, sample, timestep, encoder_hidden_states):
+    # copy from UNet2DConditionModel
+    default_overall_up_factor = 2**unet.num_upsamplers
+
+    forward_upsample_size = False
+    upsample_size = None
+
+    if any(s % default_overall_up_factor != 0 for s in sample.shape[-2:]):
+      print("Forward upsample size to force interpolation output size.")
+      forward_upsample_size = True
+
+    # 0. center input if necessary
+    if unet.config.center_input_sample:
+      sample = 2 * sample - 1.0
+
+    # 1. time
+    timesteps = timestep
+    if not torch.is_tensor(timesteps):
+      # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
+      # This would be a good case for the `match` statement (Python 3.10+)
+      is_mps = sample.device.type == "mps"
+      if isinstance(timestep, float):
+        dtype = torch.float32 if is_mps else torch.float64
+      else:
+        dtype = torch.int32 if is_mps else torch.int64
+      timesteps = torch.tensor([timesteps], dtype=dtype, device=sample.device)
+    elif len(timesteps.shape) == 0:
+      timesteps = timesteps[None].to(sample.device)
+
+    # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+    timesteps = timesteps.expand(sample.shape[0])
+
+    t_emb = unet.time_proj(timesteps)
+
+    # timesteps does not contain any weights and will always return f32 tensors
+    # but time_embedding might actually be running in fp16. so we need to cast here.
+    # there might be better ways to encapsulate this.
+    t_emb = t_emb.to(dtype=unet.dtype)
+    emb = unet.time_embedding(t_emb)
+
+    if ctrl_outs is None:
+      outs = []                     # control path
+
+    # 2. pre-process
+    sample = unet.conv_in(sample)
+    if guided_hint is not None:
+      sample += guided_hint
+    if ctrl_outs is None:
+      outs.append(self.control_model.zero_convs[0][0](sample)) # , emb, encoder_hidden_states))
+
+    # 3. down
+    zc_idx = 1
+    down_block_res_samples = (sample,)
+    for downsample_block in unet.down_blocks:
+      if hasattr(downsample_block, "has_cross_attention") and downsample_block.has_cross_attention:
+        sample, res_samples = downsample_block(
+            hidden_states=sample,
+            temb=emb,
+            encoder_hidden_states=encoder_hidden_states,
+        )
+      else:
+        sample, res_samples = downsample_block(hidden_states=sample, temb=emb)
+      if ctrl_outs is None:
+        for rs in res_samples:
+          print("zc", zc_idx, rs.size())
+          outs.append(self.control_model.zero_convs[zc_idx][0](rs)) # , emb, encoder_hidden_states))
+          zc_idx += 1
+
+      down_block_res_samples += res_samples
+
+    # 4. mid
+    sample = unet.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
+    if ctrl_outs is None:
+      outs.append(self.control_model.middle_block_out[0](sample)) 
+      return outs
+    if ctrl_outs is not None:
+      sample += ctrl_outs.pop()
+
+    # 5. up
+    for i, upsample_block in enumerate(unet.up_blocks):
+      is_final_block = i == len(unet.up_blocks) - 1
+
+      res_samples = down_block_res_samples[-len(upsample_block.resnets):]
+      down_block_res_samples = down_block_res_samples[: -len(upsample_block.resnets)]
+
+      if ctrl_outs is not None and len(ctrl_outs) > 0:
+        res_samples = list(res_samples)
+        apply_ctrl_outs = ctrl_outs[-len(res_samples):]
+        ctrl_outs = ctrl_outs[:-len(res_samples)]
+        for j in range(len(res_samples)):
+          print(i, j)
+          res_samples[j] = res_samples[j] + apply_ctrl_outs[j]
+        res_samples = tuple(res_samples)
+
+      # if we have not reached the final block and need to forward the
+      # upsample size, we do it here
+      if not is_final_block and forward_upsample_size:
+        upsample_size = down_block_res_samples[-1].shape[2:]
+
+      if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
+        sample = upsample_block(
+            hidden_states=sample,
+            temb=emb,
+            res_hidden_states_tuple=res_samples,
+            encoder_hidden_states=encoder_hidden_states,
+            upsample_size=upsample_size,
+        )
+      else:
+        sample = upsample_block(
+            hidden_states=sample, temb=emb, res_hidden_states_tuple=res_samples, upsample_size=upsample_size
+        )
+    # 6. post-process
+    sample = unet.conv_norm_out(sample)
+    sample = unet.conv_act(sample)
+    sample = unet.conv_out(sample)
+
+    return (sample,)
+
+  """
+        default_overall_up_factor = 2**self.num_upsamplers
+
+        # upsample size should be forwarded when sample is not a multiple of `default_overall_up_factor`
+        forward_upsample_size = False
+        upsample_size = None
+
+        if any(s % default_overall_up_factor != 0 for s in sample.shape[-2:]):
+            logger.info("Forward upsample size to force interpolation output size.")
+            forward_upsample_size = True
+
+        # 0. center input if necessary
+        if self.config.center_input_sample:
+            sample = 2 * sample - 1.0
+
+        # 1. time
+        timesteps = timestep
+        if not torch.is_tensor(timesteps):
+            # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
+            # This would be a good case for the `match` statement (Python 3.10+)
+            is_mps = sample.device.type == "mps"
+            if isinstance(timestep, float):
+                dtype = torch.float32 if is_mps else torch.float64
+            else:
+                dtype = torch.int32 if is_mps else torch.int64
+            timesteps = torch.tensor([timesteps], dtype=dtype, device=sample.device)
+        elif len(timesteps.shape) == 0:
+            timesteps = timesteps[None].to(sample.device)
+
+        # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+        timesteps = timesteps.expand(sample.shape[0])
+
+        t_emb = self.time_proj(timesteps)
+
+        # timesteps does not contain any weights and will always return f32 tensors
+        # but time_embedding might actually be running in fp16. so we need to cast here.
+        # there might be better ways to encapsulate this.
+        t_emb = t_emb.to(dtype=self.dtype)
+        emb = self.time_embedding(t_emb)
+
+        if self.config.num_class_embeds is not None:
+            if class_labels is None:
+                raise ValueError("class_labels should be provided when num_class_embeds > 0")
+            class_emb = self.class_embedding(class_labels).to(dtype=self.dtype)
+            emb = emb + class_emb
+
+        # 2. pre-process
+        sample = self.conv_in(sample)
+
+        # 3. down
+        down_block_res_samples = (sample,)
+        for downsample_block in self.down_blocks:
+            if hasattr(downsample_block, "has_cross_attention") and downsample_block.has_cross_attention:
+                sample, res_samples = downsample_block(
+                    hidden_states=sample,
+                    temb=emb,
+                    encoder_hidden_states=encoder_hidden_states,
+                )
+            else:
+                sample, res_samples = downsample_block(hidden_states=sample, temb=emb)
+
+            down_block_res_samples += res_samples
+
+        # 4. mid
+        sample = self.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
+
+        # 5. up
+        for i, upsample_block in enumerate(self.up_blocks):
+            is_final_block = i == len(self.up_blocks) - 1
+
+            res_samples = down_block_res_samples[-len(upsample_block.resnets) :]
+            down_block_res_samples = down_block_res_samples[: -len(upsample_block.resnets)]
+
+            # if we have not reached the final block and need to forward the
+            # upsample size, we do it here
+            if not is_final_block and forward_upsample_size:
+                upsample_size = down_block_res_samples[-1].shape[2:]
+
+            if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
+                sample = upsample_block(
+                    hidden_states=sample,
+                    temb=emb,
+                    res_hidden_states_tuple=res_samples,
+                    encoder_hidden_states=encoder_hidden_states,
+                    upsample_size=upsample_size,
+                )
+            else:
+                sample = upsample_block(
+                    hidden_states=sample, temb=emb, res_hidden_states_tuple=res_samples, upsample_size=upsample_size
+                )
+        # 6. post-process
+        sample = self.conv_norm_out(sample)
+        sample = self.conv_act(sample)
+        sample = self.conv_out(sample)
+
+        if not return_dict:
+            return (sample,)
+
+        return UNet2DConditionOutput(sample=sample)
+  """
 
   def enable_gradient_checkpointing(self):
     # not supported

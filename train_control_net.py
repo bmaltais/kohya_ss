@@ -380,7 +380,7 @@ def train(args):
       net_kwargs[key] = value
 
   # if a new network is added in future, add if ~ then blocks for each network (;'∀')
-  network: control_net_rola.LoRANetwork = network_module.create_network(
+  network: control_net_rola.ControlLoRANetwork = network_module.create_network(
       1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
   if network is None:
     return
