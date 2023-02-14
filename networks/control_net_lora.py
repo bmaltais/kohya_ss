@@ -226,7 +226,7 @@ class ControlLoRANetwork(torch.nn.Module):
         sample, res_samples = downsample_block(hidden_states=sample, temb=emb)
       if ctrl_outs is None:
         for rs in res_samples:
-          print("zc", zc_idx, rs.size())
+          # print("zc", zc_idx, rs.size())
           outs.append(self.control_model.zero_convs[zc_idx][0](rs)) # , emb, encoder_hidden_states))
           zc_idx += 1
 
@@ -252,7 +252,6 @@ class ControlLoRANetwork(torch.nn.Module):
         apply_ctrl_outs = ctrl_outs[-len(res_samples):]
         ctrl_outs = ctrl_outs[:-len(res_samples)]
         for j in range(len(res_samples)):
-          print(i, j)
           res_samples[j] = res_samples[j] + apply_ctrl_outs[j]
         res_samples = tuple(res_samples)
 
