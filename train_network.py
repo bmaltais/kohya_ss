@@ -19,6 +19,8 @@ from diffusers import DDPMScheduler
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset, FineTuningDataset
 
+import torch.optim as optim
+import dadaptation
 
 def collate_fn(examples):
   return examples[0]
@@ -212,10 +214,15 @@ def train(args):
   else:
     optimizer_class = torch.optim.AdamW
 
-  trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+  # trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+  trainable_params = network.prepare_optimizer_params(None, None)
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  # optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  print('enable dadatation.')
+  optimizer = dadaptation.DAdaptAdam(trainable_params, lr=1.0, decouple=True, weight_decay=0)
+  # optimizer = dadaptation.DAdaptSGD(trainable_params, lr=1.0, weight_decay=0, d0=1e-6)
+  # optimizer = dadaptation.DAdaptAdaGrad(trainable_params, lr=1.0, weight_decay=0, d0=1e-8,)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -230,10 +237,15 @@ def train(args):
 
   # lr schedulerを用意する
   # lr_scheduler = diffusers.optimization.get_scheduler(
-  lr_scheduler = get_scheduler_fix(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
-      num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
-      num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
+  # lr_scheduler = get_scheduler_fix(
+  #     args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+  #     num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+  #     num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
+  # override lr_scheduler.
+  lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
+                                        lr_lambda=[lambda epoch: 0.5, lambda epoch: 1],
+                                        last_epoch=-1,
+                                        verbose=False)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -448,11 +460,14 @@ def train(args):
       current_loss = loss.detach().item()
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
-      logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
-      progress_bar.set_postfix(**logs)
+      # logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+      # progress_bar.set_postfix(**logs)
+      logs_str = f"loss: {avr_loss:.3f}, dlr: {optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']:.2e}"
+      progress_bar.set_postfix_str(logs_str)
 
       if args.logging_dir is not None:
         logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler)
+        logs['lr/d*lr'] = optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']
         accelerator.log(logs, step=global_step)
 
       if global_step >= args.max_train_steps:
