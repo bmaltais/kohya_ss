@@ -192,7 +192,7 @@ if __name__ == '__main__':
                       help="LoRA model to resize at to new rank: ckpt or safetensors file / 読み込むLoRAモデル、ckptまたはsafetensors")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
   parser.add_argument("--verbose", action="store_true", 
-                      help="Display verbose resizing information")
+                      help="Display verbose resizing information / rank変更時の詳細情報を出力する")
 
   args = parser.parse_args()
   resize(args)
