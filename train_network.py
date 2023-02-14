@@ -278,9 +278,9 @@ def train(args):
 
   # support DistributedDataParallel
   if type(text_encoder) == DDP:
-      text_encoder = text_encoder.module
-      unet = unet.module
-      network = network.module
+    text_encoder = text_encoder.module
+    unet = unet.module
+    network = network.module
 
   network.prepare_grad_etc(text_encoder, unet)
 
@@ -419,6 +419,9 @@ def train(args):
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Sample a random timestep for each image
         timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
