@@ -143,6 +143,8 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/02/15 (v20.7.3):
+    - Update upgrade.ps1 script
 * 2023/02/11 (v20.7.2):
     - `lora_interrogator.py` is added in `networks` folder. See `python networks\lora_interrogator.py -h` for usage.
         - For LoRAs where the activation word is unknown, this script compares the output of Text Encoder after applying LoRA to that of unapplied to find out which token is affected by LoRA. Hopefully you can figure out the activation word. LoRA trained with captions does not seem to be able to interrogate.
