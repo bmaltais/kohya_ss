@@ -12,6 +12,7 @@ import math
 import os
 import random
 import hashlib
+import subprocess
 from io import BytesIO
 
 from tqdm import tqdm
@@ -1098,6 +1099,13 @@ def addnet_hash_safetensors(b):
     hash_sha256.update(chunk)
 
   return hash_sha256.hexdigest()
+
+
+def get_git_revision_hash() -> str:
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    except:
+        return "(unknown)"
 
 
 # flash attention forwards and backwards
