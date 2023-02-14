@@ -1,5 +1,7 @@
 from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION
 from torch.optim import Optimizer
+from torch.cuda.amp import autocast
+from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Optional, Union
 import importlib
 import argparse
@@ -154,7 +156,9 @@ def train(args):
 
   # モデルを読み込む
   text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
-
+  # unnecessary, but work on low-ram device
+  text_encoder.to("cuda")
+  unet.to("cuda")
   # モデルに xformers とか memory efficient attention を組み込む
   train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
@@ -258,16 +262,25 @@ def train(args):
   unet.requires_grad_(False)
   unet.to(accelerator.device, dtype=weight_dtype)
   text_encoder.requires_grad_(False)
-  text_encoder.to(accelerator.device, dtype=weight_dtype)
+  text_encoder.to(accelerator.device)
   if args.gradient_checkpointing:                       # according to TI example in Diffusers, train is required
     unet.train()
     text_encoder.train()
 
     # set top parameter requires_grad = True for gradient checkpointing works
-    text_encoder.text_model.embeddings.requires_grad_(True)
+    if type(text_encoder) == DDP:
+      text_encoder.module.text_model.embeddings.requires_grad_(True)
+    else:
+      text_encoder.text_model.embeddings.requires_grad_(True)
   else:
     unet.eval()
     text_encoder.eval()
+
+  # support DistributedDataParallel
+  if type(text_encoder) == DDP:
+    text_encoder = text_encoder.module
+    unet = unet.module
+    network = network.module
 
   network.prepare_grad_etc(text_encoder, unet)
 
@@ -344,7 +357,8 @@ def train(args):
       "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
       "ss_tag_frequency": json.dumps(train_dataset.tag_frequency),
       "ss_bucket_info": json.dumps(train_dataset.bucket_info),
-      "ss_training_comment": args.training_comment        # will not be updated after training
+      "ss_training_comment": args.training_comment,       # will not be updated after training
+      "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash()
   }
 
   # uncomment if another network is added
@@ -405,6 +419,9 @@ def train(args):
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Sample a random timestep for each image
         timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
@@ -415,7 +432,8 @@ def train(args):
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
         # Predict the noise residual
-        noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+        with autocast():
+          noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
         if args.v_parameterization:
           # v-parameterization training
