@@ -125,13 +125,13 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 ## Change History
 
 - 14 Feb. 2023, 2023/2/14:
-  - Add support with multi-gpu trainining for ``train_newtork.py``. Thanks to Isotr0py!
+  - Add support with multi-gpu trainining for ``train_network.py``. Thanks to Isotr0py!
   - Add ``--verbose`` option for ``resize_lora.py``. For details, see [this PR](./pull/179). Thanks to mgz-dev!
   - Git commit hash is added to the metadata for LoRA. Thanks to space-nuko!
-  - Add ``--noise_offset`` option for each traing scripts. 
+  - Add ``--noise_offset`` option for each training scripts. 
     - Implementation of https://www.crosslabs.org//blog/diffusion-with-offset-noise 
     - This option may improve ability to generate darker/lighter images. May work with LoRA.
-  - ``train_newtork.py``でマルチGPU学習をサポートしました。Isotr0py氏に感謝します。
+  - ``train_network.py``でマルチGPU学習をサポートしました。Isotr0py氏に感謝します。
   - ``--verbose``オプションを ``resize_lora.py`` に追加しました。表示される情報の詳細は [こちらのPR](./pull/179) をご参照ください。mgz-dev氏に感謝します。
   - LoRAのメタデータにgitのcommit hashを追加しました。space-nuko氏に感謝します。
   - ``--noise_offset`` オプションを各学習スクリプトに追加しました。
