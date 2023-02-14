@@ -378,6 +378,7 @@ def train(args):
   if accelerator.is_main_process:
     accelerator.init_trackers("network_train")
 
+  loss_list = []
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
     train_dataset.set_current_epoch(epoch + 1)
@@ -386,7 +387,6 @@ def train(args):
 
     network.on_epoch_start(text_encoder, unet)
 
-    loss_total = 0
     for step, batch in enumerate(train_dataloader):
       with accelerator.accumulate(network):
         with torch.no_grad():
@@ -446,8 +446,11 @@ def train(args):
         global_step += 1
 
       current_loss = loss.detach().item()
-      loss_total += current_loss
-      avr_loss = loss_total / (step+1)
+      if epoch == 0:
+        loss_list.append(current_loss)
+      else:
+        loss_list[step] = current_loss
+      avr_loss = sum(loss_list) / len(loss_list)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
@@ -459,7 +462,7 @@ def train(args):
         break
 
     if args.logging_dir is not None:
-      logs = {"loss/epoch": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": sum(loss_list) / len(loss_list)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
