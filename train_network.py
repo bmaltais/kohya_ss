@@ -1,5 +1,6 @@
 from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION
 from torch.optim import Optimizer
+from torch.cuda.amp import autocast
 from typing import Optional, Union
 import importlib
 import argparse
@@ -154,7 +155,9 @@ def train(args):
 
   # モデルを読み込む
   text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
-
+  # unnecessary, but work on low-ram device
+  text_encoder.to("cuda")
+  unet.to("cuda")
   # モデルに xformers とか memory efficient attention を組み込む
   train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
@@ -258,16 +261,25 @@ def train(args):
   unet.requires_grad_(False)
   unet.to(accelerator.device, dtype=weight_dtype)
   text_encoder.requires_grad_(False)
-  text_encoder.to(accelerator.device, dtype=weight_dtype)
+  text_encoder.to(accelerator.device)
   if args.gradient_checkpointing:                       # according to TI example in Diffusers, train is required
     unet.train()
     text_encoder.train()
 
     # set top parameter requires_grad = True for gradient checkpointing works
-    text_encoder.text_model.embeddings.requires_grad_(True)
+    if type(text_encoder) == DDP:
+      text_encoder.module.text_model.embeddings.requires_grad_(True)
+    else:
+      text_encoder.text_model.embeddings.requires_grad_(True)
   else:
     unet.eval()
     text_encoder.eval()
+
+  # support DistributedDataParallel
+  if type(text_encoder) == DDP:
+      text_encoder = text_encoder.module
+      unet = unet.module
+      network = network.module
 
   network.prepare_grad_etc(text_encoder, unet)
 
@@ -415,7 +427,8 @@ def train(args):
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
         # Predict the noise residual
-        noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+        with autocast():
+          noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
         if args.v_parameterization:
           # v-parameterization training
