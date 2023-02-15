@@ -233,10 +233,13 @@ def train(args):
           else:
             latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
           latents = latents * 0.18215
+        b_size = latents.shape[0]
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
-        b_size = latents.shape[0]
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Get the text embedding for conditioning
         with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):
