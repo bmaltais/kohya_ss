@@ -124,6 +124,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 16 Feb. 2023, 2023/2/16:
+  - Noise offset is recorded to the metadata. Thanks to space-nuko!
+  - Show the moving average loss to prevent loss jumping in ``train_network.py`` and ``train_db.py``. Thanks to shirayu!
+  - Noise offsetがメタデータに記録されるようになりました。space-nuko氏に感謝します。
+  - ``train_network.py``と``train_db.py``で学習中に表示されるlossの値が移動平均になりました。epochの先頭で表示されるlossが大きく変動する事象を解決します。shirayu氏に感謝します。
 - 14 Feb. 2023, 2023/2/14:
   - Add support with multi-gpu trainining for ``train_network.py``. Thanks to Isotr0py!
   - Add ``--verbose`` option for ``resize_lora.py``. For details, see [this PR](https://github.com/kohya-ss/sd-scripts/pull/179). Thanks to mgz-dev!
