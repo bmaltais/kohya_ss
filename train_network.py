@@ -353,6 +353,7 @@ def train(args):
       "ss_max_bucket_reso": train_dataset.max_bucket_reso,
       "ss_seed": args.seed,
       "ss_keep_tokens": args.keep_tokens,
+      "ss_noise_offset": args.noise_offset,
       "ss_dataset_dirs": json.dumps(train_dataset.dataset_dirs_info),
       "ss_reg_dataset_dirs": json.dumps(train_dataset.reg_dataset_dirs_info),
       "ss_tag_frequency": json.dumps(train_dataset.tag_frequency),
