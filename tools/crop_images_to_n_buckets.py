@@ -20,7 +20,7 @@ def sort_images_by_aspect_ratio(path):
     """Sort all images in a folder by aspect ratio"""
     images = []
     for filename in os.listdir(path):
-        if filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png"):
+        if filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png") or filename.endswith(".webp"):
             img_path = os.path.join(path, filename)
             images.append((img_path, aspect_ratio(img_path)))
     # sort the list of tuples based on the aspect ratio

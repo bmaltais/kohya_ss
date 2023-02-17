@@ -17,6 +17,8 @@ from diffusers import DDPMScheduler
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset
 
+import torch.optim as optim
+import dadaptation
 
 def collate_fn(examples):
   return examples[0]
@@ -133,13 +135,16 @@ def train(args):
     trainable_params = unet.parameters()
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  # optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
   n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers, persistent_workers=args.persistent_data_loader_workers)
+  print('enable dadatation.')
+  optimizer = dadaptation.DAdaptAdam(trainable_params, lr=1.0, decouple=True, weight_decay=0, d0=0.00000001)
+
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
@@ -150,8 +155,14 @@ def train(args):
     args.stop_text_encoder_training = args.max_train_steps + 1                # do not stop until end
 
   # lr schedulerを用意する
-  lr_scheduler = diffusers.optimization.get_scheduler(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
+  # lr_scheduler = diffusers.optimization.get_scheduler(
+  #     args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
+  
+  # For Adam
+  lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
+                                        lr_lambda=[lambda epoch: 1],
+                                        last_epoch=-1,
+                                        verbose=False)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -288,12 +299,14 @@ def train(args):
 
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
-        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
+        # logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
+        logs = {"loss": current_loss, "dlr": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}
         accelerator.log(logs, step=global_step)
 
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
-      logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+      # logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+      logs = {"avg_loss": avr_loss, "dlr": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
       if global_step >= args.max_train_steps:
