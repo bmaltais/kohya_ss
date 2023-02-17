@@ -1423,7 +1423,9 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
   parser.add_argument("--noise_offset", type=float, default=None,
                       help="enable noise offset with this value (if enabled, around 0.1 is recommended) / Noise offsetを有効にしてこの値を設定する（有効にする場合は0.1程度を推奨）")
-
+  parser.add_argument("--lowram", action="store_true",
+                      help="load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)")
+  
   if support_dreambooth:
     # DreamBooth training
     parser.add_argument("--prior_loss_weight", type=float, default=1.0,
