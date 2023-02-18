@@ -206,6 +206,8 @@ def train(args):
   if accelerator.is_main_process:
     accelerator.init_trackers("dreambooth")
 
+  loss_list = []
+  loss_total = 0.0
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
     train_dataset.set_current_epoch(epoch + 1)
@@ -216,7 +218,6 @@ def train(args):
     if args.gradient_checkpointing or global_step < args.stop_text_encoder_training:
       text_encoder.train()
 
-    loss_total = 0
     for step, batch in enumerate(train_dataloader):
       # 指定したステップ数でText Encoderの学習を止める
       if global_step == args.stop_text_encoder_training:
@@ -233,10 +234,13 @@ def train(args):
           else:
             latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
           latents = latents * 0.18215
+        b_size = latents.shape[0]
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
-        b_size = latents.shape[0]
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Get the text embedding for conditioning
         with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):
@@ -291,8 +295,13 @@ def train(args):
         logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
         accelerator.log(logs, step=global_step)
 
+      if epoch == 0:
+        loss_list.append(current_loss)
+      else:
+        loss_total -= loss_list[step]
+        loss_list[step] = current_loss
       loss_total += current_loss
-      avr_loss = loss_total / (step+1)
+      avr_loss = loss_total / len(loss_list)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
@@ -300,7 +309,7 @@ def train(args):
         break
 
     if args.logging_dir is not None:
-      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": loss_total / len(loss_list)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
