@@ -17,8 +17,6 @@ from diffusers import DDPMScheduler
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset
 
-import torch.optim as optim
-import dadaptation
 
 def collate_fn(examples):
   return examples[0]
@@ -135,16 +133,13 @@ def train(args):
     trainable_params = unet.parameters()
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  # optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
   n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)      # cpu_count-1 ただし最大で指定された数まで
   train_dataloader = torch.utils.data.DataLoader(
       train_dataset, batch_size=1, shuffle=False, collate_fn=collate_fn, num_workers=n_workers, persistent_workers=args.persistent_data_loader_workers)
-  print('enable dadatation.')
-  optimizer = dadaptation.DAdaptAdam(trainable_params, lr=1.0, decouple=True, weight_decay=0, d0=0.00000001)
-
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
@@ -155,14 +150,8 @@ def train(args):
     args.stop_text_encoder_training = args.max_train_steps + 1                # do not stop until end
 
   # lr schedulerを用意する
-  # lr_scheduler = diffusers.optimization.get_scheduler(
-  #     args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
-  
-  # For Adam
-  lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
-                                        lr_lambda=[lambda epoch: 1],
-                                        last_epoch=-1,
-                                        verbose=False)
+  lr_scheduler = diffusers.optimization.get_scheduler(
+      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -217,6 +206,8 @@ def train(args):
   if accelerator.is_main_process:
     accelerator.init_trackers("dreambooth")
 
+  loss_list = []
+  loss_total = 0.0
   for epoch in range(num_train_epochs):
     print(f"epoch {epoch+1}/{num_train_epochs}")
     train_dataset.set_current_epoch(epoch + 1)
@@ -227,7 +218,6 @@ def train(args):
     if args.gradient_checkpointing or global_step < args.stop_text_encoder_training:
       text_encoder.train()
 
-    loss_total = 0
     for step, batch in enumerate(train_dataloader):
       # 指定したステップ数でText Encoderの学習を止める
       if global_step == args.stop_text_encoder_training:
@@ -244,10 +234,13 @@ def train(args):
           else:
             latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
           latents = latents * 0.18215
+        b_size = latents.shape[0]
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
-        b_size = latents.shape[0]
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Get the text embedding for conditioning
         with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):
@@ -299,21 +292,24 @@ def train(args):
 
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
-        # logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
-        logs = {"loss": current_loss, "dlr": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}
+        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
         accelerator.log(logs, step=global_step)
 
+      if epoch == 0:
+        loss_list.append(current_loss)
+      else:
+        loss_total -= loss_list[step]
+        loss_list[step] = current_loss
       loss_total += current_loss
-      avr_loss = loss_total / (step+1)
-      # logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
-      logs = {"avg_loss": avr_loss, "dlr": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}  # , "lr": lr_scheduler.get_last_lr()[0]}
+      avr_loss = loss_total / len(loss_list)
+      logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
       if global_step >= args.max_train_steps:
         break
 
     if args.logging_dir is not None:
-      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": loss_total / len(loss_list)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
