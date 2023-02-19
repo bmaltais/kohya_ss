@@ -156,9 +156,10 @@ def train(args):
 
   # モデルを読み込む
   text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
-  # unnecessary, but work on low-ram device
-  text_encoder.to("cuda")
-  unet.to("cuda")
+  # work on low-ram device
+  if args.lowram:
+    text_encoder.to("cuda")
+    unet.to("cuda")
   # モデルに xformers とか memory efficient attention を組み込む
   train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
