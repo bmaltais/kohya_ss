@@ -1391,6 +1391,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
   parser.add_argument("--use_lion_optimizer", action="store_true",
                       help="use Lion optimizer (requires lion-pytorch) / Lionオプティマイザを使う（ lion-pytorch のインストールが必要）")
+  parser.add_argument("--use_dadaptation_optimizer", action="store_true",
+                      help="use dadaptation optimizer (requires dadaptation) / dadaptaionオプティマイザを使う（ dadaptation のインストールが必要）")
   parser.add_argument("--mem_eff_attn", action="store_true",
                       help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
   parser.add_argument("--xformers", action="store_true",
