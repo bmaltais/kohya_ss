@@ -1103,7 +1103,7 @@ def addnet_hash_safetensors(b):
 
 def get_git_revision_hash() -> str:
   try:
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=os.path.dirname(__file__)).decode('ascii').strip()
   except:
     return "(unknown)"
 
