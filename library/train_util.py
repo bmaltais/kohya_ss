@@ -1389,6 +1389,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
   parser.add_argument("--use_8bit_adam", action="store_true",
                       help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
+  parser.add_argument("--use_lion_optimizer", action="store_true",
+                      help="use Lion optimizer (requires lion-pytorch) / Lionオプティマイザを使う（ lion-pytorch のインストールが必要）")
   parser.add_argument("--mem_eff_attn", action="store_true",
                       help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
   parser.add_argument("--xformers", action="store_true",
@@ -1424,8 +1426,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
   parser.add_argument("--noise_offset", type=float, default=None,
                       help="enable noise offset with this value (if enabled, around 0.1 is recommended) / Noise offsetを有効にしてこの値を設定する（有効にする場合は0.1程度を推奨）")
   parser.add_argument("--lowram", action="store_true",
-                      help="load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)")
-  
+                      help="enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle) / メインメモリが少ない環境向け最適化を有効にする。たとえばVRAMにモデルを読み込むなど（ColabやKaggleなどRAMに比べてVRAMが多い環境向け）")
+
   if support_dreambooth:
     # DreamBooth training
     parser.add_argument("--prior_loss_weight", type=float, default=1.0,

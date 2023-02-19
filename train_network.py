@@ -156,10 +156,12 @@ def train(args):
 
   # モデルを読み込む
   text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+
   # work on low-ram device
   if args.lowram:
     text_encoder.to("cuda")
     unet.to("cuda")
+  
   # モデルに xformers とか memory efficient attention を組み込む
   train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
@@ -214,6 +216,13 @@ def train(args):
       raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
     print("use 8-bit Adam optimizer")
     optimizer_class = bnb.optim.AdamW8bit
+  elif args.use_lion_optimizer:
+    try:
+      import lion_pytorch
+    except ImportError:
+      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
+    print("use Lion optimizer")
+    optimizer_class = lion_pytorch.Lion
   else:
     optimizer_class = torch.optim.AdamW
 

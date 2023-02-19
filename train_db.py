@@ -124,6 +124,13 @@ def train(args):
       raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
     print("use 8-bit Adam optimizer")
     optimizer_class = bnb.optim.AdamW8bit
+  elif args.use_lion_optimizer:
+    try:
+      import lion_pytorch
+    except ImportError:
+      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
+    print("use Lion optimizer")
+    optimizer_class = lion_pytorch.Lion
   else:
     optimizer_class = torch.optim.AdamW
 
