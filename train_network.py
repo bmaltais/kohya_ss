@@ -226,6 +226,8 @@ def train(args):
   else:
     optimizer_class = torch.optim.AdamW
 
+  optimizer_name = optimizer_class.__module__ + "." + optimizer_class.__name__
+
   trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
@@ -369,7 +371,8 @@ def train(args):
       "ss_tag_frequency": json.dumps(train_dataset.tag_frequency),
       "ss_bucket_info": json.dumps(train_dataset.bucket_info),
       "ss_training_comment": args.training_comment,       # will not be updated after training
-      "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash()
+      "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
+      "ss_optimizer": optimizer_name
   }
 
   # uncomment if another network is added
