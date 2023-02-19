@@ -165,6 +165,16 @@ def train(args):
       raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
     print("use Lion optimizer")
     optimizer_class = lion_pytorch.Lion
+  elif args.use_dadaptation_optimizer:
+    try:
+      import dadaptation
+    except ImportError:
+      raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
+    print("use dadaptation optimizer")
+    optimizer_class = dadaptation.DAdaptAdam
+    if args.learning_rate <= 0.1:
+      print('learning rate is too low. If using dadaptaion, set learning rate around 1.0.')
+      print('recommend option: lr=1.0')
   else:
     optimizer_class = torch.optim.AdamW
 
