@@ -143,9 +143,23 @@ Then redo the installation instruction within the kohya_ss venv.
 
 ## Change history
 
+* 2023/02/19 (v20.7.4):
+    - Add `--use_lion_optimizer` to each training script to use [Lion optimizer](https://github.com/lucidrains/lion-pytorch).
+        - Please install Lion optimizer with `pip install lion-pytorch` (it is not in ``requirements.txt`` currently.)
+    - Add `--lowram` option to `train_network.py`. Load models to VRAM instead of VRAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle). Thanks to Isotr0py!
+        - Default behavior (without lowram) has reverted to the same as before 14 Feb.
+    - Fixed git commit hash to be set correctly regardless of the working directory. Thanks to vladmandic!
 * 2023/02/15 (v20.7.3):
     - Update upgrade.ps1 script
     - Integrate new kohya sd-script
+    - Noise offset is recorded to the metadata. Thanks to space-nuko!
+    - Show the moving average loss to prevent loss jumping in `train_network.py` and `train_db.py`. Thanks to shirayu!
+    - Add support with multi-gpu trainining for `train_network.py`. Thanks to Isotr0py!
+    - Add `--verbose` option for `resize_lora.py`. For details, see [this PR](https://github.com/kohya-ss/sd-scripts/pull/179). Thanks to mgz-dev!
+    - Git commit hash is added to the metadata for LoRA. Thanks to space-nuko!
+    - Add `--noise_offset` option for each training scripts. 
+        - Implementation of https://www.crosslabs.org//blog/diffusion-with-offset-noise 
+        - This option may improve ability to generate darker/lighter images. May work with LoRA.
 * 2023/02/11 (v20.7.2):
     - `lora_interrogator.py` is added in `networks` folder. See `python networks\lora_interrogator.py -h` for usage.
         - For LoRAs where the activation word is unknown, this script compares the output of Text Encoder after applying LoRA to that of unapplied to find out which token is affected by LoRA. Hopefully you can figure out the activation word. LoRA trained with captions does not seem to be able to interrogate.
