@@ -64,6 +64,12 @@ cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_set
 accelerate config
 ```
 
+<!-- 
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install --use-pep517 --upgrade -r requirements.txt
+pip install -U -I --no-deps xformers==0.0.16
+-->
+
 コマンドプロンプトでは以下になります。
 
 
