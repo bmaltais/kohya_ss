@@ -208,30 +208,8 @@ def train(args):
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
 
-  # 8-bit Adamを使う
-  if args.use_8bit_adam:
-    try:
-      import bitsandbytes as bnb
-    except ImportError:
-      raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adam optimizer")
-    optimizer_class = bnb.optim.AdamW8bit
-  elif args.use_lion_optimizer:
-    try:
-      import lion_pytorch
-    except ImportError:
-      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-    print("use Lion optimizer")
-    optimizer_class = lion_pytorch.Lion
-  else:
-    optimizer_class = torch.optim.AdamW
-
-  optimizer_name = optimizer_class.__module__ + "." + optimizer_class.__name__
-
   trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
-
-  # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  optimizer_name, optimizer = train_util.get_optimizer(args, trainable_params)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -555,6 +533,7 @@ if __name__ == '__main__':
   train_util.add_sd_models_arguments(parser)
   train_util.add_dataset_arguments(parser, True, True, True)
   train_util.add_training_arguments(parser, True)
+  train_util.add_optimizer_arguments(parser)
 
   parser.add_argument("--no_metadata", action='store_true', help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
   parser.add_argument("--save_model_as", type=str, default="safetensors", choices=[None, "ckpt", "pt", "safetensors"],
