@@ -37,6 +37,9 @@ def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_sche
     logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
     logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]          # may be same to textencoder
 
+  if args.use_dadaptation_optimizer: # tracking d*lr value of unet.
+    logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]['d']*lr_scheduler.optimizers[-1].param_groups[0]['lr']
+
   return logs
 
 
