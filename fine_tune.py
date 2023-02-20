@@ -149,37 +149,7 @@ def train(args):
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
-
-  # 8-bit Adamを使う
-  if args.use_8bit_adam:
-    try:
-      import bitsandbytes as bnb
-    except ImportError:
-      raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adam optimizer")
-    optimizer_class = bnb.optim.AdamW8bit
-  elif args.use_lion_optimizer:
-    try:
-      import lion_pytorch
-    except ImportError:
-      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-    print("use Lion optimizer")
-    optimizer_class = lion_pytorch.Lion
-  elif args.use_dadaptation_optimizer:
-    try:
-      import dadaptation
-    except ImportError:
-      raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
-    print("use dadaptation optimizer")
-    optimizer_class = dadaptation.DAdaptAdam
-    if args.learning_rate <= 0.1:
-      print('learning rate is too low. If using dadaptaion, set learning rate around 1.0.')
-      print('recommend option: lr=1.0')
-  else:
-    optimizer_class = torch.optim.AdamW
-
-  # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(params_to_optimize, lr=args.learning_rate)
+  optimizer_name, optimizer = train_util.get_optimizer(args, trainable_params=params_to_optimize)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -361,6 +331,7 @@ if __name__ == '__main__':
   train_util.add_dataset_arguments(parser, False, True, True)
   train_util.add_training_arguments(parser, False)
   train_util.add_sd_saving_arguments(parser)
+  train_util.add_optimizer_arguments(parser)
 
   parser.add_argument("--diffusers_xformers", action='store_true',
                       help='use xformers by diffusers / Diffusersでxformersを使用する')
