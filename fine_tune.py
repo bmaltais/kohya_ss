@@ -149,7 +149,7 @@ def train(args):
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
-  optimizer_name, optimizer = train_util.get_optimizer(args, trainable_params=params_to_optimize)
+  _, optimizer = train_util.get_optimizer(args, trainable_params=params_to_optimize)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -163,8 +163,10 @@ def train(args):
     print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
-  lr_scheduler = diffusers.optimization.get_scheduler(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
+  lr_scheduler = train_util.get_scheduler_fix(
+      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+      num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+      num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -284,8 +286,11 @@ def train(args):
       current_loss = loss.detach().item()        # 平均なのでbatch sizeは関係ないはず
       if args.logging_dir is not None:
         logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
+        if args.optimizer_type == "DAdaptation".lower(): # tracking d*lr value
+          logs["lr/d*lr"] = lr_scheduler.optimizers[0].param_groups[0]['d']*lr_scheduler.optimizers[0].param_groups[0]['lr']
         accelerator.log(logs, step=global_step)
 
+      # TODO moving averageにする
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
       logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
@@ -295,7 +300,7 @@ def train(args):
         break
 
     if args.logging_dir is not None:
-      logs = {"epoch_loss": loss_total / len(train_dataloader)}
+      logs = {"loss/epoch": loss_total / len(train_dataloader)}
       accelerator.log(logs, step=epoch+1)
 
     accelerator.wait_for_everyone()
