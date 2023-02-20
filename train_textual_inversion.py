@@ -214,6 +214,13 @@ def train(args):
       raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
     print("use 8-bit Adam optimizer")
     optimizer_class = bnb.optim.AdamW8bit
+  elif args.use_lion_optimizer:
+    try:
+      import lion_pytorch
+    except ImportError:
+      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
+    print("use Lion optimizer")
+    optimizer_class = lion_pytorch.Lion
   else:
     optimizer_class = torch.optim.AdamW
 
@@ -344,6 +351,9 @@ def train(args):
 
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents, device=latents.device)
+        if args.noise_offset:
+          # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+          noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
 
         # Sample a random timestep for each image
         timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)

@@ -12,6 +12,7 @@ import math
 import os
 import random
 import hashlib
+import subprocess
 from io import BytesIO
 
 from tqdm import tqdm
@@ -299,7 +300,7 @@ class BaseDataset(torch.utils.data.Dataset):
         if self.shuffle_keep_tokens is None:
           if self.shuffle_caption:
             random.shuffle(tokens)
-          
+
           tokens = dropout_tags(tokens)
         else:
           if len(tokens) > self.shuffle_keep_tokens:
@@ -308,7 +309,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
             if self.shuffle_caption:
               random.shuffle(tokens)
-            
+
             tokens = dropout_tags(tokens)
 
             tokens = keep_tokens + tokens
@@ -1100,6 +1101,13 @@ def addnet_hash_safetensors(b):
   return hash_sha256.hexdigest()
 
 
+def get_git_revision_hash() -> str:
+  try:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=os.path.dirname(__file__)).decode('ascii').strip()
+  except:
+    return "(unknown)"
+
+
 # flash attention forwards and backwards
 
 # https://arxiv.org/abs/2205.14135
@@ -1381,6 +1389,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="max token length of text encoder (default for 75, 150 or 225) / text encoderのトークンの最大長（未指定で75、150または225が指定可）")
   parser.add_argument("--use_8bit_adam", action="store_true",
                       help="use 8bit Adam optimizer (requires bitsandbytes) / 8bit Adamオプティマイザを使う（bitsandbytesのインストールが必要）")
+  parser.add_argument("--use_lion_optimizer", action="store_true",
+                      help="use Lion optimizer (requires lion-pytorch) / Lionオプティマイザを使う（ lion-pytorch のインストールが必要）")
   parser.add_argument("--mem_eff_attn", action="store_true",
                       help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う")
   parser.add_argument("--xformers", action="store_true",
@@ -1413,6 +1423,10 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                       help="scheduler to use for learning rate / 学習率のスケジューラ: linear, cosine, cosine_with_restarts, polynomial, constant (default), constant_with_warmup")
   parser.add_argument("--lr_warmup_steps", type=int, default=0,
                       help="Number of steps for the warmup in the lr scheduler (default is 0) / 学習率のスケジューラをウォームアップするステップ数（デフォルト0）")
+  parser.add_argument("--noise_offset", type=float, default=None,
+                      help="enable noise offset with this value (if enabled, around 0.1 is recommended) / Noise offsetを有効にしてこの値を設定する（有効にする場合は0.1程度を推奨）")
+  parser.add_argument("--lowram", action="store_true",
+                      help="enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle) / メインメモリが少ない環境向け最適化を有効にする。たとえばVRAMにモデルを読み込むなど（ColabやKaggleなどRAMに比べてVRAMが多い環境向け）")
 
   if support_dreambooth:
     # DreamBooth training
@@ -1620,9 +1634,6 @@ def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encod
   else:
     enc_out = text_encoder(input_ids, output_hidden_states=True, return_dict=True)
     encoder_hidden_states = enc_out['hidden_states'][-args.clip_skip]
-    if weight_dtype is not None:
-      # this is required for additional network training
-      encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
     encoder_hidden_states = text_encoder.text_model.final_layer_norm(encoder_hidden_states)
 
   # bs*3, 77, 768 or 1024
@@ -1648,6 +1659,10 @@ def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encod
         states_list.append(encoder_hidden_states[:, i:i + tokenizer.model_max_length - 2])  # <BOS> の後から <EOS> の前まで
       states_list.append(encoder_hidden_states[:, -1].unsqueeze(1))                         # <EOS>
       encoder_hidden_states = torch.cat(states_list, dim=1)
+
+  if weight_dtype is not None:
+    # this is required for additional network training
+    encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
 
   return encoder_hidden_states
 

@@ -445,6 +445,7 @@ def gradio_training(
             value=2,
         )
         seed = gr.Textbox(label='Seed', value=1234)
+        cache_latents = gr.Checkbox(label='Cache latent', value=True)
     with gr.Row():
         learning_rate = gr.Textbox(
             label='Learning rate', value=learning_rate_value
@@ -464,7 +465,15 @@ def gradio_training(
         lr_warmup = gr.Textbox(
             label='LR warmup (% of steps)', value=lr_warmup_value
         )
-        cache_latents = gr.Checkbox(label='Cache latent', value=True)
+        optimizer = gr.Dropdown(
+            label='Optimizer',
+            choices=[
+                'AdamW',
+                'Lion',
+            ],
+            value="AdamW",
+            interactive=True,
+        )
     return (
         learning_rate,
         lr_scheduler,
@@ -478,6 +487,7 @@ def gradio_training(
         seed,
         caption_extension,
         cache_latents,
+        optimizer,
     )
 
 
@@ -512,9 +522,33 @@ def run_cmd_training(**kwargs):
         if kwargs.get('caption_extension')
         else '',
         ' --cache_latents' if kwargs.get('cache_latents') else '',
+        ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
     ]
     run_cmd = ''.join(options)
     return run_cmd
+
+# # This function takes a dictionary of keyword arguments and returns a string that can be used to run a command-line training script
+# def run_cmd_training(**kwargs):
+#     arg_map = {
+#         'learning_rate': ' --learning_rate="{}"',
+#         'lr_scheduler': ' --lr_scheduler="{}"',
+#         'lr_warmup_steps': ' --lr_warmup_steps="{}"',
+#         'train_batch_size': ' --train_batch_size="{}"',
+#         'max_train_steps': ' --max_train_steps="{}"',
+#         'save_every_n_epochs': ' --save_every_n_epochs="{}"',
+#         'mixed_precision': ' --mixed_precision="{}"',
+#         'save_precision': ' --save_precision="{}"',
+#         'seed': ' --seed="{}"',
+#         'caption_extension': ' --caption_extension="{}"',
+#         'cache_latents': ' --cache_latents',
+#         'optimizer': ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
+#     }
+
+#     options = [arg_map[key].format(value) for key, value in kwargs.items() if key in arg_map and value]
+
+#     cmd = ''.join(options)
+
+#     return cmd
 
 
 def gradio_advanced_training():
@@ -664,3 +698,34 @@ def run_cmd_advanced_training(**kwargs):
     ]
     run_cmd = ''.join(options)
     return run_cmd
+
+# def run_cmd_advanced_training(**kwargs):
+#     arg_map = {
+#         'max_train_epochs': ' --max_train_epochs="{}"',
+#         'max_data_loader_n_workers': ' --max_data_loader_n_workers="{}"',
+#         'max_token_length': ' --max_token_length={}' if int(kwargs.get('max_token_length', 75)) > 75 else '',
+#         'clip_skip': ' --clip_skip={}' if int(kwargs.get('clip_skip', 1)) > 1 else '',
+#         'resume': ' --resume="{}"',
+#         'keep_tokens': ' --keep_tokens="{}"' if int(kwargs.get('keep_tokens', 0)) > 0 else '',
+#         'caption_dropout_every_n_epochs': ' --caption_dropout_every_n_epochs="{}"' if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0 else '',
+#         'caption_dropout_rate': ' --caption_dropout_rate="{}"' if float(kwargs.get('caption_dropout_rate', 0)) > 0 else '',
+#         'bucket_reso_steps': ' --bucket_reso_steps={:d}' if int(kwargs.get('bucket_reso_steps', 64)) >= 1 else '',
+#         'save_state': ' --save_state',
+#         'mem_eff_attn': ' --mem_eff_attn',
+#         'color_aug': ' --color_aug',
+#         'flip_aug': ' --flip_aug',
+#         'shuffle_caption': ' --shuffle_caption',
+#         'gradient_checkpointing': ' --gradient_checkpointing',
+#         'full_fp16': ' --full_fp16',
+#         'xformers': ' --xformers',
+#         'use_8bit_adam': ' --use_8bit_adam',
+#         'persistent_data_loader_workers': ' --persistent_data_loader_workers',
+#         'bucket_no_upscale': ' --bucket_no_upscale',
+#         'random_crop': ' --random_crop',
+#     }
+
+#     options = [arg_map[key].format(value) for key, value in kwargs.items() if key in arg_map and value]
+
+#     cmd = ''.join(options)
+
+#     return cmd
