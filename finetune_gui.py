@@ -85,6 +85,7 @@ def save_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -181,6 +182,7 @@ def open_config_file(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -262,6 +264,7 @@ def train_model(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     # create caption json file
     if generate_caption_database:
@@ -386,6 +389,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        optimizer=optimizer,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -564,6 +568,7 @@ def finetune_tab():
             seed,
             caption_extension,
             cache_latents,
+            optimizer,
         ) = gradio_training(learning_rate_value='1e-5')
         with gr.Row():
             dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
@@ -661,6 +666,7 @@ def finetune_tab():
         random_crop,
         bucket_reso_steps,
         caption_dropout_every_n_epochs, caption_dropout_rate,
+        optimizer,
     ]
 
     button_run.click(train_model, inputs=settings_list)

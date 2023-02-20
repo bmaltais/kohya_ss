@@ -95,6 +95,7 @@ def save_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -195,6 +196,7 @@ def open_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -275,6 +277,7 @@ def train_model(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
+    optimizer,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -434,6 +437,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        optimizer=optimizer,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -623,6 +627,7 @@ def ti_tab(
             seed,
             caption_extension,
             cache_latents,
+            optimizer,
         ) = gradio_training(
             learning_rate_value='1e-5',
             lr_scheduler_value='cosine',
@@ -756,6 +761,7 @@ def ti_tab(
         random_crop,
         bucket_reso_steps,
         caption_dropout_every_n_epochs, caption_dropout_rate,
+        optimizer,
     ]
 
     button_open_config.click(
