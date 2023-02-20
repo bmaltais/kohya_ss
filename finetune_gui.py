@@ -104,8 +104,8 @@ def save_configuration(
 
     # print(file_path)
 
-    if file_path == None:
-        return original_file_path
+    if file_path == None or file_path == '':
+        return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Return the values of the variables as a dictionary
     variables = {
@@ -117,6 +117,13 @@ def save_configuration(
             'save_as',
         ]
     }
+
+    # Extract the destination directory from the file path
+    destination_directory = os.path.dirname(file_path)
+
+    # Create the destination directory if it doesn't exist
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:

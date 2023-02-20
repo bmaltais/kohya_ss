@@ -133,6 +133,13 @@ def save_configuration(
         ]
     }
 
+    # Extract the destination directory from the file path
+    destination_directory = os.path.dirname(file_path)
+
+    # Create the destination directory if it doesn't exist
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
+
     # Save the data to the selected file
     with open(file_path, 'w') as file:
         json.dump(variables, file, indent=2)
