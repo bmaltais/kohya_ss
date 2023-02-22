@@ -126,20 +126,22 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 - 22 Feb. 2023, 2023/2/22:
   - Refactor optmizer options. Thanks to mgz-dev!
-    - Add ``--optimizer_type`` option for each training script. Please see help. Japanese documentation is here.
+    - Add ``--optimizer_type`` option for each training script. Please see help. Japanese documentation is [here](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6).
     - ``--use_8bit_adam`` and ``--use_lion_optimizer`` options also work, but override above option.
   - Add SGDNesterov and its 8bit.
-  - Add D-Adaptation optimizer. Thanks to BootsofLagrangian and all! 
+  - Add [D-Adaptation](https://github.com/facebookresearch/dadaptation) optimizer. Thanks to BootsofLagrangian and all! 
+    - Please install D-Adaptation optimizer with ``pip install dadaptation`` (it is not in requirements.txt currently.)
     - Please see https://github.com/kohya-ss/sd-scripts/issues/181 for details.
   - Add AdaFactor optimizer. Thanks to Toshiaki!
   - Extra lr scheduler settings (num_cycles etc.) are working in training scripts other than ``train_network.py``.
   - Add ``--max_grad_norm`` option for each training script for gradient clipping. ``0.0`` disables clipping. 
   - Symbolic link can be loaded in each training script. Thanks to TkskKurumi!
   - オプティマイザ関連のオプションを見直しました。mgz-dev氏に感謝します。
-    - ``--optimizer_type`` を各学習スクリプトに追加しました。ドキュメントはこちら。
+    - ``--optimizer_type`` を各学習スクリプトに追加しました。ドキュメントは[こちら](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)。
     - ``--use_8bit_adam`` と ``--use_lion_optimizer`` のオプションは依然として動作しますがoptimizer_typeを上書きしますのでご注意ください。
   - SGDNesterov オプティマイザおよびその8bit版を追加しました。
-  - D-Adaptation オプティマイザを追加しました。BootsofLagrangian 氏および諸氏に感謝します。
+  - [D-Adaptation](https://github.com/facebookresearch/dadaptation) オプティマイザを追加しました。BootsofLagrangian 氏および諸氏に感謝します。
+    - ``pip install dadaptation`` コマンドで別途インストールが必要です（現時点ではrequirements.txtに含まれておりません）。
     - こちらのissueもあわせてご覧ください。 https://github.com/kohya-ss/sd-scripts/issues/181 
   - AdaFactor オプティマイザを追加しました。Toshiaki氏に感謝します。 
   - 追加のスケジューラ設定（num_cycles等）が ``train_network.py`` 以外の学習スクリプトでも使えるようになりました。
