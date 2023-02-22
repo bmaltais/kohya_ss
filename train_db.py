@@ -115,32 +115,12 @@ def train(args):
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
-
-  # 8-bit Adamを使う
-  if args.use_8bit_adam:
-    try:
-      import bitsandbytes as bnb
-    except ImportError:
-      raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adam optimizer")
-    optimizer_class = bnb.optim.AdamW8bit
-  elif args.use_lion_optimizer:
-    try:
-      import lion_pytorch
-    except ImportError:
-      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-    print("use Lion optimizer")
-    optimizer_class = lion_pytorch.Lion
-  else:
-    optimizer_class = torch.optim.AdamW
-
   if train_text_encoder:
     trainable_params = (itertools.chain(unet.parameters(), text_encoder.parameters()))
   else:
     trainable_params = unet.parameters()
 
-  # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -156,9 +136,10 @@ def train(args):
   if args.stop_text_encoder_training is None:
     args.stop_text_encoder_training = args.max_train_steps + 1                # do not stop until end
 
-  # lr schedulerを用意する
-  lr_scheduler = diffusers.optimization.get_scheduler(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps)
+  # lr schedulerを用意する TODO gradient_accumulation_stepsの扱いが何かおかしいかもしれない。後で確認する
+  lr_scheduler = train_util.get_scheduler_fix(args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+                                              num_training_steps=args.max_train_steps,
+                                              num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -281,12 +262,12 @@ def train(args):
         loss = loss.mean()                # 平均なのでbatch_sizeで割る必要なし
 
         accelerator.backward(loss)
-        if accelerator.sync_gradients:
+        if accelerator.sync_gradients and args.max_grad_norm != 0.0:
           if train_text_encoder:
             params_to_clip = (itertools.chain(unet.parameters(), text_encoder.parameters()))
           else:
             params_to_clip = unet.parameters()
-          accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
+          accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
         optimizer.step()
         lr_scheduler.step()
@@ -299,7 +280,9 @@ def train(args):
 
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
-        logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
+        logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
+        if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value
+          logs["lr/d*lr"] = lr_scheduler.optimizers[0].param_groups[0]['d']*lr_scheduler.optimizers[0].param_groups[0]['lr']
         accelerator.log(logs, step=global_step)
 
       if epoch == 0:
@@ -352,6 +335,7 @@ if __name__ == '__main__':
   train_util.add_dataset_arguments(parser, True, False, True)
   train_util.add_training_arguments(parser, True)
   train_util.add_sd_saving_arguments(parser)
+  train_util.add_optimizer_arguments(parser)
 
   parser.add_argument("--no_token_padding", action="store_true",
                       help="disable token padding (same as Diffuser's DreamBooth) / トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）")
