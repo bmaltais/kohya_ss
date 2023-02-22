@@ -28,14 +28,14 @@ def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_sche
   logs = {"loss/current": current_loss, "loss/average": avr_loss}
 
   if args.network_train_unet_only:
-    logs["lr/unet"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/unet"] = float(lr_scheduler.get_last_lr()[0])
   elif args.network_train_text_encoder_only:
-    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
   else:
-    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
-    logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]          # may be same to textencoder
+    logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
+    logs["lr/unet"] = float(lr_scheduler.get_last_lr()[-1])          # may be same to textencoder
 
-  if args.optimizer_type == "DAdaptation".lower():  # tracking d*lr value of unet.
+  if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value of unet.
     logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]['d']*lr_scheduler.optimizers[-1].param_groups[0]['lr']
 
   return logs
@@ -147,7 +147,7 @@ def train(args):
   print("prepare optimizer, data loader etc.")
 
   trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
-  optimizer_name, optimizer = train_util.get_optimizer(args, trainable_params)
+  optimizer_name, optimizer_args, optimizer = train_util.get_optimizer(args, trainable_params)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -161,10 +161,9 @@ def train(args):
     print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
-  lr_scheduler = train_util.get_scheduler_fix(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
-      num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
-      num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
+  lr_scheduler = train_util.get_scheduler_fix(args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+                                              num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+                                              num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -287,7 +286,7 @@ def train(args):
       "ss_bucket_info": json.dumps(train_dataset.bucket_info),
       "ss_training_comment": args.training_comment,       # will not be updated after training
       "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
-      "ss_optimizer": optimizer_name
+      "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else "")
   }
 
   # uncomment if another network is added
@@ -380,9 +379,9 @@ def train(args):
         loss = loss.mean()                # 平均なのでbatch_sizeで割る必要なし
 
         accelerator.backward(loss)
-        if accelerator.sync_gradients:
+        if accelerator.sync_gradients and args.max_grad_norm != 0.0:
           params_to_clip = network.get_trainable_params()
-          accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
+          accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
         optimizer.step()
         lr_scheduler.step()
@@ -478,10 +477,6 @@ if __name__ == '__main__':
 
   parser.add_argument("--unet_lr", type=float, default=None, help="learning rate for U-Net / U-Netの学習率")
   parser.add_argument("--text_encoder_lr", type=float, default=None, help="learning rate for Text Encoder / Text Encoderの学習率")
-  parser.add_argument("--lr_scheduler_num_cycles", type=int, default=1,
-                      help="Number of restarts for cosine scheduler with restarts / cosine with restartsスケジューラでのリスタート回数")
-  parser.add_argument("--lr_scheduler_power", type=float, default=1,
-                      help="Polynomial power for polynomial scheduler / polynomialスケジューラでのpolynomial power")
 
   parser.add_argument("--network_weights", type=str, default=None,
                       help="pretrained weights for network / 学習するネットワークの初期重み")
