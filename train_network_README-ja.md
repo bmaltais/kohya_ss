@@ -10,7 +10,7 @@
 
 cloneofsimo氏のリポジトリ、およびd8ahazard氏の[Dreambooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_dreambooth_extension)とは、現時点では互換性がありません。いくつかの機能拡張を行っているためです（後述）。
 
-WebUI等で画像生成する場合には、学習したLoRAのモデルを学習元のStable Diffusionのモデルにこのリポジトリ内のスクリプトであらかじめマージしておくか、こちらの[WebUI用extention](https://github.com/kohya-ss/sd-webui-additional-networks)を使ってください。
+WebUI等で画像生成する場合には、学習したLoRAのモデルを学習元のStable Diffusionのモデルにこのリポジトリ内のスクリプトであらかじめマージしておくか、こちらの[WebUI用extension](https://github.com/kohya-ss/sd-webui-additional-networks)を使ってください。
 
 ## 学習方法
 
@@ -50,12 +50,14 @@ accelerate launch --num_cpu_threads_per_process 1 train_network.py
     --train_data_dir=..\data\db\char1 --output_dir=..\lora_train1 
     --reg_data_dir=..\data\db\reg1 --prior_loss_weight=1.0 
     --resolution=448,640 --train_batch_size=1 --learning_rate=1e-4 
-    --max_train_steps=400 --use_8bit_adam --xformers --mixed_precision=fp16 
+    --max_train_steps=400 --optimizer_type=AdamW8bit --xformers --mixed_precision=fp16 
     --save_every_n_epochs=1 --save_model_as=safetensors --clip_skip=2 --seed=42 --color_aug 
     --network_module=networks.lora
 ```
 
---output_dirオプションで指定したディレクトリに、LoRAのモデルが保存されます。
+（2023/2/22:オプティマイザの指定方法が変わりました。[こちら](#オプティマイザの指定について）をご覧ください。）
+
+--output_dirオプションで指定したフォルダに、LoRAのモデルが保存されます。
 
 その他、以下のオプションが指定できます。
 
@@ -75,6 +77,42 @@ accelerate launch --num_cpu_threads_per_process 1 train_network.py
   * Text Encoderに関連するLoRAモジュールに、通常の学習率（--learning_rateオプションで指定）とは異なる学習率を使う時に指定します。Text Encoderのほうを若干低めの学習率（5e-5など）にしたほうが良い、という話もあるようです。
 
 --network_train_unet_onlyと--network_train_text_encoder_onlyの両方とも未指定時（デフォルト）はText EncoderとU-Netの両方のLoRAモジュールを有効にします。
+
+## オプティマイザの指定について
+
+--optimizer_type オプションでオプティマイザの種類を指定します。以下が指定できます。
+
+- AdamW : [torch.optim.AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
+  - 過去のバージョンのオプション未指定時と同じ
+- AdamW8bit : 引数は同上
+  - 過去のバージョンの--use_8bit_adam指定時と同じ
+- Lion : https://github.com/lucidrains/lion-pytorch
+  - 過去のバージョンの--use_lion_optimizer指定時と同じ
+- SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
+- SGDNesterov8bit : 引数は同上
+- DAdaptation : https://github.com/facebookresearch/dadaptation
+- AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
+- 任意のオプティマイザ
+
+オプティマイザのオプション引数は--optimizer_argsオプションで指定してください。key=valueの形式で、複数の値が指定できます。また、valueはカンマ区切りで複数の値が指定できます。たとえばAdamWオプティマイザに引数を指定する場合は、``--optimizer_args weight_decay=0.01 betas=.9,.999``のようになります。
+
+オプション引数を指定する場合は、それぞれのオプティマイザの仕様をご確認ください。
+
+一部のオプティマイザでは必須の引数があり、省略すると自動的に追加されます（SGDNesterovのmomentumなど）。コンソールの出力を確認してください。
+
+D-Adaptationオプティマイザは学習率を自動調整します。学習率のオプションに指定した値は学習率そのものではなくD-Adaptationが決定した学習率の適用率になりますので、通常は1.0を指定してください。Text EncoderにU-Netの半分の学習率を指定したい場合は、``--text_encoder_lr=0.5 --unet_lr=1.0``と指定します。
+
+AdaFactorオプティマイザはrelative_step=Trueを指定すると学習率を自動調整できます（省略時はデフォルトで追加されます）。自動調整する場合は学習率のスケジューラにはadafactor_schedulerが強制的に使用されます。またscale_parameterとwarmup_initを指定するとよいようです。
+
+自動調整する場合のオプション指定はたとえば ``--optimizer_args "relative_step=True" "scale_parameter=True" "warmup_init=True"`` のようになります。
+
+学習率を自動調整しない場合はオプション引数 ``relative_step=False`` を追加してください。その場合、学習率のスケジューラにはconstant_with_warmupが、また勾配のclip normをしないことが推奨されているようです。そのため引数は ``--optimizer_type=adafactor --optimizer_args "relative_step=False" --lr_scheduler="constant_with_warmup" --max_grad_norm=0.0`` のようになります。
+
+### 任意のオプティマイザを使う
+
+``torch.optim`` のオプティマイザを使う場合にはクラス名のみを（``--optimizer_type=RMSprop``など）、他のモジュールのオプティマイザを使う時は「モジュール名.クラス名」を指定してください（``--optimizer_type=bitsandbytes.optim.lamb.LAMB``など）。
+
+（内部でimportlibしているだけで動作は未確認です。必要ならパッケージをインストールしてください。）
 
 ## マージスクリプトについて
 
@@ -177,6 +215,38 @@ Text Encoderが二つのモデルで同じ場合にはLoRAはU-NetのみのLoRA�
   - ``--device cuda``としてcudaを指定すると計算をGPU上で行います。処理が速くなります（CPUでもそこまで遅くないため、せいぜい倍～数倍程度のようです）。
 - --save_precision
   - LoRAの保存形式を"float", "fp16", "bf16"から指定します。省略時はfloatになります。
+
+## 画像リサイズスクリプト
+
+（のちほどドキュメントを整理しますがとりあえずここに説明を書いておきます。）
+
+Aspect Ratio Bucketingの機能拡張で、小さな画像については拡大しないでそのまま教師データとすることが可能になりました。元の教師画像を縮小した画像を、教師データに加えると精度が向上したという報告とともに前処理用のスクリプトをいただきましたので整備して追加しました。bmaltais氏に感謝します。
+
+### スクリプトの実行方法
+
+以下のように指定してください。元の画像そのまま、およびリサイズ後の画像が変換先フォルダに保存されます。リサイズ後の画像には、ファイル名に ``+512x512`` のようにリサイズ先の解像度が付け加えられます（画像サイズとは異なります）。リサイズ先の解像度より小さい画像は拡大されることはありません。
+
+```
+python tools\resize_images_to_resolution.py --max_resolution 512x512,384x384,256x256 --save_as_png 
+    --copy_associated_files 元画像フォルダ 変換先フォルダ
+```
+
+元画像フォルダ内の画像ファイルが、指定した解像度（複数指定可）と同じ面積になるようにリサイズされ、変換先フォルダに保存されます。画像以外のファイルはそのままコピーされます。
+
+``--max_resolution`` オプションにリサイズ先のサイズを例のように指定してください。面積がそのサイズになるようにリサイズします。複数指定すると、それぞれの解像度でリサイズされます。``512x512,384x384,256x256``なら、変換先フォルダの画像は、元サイズとリサイズ後サイズ×3の計4枚になります。
+
+``--save_as_png`` オプションを指定するとpng形式で保存します。省略するとjpeg形式（quality=100）で保存されます。
+
+``--copy_associated_files`` オプションを指定すると、拡張子を除き画像と同じファイル名（たとえばキャプションなど）のファイルが、リサイズ後の画像のファイル名と同じ名前でコピーされます。
+
+
+### その他のオプション
+
+- divisible_by
+  - リサイズ後の画像のサイズ（縦、横のそれぞれ）がこの値で割り切れるように、画像中心を切り出します。
+- interpolation
+  - 縮小時の補完方法を指定します。``area, cubic, lanczos4``から選択可能で、デフォルトは``area``です。
+
 
 ## 追加情報
 

@@ -163,6 +163,18 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/02/22 (v20.8.0):
+    - Refactor optmizer options. Thanks to mgz-dev!
+        - Add `--optimizer_type` option for each training script. Please see help. Japanese documentation is [here](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6).
+        - `--use_8bit_adam` and `--use_lion_optimizer` options also work and will override the options above for backward compatibility.
+    - Add SGDNesterov and its 8bit.
+    - Add [D-Adaptation](https://github.com/facebookresearch/dadaptation) optimizer. Thanks to BootsofLagrangian and all! 
+        - Please install D-Adaptation optimizer with `pip install dadaptation` (it is not in requirements.txt currently.)
+        - Please see https://github.com/kohya-ss/sd-scripts/issues/181 for details.
+    - Add AdaFactor optimizer. Thanks to Toshiaki!
+    - Extra lr scheduler settings (num_cycles etc.) are working in training scripts other than `train_network.py`.
+    - Add `--max_grad_norm` option for each training script for gradient clipping. `0.0` disables clipping. 
+    - Symbolic link can be loaded in each training script. Thanks to TkskKurumi!
 * 2023/02/19 (v20.7.4):
     - Add `--use_lion_optimizer` to each training script to use [Lion optimizer](https://github.com/lucidrains/lion-pytorch).
         - Please install Lion optimizer with `pip install lion-pytorch` (it is not in ``requirements.txt`` currently.)

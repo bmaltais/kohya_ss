@@ -1,8 +1,5 @@
-from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION
-from torch.optim import Optimizer
 from torch.cuda.amp import autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
-from typing import Optional, Union
 import importlib
 import argparse
 import gc
@@ -26,81 +23,22 @@ def collate_fn(examples):
   return examples[0]
 
 
+# TODO 他のスクリプトと共通化する
 def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
   logs = {"loss/current": current_loss, "loss/average": avr_loss}
 
   if args.network_train_unet_only:
-    logs["lr/unet"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/unet"] = float(lr_scheduler.get_last_lr()[0])
   elif args.network_train_text_encoder_only:
-    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
+    logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
   else:
-    logs["lr/textencoder"] = lr_scheduler.get_last_lr()[0]
-    logs["lr/unet"] = lr_scheduler.get_last_lr()[-1]          # may be same to textencoder
+    logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
+    logs["lr/unet"] = float(lr_scheduler.get_last_lr()[-1])          # may be same to textencoder
+
+  if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value of unet.
+    logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]['d']*lr_scheduler.optimizers[-1].param_groups[0]['lr']
 
   return logs
-
-
-# Monkeypatch newer get_scheduler() function overridng current version of diffusers.optimizer.get_scheduler
-# code is taken from https://github.com/huggingface/diffusers diffusers.optimizer, commit d87cc15977b87160c30abaace3894e802ad9e1e6
-# Which is a newer release of diffusers than currently packaged with sd-scripts
-# This code can be removed when newer diffusers version (v0.12.1 or greater) is tested and implemented to sd-scripts
-
-
-def get_scheduler_fix(
-    name: Union[str, SchedulerType],
-    optimizer: Optimizer,
-    num_warmup_steps: Optional[int] = None,
-    num_training_steps: Optional[int] = None,
-    num_cycles: int = 1,
-    power: float = 1.0,
-):
-  """
-  Unified API to get any scheduler from its name.
-  Args:
-      name (`str` or `SchedulerType`):
-          The name of the scheduler to use.
-      optimizer (`torch.optim.Optimizer`):
-          The optimizer that will be used during training.
-      num_warmup_steps (`int`, *optional*):
-          The number of warmup steps to do. This is not required by all schedulers (hence the argument being
-          optional), the function will raise an error if it's unset and the scheduler type requires it.
-      num_training_steps (`int``, *optional*):
-          The number of training steps to do. This is not required by all schedulers (hence the argument being
-          optional), the function will raise an error if it's unset and the scheduler type requires it.
-      num_cycles (`int`, *optional*):
-          The number of hard restarts used in `COSINE_WITH_RESTARTS` scheduler.
-      power (`float`, *optional*, defaults to 1.0):
-          Power factor. See `POLYNOMIAL` scheduler
-      last_epoch (`int`, *optional*, defaults to -1):
-          The index of the last epoch when resuming training.
-  """
-  name = SchedulerType(name)
-  schedule_func = TYPE_TO_SCHEDULER_FUNCTION[name]
-  if name == SchedulerType.CONSTANT:
-    return schedule_func(optimizer)
-
-  # All other schedulers require `num_warmup_steps`
-  if num_warmup_steps is None:
-    raise ValueError(f"{name} requires `num_warmup_steps`, please provide that argument.")
-
-  if name == SchedulerType.CONSTANT_WITH_WARMUP:
-    return schedule_func(optimizer, num_warmup_steps=num_warmup_steps)
-
-  # All other schedulers require `num_training_steps`
-  if num_training_steps is None:
-    raise ValueError(f"{name} requires `num_training_steps`, please provide that argument.")
-
-  if name == SchedulerType.COSINE_WITH_RESTARTS:
-    return schedule_func(
-        optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps, num_cycles=num_cycles
-    )
-
-  if name == SchedulerType.POLYNOMIAL:
-    return schedule_func(
-        optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps, power=power
-    )
-
-  return schedule_func(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
 
 
 def train(args):
@@ -161,7 +99,7 @@ def train(args):
   if args.lowram:
     text_encoder.to("cuda")
     unet.to("cuda")
-  
+
   # モデルに xformers とか memory efficient attention を組み込む
   train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
@@ -208,30 +146,8 @@ def train(args):
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
 
-  # 8-bit Adamを使う
-  if args.use_8bit_adam:
-    try:
-      import bitsandbytes as bnb
-    except ImportError:
-      raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adam optimizer")
-    optimizer_class = bnb.optim.AdamW8bit
-  elif args.use_lion_optimizer:
-    try:
-      import lion_pytorch
-    except ImportError:
-      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-    print("use Lion optimizer")
-    optimizer_class = lion_pytorch.Lion
-  else:
-    optimizer_class = torch.optim.AdamW
-
-  optimizer_name = optimizer_class.__module__ + "." + optimizer_class.__name__
-
   trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
-
-  # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
+  optimizer_name, optimizer_args, optimizer = train_util.get_optimizer(args, trainable_params)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -245,11 +161,9 @@ def train(args):
     print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
-  # lr_scheduler = diffusers.optimization.get_scheduler(
-  lr_scheduler = get_scheduler_fix(
-      args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
-      num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
-      num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
+  lr_scheduler = train_util.get_scheduler_fix(args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+                                              num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+                                              num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
   # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
   if args.full_fp16:
@@ -372,7 +286,7 @@ def train(args):
       "ss_bucket_info": json.dumps(train_dataset.bucket_info),
       "ss_training_comment": args.training_comment,       # will not be updated after training
       "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
-      "ss_optimizer": optimizer_name
+      "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else "")
   }
 
   # uncomment if another network is added
@@ -465,9 +379,9 @@ def train(args):
         loss = loss.mean()                # 平均なのでbatch_sizeで割る必要なし
 
         accelerator.backward(loss)
-        if accelerator.sync_gradients:
+        if accelerator.sync_gradients and args.max_grad_norm != 0.0:
           params_to_clip = network.get_trainable_params()
-          accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
+          accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
         optimizer.step()
         lr_scheduler.step()
@@ -555,6 +469,7 @@ if __name__ == '__main__':
   train_util.add_sd_models_arguments(parser)
   train_util.add_dataset_arguments(parser, True, True, True)
   train_util.add_training_arguments(parser, True)
+  train_util.add_optimizer_arguments(parser)
 
   parser.add_argument("--no_metadata", action='store_true', help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
   parser.add_argument("--save_model_as", type=str, default="safetensors", choices=[None, "ckpt", "pt", "safetensors"],
@@ -562,10 +477,6 @@ if __name__ == '__main__':
 
   parser.add_argument("--unet_lr", type=float, default=None, help="learning rate for U-Net / U-Netの学習率")
   parser.add_argument("--text_encoder_lr", type=float, default=None, help="learning rate for Text Encoder / Text Encoderの学習率")
-  parser.add_argument("--lr_scheduler_num_cycles", type=int, default=1,
-                      help="Number of restarts for cosine scheduler with restarts / cosine with restartsスケジューラでのリスタート回数")
-  parser.add_argument("--lr_scheduler_power", type=float, default=1,
-                      help="Polynomial power for polynomial scheduler / polynomialスケジューラでのpolynomial power")
 
   parser.add_argument("--network_weights", type=str, default=None,
                       help="pretrained weights for network / 学習するネットワークの初期重み")
