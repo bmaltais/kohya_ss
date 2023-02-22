@@ -134,6 +134,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
   - Add AdaFactor optimizer. Thanks to Toshiaki!
   - Extra lr scheduler settings (num_cycles etc.) are working in training scripts other than ``train_network.py``.
   - Add ``--max_grad_norm`` option for each training script for gradient clipping. ``0.0`` disables clipping. 
+  - Symbolic link can be loaded in each training script. Thanks to TkskKurumi!
   - オプティマイザ関連のオプションを見直しました。mgz-dev氏に感謝します。
     - ``--optimizer_type`` を各学習スクリプトに追加しました。ドキュメントはこちら。
     - ``--use_8bit_adam`` と ``--use_lion_optimizer`` のオプションは依然として動作しますがoptimizer_typeを上書きしますのでご注意ください。
@@ -143,6 +144,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
   - AdaFactor オプティマイザを追加しました。Toshiaki氏に感謝します。 
   - 追加のスケジューラ設定（num_cycles等）が ``train_network.py`` 以外の学習スクリプトでも使えるようになりました。
   - 勾配クリップ時の最大normを指定する ``--max_grad_norm`` オプションを追加しました。``0.0``を指定するとクリップしなくなります。
+  - 各学習スクリプトでシンボリックリンクが読み込めるようになりました。TkskKurumi氏に感謝します。
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
