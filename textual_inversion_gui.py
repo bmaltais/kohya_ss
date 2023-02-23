@@ -95,7 +95,7 @@ def save_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -199,7 +199,7 @@ def open_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -280,7 +280,7 @@ def train_model(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -441,6 +441,7 @@ def train_model(
         caption_extension=caption_extension,
         cache_latents=cache_latents,
         optimizer=optimizer,
+        optimizer_args=optimizer_args,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -465,6 +466,7 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
+        noise_offset=noise_offset,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -630,7 +632,7 @@ def ti_tab(
             seed,
             caption_extension,
             cache_latents,
-            optimizer,
+            optimizer,optimizer_args,
         ) = gradio_training(
             learning_rate_value='1e-5',
             lr_scheduler_value='cosine',
@@ -688,7 +690,7 @@ def ti_tab(
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
-                caption_dropout_every_n_epochs, caption_dropout_rate,
+                caption_dropout_every_n_epochs, caption_dropout_rate,noise_offset,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -764,7 +766,7 @@ def ti_tab(
         random_crop,
         bucket_reso_steps,
         caption_dropout_every_n_epochs, caption_dropout_rate,
-        optimizer,
+        optimizer,optimizer_args,noise_offset,
     ]
 
     button_open_config.click(

@@ -36,7 +36,8 @@ def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_sche
     logs["lr/unet"] = float(lr_scheduler.get_last_lr()[-1])          # may be same to textencoder
 
   if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value of unet.
-    logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]['d']*lr_scheduler.optimizers[-1].param_groups[0]['lr']
+    logs["lr/d*lr-textencoder"] = lr_scheduler.optimizers[-1].param_groups[0]['d']*lr_scheduler.optimizers[-1].param_groups[0]['lr']
+    logs["lr/d*lr-unet"] = lr_scheduler.optimizers[-1].param_groups[1]['d']*lr_scheduler.optimizers[-1].param_groups[1]['lr']
 
   return logs
 

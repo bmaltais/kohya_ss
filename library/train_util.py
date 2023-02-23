@@ -1633,7 +1633,7 @@ def get_optimizer(args, trainable_params):
     if optimizer_kwargs["relative_step"]:
       print(f"relative_step is true / relative_stepがtrueです")
       if lr != 0.0:
-        print(f"learning rate is used as initial_lr / 指定したlearning rateはinitial_lrとして使用されます")
+        print(f"learning rate is used as initial_lr / 指定したlearning rate はinitial_lrとして使用されます: {lr}")
       args.learning_rate = None
 
       # trainable_paramsがgroupだった時の処理：lrを削除する

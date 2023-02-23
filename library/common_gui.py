@@ -469,10 +469,19 @@ def gradio_training(
             label='Optimizer',
             choices=[
                 'AdamW',
+                'AdamW8bit',
+                'Adafactor',
+                'DAdaptation',
                 'Lion',
+                'SGDNesterov',
+                'SGDNesterov8bit'
             ],
             value="AdamW",
             interactive=True,
+        )
+    with gr.Row():
+        optimizer_args = gr.Textbox(
+            label='Optimizer extra arguments', placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True'
         )
     return (
         learning_rate,
@@ -488,6 +497,7 @@ def gradio_training(
         caption_extension,
         cache_latents,
         optimizer,
+        optimizer_args,
     )
 
 
@@ -522,7 +532,9 @@ def run_cmd_training(**kwargs):
         if kwargs.get('caption_extension')
         else '',
         ' --cache_latents' if kwargs.get('cache_latents') else '',
-        ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
+        # ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
+        f' --optimizer_type="{kwargs.get("optimizer", "AdamW")}"',
+        f' --optimizer_args {kwargs.get("optimizer_args", "")}' if not kwargs.get('optimizer_args') == '' else '',
     ]
     run_cmd = ''.join(options)
     return run_cmd
@@ -597,6 +609,10 @@ def gradio_advanced_training():
         random_crop = gr.Checkbox(
             label='Random crop instead of center crop', value=False
         )
+        noise_offset = gr.Textbox(
+            label='Noise offset (0 - 1)', placeholder='(Oprional) eg: 0.1'
+        )
+        
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
             label="Dropout caption every n epochs",
@@ -644,7 +660,7 @@ def gradio_advanced_training():
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
-        caption_dropout_every_n_epochs, caption_dropout_rate,
+        caption_dropout_every_n_epochs, caption_dropout_rate,noise_offset,
     )
 
 
@@ -695,6 +711,9 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
         ' --random_crop' if kwargs.get('random_crop') else '',
+        f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
+        if not kwargs.get('noise_offset', '') == ''
+        else '',
     ]
     run_cmd = ''.join(options)
     return run_cmd
