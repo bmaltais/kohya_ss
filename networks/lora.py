@@ -126,6 +126,11 @@ class LoRANetwork(torch.nn.Module):
       assert lora.lora_name not in names, f"duplicated lora name: {lora.lora_name}"
       names.add(lora.lora_name)
 
+  def set_multiplier(self, multiplier):
+    self.multiplier = multiplier
+    for lora in self.text_encoder_loras + self.unet_loras:
+      lora.multiplier = self.multiplier
+      
   def load_weights(self, file):
     if os.path.splitext(file)[1] == '.safetensors':
       from safetensors.torch import load_file, safe_open
