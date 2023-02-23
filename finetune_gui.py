@@ -85,7 +85,7 @@ def save_configuration(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -104,8 +104,8 @@ def save_configuration(
 
     # print(file_path)
 
-    if file_path == None:
-        return original_file_path
+    if file_path == None or file_path == '':
+        return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Return the values of the variables as a dictionary
     variables = {
@@ -117,6 +117,13 @@ def save_configuration(
             'save_as',
         ]
     }
+
+    # Extract the destination directory from the file path
+    destination_directory = os.path.dirname(file_path)
+
+    # Create the destination directory if it doesn't exist
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
 
     # Save the data to the selected file
     with open(file_path, 'w') as file:
@@ -182,7 +189,7 @@ def open_config_file(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -264,7 +271,7 @@ def train_model(
     random_crop,
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,
+    optimizer,optimizer_args,noise_offset,
 ):
     # create caption json file
     if generate_caption_database:
@@ -390,6 +397,7 @@ def train_model(
         caption_extension=caption_extension,
         cache_latents=cache_latents,
         optimizer=optimizer,
+        optimizer_args=optimizer_args,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -414,6 +422,7 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
+        noise_offset=noise_offset,
     )
 
     print(run_cmd)
@@ -568,7 +577,7 @@ def finetune_tab():
             seed,
             caption_extension,
             cache_latents,
-            optimizer,
+            optimizer,optimizer_args,
         ) = gradio_training(learning_rate_value='1e-5')
         with gr.Row():
             dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
@@ -600,7 +609,7 @@ def finetune_tab():
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
-                caption_dropout_every_n_epochs, caption_dropout_rate,
+                caption_dropout_every_n_epochs, caption_dropout_rate,noise_offset,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -666,7 +675,7 @@ def finetune_tab():
         random_crop,
         bucket_reso_steps,
         caption_dropout_every_n_epochs, caption_dropout_rate,
-        optimizer,
+        optimizer,optimizer_args,noise_offset,
     ]
 
     button_run.click(train_model, inputs=settings_list)

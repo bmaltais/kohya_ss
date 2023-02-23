@@ -13,41 +13,34 @@ from diffusers import DDPMScheduler
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset, FineTuningDataset
 
-import torch.optim as optim
-import dadaptation
-
-# imagenet_templates_small = [
-#     "a photo of a {}",
-#     "a rendering of a {}",
-#     "a cropped photo of the {}",
-#     "the photo of a {}",
-#     "a photo of a clean {}",
-#     "a photo of a dirty {}",
-#     "a dark photo of the {}",
-#     "a photo of my {}",
-#     "a photo of the cool {}",
-#     "a close-up photo of a {}",
-#     "a bright photo of the {}",
-#     "a cropped photo of a {}",
-#     "a photo of the {}",
-#     "a good photo of the {}",
-#     "a photo of one {}",
-#     "a close-up photo of the {}",
-#     "a rendition of the {}",
-#     "a photo of the clean {}",
-#     "a rendition of a {}",
-#     "a photo of a nice {}",
-#     "a good photo of a {}",
-#     "a photo of the nice {}",
-#     "a photo of the small {}",
-#     "a photo of the weird {}",
-#     "a photo of the large {}",
-#     "a photo of a cool {}",
-#     "a photo of a small {}",
-# ]
-
 imagenet_templates_small = [
-    "{}",
+    "a photo of a {}",
+    "a rendering of a {}",
+    "a cropped photo of the {}",
+    "the photo of a {}",
+    "a photo of a clean {}",
+    "a photo of a dirty {}",
+    "a dark photo of the {}",
+    "a photo of my {}",
+    "a photo of the cool {}",
+    "a close-up photo of a {}",
+    "a bright photo of the {}",
+    "a cropped photo of a {}",
+    "a photo of the {}",
+    "a good photo of the {}",
+    "a photo of one {}",
+    "a close-up photo of the {}",
+    "a rendition of the {}",
+    "a photo of the clean {}",
+    "a rendition of a {}",
+    "a photo of a nice {}",
+    "a good photo of a {}",
+    "a photo of the nice {}",
+    "a photo of the small {}",
+    "a photo of the weird {}",
+    "a photo of the large {}",
+    "a photo of a cool {}",
+    "a photo of a small {}",
 ]
 
 imagenet_style_templates_small = [
@@ -205,34 +198,8 @@ def train(args):
 
   # 学習に必要なクラスを準備する
   print("prepare optimizer, data loader etc.")
-
-  # 8-bit Adamを使う
-  if args.use_8bit_adam:
-    try:
-      import bitsandbytes as bnb
-    except ImportError:
-      raise ImportError("No bitsand bytes / bitsandbytesがインストールされていないようです")
-    print("use 8-bit Adam optimizer")
-    optimizer_class = bnb.optim.AdamW8bit
-  elif args.use_lion_optimizer:
-    try:
-      import lion_pytorch
-    except ImportError:
-      raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-    print("use Lion optimizer")
-    optimizer_class = lion_pytorch.Lion
-  else:
-    optimizer_class = torch.optim.AdamW
-
   trainable_params = text_encoder.get_input_embeddings().parameters()
-
-  # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
-  # optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
-  print('enable dadapation.')
-  optimizer = dadaptation.DAdaptAdam(trainable_params, lr=1.0, decouple=True, weight_decay=0)
-  # optimizer = dadaptation.DAdaptSGD(trainable_params, lr=1.0, weight_decay=0, d0=1e-6)
-  # optimizer = dadaptation.DAdaptAdaGrad(trainable_params, lr=1.0, weight_decay=0, d0=1e-6)
-
+  _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
   # dataloaderを準備する
   # DataLoaderのプロセス数：0はメインプロセスになる
@@ -246,20 +213,9 @@ def train(args):
     print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
-  # lr_scheduler = diffusers.optimization.get_scheduler(
-  #     args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps, num_training_steps=args.max_train_steps * args.gradient_accumulation_steps)
-
-  # For Adam
-  lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
-                                        lr_lambda=[lambda epoch: 1],
-                                        last_epoch=-1,
-                                        verbose=False)
-  
-  # For SGD optim
-  # lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
-  #                                       lr_lambda=[lambda epoch: 1],
-  #                                       last_epoch=-1,
-  #                                       verbose=False)
+  lr_scheduler = train_util.get_scheduler_fix(args.lr_scheduler, optimizer, num_warmup_steps=args.lr_warmup_steps,
+                                              num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+                                              num_cycles=args.lr_scheduler_num_cycles, power=args.lr_scheduler_power)
 
   # acceleratorがなんかよろしくやってくれるらしい
   text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
@@ -381,9 +337,9 @@ def train(args):
         loss = loss.mean()                # 平均なのでbatch_sizeで割る必要なし
 
         accelerator.backward(loss)
-        if accelerator.sync_gradients:
+        if accelerator.sync_gradients and args.max_grad_norm != 0.0:
           params_to_clip = text_encoder.get_input_embeddings().parameters()
-          accelerator.clip_grad_norm_(params_to_clip, 1.0)  # args.max_grad_norm)
+          accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
         optimizer.step()
         lr_scheduler.step()
@@ -400,16 +356,14 @@ def train(args):
 
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
-        #logs = {"loss": current_loss, "lr": lr_scheduler.get_last_lr()[0]}
-        
-        avr_loss = loss_total / (step+1)
-        logs = {"loss": avr_loss, "dlr0": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}
+        logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
+        if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value
+          logs["lr/d*lr"] = lr_scheduler.optimizers[0].param_groups[0]['d']*lr_scheduler.optimizers[0].param_groups[0]['lr']
         accelerator.log(logs, step=global_step)
 
       loss_total += current_loss
       avr_loss = loss_total / (step+1)
-      # logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
-      logs = {"loss": avr_loss, "dlr0": optimizer.param_groups[0]['d']*optimizer.param_groups[0]['lr']}
+      logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
       progress_bar.set_postfix(**logs)
 
       if global_step >= args.max_train_steps:
@@ -519,6 +473,7 @@ if __name__ == '__main__':
   train_util.add_sd_models_arguments(parser)
   train_util.add_dataset_arguments(parser, True, True, False)
   train_util.add_training_arguments(parser, True)
+  train_util.add_optimizer_arguments(parser)
 
   parser.add_argument("--save_model_as", type=str, default="pt", choices=[None, "ckpt", "pt", "safetensors"],
                       help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）")
