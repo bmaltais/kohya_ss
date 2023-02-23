@@ -124,6 +124,20 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 23 Feb. 2023, 2023/2/23:
+  - Fix instability training issue in ``train_network.py``.
+    - Training with ``float`` for SD2.x models will work now. Also training with ``bf16`` might be improved. 
+    - This issue seems to have occurred in [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190).
+  - Add some metadata to LoRA model. Thanks to space-nuko!
+  - Raise an error if optimizer options conflict (e.g. ``--optimizer_type`` and ``--use_8bit_adam``.) 
+  - Support ControlNet in ``gen_img_diffusers.py`` (no documentation yet.)
+  - ``train_network.py`` で学習が不安定になる不具合を修正しました。
+    - ``float`` 精度での SD2.x モデルの学習が正しく動作するようになりました。また ``bf16`` 精度の学習も改善する可能性があります。
+    - この問題は [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190) から起きていたようです。
+  - いくつかのメタデータを LoRA モデルに追加しました。 space-nuko 氏に感謝します。
+  - オプティマイザ関係のオプションが矛盾していた場合、エラーとするように修正しました（例: ``--optimizer_type`` と ``--use_8bit_adam``）。
+  - ``gen_img_diffusers.py`` で ControlNet をサポートしました（ドキュメントはのちほど追加します）。
+
 - 22 Feb. 2023, 2023/2/22:
   - Refactor optmizer options. Thanks to mgz-dev!
     - Add ``--optimizer_type`` option for each training script. Please see help. Japanese documentation is [here](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6).
