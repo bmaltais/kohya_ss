@@ -3,6 +3,7 @@ import os
 import gradio as gr
 from easygui import msgbox
 import shutil
+import sys
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -595,7 +596,7 @@ def gradio_advanced_training():
             label='Memory efficient attention', value=False
         )
     with gr.Row():
-        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=sys.platform.startswith('linux'))
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
