@@ -2683,11 +2683,11 @@ if __name__ == '__main__':
   parser.add_argument("--opt_channels_last", action='store_true',
                       help='set channels last option to model / モデルにchannels lastを指定し最適化する')
   parser.add_argument("--network_module", type=str, default=None, nargs='*',
-                      help='additiona network module to use / 追加ネットワークを使う時そのモジュール名')
+                      help='additional network module to use / 追加ネットワークを使う時そのモジュール名')
   parser.add_argument("--network_weights", type=str, default=None, nargs='*',
-                      help='additiona network weights to load / 追加ネットワークの重み')
+                      help='additional network weights to load / 追加ネットワークの重み')
   parser.add_argument("--network_mul", type=float, default=None, nargs='*',
-                      help='additiona network multiplier / 追加ネットワークの効果の倍率')
+                      help='additional network multiplier / 追加ネットワークの効果の倍率')
   parser.add_argument("--network_args", type=str, default=None, nargs='*',
                       help='additional argmuments for network (key=value) / ネットワークへの追加の引数')
   parser.add_argument("--network_show_meta", action='store_true',
