@@ -289,6 +289,7 @@ def train(args):
       "ss_training_comment": args.training_comment,       # will not be updated after training
       "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
       "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else ""),
+      "ss_max_grad_norm": args.max_grad_norm,
       "ss_caption_dropout_rate": args.caption_dropout_rate,
       "ss_caption_dropout_every_n_epochs": args.caption_dropout_every_n_epochs,
       "ss_caption_tag_dropout_rate": args.caption_tag_dropout_rate,
