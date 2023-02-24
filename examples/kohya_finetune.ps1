@@ -70,7 +70,7 @@ if (!(Test-Path -Path $train_dir)) {
 }
 
 python $kohya_finetune_repo_path\script\merge_captions_to_metadata.py `
-    --caption_extention ".txt" $image_folder $train_dir"\meta_cap.json"
+    --caption_extension ".txt" $image_folder $train_dir"\meta_cap.json"
 
 # create images buckets
 python $kohya_finetune_repo_path\script\prepare_buckets_latents.py `

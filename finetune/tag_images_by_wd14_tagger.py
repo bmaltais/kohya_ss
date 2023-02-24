@@ -186,7 +186,7 @@ if __name__ == '__main__':
   parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
   parser.add_argument("--max_data_loader_n_workers", type=int, default=None,
                       help="enable image reading by DataLoader with this number of workers (faster) / DataLoaderによる画像読み込みを有効にしてこのワーカー数を適用する（読み込みを高速化）")
-  parser.add_argument("--caption_extention", type=str, default=None,
+  parser.add_argument("--caption_extension", type=str, default=None,
                       help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".txt", help="extension of caption file / 出力されるキャプションファイルの拡張子")
   parser.add_argument("--debug", action="store_true", help="debug mode")
@@ -194,7 +194,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # スペルミスしていたオプションを復元する
-  if args.caption_extention is not None:
-    args.caption_extension = args.caption_extention
+  if args.caption_extension is not None:
+    args.caption_extension = args.caption_extension
 
   main(args)

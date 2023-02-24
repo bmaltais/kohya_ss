@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 
 # create caption json file
 python D:\kohya_ss\finetune\merge_captions_to_metadata.py `
---caption_extention ".txt" $train_dir"\"$training_folder $train_dir"\meta_cap.json"
+--caption_extension ".txt" $train_dir"\"$training_folder $train_dir"\meta_cap.json"
 
 # create images buckets
 python D:\kohya_ss\finetune\prepare_buckets_latents.py `

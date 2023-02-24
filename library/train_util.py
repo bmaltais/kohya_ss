@@ -1470,7 +1470,7 @@ def add_dataset_arguments(parser: argparse.ArgumentParser, support_dreambooth: b
   parser.add_argument("--shuffle_caption", action="store_true",
                       help="shuffle comma-separated caption / コンマで区切られたcaptionの各要素をshuffleする")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption files / 読み込むcaptionファイルの拡張子")
-  parser.add_argument("--caption_extention", type=str, default=None,
+  parser.add_argument("--caption_extension", type=str, default=None,
                       help="extension of caption files (backward compatibility) / 読み込むcaptionファイルの拡張子（スペルミスを残してあります）")
   parser.add_argument("--keep_tokens", type=int, default=None,
                       help="keep heading N tokens when shuffling caption tokens / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す")
@@ -1766,9 +1766,9 @@ def get_scheduler_fix(
 
 def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
   # backward compatibility
-  if args.caption_extention is not None:
-    args.caption_extension = args.caption_extention
-    args.caption_extention = None
+  if args.caption_extension is not None:
+    args.caption_extension = args.caption_extension
+    args.caption_extension = None
 
   if args.cache_latents:
     assert not args.color_aug, "when caching latents, color_aug cannot be used / latentをキャッシュするときはcolor_augは使えません"

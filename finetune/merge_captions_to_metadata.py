@@ -49,7 +49,7 @@ if __name__ == '__main__':
   parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
   parser.add_argument("--in_json", type=str,
                       help="metadata file to input (if omitted and out_json exists, existing out_json is read) / 読み込むメタデータファイル（省略時、out_jsonが存在すればそれを読み込む）")
-  parser.add_argument("--caption_extention", type=str, default=None,
+  parser.add_argument("--caption_extension", type=str, default=None,
                       help="extension of caption file (for backward compatibility) / 読み込むキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption file / 読み込むキャプションファイルの拡張子")
   parser.add_argument("--full_path", action="store_true",
@@ -61,7 +61,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # スペルミスしていたオプションを復元する
-  if args.caption_extention is not None:
-    args.caption_extension = args.caption_extention
+  if args.caption_extension is not None:
+    args.caption_extension = args.caption_extension
 
   main(args)
