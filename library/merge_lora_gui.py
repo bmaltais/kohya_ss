@@ -46,8 +46,8 @@ def merge_lora(
     run_cmd = f'.\\venv\Scripts\python.exe "networks\merge_lora.py"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --precision {precision}'
-    run_cmd += f' --save_to {save_to}'
-    run_cmd += f' --models {lora_a_model} {lora_b_model}'
+    run_cmd += f' --save_to "{save_to}"'
+    run_cmd += f' --models "{lora_a_model}" "{lora_b_model}"'
     run_cmd += f' --ratios {ratio_a} {ratio_b}'
 
     print(run_cmd)
@@ -65,7 +65,7 @@ def gradio_merge_lora_tab():
     with gr.Tab('Merge LoRA'):
         gr.Markdown('This utility can merge two LoRA networks together.')
 
-        lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
+        lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
 
         with gr.Row():
