@@ -163,6 +163,15 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/02/23 (v20.8.1):
+
+    - Fix instability training issue in `train_network.py`.
+        - `fp16` training is probably not affected by this issue.
+        - Training with `float` for SD2.x models will work now. Also training with bf16 might be improved.
+        - This issue seems to have occurred in [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190).
+    - Add some metadata to LoRA model. Thanks to space-nuko!
+    - Raise an error if optimizer options conflict (e.g. `--optimizer_type` and `--use_8bit_adam`.)
+    - Support ControlNet in `gen_img_diffusers.py` (no documentation yet.)
 * 2023/02/22 (v20.8.0):
     - Add gui support for optimizers: `AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor`
     - Add gui support for `--noise_offset`
