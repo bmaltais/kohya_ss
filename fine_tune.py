@@ -285,8 +285,14 @@ def train(args):
       current_loss = loss.detach().item()        # 平均なのでbatch sizeは関係ないはず
       if args.logging_dir is not None:
         logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
+        logs = {"avr_loss": loss_total / (step+1)}
         if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value
+          # print(lr_scheduler.optimizers)
           logs["lr/d*lr"] = lr_scheduler.optimizers[0].param_groups[0]['d']*lr_scheduler.optimizers[0].param_groups[0]['lr']
+          logs["d"] = lr_scheduler.optimizers[0].param_groups[0]['d']
+          logs["lrD"] = lr_scheduler.optimizers[0].param_groups[0]['lr']
+          logs["gsq_weighted"] = lr_scheduler.optimizers[0].param_groups[0]['gsq_weighted']
+          
         accelerator.log(logs, step=global_step)
 
       # TODO moving averageにする
