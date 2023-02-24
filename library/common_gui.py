@@ -453,6 +453,7 @@ def gradio_training(
         lr_scheduler = gr.Dropdown(
             label='LR Scheduler',
             choices=[
+                'adafactor',
                 'constant',
                 'constant_with_warmup',
                 'cosine',
