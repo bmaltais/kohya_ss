@@ -163,7 +163,7 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/-2/23 (v20.8.1):
+* 2023/02/23 (v20.8.1):
 
     - Fix instability training issue in `train_network.py`.
         - `fp16` training is probably not affected by this issue.
