@@ -80,6 +80,14 @@ def remove_doublequote(file_path):
 
     return file_path
 
+def set_legacy_8bitadam(optimizer, use_8bit_adam):
+    if optimizer == 'AdamW8bit':
+        # use_8bit_adam = True
+        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(value=True, interactive=False, visible=True)
+    else:
+        # use_8bit_adam = False
+        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(value=False, interactive=False, visible=True)
+
 
 def get_folder_path(folder_path=''):
     current_folder_path = folder_path
@@ -444,7 +452,7 @@ def gradio_training(
             label='Number of CPU threads per core',
             value=2,
         )
-        seed = gr.Textbox(label='Seed', value=1234)
+        seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234')
         cache_latents = gr.Checkbox(label='Cache latent', value=True)
     with gr.Row():
         learning_rate = gr.Textbox(

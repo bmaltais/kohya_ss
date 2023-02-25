@@ -24,6 +24,7 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     run_cmd_training,
+    set_legacy_8bitadam,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -229,6 +230,7 @@ def open_configuration(
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
             values.append(my_data.get(key, value))
+            
     return tuple(values)
 
 
@@ -721,6 +723,12 @@ def lora_tab(
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
+        
+        optimizer.change(
+            set_legacy_8bitadam,
+            inputs=[optimizer, use_8bit_adam],
+            outputs=[optimizer, use_8bit_adam],
+        )
 
     with gr.Tab('Tools'):
         gr.Markdown(
