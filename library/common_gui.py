@@ -415,7 +415,7 @@ def gradio_training(
     with gr.Row():
         train_batch_size = gr.Slider(
             minimum=1,
-            maximum=32,
+            maximum=64,
             label='Train batch size',
             value=1,
             step=1,
@@ -485,7 +485,7 @@ def gradio_training(
                 'SGDNesterov',
                 'SGDNesterov8bit'
             ],
-            value="AdamW",
+            value="AdamW8bit",
             interactive=True,
         )
     with gr.Row():
