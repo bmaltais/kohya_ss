@@ -18,6 +18,7 @@ from library.common_gui import (
     gradio_source_model,
     color_aug_changed,
     run_cmd_training,
+    set_legacy_8bitadam,
 )
 from library.utilities import utilities_tab
 
@@ -616,6 +617,11 @@ def finetune_tab():
                 inputs=[color_aug],
                 outputs=[cache_latents],  # Not applicable to fine_tune.py
             )
+        optimizer.change(
+            set_legacy_8bitadam,
+            inputs=[optimizer, use_8bit_adam],
+            outputs=[optimizer, use_8bit_adam],
+        )
 
     button_run = gr.Button('Train model')
 

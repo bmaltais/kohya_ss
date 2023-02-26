@@ -24,6 +24,7 @@ from library.common_gui import (
     gradio_training,
     gradio_config,
     gradio_source_model,
+    set_legacy_8bitadam,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -697,6 +698,11 @@ def ti_tab(
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
+        optimizer.change(
+            set_legacy_8bitadam,
+            inputs=[optimizer, use_8bit_adam],
+            outputs=[optimizer, use_8bit_adam],
+        )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
