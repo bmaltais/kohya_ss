@@ -25,6 +25,9 @@ from library.common_gui import (
     gradio_source_model,
     run_cmd_training,
     set_legacy_8bitadam,
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -40,7 +43,6 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-
 
 def save_configuration(
     save_as,
@@ -745,7 +747,19 @@ def lora_tab(
         gradio_resize_lora_tab()
         gradio_verify_lora_tab()
 
-    button_run = gr.Button('Train model')
+    button_run = gr.Button('Train model', variant='primary')
+    
+    # Setup gradio tensorboard buttons
+    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+    
+    button_start_tensorboard.click(
+        start_tensorboard,
+        inputs=logging_dir,
+    )
+    
+    button_stop_tensorboard.click(
+        stop_tensorboard,
+    )
 
     settings_list = [
         pretrained_model_name_or_path,

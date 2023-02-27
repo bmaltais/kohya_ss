@@ -25,6 +25,9 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -714,7 +717,19 @@ def ti_tab(
             logging_dir_input=logging_dir,
         )
 
-    button_run = gr.Button('Train TI')
+    button_run = gr.Button('Train model', variant='primary')
+    
+    # Setup gradio tensorboard buttons
+    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+    
+    button_start_tensorboard.click(
+        start_tensorboard,
+        inputs=logging_dir,
+    )
+    
+    button_stop_tensorboard.click(
+        stop_tensorboard,
+    )
 
     settings_list = [
         pretrained_model_name_or_path,
