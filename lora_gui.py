@@ -688,7 +688,7 @@ def lora_tab(
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA', value=False)
+                locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (may not be able to merge now)', value=False)
             with gr.Row():
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
