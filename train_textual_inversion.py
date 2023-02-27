@@ -354,6 +354,8 @@ def train(args):
         progress_bar.update(1)
         global_step += 1
 
+        train_util.sample_images(accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
+
       current_loss = loss.detach().item()
       if args.logging_dir is not None:
         logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
@@ -376,8 +378,6 @@ def train(args):
     accelerator.wait_for_everyone()
 
     updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
-    # d = updated_embs - bef_epo_embs
-    # print(bef_epo_embs.size(), updated_embs.size(), d.mean(), d.min())
 
     if args.save_every_n_epochs is not None:
       model_name = train_util.DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
@@ -398,6 +398,8 @@ def train(args):
       saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
       if saving and args.save_state:
         train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
+
+    train_util.sample_images(accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
     # end of epoch
 
