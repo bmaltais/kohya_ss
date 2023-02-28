@@ -163,7 +163,9 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/02/24 (v20.8.2):
+* 2023/02/27 (v21.0.0):
+    - Add tensorboard start and stop support to the GUI
+* 2023/02/26 (v20.8.2):
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/231
     - Change default for seed to random
     - Add support for --share argument to `kohya_gui.py` and `gui.ps1`
