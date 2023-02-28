@@ -10,7 +10,6 @@ import os
 import subprocess
 import pathlib
 import argparse
-import shutil
 from library.common_gui import (
     get_folder_path,
     remove_doublequote,
@@ -44,12 +43,18 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-locon_path = os.getcwd()+'\\locon\\'
+path_of_this_folder = os.getcwd()
 
-def getlocon():
-    os.system('git clone https://github.com/KohakuBlueleaf/LoCon.git')
-    os.system('ren '+locon_path[:-6]+'\\LoCon\\'+' locon_github-sourcecode')
-    shutil.copytree(locon_path[:-6]+'locon_github-sourcecode\\locon\\', locon_path)
+def getlocon(existance):
+    if existance:
+        print('Checking LoCon script version...')
+        now_path = os.getcwd()
+        os.chdir(os.path.join(path_of_this_folder, 'locon'))
+        os.system('git pull')
+        os.chdir(now_path)
+    else:
+        os.system('git clone https://github.com/KohakuBlueleaf/LoCon.git')
+        os.system('ren '+ os.path.join(path_of_this_folder, 'LoCon') +' locon')
 
 def save_configuration(
     save_as,
@@ -438,9 +443,8 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     if locon:
-        if not os.path.exists(locon_path):
-            getlocon()
-        run_cmd += ' --network_module=locon.locon_kohya'
+        getlocon(os.path.exists(os.path.join(path_of_this_folder, 'locon')))
+        run_cmd += f' --network_module=locon.locon.locon_kohya'
     else:
         run_cmd += f' --network_module=networks.lora'
 
