@@ -116,7 +116,8 @@ def save_configuration(
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, locon = 0
+    optimizer_args,noise_offset, 
+    locon=0, conv_dim=0, conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -222,7 +223,8 @@ def open_configuration(
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, locon=0
+    optimizer_args,noise_offset, 
+    locon=0, conv_dim=0, conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -306,7 +308,8 @@ def train_model(
     bucket_reso_steps,
     caption_dropout_every_n_epochs, caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, locon
+    optimizer_args,noise_offset, 
+    locon, conv_dim, conv_alpha,
 ):  
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -852,7 +855,8 @@ def lora_tab(
         bucket_reso_steps,
         caption_dropout_every_n_epochs, caption_dropout_rate,
         optimizer,
-        optimizer_args,noise_offset,locon
+        optimizer_args,noise_offset, 
+        locon, conv_dim, conv_alpha,
     ]
 
     button_open_config.click(
