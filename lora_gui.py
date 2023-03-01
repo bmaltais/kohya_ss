@@ -25,12 +25,14 @@ from library.common_gui import (
     gradio_source_model,
     run_cmd_training,
     set_legacy_8bitadam,
-    gradio_tensorboard,
-    start_tensorboard,
-    stop_tensorboard,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
+)
+from library.tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab

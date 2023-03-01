@@ -25,6 +25,8 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
+)
+from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,

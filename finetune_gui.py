@@ -19,6 +19,8 @@ from library.common_gui import (
     color_aug_changed,
     run_cmd_training,
     set_legacy_8bitadam,
+)
+from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
