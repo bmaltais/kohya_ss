@@ -700,7 +700,7 @@ def lora_tab(
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
-                locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (may not be able to merge now)', value=False)
+                locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
                 conv_dim = gr.Slider(
                     minimum=1,
                     maximum=512,
