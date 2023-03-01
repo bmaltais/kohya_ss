@@ -99,7 +99,7 @@ def train(args):
     return
 
   if cache_latents:
-    assert train_dataset_group.is_latent_cachable(), "when caching latents, either color_aug or random_crop cannot be used / latentをキャッシュするときはcolor_augとrandom_cropは使えません"
+    assert train_dataset_group.is_latent_cacheable(), "when caching latents, either color_aug or random_crop cannot be used / latentをキャッシュするときはcolor_augとrandom_cropは使えません"
 
   # acceleratorを準備する
   print("prepare accelerator")
@@ -341,7 +341,7 @@ def train(args):
 
     metadata["ss_datasets"] = json.dumps(datasets_metadata)
   else:
-    # conserving backward compatiblity when using train_dataset_dir and reg_dataset_dir
+    # conserving backward compatibility when using train_dataset_dir and reg_dataset_dir
     assert len(train_dataset_group.datasets) == 1, f"There should be a single dataset but {len(train_dataset_group.datasets)} found. This seems to be a bug. / データセットは1個だけ存在するはずですが、実際には{len(train_dataset_group.datasets)}個でした。プログラムのバグかもしれません。"
 
     dataset = train_dataset_group.datasets[0]

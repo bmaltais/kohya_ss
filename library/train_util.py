@@ -547,7 +547,7 @@ class BaseDataset(torch.utils.data.Dataset):
     assert image.shape[0] == reso[1] and image.shape[1] == reso[0], f"internal error, illegal trimmed size: {image.shape}, {reso}"
     return image
 
-  def is_latent_cachable(self):
+  def is_latent_cacheable(self):
     return all([not subset.color_aug and not subset.random_crop for subset in self.subsets])
 
   def cache_latents(self, vae):
@@ -1062,8 +1062,8 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
     for dataset in self.datasets:
       dataset.cache_latents(vae)
 
-  def is_latent_cachable(self) -> bool:
-    return all([dataset.is_latent_cachable() for dataset in self.datasets])
+  def is_latent_cacheable(self) -> bool:
+    return all([dataset.is_latent_cacheable() for dataset in self.datasets])
 
   def set_current_epoch(self, epoch):
     for dataset in self.datasets:
