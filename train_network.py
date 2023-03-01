@@ -303,6 +303,7 @@ def train(args):
     # NOTE: pack "ss_datasets" value as json one time
     #   or should also pack nested collections as json?
     datasets_metadata = []
+    tag_frequency = {}                    # merge tag frequency for metadata editor
 
     for dataset in train_dataset_group.datasets:
       is_dreambooth_dataset = isinstance(dataset, DreamBoothDataset)
@@ -315,7 +316,7 @@ def train(args):
         "enable_bucket": bool(dataset.enable_bucket),
         "min_bucket_reso": dataset.min_bucket_reso,
         "max_bucket_reso": dataset.max_bucket_reso,
-        "tag_frequency": dataset.tag_frequency,
+        # "tag_frequency": dataset.tag_frequency,
         "bucket_info": dataset.bucket_info,
       }
 
@@ -334,12 +335,25 @@ def train(args):
         if is_dreambooth_dataset:
           subset_metadata["class_tokens"] = subset.class_tokens
           subset_metadata["is_reg"] = subset.is_reg
+        else:
+          subset_metadata["metadata_file"] = os.path.basename(subset.metadata_file)
+
         subsets_metadata.append(subset_metadata)
 
       dataset_metadata["subsets"] = subsets_metadata
       datasets_metadata.append(dataset_metadata)
 
+      # merge tag frequency: 
+      for ds_dir_name, ds_freq_for_dir in dataset.tag_frequency.items():
+        # あるディレクトリが複数のdatasetで使用されている場合、一度だけ数える
+        # もともと繰り返し回数を指定しているので、キャプション内でのタグの出現回数と、それが学習で何度使われるかは一致しない
+        # なので、ここで複数datasetの回数を合算してもあまり意味はない
+        if ds_dir_name in tag_frequency:
+          continue
+        tag_frequency[ds_dir_name] = ds_freq_for_dir
+
     metadata["ss_datasets"] = json.dumps(datasets_metadata)
+    metadata["ss_tag_frequency"] = json.dumps(tag_frequency)
   else:
     # conserving backward compatibility when using train_dataset_dir and reg_dataset_dir
     assert len(train_dataset_group.datasets) == 1, f"There should be a single dataset but {len(train_dataset_group.datasets)} found. This seems to be a bug. / データセットは1個だけ存在するはずですが、実際には{len(train_dataset_group.datasets)}個でした。プログラムのバグかもしれません。"
