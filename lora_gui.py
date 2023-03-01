@@ -46,15 +46,16 @@ document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
 
 def getlocon(existance):
+    now_path = os.getcwd()
     if existance:
         print('Checking LoCon script version...')
-        now_path = os.getcwd()
         os.chdir(os.path.join(path_of_this_folder, 'locon'))
         os.system('git pull')
         os.chdir(now_path)
     else:
-        os.system('git clone https://github.com/KohakuBlueleaf/LoCon.git')
-        os.system('ren '+ os.path.join(path_of_this_folder, 'LoCon') +' locon')
+        os.chdir(path_of_this_folder)
+        os.system('git clone https://github.com/KohakuBlueleaf/LoCon.git locon')
+        os.chdir(now_path)
 
 def save_configuration(
     save_as,
