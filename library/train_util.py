@@ -1054,9 +1054,9 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
     for dataset in self.datasets:
       dataset.add_replacement(str_from, str_to)
 
-  def make_buckets(self):
-    for dataset in self.datasets:
-      dataset.make_buckets()
+  # def make_buckets(self):
+  #   for dataset in self.datasets:
+  #     dataset.make_buckets()
 
   def cache_latents(self, vae):
     for dataset in self.datasets:

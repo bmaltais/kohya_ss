@@ -419,7 +419,8 @@ def generate_dataset_group_by_blueprint(dataset_group_blueprint: DatasetGroupBlu
   print(info)
 
   # make buckets first because it determines the length of dataset
-  for dataset in datasets:
+  for i, dataset in enumerate(datasets):
+    print(f"[Dataset {i}]")
     dataset.make_buckets()
 
   return DatasetGroup(datasets)
