@@ -704,14 +704,14 @@ def lora_tab(
                 conv_dim = gr.Slider(
                     minimum=1,
                     maximum=512,
-                    value=0,
+                    value=1,
                     step=1,
                     label='LoCon Convolution Rank (Dimension)',
                 )
                 conv_alpha = gr.Slider(
                     minimum=1,
                     maximum=512,
-                    value=0,
+                    value=1,
                     step=1,
                     label='LoCon Convolution Alpha',
                 )
