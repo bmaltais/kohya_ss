@@ -53,14 +53,15 @@ def UI(**kwargs):
     inbrowser = kwargs.get('inbrowser', False)
     share = kwargs.get('share', False)
     if username and password:
-        launch_kwargs["auth"] = (username, password)
+        launch_kwargs['auth'] = (username, password)
     if server_port > 0:
-        launch_kwargs["server_port"] = server_port
+        launch_kwargs['server_port'] = server_port
     if inbrowser:
-        launch_kwargs["inbrowser"] = inbrowser
+        launch_kwargs['inbrowser'] = inbrowser
     if share:
-        launch_kwargs["share"] = share
+        launch_kwargs['share'] = share
     interface.launch(**launch_kwargs)
+
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
@@ -72,11 +73,24 @@ if __name__ == '__main__':
         '--password', type=str, default='', help='Password for authentication'
     )
     parser.add_argument(
-        '--server_port', type=int, default=0, help='Port to run the server listener on'
+        '--server_port',
+        type=int,
+        default=0,
+        help='Port to run the server listener on',
     )
-    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
-    parser.add_argument("--share", action="store_true", help="Share the gradio UI")
+    parser.add_argument(
+        '--inbrowser', action='store_true', help='Open in browser'
+    )
+    parser.add_argument(
+        '--share', action='store_true', help='Share the gradio UI'
+    )
 
     args = parser.parse_args()
 
-    UI(username=args.username, password=args.password, inbrowser=args.inbrowser, server_port=args.server_port, share=args.share)
+    UI(
+        username=args.username,
+        password=args.password,
+        inbrowser=args.inbrowser,
+        server_port=args.server_port,
+        share=args.share,
+    )
