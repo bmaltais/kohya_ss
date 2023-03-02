@@ -124,45 +124,38 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- 23 Feb. 2023, 2023/2/23:
-  - Fix instability training issue in ``train_network.py``.
-    - ``fp16`` training is probably not affected by this issue.
-    - Training with ``float`` for SD2.x models will work now. Also training with ``bf16`` might be improved. 
-    - This issue seems to have occurred in [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190).
-  - Add some metadata to LoRA model. Thanks to space-nuko!
-  - Raise an error if optimizer options conflict (e.g. ``--optimizer_type`` and ``--use_8bit_adam``.) 
-  - Support ControlNet in ``gen_img_diffusers.py`` (no documentation yet.)
-  - ``train_network.py`` で学習が不安定になる不具合を修正しました。
-    - ``fp16`` 精度での学習には恐らくこの問題は影響しません。
-    - ``float`` 精度での SD2.x モデルの学習が正しく動作するようになりました。また ``bf16`` 精度の学習も改善する可能性があります。
-    - この問題は [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190) から起きていたようです。
-  - いくつかのメタデータを LoRA モデルに追加しました。 space-nuko 氏に感謝します。
-  - オプティマイザ関係のオプションが矛盾していた場合、エラーとするように修正しました（例: ``--optimizer_type`` と ``--use_8bit_adam``）。
-  - ``gen_img_diffusers.py`` で ControlNet をサポートしました（ドキュメントはのちほど追加します）。
+- 2 Mar. 2023, 2023/3/2:
+  - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
+  - Dependencies are updated, Please [upgrade](#upgrade) the repo.
+  - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
+    - Documentation is [here](./config_README-ja.md) (only in Japanese currently.)
+    - Specify ``.toml`` file with ``--dataset_config`` option.
+    - The previous options for dataset can be used as is.
+    - There might be a bug due to the large scale of update, please report any problems if you find.
+  - Add feature to generate sample images in the middle of training for each training scripts.
+    - ``--sample_every_n_steps`` and ``--sample_every_n_epochs`` options: frequency to generate.
+    - ``--sample_prompts`` option: the file contains prompts (each line generates one image.)
+      - The prompt is subset of ``gen_img_diffusers.py``. The prompt options ``w, h, d, l, s, n`` are supported.
+    - ``--sample_sampler`` option: sampler (scheduler) for generating, such as ddim or k_euler. See help for useable samplers.
+  - Add ``--tokenizer_cache_dir`` to each training and generation scripts to cache Tokenizer locally from Diffusers.
+    - Scripts will support offline training/generation after caching.
+  - Support letents upscaling for highres. fix, and VAE batch size in ``gen_img_diffusers.py`` (no documentation yet.)
 
-- 22 Feb. 2023, 2023/2/22:
-  - Refactor optmizer options. Thanks to mgz-dev!
-    - Add ``--optimizer_type`` option for each training script. Please see help. Japanese documentation is [here](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6).
-    - ``--use_8bit_adam`` and ``--use_lion_optimizer`` options also work, but override above option.
-  - Add SGDNesterov and its 8bit.
-  - Add [D-Adaptation](https://github.com/facebookresearch/dadaptation) optimizer. Thanks to BootsofLagrangian and all! 
-    - Please install D-Adaptation optimizer with ``pip install dadaptation`` (it is not in requirements.txt currently.)
-    - Please see https://github.com/kohya-ss/sd-scripts/issues/181 for details.
-  - Add AdaFactor optimizer. Thanks to Toshiaki!
-  - Extra lr scheduler settings (num_cycles etc.) are working in training scripts other than ``train_network.py``.
-  - Add ``--max_grad_norm`` option for each training script for gradient clipping. ``0.0`` disables clipping. 
-  - Symbolic link can be loaded in each training script. Thanks to TkskKurumi!
-  - オプティマイザ関連のオプションを見直しました。mgz-dev氏に感謝します。
-    - ``--optimizer_type`` を各学習スクリプトに追加しました。ドキュメントは[こちら](https://github.com/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)。
-    - ``--use_8bit_adam`` と ``--use_lion_optimizer`` のオプションは依然として動作しますがoptimizer_typeを上書きしますのでご注意ください。
-  - SGDNesterov オプティマイザおよびその8bit版を追加しました。
-  - [D-Adaptation](https://github.com/facebookresearch/dadaptation) オプティマイザを追加しました。BootsofLagrangian 氏および諸氏に感謝します。
-    - ``pip install dadaptation`` コマンドで別途インストールが必要です（現時点ではrequirements.txtに含まれておりません）。
-    - こちらのissueもあわせてご覧ください。 https://github.com/kohya-ss/sd-scripts/issues/181 
-  - AdaFactor オプティマイザを追加しました。Toshiaki氏に感謝します。 
-  - 追加のスケジューラ設定（num_cycles等）が ``train_network.py`` 以外の学習スクリプトでも使えるようになりました。
-  - 勾配クリップ時の最大normを指定する ``--max_grad_norm`` オプションを追加しました。``0.0``を指定するとクリップしなくなります。
-  - 各学習スクリプトでシンボリックリンクが読み込めるようになりました。TkskKurumi氏に感謝します。
+  - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
+  - ライブラリを更新しました。[アップグレード](https://github.com/kohya-ss/sd-scripts/blob/main/README-ja.md#%E3%82%A2%E3%83%83%E3%83%97%E3%82%B0%E3%83%AC%E3%83%BC%E3%83%89)に従って更新してください。
+  - 設定ファイルによるデータセット定義機能を追加しました。素晴らしいPRを提供していただいた fur0ut0 氏に感謝します。
+    - ドキュメントは[こちら](./config_README-ja.md)。
+    - ``--dataset_config`` オプションで ``.toml`` ファイルを指定してください。
+    - 今までのオプションはそのまま使えます。
+    - 大規模なアップデートのため、もし不具合がありましたらご報告ください。
+  - 学習の途中でサンプル画像を生成する機能を各学習スクリプトに追加しました。
+    - ``--sample_every_n_steps`` と ``--sample_every_n_epochs`` オプション：生成頻度を指定
+    - ``--sample_prompts`` オプション：プロンプトを記述したファイルを指定（1行ごとに1枚の画像を生成）
+      - プロンプトには ``gen_img_diffusers.py`` のプロンプトオプションの一部、 ``w, h, d, l, s, n`` が使えます。
+    - ``--sample_sampler`` オプション：ddim や k_euler などの sampler (scheduler) を指定します。使用できる sampler についてはヘルプをご覧ください。
+  - ``--tokenizer_cache_dir`` オプションを各学習スクリプトおよび生成スクリプトに追加しました。Diffusers から Tokenizer を取得してきてろーかるに保存します。
+    - 一度キャッシュしておくことでオフライン学習、生成ができるかもしれません。
+  - ``gen_img_diffusers.py`` で highres. fix での letents upscaling と VAE のバッチサイズ指定に対応しました。
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
