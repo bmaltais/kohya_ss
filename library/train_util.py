@@ -1061,7 +1061,8 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
   #     dataset.make_buckets()
 
   def cache_latents(self, vae):
-    for dataset in self.datasets:
+    for i, dataset in enumerate(self.datasets):
+      print(f"[Dataset {i}]")
       dataset.cache_latents(vae)
 
   def is_latent_cacheable(self) -> bool:
