@@ -101,8 +101,11 @@ def save_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
-    caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,optimizer_args,noise_offset,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -205,8 +208,11 @@ def open_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
-    caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,optimizer_args,noise_offset,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -288,8 +294,11 @@ def train_model(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
-    caption_dropout_every_n_epochs, caption_dropout_rate,
-    optimizer,optimizer_args,noise_offset,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -641,7 +650,8 @@ def ti_tab(
             seed,
             caption_extension,
             cache_latents,
-            optimizer,optimizer_args,
+            optimizer,
+            optimizer_args,
         ) = gradio_training(
             learning_rate_value='1e-5',
             lr_scheduler_value='cosine',
@@ -699,7 +709,9 @@ def ti_tab(
                 bucket_no_upscale,
                 random_crop,
                 bucket_reso_steps,
-                caption_dropout_every_n_epochs, caption_dropout_rate,noise_offset,
+                caption_dropout_every_n_epochs,
+                caption_dropout_rate,
+                noise_offset,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -723,15 +735,15 @@ def ti_tab(
         )
 
     button_run = gr.Button('Train model', variant='primary')
-    
+
     # Setup gradio tensorboard buttons
     button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
-    
+
     button_start_tensorboard.click(
         start_tensorboard,
         inputs=logging_dir,
     )
-    
+
     button_stop_tensorboard.click(
         stop_tensorboard,
     )
@@ -791,8 +803,11 @@ def ti_tab(
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
-        caption_dropout_every_n_epochs, caption_dropout_rate,
-        optimizer,optimizer_args,noise_offset,
+        caption_dropout_every_n_epochs,
+        caption_dropout_rate,
+        optimizer,
+        optimizer_args,
+        noise_offset,
     ]
 
     button_open_config.click(
@@ -854,16 +869,19 @@ def UI(**kwargs):
             )
 
     # Show the interface
-    launch_kwargs={}
+    launch_kwargs = {}
     if not kwargs.get('username', None) == '':
-        launch_kwargs["auth"] = (kwargs.get('username', None), kwargs.get('password', None))
+        launch_kwargs['auth'] = (
+            kwargs.get('username', None),
+            kwargs.get('password', None),
+        )
     if kwargs.get('server_port', 0) > 0:
-        launch_kwargs["server_port"] = kwargs.get('server_port', 0)
-    if kwargs.get('inbrowser', False):        
-        launch_kwargs["inbrowser"] = kwargs.get('inbrowser', False)
+        launch_kwargs['server_port'] = kwargs.get('server_port', 0)
+    if kwargs.get('inbrowser', False):
+        launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
     print(launch_kwargs)
     interface.launch(**launch_kwargs)
-        
+
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
@@ -875,10 +893,20 @@ if __name__ == '__main__':
         '--password', type=str, default='', help='Password for authentication'
     )
     parser.add_argument(
-        '--server_port', type=int, default=0, help='Port to run the server listener on'
+        '--server_port',
+        type=int,
+        default=0,
+        help='Port to run the server listener on',
     )
-    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
+    parser.add_argument(
+        '--inbrowser', action='store_true', help='Open in browser'
+    )
 
     args = parser.parse_args()
 
-    UI(username=args.username, password=args.password, inbrowser=args.inbrowser, server_port=args.server_port)
+    UI(
+        username=args.username,
+        password=args.password,
+        inbrowser=args.inbrowser,
+        server_port=args.server_port,
+    )

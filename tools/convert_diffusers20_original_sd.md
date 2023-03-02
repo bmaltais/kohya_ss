@@ -24,7 +24,7 @@ python convert_diffusers20_original_sd.py ..\models\sd.ckpt
 Specify the .ckpt file and the destination folder as arguments.
 Model judgment is not possible, so please use the `--v1` option or the `--v2` option depending on the model.
 
-Also, since `.ckpt` does not contain schduler and tokenizer information, you need to copy them from some existing Diffusers model. Please specify with `--reference_model`. You can specify the HuggingFace id or a local model directory.
+Also, since `.ckpt` does not contain scheduler and tokenizer information, you need to copy them from some existing Diffusers model. Please specify with `--reference_model`. You can specify the HuggingFace id or a local model directory.
 
 If you don't have a local model, you can specify "stabilityai/stable-diffusion-2" or "stabilityai/stable-diffusion-2-base" for v2.
 For v1.4/1.5, "CompVis/stable-diffusion-v1-4" is fine (v1.4 and v1.5 seem to be the same).

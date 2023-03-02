@@ -121,13 +121,13 @@ def gradio_merge_lora_tab():
                 outputs=save_to,
             )
             precision = gr.Dropdown(
-                label='Merge precison',
+                label='Merge precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='float',
                 interactive=True,
             )
             save_precision = gr.Dropdown(
-                label='Save precison',
+                label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='float',
                 interactive=True,
