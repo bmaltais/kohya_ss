@@ -3,59 +3,19 @@ import os
 import gradio as gr
 from easygui import msgbox
 import shutil
-import subprocess
-import time
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
-#####
-# tensorboard section
-#####
 
-tensorboard_proc = None # I know... bad but heh
+def update_optimizer(my_data):
+    if my_data.get('use_8bit_adam', False):
+        my_data['optimizer'] = 'AdamW8bit'
+        my_data['use_8bit_adam'] = False
+    return my_data
 
-def start_tensorboard(logging_dir):
-    global tensorboard_proc
-    
-    if not os.listdir(logging_dir):
-        print("Error: log folder is empty")
-        return
-    
-    run_cmd = f'tensorboard.exe --logdir "{logging_dir}"'
-    
-    print(run_cmd)
-    if tensorboard_proc is not None:
-        print("Tensorboard is already running. Terminating existing process before starting new one...")
-        stop_tensorboard()
-    
-    # Start background process
-    print('Starting tensorboard...')    
-    tensorboard_proc = subprocess.Popen(run_cmd)
-    
-    # Wait for some time to allow TensorBoard to start up
-    time.sleep(5)
-    
-    # Open the TensorBoard URL in the default browser
-    print('Opening tensorboard url in browser...')
-    import webbrowser
-    webbrowser.open('http://localhost:6006')
-    
-def stop_tensorboard():
-    print('Stopping tensorboard process...')
-    tensorboard_proc.kill()
-    print('...process stopped')
-    
-def gradio_tensorboard():
-    with gr.Row():
-        button_start_tensorboard = gr.Button('Start tensorboard')
-        button_stop_tensorboard = gr.Button('Stop tensorboard')
-        
-    return(button_start_tensorboard, button_stop_tensorboard)
-
-#####
 
 def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
@@ -127,13 +87,18 @@ def remove_doublequote(file_path):
 
     return file_path
 
+
 def set_legacy_8bitadam(optimizer, use_8bit_adam):
     if optimizer == 'AdamW8bit':
         # use_8bit_adam = True
-        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(value=True, interactive=False, visible=True)
+        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
+            value=True, interactive=False, visible=True
+        )
     else:
         # use_8bit_adam = False
-        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(value=False, interactive=False, visible=True)
+        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
+            value=False, interactive=False, visible=True
+        )
 
 
 def get_folder_path(folder_path=''):
@@ -530,14 +495,15 @@ def gradio_training(
                 'DAdaptation',
                 'Lion',
                 'SGDNesterov',
-                'SGDNesterov8bit'
+                'SGDNesterov8bit',
             ],
-            value="AdamW8bit",
+            value='AdamW8bit',
             interactive=True,
         )
     with gr.Row():
         optimizer_args = gr.Textbox(
-            label='Optimizer extra arguments', placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True'
+            label='Optimizer extra arguments',
+            placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
         )
     return (
         learning_rate,
@@ -590,10 +556,13 @@ def run_cmd_training(**kwargs):
         ' --cache_latents' if kwargs.get('cache_latents') else '',
         # ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
         f' --optimizer_type="{kwargs.get("optimizer", "AdamW")}"',
-        f' --optimizer_args {kwargs.get("optimizer_args", "")}' if not kwargs.get('optimizer_args') == '' else '',
+        f' --optimizer_args {kwargs.get("optimizer_args", "")}'
+        if not kwargs.get('optimizer_args') == ''
+        else '',
     ]
     run_cmd = ''.join(options)
     return run_cmd
+
 
 # # This function takes a dictionary of keyword arguments and returns a string that can be used to run a command-line training script
 # def run_cmd_training(**kwargs):
@@ -651,7 +620,10 @@ def gradio_advanced_training():
             label='Memory efficient attention', value=False
         )
     with gr.Row():
-        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+        # This use_8bit_adam element should be removed in a future release as it is no longer used
+        use_8bit_adam = gr.Checkbox(
+            label='Use 8bit adam', value=False, visible=False
+        )
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
@@ -668,17 +640,13 @@ def gradio_advanced_training():
         noise_offset = gr.Textbox(
             label='Noise offset (0 - 1)', placeholder='(Oprional) eg: 0.1'
         )
-        
+
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
-            label="Dropout caption every n epochs",
-            value=0
+            label='Dropout caption every n epochs', value=0
         )
         caption_dropout_rate = gr.Slider(
-            label="Rate of caption dropout",
-            value=0,
-            minimum=0,
-            maximum=1
+            label='Rate of caption dropout', value=0, minimum=0, maximum=1
         )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
@@ -716,7 +684,9 @@ def gradio_advanced_training():
         bucket_no_upscale,
         random_crop,
         bucket_reso_steps,
-        caption_dropout_every_n_epochs, caption_dropout_rate,noise_offset,
+        caption_dropout_every_n_epochs,
+        caption_dropout_rate,
+        noise_offset,
     )
 
 
@@ -746,11 +716,9 @@ def run_cmd_advanced_training(**kwargs):
         f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
         if float(kwargs.get('caption_dropout_rate', 0)) > 0
         else '',
-        
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
         else '',
-        
         ' --save_state' if kwargs.get('save_state') else '',
         ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
         ' --color_aug' if kwargs.get('color_aug') else '',
@@ -773,6 +741,7 @@ def run_cmd_advanced_training(**kwargs):
     ]
     run_cmd = ''.join(options)
     return run_cmd
+
 
 # def run_cmd_advanced_training(**kwargs):
 #     arg_map = {

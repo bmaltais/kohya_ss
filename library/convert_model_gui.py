@@ -217,7 +217,7 @@ def gradio_convert_model_tab():
                 ],
             )
             target_save_precision_type = gr.Dropdown(
-                label='Target model precison',
+                label='Target model precision',
                 choices=['unspecified', 'fp16', 'bf16', 'float'],
                 value='unspecified',
             )

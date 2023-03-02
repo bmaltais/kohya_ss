@@ -94,7 +94,7 @@ def gradio_resize_lora_tab():
                 outputs=save_to,
             )
             save_precision = gr.Dropdown(
-                label='Save precison',
+                label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='fp16',
                 interactive=True,
