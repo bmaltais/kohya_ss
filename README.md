@@ -163,6 +163,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/02 (v21.1.0):
+    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon.
 * 2023/03/01 (v21.0.1):
     - Add warning to tensorboard start if the log information is missing
     - Fix issue with 8bitadam on older config file load
