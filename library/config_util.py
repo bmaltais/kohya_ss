@@ -454,7 +454,7 @@ def generate_dreambooth_subsets_config_by_subdirs(train_data_dir: Optional[str] 
       if num_repeats < 1:
         continue
 
-      subset_config = {"image_dir": str(subdir), "is_reg": is_reg, "class_tokens": class_tokens}
+      subset_config = {"image_dir": str(subdir), "num_repeats": num_repeats, "is_reg": is_reg, "class_tokens": class_tokens}
       subsets_config.append(subset_config)
 
     return subsets_config
