@@ -125,6 +125,8 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 ## Change History
 
 - 2 Mar. 2023, 2023/3/2:
+  - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
+  - Dependencies are updated, Please [upgrade](#upgrade) the repo.
   - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
     - Documentation is [here](./config_README-ja.md) (only in Japanese currently.)
     - Specify ``.toml`` file with ``--dataset_config`` option.
@@ -139,6 +141,8 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - Scripts will support offline training/generation after caching.
   - Support letents upscaling for highres. fix, and VAE batch size in ``gen_img_diffusers.py`` (no documentation yet.)
 
+  - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
+  - ライブラリを更新しました。[アップグレード](https://github.com/kohya-ss/sd-scripts/blob/main/README-ja.md#%E3%82%A2%E3%83%83%E3%83%97%E3%82%B0%E3%83%AC%E3%83%BC%E3%83%89)に従って更新してください。
   - 設定ファイルによるデータセット定義機能を追加しました。素晴らしいPRを提供していただいた fur0ut0 氏に感謝します。
     - ドキュメントは[こちら](./config_README-ja.md)。
     - ``--dataset_config`` オプションで ``.toml`` ファイルを指定してください。
