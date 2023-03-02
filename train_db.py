@@ -38,9 +38,9 @@ def train(args):
   tokenizer = train_util.load_tokenizer(args)
 
   blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, False, True))
-  if args.config_file is not None:
-    print(f"Load config file from {args.config_file}")
-    user_config = config_util.load_user_config(args.config_file)
+  if args.dataset_config is not None:
+    print(f"Load dataset config from {args.dataset_config}")
+    user_config = config_util.load_user_config(args.dataset_config)
     ignored = ["train_data_dir", "reg_data_dir"]
     if any(getattr(args, attr) is not None for attr in ignored):
       print("ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(', '.join(ignored)))

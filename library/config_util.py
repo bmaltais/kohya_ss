@@ -38,7 +38,7 @@ from .train_util import (
 
 
 def add_config_arguments(parser: argparse.ArgumentParser):
-  parser.add_argument("--config_file", type=Path, default=None, help="config file for detail settings / 詳細な設定用の設定ファイル")
+  parser.add_argument("--dataset_config", type=Path, default=None, help="config file for detail settings / 詳細な設定用の設定ファイル")
 
 # TODO: inherit Params class in Subset, Dataset
 
@@ -495,7 +495,7 @@ if __name__ == "__main__":
   parser.add_argument("--support_dreambooth", action="store_true")
   parser.add_argument("--support_finetuning", action="store_true")
   parser.add_argument("--support_dropout", action="store_true")
-  parser.add_argument("config_file")
+  parser.add_argument("dataset_config")
   config_args, remain = parser.parse_known_args()
 
   parser = argparse.ArgumentParser()
@@ -507,7 +507,7 @@ if __name__ == "__main__":
   print("[argparse_namespace]")
   print(vars(argparse_namespace))
 
-  user_config = load_user_config(config_args.config_file)
+  user_config = load_user_config(config_args.dataset_config)
 
   print("\n[user_config]")
   print(user_config)

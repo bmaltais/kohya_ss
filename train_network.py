@@ -54,7 +54,7 @@ def train(args):
 
   cache_latents = args.cache_latents
   use_dreambooth_method = args.in_json is None
-  use_user_config = args.config_file is not None
+  use_user_config = args.dataset_config is not None
 
   if args.seed is not None:
     set_seed(args.seed)
@@ -64,8 +64,8 @@ def train(args):
   # データセットを準備する
   blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
   if use_user_config:
-    print(f"Load config file from {args.config_file}")
-    user_config = config_util.load_user_config(args.config_file)
+    print(f"Load dataset config from {args.dataset_config}")
+    user_config = config_util.load_user_config(args.dataset_config)
     ignored = ["train_data_dir", "reg_data_dir", "in_json"]
     if any(getattr(args, attr) is not None for attr in ignored):
       print(
