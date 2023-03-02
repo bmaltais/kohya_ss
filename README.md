@@ -6,21 +6,21 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ### Table of Contents
 
-- [Tutorials](https://github.com/jonathanzhang53/kohya_ss#tutorials)
-- [Required Dependencies](https://github.com/jonathanzhang53/kohya_ss#required-dependencies)
-- [Installation](https://github.com/jonathanzhang53/kohya_ss#installation)
-    - [CUDNN 8.6](https://github.com/jonathanzhang53/kohya_ss#optional-cudnn-86)
-- [Upgrading](https://github.com/jonathanzhang53/kohya_ss#upgrading)
-- [Launching the GUI](https://github.com/jonathanzhang53/kohya_ss#launching-the-gui)
-- [Dreambooth](https://github.com/jonathanzhang53/kohya_ss#dreambooth)
-- [Finetune](https://github.com/jonathanzhang53/kohya_ss#finetune)
-- [Train Network](https://github.com/jonathanzhang53/kohya_ss#train-network)
-- [LoRA](https://github.com/jonathanzhang53/kohya_ss#lora)
-- [Troubleshooting](https://github.com/jonathanzhang53/kohya_ss#troubleshooting)
-  - [Page File Limit](https://github.com/jonathanzhang53/kohya_ss#page-file-limit)
-  - [No module called tkinter](https://github.com/jonathanzhang53/kohya_ss#no-module-called-tkinter)
-  - [FileNotFoundError](https://github.com/jonathanzhang53/kohya_ss#filenotfounderror)
-- [Change History](https://github.com/jonathanzhang53/kohya_ss#change-history)
+- [Tutorials](https://github.com/bmaltais/kohya_ss#tutorials)
+- [Required Dependencies](https://github.com/bmaltais/kohya_ss#required-dependencies)
+- [Installation](https://github.com/bmaltais/kohya_ss#installation)
+    - [CUDNN 8.6](https://github.com/bmaltais/kohya_ss#optional-cudnn-86)
+- [Upgrading](https://github.com/bmaltais/kohya_ss#upgrading)
+- [Launching the GUI](https://github.com/bmaltais/kohya_ss#launching-the-gui)
+- [Dreambooth](https://github.com/bmaltais/kohya_ss#dreambooth)
+- [Finetune](https://github.com/bmaltais/kohya_ss#finetune)
+- [Train Network](https://github.com/bmaltais/kohya_ss#train-network)
+- [LoRA](https://github.com/bmaltais/kohya_ss#lora)
+- [Troubleshooting](https://github.com/bmaltais/kohya_ss#troubleshooting)
+  - [Page File Limit](https://github.com/bmaltais/kohya_ss#page-file-limit)
+  - [No module called tkinter](https://github.com/bmaltais/kohya_ss#no-module-called-tkinter)
+  - [FileNotFoundError](https://github.com/bmaltais/kohya_ss#filenotfounderror)
+- [Change History](https://github.com/bmaltais/kohya_ss#change-history)
 
 ## Tutorials
 
