@@ -19,6 +19,12 @@ from library.common_gui import (
     color_aug_changed,
     run_cmd_training,
     set_legacy_8bitadam,
+    update_optimizer,
+)
+from library.tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.utilities import utilities_tab
 
@@ -198,21 +204,22 @@ def open_config_file(
     original_file_path = file_path
     file_path = get_file_path(file_path)
 
-    if file_path != '' and file_path != None:
-        print(f'Loading config file {file_path}')
+    if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data_ft = json.load(f)
+            my_data_db = json.load(f)
+            print('Loading config...')
+            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            my_data = update_optimizer(my_data)
     else:
-        file_path = original_file_path   # In case a file_path was provided and the user decide to cancel the open action
-        my_data_ft = {}
+        file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
+        my_data_db = {}
 
     values = [file_path]
     for key, value in parameters:
-        # Set the value in the dictionary to the corresponding value in `my_data_ft`, or the default value if not found
+        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data_ft.get(key, value))
-    # print(values)
+            values.append(my_data_db.get(key, value))
     return tuple(values)
 
 
@@ -623,7 +630,19 @@ def finetune_tab():
             outputs=[optimizer, use_8bit_adam],
         )
 
-    button_run = gr.Button('Train model')
+    button_run = gr.Button('Train model', variant='primary')
+    
+    # Setup gradio tensorboard buttons
+    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+    
+    button_start_tensorboard.click(
+        start_tensorboard,
+        inputs=logging_dir,
+    )
+    
+    button_stop_tensorboard.click(
+        stop_tensorboard,
+    )
 
     settings_list = [
         pretrained_model_name_or_path,

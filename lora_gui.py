@@ -25,9 +25,15 @@ from library.common_gui import (
     gradio_source_model,
     run_cmd_training,
     set_legacy_8bitadam,
+    update_optimizer,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
+)
+from library.tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
@@ -40,7 +46,6 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-
 
 def save_configuration(
     save_as,
@@ -221,6 +226,8 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             print('Loading config...')
+            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            my_data = update_optimizer(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
@@ -745,7 +752,19 @@ def lora_tab(
         gradio_resize_lora_tab()
         gradio_verify_lora_tab()
 
-    button_run = gr.Button('Train model')
+    button_run = gr.Button('Train model', variant='primary')
+    
+    # Setup gradio tensorboard buttons
+    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+    
+    button_start_tensorboard.click(
+        start_tensorboard,
+        inputs=logging_dir,
+    )
+    
+    button_stop_tensorboard.click(
+        stop_tensorboard,
+    )
 
     settings_list = [
         pretrained_model_name_or_path,

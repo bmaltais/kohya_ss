@@ -25,6 +25,12 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
+    update_optimizer,
+)
+from library.tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -203,6 +209,8 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data_db = json.load(f)
             print('Loading config...')
+            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            my_data = update_optimizer(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data_db = {}
@@ -639,7 +647,19 @@ def dreambooth_tab(
             logging_dir_input=logging_dir,
         )
 
-    button_run = gr.Button('Train model')
+    button_run = gr.Button('Train model', variant='primary')
+    
+    # Setup gradio tensorboard buttons
+    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+    
+    button_start_tensorboard.click(
+        start_tensorboard,
+        inputs=logging_dir,
+    )
+    
+    button_stop_tensorboard.click(
+        stop_tensorboard,
+    )
 
     settings_list = [
         pretrained_model_name_or_path,
