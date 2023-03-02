@@ -213,19 +213,19 @@ def open_config_file(
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data_db = json.load(f)
+            my_data = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
             my_data = update_optimizer(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data_db = {}
+        my_data = {}
 
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data_db.get(key, value))
+            values.append(my_data.get(key, value))
     return tuple(values)
 
 
