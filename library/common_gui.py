@@ -9,6 +9,12 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+def update_optimizer(my_data):
+    if my_data.get('use_8bit_adam', False):
+        my_data['optimizer'] = 'AdamW8bit'
+        my_data['use_8bit_adam'] = False
+    return my_data
+
 
 def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
@@ -604,7 +610,8 @@ def gradio_advanced_training():
             label='Memory efficient attention', value=False
         )
     with gr.Row():
-        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=True)
+        # This use_8bit_adam element should be removed in a future release as it is no longer used
+        use_8bit_adam = gr.Checkbox(label='Use 8bit adam', value=False, visible=False)
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)

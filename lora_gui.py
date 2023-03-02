@@ -25,6 +25,7 @@ from library.common_gui import (
     gradio_source_model,
     run_cmd_training,
     set_legacy_8bitadam,
+    update_optimizer,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -225,6 +226,8 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             print('Loading config...')
+            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            my_data = update_optimizer(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
