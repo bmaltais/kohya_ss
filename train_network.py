@@ -316,7 +316,7 @@ def train(args):
         "enable_bucket": bool(dataset.enable_bucket),
         "min_bucket_reso": dataset.min_bucket_reso,
         "max_bucket_reso": dataset.max_bucket_reso,
-        # "tag_frequency": dataset.tag_frequency,
+        "tag_frequency": dataset.tag_frequency,
         "bucket_info": dataset.bucket_info,
       }
 
