@@ -272,7 +272,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                     )
 
 
-def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
+def set_pretrained_model_name_or_path_input(value, pretrained_model_name_or_path, v2, v_parameterization):
     # define a list of substrings to search for
     substrings_v2 = [
         'stabilityai/stable-diffusion-2-1-base',
@@ -316,9 +316,10 @@ def set_pretrained_model_name_or_path_input(value, v2, v_parameterization):
         return value, v2, v_parameterization
 
     if value == 'custom':
-        value = ''
-        v2 = False
-        v_parameterization = False
+        if str(pretrained_model_name_or_path) in substrings_v1_model or str(pretrained_model_name_or_path) in substrings_v2 or str(pretrained_model_name_or_path) in substrings_v_parameterization:
+            value = ''
+            v2 = False
+            v_parameterization = False
 
         return value, v2, v_parameterization
 
@@ -405,7 +406,7 @@ def gradio_source_model():
             )
         model_list.change(
             set_pretrained_model_name_or_path_input,
-            inputs=[model_list, v2, v_parameterization],
+            inputs=[model_list, pretrained_model_name_or_path, v2, v_parameterization],
             outputs=[
                 pretrained_model_name_or_path,
                 v2,
