@@ -41,6 +41,19 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ## Installation
 
+### Ubuntu
+In the terminal, run
+
+```
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+bash ubuntu_setup.sh
+```
+
+then configure accelerate with the same answers as in the Windows instructions when prompted.
+
+### Windows
+
 Give unrestricted script access to powershell so venv can work:
 
 - Run PowerShell as an administrator
