@@ -48,18 +48,6 @@ save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
 
-def getlocon(existance):
-    now_path = os.getcwd()
-    if existance:
-        print('Checking LoCon script version...')
-        os.chdir(os.path.join(path_of_this_folder, 'locon'))
-        os.system('git pull')
-        os.chdir(now_path)
-    else:
-        os.chdir(path_of_this_folder)
-        os.system('git clone https://github.com/KohakuBlueleaf/LoCon.git locon')
-        os.chdir(now_path)
-
 
 def save_configuration(
     save_as,
@@ -122,8 +110,11 @@ def save_configuration(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, 
-    LoRA_type='Standard', conv_dim=0, conv_alpha=0,
+    optimizer_args,
+    noise_offset,
+    LoRA_type='Standard',
+    conv_dim=0,
+    conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -230,8 +221,11 @@ def open_configuration(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, 
-    LoRA_type='Standard', conv_dim=0, conv_alpha=0,
+    optimizer_args,
+    noise_offset,
+    LoRA_type='Standard',
+    conv_dim=0,
+    conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -261,7 +255,7 @@ def open_configuration(
         values.append(gr.Group.update(visible=True))
     else:
         values.append(gr.Group.update(visible=False))
-    
+
     return tuple(values)
 
 
@@ -324,9 +318,12 @@ def train_model(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,noise_offset, 
-    LoRA_type, conv_dim, conv_alpha,
-):  
+    optimizer_args,
+    noise_offset,
+    LoRA_type,
+    conv_dim,
+    conv_alpha,
+):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -462,9 +459,15 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
     if LoRA_type == 'LoCon':
-        getlocon(os.path.exists(os.path.join(path_of_this_folder, 'locon')))
-        run_cmd += f' --network_module=locon.locon.locon_kohya'
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+        try:
+            import locon.locon_kohya
+        except ModuleNotFoundError:
+            print("\033[1;31mError:\033[0m The required module 'locon' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program.")
+            return
+        run_cmd += f' --network_module=locon.locon_kohya'
+        run_cmd += (
+            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+        )
     else:
         run_cmd += f' --network_module=networks.lora'
 
@@ -646,7 +649,7 @@ def lora_tab(
                     'Standard',
                     'LoCon',
                 ],
-                value='Standard'
+                value='Standard',
             )
             lora_network_weights = gr.Textbox(
                 label='LoRA network weights',
@@ -680,7 +683,7 @@ def lora_tab(
             lr_scheduler_value='cosine',
             lr_warmup_value='10',
         )
-        
+
         with gr.Row():
             text_encoder_lr = gr.Textbox(
                 label='Text Encoder learning rate',
@@ -708,16 +711,17 @@ def lora_tab(
                 step=1,
                 interactive=True,
             )
-        
+
         with gr.Group(visible=False) as LoCon_group:
+
             def LoRA_type_change(LoRA_type):
-                if LoRA_type == "LoCon":
+                if LoRA_type == 'LoCon':
                     return gr.Group.update(visible=True)
                 else:
                     return gr.Group.update(visible=False)
 
             with gr.Row():
-                
+
                 # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
                 conv_dim = gr.Slider(
                     minimum=1,
@@ -734,7 +738,9 @@ def lora_tab(
                     label='LoCon Convolution Alpha',
                 )
             # Show of hide LoCon conv settings depending on LoRA type selection
-            LoRA_type.change(LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_group])
+            LoRA_type.change(
+                LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_group]
+            )
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
@@ -894,8 +900,11 @@ def lora_tab(
         caption_dropout_every_n_epochs,
         caption_dropout_rate,
         optimizer,
-        optimizer_args,noise_offset, 
-        LoRA_type, conv_dim, conv_alpha,
+        optimizer_args,
+        noise_offset,
+        LoRA_type,
+        conv_dim,
+        conv_alpha,
     ]
 
     button_open_config.click(
