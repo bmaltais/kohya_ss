@@ -17,7 +17,7 @@ def run(command, desc=None, errdesc=None, custom_env=None):
     if desc is not None:
         print(desc)
 
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=os.environ if custom_env is None else custom_env)
+    result = os.system(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=os.environ if custom_env is None else custom_env)
 
     if result.returncode != 0:
 

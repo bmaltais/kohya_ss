@@ -33,7 +33,7 @@ def verify_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
     process = subprocess.Popen(
         run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )

@@ -40,7 +40,7 @@ def caption_images(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     # Add prefix and postfix
     add_pre_postfix(

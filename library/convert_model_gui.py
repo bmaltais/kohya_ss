@@ -87,7 +87,7 @@ def convert_model(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     if (
         not target_model_type == 'diffuser'

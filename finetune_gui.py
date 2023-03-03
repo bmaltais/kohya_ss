@@ -301,7 +301,7 @@ def train_model(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
@@ -325,7 +325,7 @@ def train_model(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     image_num = len(
         [
@@ -435,7 +435,7 @@ def train_model(
 
     print(run_cmd)
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/{output_name}')

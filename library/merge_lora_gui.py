@@ -53,7 +53,7 @@ def merge_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
 
 ###
