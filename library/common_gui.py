@@ -355,6 +355,7 @@ def gradio_source_model():
             pretrained_model_name_or_path = gr.Textbox(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
+                value='runwayml/stable-diffusion-v1-5'
             )
             pretrained_model_name_or_path_file = gr.Button(
                 document_symbol, elem_id='open_folder_small'
@@ -373,7 +374,7 @@ def gradio_source_model():
                 outputs=pretrained_model_name_or_path,
             )
             model_list = gr.Dropdown(
-                label='(Optional) Model Quick Pick',
+                label='Model Quick Pick',
                 choices=[
                     'custom',
                     'stabilityai/stable-diffusion-2-1-base',
@@ -383,6 +384,7 @@ def gradio_source_model():
                     'runwayml/stable-diffusion-v1-5',
                     'CompVis/stable-diffusion-v1-4',
                 ],
+                value='runwayml/stable-diffusion-v1-5'
             )
             save_model_as = gr.Dropdown(
                 label='Save trained model as',
@@ -397,7 +399,7 @@ def gradio_source_model():
             )
 
         with gr.Row():
-            v2 = gr.Checkbox(label='v2', value=True)
+            v2 = gr.Checkbox(label='v2', value=False)
             v_parameterization = gr.Checkbox(
                 label='v_parameterization', value=False
             )

@@ -123,7 +123,7 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,noise_offset, 
-    locon=0, conv_dim=0, conv_alpha=0,
+    LoRA_type='Standard', conv_dim=0, conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -231,7 +231,7 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,noise_offset, 
-    locon=0, conv_dim=0, conv_alpha=0,
+    LoRA_type='Standard', conv_dim=0, conv_alpha=0,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -256,6 +256,12 @@ def open_configuration(
         if not key in ['file_path']:
             values.append(my_data.get(key, value))
 
+    # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
+    if my_data.get('LoRA_type', 'Standard') == 'LoCon':
+        values.append(gr.Group.update(visible=True))
+    else:
+        values.append(gr.Group.update(visible=False))
+    
     return tuple(values)
 
 
@@ -319,7 +325,7 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,noise_offset, 
-    locon, conv_dim, conv_alpha,
+    LoRA_type, conv_dim, conv_alpha,
 ):  
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -455,7 +461,7 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if locon:
+    if LoRA_type == 'LoCon':
         getlocon(os.path.exists(os.path.join(path_of_this_folder, 'locon')))
         run_cmd += f' --network_module=locon.locon.locon_kohya'
         run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
@@ -634,6 +640,14 @@ def lora_tab(
         )
     with gr.Tab('Training parameters'):
         with gr.Row():
+            LoRA_type = gr.Dropdown(
+                label='LoRA type',
+                choices=[
+                    'Standard',
+                    'LoCon',
+                ],
+                value='Standard'
+            )
             lora_network_weights = gr.Textbox(
                 label='LoRA network weights',
                 placeholder='{Optional) Path to existing LoRA network weights to resume training',
@@ -666,6 +680,7 @@ def lora_tab(
             lr_scheduler_value='cosine',
             lr_warmup_value='10',
         )
+        
         with gr.Row():
             text_encoder_lr = gr.Textbox(
                 label='Text Encoder learning rate',
@@ -693,6 +708,33 @@ def lora_tab(
                 step=1,
                 interactive=True,
             )
+        
+        with gr.Group(visible=False) as LoCon_group:
+            def LoRA_type_change(LoRA_type):
+                if LoRA_type == "LoCon":
+                    return gr.Group.update(visible=True)
+                else:
+                    return gr.Group.update(visible=False)
+
+            with gr.Row():
+                
+                # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
+                conv_dim = gr.Slider(
+                    minimum=1,
+                    maximum=512,
+                    value=1,
+                    step=1,
+                    label='LoCon Convolution Rank (Dimension)',
+                )
+                conv_alpha = gr.Slider(
+                    minimum=1,
+                    maximum=512,
+                    value=1,
+                    step=1,
+                    label='LoCon Convolution Alpha',
+                )
+            # Show of hide LoCon conv settings depending on LoRA type selection
+            LoRA_type.change(LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_group])
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
@@ -708,22 +750,6 @@ def lora_tab(
             )
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
-            with gr.Row():
-                locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
-                conv_dim = gr.Slider(
-                    minimum=1,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='LoCon Convolution Rank (Dimension)',
-                )
-                conv_alpha = gr.Slider(
-                    minimum=1,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='LoCon Convolution Alpha',
-                )
             with gr.Row():
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
@@ -869,13 +895,13 @@ def lora_tab(
         caption_dropout_rate,
         optimizer,
         optimizer_args,noise_offset, 
-        locon, conv_dim, conv_alpha,
+        LoRA_type, conv_dim, conv_alpha,
     ]
 
     button_open_config.click(
         open_configuration,
         inputs=[config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list,
+        outputs=[config_file_name] + settings_list + [LoCon_group],
     )
 
     button_save_config.click(
