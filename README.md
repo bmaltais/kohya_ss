@@ -165,6 +165,7 @@ This will store your a backup file with your current locally installed pip packa
 
 * 2023/03/03 (v21.1.2):
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/277
+    - Fix issue https://github.com/bmaltais/kohya_ss/issues/278 introduce by LoCon project switching to pip module. Make sure to run upgrade.ps1 to install the latest pip requirements for LoCon support.
 * 2023/03/02 (v21.1.1):
     - Emergency fix for https://github.com/bmaltais/kohya_ss/issues/261
 * 2023/03/02 (v21.1.0):
