@@ -163,6 +163,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/03 (v21.1.2):
+    - Fix issue https://github.com/bmaltais/kohya_ss/issues/277
 * 2023/03/02 (v21.1.1):
     - Emergency fix for https://github.com/bmaltais/kohya_ss/issues/261
 * 2023/03/02 (v21.1.0):
