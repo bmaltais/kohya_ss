@@ -30,7 +30,7 @@ def resize_lora(
     if device == '':
         device = 'cuda'
 
-    run_cmd = f'{PYTHON} {os.path.join("networks","resize_lora.py")}'
+    run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to {save_to}'
     run_cmd += f' --model {model}'

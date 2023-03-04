@@ -43,7 +43,7 @@ def merge_lora(
     ratio_a = ratio
     ratio_b = 1 - ratio
 
-    run_cmd = f'{PYTHON} {os.path.join("networks","merge_lora.py")}'
+    run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --precision {precision}'
     run_cmd += f' --save_to "{save_to}"'
