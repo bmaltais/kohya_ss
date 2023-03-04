@@ -3,7 +3,7 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
-
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 
 def caption_images(
     train_data_dir,
@@ -25,7 +25,7 @@ def caption_images(
         return
 
     print(f'GIT captioning files in {train_data_dir}...')
-    run_cmd = f'.\\venv\\Scripts\\python.exe "finetune/make_captions.py"'
+    run_cmd = f'{PYTHON} "finetune/make_captions.py"'
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
     run_cmd += f' --batch_size="{int(batch_size)}"'

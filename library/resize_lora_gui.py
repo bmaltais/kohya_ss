@@ -3,7 +3,7 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_saveasfilename_path, get_file_path
-
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -30,7 +30,7 @@ def resize_lora(
     if device == '':
         device = 'cuda'
 
-    run_cmd = f'.\\venv\Scripts\python.exe "networks\\resize_lora.py"'
+    run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to {save_to}'
     run_cmd += f' --model {model}'
@@ -40,7 +40,7 @@ def resize_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
 
 ###

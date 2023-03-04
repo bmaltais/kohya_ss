@@ -2,6 +2,7 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path
+import os
 
 
 def caption_images(train_data_dir, caption_extension, batch_size, thresh):
@@ -30,7 +31,7 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     print('...captioning done')
 
