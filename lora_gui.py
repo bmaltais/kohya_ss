@@ -252,9 +252,9 @@ def open_configuration(
 
     # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
-        values.append(gr.Group.update(visible=True))
+        values.append(gr.Row.update(visible=True))
     else:
-        values.append(gr.Group.update(visible=False))
+        values.append(gr.Row.update(visible=False))
 
     return tuple(values)
 
@@ -712,35 +712,34 @@ def lora_tab(
                 interactive=True,
             )
 
-        with gr.Group(visible=False) as LoCon_group:
+        with gr.Row(visible=False) as LoCon_row:
 
-            def LoRA_type_change(LoRA_type):
-                if LoRA_type == 'LoCon':
-                    return gr.Group.update(visible=True)
-                else:
-                    return gr.Group.update(visible=False)
-
-            with gr.Row():
-
-                # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
-                conv_dim = gr.Slider(
-                    minimum=1,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='LoCon Convolution Rank (Dimension)',
-                )
-                conv_alpha = gr.Slider(
-                    minimum=1,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='LoCon Convolution Alpha',
-                )
-            # Show of hide LoCon conv settings depending on LoRA type selection
-            LoRA_type.change(
-                LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_group]
+            # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
+            conv_dim = gr.Slider(
+                minimum=1,
+                maximum=512,
+                value=1,
+                step=1,
+                label='LoCon Convolution Rank (Dimension)',
             )
+            conv_alpha = gr.Slider(
+                minimum=1,
+                maximum=512,
+                value=1,
+                step=1,
+                label='LoCon Convolution Alpha',
+            )
+        # Show of hide LoCon conv settings depending on LoRA type selection
+        def LoRA_type_change(LoRA_type):
+            print('LoRA type changed...')
+            if LoRA_type == 'LoCon':
+                return gr.Group.update(visible=True)
+            else:
+                return gr.Group.update(visible=False)
+            
+        LoRA_type.change(
+            LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_row]
+        )
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
@@ -910,7 +909,7 @@ def lora_tab(
     button_open_config.click(
         open_configuration,
         inputs=[config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list + [LoCon_group],
+        outputs=[config_file_name] + settings_list + [LoCon_row],
     )
 
     button_save_config.click(
