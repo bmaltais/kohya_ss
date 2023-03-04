@@ -9,6 +9,7 @@ from tqdm import tqdm
 from library import train_util, model_util
 import numpy as np
 
+MIN_SV = 1e-6
 
 def load_state_dict(file_name, dtype):
   if model_util.is_safetensors(file_name):
@@ -65,7 +66,6 @@ def extract_conv(weight, lora_rank, dynamic_method, dynamic_param, device, scale
     U, S, Vh = torch.linalg.svd(weight.reshape(out_size, -1).to(device))
     
     param_dict = rank_resize(S, lora_rank, dynamic_method, dynamic_param, scale)
-
     lora_rank = param_dict["new_rank"]
 
     U = U[:, :lora_rank]
@@ -150,6 +150,15 @@ def rank_resize(S, rank, dynamic_method, dynamic_param, scale=1):
         new_rank = rank
         new_alpha = float(scale*new_rank)
 
+    
+    if S[0] <= MIN_SV: # Zero matrix, set dim to 1
+        new_rank = 1
+        new_alpha = float(scale*new_rank)
+    elif new_rank > rank: # cap max rank at rank
+        new_rank = rank
+        new_alpha = float(scale*new_rank)
+
+
     # Calculate resize info
     s_sum = torch.sum(torch.abs(S))
     s_rank = torch.sum(torch.abs(S[:new_rank]))
@@ -188,7 +197,7 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
   scale = network_alpha/network_dim
 
   if dynamic_method:
-    print(f"Dynamically determining new alphas and dims based off {dynamic_method}: {dynamic_param}")
+    print(f"Dynamically determining new alphas and dims based off {dynamic_method}: {dynamic_param}, max rank is {new_rank}")
 
   lora_down_weight = None
   lora_up_weight = None
@@ -219,9 +228,6 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
           full_weight_matrix = merge_linear(lora_down_weight, lora_up_weight, device)
           param_dict = extract_linear(full_weight_matrix, new_rank, dynamic_method, dynamic_param, device, scale)
 
-        new_rank = param_dict['new_rank']
-        new_alpha = param_dict['new_alpha']
-
         if verbose:
           max_ratio = param_dict['max_ratio']
           sum_retained = param_dict['sum_retained']
@@ -232,16 +238,15 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
           verbose_str+=f"{block_down_name:75} | "
           verbose_str+=f"sum(S) retained: {sum_retained:.1%}, fro retained: {fro_retained:.1%}, max(S) ratio: {max_ratio:0.1f}"
 
-
         if verbose and dynamic_method:
-          verbose_str+=f", dynamic | dim: {new_rank}, alpha: {new_alpha}\n"
+          verbose_str+=f", dynamic | dim: {param_dict['new_rank']}, alpha: {param_dict['new_alpha']}\n"
         else:
           verbose_str+=f"\n"
 
-
+        new_alpha = param_dict['new_alpha']
         o_lora_sd[block_down_name + "." + "lora_down.weight"] = param_dict["lora_down"].to(save_dtype).contiguous()
         o_lora_sd[block_up_name + "." + "lora_up.weight"] = param_dict["lora_up"].to(save_dtype).contiguous()
-        o_lora_sd[block_up_name + "." "alpha"] = torch.tensor(new_alpha).to(save_dtype)
+        o_lora_sd[block_up_name + "." "alpha"] = torch.tensor(param_dict['new_alpha']).to(save_dtype)
 
         block_down_name = None
         block_up_name = None
@@ -321,7 +326,7 @@ if __name__ == '__main__':
   parser.add_argument("--verbose", action="store_true", 
                       help="Display verbose resizing information / rank変更時の詳細情報を出力する")
   parser.add_argument("--dynamic_method", type=str, default=None, choices=[None, "sv_ratio", "sv_fro", "sv_cumulative"],
-                      help="Specify dynamic resizing method, will override --new_rank")
+                      help="Specify dynamic resizing method, --new_rank is used as a hard limit for max rank")
   parser.add_argument("--dynamic_param", type=float, default=None,
                       help="Specify target for dynamic reduction")
                                            
