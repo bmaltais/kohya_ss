@@ -272,7 +272,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                     )
 
 
-def set_pretrained_model_name_or_path_input(value, pretrained_model_name_or_path, v2, v_parameterization):
+def set_pretrained_model_name_or_path_input(model_list, pretrained_model_name_or_path, v2, v_parameterization):
     # define a list of substrings to search for
     substrings_v2 = [
         'stabilityai/stable-diffusion-2-1-base',
@@ -280,12 +280,12 @@ def set_pretrained_model_name_or_path_input(value, pretrained_model_name_or_path
     ]
 
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(value) in substrings_v2:
+    if str(model_list) in substrings_v2:
         print('SD v2 model detected. Setting --v2 parameter')
         v2 = True
         v_parameterization = False
 
-        return value, v2, v_parameterization
+        return model_list, v2, v_parameterization
 
     # define a list of substrings to search for v-objective
     substrings_v_parameterization = [
@@ -294,14 +294,14 @@ def set_pretrained_model_name_or_path_input(value, pretrained_model_name_or_path
     ]
 
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(value) in substrings_v_parameterization:
+    if str(model_list) in substrings_v_parameterization:
         print(
             'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
         )
         v2 = True
         v_parameterization = True
 
-        return value, v2, v_parameterization
+        return model_list, v2, v_parameterization
 
     # define a list of substrings to v1.x
     substrings_v1_model = [
@@ -309,19 +309,18 @@ def set_pretrained_model_name_or_path_input(value, pretrained_model_name_or_path
         'runwayml/stable-diffusion-v1-5',
     ]
 
-    if str(value) in substrings_v1_model:
+    if str(model_list) in substrings_v1_model:
         v2 = False
         v_parameterization = False
 
-        return value, v2, v_parameterization
+        return model_list, v2, v_parameterization
 
-    if value == 'custom':
+    if model_list == 'custom':
         if str(pretrained_model_name_or_path) in substrings_v1_model or str(pretrained_model_name_or_path) in substrings_v2 or str(pretrained_model_name_or_path) in substrings_v_parameterization:
-            value = ''
+            pretrained_model_name_or_path = ''
             v2 = False
             v_parameterization = False
-
-        return value, v2, v_parameterization
+        return pretrained_model_name_or_path, v2, v_parameterization
 
     ###
     ### Gradio common GUI section
