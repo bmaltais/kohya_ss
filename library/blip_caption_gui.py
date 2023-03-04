@@ -4,6 +4,8 @@ import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
 
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
 
 def caption_images(
     train_data_dir,
@@ -32,7 +34,7 @@ def caption_images(
         return
 
     print(f'Captioning files in {train_data_dir}...')
-    run_cmd = f'.\\venv\\Scripts\\python.exe "finetune/make_captions.py"'
+    run_cmd = f'{PYTHON} "finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
     run_cmd += f' --top_p="{top_p}"'
@@ -48,7 +50,7 @@ def caption_images(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     # Add prefix and postfix
     add_pre_postfix(
@@ -81,7 +83,9 @@ def gradio_blip_caption_gui_tab():
                 '📂', elem_id='open_folder_small'
             )
             button_train_data_dir_input.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
         with gr.Row():
             caption_file_ext = gr.Textbox(
@@ -138,4 +142,5 @@ def gradio_blip_caption_gui_tab():
                 prefix,
                 postfix,
             ],
+            show_progress=False,
         )

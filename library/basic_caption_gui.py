@@ -2,6 +2,7 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace
+import os
 
 
 def caption_images(
@@ -38,7 +39,7 @@ def caption_images(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     if overwrite_input:
         if not prefix == '' or not postfix == '':
@@ -85,7 +86,9 @@ def gradio_basic_caption_gui_tab():
                 '📂', elem_id='open_folder_small'
             )
             button_images_dir_input.click(
-                get_folder_path, outputs=images_dir_input
+                get_folder_path,
+                outputs=images_dir_input,
+                show_progress=False,
             )
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
@@ -139,4 +142,5 @@ def gradio_basic_caption_gui_tab():
                 find,
                 replace,
             ],
+            show_progress=False,
         )

@@ -12,6 +12,7 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def extract_lora(
@@ -41,7 +42,7 @@ def extract_lora(
         return
 
     run_cmd = (
-        f'.\\venv\Scripts\python.exe "networks\extract_lora_from_models.py"'
+        f'{PYTHON} "{os.path.join("networks","extract_lora_from_models.py")}"'
     )
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
@@ -54,7 +55,7 @@ def extract_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
 
 ###
@@ -85,6 +86,7 @@ def gradio_extract_lora_tab():
                 get_file_path,
                 inputs=[model_tuned, model_ext, model_ext_name],
                 outputs=model_tuned,
+                show_progress=False,
             )
 
             model_org = gr.Textbox(
@@ -99,6 +101,7 @@ def gradio_extract_lora_tab():
                 get_file_path,
                 inputs=[model_org, model_ext, model_ext_name],
                 outputs=model_org,
+                show_progress=False,
             )
         with gr.Row():
             save_to = gr.Textbox(
@@ -113,6 +116,7 @@ def gradio_extract_lora_tab():
                 get_saveasfilename_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
+                show_progress=False,
             )
             save_precision = gr.Dropdown(
                 label='Save precision',
@@ -136,4 +140,5 @@ def gradio_extract_lora_tab():
         extract_button.click(
             extract_lora,
             inputs=[model_tuned, model_org, save_to, save_precision, dim, v2],
+            show_progress=False,
         )

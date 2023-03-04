@@ -25,7 +25,7 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
-    my_data,
+    update_my_data,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -226,7 +226,7 @@ def open_configuration(
             my_data_db = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = my_data(my_data)
+            my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data_db = {}
@@ -498,7 +498,7 @@ def train_model(
 
     print(run_cmd)
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/{output_name}')
@@ -542,7 +542,9 @@ def ti_tab(
                 '📂', elem_id='open_folder_small'
             )
             train_data_dir_input_folder.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
@@ -552,7 +554,9 @@ def ti_tab(
                 '📂', elem_id='open_folder_small'
             )
             reg_data_dir_input_folder.click(
-                get_folder_path, outputs=reg_data_dir
+                get_folder_path,
+                outputs=reg_data_dir,
+                show_progress=False,
             )
         with gr.Row():
             output_dir = gr.Textbox(
@@ -562,7 +566,11 @@ def ti_tab(
             output_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
             )
-            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
+            output_dir_input_folder.click(
+                get_folder_path,
+                outputs=output_dir,
+                show_progress=False,
+            )
             logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
@@ -571,7 +579,9 @@ def ti_tab(
                 '📂', elem_id='open_folder_small'
             )
             logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir
+                get_folder_path,
+                outputs=logging_dir,
+                show_progress=False,
             )
         with gr.Row():
             output_name = gr.Textbox(
@@ -607,7 +617,11 @@ def ti_tab(
                 placeholder='(Optional) Path to existing TI embeding file to keep training',
             )
             weights_file_input = gr.Button('📂', elem_id='open_folder_small')
-            weights_file_input.click(get_file_path, outputs=weights)
+            weights_file_input.click(
+                get_file_path,
+                outputs=weights,
+                show_progress=False,
+            )
         with gr.Row():
             token_string = gr.Textbox(
                 label='Token string',
@@ -688,7 +702,11 @@ def ti_tab(
                     placeholder='(Optiona) path to checkpoint of vae to replace for training',
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
-                vae_button.click(get_any_file_path, outputs=vae)
+                vae_button.click(
+                    get_any_file_path,
+                    outputs=vae,
+                    show_progress=False,
+                )
             (
                 use_8bit_adam,
                 xformers,
@@ -742,10 +760,12 @@ def ti_tab(
     button_start_tensorboard.click(
         start_tensorboard,
         inputs=logging_dir,
+        show_progress=False,
     )
 
     button_stop_tensorboard.click(
         stop_tensorboard,
+        show_progress=False,
     )
 
     settings_list = [
@@ -814,23 +834,27 @@ def ti_tab(
         open_configuration,
         inputs=[config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
+        show_progress=False,
     )
 
     button_save_config.click(
         save_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_save_as_config.click(
         save_configuration,
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_run.click(
         train_model,
         inputs=settings_list,
+        show_progress=False,
     )
 
     return (

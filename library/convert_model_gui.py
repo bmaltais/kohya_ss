@@ -9,6 +9,7 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def convert_model(
@@ -40,7 +41,7 @@ def convert_model(
         msgbox('The provided target folder does not exist')
         return
 
-    run_cmd = f'.\\venv\Scripts\python.exe "tools/convert_diffusers20_original_sd.py"'
+    run_cmd = f'{PYTHON} "tools/convert_diffusers20_original_sd.py"'
 
     v1_models = [
         'runwayml/stable-diffusion-v1-5',
@@ -87,7 +88,7 @@ def convert_model(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     if (
         not target_model_type == 'diffuser'
@@ -166,7 +167,9 @@ def gradio_convert_model_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_source_model_dir.click(
-                get_folder_path, outputs=source_model_input
+                get_folder_path,
+                outputs=source_model_input,
+                show_progress=False,
             )
 
             button_source_model_file = gr.Button(
@@ -176,6 +179,7 @@ def gradio_convert_model_tab():
                 get_file_path,
                 inputs=[source_model_input],
                 outputs=source_model_input,
+                show_progress=False,
             )
 
             source_model_type = gr.Dropdown(
@@ -199,7 +203,9 @@ def gradio_convert_model_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_target_model_folder.click(
-                get_folder_path, outputs=target_model_folder_input
+                get_folder_path,
+                outputs=target_model_folder_input,
+                show_progress=False,
             )
 
             target_model_name_input = gr.Textbox(
@@ -234,4 +240,5 @@ def gradio_convert_model_tab():
                 target_model_type,
                 target_save_precision_type,
             ],
+            show_progress=False,
         )

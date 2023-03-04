@@ -2,6 +2,7 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path
+import os
 
 
 def caption_images(train_data_dir, caption_extension, batch_size, thresh):
@@ -30,7 +31,7 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     print('...captioning done')
 
@@ -55,7 +56,9 @@ def gradio_wd14_caption_gui_tab():
                 '📂', elem_id='open_folder_small'
             )
             button_train_data_dir_input.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
 
             caption_extension = gr.Textbox(
@@ -75,4 +78,5 @@ def gradio_wd14_caption_gui_tab():
         caption_button.click(
             caption_images,
             inputs=[train_data_dir, caption_extension, batch_size, thresh],
+            show_progress=False,
         )

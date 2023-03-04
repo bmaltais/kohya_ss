@@ -12,6 +12,7 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def merge_lora(
@@ -43,7 +44,7 @@ def merge_lora(
     ratio_a = ratio
     ratio_b = 1 - ratio
 
-    run_cmd = f'.\\venv\Scripts\python.exe "networks\merge_lora.py"'
+    run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --precision {precision}'
     run_cmd += f' --save_to "{save_to}"'
@@ -53,7 +54,7 @@ def merge_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
 
 ###
@@ -81,6 +82,7 @@ def gradio_merge_lora_tab():
                 get_file_path,
                 inputs=[lora_a_model, lora_ext, lora_ext_name],
                 outputs=lora_a_model,
+                show_progress=False,
             )
 
             lora_b_model = gr.Textbox(
@@ -95,6 +97,7 @@ def gradio_merge_lora_tab():
                 get_file_path,
                 inputs=[lora_b_model, lora_ext, lora_ext_name],
                 outputs=lora_b_model,
+                show_progress=False,
             )
         with gr.Row():
             ratio = gr.Slider(
@@ -119,6 +122,7 @@ def gradio_merge_lora_tab():
                 get_saveasfilename_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
+                show_progress=False,
             )
             precision = gr.Dropdown(
                 label='Merge precision',
@@ -145,4 +149,5 @@ def gradio_merge_lora_tab():
                 precision,
                 save_precision,
             ],
+            show_progress=False,
         )
