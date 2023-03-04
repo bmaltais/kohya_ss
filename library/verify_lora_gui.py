@@ -7,7 +7,7 @@ from .common_gui import (
     get_any_file_path,
     get_file_path,
 )
-
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -27,13 +27,15 @@ def verify_lora(
         msgbox('The provided model A is not a file')
         return
 
-    run_cmd = f'.\\venv\Scripts\python.exe "networks\check_lora_weights.py"'
-    run_cmd += f' {lora_model}'
+    run_cmd = [
+        PYTHON,
+        os.path.join("networks","check_lora_weights.py"),
+        f'{lora_model}'
+    ]
 
-    print(run_cmd)
+    print(" ".join(run_cmd))
 
     # Run the command
-    subprocess.run(run_cmd)
     process = subprocess.Popen(
         run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )

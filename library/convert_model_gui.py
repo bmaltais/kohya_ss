@@ -9,7 +9,7 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 
 def convert_model(
     source_model_input,
@@ -40,7 +40,7 @@ def convert_model(
         msgbox('The provided target folder does not exist')
         return
 
-    run_cmd = f'.\\venv\Scripts\python.exe "tools/convert_diffusers20_original_sd.py"'
+    run_cmd = f'{PYTHON} "tools/convert_diffusers20_original_sd.py"'
 
     v1_models = [
         'runwayml/stable-diffusion-v1-5',
@@ -87,7 +87,7 @@ def convert_model(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     if (
         not target_model_type == 'diffuser'

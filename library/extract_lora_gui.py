@@ -12,7 +12,7 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 
 def extract_lora(
     model_tuned,
@@ -41,7 +41,7 @@ def extract_lora(
         return
 
     run_cmd = (
-        f'.\\venv\Scripts\python.exe "networks\extract_lora_from_models.py"'
+        f'{PYTHON} "{os.path.join("networks","extract_lora_from_models.py")}"'
     )
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
@@ -54,7 +54,7 @@ def extract_lora(
     print(run_cmd)
 
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
 
 ###

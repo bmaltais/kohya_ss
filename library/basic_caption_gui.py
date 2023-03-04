@@ -2,7 +2,7 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace
-
+import os
 
 def caption_images(
     caption_text_input,
@@ -38,7 +38,7 @@ def caption_images(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     if overwrite_input:
         if not prefix == '' or not postfix == '':

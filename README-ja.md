@@ -38,6 +38,18 @@ PowerShellを使う場合、venvを使えるようにするためには以下の
 - 「Set-ExecutionPolicy Unrestricted」と入力し、Yと答えます。
 - 管理者のPowerShellを閉じます。
 
+## Ubuntu環境でのインストール
+
+```
+git clone https://github.com/kohya-ss/sd-scripts.git
+cd sd-scripts
+bash ubuntu_setup.sh
+```
+
+をコマンドプロンプトで実行し、tkをインストールし、accelerateの質問をWindowsと同じように答えます。
+
+`./gui.sh`でGUIを実行します。
+
 ## Windows環境でのインストール
 
 以下の例ではPyTorchは1.12.1／CUDA 11.6版をインストールします。CUDA 11.3版やPyTorch 1.13を使う場合は適宜書き換えください。

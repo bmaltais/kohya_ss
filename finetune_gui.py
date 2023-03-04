@@ -33,6 +33,7 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
 
 def save_configuration(
     save_as,
@@ -296,7 +297,7 @@ def train_model(
             os.mkdir(train_dir)
 
         run_cmd = (
-            f'./venv/Scripts/python.exe finetune/merge_captions_to_metadata.py'
+            f'{PYTHON} finetune/merge_captions_to_metadata.py'
         )
         if caption_extension == '':
             run_cmd += f' --caption_extension=".caption"'
@@ -310,12 +311,12 @@ def train_model(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
         run_cmd = (
-            f'./venv/Scripts/python.exe finetune/prepare_buckets_latents.py'
+            f'{PYTHON} finetune/prepare_buckets_latents.py'
         )
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
@@ -334,7 +335,7 @@ def train_model(
         print(run_cmd)
 
         # Run the command
-        subprocess.run(run_cmd)
+        os.system(run_cmd)
 
     image_num = len(
         [
@@ -444,7 +445,7 @@ def train_model(
 
     print(run_cmd)
     # Run the command
-    subprocess.run(run_cmd)
+    os.system(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/{output_name}')
