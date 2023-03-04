@@ -6,6 +6,7 @@
 import math
 import os
 from typing import List
+import numpy as np
 import torch
 
 from library import train_util
@@ -45,14 +46,50 @@ class LoRAModule(torch.nn.Module):
 
     self.multiplier = multiplier
     self.org_module = org_module                  # remove in applying
+    self.region = None
+    self.region_mask = None
 
   def apply_to(self):
     self.org_forward = self.org_module.forward
     self.org_module.forward = self.forward
     del self.org_module
 
+  def set_region(self, region):
+    self.region = region
+
   def forward(self, x):
-    return self.org_forward(x) + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
+    if self.region is None:
+      return self.org_forward(x) + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
+
+    # reginal LoRA
+    if x.size()[1] % 77 == 0:
+      # print(f"LoRA for context: {self.lora_name}")
+      self.region = None
+      return self.org_forward(x) + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
+
+    if self.region_mask is None:
+      if len(x.size()) == 4:
+        h, w = x.size()[2:4]
+      else:
+        seq_len = x.size()[1]
+        ratio = math.sqrt((self.region.size()[0] * self.region.size()[1]) / seq_len)
+        h = int(self.region.size()[0] / ratio + .5)
+        w = seq_len // h
+
+      r = self.region.to(x.device)
+      if r.dtype == torch.bfloat16:
+        r = r.to(torch.float)
+      r = r.unsqueeze(0).unsqueeze(1)
+      # print(self.lora_name, self.region.size(), x.size(), r.size(), h, w)
+      r = torch.nn.functional.interpolate(r, (h, w), mode='bilinear')
+      r = r.to(x.dtype)
+
+      if len(x.size()) == 3:
+        r = torch.reshape(r, (1, x.size()[1], -1))
+
+      self.region_mask = r
+
+    return self.org_forward(x) + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale * self.region_mask
 
 
 def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, unet, **kwargs):
@@ -130,7 +167,7 @@ class LoRANetwork(torch.nn.Module):
     self.multiplier = multiplier
     for lora in self.text_encoder_loras + self.unet_loras:
       lora.multiplier = self.multiplier
-      
+
   def load_weights(self, file):
     if os.path.splitext(file)[1] == '.safetensors':
       from safetensors.torch import load_file, safe_open
@@ -240,3 +277,18 @@ class LoRANetwork(torch.nn.Module):
       save_file(state_dict, file, metadata)
     else:
       torch.save(state_dict, file)
+
+  @staticmethod
+  def set_regions(networks, image):
+    image = image.astype(np.float32) / 255.0
+    for i, network in enumerate(networks[:3]):
+      # NOTE: consider averaging overwrapping area
+      region = image[:, :, i]
+      if region.max() == 0:
+        continue
+      region = torch.tensor(region)
+      network.set_region(region)
+
+  def set_region(self, region):
+    for lora in self.unet_loras:
+      lora.set_region(region)
