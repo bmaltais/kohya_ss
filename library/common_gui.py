@@ -10,10 +10,14 @@ save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
 
-def update_optimizer(my_data):
+def my_data(my_data):
     if my_data.get('use_8bit_adam', False):
         my_data['optimizer'] = 'AdamW8bit'
         my_data['use_8bit_adam'] = False
+    
+    if my_data.get('model_list', 'custom') == []:
+        print('Old config with empty model list. Setting to custom...')
+        my_data['model_list'] = 'custom'
     return my_data
 
 
