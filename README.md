@@ -176,6 +176,9 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/04 (v21.1.3):
+    - Fix progress bar being displayed when not required.
+    - Add support for linux, thank you @devNegative-asm
 * 2023/03/03 (v21.1.2):
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/277
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/278 introduce by LoCon project switching to pip module. Make sure to run upgrade.ps1 to install the latest pip requirements for LoCon support.

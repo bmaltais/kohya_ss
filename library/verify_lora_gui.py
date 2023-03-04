@@ -7,7 +7,8 @@ from .common_gui import (
     get_any_file_path,
     get_file_path,
 )
-PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -29,11 +30,11 @@ def verify_lora(
 
     run_cmd = [
         PYTHON,
-        os.path.join("networks","check_lora_weights.py"),
-        f'{lora_model}'
+        os.path.join('networks', 'check_lora_weights.py'),
+        f'{lora_model}',
     ]
 
-    print(" ".join(run_cmd))
+    print(' '.join(run_cmd))
 
     # Run the command
     process = subprocess.Popen(
@@ -71,6 +72,7 @@ def gradio_verify_lora_tab():
                 get_file_path,
                 inputs=[lora_model, lora_ext, lora_ext_name],
                 outputs=lora_model,
+                show_progress=False,
             )
             verify_button = gr.Button('Verify', variant='primary')
 
@@ -96,4 +98,5 @@ def gradio_verify_lora_tab():
                 lora_model,
             ],
             outputs=[lora_model_verif_output, lora_model_verif_error],
+            show_progress=False,
         )

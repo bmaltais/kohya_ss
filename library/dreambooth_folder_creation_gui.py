@@ -140,7 +140,9 @@ def gradio_dreambooth_folder_creation_tab(
                 '📂', elem_id='open_folder_small'
             )
             button_util_training_images_dir_input.click(
-                get_folder_path, outputs=util_training_images_dir_input
+                get_folder_path,
+                outputs=util_training_images_dir_input,
+                show_progress=False,
             )
             util_training_images_repeat_input = gr.Number(
                 label='Repeats',
@@ -158,7 +160,9 @@ def gradio_dreambooth_folder_creation_tab(
                 '📂', elem_id='open_folder_small'
             )
             button_util_regularization_images_dir_input.click(
-                get_folder_path, outputs=util_regularization_images_dir_input
+                get_folder_path,
+                outputs=util_regularization_images_dir_input,
+                show_progress=False,
             )
             util_regularization_images_repeat_input = gr.Number(
                 label='Repeats',
@@ -190,6 +194,7 @@ def gradio_dreambooth_folder_creation_tab(
                 util_class_prompt_input,
                 util_training_dir_output,
             ],
+            show_progress=False,
         )
         button_copy_info_to_Folders_tab = gr.Button('Copy info to Folders Tab')
         button_copy_info_to_Folders_tab.click(
@@ -201,4 +206,5 @@ def gradio_dreambooth_folder_creation_tab(
                 output_dir_input,
                 logging_dir_input,
             ],
+            show_progress=False,
         )

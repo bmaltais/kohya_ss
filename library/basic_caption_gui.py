@@ -4,6 +4,7 @@ import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace
 import os
 
+
 def caption_images(
     caption_text_input,
     images_dir_input,
@@ -85,7 +86,9 @@ def gradio_basic_caption_gui_tab():
                 '📂', elem_id='open_folder_small'
             )
             button_images_dir_input.click(
-                get_folder_path, outputs=images_dir_input
+                get_folder_path,
+                outputs=images_dir_input,
+                show_progress=False,
             )
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
@@ -139,4 +142,5 @@ def gradio_basic_caption_gui_tab():
                 find,
                 replace,
             ],
+            show_progress=False,
         )

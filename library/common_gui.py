@@ -10,11 +10,11 @@ save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
 
-def my_data(my_data):
+def update_my_data(my_data):
     if my_data.get('use_8bit_adam', False):
         my_data['optimizer'] = 'AdamW8bit'
         my_data['use_8bit_adam'] = False
-    
+
     if my_data.get('model_list', 'custom') == []:
         print('Old config with empty model list. Setting to custom...')
         my_data['model_list'] = 'custom'
@@ -276,7 +276,9 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                     )
 
 
-def set_pretrained_model_name_or_path_input(model_list, pretrained_model_name_or_path, v2, v_parameterization):
+def set_pretrained_model_name_or_path_input(
+    model_list, pretrained_model_name_or_path, v2, v_parameterization
+):
     # define a list of substrings to search for
     substrings_v2 = [
         'stabilityai/stable-diffusion-2-1-base',
@@ -320,7 +322,12 @@ def set_pretrained_model_name_or_path_input(model_list, pretrained_model_name_or
         return model_list, v2, v_parameterization
 
     if model_list == 'custom':
-        if str(pretrained_model_name_or_path) in substrings_v1_model or str(pretrained_model_name_or_path) in substrings_v2 or str(pretrained_model_name_or_path) in substrings_v_parameterization:
+        if (
+            str(pretrained_model_name_or_path) in substrings_v1_model
+            or str(pretrained_model_name_or_path) in substrings_v2
+            or str(pretrained_model_name_or_path)
+            in substrings_v_parameterization
+        ):
             pretrained_model_name_or_path = ''
             v2 = False
             v_parameterization = False
@@ -359,7 +366,7 @@ def gradio_source_model():
             pretrained_model_name_or_path = gr.Textbox(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
-                value='runwayml/stable-diffusion-v1-5'
+                value='runwayml/stable-diffusion-v1-5',
             )
             pretrained_model_name_or_path_file = gr.Button(
                 document_symbol, elem_id='open_folder_small'
@@ -368,6 +375,7 @@ def gradio_source_model():
                 get_any_file_path,
                 inputs=pretrained_model_name_or_path,
                 outputs=pretrained_model_name_or_path,
+                show_progress=False,
             )
             pretrained_model_name_or_path_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
@@ -376,6 +384,7 @@ def gradio_source_model():
                 get_folder_path,
                 inputs=pretrained_model_name_or_path,
                 outputs=pretrained_model_name_or_path,
+                show_progress=False,
             )
             model_list = gr.Dropdown(
                 label='Model Quick Pick',
@@ -388,7 +397,7 @@ def gradio_source_model():
                     'runwayml/stable-diffusion-v1-5',
                     'CompVis/stable-diffusion-v1-4',
                 ],
-                value='runwayml/stable-diffusion-v1-5'
+                value='runwayml/stable-diffusion-v1-5',
             )
             save_model_as = gr.Dropdown(
                 label='Save trained model as',
@@ -409,7 +418,12 @@ def gradio_source_model():
             )
         model_list.change(
             set_pretrained_model_name_or_path_input,
-            inputs=[model_list, pretrained_model_name_or_path, v2, v_parameterization],
+            inputs=[
+                model_list,
+                pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
+            ],
             outputs=[
                 pretrained_model_name_or_path,
                 v2,
@@ -661,7 +675,11 @@ def gradio_advanced_training():
             placeholder='path to "last-state" state folder to resume from',
         )
         resume_button = gr.Button('📂', elem_id='open_folder_small')
-        resume_button.click(get_folder_path, outputs=resume)
+        resume_button.click(
+            get_folder_path,
+            outputs=resume,
+            show_progress=False,
+        )
         max_train_epochs = gr.Textbox(
             label='Max train epoch',
             placeholder='(Optional) Override number of epoch',

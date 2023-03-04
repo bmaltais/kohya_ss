@@ -19,7 +19,7 @@ from library.common_gui import (
     color_aug_changed,
     run_cmd_training,
     set_legacy_8bitadam,
-    my_data,
+    update_my_data,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -33,7 +33,8 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
-PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
 
 def save_configuration(
     save_as,
@@ -217,7 +218,7 @@ def open_config_file(
             my_data_db = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = my_data(my_data)
+            my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data_db = {}
@@ -296,9 +297,7 @@ def train_model(
         if not os.path.exists(train_dir):
             os.mkdir(train_dir)
 
-        run_cmd = (
-            f'{PYTHON} finetune/merge_captions_to_metadata.py'
-        )
+        run_cmd = f'{PYTHON} finetune/merge_captions_to_metadata.py'
         if caption_extension == '':
             run_cmd += f' --caption_extension=".caption"'
         else:
@@ -315,9 +314,7 @@ def train_model(
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = (
-            f'{PYTHON} finetune/prepare_buckets_latents.py'
-        )
+        run_cmd = f'{PYTHON} finetune/prepare_buckets_latents.py'
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
@@ -491,7 +488,11 @@ def finetune_tab():
             train_dir_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
-            train_dir_folder.click(get_folder_path, outputs=train_dir)
+            train_dir_folder.click(
+                get_folder_path,
+                outputs=train_dir,
+                show_progress=False,
+            )
 
             image_folder = gr.Textbox(
                 label='Training Image folder',
@@ -501,7 +502,9 @@ def finetune_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             image_folder_input_folder.click(
-                get_folder_path, outputs=image_folder
+                get_folder_path,
+                outputs=image_folder,
+                show_progress=False,
             )
         with gr.Row():
             output_dir = gr.Textbox(
@@ -511,7 +514,11 @@ def finetune_tab():
             output_dir_input_folder = gr.Button(
                 folder_symbol, elem_id='open_folder_small'
             )
-            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
+            output_dir_input_folder.click(
+                get_folder_path,
+                outputs=output_dir,
+                show_progress=False,
+            )
 
             logging_dir = gr.Textbox(
                 label='Logging folder',
@@ -521,7 +528,9 @@ def finetune_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir
+                get_folder_path,
+                outputs=logging_dir,
+                show_progress=False,
             )
         with gr.Row():
             output_name = gr.Textbox(
@@ -655,6 +664,7 @@ def finetune_tab():
 
     button_stop_tensorboard.click(
         stop_tensorboard,
+        show_progress=False,
     )
 
     settings_list = [
@@ -725,18 +735,21 @@ def finetune_tab():
         open_config_file,
         inputs=[config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
+        show_progress=False,
     )
 
     button_save_config.click(
         save_configuration,
         inputs=[dummy_ft_false, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_save_as_config.click(
         save_configuration,
         inputs=[dummy_ft_true, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
 

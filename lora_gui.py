@@ -25,7 +25,7 @@ from library.common_gui import (
     gradio_source_model,
     run_cmd_training,
     set_legacy_8bitadam,
-    my_data,
+    update_my_data,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -239,7 +239,7 @@ def open_configuration(
             my_data = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = my_data(my_data)
+            my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
@@ -462,7 +462,9 @@ def train_model(
         try:
             import locon.locon_kohya
         except ModuleNotFoundError:
-            print("\033[1;31mError:\033[0m The required module 'locon' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program.")
+            print(
+                "\033[1;31mError:\033[0m The required module 'locon' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
             return
         run_cmd += f' --network_module=locon.locon_kohya'
         run_cmd += (
@@ -588,27 +590,41 @@ def lora_tab(
             )
             train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
             train_data_dir_folder.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
             reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            reg_data_dir_folder.click(get_folder_path, outputs=reg_data_dir)
+            reg_data_dir_folder.click(
+                get_folder_path,
+                outputs=reg_data_dir,
+                show_progress=False,
+            )
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
             output_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            output_dir_folder.click(get_folder_path, outputs=output_dir)
+            output_dir_folder.click(
+                get_folder_path,
+                outputs=output_dir,
+                show_progress=False,
+            )
             logging_dir = gr.Textbox(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
             logging_dir_folder = gr.Button('📂', elem_id='open_folder_small')
-            logging_dir_folder.click(get_folder_path, outputs=logging_dir)
+            logging_dir_folder.click(
+                get_folder_path,
+                outputs=logging_dir,
+                show_progress=False,
+            )
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
@@ -662,6 +678,7 @@ def lora_tab(
                 get_any_file_path,
                 inputs=[lora_network_weights],
                 outputs=lora_network_weights,
+                show_progress=False,
             )
         (
             learning_rate,
@@ -736,7 +753,7 @@ def lora_tab(
                 return gr.Group.update(visible=True)
             else:
                 return gr.Group.update(visible=False)
-            
+
         LoRA_type.change(
             LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_row]
         )
@@ -834,10 +851,12 @@ def lora_tab(
     button_start_tensorboard.click(
         start_tensorboard,
         inputs=logging_dir,
+        show_progress=False,
     )
 
     button_stop_tensorboard.click(
         stop_tensorboard,
+        show_progress=False,
     )
 
     settings_list = [
@@ -910,23 +929,27 @@ def lora_tab(
         open_configuration,
         inputs=[config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list + [LoCon_row],
+        show_progress=False,
     )
 
     button_save_config.click(
         save_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_save_as_config.click(
         save_configuration,
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_run.click(
         train_model,
         inputs=settings_list,
+        show_progress=False,
     )
 
     return (

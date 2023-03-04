@@ -118,7 +118,9 @@ def gradio_dataset_balancing_tab():
                 '📂', elem_id='open_folder_small'
             )
             select_dataset_folder_button.click(
-                get_folder_path, outputs=select_dataset_folder_input
+                get_folder_path,
+                outputs=select_dataset_folder_input,
+                show_progress=False,
             )
 
             total_repeats_number = gr.Number(
@@ -140,4 +142,5 @@ def gradio_dataset_balancing_tab():
                 select_dataset_folder_input,
                 insecure,
             ],
+            show_progress=False,
         )

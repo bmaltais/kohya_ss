@@ -3,7 +3,8 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_saveasfilename_path, get_file_path
-PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -68,6 +69,7 @@ def gradio_resize_lora_tab():
                 get_file_path,
                 inputs=[model, lora_ext, lora_ext_name],
                 outputs=model,
+                show_progress=False,
             )
         with gr.Row():
             new_rank = gr.Slider(
@@ -92,6 +94,7 @@ def gradio_resize_lora_tab():
                 get_saveasfilename_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
+                show_progress=False,
             )
             save_precision = gr.Dropdown(
                 label='Save precision',
@@ -116,4 +119,5 @@ def gradio_resize_lora_tab():
                 save_precision,
                 device,
             ],
+            show_progress=False,
         )

@@ -25,7 +25,7 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
-    my_data,
+    update_my_data,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -214,7 +214,7 @@ def open_configuration(
             my_data = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = my_data(my_data)
+            my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
@@ -500,7 +500,9 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             train_data_dir_input_folder.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
@@ -510,7 +512,9 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             reg_data_dir_input_folder.click(
-                get_folder_path, outputs=reg_data_dir
+                get_folder_path,
+                outputs=reg_data_dir,
+                show_progress=False,
             )
         with gr.Row():
             output_dir = gr.Textbox(
@@ -529,7 +533,9 @@ def dreambooth_tab(
                 '📂', elem_id='open_folder_small'
             )
             logging_dir_input_folder.click(
-                get_folder_path, outputs=logging_dir
+                get_folder_path,
+                outputs=logging_dir,
+                show_progress=False,
             )
         with gr.Row():
             output_name = gr.Textbox(
@@ -610,7 +616,11 @@ def dreambooth_tab(
                     placeholder='(Optiona) path to checkpoint of vae to replace for training',
                 )
                 vae_button = gr.Button('📂', elem_id='open_folder_small')
-                vae_button.click(get_any_file_path, outputs=vae)
+                vae_button.click(
+                    get_any_file_path,
+                    outputs=vae,
+                    show_progress=False,
+                )
             (
                 use_8bit_adam,
                 xformers,
@@ -664,10 +674,12 @@ def dreambooth_tab(
     button_start_tensorboard.click(
         start_tensorboard,
         inputs=logging_dir,
+        show_progress=False,
     )
 
     button_stop_tensorboard.click(
         stop_tensorboard,
+        show_progress=False,
     )
 
     settings_list = [
@@ -730,23 +742,27 @@ def dreambooth_tab(
         open_configuration,
         inputs=[config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
+        show_progress=False,
     )
 
     button_save_config.click(
         save_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_save_as_config.click(
         save_configuration,
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name],
+        show_progress=False,
     )
 
     button_run.click(
         train_model,
         inputs=settings_list,
+        show_progress=False,
     )
 
     return (

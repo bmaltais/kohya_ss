@@ -5,7 +5,8 @@ import subprocess
 import time
 
 tensorboard_proc = None   # I know... bad but heh
-TENSORBOARD = "tensorboard" if os.name == 'posix' else 'tensorboard.exe'
+TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
+
 
 def start_tensorboard(logging_dir):
     global tensorboard_proc

@@ -3,7 +3,9 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
-PYTHON = "python3" if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
 
 def caption_images(
     train_data_dir,
@@ -81,7 +83,9 @@ def gradio_blip_caption_gui_tab():
                 '📂', elem_id='open_folder_small'
             )
             button_train_data_dir_input.click(
-                get_folder_path, outputs=train_data_dir
+                get_folder_path,
+                outputs=train_data_dir,
+                show_progress=False,
             )
         with gr.Row():
             caption_file_ext = gr.Textbox(
@@ -138,4 +142,5 @@ def gradio_blip_caption_gui_tab():
                 prefix,
                 postfix,
             ],
+            show_progress=False,
         )
