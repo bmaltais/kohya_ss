@@ -427,9 +427,9 @@ def train(args):
         "ss_bucket_info": json.dumps(dataset.bucket_info),
     }
 
-  # uncomment if another network is added
-  # for key, value in net_kwargs.items():
-  #   metadata["ss_arg_" + key] = value
+  if args.network_args:
+    for key, value in net_kwargs.items():
+      metadata["ss_arg_" + key] = value
 
   if args.pretrained_model_name_or_path is not None:
     sd_model_name = args.pretrained_model_name_or_path
