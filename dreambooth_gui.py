@@ -25,7 +25,7 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     set_legacy_8bitadam,
-    update_optimizer,
+    my_data,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -214,7 +214,7 @@ def open_configuration(
             my_data = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = update_optimizer(my_data)
+            my_data = my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
         my_data = {}
