@@ -3,10 +3,11 @@ from dataclasses import (
   asdict,
   dataclass,
 )
+import functools
 from textwrap import dedent, indent
 import json
 from pathlib import Path
-from toolz import curry
+# from toolz import curry
 from typing import (
   List,
   Optional,
@@ -111,13 +112,13 @@ class Blueprint:
 
 
 class ConfigSanitizer:
-  @curry
+  # @curry
   @staticmethod
   def __validate_and_convert_twodim(klass, value: Sequence) -> Tuple:
     Schema(ExactSequence([klass, klass]))(value)
     return tuple(value)
 
-  @curry
+  # @curry
   @staticmethod
   def __validate_and_convert_scalar_or_twodim(klass, value: Union[float, Sequence]) -> Tuple:
     Schema(Any(klass, ExactSequence([klass, klass])))(value)
@@ -130,7 +131,7 @@ class ConfigSanitizer:
   # subset schema
   SUBSET_ASCENDABLE_SCHEMA = {
     "color_aug": bool,
-    "face_crop_aug_range": __validate_and_convert_twodim(float),
+    "face_crop_aug_range": functools.partial(__validate_and_convert_twodim.__func__, float),
     "flip_aug": bool,
     "num_repeats": int,
     "random_crop": bool,
@@ -166,7 +167,7 @@ class ConfigSanitizer:
     "enable_bucket": bool,
     "max_bucket_reso": int,
     "min_bucket_reso": int,
-    "resolution": __validate_and_convert_scalar_or_twodim(int),
+    "resolution": functools.partial(__validate_and_convert_scalar_or_twodim, int),
   }
 
   # options handled by argparse but not handled by user config
