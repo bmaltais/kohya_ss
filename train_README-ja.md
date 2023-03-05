@@ -1,6 +1,8 @@
-# 学習データの準備について
+__ドキュメント更新中のため記述に誤りがあるかもしれません。__
 
-当リポジトリではモデルのfine tuning、DreamBooth、およびLoRAとTextual Inversionの学習をサポートします。この文書ではそれらに共通する、学習データの準備方法について説明します。
+# 学習について、共通編
+
+当リポジトリではモデルのfine tuning、DreamBooth、およびLoRAとTextual Inversionの学習をサポートします。この文書ではそれらに共通する、学習データの準備方法やオプション等について説明します。
 
 # 概要
 
@@ -253,6 +255,10 @@ batch_size = 4                                      # バッチサイズ
 
 細かいことは省略していますし私も完全には理解していないため、詳しくは各自お調べください。
 
+## fine tuning（ファインチューニング）
+
+モデルを学習して微調整することを指します。使われ方によって意味が異なってきますが、狭義のfine tuningはStable Diffusionの場合、モデルを画像とキャプションで学習することです。DreamBoothは狭義のfine tuningのひとつの特殊なやり方と言えます。広義のfine tuningは、LoRAやTextual Inversion、Hypernetworksなどを含み、モデルを学習することすべてを含みます。
+
 ## ステップ
 
 ざっくりいうと学習データで1回計算すると1ステップです。「学習データのキャプションを今のモデルに流してみて、出てくる画像を学習データの画像と比較し、学習データに近づくようにモデルをわずかに変更する」のが1ステップです。
@@ -407,7 +413,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 - `--v2` / `--v_parameterization`
     
-    Hugging Faceのstable-diffusion-2-baseを使う場合はv2オプションを、stable-diffusion-2または768-v-ema.ckptを使う場合はv2とv_parameterizationの両方のオプションを指定してください。
+    学習対象モデルとしてHugging Faceのstable-diffusion-2-base、またはそこからのfine tuningモデルを使う場合（推論時に `v2-inference.yaml` を使うように指示されているモデルの場合）は `--v2` オプションを、stable-diffusion-2や768-v-ema.ckpt、およびそれらのfine tuningモデルを使う場合（推論時に `v2-inference-v.yaml` を使うモデルの場合）は `--v2` と `--v_parameterization` の両方のオプションを指定してください。
 
     Stable Diffusion 2.0では大きく以下の点が変わっています。
 
@@ -535,8 +541,18 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 ## オプティマイザ関係
 
 - `--optimizer_type`
-
-    オプティマイザの種類を次から指定します: AdamW (default), AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor
+    --オプティマイザの種類を指定します。以下が指定できます。
+    - AdamW : [torch.optim.AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
+    - 過去のバージョンのオプション未指定時と同じ
+    - AdamW8bit : 引数は同上
+    - 過去のバージョンの--use_8bit_adam指定時と同じ
+    - Lion : https://github.com/lucidrains/lion-pytorch
+    - 過去のバージョンの--use_lion_optimizer指定時と同じ
+    - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
+    - SGDNesterov8bit : 引数は同上
+    - DAdaptation : https://github.com/facebookresearch/dadaptation
+    - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
+    - 任意のオプティマイザ
 
 - `--learning_rate`
 
@@ -553,6 +569,28 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     lr_scheduler_num_cycles は cosine with restartsスケジューラでのリスタート回数、lr_scheduler_power は polynomialスケジューラでのpolynomial power です。
 
     詳細については各自お調べください。
+
+### オプティマイザの指定について
+
+オプティマイザのオプション引数は--optimizer_argsオプションで指定してください。key=valueの形式で、複数の値が指定できます。また、valueはカンマ区切りで複数の値が指定できます。たとえばAdamWオプティマイザに引数を指定する場合は、``--optimizer_args weight_decay=0.01 betas=.9,.999``のようになります。
+
+オプション引数を指定する場合は、それぞれのオプティマイザの仕様をご確認ください。
+
+一部のオプティマイザでは必須の引数があり、省略すると自動的に追加されます（SGDNesterovのmomentumなど）。コンソールの出力を確認してください。
+
+D-Adaptationオプティマイザは学習率を自動調整します。学習率のオプションに指定した値は学習率そのものではなくD-Adaptationが決定した学習率の適用率になりますので、通常は1.0を指定してください。Text EncoderにU-Netの半分の学習率を指定したい場合は、``--text_encoder_lr=0.5 --unet_lr=1.0``と指定します。
+
+AdaFactorオプティマイザはrelative_step=Trueを指定すると学習率を自動調整できます（省略時はデフォルトで追加されます）。自動調整する場合は学習率のスケジューラにはadafactor_schedulerが強制的に使用されます。またscale_parameterとwarmup_initを指定するとよいようです。
+
+自動調整する場合のオプション指定はたとえば ``--optimizer_args "relative_step=True" "scale_parameter=True" "warmup_init=True"`` のようになります。
+
+学習率を自動調整しない場合はオプション引数 ``relative_step=False`` を追加してください。その場合、学習率のスケジューラにはconstant_with_warmupが、また勾配のclip normをしないことが推奨されているようです。そのため引数は ``--optimizer_type=adafactor --optimizer_args "relative_step=False" --lr_scheduler="constant_with_warmup" --max_grad_norm=0.0`` のようになります。
+
+### 任意のオプティマイザを使う
+
+``torch.optim`` のオプティマイザを使う場合にはクラス名のみを（``--optimizer_type=RMSprop``など）、他のモジュールのオプティマイザを使う時は「モジュール名.クラス名」を指定してください（``--optimizer_type=bitsandbytes.optim.lamb.LAMB``など）。
+
+（内部でimportlibしているだけで動作は未確認です。必要ならパッケージをインストールしてください。）
 
 
 <!-- 

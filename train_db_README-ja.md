@@ -1,5 +1,7 @@
 DreamBoothのガイドです。
 
+[学習についての共通ドキュメント](./train_README-ja.md) もあわせてご覧ください。
+
 # 概要
 
 DreamBoothとは、画像生成モデルに特定の主題を追加学習し、それを特定の識別子で生成する技術です。[論文はこちら](https://arxiv.org/abs/2208.12242)。
@@ -21,13 +23,15 @@ DreamBoothとは、画像生成モデルに特定の主題を追加学習し、�
 
 # 学習の手順
 
+あらかじめこのリポジトリのREADMEを参照し、環境整備を行ってください。
+
 ## データの準備
 
 [学習データの準備について](./train_README-ja.md) を参照してください。
 
 ## 学習の実行
 
-スクリプトを実行します。最大限、メモリを節約したコマンドは以下のようになります（実際には1行で入力します）。`< >` 内を書き換えてください。12GB程度のVRAMで動作するようです。
+スクリプトを実行します。最大限、メモリを節約したコマンドは以下のようになります（実際には1行で入力します）。それぞれの行を必要に応じて書き換えてください。12GB程度のVRAMで動作するようです。
 
 ```
 accelerate launch --num_cpu_threads_per_process 1 train_db.py 
@@ -52,7 +56,7 @@ accelerate launch --num_cpu_threads_per_process 1 train_db.py
 
 `output_dir` に学習後のモデルを保存するフォルダを指定します。`output_name` にモデルのファイル名を拡張子を除いて指定します。`save_model_as` でsafetensors形式での保存を指定しています。
 
-`dataset_config` に `.toml` ファイルを指定します。ファイル内でのバッチサイズ指定は、メモリ消費を抑えるために `1` としてください。
+`dataset_config` に `.toml` ファイルを指定します。ファイル内でのバッチサイズ指定は、当初はメモリ消費を抑えるために `1` としてください。
 
 `prior_loss_weight` は正則化画像のlossの重みです。通常は1.0を指定します。
 
@@ -62,11 +66,19 @@ accelerate launch --num_cpu_threads_per_process 1 train_db.py
 
 オプティマイザ（モデルを学習データにあうように最適化＝学習させるクラス）にメモリ消費の少ない 8bit AdamW を使うため、 `optimizer_type="AdamW8bit"` を指定します。
 
-xformersオプションを指定し、xformersのCrossAttentionを用います。xformersをインストールしていない場合やエラーとなる場合（環境にもよりますが `mixed_precision="no"` の場合など）、代わりに `mem_eff_attn` オプションを指定すると省メモリ版CrossAttentionを使用します（速度は遅くなります）。
+`xformers` オプションを指定し、xformersのCrossAttentionを用います。xformersをインストールしていない場合やエラーとなる場合（環境にもよりますが `mixed_precision="no"` の場合など）、代わりに `mem_eff_attn` オプションを指定すると省メモリ版CrossAttentionを使用します（速度は遅くなります）。
 
 省メモリ化のため `cache_latents` オプションを指定してVAEの出力をキャッシュします。
 
 ある程度メモリがある場合は、`.toml` ファイルを編集してバッチサイズをたとえば `4` くらいに増やしてください（高速化と精度向上の可能性があります）。また `cache_latents` を外すことで augmentation が可能になります。
+
+### よく使われるオプションについて
+
+以下の場合にはオプションに関するドキュメントを参照してください。
+
+- Stable Diffusion 2.xまたはそこからの派生モデルを学習する
+- clip skipを2以上を前提としたモデルを学習する
+- 75トークンを超えたキャプションで学習する
 
 ### DreamBoothでのステップ数について
 
