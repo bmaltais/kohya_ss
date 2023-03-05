@@ -497,8 +497,12 @@ def train_model(
         run_cmd += f' --use_style_template'
 
     print(run_cmd)
+    
     # Run the command
-    os.system(run_cmd)
+    if os.name == 'posix':
+        os.system(run_cmd)
+    else:
+        subprocess.run(run_cmd)
 
     # check if output_dir/last is a folder... therefore it is a diffuser model
     last_dir = pathlib.Path(f'{output_dir}/{output_name}')

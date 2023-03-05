@@ -88,7 +88,10 @@ def convert_model(
     print(run_cmd)
 
     # Run the command
-    os.system(run_cmd)
+    if os.name == 'posix':
+        os.system(run_cmd)
+    else:
+        subprocess.run(run_cmd)
 
     if (
         not target_model_type == 'diffuser'
