@@ -11,9 +11,12 @@ document_symbol = '\U0001F4C4'   # 📄
 
 
 def update_my_data(my_data):
-    if my_data.get('use_8bit_adam', False):
+    if my_data.get('use_8bit_adam', False) == True:
         my_data['optimizer'] = 'AdamW8bit'
-        my_data['use_8bit_adam'] = False
+        # my_data['use_8bit_adam'] = False
+        
+    if my_data.get('optimizer', 'missing') == 'missing' and my_data.get('use_8bit_adam', False) == False:
+        my_data['optimizer'] = 'AdamW'
 
     if my_data.get('model_list', 'custom') == []:
         print('Old config with empty model list. Setting to custom...')
@@ -92,17 +95,17 @@ def remove_doublequote(file_path):
     return file_path
 
 
-def set_legacy_8bitadam(optimizer, use_8bit_adam):
-    if optimizer == 'AdamW8bit':
-        # use_8bit_adam = True
-        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-            value=True, interactive=False, visible=True
-        )
-    else:
-        # use_8bit_adam = False
-        return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-            value=False, interactive=False, visible=True
-        )
+# def set_legacy_8bitadam(optimizer, use_8bit_adam):
+#     if optimizer == 'AdamW8bit':
+#         # use_8bit_adam = True
+#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
+#             value=True, interactive=False, visible=True
+#         )
+#     else:
+#         # use_8bit_adam = False
+#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
+#             value=False, interactive=False, visible=True
+#         )
 
 
 def get_folder_path(folder_path=''):
@@ -584,30 +587,6 @@ def run_cmd_training(**kwargs):
     return run_cmd
 
 
-# # This function takes a dictionary of keyword arguments and returns a string that can be used to run a command-line training script
-# def run_cmd_training(**kwargs):
-#     arg_map = {
-#         'learning_rate': ' --learning_rate="{}"',
-#         'lr_scheduler': ' --lr_scheduler="{}"',
-#         'lr_warmup_steps': ' --lr_warmup_steps="{}"',
-#         'train_batch_size': ' --train_batch_size="{}"',
-#         'max_train_steps': ' --max_train_steps="{}"',
-#         'save_every_n_epochs': ' --save_every_n_epochs="{}"',
-#         'mixed_precision': ' --mixed_precision="{}"',
-#         'save_precision': ' --save_precision="{}"',
-#         'seed': ' --seed="{}"',
-#         'caption_extension': ' --caption_extension="{}"',
-#         'cache_latents': ' --cache_latents',
-#         'optimizer': ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
-#     }
-
-#     options = [arg_map[key].format(value) for key, value in kwargs.items() if key in arg_map and value]
-
-#     cmd = ''.join(options)
-
-#     return cmd
-
-
 def gradio_advanced_training():
     with gr.Row():
         keep_tokens = gr.Slider(
@@ -641,9 +620,9 @@ def gradio_advanced_training():
         )
     with gr.Row():
         # This use_8bit_adam element should be removed in a future release as it is no longer used
-        use_8bit_adam = gr.Checkbox(
-            label='Use 8bit adam', value=False, visible=False
-        )
+        # use_8bit_adam = gr.Checkbox(
+        #     label='Use 8bit adam', value=False, visible=False
+        # )
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
@@ -689,7 +668,7 @@ def gradio_advanced_training():
             placeholder='(Optional) Override number of epoch. Default: 8',
         )
     return (
-        use_8bit_adam,
+        # use_8bit_adam,
         xformers,
         full_fp16,
         gradient_checkpointing,
@@ -753,7 +732,7 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         ' --full_fp16' if kwargs.get('full_fp16') else '',
         ' --xformers' if kwargs.get('xformers') else '',
-        ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
+        # ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
         ' --persistent_data_loader_workers'
         if kwargs.get('persistent_data_loader_workers')
         else '',
@@ -765,35 +744,3 @@ def run_cmd_advanced_training(**kwargs):
     ]
     run_cmd = ''.join(options)
     return run_cmd
-
-
-# def run_cmd_advanced_training(**kwargs):
-#     arg_map = {
-#         'max_train_epochs': ' --max_train_epochs="{}"',
-#         'max_data_loader_n_workers': ' --max_data_loader_n_workers="{}"',
-#         'max_token_length': ' --max_token_length={}' if int(kwargs.get('max_token_length', 75)) > 75 else '',
-#         'clip_skip': ' --clip_skip={}' if int(kwargs.get('clip_skip', 1)) > 1 else '',
-#         'resume': ' --resume="{}"',
-#         'keep_tokens': ' --keep_tokens="{}"' if int(kwargs.get('keep_tokens', 0)) > 0 else '',
-#         'caption_dropout_every_n_epochs': ' --caption_dropout_every_n_epochs="{}"' if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0 else '',
-#         'caption_dropout_rate': ' --caption_dropout_rate="{}"' if float(kwargs.get('caption_dropout_rate', 0)) > 0 else '',
-#         'bucket_reso_steps': ' --bucket_reso_steps={:d}' if int(kwargs.get('bucket_reso_steps', 64)) >= 1 else '',
-#         'save_state': ' --save_state',
-#         'mem_eff_attn': ' --mem_eff_attn',
-#         'color_aug': ' --color_aug',
-#         'flip_aug': ' --flip_aug',
-#         'shuffle_caption': ' --shuffle_caption',
-#         'gradient_checkpointing': ' --gradient_checkpointing',
-#         'full_fp16': ' --full_fp16',
-#         'xformers': ' --xformers',
-#         'use_8bit_adam': ' --use_8bit_adam',
-#         'persistent_data_loader_workers': ' --persistent_data_loader_workers',
-#         'bucket_no_upscale': ' --bucket_no_upscale',
-#         'random_crop': ' --random_crop',
-#     }
-
-#     options = [arg_map[key].format(value) for key, value in kwargs.items() if key in arg_map and value]
-
-#     cmd = ''.join(options)
-
-#     return cmd

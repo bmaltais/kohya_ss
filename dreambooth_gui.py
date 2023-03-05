@@ -24,7 +24,7 @@ from library.common_gui import (
     gradio_training,
     gradio_config,
     gradio_source_model,
-    set_legacy_8bitadam,
+    # set_legacy_8bitadam,
     update_my_data,
 )
 from library.tensorboard_gui import (
@@ -72,7 +72,7 @@ def save_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -173,7 +173,7 @@ def open_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -253,7 +253,7 @@ def train_model(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training_pct,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -443,7 +443,7 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        use_8bit_adam=use_8bit_adam,
+        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -622,7 +622,7 @@ def dreambooth_tab(
                     show_progress=False,
                 )
             (
-                use_8bit_adam,
+                # use_8bit_adam,
                 xformers,
                 full_fp16,
                 gradient_checkpointing,
@@ -650,11 +650,11 @@ def dreambooth_tab(
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
-        optimizer.change(
-            set_legacy_8bitadam,
-            inputs=[optimizer, use_8bit_adam],
-            outputs=[optimizer, use_8bit_adam],
-        )
+        # optimizer.change(
+        #     set_legacy_8bitadam,
+        #     inputs=[optimizer, use_8bit_adam],
+        #     outputs=[optimizer, use_8bit_adam],
+        # )
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -708,7 +708,7 @@ def dreambooth_tab(
         full_fp16,
         no_token_padding,
         stop_text_encoder_training,
-        use_8bit_adam,
+        # use_8bit_adam,
         xformers,
         save_model_as,
         shuffle_caption,

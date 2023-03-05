@@ -18,7 +18,7 @@ from library.common_gui import (
     gradio_source_model,
     color_aug_changed,
     run_cmd_training,
-    set_legacy_8bitadam,
+    # set_legacy_8bitadam,
     update_my_data,
 )
 from library.tensorboard_gui import (
@@ -70,7 +70,7 @@ def save_configuration(
     create_buckets,
     save_model_as,
     caption_extension,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     clip_skip,
     save_state,
@@ -177,7 +177,7 @@ def open_config_file(
     create_buckets,
     save_model_as,
     caption_extension,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     clip_skip,
     save_state,
@@ -263,7 +263,7 @@ def train_model(
     generate_image_buckets,
     save_model_as,
     caption_extension,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     clip_skip,
     save_state,
@@ -429,7 +429,7 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        use_8bit_adam=use_8bit_adam,
+        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -618,7 +618,7 @@ def finetune_tab():
                     label='Gradient accumulate steps', value='1'
                 )
             (
-                use_8bit_adam,
+                # use_8bit_adam,
                 xformers,
                 full_fp16,
                 gradient_checkpointing,
@@ -646,11 +646,11 @@ def finetune_tab():
                 inputs=[color_aug],
                 outputs=[cache_latents],  # Not applicable to fine_tune.py
             )
-        optimizer.change(
-            set_legacy_8bitadam,
-            inputs=[optimizer, use_8bit_adam],
-            outputs=[optimizer, use_8bit_adam],
-        )
+        # optimizer.change(
+        #     set_legacy_8bitadam,
+        #     inputs=[optimizer, use_8bit_adam],
+        #     outputs=[optimizer, use_8bit_adam],
+        # )
 
     button_run = gr.Button('Train model', variant='primary')
 
@@ -699,7 +699,7 @@ def finetune_tab():
         create_buckets,
         save_model_as,
         caption_extension,
-        use_8bit_adam,
+        # use_8bit_adam,
         xformers,
         clip_skip,
         save_state,
