@@ -283,7 +283,9 @@ class ConfigSanitizer:
   def __merge_dict(*dict_list: dict) -> dict:
     merged = {}
     for schema in dict_list:
-      merged |= schema
+      # merged |= schema
+      for k, v in schema.items():
+        merged[k] = v
     return merged
 
 
