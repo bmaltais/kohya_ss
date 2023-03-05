@@ -31,7 +31,10 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     print(run_cmd)
 
     # Run the command
-    os.system(run_cmd)
+    if os.name == 'posix':
+        os.system(run_cmd)
+    else:
+        subprocess.run(run_cmd)
 
     print('...captioning done')
 
