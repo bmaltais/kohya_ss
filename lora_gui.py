@@ -24,7 +24,7 @@ from library.common_gui import (
     gradio_config,
     gradio_source_model,
     run_cmd_training,
-    set_legacy_8bitadam,
+    # set_legacy_8bitadam,
     update_my_data,
 )
 from library.dreambooth_folder_creation_gui import (
@@ -77,7 +77,7 @@ def save_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -188,7 +188,7 @@ def open_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -285,7 +285,7 @@ def train_model(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training_pct,
-    use_8bit_adam,
+    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -533,7 +533,7 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        use_8bit_adam=use_8bit_adam,
+        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -793,7 +793,7 @@ def lora_tab(
                     placeholder='(Optional) For Cosine with restart and polynomial only',
                 )
             (
-                use_8bit_adam,
+                # use_8bit_adam,
                 xformers,
                 full_fp16,
                 gradient_checkpointing,
@@ -822,11 +822,11 @@ def lora_tab(
                 outputs=[cache_latents],
             )
 
-        optimizer.change(
-            set_legacy_8bitadam,
-            inputs=[optimizer, use_8bit_adam],
-            outputs=[optimizer, use_8bit_adam],
-        )
+        # optimizer.change(
+        #     set_legacy_8bitadam,
+        #     inputs=[optimizer, use_8bit_adam],
+        #     outputs=[optimizer, use_8bit_adam],
+        # )
 
     with gr.Tab('Tools'):
         gr.Markdown(
@@ -885,7 +885,7 @@ def lora_tab(
         full_fp16,
         no_token_padding,
         stop_text_encoder_training,
-        use_8bit_adam,
+        # use_8bit_adam,
         xformers,
         save_model_as,
         shuffle_caption,

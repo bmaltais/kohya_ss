@@ -176,6 +176,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/05 (v21.1.4):
+    - Removing legacy and confusing use 8bit adam chackbox. It is now configured using the Optimiser drop down list. It will be set properly based on legacy config files.
 * 2023/03/04 (v21.1.3):
     - Fix progress bar being displayed when not required.
     - Add support for linux, thank you @devNegative-asm
