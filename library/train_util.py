@@ -924,7 +924,9 @@ class FineTuningDataset(BaseDataset):
         elif tags is not None and len(tags) > 0:
           caption = caption + ', ' + tags
           tags_list.append(tags)
-        assert caption is not None and len(caption) > 0, f"caption or tag is required / キャプションまたはタグは必須です:{abs_path}"
+
+        if caption is None:
+          caption = ""
 
         image_info = ImageInfo(image_key, subset.num_repeats, caption, False, abs_path)
         image_info.image_size = img_md.get('train_resolution')
