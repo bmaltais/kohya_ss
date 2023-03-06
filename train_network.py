@@ -408,7 +408,7 @@ def train(args):
             "img_count": subset.img_count
         }
 
-    metadata |= {
+    metadata.update({
         "ss_batch_size_per_device": args.train_batch_size,
         "ss_total_batch_size": total_batch_size,
         "ss_resolution": args.resolution,
@@ -425,7 +425,7 @@ def train(args):
         "ss_reg_dataset_dirs": json.dumps(reg_dataset_dirs_info),
         "ss_tag_frequency": json.dumps(dataset.tag_frequency),
         "ss_bucket_info": json.dumps(dataset.bucket_info),
-    }
+    })
 
   # uncomment if another network is added
   # for key, value in net_kwargs.items():
