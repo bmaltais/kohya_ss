@@ -178,7 +178,8 @@ This will store your a backup file with your current locally installed pip packa
 
 * 2023/03/05 (v21.1.5):
     - Add replace underscore with space option to WD14 captioning. Thanks @sALTaccount!
-    - Improve how custom preset is set and handles. Still not perfect but better.
+    - Improve how custom preset is set and handles.
+    - Add support for `--listen` argument. This allow gradio to listen for connections from other devices on the network (or internet). For example: `gui.ps1 --listen "0.0.0.0"` will allow anyone to connect to the gradio webui.
 * 2023/03/05 (v21.1.4):
     - Removing legacy and confusing use 8bit adam chackbox. It is now configured using the Optimiser drop down list. It will be set properly based on legacy config files.
 * 2023/03/04 (v21.1.3):
