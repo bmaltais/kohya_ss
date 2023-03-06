@@ -9,18 +9,36 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+# define a list of substrings to search for
+preset_models = [
+    'stabilityai/stable-diffusion-2-1-base',
+    'stabilityai/stable-diffusion-2-base',
+    'stabilityai/stable-diffusion-2-1',
+    'stabilityai/stable-diffusion-2',
+    'CompVis/stable-diffusion-v1-4',
+    'runwayml/stable-diffusion-v1-5',
+]
+
 
 def update_my_data(my_data):
     if my_data.get('use_8bit_adam', False) == True:
         my_data['optimizer'] = 'AdamW8bit'
         # my_data['use_8bit_adam'] = False
-        
-    if my_data.get('optimizer', 'missing') == 'missing' and my_data.get('use_8bit_adam', False) == False:
+
+    if (
+        my_data.get('optimizer', 'missing') == 'missing'
+        and my_data.get('use_8bit_adam', False) == False
+    ):
         my_data['optimizer'] = 'AdamW'
 
     if my_data.get('model_list', 'custom') == []:
         print('Old config with empty model list. Setting to custom...')
         my_data['model_list'] = 'custom'
+
+    # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
+    if not my_data.get('pretrained_model_name_or_path', '') in preset_models:
+        my_data['model_list'] = 'custom'
+
     return my_data
 
 
@@ -293,8 +311,7 @@ def set_pretrained_model_name_or_path_input(
         print('SD v2 model detected. Setting --v2 parameter')
         v2 = True
         v_parameterization = False
-
-        return model_list, v2, v_parameterization
+        pretrained_model_name_or_path = str(model_list)
 
     # define a list of substrings to search for v-objective
     substrings_v_parameterization = [
@@ -309,8 +326,7 @@ def set_pretrained_model_name_or_path_input(
         )
         v2 = True
         v_parameterization = True
-
-        return model_list, v2, v_parameterization
+        pretrained_model_name_or_path = str(model_list)
 
     # define a list of substrings to v1.x
     substrings_v1_model = [
@@ -321,8 +337,7 @@ def set_pretrained_model_name_or_path_input(
     if str(model_list) in substrings_v1_model:
         v2 = False
         v_parameterization = False
-
-        return model_list, v2, v_parameterization
+        pretrained_model_name_or_path = str(model_list)
 
     if model_list == 'custom':
         if (
@@ -334,11 +349,26 @@ def set_pretrained_model_name_or_path_input(
             pretrained_model_name_or_path = ''
             v2 = False
             v_parameterization = False
-        return pretrained_model_name_or_path, v2, v_parameterization
+    return model_list, pretrained_model_name_or_path, v2, v_parameterization
 
-    ###
-    ### Gradio common GUI section
-    ###
+def set_model_list(
+    model_list,
+    pretrained_model_name_or_path,
+    v2,
+    v_parameterization,
+):
+
+    if not pretrained_model_name_or_path in preset_models:
+        model_list = 'custom'
+    else:
+        model_list = pretrained_model_name_or_path
+        
+    return model_list, v2, v_parameterization
+
+
+###
+### Gradio common GUI section
+###
 
 
 def gradio_config():
@@ -360,6 +390,15 @@ def gradio_config():
         button_save_as_config,
         config_file_name,
     )
+
+
+def get_pretrained_model_name_or_path_file(
+    model_list, pretrained_model_name_or_path
+):
+    pretrained_model_name_or_path = get_any_file_path(
+        pretrained_model_name_or_path
+    )
+    set_model_list(model_list, pretrained_model_name_or_path)
 
 
 def gradio_source_model():
@@ -428,7 +467,23 @@ def gradio_source_model():
                 v_parameterization,
             ],
             outputs=[
+                model_list,
                 pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
+            ],
+        )
+        # Update the model list and parameters when user click outside the button or field
+        pretrained_model_name_or_path.change(
+            set_model_list,
+            inputs=[
+                model_list,
+                pretrained_model_name_or_path,
+                v2,
+                v_parameterization,
+            ],
+            outputs=[
+                model_list,
                 v2,
                 v_parameterization,
             ],
