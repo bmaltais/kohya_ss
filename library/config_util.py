@@ -167,7 +167,7 @@ class ConfigSanitizer:
     "enable_bucket": bool,
     "max_bucket_reso": int,
     "min_bucket_reso": int,
-    "resolution": functools.partial(__validate_and_convert_scalar_or_twodim, int),
+    "resolution": functools.partial(__validate_and_convert_scalar_or_twodim.__func__, int),
   }
 
   # options handled by argparse but not handled by user config
@@ -283,7 +283,9 @@ class ConfigSanitizer:
   def __merge_dict(*dict_list: dict) -> dict:
     merged = {}
     for schema in dict_list:
-      merged |= schema
+      # merged |= schema
+      for k, v in schema.items():
+        merged[k] = v
     return merged
 
 
