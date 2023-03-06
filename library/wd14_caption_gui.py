@@ -5,7 +5,7 @@ from .common_gui import get_folder_path
 import os
 
 
-def caption_images(train_data_dir, caption_extension, batch_size, thresh):
+def caption_images(train_data_dir, caption_extension, batch_size, thresh, replace_underscores):
     # Check for caption_text_input
     # if caption_text_input == "":
     #     msgbox("Caption text is missing...")
@@ -24,6 +24,7 @@ def caption_images(train_data_dir, caption_extension, batch_size, thresh):
     run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --thresh="{thresh}"'
+    run_cmd += f' --replace_underscores' if replace_underscores else ''
     if caption_extension != '':
         run_cmd += f' --caption_extension="{caption_extension}"'
     run_cmd += f' "{train_data_dir}"'
@@ -75,11 +76,17 @@ def gradio_wd14_caption_gui_tab():
             batch_size = gr.Number(
                 value=1, label='Batch size', interactive=True
             )
+            
+            replace_underscores = gr.Checkbox(
+                label='Replace underscores in filenames with spaces',
+                value=False,
+                interactive=True,
+            )
 
         caption_button = gr.Button('Caption images')
 
         caption_button.click(
             caption_images,
-            inputs=[train_data_dir, caption_extension, batch_size, thresh],
+            inputs=[train_data_dir, caption_extension, batch_size, thresh, replace_underscores],
             show_progress=False,
         )

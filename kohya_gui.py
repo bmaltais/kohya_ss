@@ -52,6 +52,9 @@ def UI(**kwargs):
     server_port = kwargs.get('server_port', 0)
     inbrowser = kwargs.get('inbrowser', False)
     share = kwargs.get('share', False)
+    server_name = kwargs.get('listen')
+    
+    launch_kwargs['server_name'] = server_name
     if username and password:
         launch_kwargs['auth'] = (username, password)
     if server_port > 0:
@@ -66,6 +69,9 @@ def UI(**kwargs):
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--listen', type=str, default='127.0.0.1', help='IP to listen on for connections to Gradio'
+    )
     parser.add_argument(
         '--username', type=str, default='', help='Username for authentication'
     )
@@ -93,4 +99,5 @@ if __name__ == '__main__':
         inbrowser=args.inbrowser,
         server_port=args.server_port,
         share=args.share,
+        listen=args.listen,
     )
