@@ -52,6 +52,7 @@ def UI(**kwargs):
     server_port = kwargs.get('server_port', 0)
     inbrowser = kwargs.get('inbrowser', False)
     share = kwargs.get('share', False)
+    listen = kwargs.get('listen', False)
     if username and password:
         launch_kwargs['auth'] = (username, password)
     if server_port > 0:
@@ -60,6 +61,8 @@ def UI(**kwargs):
         launch_kwargs['inbrowser'] = inbrowser
     if share:
         launch_kwargs['share'] = share
+    if listen:
+        launch_kwargs['server_name'] = '0.0.0.0'
     interface.launch(**launch_kwargs)
 
 
@@ -84,6 +87,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--share', action='store_true', help='Share the gradio UI'
     )
+    parser.add_argument(
+        '--listen', action='store_true', help='Allow connections from devices on the local network'
+    )
 
     args = parser.parse_args()
 
@@ -93,4 +99,5 @@ if __name__ == '__main__':
         inbrowser=args.inbrowser,
         server_port=args.server_port,
         share=args.share,
+        listen=args.listen,
     )
