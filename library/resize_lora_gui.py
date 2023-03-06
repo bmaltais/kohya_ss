@@ -17,6 +17,9 @@ def resize_lora(
     save_to,
     save_precision,
     device,
+    dynamic_method,
+    dynamic_param,
+    verbose,
 ):
     # Check for caption_text_input
     if model == '':
@@ -27,16 +30,35 @@ def resize_lora(
     if not os.path.isfile(model):
         msgbox('The provided model is not a file')
         return
+    
+    if dynamic_method == 'sv_ratio':
+        if float(dynamic_param) < 2:
+            msgbox(f'Dynamic parameter for {dynamic_method} need to be 2 or greater...')
+            return
+        
+    if dynamic_method == 'sv_fro' or dynamic_method == 'sv_cumulative':
+        if float(dynamic_param) < 0 or float(dynamic_param) > 1:
+            msgbox(f'Dynamic parameter for {dynamic_method} need to be between 0 and 1...')
+            return
+
+    # Check if save_to end with one of the defines extension. If not add .safetensors.
+    if not save_to.endswith(('.pt', '.safetensors')):
+        save_to += '.safetensors'
 
     if device == '':
         device = 'cuda'
 
-    run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
+    run_cmd = f'{PYTHON} "{os.path.join("tools","resize_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to {save_to}'
     run_cmd += f' --model {model}'
     run_cmd += f' --new_rank {new_rank}'
     run_cmd += f' --device {device}'
+    if not dynamic_method == 'None':
+        run_cmd += f' --dynamic_method {dynamic_method}'
+        run_cmd += f' --dynamic_param {dynamic_param}'
+    if verbose:
+        run_cmd += f' --verbose'
 
     print(run_cmd)
 
@@ -56,7 +78,7 @@ def gradio_resize_lora_tab():
     with gr.Tab('Resize LoRA'):
         gr.Markdown('This utility can resize a LoRA.')
 
-        lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
+        lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
 
         with gr.Row():
@@ -85,6 +107,27 @@ def gradio_resize_lora_tab():
             )
 
         with gr.Row():
+            dynamic_method = gr.Dropdown(
+                choices=['None',
+                         'sv_ratio',
+                         'sv_fro',
+                         'sv_cumulative'
+                         ],
+                value='sv_fro',
+                label='Dynamic method',
+                interactive=True
+            )
+            dynamic_param = gr.Textbox(
+                label='Dynamic parameter',
+                value='0.9',
+                interactive=True,
+                placeholder='Value for the dynamic method selected.'
+            )
+            verbose = gr.Checkbox(
+                label='Verbose',
+                value=False
+            )
+        with gr.Row():
             save_to = gr.Textbox(
                 label='Save to',
                 placeholder='path for the LoRA file to save...',
@@ -109,6 +152,7 @@ def gradio_resize_lora_tab():
                 label='Device',
                 placeholder='{Optional) device to use, cuda for GPU. Default: cuda',
                 interactive=True,
+                value='cuda',
             )
 
         convert_button = gr.Button('Resize model')
@@ -121,6 +165,9 @@ def gradio_resize_lora_tab():
                 save_to,
                 save_precision,
                 device,
+                dynamic_method,
+                dynamic_param,
+                verbose,
             ],
             show_progress=False,
         )
