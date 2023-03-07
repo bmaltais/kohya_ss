@@ -56,6 +56,7 @@ def sample_gradio_config():
                 lines=5,
                 label='Sample prompts',
                 interactive=True,
+                placeholder='masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28',
             )
     return (
         sample_every_n_steps,

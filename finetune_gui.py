@@ -102,7 +102,7 @@ def save_configuration(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -213,7 +213,7 @@ def open_config_file(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -303,7 +303,7 @@ def train_model(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,
+    sample_prompts,additional_parameters,
 ):
     # create caption json file
     if generate_caption_database:
@@ -457,6 +457,7 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        additional_parameters=additional_parameters,
     )
 
     run_cmd += run_cmd_sample(
@@ -669,7 +670,7 @@ def finetune_tab():
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,
+                noise_offset,additional_parameters,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -762,7 +763,7 @@ def finetune_tab():
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
-        sample_prompts,
+        sample_prompts,additional_parameters,
     ]
 
     button_run.click(train_model, inputs=settings_list)

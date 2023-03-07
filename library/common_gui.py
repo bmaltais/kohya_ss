@@ -660,6 +660,11 @@ def run_cmd_training(**kwargs):
 
 def gradio_advanced_training():
     with gr.Row():
+        additional_parameters = gr.Textbox(
+            label='Additional parameters', 
+            placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
+        )
+    with gr.Row():
         keep_tokens = gr.Slider(
             label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
         )
@@ -761,6 +766,7 @@ def gradio_advanced_training():
         caption_dropout_every_n_epochs,
         caption_dropout_rate,
         noise_offset,
+        additional_parameters,
     )
 
 
@@ -812,6 +818,7 @@ def run_cmd_advanced_training(**kwargs):
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if not kwargs.get('noise_offset', '') == ''
         else '',
+        f' {kwargs.get("additional_parameters", "")}'
     ]
     run_cmd = ''.join(options)
     return run_cmd

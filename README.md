@@ -177,6 +177,7 @@ This will store your a backup file with your current locally installed pip packa
 ## Change History
 
 * 2023/03/05 (v21.2.0):
+    - Added new `Additional parameters` under the `Advanced Configuration` section of the `Training parameters` tab.to allow for the specifications of parameters not handles by the GUI.
     - Added support for sample as a new Accordion under the `Training parameters` tab. More info about the prompt options can be found here: https://github.com/kohya-ss/sd-scripts/issues/256#issuecomment-1455005709
     - There may be problems due to major changes. If you cannot revert back to a previous version when problems occur (`git checkout <release name>`).
     - Dependencies are updated, Please [upgrade](#upgrade) the repo.
