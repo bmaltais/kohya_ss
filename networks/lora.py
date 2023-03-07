@@ -181,7 +181,7 @@ class LoRANetwork(torch.nn.Module):
     def enumerate_params(loras):
       params = []
       for lora in loras:
-        params.extend(lora.parameters())
+        params.append((lora.lora_name, lora.parameters()))
       return params
 
     self.requires_grad_(True)

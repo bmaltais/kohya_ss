@@ -21,6 +21,7 @@ from diffusers import DDPMScheduler
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset, FineTuningDataset
 
+from freeze_lora import freeze_lora
 
 def collate_fn(examples):
   return examples[0]
@@ -228,7 +229,8 @@ def train(args):
 
   optimizer_name = optimizer_class.__module__ + "." + optimizer_class.__name__
 
-  trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+  temp_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+  trainable_params = freeze_lora(temp_params)
 
   # betaやweight decayはdiffusers DreamBoothもDreamBooth SDもデフォルト値のようなのでオプションはとりあえず省略
   optimizer = optimizer_class(trainable_params, lr=args.learning_rate)
