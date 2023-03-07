@@ -40,6 +40,7 @@ from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -112,9 +113,13 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
-    LoRA_type='Standard',
-    conv_dim=0,
-    conv_alpha=0,
+    LoRA_type,
+    conv_dim,
+    conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -223,9 +228,13 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
-    LoRA_type='Standard',
-    conv_dim=0,
-    conv_alpha=0,
+    LoRA_type,
+    conv_dim,
+    conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -323,6 +332,10 @@ def train_model(
     LoRA_type,
     conv_dim,
     conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -544,8 +557,15 @@ def train_model(
         noise_offset=noise_offset,
     )
 
+    run_cmd += run_cmd_sample(
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+    )
+
     print(run_cmd)
-    
+
     # Run the command
     if os.name == 'posix':
         os.system(run_cmd)
@@ -826,11 +846,12 @@ def lora_tab(
                 outputs=[cache_latents],
             )
 
-        # optimizer.change(
-        #     set_legacy_8bitadam,
-        #     inputs=[optimizer, use_8bit_adam],
-        #     outputs=[optimizer, use_8bit_adam],
-        # )
+        (
+            sample_every_n_steps,
+            sample_every_n_epochs,
+            sample_sampler,
+            sample_prompts,
+        ) = sample_gradio_config()
 
     with gr.Tab('Tools'):
         gr.Markdown(
@@ -927,6 +948,10 @@ def lora_tab(
         LoRA_type,
         conv_dim,
         conv_alpha,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
     ]
 
     button_open_config.click(

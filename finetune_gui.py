@@ -27,6 +27,7 @@ from library.tensorboard_gui import (
     stop_tensorboard,
 )
 from library.utilities import utilities_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -98,6 +99,10 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -205,6 +210,10 @@ def open_config_file(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -291,6 +300,10 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # create caption json file
     if generate_caption_database:
@@ -446,8 +459,15 @@ def train_model(
         noise_offset=noise_offset,
     )
 
+    run_cmd += run_cmd_sample(
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+    )
+
     print(run_cmd)
-    
+
     # Run the command
     if os.name == 'posix':
         os.system(run_cmd)
@@ -656,11 +676,13 @@ def finetune_tab():
                 inputs=[color_aug],
                 outputs=[cache_latents],  # Not applicable to fine_tune.py
             )
-        # optimizer.change(
-        #     set_legacy_8bitadam,
-        #     inputs=[optimizer, use_8bit_adam],
-        #     outputs=[optimizer, use_8bit_adam],
-        # )
+
+        (
+            sample_every_n_steps,
+            sample_every_n_epochs,
+            sample_sampler,
+            sample_prompts,
+        ) = sample_gradio_config()
 
     button_run = gr.Button('Train model', variant='primary')
 
@@ -737,6 +759,10 @@ def finetune_tab():
         optimizer,
         optimizer_args,
         noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
     ]
 
     button_run.click(train_model, inputs=settings_list)

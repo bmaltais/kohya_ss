@@ -176,6 +176,22 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/05 (v21.2.0):
+    - There may be problems due to major changes. If you cannot revert back to a previous version when problems occur (`git checkout <release name>`).
+    - Dependencies are updated, Please [upgrade](#upgrade) the repo.
+    - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
+        - Documentation is [here](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/config_README-ja.md) (only in Japanese currently.)
+        - Specify `.toml` file with `--dataset_config` option.
+        - The options supported under the previous release can be used as is instead of the `.toml` config file.
+        - There might be bugs due to the large scale of update, please report any problems if you find at https://github.com/kohya-ss/sd-scripts/issues.
+    - Add feature to generate sample images in the middle of training for each training scripts.
+        - `--sample_every_n_steps` and `--sample_every_n_epochs` options: frequency to generate.
+        - `--sample_prompts` option: the file contains prompts (each line generates one image.)
+        - The prompt is subset of `gen_img_diffusers.py`. The prompt options `w, h, d, l, s, n` are supported.
+        - `--sample_sampler` option: sampler (scheduler) for generating, such as ddim or k_euler. See help for useable samplers.
+    - Add `--tokenizer_cache_dir` to each training and generation scripts to cache Tokenizer locally from Diffusers.
+        - Scripts will support offline training/generation after caching.
+    - Support letents upscaling for highres. fix, and VAE batch size in `gen_img_diffusers.py` (no documentation yet.)
 * 2023/03/05 (v21.1.5):
     - Add replace underscore with space option to WD14 captioning. Thanks @sALTaccount!
     - Improve how custom preset is set and handles.

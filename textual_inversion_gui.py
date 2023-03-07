@@ -36,6 +36,7 @@ from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from library.utilities import utilities_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -106,6 +107,10 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -213,6 +218,10 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -299,6 +308,10 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -496,8 +509,15 @@ def train_model(
     elif template == 'style template':
         run_cmd += f' --use_style_template'
 
+    run_cmd += run_cmd_sample(
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+    )
+
     print(run_cmd)
-    
+
     # Run the command
     if os.name == 'posix':
         os.system(run_cmd)
@@ -740,11 +760,14 @@ def ti_tab(
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
-        # optimizer.change(
-        #     set_legacy_8bitadam,
-        #     inputs=[optimizer, use_8bit_adam],
-        #     outputs=[optimizer, use_8bit_adam],
-        # )
+
+        (
+            sample_every_n_steps,
+            sample_every_n_epochs,
+            sample_sampler,
+            sample_prompts,
+        ) = sample_gradio_config()
+
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -832,6 +855,10 @@ def ti_tab(
         optimizer,
         optimizer_args,
         noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
     ]
 
     button_open_config.click(
