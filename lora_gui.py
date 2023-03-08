@@ -269,6 +269,7 @@ def open_configuration(
 
 
 def train_model(
+    print_only,
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
@@ -337,6 +338,8 @@ def train_model(
     sample_sampler,
     sample_prompts,additional_parameters,
 ):
+    print_only_bool = True if print_only.get('label') == 'True' else False
+    
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -571,20 +574,23 @@ def train_model(
         output_dir,
     )
 
-    print(run_cmd)
-
-    # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
+    if  print_only_bool:
+        print('Here is the trainer command as a reference. It will not be executed:')
+        print(run_cmd)
     else:
-        subprocess.run(run_cmd)
+        print(run_cmd)
+        # Run the command
+        if os.name == 'posix':
+            os.system(run_cmd)
+        else:
+            subprocess.run(run_cmd)
 
-    # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        # check if output_dir/last is a folder... therefore it is a diffuser model
+        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
-    if not last_dir.is_dir():
-        # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization, output_name)
+        if not last_dir.is_dir():
+            # Copy inference model for v2 if required
+            save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def lora_tab(
@@ -877,6 +883,8 @@ def lora_tab(
         gradio_verify_lora_tab()
 
     button_run = gr.Button('Train model', variant='primary')
+    
+    button_print = gr.Button('Print training command')
 
     # Setup gradio tensorboard buttons
     button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
@@ -985,7 +993,13 @@ def lora_tab(
 
     button_run.click(
         train_model,
-        inputs=settings_list,
+        inputs=[dummy_db_false] + settings_list,
+        show_progress=False,
+    )
+    
+    button_print.click(
+        train_model,
+        inputs=[dummy_db_true] + settings_list,
         show_progress=False,
     )
 
