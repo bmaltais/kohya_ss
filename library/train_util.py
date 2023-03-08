@@ -906,10 +906,14 @@ class FineTuningDataset(BaseDataset):
         if os.path.exists(image_key):
           abs_path = image_key
         else:
-          # わりといい加減だがいい方法が思いつかん
-          abs_path = glob_images(subset.image_dir, image_key)
-          assert len(abs_path) >= 1, f"no image / 画像がありません: {image_key}"
-          abs_path = abs_path[0]
+          npz_path = os.path.join(glob.escape(train_data_dir), image_key + ".npz")
+          if os.path.exists(npz_path):
+            abs_path = npz_path
+          else:
+            # わりといい加減だがいい方法が思いつかん
+            abs_path = glob_images(subset.image_dir, image_key)
+            assert len(abs_path) >= 1, f"no image / 画像がありません: {image_key}"
+            abs_path = abs_path[0]
 
         caption = img_md.get('caption')
         tags = img_md.get('tags')
