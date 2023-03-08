@@ -575,8 +575,8 @@ def train_model(
     )
 
     if  print_only_bool:
-        print('Here is the trainer command as a reference. It will not be executed:')
-        print(run_cmd)
+        print('\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n')
+        print('\033[96m' + run_cmd + '\033[0m\n')
     else:
         print(run_cmd)
         # Run the command
