@@ -465,6 +465,7 @@ def train_model(
         sample_every_n_epochs,
         sample_sampler,
         sample_prompts,
+        output_dir,
     )
 
     print(run_cmd)

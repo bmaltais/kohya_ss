@@ -483,7 +483,12 @@ def train_model(
         run_cmd += (
             f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
         )
-    else:
+    if LoRA_type == 'Kohya LoCon':
+        run_cmd += f' --network_module=networks.lora'
+        run_cmd += (
+            f' --network_args "conv_lora_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+        )
+    if LoRA_type == 'Standard':
         run_cmd += f' --network_module=networks.lora'
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
@@ -563,6 +568,7 @@ def train_model(
         sample_every_n_epochs,
         sample_sampler,
         sample_prompts,
+        output_dir,
     )
 
     print(run_cmd)
@@ -687,8 +693,9 @@ def lora_tab(
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
                 choices=[
-                    'Standard',
+                    'Kohya LoCon',
                     'LoCon',
+                    'Standard',
                 ],
                 value='Standard',
             )
@@ -774,7 +781,7 @@ def lora_tab(
         # Show of hide LoCon conv settings depending on LoRA type selection
         def LoRA_type_change(LoRA_type):
             print('LoRA type changed...')
-            if LoRA_type == 'LoCon':
+            if LoRA_type == 'LoCon' or LoRA_type == 'Kohya LoCon':
                 return gr.Group.update(visible=True)
             else:
                 return gr.Group.update(visible=False)
