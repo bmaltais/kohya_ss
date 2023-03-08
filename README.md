@@ -212,7 +212,7 @@ This will store your a backup file with your current locally installed pip packa
 * 2023/03/02 (v21.1.1):
     - Emergency fix for https://github.com/bmaltais/kohya_ss/issues/261
 * 2023/03/02 (v21.1.0):
-    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon. LoCon will work with the native Auto1111 implementation of LoRA. If you want to use it with the Kohya_ss additionalNetwork you will need to install this other extension... until Kohya_ss support it nativelly: https://github.com/KohakuBlueleaf/a1111-sd-webui-locon
+    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon. LoCon will work with the native Auto1111 implementation of LoRA. If you want to use it with the Kohya_ss additionalNetwork you will need to install this other extension... until Kohya_ss support it natively: https://github.com/KohakuBlueleaf/a1111-sd-webui-locon
 * 2023/03/01 (v21.0.1):
     - Add warning to tensorboard start if the log information is missing
     - Fix issue with 8bitadam on older config file load
