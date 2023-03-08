@@ -2209,7 +2209,7 @@ def sample_images(accelerator, args: argparse.Namespace, epoch, steps, device, v
     if epoch is None or epoch % args.sample_every_n_epochs != 0:
       return
   else:
-    if steps % args.sample_every_n_steps != 0:
+    if steps % args.sample_every_n_steps != 0 or epoch is not None:       # steps is not divisable or end of epoch
       return
 
   print(f"generating sample images at step / サンプル画像生成 ステップ: {steps}")
@@ -2353,6 +2353,8 @@ def sample_images(accelerator, args: argparse.Namespace, epoch, steps, device, v
           if negative_prompt is not None:
             negative_prompt = negative_prompt.replace(prompt_replacement[0], prompt_replacement[1])
 
+        height = max(64, height - height % 8)                 # round to divisible by 8
+        width = max(64, width - width % 8)                 # round to divisible by 8
         image = pipeline(prompt, height, width, sample_steps, scale, negative_prompt).images[0]
 
         ts_str = time.strftime('%Y%m%d%H%M%S', time.localtime())
