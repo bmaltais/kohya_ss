@@ -28,9 +28,10 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 All documents are in Japanese currently.
 
+* [Training guide - common](./train_README-ja.md) : data preparation, options etc...
+    * [Dataset config](./config_README-ja.md)
 * [DreamBooth training guide](./train_db_README-ja.md)
 * [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
-Including BLIP captioning and tagging by DeepDanbooru or WD14 tagger
 * [training LoRA](./train_network_README-ja.md)
 * [training Textual Inversion](./train_ti_README-ja.md)
 * note.com [Image generation](https://note.com/kohya_ss/n/n2693183a798e)
@@ -110,11 +111,13 @@ Once the commands have completed successfully you should be ready to use the new
 
 ## Credits
 
-The implementation for LoRA is based on [cloneofsimo's repo](https://github.com/cloneofsimo/lora). Thank you for great work!!!
+The implementation for LoRA is based on [cloneofsimo's repo](https://github.com/cloneofsimo/lora). Thank you for great work!
+
+The LoRA expansion to Conv2d 3x3 was initially released by cloneofsimo and its effectiveness was demonstrated at [LoCon](https://github.com/KohakuBlueleaf/LoCon) by KohakuBlueleaf. Thank you so much KohakuBlueleaf!
 
 ## License
 
-The majority of scripts is licensed under ASL 2.0 (including codes from Diffusers, cloneofsimo's), however portions of the project are available under separate license terms:
+The majority of scripts is licensed under ASL 2.0 (including codes from Diffusers, cloneofsimo's and LoCon), however portions of the project are available under separate license terms:
 
 [Memory Efficient Attention Pytorch](https://github.com/lucidrains/memory-efficient-attention-pytorch): MIT
 
@@ -124,22 +127,34 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- 2 Mar. 2023, 2023/3/2:
+- 9 Mar. 2023, 2023/3/9:
   - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
-  - Dependencies are updated, Please [upgrade](#upgrade) the repo.
-  - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
-    - Documentation is [here](./config_README-ja.md) (only in Japanese currently.)
-    - Specify ``.toml`` file with ``--dataset_config`` option.
-    - The previous options for dataset can be used as is.
-    - There might be a bug due to the large scale of update, please report any problems if you find.
-  - Add feature to generate sample images in the middle of training for each training scripts.
-    - ``--sample_every_n_steps`` and ``--sample_every_n_epochs`` options: frequency to generate.
-    - ``--sample_prompts`` option: the file contains prompts (each line generates one image.)
-      - The prompt is subset of ``gen_img_diffusers.py``. The prompt options ``w, h, d, l, s, n`` are supported.
-    - ``--sample_sampler`` option: sampler (scheduler) for generating, such as ddim or k_euler. See help for useable samplers.
-  - Add ``--tokenizer_cache_dir`` to each training and generation scripts to cache Tokenizer locally from Diffusers.
-    - Scripts will support offline training/generation after caching.
-  - Support letents upscaling for highres. fix, and VAE batch size in ``gen_img_diffusers.py`` (no documentation yet.)
+  - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
+  - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).
+    - Same as a current version of [LoCon](https://github.com/KohakuBlueleaf/LoCon). __Thank you very much KohakuBlueleaf for your help!__
+      - LoCon will be enhanced in the future. Compatibility for future versions is not guaranteed.
+    - Specify `--network_args` option like: `--network_args "conv_dim=4" "conv_alpha=1"`
+    - [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) version 0.5.0 or later is required to use 'LoRA for Conv2d-3x3' in Stable Diffusion web UI.
+    - __Stable Diffusion web UI built-in LoRA does not support 'LoRA for Conv2d-3x3' now. Consider carefully whether or not to use it.__
+  - Merging/extracting scripts also support LoRA for Conv2d-3x3.
+  - Free CUDA memory after sample generation to reduce VRAM usage, issue https://github.com/kohya-ss/sd-scripts/issues/260 
+  - Empty caption doesn't cause error now, issue https://github.com/kohya-ss/sd-scripts/issues/258
+  - Fix sample generation is crashing in Textual Inversion training when using templates, or if height/width is not divisible by 8.
+  - Update documents (Japanese only).
+
+  - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
+  - 最低限のメタデータ（module name, dim, alpha および network_args）が `--no_metadata` オプション指定時にも記録されます。issue https://github.com/kohya-ss/sd-scripts/issues/254
+  - `train_network.py` で LoRAの Conv2d-3x3 拡張に対応しました（カーネルサイズ1x1以外のConv2dにも対象範囲を拡大します）。
+    - 現在のバージョンの [LoCon](https://github.com/KohakuBlueleaf/LoCon) と同一の仕様です。__KohakuBlueleaf氏のご支援に深く感謝します。__
+      - LoCon が将来的に拡張された場合、それらのバージョンでの互換性は保証できません。
+    - `--network_args` オプションを `--network_args "conv_dim=4" "conv_alpha=1"` のように指定してください。
+    - Stable Diffusion web UI での使用には [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) のversion 0.5.0 以降が必要です。
+    - __Stable Diffusion web UI の LoRA 機能は LoRAの Conv2d-3x3 拡張に対応していないようです。使用するか否か慎重にご検討ください。__
+  - マージ、抽出のスクリプトについても LoRA の Conv2d-3x3 拡張に対応しました.
+  - サンプル画像生成後にCUDAメモリを解放しVRAM使用量を削減しました。 issue https://github.com/kohya-ss/sd-scripts/issues/260 
+  - 空のキャプションが使えるようになりました。 issue https://github.com/kohya-ss/sd-scripts/issues/258
+  - Textual Inversion 学習でテンプレートを使ったとき、height/width が 8 で割り切れなかったときにサンプル画像生成がクラッシュするのを修正しました。
+  - ドキュメント類を更新しました。
 
   - Sample image generation:
     A prompt file might look like this, for example
@@ -162,22 +177,6 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     * `--s` Specifies the number of steps in the generation.
 
     The prompt weighting such as `( )` and `[ ]` are not working.
-
-  - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
-  - ライブラリを更新しました。[アップグレード](https://github.com/kohya-ss/sd-scripts/blob/main/README-ja.md#%E3%82%A2%E3%83%83%E3%83%97%E3%82%B0%E3%83%AC%E3%83%BC%E3%83%89)に従って更新してください。
-  - 設定ファイルによるデータセット定義機能を追加しました。素晴らしいPRを提供していただいた fur0ut0 氏に感謝します。
-    - ドキュメントは[こちら](./config_README-ja.md)。
-    - ``--dataset_config`` オプションで ``.toml`` ファイルを指定してください。
-    - 今までのオプションはそのまま使えます。
-    - 大規模なアップデートのため、もし不具合がありましたらご報告ください。
-  - 学習の途中でサンプル画像を生成する機能を各学習スクリプトに追加しました。
-    - ``--sample_every_n_steps`` と ``--sample_every_n_epochs`` オプション：生成頻度を指定
-    - ``--sample_prompts`` オプション：プロンプトを記述したファイルを指定（1行ごとに1枚の画像を生成）
-      - プロンプトには ``gen_img_diffusers.py`` のプロンプトオプションの一部、 ``w, h, d, l, s, n`` が使えます。
-    - ``--sample_sampler`` オプション：ddim や k_euler などの sampler (scheduler) を指定します。使用できる sampler についてはヘルプをご覧ください。
-  - ``--tokenizer_cache_dir`` オプションを各学習スクリプトおよび生成スクリプトに追加しました。Diffusers から Tokenizer を取得してきてろーかるに保存します。
-    - 一度キャッシュしておくことでオフライン学習、生成ができるかもしれません。
-  - ``gen_img_diffusers.py`` で highres. fix での letents upscaling と VAE のバッチサイズ指定に対応しました。
 
   - サンプル画像生成：
     プロンプトファイルは例えば以下のようになります。

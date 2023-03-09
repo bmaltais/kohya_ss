@@ -4,7 +4,7 @@
 import math
 import os
 import torch
-from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig
+from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig, logging
 from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline, UNet2DConditionModel
 from safetensors.torch import load_file, save_file
 
@@ -916,7 +916,11 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
     info = text_model.load_state_dict(converted_text_encoder_checkpoint)
   else:
     converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
+
+    logging.set_verbosity_error()                                                       # don't show annoying warning
     text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
+    logging.set_verbosity_warning()
+
     info = text_model.load_state_dict(converted_text_encoder_checkpoint)
   print("loading text encoder:", info)
 
