@@ -172,6 +172,8 @@ def train(args):
   blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
   train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
+  prompt_replacement = None
+
   # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
   if use_template:
     print("use template for training captions. is object: {args.use_object_template}")
