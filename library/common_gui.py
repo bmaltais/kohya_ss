@@ -49,6 +49,15 @@ def update_my_data(my_data):
     # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
     if not my_data.get('pretrained_model_name_or_path', '') in ALL_PRESET_MODELS:
         my_data['model_list'] = 'custom'
+    
+    # Fix old config files that contain epoch as str instead of int
+    for key in ['epoch', 'save_every_n_epochs']:
+        value = my_data.get(key, -1)
+        if type(value) == str:
+            if value != '':
+                my_data[key] = int(value)
+            else:
+                my_data[key] = -1
 
     return my_data
 
@@ -526,8 +535,8 @@ def gradio_training(
             value=1,
             step=1,
         )
-        epoch = gr.Textbox(label='Epoch', value=1)
-        save_every_n_epochs = gr.Textbox(label='Save every N epochs', value=1)
+        epoch = gr.Number(label='Epoch', value=1, precision=0)
+        save_every_n_epochs = gr.Number(label='Save every N epochs', value=1, precision=0)
         caption_extension = gr.Textbox(
             label='Caption Extension',
             placeholder='(Optional) Extension for caption files. default: .caption',
@@ -634,8 +643,8 @@ def run_cmd_training(**kwargs):
         f' --max_train_steps="{kwargs.get("max_train_steps", "")}"'
         if kwargs.get('max_train_steps')
         else '',
-        f' --save_every_n_epochs="{kwargs.get("save_every_n_epochs", "")}"'
-        if kwargs.get('save_every_n_epochs')
+        f' --save_every_n_epochs="{int(kwargs.get("save_every_n_epochs", 1))}"'
+        if int(kwargs.get('save_every_n_epochs'))
         else '',
         f' --mixed_precision="{kwargs.get("mixed_precision", "")}"'
         if kwargs.get('mixed_precision')
@@ -643,7 +652,9 @@ def run_cmd_training(**kwargs):
         f' --save_precision="{kwargs.get("save_precision", "")}"'
         if kwargs.get('save_precision')
         else '',
-        f' --seed="{kwargs.get("seed", "")}"' if kwargs.get('seed') else '',
+        f' --seed="{kwargs.get("seed", "")}"'
+        if kwargs.get('seed') != ""
+        else '',
         f' --caption_extension="{kwargs.get("caption_extension", "")}"'
         if kwargs.get('caption_extension')
         else '',
@@ -659,6 +670,11 @@ def run_cmd_training(**kwargs):
 
 
 def gradio_advanced_training():
+    with gr.Row():
+        additional_parameters = gr.Textbox(
+            label='Additional parameters', 
+            placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
+        )
     with gr.Row():
         keep_tokens = gr.Slider(
             label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
@@ -761,6 +777,7 @@ def gradio_advanced_training():
         caption_dropout_every_n_epochs,
         caption_dropout_rate,
         noise_offset,
+        additional_parameters,
     )
 
 
@@ -784,7 +801,7 @@ def run_cmd_advanced_training(**kwargs):
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
-        f' --caption_dropout_every_n_epochs="{kwargs.get("caption_dropout_every_n_epochs", "")}"'
+        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
         f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
@@ -812,6 +829,7 @@ def run_cmd_advanced_training(**kwargs):
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if not kwargs.get('noise_offset', '') == ''
         else '',
+        f' {kwargs.get("additional_parameters", "")}'
     ]
     run_cmd = ''.join(options)
     return run_cmd

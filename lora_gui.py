@@ -40,6 +40,7 @@ from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -112,9 +113,13 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
-    LoRA_type='Standard',
-    conv_dim=0,
-    conv_alpha=0,
+    LoRA_type,
+    conv_dim,
+    conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -223,9 +228,13 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
-    LoRA_type='Standard',
-    conv_dim=0,
-    conv_alpha=0,
+    LoRA_type,
+    conv_dim,
+    conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -260,6 +269,7 @@ def open_configuration(
 
 
 def train_model(
+    print_only,
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
@@ -323,7 +333,13 @@ def train_model(
     LoRA_type,
     conv_dim,
     conv_alpha,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
+    print_only_bool = True if print_only.get('label') == 'True' else False
+    
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -470,7 +486,12 @@ def train_model(
         run_cmd += (
             f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
         )
-    else:
+    if LoRA_type == 'Kohya LoCon':
+        run_cmd += f' --network_module=networks.lora'
+        run_cmd += (
+            f' --network_args "conv_lora_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+        )
+    if LoRA_type == 'Standard':
         run_cmd += f' --network_module=networks.lora'
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
@@ -542,22 +563,34 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        additional_parameters=additional_parameters,
     )
 
-    print(run_cmd)
-    
-    # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
+    run_cmd += run_cmd_sample(
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+        output_dir,
+    )
+
+    if  print_only_bool:
+        print('\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n')
+        print('\033[96m' + run_cmd + '\033[0m\n')
     else:
-        subprocess.run(run_cmd)
+        print(run_cmd)
+        # Run the command
+        if os.name == 'posix':
+            os.system(run_cmd)
+        else:
+            subprocess.run(run_cmd)
 
-    # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        # check if output_dir/last is a folder... therefore it is a diffuser model
+        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
-    if not last_dir.is_dir():
-        # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization, output_name)
+        if not last_dir.is_dir():
+            # Copy inference model for v2 if required
+            save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def lora_tab(
@@ -666,8 +699,9 @@ def lora_tab(
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
                 choices=[
-                    'Standard',
+                    'Kohya LoCon',
                     'LoCon',
+                    'Standard',
                 ],
                 value='Standard',
             )
@@ -753,7 +787,7 @@ def lora_tab(
         # Show of hide LoCon conv settings depending on LoRA type selection
         def LoRA_type_change(LoRA_type):
             print('LoRA type changed...')
-            if LoRA_type == 'LoCon':
+            if LoRA_type == 'LoCon' or LoRA_type == 'Kohya LoCon':
                 return gr.Group.update(visible=True)
             else:
                 return gr.Group.update(visible=False)
@@ -818,7 +852,7 @@ def lora_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,
+                noise_offset,additional_parameters,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -826,11 +860,12 @@ def lora_tab(
                 outputs=[cache_latents],
             )
 
-        # optimizer.change(
-        #     set_legacy_8bitadam,
-        #     inputs=[optimizer, use_8bit_adam],
-        #     outputs=[optimizer, use_8bit_adam],
-        # )
+        (
+            sample_every_n_steps,
+            sample_every_n_epochs,
+            sample_sampler,
+            sample_prompts,
+        ) = sample_gradio_config()
 
     with gr.Tab('Tools'):
         gr.Markdown(
@@ -848,6 +883,8 @@ def lora_tab(
         gradio_verify_lora_tab()
 
     button_run = gr.Button('Train model', variant='primary')
+    
+    button_print = gr.Button('Print training command')
 
     # Setup gradio tensorboard buttons
     button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
@@ -927,6 +964,10 @@ def lora_tab(
         LoRA_type,
         conv_dim,
         conv_alpha,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,additional_parameters,
     ]
 
     button_open_config.click(
@@ -952,7 +993,13 @@ def lora_tab(
 
     button_run.click(
         train_model,
-        inputs=settings_list,
+        inputs=[dummy_db_false] + settings_list,
+        show_progress=False,
+    )
+    
+    button_print.click(
+        train_model,
+        inputs=[dummy_db_true] + settings_list,
         show_progress=False,
     )
 

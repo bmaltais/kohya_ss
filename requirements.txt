@@ -14,7 +14,9 @@ pytorch-lightning==1.9.0
 safetensors==0.2.6
 tensorboard==2.10.1
 tk==0.1.0
+toml==0.10.2
 transformers==4.26.0
+voluptuous==0.13.1
 # for BLIP captioning
 fairscale==0.4.13
 requests==2.28.2

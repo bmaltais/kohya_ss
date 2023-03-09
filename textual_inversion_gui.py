@@ -36,6 +36,7 @@ from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from library.utilities import utilities_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -106,6 +107,10 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -213,6 +218,10 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -223,19 +232,19 @@ def open_configuration(
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
-            my_data_db = json.load(f)
+            my_data = json.load(f)
             print('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
             my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-        my_data_db = {}
+        my_data = {}
 
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['file_path']:
-            values.append(my_data_db.get(key, value))
+            values.append(my_data.get(key, value))
     return tuple(values)
 
 
@@ -299,6 +308,10 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,additional_parameters,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -485,6 +498,7 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        additional_parameters=additional_parameters,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -496,8 +510,16 @@ def train_model(
     elif template == 'style template':
         run_cmd += f' --use_style_template'
 
+    run_cmd += run_cmd_sample(
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+        output_dir,
+    )
+
     print(run_cmd)
-    
+
     # Run the command
     if os.name == 'posix':
         os.system(run_cmd)
@@ -733,18 +755,21 @@ def ti_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,
+                noise_offset,additional_parameters,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
                 inputs=[color_aug],
                 outputs=[cache_latents],
             )
-        # optimizer.change(
-        #     set_legacy_8bitadam,
-        #     inputs=[optimizer, use_8bit_adam],
-        #     outputs=[optimizer, use_8bit_adam],
-        # )
+
+        (
+            sample_every_n_steps,
+            sample_every_n_epochs,
+            sample_sampler,
+            sample_prompts,
+        ) = sample_gradio_config()
+
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
@@ -832,6 +857,10 @@ def ti_tab(
         optimizer,
         optimizer_args,
         noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,additional_parameters,
     ]
 
     button_open_config.click(

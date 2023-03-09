@@ -176,6 +176,64 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/09 (v21.2.0):
+    - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
+    - Add option to print LoRA trainer command without executing it
+    - Add support for samples during trainin via a new `Sample images config` accordion in the `Training parameters` tab.
+    - Added new `Additional parameters` under the `Advanced Configuration` section of the `Training parameters` tab to allow for the specifications of parameters not handles by the GUI.
+    - Added support for sample as a new Accordion under the `Training parameters` tab. More info about the prompt options can be found here: https://github.com/kohya-ss/sd-scripts/issues/256#issuecomment-1455005709
+    - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
+    - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
+    - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).
+        - Same as a current version of [LoCon](https://github.com/KohakuBlueleaf/LoCon). __Thank you very much KohakuBlueleaf for your help!__
+        - LoCon will be enhanced in the future. Compatibility for future versions is not guaranteed.
+        - Specify `--network_args` option like: `--network_args "conv_dim=4" "conv_alpha=1"`
+        - [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) version 0.5.0 or later is required to use 'LoRA for Conv2d-3x3' in Stable Diffusion web UI.
+        - __Stable Diffusion web UI built-in LoRA does not support 'LoRA for Conv2d-3x3' now. Consider carefully whether or not to use it.__
+    - Merging/extracting scripts also support LoRA for Conv2d-3x3.
+    - Free CUDA memory after sample generation to reduce VRAM usage, issue https://github.com/kohya-ss/sd-scripts/issues/260 
+    - Empty caption doesn't cause error now, issue https://github.com/kohya-ss/sd-scripts/issues/258
+    - Fix sample generation is crashing in Textual Inversion training when using templates, or if height/width is not divisible by 8.
+    - Update documents (Japanese only).
+    - Dependencies are updated, Please [upgrade](#upgrade) the repo.
+    - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
+        - Documentation is [here](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/config_README-ja.md) (only in Japanese currently.)
+        - Specify `.toml` file with `--dataset_config` option.
+        - The options supported under the previous release can be used as is instead of the `.toml` config file.
+        - There might be bugs due to the large scale of update, please report any problems if you find at https://github.com/kohya-ss/sd-scripts/issues.
+    - Add feature to generate sample images in the middle of training for each training scripts.
+        - `--sample_every_n_steps` and `--sample_every_n_epochs` options: frequency to generate.
+        - `--sample_prompts` option: the file contains prompts (each line generates one image.)
+        - The prompt is subset of `gen_img_diffusers.py`. The prompt options `w, h, d, l, s, n` are supported.
+        - `--sample_sampler` option: sampler (scheduler) for generating, such as ddim or k_euler. See help for useable samplers.
+    - Add `--tokenizer_cache_dir` to each training and generation scripts to cache Tokenizer locally from Diffusers.
+        - Scripts will support offline training/generation after caching.
+    - Support letents upscaling for highres. fix, and VAE batch size in `gen_img_diffusers.py` (no documentation yet.)
+
+    - Sample image generation:
+        A prompt file might look like this, for example
+
+        ```
+        # prompt 1
+        masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+        # prompt 2
+        masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+        ```
+
+        Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+        * `--n` Negative prompt up to the next option.
+        * `--w` Specifies the width of the generated image.
+        * `--h` Specifies the height of the generated image.
+        * `--d` Specifies the seed of the generated image.
+        * `--l` Specifies the CFG scale of the generated image.
+        * `--s` Specifies the number of steps in the generation.
+
+        The prompt weighting such as `( )` and `[ ]` are not working.
+
+    Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
+
 * 2023/03/05 (v21.1.5):
     - Add replace underscore with space option to WD14 captioning. Thanks @sALTaccount!
     - Improve how custom preset is set and handles.
@@ -192,7 +250,7 @@ This will store your a backup file with your current locally installed pip packa
 * 2023/03/02 (v21.1.1):
     - Emergency fix for https://github.com/bmaltais/kohya_ss/issues/261
 * 2023/03/02 (v21.1.0):
-    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon. LoCon will work with the native Auto1111 implementation of LoRA. If you want to use it with the Kohya_ss additionalNetwork you will need to install this other extension... until Kohya_ss support it nativelly: https://github.com/KohakuBlueleaf/a1111-sd-webui-locon
+    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon. LoCon will work with the native Auto1111 implementation of LoRA. If you want to use it with the Kohya_ss additionalNetwork you will need to install this other extension... until Kohya_ss support it natively: https://github.com/KohakuBlueleaf/a1111-sd-webui-locon
 * 2023/03/01 (v21.0.1):
     - Add warning to tensorboard start if the log information is missing
     - Fix issue with 8bitadam on older config file load
