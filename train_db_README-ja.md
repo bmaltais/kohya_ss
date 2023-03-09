@@ -74,7 +74,7 @@ accelerate launch --num_cpu_threads_per_process 1 train_db.py
 
 ### よく使われるオプションについて
 
-以下の場合にはオプションに関するドキュメントを参照してください。
+以下の場合には [学習の共通ドキュメント](./train_README-ja.md) の「よく使われるオプション」を参照してください。
 
 - Stable Diffusion 2.xまたはそこからの派生モデルを学習する
 - clip skipを2以上を前提としたモデルを学習する

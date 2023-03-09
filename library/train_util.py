@@ -2209,7 +2209,7 @@ def sample_images(accelerator, args: argparse.Namespace, epoch, steps, device, v
     if epoch is None or epoch % args.sample_every_n_epochs != 0:
       return
   else:
-    if steps % args.sample_every_n_steps != 0 or epoch is not None:       # steps is not divisable or end of epoch
+    if steps % args.sample_every_n_steps != 0 or epoch is not None:       # steps is not divisible or end of epoch
       return
 
   print(f"generating sample images at step / サンプル画像生成 ステップ: {steps}")
