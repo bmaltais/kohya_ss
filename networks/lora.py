@@ -112,7 +112,7 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
   if conv_dim is not None:
     conv_dim = int(conv_dim)
     if conv_alpha is None:
-      conv_alpha = float(conv_dim)
+      conv_alpha = 1.0
     else:
       conv_alpha = float(conv_alpha)
 
@@ -169,7 +169,7 @@ def create_network_from_weights(multiplier, file, vae, text_encoder, unet, **kwa
     elif 'lora_down' in key:
       dim = value.size()[0]
       modules_dim[lora_name] = dim
-      print(lora_name, value.size(), dim)
+      # print(lora_name, value.size(), dim)
 
   # support old LoRA without alpha
   for key in modules_dim.keys():
