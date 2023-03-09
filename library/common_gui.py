@@ -790,7 +790,7 @@ def run_cmd_advanced_training(**kwargs):
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
-        f' --caption_dropout_every_n_epochs="{kwargs.get("caption_dropout_every_n_epochs", "")}"'
+        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
         f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
