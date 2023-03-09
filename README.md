@@ -26,7 +26,7 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 ## Links to how-to-use documents
 
-All documents are in Japanese currently, and CUI based.
+All documents are in Japanese currently.
 
 * [DreamBooth training guide](./train_db_README-ja.md)
 * [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
@@ -141,6 +141,28 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - Scripts will support offline training/generation after caching.
   - Support letents upscaling for highres. fix, and VAE batch size in ``gen_img_diffusers.py`` (no documentation yet.)
 
+  - Sample image generation:
+    A prompt file might look like this, for example
+
+    ```
+    # prompt 1
+    masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+    # prompt 2
+    masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+    ```
+
+    Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+    * `--n` Negative prompt up to the next option.
+    * `--w` Specifies the width of the generated image.
+    * `--h` Specifies the height of the generated image.
+    * `--d` Specifies the seed of the generated image.
+    * `--l` Specifies the CFG scale of the generated image.
+    * `--s` Specifies the number of steps in the generation.
+
+    The prompt weighting such as `( )` and `[ ]` are not working.
+
   - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
   - ライブラリを更新しました。[アップグレード](https://github.com/kohya-ss/sd-scripts/blob/main/README-ja.md#%E3%82%A2%E3%83%83%E3%83%97%E3%82%B0%E3%83%AC%E3%83%BC%E3%83%89)に従って更新してください。
   - 設定ファイルによるデータセット定義機能を追加しました。素晴らしいPRを提供していただいた fur0ut0 氏に感謝します。
@@ -156,6 +178,28 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
   - ``--tokenizer_cache_dir`` オプションを各学習スクリプトおよび生成スクリプトに追加しました。Diffusers から Tokenizer を取得してきてろーかるに保存します。
     - 一度キャッシュしておくことでオフライン学習、生成ができるかもしれません。
   - ``gen_img_diffusers.py`` で highres. fix での letents upscaling と VAE のバッチサイズ指定に対応しました。
+
+  - サンプル画像生成：
+    プロンプトファイルは例えば以下のようになります。
+
+    ```
+    # prompt 1
+    masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+    # prompt 2
+    masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+    ```
+
+    `#` で始まる行はコメントになります。`--n` のように「ハイフン二個＋英小文字」の形でオプションを指定できます。以下が使用可能できます。
+
+    * `--n` Negative prompt up to the next option.
+    * `--w` Specifies the width of the generated image.
+    * `--h` Specifies the height of the generated image.
+    * `--d` Specifies the seed of the generated image.
+    * `--l` Specifies the CFG scale of the generated image.
+    * `--s` Specifies the number of steps in the generation.
+
+    `( )` や `[ ]` などの重みづけは動作しません。
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
