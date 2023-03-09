@@ -177,6 +177,7 @@ This will store your a backup file with your current locally installed pip packa
 ## Change History
 
 * 2023/03/05 (v21.2.0):
+    - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more detais.
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
     - Add option to print LoRA trainer command without executing it
     - Add support for samples during trainin via a new `Sample images config` accordion in the `Training parameters` tab.

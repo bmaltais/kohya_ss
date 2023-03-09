@@ -25,6 +25,6 @@ timm==0.6.12
 huggingface-hub==0.12.0
 tensorflow==2.10.1
 # For locon support
-locon==0.0.2
+lycoris_lora==0.0.5
 # for kohya_ss library
 .
