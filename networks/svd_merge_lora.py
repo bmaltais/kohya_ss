@@ -35,7 +35,8 @@ def save_to_file(file_name, model, state_dict, dtype):
     torch.save(model, file_name)
 
 
-def merge_lora_models(models, ratios, new_rank, device,  merge_dtype):
+def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dtype):
+  print(f"new rank: {new_rank}, new conv rank: {new_conv_rank}")
   merged_sd = {}
   for model, ratio in zip(models, ratios):
     print(f"loading: {model}")
@@ -58,11 +59,12 @@ def merge_lora_models(models, ratios, new_rank, device,  merge_dtype):
       in_dim = down_weight.size()[1]
       out_dim = up_weight.size()[0]
       conv2d = len(down_weight.size()) == 4
-      print(lora_module_name, network_dim, alpha, in_dim, out_dim)
+      kernel_size = None if not conv2d else down_weight.size()[2:4]
+      # print(lora_module_name, network_dim, alpha, in_dim, out_dim, kernel_size)
 
       # make original weight if not exist
       if lora_module_name not in merged_sd:
-        weight = torch.zeros((out_dim, in_dim, 1, 1) if conv2d else (out_dim, in_dim), dtype=merge_dtype)
+        weight = torch.zeros((out_dim, in_dim, *kernel_size) if conv2d else (out_dim, in_dim), dtype=merge_dtype)
         if device:
           weight = weight.to(device)
       else:
@@ -77,9 +79,12 @@ def merge_lora_models(models, ratios, new_rank, device,  merge_dtype):
       scale = (alpha / network_dim)
       if not conv2d:        # linear
         weight = weight + ratio * (up_weight @ down_weight) * scale
-      else:
+      elif kernel_size == (1, 1):
         weight = weight + ratio * (up_weight.squeeze(3).squeeze(2) @ down_weight.squeeze(3).squeeze(2)
                                    ).unsqueeze(2).unsqueeze(3) * scale
+      else:
+        conved = torch.nn.functional.conv2d(down_weight.permute(1, 0, 2, 3), up_weight).permute(1, 0, 2, 3)
+        weight = weight + ratio * conved * scale
 
       merged_sd[lora_module_name] = weight
 
@@ -89,16 +94,25 @@ def merge_lora_models(models, ratios, new_rank, device,  merge_dtype):
   with torch.no_grad():
     for lora_module_name, mat in tqdm(list(merged_sd.items())):
       conv2d = (len(mat.size()) == 4)
+      kernel_size = None if not conv2d else mat.size()[2:4]
+      conv2d_3x3 = conv2d and kernel_size != (1, 1)
+      out_dim, in_dim = mat.size()[0:2]
+
       if conv2d:
-        mat = mat.squeeze()
+        if conv2d_3x3:
+          mat = mat.flatten(start_dim=1)
+        else:
+          mat = mat.squeeze()
+
+      module_new_rank = new_conv_rank if conv2d_3x3 else new_rank
 
       U, S, Vh = torch.linalg.svd(mat)
 
-      U = U[:, :new_rank]
-      S = S[:new_rank]
+      U = U[:, :module_new_rank]
+      S = S[:module_new_rank]
       U = U @ torch.diag(S)
 
-      Vh = Vh[:new_rank, :]
+      Vh = Vh[:module_new_rank, :]
 
       dist = torch.cat([U.flatten(), Vh.flatten()])
       hi_val = torch.quantile(dist, CLAMP_QUANTILE)
@@ -107,16 +121,16 @@ def merge_lora_models(models, ratios, new_rank, device,  merge_dtype):
       U = U.clamp(low_val, hi_val)
       Vh = Vh.clamp(low_val, hi_val)
 
+      if conv2d:
+        U = U.reshape(out_dim, module_new_rank, 1, 1)
+        Vh = Vh.reshape(module_new_rank, in_dim, kernel_size[0], kernel_size[1])
+
       up_weight = U
       down_weight = Vh
 
-      if conv2d:
-        up_weight = up_weight.unsqueeze(2).unsqueeze(3)
-        down_weight = down_weight.unsqueeze(2).unsqueeze(3)
-
       merged_lora_sd[lora_module_name + '.lora_up.weight'] = up_weight.to("cpu").contiguous()
       merged_lora_sd[lora_module_name + '.lora_down.weight'] = down_weight.to("cpu").contiguous()
-      merged_lora_sd[lora_module_name + '.alpha'] = torch.tensor(new_rank)
+      merged_lora_sd[lora_module_name + '.alpha'] = torch.tensor(module_new_rank)
 
   return merged_lora_sd
 
@@ -138,7 +152,8 @@ def merge(args):
   if save_dtype is None:
     save_dtype = merge_dtype
 
-  state_dict = merge_lora_models(args.models, args.ratios, args.new_rank, args.device, merge_dtype)
+  new_conv_rank = args.new_conv_rank if args.new_conv_rank is not None else args.new_rank
+  state_dict = merge_lora_models(args.models, args.ratios, args.new_rank, new_conv_rank, args.device, merge_dtype)
 
   print(f"saving model to: {args.save_to}")
   save_to_file(args.save_to, state_dict, state_dict, save_dtype)
@@ -158,6 +173,8 @@ if __name__ == '__main__':
                       help="ratios for each model / それぞれのLoRAモデルの比率")
   parser.add_argument("--new_rank", type=int, default=4,
                       help="Specify rank of output LoRA / 出力するLoRAのrank (dim)")
+  parser.add_argument("--new_conv_rank", type=int, default=None,
+                      help="Specify rank of output LoRA for Conv2d 3x3, None for same as new_rank / 出力するConv2D 3x3 LoRAのrank (dim)、Noneでnew_rankと同じ")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
 
   args = parser.parse_args()
