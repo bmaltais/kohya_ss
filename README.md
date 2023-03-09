@@ -177,6 +177,7 @@ This will store your a backup file with your current locally installed pip packa
 ## Change History
 
 * 2023/03/05 (v21.2.0):
+    - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
     - Add option to print LoRA trainer command without executing it
     - Add support for samples during trainin via a new `Sample images config` accordion in the `Training parameters` tab.
     - Added new `Additional parameters` under the `Advanced Configuration` section of the `Training parameters` tab to allow for the specifications of parameters not handles by the GUI.
