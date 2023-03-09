@@ -1877,7 +1877,7 @@ def get_scheduler_fix(args,optimizer: Optimizer):
   power = args.lr_scheduler_power
 
   lr_scheduler_kwargs = {}  # get custom lr_scheduler kwargs
-  if args.lr_scheduler_args is not None and len(args.optimizer_args) > 0:
+  if args.lr_scheduler_args is not None and len(args.lr_scheduler_args) > 0:
     for arg in args.lr_scheduler_args:
       key, value = arg.split('=')
 
@@ -1886,11 +1886,11 @@ def get_scheduler_fix(args,optimizer: Optimizer):
         if value[i].lower() == "true" or value[i].lower() == "false":
           value[i] = (value[i].lower() == "true")
         else:
-          value[i] = float(value[i])
+          value[i] = eval(value[i]) # warning: not safe!!!
       if len(value) == 1:
         value = value[0]
       else:
-        value = tuple(value)
+        value = tuple(value)  # some may use list?
 
       lr_scheduler_kwargs[key] = value
 
