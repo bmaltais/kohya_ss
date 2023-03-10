@@ -127,6 +127,9 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 11 Mar. 2023, 2023/3/11:
+    - Fix `svd_merge_lora.py` causes an error about the device.
+    - `svd_merge_lora.py` でデバイス関連のエラーが発生する不具合を修正しました。
 - 10 Mar. 2023, 2023/3/10: release v0.5.1
   - Fix to LoRA modules in the model are same to the previous (before 0.5.0) if Conv2d-3x3 is disabled (no `conv_dim` arg, default).
     - Conv2D with kernel size 1x1 in ResNet modules were accidentally included in v0.5.0.

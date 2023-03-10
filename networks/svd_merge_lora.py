@@ -77,6 +77,10 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
 
       # W <- W + U * D
       scale = (alpha / network_dim)
+
+      if device:                      # and isinstance(scale, torch.Tensor):
+        scale = scale.to(device)
+
       if not conv2d:        # linear
         weight = weight + ratio * (up_weight @ down_weight) * scale
       elif kernel_size == (1, 1):
