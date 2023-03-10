@@ -135,6 +135,8 @@ def train(args):
     gc.collect()
 
   # prepare network
+  import sys
+  sys.path.append(os.path.dirname(__file__))
   print("import network module:", args.network_module)
   network_module = importlib.import_module(args.network_module)
 
