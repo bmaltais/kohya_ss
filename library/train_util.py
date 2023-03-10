@@ -1,6 +1,7 @@
 # common functions for training
 
 import argparse
+import ast
 import importlib
 import json
 import re
@@ -1886,11 +1887,11 @@ def get_scheduler_fix(args,optimizer: Optimizer):
         if value[i].lower() == "true" or value[i].lower() == "false":
           value[i] = (value[i].lower() == "true")
         else:
-          value[i] = eval(value[i]) # warning: not safe!!!
+          value[i] = ast.literal_eval(value[i])
       if len(value) == 1:
         value = value[0]
       else:
-        value = tuple(value)  # some may use list?
+        value = list(value)  # some may use list?
 
       lr_scheduler_kwargs[key] = value
 
