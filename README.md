@@ -176,6 +176,9 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/10 (v21.2.1):
+    - Update to latest sd-script code
+    - Add support for SVD based LoRA merge
 * 2023/03/09 (v21.2.0):
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
     - Add option to print LoRA trainer command without executing it

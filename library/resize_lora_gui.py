@@ -148,11 +148,11 @@ def gradio_resize_lora_tab():
                 value='fp16',
                 interactive=True,
             )
-            device = gr.Textbox(
+            device = gr.Dropdown(
                 label='Device',
-                placeholder='{Optional) device to use, cuda for GPU. Default: cuda',
-                interactive=True,
+                choices=['cpu', 'cuda',],
                 value='cuda',
+                interactive=True,
             )
 
         convert_button = gr.Button('Resize model')

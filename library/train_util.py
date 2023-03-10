@@ -912,10 +912,14 @@ class FineTuningDataset(BaseDataset):
         if os.path.exists(image_key):
           abs_path = image_key
         else:
-          # わりといい加減だがいい方法が思いつかん
-          abs_path = glob_images(subset.image_dir, image_key)
-          assert len(abs_path) >= 1, f"no image / 画像がありません: {image_key}"
-          abs_path = abs_path[0]
+          npz_path = os.path.join(subset.image_dir, image_key + ".npz")
+          if os.path.exists(npz_path):
+            abs_path = npz_path
+          else:
+            # わりといい加減だがいい方法が思いつかん
+            abs_path = glob_images(subset.image_dir, image_key)
+            assert len(abs_path) >= 1, f"no image / 画像がありません: {image_key}"
+            abs_path = abs_path[0]
 
         caption = img_md.get('caption')
         tags = img_md.get('tags')
@@ -1757,15 +1761,22 @@ def get_optimizer(args, trainable_params):
       raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
     print(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
 
-    min_lr = lr
+    actual_lr = lr
+    lr_count = 1
     if type(trainable_params) == list and type(trainable_params[0]) == dict:
+      lrs = set()
+      actual_lr = trainable_params[0].get("lr", actual_lr)
       for group in trainable_params:
-        min_lr = min(min_lr, group.get("lr", lr))
+        lrs.add(group.get("lr", actual_lr))
+      lr_count = len(lrs)
 
-    if min_lr <= 0.1:
+    if actual_lr <= 0.1:
       print(
-          f'learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: {min_lr}')
+          f'learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}')
       print('recommend option: lr=1.0 / 推奨は1.0です')
+    if lr_count > 1:
+      print(
+          f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}")
 
     optimizer_class = dadaptation.DAdaptAdam
     optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
@@ -2296,6 +2307,8 @@ def sample_images(accelerator, args: argparse.Namespace, epoch, steps, device, v
   with torch.no_grad():
     with accelerator.autocast():
       for i, prompt in enumerate(prompts):
+        if not accelerator.is_main_process:
+          continue
         prompt = prompt.strip()
         if len(prompt) == 0 or prompt[0] == '#':
           continue
@@ -2355,6 +2368,12 @@ def sample_images(accelerator, args: argparse.Namespace, epoch, steps, device, v
 
         height = max(64, height - height % 8)                 # round to divisible by 8
         width = max(64, width - width % 8)                 # round to divisible by 8
+        print(f"prompt: {prompt}")
+        print(f"negative_prompt: {negative_prompt}")
+        print(f"height: {height}")
+        print(f"width: {width}")
+        print(f"sample_steps: {sample_steps}")
+        print(f"scale: {scale}")
         image = pipeline(prompt, height, width, sample_steps, scale, negative_prompt).images[0]
 
         ts_str = time.strftime('%Y%m%d%H%M%S', time.localtime())

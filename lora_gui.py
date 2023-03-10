@@ -38,6 +38,7 @@ from library.tensorboard_gui import (
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
+from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
@@ -879,6 +880,7 @@ def lora_tab(
         )
         gradio_dataset_balancing_tab()
         gradio_merge_lora_tab()
+        gradio_svd_merge_lora_tab()
         gradio_resize_lora_tab()
         gradio_verify_lora_tab()
 

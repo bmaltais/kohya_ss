@@ -64,6 +64,10 @@ accelerate launch --num_cpu_threads_per_process 1 train_network.py
   * LoRAのRANKを指定します（``--networkdim=4``など）。省略時は4になります。数が多いほど表現力は増しますが、学習に必要なメモリ、時間は増えます。また闇雲に増やしても良くないようです。
 * `--network_alpha`
   *  アンダーフローを防ぎ安定して学習するための ``alpha`` 値を指定します。デフォルトは1です。``network_dim``と同じ値を指定すると以前のバージョンと同じ動作になります。
+* `--persistent_data_loader_workers`
+  * Windows環境で指定するとエポック間の待ち時間が大幅に短縮されます。
+* `--max_data_loader_n_workers`
+  * データ読み込みのプロセス数を指定します。プロセス数が多いとデータ読み込みが速くなりGPUを効率的に利用できますが、メインメモリを消費します。デフォルトは「`8` または `CPU同時実行スレッド数-1` の小さいほう」なので、メインメモリに余裕がない場合や、GPU使用率が90%程度以上なら、それらの数値を見ながら `2` または `1` 程度まで下げてください。
 * `--network_weights`
   * 学習前に学習済みのLoRAの重みを読み込み、そこから追加で学習します。
 * `--network_train_unet_only`
