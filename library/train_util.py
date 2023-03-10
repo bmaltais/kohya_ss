@@ -912,7 +912,7 @@ class FineTuningDataset(BaseDataset):
         if os.path.exists(image_key):
           abs_path = image_key
         else:
-          npz_path = os.path.join(glob.escape(train_data_dir), image_key + ".npz")
+          npz_path = os.path.join(subset.image_dir, image_key + ".npz")
           if os.path.exists(npz_path):
             abs_path = npz_path
           else:
@@ -1761,15 +1761,22 @@ def get_optimizer(args, trainable_params):
       raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
     print(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
 
-    min_lr = lr
+    actual_lr = lr
+    lr_count = 1
     if type(trainable_params) == list and type(trainable_params[0]) == dict:
+      lrs = set()
+      actual_lr = trainable_params[0].get("lr", actual_lr)
       for group in trainable_params:
-        min_lr = min(min_lr, group.get("lr", lr))
+        lrs.add(group.get("lr", actual_lr))
+      lr_count = len(lrs)
 
-    if min_lr <= 0.1:
+    if actual_lr <= 0.1:
       print(
-          f'learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: {min_lr}')
+          f'learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}')
       print('recommend option: lr=1.0 / 推奨は1.0です')
+    if lr_count > 1:
+      print(
+          f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}")
 
     optimizer_class = dadaptation.DAdaptAdam
     optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
