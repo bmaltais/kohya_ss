@@ -45,8 +45,13 @@ def svd(args):
   text_encoder_t, _, unet_t = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.model_tuned)
 
   # create LoRA network to extract weights: Use dim (rank) as alpha
-  lora_network_o = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_o, unet_o)
-  lora_network_t = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_t, unet_t)
+  if args.conv_dim is None:
+    kwargs = {}
+  else:
+    kwargs = {"conv_dim": args.conv_dim, "conv_alpha": args.conv_dim}
+
+  lora_network_o = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_o, unet_o, **kwargs)
+  lora_network_t = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_t, unet_t, **kwargs)
   assert len(lora_network_o.text_encoder_loras) == len(
       lora_network_t.text_encoder_loras), f"model version is different (SD1.x vs SD2.x) / それぞれのモデルのバージョンが違います（SD1.xベースとSD2.xベース） "
 
@@ -85,13 +90,27 @@ def svd(args):
 
   # make LoRA with svd
   print("calculating by svd")
-  rank = args.dim
   lora_weights = {}
   with torch.no_grad():
     for lora_name, mat in tqdm(list(diffs.items())):
+      # if args.conv_dim is None, diffs do not include LoRAs for conv2d-3x3
       conv2d = (len(mat.size()) == 4)
+      kernel_size = None if not conv2d else mat.size()[2:4]
+      conv2d_3x3 = conv2d and kernel_size != (1, 1)
+
+      rank = args.dim if not conv2d_3x3 or args.conv_dim is None else args.conv_dim
+      out_dim, in_dim = mat.size()[0:2]
+
+      if args.device:
+        mat = mat.to(args.device)
+      # print(mat.size(), mat.device, rank, in_dim, out_dim)
+      rank = min(rank, in_dim, out_dim)                           # LoRA rank cannot exceed the original dim
+
       if conv2d:
-        mat = mat.squeeze()
+        if conv2d_3x3:
+          mat = mat.flatten(start_dim=1)
+        else:
+          mat = mat.squeeze()
 
       U, S, Vh = torch.linalg.svd(mat)
 
@@ -107,6 +126,13 @@ def svd(args):
 
       U = U.clamp(low_val, hi_val)
       Vh = Vh.clamp(low_val, hi_val)
+
+      if conv2d:
+        U = U.reshape(out_dim, rank, 1, 1)
+        Vh = Vh.reshape(rank, in_dim, kernel_size[0], kernel_size[1])
+
+      U = U.to("cpu").contiguous()
+      Vh = Vh.to("cpu").contiguous()
 
       lora_weights[lora_name] = (U, Vh)
 
@@ -124,8 +150,8 @@ def svd(args):
 
     weights = lora_weights[lora_name][i]
     # print(key, i, weights.size(), lora_sd[key].size())
-    if len(lora_sd[key].size()) == 4:
-      weights = weights.unsqueeze(2).unsqueeze(3)
+    # if len(lora_sd[key].size()) == 4:
+    #   weights = weights.unsqueeze(2).unsqueeze(3)
 
     assert weights.size() == lora_sd[key].size(), f"size unmatch: {key}"
     lora_sd[key] = weights
@@ -139,7 +165,7 @@ def svd(args):
     os.makedirs(dir_name, exist_ok=True)
 
   # minimum metadata
-  metadata = {"ss_network_dim": str(args.dim), "ss_network_alpha": str(args.dim)}
+  metadata = {"ss_network_module": "networks.lora", "ss_network_dim": str(args.dim), "ss_network_alpha": str(args.dim)}
 
   lora_network_o.save_weights(args.save_to, save_dtype, metadata)
   print(f"LoRA weights are saved to: {args.save_to}")
@@ -158,6 +184,8 @@ if __name__ == '__main__':
   parser.add_argument("--save_to", type=str, default=None,
                       help="destination file name: ckpt or safetensors file / 保存先のファイル名、ckptまたはsafetensors")
   parser.add_argument("--dim", type=int, default=4, help="dimension (rank) of LoRA (default 4) / LoRAの次元数（rank）（デフォルト4）")
+  parser.add_argument("--conv_dim", type=int, default=None,
+                      help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
 
   args = parser.parse_args()
