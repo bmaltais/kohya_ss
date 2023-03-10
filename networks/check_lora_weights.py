@@ -21,7 +21,7 @@ def main(file):
 
   for key, value in values:
     value = value.to(torch.float32)
-    print(f"{key},{torch.mean(torch.abs(value))},{torch.min(torch.abs(value))}")
+    print(f"{key},{str(tuple(value.size())).replace(', ', '-')},{torch.mean(torch.abs(value))},{torch.min(torch.abs(value))}")
 
 
 if __name__ == '__main__':

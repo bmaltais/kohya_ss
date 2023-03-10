@@ -106,6 +106,7 @@ def train(args):
   # acceleratorを準備する
   print("prepare accelerator")
   accelerator, unwrap_model = train_util.prepare_accelerator(args)
+  is_main_process = accelerator.is_main_process
 
   # mixed precisionに対応した型を用意しておき適宜castする
   weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -175,8 +176,9 @@ def train(args):
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
-    args.max_train_steps = args.max_train_epochs * len(train_dataloader)
-    print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+    args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes)
+    if is_main_process:
+      print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
   # lr schedulerを用意する
   lr_scheduler = train_util.get_scheduler_fix(args, optimizer, accelerator.num_processes)
@@ -249,15 +251,17 @@ def train(args):
   # 学習する
   # TODO: find a way to handle total batch size when there are multiple datasets
   total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
-  print("running training / 学習開始")
-  print(f"  num train images * repeats / 学習画像の数×繰り返し回数: {train_dataset_group.num_train_images}")
-  print(f"  num reg images / 正則化画像の数: {train_dataset_group.num_reg_images}")
-  print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
-  print(f"  num epochs / epoch数: {num_train_epochs}")
-  print(f"  batch size per device / バッチサイズ: {', '.join([str(d.batch_size) for d in train_dataset_group.datasets])}")
-  # print(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
-  print(f"  gradient accumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
-  print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
+  
+  if is_main_process:
+    print("running training / 学習開始")
+    print(f"  num train images * repeats / 学習画像の数×繰り返し回数: {train_dataset_group.num_train_images}")
+    print(f"  num reg images / 正則化画像の数: {train_dataset_group.num_reg_images}")
+    print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
+    print(f"  num epochs / epoch数: {num_train_epochs}")
+    print(f"  batch size per device / バッチサイズ: {', '.join([str(d.batch_size) for d in train_dataset_group.datasets])}")
+    # print(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
+    print(f"  gradient accumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
+    print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
 
   # TODO refactor metadata creation and move to util
   metadata = {
@@ -425,10 +429,13 @@ def train(args):
         "ss_bucket_info": json.dumps(dataset.bucket_info),
     })
 
+  # add extra args
   if args.network_args:
-    for key, value in net_kwargs.items():
-      metadata["ss_arg_" + key] = value
+    metadata["ss_network_args"] = json.dumps(net_kwargs)
+    # for key, value in net_kwargs.items():
+    #   metadata["ss_arg_" + key] = value
 
+  # model name and hash
   if args.pretrained_model_name_or_path is not None:
     sd_model_name = args.pretrained_model_name_or_path
     if os.path.exists(sd_model_name):
@@ -447,6 +454,13 @@ def train(args):
 
   metadata = {k: str(v) for k, v in metadata.items()}
 
+  # make minimum metadata for filtering
+  minimum_keys = ["ss_network_module", "ss_network_dim", "ss_network_alpha", "ss_network_args"]
+  minimum_metadata = {}
+  for key in minimum_keys:
+    if key in metadata:
+      minimum_metadata[key] = metadata[key]
+
   progress_bar = tqdm(range(args.max_train_steps), smoothing=0, disable=not accelerator.is_local_main_process, desc="steps")
   global_step = 0
 
@@ -459,7 +473,8 @@ def train(args):
   loss_list = []
   loss_total = 0.0
   for epoch in range(num_train_epochs):
-    print(f"epoch {epoch+1}/{num_train_epochs}")
+    if is_main_process:
+      print(f"epoch {epoch+1}/{num_train_epochs}")
     train_dataset_group.set_current_epoch(epoch + 1)
 
     metadata["ss_epoch"] = str(epoch+1)
@@ -562,7 +577,7 @@ def train(args):
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
         metadata["ss_training_finished_at"] = str(time.time())
         print(f"saving checkpoint: {ckpt_file}")
-        unwrap_model(network).save_weights(ckpt_file, save_dtype, None if args.no_metadata else metadata)
+        unwrap_model(network).save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
 
       def remove_old_func(old_epoch_no):
         old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + '.' + args.save_model_as
@@ -571,9 +586,10 @@ def train(args):
           print(f"removing old checkpoint: {old_ckpt_file}")
           os.remove(old_ckpt_file)
 
-      saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
-      if saving and args.save_state:
-        train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
+      if is_main_process:
+        saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
+        if saving and args.save_state:
+          train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
 
     train_util.sample_images(accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
@@ -582,7 +598,6 @@ def train(args):
   metadata["ss_epoch"] = str(num_train_epochs)
   metadata["ss_training_finished_at"] = str(time.time())
 
-  is_main_process = accelerator.is_main_process
   if is_main_process:
     network = unwrap_model(network)
 
@@ -601,7 +616,7 @@ def train(args):
     ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
     print(f"save trained model to {ckpt_file}")
-    network.save_weights(ckpt_file, save_dtype, None if args.no_metadata else metadata)
+    network.save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
     print("model saved.")
 
 

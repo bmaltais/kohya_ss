@@ -16,9 +16,10 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
+* [学習について、共通編](./train_README-ja.md) : データ整備やオプションなど
+    * [データセット設定](./config_README-ja.md)
 * [DreamBoothの学習について](./train_db_README-ja.md)
 * [fine-tuningのガイド](./fine_tune_README_ja.md):
-BLIPによるキャプショニングと、DeepDanbooruまたはWD14 taggerによるタグ付けを含みます
 * [LoRAの学習について](./train_network_README-ja.md)
 * [Textual Inversionの学習について](./train_ti_README-ja.md)
 * note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
@@ -130,6 +131,8 @@ pip install --use-pep517 --upgrade -r requirements.txt
 ## 謝意
 
 LoRAの実装は[cloneofsimo氏のリポジトリ](https://github.com/cloneofsimo/lora)を基にしたものです。感謝申し上げます。
+
+Conv2d 3x3への拡大は [cloneofsimo氏](https://github.com/cloneofsimo/lora) が最初にリリースし、KohakuBlueleaf氏が [LoCon](https://github.com/KohakuBlueleaf/LoCon) でその有効性を明らかにしたものです。KohakuBlueleaf氏に深く感謝します。
 
 ## ライセンス
 
