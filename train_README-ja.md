@@ -502,6 +502,14 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
     clip_skipと同様に、モデルの学習状態と異なる長さで学習するには、ある程度の教師データ枚数、長めの学習時間が必要になると思われます。
 
+- `--persistent_data_loader_workers`
+
+    Windows環境で指定するとエポック間の待ち時間が大幅に短縮されます。
+
+- `--max_data_loader_n_workers`
+
+    データ読み込みのプロセス数を指定します。プロセス数が多いとデータ読み込みが速くなりGPUを効率的に利用できますが、メインメモリを消費します。デフォルトは「`8` または `CPU同時実行スレッド数-1` の小さいほう」なので、メインメモリに余裕がない場合や、GPU使用率が90%程度以上なら、それらの数値を見ながら `2` または `1` 程度まで下げてください。
+
 - `--logging_dir` / `--log_prefix`
 
     学習ログの保存に関するオプションです。logging_dirオプションにログ保存先フォルダを指定してください。TensorBoard形式のログが保存されます。
