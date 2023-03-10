@@ -80,8 +80,6 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
 
       if device:                      # and isinstance(scale, torch.Tensor):
         scale = scale.to(device)
-        up_weight = up_weight.to(device)
-        down_weight = down_weight.to(device)
 
       if not conv2d:        # linear
         weight = weight + ratio * (up_weight @ down_weight) * scale
