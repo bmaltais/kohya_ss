@@ -1,5 +1,6 @@
 # Convert LoRA to different rank approximation (should only be used to go to lower rank)
 # This code is based off the extract_lora_from_models.py file which is based on https://github.com/cloneofsimo/lora/blob/develop/lora_diffusion/cli_svd.py
+# Thanks to cloneofsimo
 
 import argparse
 import torch
