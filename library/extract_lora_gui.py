@@ -22,6 +22,7 @@ def extract_lora(
     save_precision,
     dim,
     v2,
+    conv_dim,
 ):
     # Check for caption_text_input
     if model_tuned == '':
@@ -49,6 +50,8 @@ def extract_lora(
     run_cmd += f' --model_org "{model_org}"'
     run_cmd += f' --model_tuned "{model_tuned}"'
     run_cmd += f' --dim {dim}'
+    if conv_dim > 0:
+        run_cmd += f' --conv_dim {conv_dim}'
     if v2:
         run_cmd += f' --v2'
 
@@ -71,7 +74,7 @@ def gradio_extract_lora_tab():
         gr.Markdown(
             'This utility can extract a LoRA network from a finetuned model.'
         )
-        lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
+        lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
         model_ext = gr.Textbox(value='*.ckpt *.safetensors', visible=False)
         model_ext_name = gr.Textbox(value='Model types', visible=False)
@@ -133,7 +136,15 @@ def gradio_extract_lora_tab():
                 maximum=1024,
                 label='Network Dimension',
                 value=128,
-                step=4,
+                step=1,
+                interactive=True,
+            )
+            conv_dim = gr.Slider(
+                minimum=0,
+                maximum=1024,
+                label='Conv Dimension',
+                value=0,
+                step=1,
                 interactive=True,
             )
             v2 = gr.Checkbox(label='v2', value=False, interactive=True)
@@ -142,6 +153,6 @@ def gradio_extract_lora_tab():
 
         extract_button.click(
             extract_lora,
-            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2],
+            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2, conv_dim],
             show_progress=False,
         )

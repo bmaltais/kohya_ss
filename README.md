@@ -176,14 +176,30 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/03/05 (v21.2.0):
+* 2023/03/11 (v21.2.2):
     - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more detais.
+* 2023/03/10 (v21.2.1):
+    - Update to latest sd-script code
+    - Add support for SVD based LoRA merge
+* 2023/03/09 (v21.2.0):
     - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
     - Add option to print LoRA trainer command without executing it
     - Add support for samples during trainin via a new `Sample images config` accordion in the `Training parameters` tab.
     - Added new `Additional parameters` under the `Advanced Configuration` section of the `Training parameters` tab to allow for the specifications of parameters not handles by the GUI.
     - Added support for sample as a new Accordion under the `Training parameters` tab. More info about the prompt options can be found here: https://github.com/kohya-ss/sd-scripts/issues/256#issuecomment-1455005709
-    - There may be problems due to major changes. If you cannot revert back to a previous version when problems occur (`git checkout <release name>`).
+    - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
+    - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
+    - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).
+        - Same as a current version of [LoCon](https://github.com/KohakuBlueleaf/LoCon). __Thank you very much KohakuBlueleaf for your help!__
+        - LoCon will be enhanced in the future. Compatibility for future versions is not guaranteed.
+        - Specify `--network_args` option like: `--network_args "conv_dim=4" "conv_alpha=1"`
+        - [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) version 0.5.0 or later is required to use 'LoRA for Conv2d-3x3' in Stable Diffusion web UI.
+        - __Stable Diffusion web UI built-in LoRA does not support 'LoRA for Conv2d-3x3' now. Consider carefully whether or not to use it.__
+    - Merging/extracting scripts also support LoRA for Conv2d-3x3.
+    - Free CUDA memory after sample generation to reduce VRAM usage, issue https://github.com/kohya-ss/sd-scripts/issues/260 
+    - Empty caption doesn't cause error now, issue https://github.com/kohya-ss/sd-scripts/issues/258
+    - Fix sample generation is crashing in Textual Inversion training when using templates, or if height/width is not divisible by 8.
+    - Update documents (Japanese only).
     - Dependencies are updated, Please [upgrade](#upgrade) the repo.
     - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
         - Documentation is [here](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/config_README-ja.md) (only in Japanese currently.)
@@ -198,6 +214,31 @@ This will store your a backup file with your current locally installed pip packa
     - Add `--tokenizer_cache_dir` to each training and generation scripts to cache Tokenizer locally from Diffusers.
         - Scripts will support offline training/generation after caching.
     - Support letents upscaling for highres. fix, and VAE batch size in `gen_img_diffusers.py` (no documentation yet.)
+
+    - Sample image generation:
+        A prompt file might look like this, for example
+
+        ```
+        # prompt 1
+        masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+        # prompt 2
+        masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+        ```
+
+        Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+        * `--n` Negative prompt up to the next option.
+        * `--w` Specifies the width of the generated image.
+        * `--h` Specifies the height of the generated image.
+        * `--d` Specifies the seed of the generated image.
+        * `--l` Specifies the CFG scale of the generated image.
+        * `--s` Specifies the number of steps in the generation.
+
+        The prompt weighting such as `( )` and `[ ]` are not working.
+
+    Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
+
 * 2023/03/05 (v21.1.5):
     - Add replace underscore with space option to WD14 captioning. Thanks @sALTaccount!
     - Improve how custom preset is set and handles.

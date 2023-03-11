@@ -38,6 +38,7 @@ from library.tensorboard_gui import (
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
+from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
@@ -167,6 +168,7 @@ def save_configuration(
 
 
 def open_configuration(
+    ask_for_file,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -238,9 +240,13 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    
+    ask_for_file = True if ask_for_file.get('label') == 'True' else False
 
     original_file_path = file_path
-    file_path = get_file_path(file_path)
+    
+    if ask_for_file:
+        file_path = get_file_path(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
@@ -256,7 +262,7 @@ def open_configuration(
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['file_path']:
+        if not key in ['ask_for_file', 'file_path']:
             values.append(my_data.get(key, value))
 
     # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
@@ -621,6 +627,7 @@ def lora_tab(
         button_save_config,
         button_save_as_config,
         config_file_name,
+        button_load_config,
     ) = gradio_config()
 
     (
@@ -893,6 +900,7 @@ def lora_tab(
         )
         gradio_dataset_balancing_tab()
         gradio_merge_lora_tab()
+        gradio_svd_merge_lora_tab()
         gradio_resize_lora_tab()
         gradio_verify_lora_tab()
 
@@ -986,7 +994,14 @@ def lora_tab(
 
     button_open_config.click(
         open_configuration,
-        inputs=[config_file_name] + settings_list,
+        inputs=[dummy_db_true, config_file_name] + settings_list,
+        outputs=[config_file_name] + settings_list + [LoCon_row],
+        show_progress=False,
+    )
+    
+    button_load_config.click(
+        open_configuration,
+        inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list + [LoCon_row],
         show_progress=False,
     )
