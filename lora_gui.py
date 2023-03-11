@@ -796,14 +796,14 @@ def lora_tab(
                 maximum=512,
                 value=1,
                 step=1,
-                label='LoCon Convolution Rank (Dimension)',
+                label='Convolution Rank (Dimension)',
             )
             conv_alpha = gr.Slider(
                 minimum=1,
                 maximum=512,
                 value=1,
                 step=1,
-                label='LoCon Convolution Alpha',
+                label='Convolution Alpha',
             )
         # Show of hide LoCon conv settings depending on LoRA type selection
         def LoRA_type_change(LoRA_type):
