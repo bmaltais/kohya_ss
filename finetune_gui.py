@@ -149,7 +149,8 @@ def save_configuration(
     return file_path
 
 
-def open_config_file(
+def open_configuration(
+    ask_for_file,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -217,9 +218,13 @@ def open_config_file(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    
+    ask_for_file = True if ask_for_file.get('label') == 'True' else False
 
     original_file_path = file_path
-    file_path = get_file_path(file_path)
+    
+    if ask_for_file:
+        file_path = get_file_path(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
@@ -235,7 +240,7 @@ def open_config_file(
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['file_path']:
+        if not key in ['ask_for_file', 'file_path']:
             values.append(my_data.get(key, value))
     return tuple(values)
 
@@ -492,8 +497,8 @@ def remove_doublequote(file_path):
 
 
 def finetune_tab():
-    dummy_ft_true = gr.Label(value=True, visible=False)
-    dummy_ft_false = gr.Label(value=False, visible=False)
+    dummy_db_true = gr.Label(value=True, visible=False)
+    dummy_db_false = gr.Label(value=False, visible=False)
     gr.Markdown('Train a custom model using kohya finetune python code...')
 
     (
@@ -501,6 +506,7 @@ def finetune_tab():
         button_save_config,
         button_save_as_config,
         config_file_name,
+        button_load_config,
     ) = gradio_config()
 
     (
@@ -770,22 +776,29 @@ def finetune_tab():
     button_run.click(train_model, inputs=settings_list)
 
     button_open_config.click(
-        open_config_file,
-        inputs=[config_file_name] + settings_list,
+        open_configuration,
+        inputs=[dummy_db_true, config_file_name] + settings_list,
+        outputs=[config_file_name] + settings_list,
+        show_progress=False,
+    )
+    
+    button_load_config.click(
+        open_configuration,
+        inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_save_config.click(
         save_configuration,
-        inputs=[dummy_ft_false, config_file_name] + settings_list,
+        inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name],
         show_progress=False,
     )
 
     button_save_as_config.click(
         save_configuration,
-        inputs=[dummy_ft_true, config_file_name] + settings_list,
+        inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name],
         show_progress=False,
     )
