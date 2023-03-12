@@ -192,7 +192,7 @@ This will store your a backup file with your current locally installed pip packa
 * 2023.03/12 (v21.2.3):
     - Add validation that all requirements are met before starting the GUI.
 * 2023/03/11 (v21.2.2):
-    - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more detais.
+    - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more details.
 * 2023/03/10 (v21.2.1):
     - Update to latest sd-script code
     - Add support for SVD based LoRA merge
