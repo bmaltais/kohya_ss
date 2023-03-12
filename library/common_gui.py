@@ -405,11 +405,14 @@ def gradio_config():
                 placeholder="type the configuration file path or use the 'Open' button above to select it...",
                 interactive=True,
             )
+            button_load_config = gr.Button('Load 💾', elem_id='open_folder')
+            config_file_name.change(remove_doublequote, inputs=[config_file_name], outputs=[config_file_name])
     return (
         button_open_config,
         button_save_config,
         button_save_as_config,
         config_file_name,
+        button_load_config,
     )
 
 
