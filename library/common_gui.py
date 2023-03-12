@@ -58,7 +58,10 @@ def update_my_data(my_data):
                 my_data[key] = int(value)
             else:
                 my_data[key] = -1
-
+                
+    if my_data.get('LoRA_type', 'Standard') == 'LoCon':
+        my_data['LoRA_type'] = 'LyCORIS/LoCon'
+        
     return my_data
 
 
