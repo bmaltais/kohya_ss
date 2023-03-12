@@ -110,15 +110,28 @@ pip install --use-pep517 --upgrade -r requirements.txt
 
 Once the commands have completed successfully you should be ready to use the new version.
 
-## Launching the GUI
+## Launching the GUI using gui.bat or gui.ps1
+
+The script can be run with several optional command line arguments:
+
+--listen: the IP address to listen on for connections to Gradio.
+--username: a username for authentication.
+--password: a password for authentication.
+--server_port: the port to run the server listener on.
+--inbrowser: opens the Gradio UI in a web browser.
+--share: shares the Gradio UI.
+
+These command line arguments can be passed to the UI function as keyword arguments. To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
+
+`gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
+
+or
+
+`gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
+
+## Launching the GUI using kohya_gui.py
 
 To run the GUI, simply use this command:
-
-```
-.\gui.ps1
-```
-
-or you can also do:
 
 ```
 .\venv\Scripts\activate
@@ -176,6 +189,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023.03/12 (v21.2.3):
+    - Add validation that all requirements are met before starting the GUI.
 * 2023/03/11 (v21.2.2):
     - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more detais.
 * 2023/03/10 (v21.2.1):
