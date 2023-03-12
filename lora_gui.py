@@ -480,17 +480,29 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if LoRA_type == 'LoCon':
+    if LoRA_type == 'LoCon' or LoRA_type == 'LyCORIS/LoCon':
         try:
-            import locon.locon_kohya
+            import lycoris
         except ModuleNotFoundError:
             print(
-                "\033[1;31mError:\033[0m The required module 'locon' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
             )
             return
-        run_cmd += f' --network_module=locon.locon_kohya'
+        run_cmd += f' --network_module=lycoris.kohya'
         run_cmd += (
-            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=lora"'
+        )
+    if LoRA_type == 'LyCORIS/LoHa':
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            print(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f' --network_module=lycoris.kohya'
+        run_cmd += (
+            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
         )
     if LoRA_type == 'Kohya LoCon':
         run_cmd += f' --network_module=networks.lora'
@@ -707,7 +719,9 @@ def lora_tab(
                 label='LoRA type',
                 choices=[
                     'Kohya LoCon',
-                    'LoCon',
+                    # 'LoCon',
+                    'LyCORIS/LoCon',
+                    'LyCORIS/LoHa',
                     'Standard',
                 ],
                 value='Standard',
@@ -782,19 +796,19 @@ def lora_tab(
                 maximum=512,
                 value=1,
                 step=1,
-                label='LoCon Convolution Rank (Dimension)',
+                label='Convolution Rank (Dimension)',
             )
             conv_alpha = gr.Slider(
                 minimum=1,
                 maximum=512,
                 value=1,
                 step=1,
-                label='LoCon Convolution Alpha',
+                label='Convolution Alpha',
             )
         # Show of hide LoCon conv settings depending on LoRA type selection
         def LoRA_type_change(LoRA_type):
             print('LoRA type changed...')
-            if LoRA_type == 'LoCon' or LoRA_type == 'Kohya LoCon':
+            if LoRA_type == 'LoCon' or LoRA_type == 'Kohya LoCon' or LoRA_type == 'LyCORIS/LoHa' or LoRA_type == 'LyCORIS/LoCon':
                 return gr.Group.update(visible=True)
             else:
                 return gr.Group.update(visible=False)
