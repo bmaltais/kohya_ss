@@ -189,7 +189,11 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023.03/12 (v21.2.3):
+* 2023/03/12 (v21.2.4):
+    - Fix issue with kohya locon not training the convolution layers
+    - Update LyCORIS module version
+    - Update LyCORYS locon extract tool
+* 2023/03/12 (v21.2.3):
     - Add validation that all requirements are met before starting the GUI.
 * 2023/03/11 (v21.2.2):
     - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more details.
