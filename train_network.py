@@ -178,7 +178,7 @@ def train(args):
 
   # 学習ステップ数を計算する
   if args.max_train_epochs is not None:
-    args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes)
+    args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
     if is_main_process:
       print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
