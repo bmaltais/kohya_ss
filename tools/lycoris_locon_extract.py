@@ -69,6 +69,18 @@ def get_args():
         "--conv_quantile", help="singular value quantile for conv layer quantile mode",
         default=1., type=float
     )
+    parser.add_argument(
+        "--use_sparse_bias", help="enable sparse bias",
+        default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--sparsity", help="sparsity for sparse bias",
+        default=0.98, type=float
+    )
+    parser.add_argument(
+        "--disable_cp", help="don't use cp decomposition",
+        default=False, action="store_true"
+    )
     return parser.parse_args()
 ARGS = get_args()
 
@@ -102,7 +114,9 @@ def main():
         base, db,
         args.mode,
         linear_mode_param, conv_mode_param,
-        args.device
+        args.device, 
+        args.use_sparse_bias, args.sparsity,
+        # not args.disable_small_conv
     )
     
     if args.safetensors:

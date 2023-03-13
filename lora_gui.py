@@ -507,7 +507,7 @@ def train_model(
     if LoRA_type == 'Kohya LoCon':
         run_cmd += f' --network_module=networks.lora'
         run_cmd += (
-            f' --network_args "conv_lora_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
         )
     if LoRA_type == 'Standard':
         run_cmd += f' --network_module=networks.lora'
