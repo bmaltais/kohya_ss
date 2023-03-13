@@ -1183,18 +1183,25 @@ def model_hash(filename):
       return m.hexdigest()[0:8]
   except FileNotFoundError:
     return 'NOFILE'
+  except IsADirectoryError:
+    return 'IsADirectory'
 
 
 def calculate_sha256(filename):
   """New model hash used by stable-diffusion-webui"""
-  hash_sha256 = hashlib.sha256()
-  blksize = 1024 * 1024
+  try:
+    hash_sha256 = hashlib.sha256()
+    blksize = 1024 * 1024
 
-  with open(filename, "rb") as f:
-    for chunk in iter(lambda: f.read(blksize), b""):
-      hash_sha256.update(chunk)
+    with open(filename, "rb") as f:
+      for chunk in iter(lambda: f.read(blksize), b""):
+        hash_sha256.update(chunk)
 
-  return hash_sha256.hexdigest()
+    return hash_sha256.hexdigest()
+  except FileNotFoundError:
+    return 'NOFILE'
+  except IsADirectoryError:
+    return 'IsADirectory'
 
 
 def precalculate_safetensors_hashes(tensors, metadata):
