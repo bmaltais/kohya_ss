@@ -116,7 +116,7 @@ def main():
         linear_mode_param, conv_mode_param,
         args.device, 
         args.use_sparse_bias, args.sparsity,
-        # not args.disable_small_conv
+        not args.disable_cp
     )
     
     if args.safetensors:
