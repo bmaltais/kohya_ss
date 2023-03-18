@@ -1598,6 +1598,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
                                'dpmsolver++', 'dpmsingle',
                                'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'],
                       help=f'sampler (scheduler) type for sample images / サンプル出力時のサンプラー（スケジューラ）の種類')
+  
+  parser.add_argument("--config_file", type=str, default=None, help="using .toml instead of args to pass hyperparameter")
 
   if support_dreambooth:
     # DreamBooth training
