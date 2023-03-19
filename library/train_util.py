@@ -2056,6 +2056,14 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
             if key in args_dict:
                 del args_dict[key]
 
+        # get default args from parser
+        default_args = vars(parser.parse_args([]))
+
+        # remove default values: cannot use args_dict.items directly because it will be changed during iteration
+        for key, value in list(args_dict.items()):
+            if key in default_args and value == default_args[key]:
+                del args_dict[key]
+
         # convert Path to str in dictionary
         for key, value in args_dict.items():
             if isinstance(value, pathlib.Path):
