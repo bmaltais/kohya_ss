@@ -127,60 +127,36 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+
+- 19 Mar. 2023, 2023/3/19:
+  - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
+    - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
+    - All sub-sections are combined to a single dictionary (the section names are ignored.)
+    - Omitted arguments are the default values for command line arguments.
+    - Command line args override the arguments in `.toml`.
+    - With `--output_config` option, you can output current command line options  to the `.toml` specified with`--config_file`. Please use as a template.
+  - Add `--lr_scheduler_type` and `--lr_scheduler_args` arguments for custom LR scheduler to each training script. Thanks to Isotr0py! [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
+    - Same as the optimizer.
+  - Add sample image generation with weight and no length limit. Thanks to mio2333! [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
+    - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
+  - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
+
+  - 各学習スクリプトでコマンドライン引数の代わりに`.toml` ファイルで引数を指定できるようになりました。Linaqrufの多大な貢献に感謝します。
+    - `--config_file` で `.toml` ファイルを指定してください。ファイルは `key=value` 形式の行で指定し、key はコマンドラインオプションと同じです。詳細は [#241](https://github.com/kohya-ss/sd-scripts/pull/241) をご覧ください。
+    - ファイル内のサブセクションはすべて無視されます。
+    - 省略した引数はコマンドライン引数のデフォルト値になります。
+    - コマンドライン引数で `.toml` の設定を上書きできます。
+    - `--output_config` オプションを指定すると、現在のコマンドライン引数を`--config_file` オプションで指定した `.toml` ファイルに出力します。ひな形としてご利用ください。
+  - 任意のスケジューラを使うための `--lr_scheduler_type` と `--lr_scheduler_args` オプションを各学習スクリプトに追加しました。Isotr0py氏に感謝します。 [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
+    - 任意のオプティマイザ指定と同じ形式です。
+  - 学習中のサンプル画像出力でプロンプトの重みづけができるようになりました。また長さ制限も緩和されています。mio2333氏に感謝します。 [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
+    - `( )`、 `(xxxx:1.2)` や `[ ]` が使えます。
+  -  `train_network.py` でローカルのDiffusersモデルを指定した時のエラーを修正しました。orenwang氏に感謝します。 [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
+
 - 11 Mar. 2023, 2023/3/11:
     - Fix `svd_merge_lora.py` causes an error about the device.
     - `svd_merge_lora.py` でデバイス関連のエラーが発生する不具合を修正しました。
-- 10 Mar. 2023, 2023/3/10: release v0.5.1
-  - Fix to LoRA modules in the model are same to the previous (before 0.5.0) if Conv2d-3x3 is disabled (no `conv_dim` arg, default).
-    - Conv2D with kernel size 1x1 in ResNet modules were accidentally included in v0.5.0.
-    - Trained models with v0.5.0 will work with Web UI's built-in LoRA and Additional Networks extension.
-  - Fix an issue that dim (rank) of LoRA module is limited to the in/out dimensions of the target Linear/Conv2d (in case of the dim > 320).
-  - `resize_lora.py` now have a feature to `dynamic resizing` which means each LoRA module can have different ranks (dims). Thanks to mgz-dev for this great work!
-    - The appropriate rank is selected based on the complexity of each module with an algorithm specified in the command line arguments. For details: https://github.com/kohya-ss/sd-scripts/pull/243
-  - Multiple GPUs training is finally supported in `train_network.py`. Thanks to ddPn08 to solve this long running issue!
-  - Dataset with fine-tuning method (with metadata json) now works without images if `.npz` files exist. Thanks to rvhfxb!
-  - `train_network.py` can work if the current directory is not the directory where the script is in. Thanks to mio2333!
-  - Fix `extract_lora_from_models.py` and `svd_merge_lora.py` doesn't work with higher rank (>320).
 
-  - LoRAのConv2d-3x3拡張を行わない場合（`conv_dim` を指定しない場合）、以前（v0.5.0）と同じ構成になるよう修正しました。
-    - ResNetのカーネルサイズ1x1のConv2dが誤って対象になっていました。
-    - ただv0.5.0で学習したモデルは Additional Networks 拡張、およびWeb UIのLoRA機能で問題なく使えると思われます。
-  - LoRAモジュールの dim (rank) が、対象モジュールの次元数以下に制限される不具合を修正しました（320より大きい dim を指定した場合）。
-  - `resize_lora.py` に `dynamic resizing` （リサイズ後の各LoRAモジュールが異なるrank (dim) を持てる機能）を追加しました。mgz-dev 氏の貢献に感謝します。
-    - 適切なランクがコマンドライン引数で指定したアルゴリズムにより自動的に選択されます。詳細はこちらをご覧ください: https://github.com/kohya-ss/sd-scripts/pull/243
-  - `train_network.py` でマルチGPU学習をサポートしました。長年の懸案を解決された ddPn08 氏に感謝します。
-  - fine-tuning方式のデータセット（メタデータ.jsonファイルを使うデータセット）で `.npz` が存在するときには画像がなくても動作するようになりました。rvhfxb 氏に感謝します。
-  - 他のディレクトリから `train_network.py` を呼び出しても動作するよう変更しました。 mio2333 氏に感謝します。
-  - `extract_lora_from_models.py` および `svd_merge_lora.py` が320より大きいrankを指定すると動かない不具合を修正しました。
-  
-- 9 Mar. 2023, 2023/3/9: release v0.5.0
-  - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
-  - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
-  - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).
-    - Same as a current version of [LoCon](https://github.com/KohakuBlueleaf/LoCon). __Thank you very much KohakuBlueleaf for your help!__
-      - LoCon will be enhanced in the future. Compatibility for future versions is not guaranteed.
-    - Specify `--network_args` option like: `--network_args "conv_dim=4" "conv_alpha=1"`
-    - [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) version 0.5.0 or later is required to use 'LoRA for Conv2d-3x3' in Stable Diffusion web UI.
-    - __Stable Diffusion web UI built-in LoRA does not support 'LoRA for Conv2d-3x3' now. Consider carefully whether or not to use it.__
-  - Merging/extracting scripts also support LoRA for Conv2d-3x3.
-  - Free CUDA memory after sample generation to reduce VRAM usage, issue https://github.com/kohya-ss/sd-scripts/issues/260 
-  - Empty caption doesn't cause error now, issue https://github.com/kohya-ss/sd-scripts/issues/258
-  - Fix sample generation is crashing in Textual Inversion training when using templates, or if height/width is not divisible by 8.
-  - Update documents (Japanese only).
-
-  - 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
-  - 最低限のメタデータ（module name, dim, alpha および network_args）が `--no_metadata` オプション指定時にも記録されます。issue https://github.com/kohya-ss/sd-scripts/issues/254
-  - `train_network.py` で LoRAの Conv2d-3x3 拡張に対応しました（カーネルサイズ1x1以外のConv2dにも対象範囲を拡大します）。
-    - 現在のバージョンの [LoCon](https://github.com/KohakuBlueleaf/LoCon) と同一の仕様です。__KohakuBlueleaf氏のご支援に深く感謝します。__
-      - LoCon が将来的に拡張された場合、それらのバージョンでの互換性は保証できません。
-    - `--network_args` オプションを `--network_args "conv_dim=4" "conv_alpha=1"` のように指定してください。
-    - Stable Diffusion web UI での使用には [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) のversion 0.5.0 以降が必要です。
-    - __Stable Diffusion web UI の LoRA 機能は LoRAの Conv2d-3x3 拡張に対応していないようです。使用するか否か慎重にご検討ください。__
-  - マージ、抽出のスクリプトについても LoRA の Conv2d-3x3 拡張に対応しました.
-  - サンプル画像生成後にCUDAメモリを解放しVRAM使用量を削減しました。 issue https://github.com/kohya-ss/sd-scripts/issues/260 
-  - 空のキャプションが使えるようになりました。 issue https://github.com/kohya-ss/sd-scripts/issues/258
-  - Textual Inversion 学習でテンプレートを使ったとき、height/width が 8 で割り切れなかったときにサンプル画像生成がクラッシュするのを修正しました。
-  - ドキュメント類を更新しました。
 
   - Sample image generation:
     A prompt file might look like this, for example
