@@ -141,7 +141,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
   - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
 
-  - 各学習スクリプトでコマンドライン引数の代わりに`.toml` ファイルで引数を指定できるようになりました。Linaqrufの多大な貢献に感謝します。
+  - 各学習スクリプトでコマンドライン引数の代わりに`.toml` ファイルで引数を指定できるようになりました。Linaqruf氏の多大な貢献に感謝します。
     - `--config_file` で `.toml` ファイルを指定してください。ファイルは `key=value` 形式の行で指定し、key はコマンドラインオプションと同じです。詳細は [#241](https://github.com/kohya-ss/sd-scripts/pull/241) をご覧ください。
     - ファイル内のサブセクションはすべて無視されます。
     - 省略した引数はコマンドライン引数のデフォルト値になります。
@@ -163,10 +163,10 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
     ```
     # prompt 1
-    masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+    masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
 
     # prompt 2
-    masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+    masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
     ```
 
     Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
@@ -178,7 +178,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     * `--l` Specifies the CFG scale of the generated image.
     * `--s` Specifies the number of steps in the generation.
 
-    The prompt weighting such as `( )` and `[ ]` are not working.
+    The prompt weighting such as `( )` and `[ ]` are working.
 
   - サンプル画像生成：
     プロンプトファイルは例えば以下のようになります。
