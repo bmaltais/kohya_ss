@@ -1,3 +1,4 @@
+import os
 import sys
 import pkg_resources
 
@@ -32,7 +33,8 @@ if missing_requirements or wrong_version_requirements:
         print("Error: The following packages have the wrong version:")
         for requirement, expected_version, actual_version in wrong_version_requirements:
             print(f" - {requirement} (expected version {expected_version}, found version {actual_version})")
-    print('\nRun \033[33mupgrade.ps1\033[0m or \033[33mpip install -U -r requirements.txt\033[0m to resolve the missing requirements listed above...')
+    upgrade_script = "upgrade.ps1" if os.name == "nt" else "upgrade.sh"
+    print(f"\nRun \033[33m{upgrade_script}\033[0m or \033[33mpip install -U -r requirements.txt\033[0m to resolve the missing requirements listed above...")
 
     sys.exit(1)
 
