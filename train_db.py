@@ -166,7 +166,7 @@ def train(args):
         args.stop_text_encoder_training = args.max_train_steps + 1  # do not stop until end
 
     # lr schedulerを用意する TODO gradient_accumulation_stepsの扱いが何かおかしいかもしれない。後で確認する
-    lr_scheduler = train_util.get_scheduler_fix(args, optimizer)
+    lr_scheduler = train_util.get_scheduler_fix(args, optimizer, accelerator.num_processes)
 
     # 実験的機能：勾配も含めたfp16学習を行う　モデル全体をfp16にする
     if args.full_fp16:
