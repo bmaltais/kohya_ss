@@ -127,7 +127,33 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- 9 Mar. 2023, 2023/3/9:
+- 11 Mar. 2023, 2023/3/11:
+    - Fix `svd_merge_lora.py` causes an error about the device.
+    - `svd_merge_lora.py` でデバイス関連のエラーが発生する不具合を修正しました。
+- 10 Mar. 2023, 2023/3/10: release v0.5.1
+  - Fix to LoRA modules in the model are same to the previous (before 0.5.0) if Conv2d-3x3 is disabled (no `conv_dim` arg, default).
+    - Conv2D with kernel size 1x1 in ResNet modules were accidentally included in v0.5.0.
+    - Trained models with v0.5.0 will work with Web UI's built-in LoRA and Additional Networks extension.
+  - Fix an issue that dim (rank) of LoRA module is limited to the in/out dimensions of the target Linear/Conv2d (in case of the dim > 320).
+  - `resize_lora.py` now have a feature to `dynamic resizing` which means each LoRA module can have different ranks (dims). Thanks to mgz-dev for this great work!
+    - The appropriate rank is selected based on the complexity of each module with an algorithm specified in the command line arguments. For details: https://github.com/kohya-ss/sd-scripts/pull/243
+  - Multiple GPUs training is finally supported in `train_network.py`. Thanks to ddPn08 to solve this long running issue!
+  - Dataset with fine-tuning method (with metadata json) now works without images if `.npz` files exist. Thanks to rvhfxb!
+  - `train_network.py` can work if the current directory is not the directory where the script is in. Thanks to mio2333!
+  - Fix `extract_lora_from_models.py` and `svd_merge_lora.py` doesn't work with higher rank (>320).
+
+  - LoRAのConv2d-3x3拡張を行わない場合（`conv_dim` を指定しない場合）、以前（v0.5.0）と同じ構成になるよう修正しました。
+    - ResNetのカーネルサイズ1x1のConv2dが誤って対象になっていました。
+    - ただv0.5.0で学習したモデルは Additional Networks 拡張、およびWeb UIのLoRA機能で問題なく使えると思われます。
+  - LoRAモジュールの dim (rank) が、対象モジュールの次元数以下に制限される不具合を修正しました（320より大きい dim を指定した場合）。
+  - `resize_lora.py` に `dynamic resizing` （リサイズ後の各LoRAモジュールが異なるrank (dim) を持てる機能）を追加しました。mgz-dev 氏の貢献に感謝します。
+    - 適切なランクがコマンドライン引数で指定したアルゴリズムにより自動的に選択されます。詳細はこちらをご覧ください: https://github.com/kohya-ss/sd-scripts/pull/243
+  - `train_network.py` でマルチGPU学習をサポートしました。長年の懸案を解決された ddPn08 氏に感謝します。
+  - fine-tuning方式のデータセット（メタデータ.jsonファイルを使うデータセット）で `.npz` が存在するときには画像がなくても動作するようになりました。rvhfxb 氏に感謝します。
+  - 他のディレクトリから `train_network.py` を呼び出しても動作するよう変更しました。 mio2333 氏に感謝します。
+  - `extract_lora_from_models.py` および `svd_merge_lora.py` が320より大きいrankを指定すると動かない不具合を修正しました。
+  
+- 9 Mar. 2023, 2023/3/9: release v0.5.0
   - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
   - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
   - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).

@@ -23,16 +23,16 @@ def load_state_dict(file_name, dtype):
   return sd
 
 
-def save_to_file(file_name, model, state_dict, dtype):
+def save_to_file(file_name, state_dict, dtype):
   if dtype is not None:
     for key in list(state_dict.keys()):
       if type(state_dict[key]) == torch.Tensor:
         state_dict[key] = state_dict[key].to(dtype)
 
   if os.path.splitext(file_name)[1] == '.safetensors':
-    save_file(model, file_name)
+    save_file(state_dict, file_name)
   else:
-    torch.save(model, file_name)
+    torch.save(state_dict, file_name)
 
 
 def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dtype):
@@ -77,6 +77,10 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
 
       # W <- W + U * D
       scale = (alpha / network_dim)
+
+      if device:                      # and isinstance(scale, torch.Tensor):
+        scale = scale.to(device)
+
       if not conv2d:        # linear
         weight = weight + ratio * (up_weight @ down_weight) * scale
       elif kernel_size == (1, 1):
@@ -105,6 +109,7 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
           mat = mat.squeeze()
 
       module_new_rank = new_conv_rank if conv2d_3x3 else new_rank
+      module_new_rank = min(module_new_rank, in_dim, out_dim)                           # LoRA rank cannot exceed the original dim
 
       U, S, Vh = torch.linalg.svd(mat)
 
@@ -156,7 +161,7 @@ def merge(args):
   state_dict = merge_lora_models(args.models, args.ratios, args.new_rank, new_conv_rank, args.device, merge_dtype)
 
   print(f"saving model to: {args.save_to}")
-  save_to_file(args.save_to, state_dict, state_dict, save_dtype)
+  save_to_file(args.save_to, state_dict, save_dtype)
 
 
 if __name__ == '__main__':

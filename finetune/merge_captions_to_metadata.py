@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from tqdm import tqdm
 import library.train_util as train_util
-
+import os
 
 def main(args):
   assert not args.recursive or (args.recursive and args.full_path), "recursive requires full_path / recursiveはfull_pathと同時に指定してください"
@@ -28,6 +28,9 @@ def main(args):
   for image_path in tqdm(image_paths):
     caption_path = image_path.with_suffix(args.caption_extension)
     caption = caption_path.read_text(encoding='utf-8').strip()
+
+    if not os.path.exists(caption_path):
+      caption_path = os.path.join(image_path, args.caption_extension)
 
     image_key = str(image_path) if args.full_path else image_path.stem
     if image_key not in metadata:
