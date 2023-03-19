@@ -56,7 +56,7 @@ import cv2
 from einops import rearrange
 from torch import einsum
 import safetensors.torch
-
+from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
@@ -2792,16 +2792,8 @@ def sample_images(
         # print("set clip_sample to True")
         scheduler.config.clip_sample = True
 
-    pipeline = StableDiffusionPipeline(
-        text_encoder=text_encoder_or_wrapper,
-        vae=vae,
-        unet=unet,
-        tokenizer=tokenizer,
-        scheduler=scheduler,
-        safety_checker=None,
-        feature_extractor=None,
-        requires_safety_checker=False,
-    )
+    pipeline = StableDiffusionLongPromptWeightingPipeline(text_encoder=text_encoder_or_wrapper, vae=vae, unet=unet, tokenizer=tokenizer,
+                                                          scheduler=scheduler, safety_checker=None, feature_extractor=None, requires_safety_checker=False)
     pipeline.to(device)
 
     save_dir = args.output_dir + "/sample"
@@ -2880,7 +2872,7 @@ def sample_images(
                 print(f"width: {width}")
                 print(f"sample_steps: {sample_steps}")
                 print(f"scale: {scale}")
-                image = pipeline(prompt, height, width, sample_steps, scale, negative_prompt).images[0]
+                image = pipeline(prompt=prompt, height=height, width=width,num_inference_steps=sample_steps,guidance_scale=scale,negative_prompt=negative_prompt).images[0]
 
                 ts_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
                 num_suffix = f"e{epoch:06d}" if epoch is not None else f"{steps:06d}"
