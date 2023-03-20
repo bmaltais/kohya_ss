@@ -189,9 +189,10 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/03/16 (v21.2.5):
+* 2023/03/19 (v21.2.5):
     - Fix basic captioning logic
     - Add possibility to not train TE in Dreamboot by setting `Step text encoder training` to -1.
+    - Update linux scripts
 * 2023/03/12 (v21.2.4):
     - Fix issue with kohya locon not training the convolution layers
     - Update LyCORIS module version
