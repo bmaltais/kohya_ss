@@ -172,6 +172,7 @@ Once you have created the LoRA network, you can generate images via auto1111 by 
 ### No module called tkinter
 
 - Re-install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) on your system.
+- Alternatively, add 'set "TCL_LIBRARY=C:\Program Files (x86)\Python310\tcl\tcl8.6"' to your run_command_line.bat and run_popup.bat files, replacing the path with the correct path for your system.
 
 ### FileNotFoundError
 
