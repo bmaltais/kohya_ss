@@ -74,18 +74,18 @@ def run_cmd_sample(
     sample_prompts,
     output_dir,
 ):
-    output_dir = os.path.join(output_dir, "sample")
-    
+    output_dir = os.path.join(output_dir, 'sample')
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
+
     run_cmd = ''
-    
+
     if sample_every_n_epochs == 0 and sample_every_n_steps == 0:
         return run_cmd
 
     # Create the prompt file and get its path
-    sample_prompts_path = os.path.join(output_dir, "prompt.txt")
+    sample_prompts_path = os.path.join(output_dir, 'prompt.txt')
 
     with open(sample_prompts_path, 'w') as f:
         f.write(sample_prompts)

@@ -153,6 +153,14 @@ def gradio_extract_lora_tab():
 
         extract_button.click(
             extract_lora,
-            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2, conv_dim],
+            inputs=[
+                model_tuned,
+                model_org,
+                save_to,
+                save_precision,
+                dim,
+                v2,
+                conv_dim,
+            ],
             show_progress=False,
         )
