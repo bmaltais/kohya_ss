@@ -417,13 +417,16 @@ def train_model(
                 or f.endswith('.webp')
             ]
         )
+        
+        print(f'Folder {folder}: {num_images} images found')
 
         # Calculate the total number of steps for this folder
         steps = repeats * num_images
-        total_steps += steps
 
         # Print the result
         print(f'Folder {folder}: {steps} steps')
+        
+        total_steps += steps
 
     # calculate max_train_steps
     max_train_steps = int(

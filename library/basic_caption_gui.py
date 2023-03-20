@@ -6,35 +6,33 @@ import os
 
 
 def caption_images(
-    caption_text_input,
-    images_dir_input,
-    overwrite_input,
-    caption_file_ext,
+    caption_text,
+    images_dir,
+    overwrite,
+    caption_ext,
     prefix,
     postfix,
-    find,
-    replace,
+    find_text,
+    replace_text,
 ):
-    # Check for images_dir_input
-    if images_dir_input == '':
+    # Check for images_dir
+    if not images_dir:
         msgbox('Image folder is missing...')
         return
 
-    if caption_file_ext == '':
+    if not caption_ext:
         msgbox('Please provide an extension for the caption files.')
         return
 
-    if not caption_text_input == '':
-        print(
-            f'Captioning files in {images_dir_input} with {caption_text_input}...'
-        )
+    if caption_text:
+        print(f'Captioning files in {images_dir} with {caption_text}...')
         run_cmd = f'python "tools/caption.py"'
-        run_cmd += f' --caption_text="{caption_text_input}"'
-        if overwrite_input:
+        run_cmd += f' --caption_text="{caption_text}"'
+        if overwrite:
             run_cmd += f' --overwrite'
-        if caption_file_ext != '':
-            run_cmd += f' --caption_file_ext="{caption_file_ext}"'
-        run_cmd += f' "{images_dir_input}"'
+        if caption_ext:
+            run_cmd += f' --caption_file_ext="{caption_ext}"'
+        run_cmd += f' "{images_dir}"'
 
         print(run_cmd)
 
@@ -44,24 +42,24 @@ def caption_images(
         else:
             subprocess.run(run_cmd)
 
-    if overwrite_input:
-        if not prefix == '' or not postfix == '':
+    if overwrite:
+        if prefix or postfix:
             # Add prefix and postfix
             add_pre_postfix(
-                folder=images_dir_input,
-                caption_file_ext=caption_file_ext,
+                folder=images_dir,
+                caption_file_ext=caption_ext,
                 prefix=prefix,
                 postfix=postfix,
             )
-        if not find == '':
+        if find_text:
             find_replace(
-                folder=images_dir_input,
-                caption_file_ext=caption_file_ext,
-                find=find,
-                replace=replace,
+                folder=images_dir,
+                caption_file_ext=caption_ext,
+                find=find_text,
+                replace=replace_text,
             )
     else:
-        if not prefix == '' or not postfix == '':
+        if prefix or postfix:
             msgbox(
                 'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...'
             )
@@ -69,37 +67,31 @@ def caption_images(
     print('...captioning done')
 
 
-###
 # Gradio UI
-###
-
-
 def gradio_basic_caption_gui_tab():
     with gr.Tab('Basic Captioning'):
         gr.Markdown(
-            'This utility will allow the creation of simple caption files for each images in a folder.'
+            'This utility will allow the creation of simple caption files for each image in a folder.'
         )
         with gr.Row():
-            images_dir_input = gr.Textbox(
+            images_dir = gr.Textbox(
                 label='Image folder to caption',
                 placeholder='Directory containing the images to caption',
                 interactive=True,
             )
-            button_images_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
-            )
-            button_images_dir_input.click(
+            folder_button = gr.Button('📂', elem_id='open_folder_small')
+            folder_button.click(
                 get_folder_path,
-                outputs=images_dir_input,
+                outputs=images_dir,
                 show_progress=False,
             )
-            caption_file_ext = gr.Textbox(
+            caption_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extention for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file. eg: .caption, .txt',
                 value='.txt',
                 interactive=True,
             )
-            overwrite_input = gr.Checkbox(
+            overwrite = gr.Checkbox(
                 label='Overwrite existing captions in folder',
                 interactive=True,
                 value=False,
@@ -110,7 +102,7 @@ def gradio_basic_caption_gui_tab():
                 placeholder='(Optional)',
                 interactive=True,
             )
-            caption_text_input = gr.Textbox(
+            caption_text = gr.Textbox(
                 label='Caption text',
                 placeholder='Eg: , by some artist. Leave empty if you just want to add pre or postfix',
                 interactive=True,
@@ -121,29 +113,28 @@ def gradio_basic_caption_gui_tab():
                 interactive=True,
             )
         with gr.Row():
-            find = gr.Textbox(
+            find_text = gr.Textbox(
                 label='Find text',
                 placeholder='Eg: , by some artist. Leave empty if you just want to add pre or postfix',
                 interactive=True,
             )
-            replace = gr.Textbox(
+            replace_text = gr.Textbox(
                 label='Replacement text',
                 placeholder='Eg: , by some artist. Leave empty if you just want to replace with nothing',
                 interactive=True,
+                )
+            caption_button = gr.Button('Caption images')
+            caption_button.click(
+                caption_images,
+                inputs=[
+                    caption_text,
+                    images_dir,
+                    overwrite,
+                    caption_ext,
+                    prefix,
+                    postfix,
+                    find_text,
+                    replace_text,
+                ],
+                show_progress=False,
             )
-        caption_button = gr.Button('Caption images')
-
-        caption_button.click(
-            caption_images,
-            inputs=[
-                caption_text_input,
-                images_dir_input,
-                overwrite_input,
-                caption_file_ext,
-                prefix,
-                postfix,
-                find,
-                replace,
-            ],
-            show_progress=False,
-        )

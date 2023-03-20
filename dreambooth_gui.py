@@ -377,7 +377,9 @@ def train_model(
     print(f'max_train_steps = {max_train_steps}')
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None:
+    if int(stop_text_encoder_training_pct) == -1:
+        stop_text_encoder_training = -1
+    elif stop_text_encoder_training_pct == None:
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -624,7 +626,7 @@ def dreambooth_tab(
                 placeholder='512,512',
             )
             stop_text_encoder_training = gr.Slider(
-                minimum=0,
+                minimum=-1,
                 maximum=100,
                 value=0,
                 step=1,

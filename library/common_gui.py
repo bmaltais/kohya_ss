@@ -32,37 +32,66 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
 
 def update_my_data(my_data):
-    if my_data.get('use_8bit_adam', False) == True:
+    # Update optimizer based on use_8bit_adam flag
+    use_8bit_adam = my_data.get('use_8bit_adam', False)
+    if use_8bit_adam:
         my_data['optimizer'] = 'AdamW8bit'
-        # my_data['use_8bit_adam'] = False
-
-    if (
-        my_data.get('optimizer', 'missing') == 'missing'
-        and my_data.get('use_8bit_adam', False) == False
-    ):
+    elif 'optimizer' not in my_data:
         my_data['optimizer'] = 'AdamW'
-
-    if my_data.get('model_list', 'custom') == []:
-        print('Old config with empty model list. Setting to custom...')
-        my_data['model_list'] = 'custom'
-
-    # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
-    if not my_data.get('pretrained_model_name_or_path', '') in ALL_PRESET_MODELS:
-        my_data['model_list'] = 'custom'
     
-    # Fix old config files that contain epoch as str instead of int
+    # Update model_list to custom if empty or pretrained_model_name_or_path is not a preset model
+    model_list = my_data.get('model_list', [])
+    pretrained_model_name_or_path = my_data.get('pretrained_model_name_or_path', '')
+    if not model_list or pretrained_model_name_or_path not in ALL_PRESET_MODELS:
+        my_data['model_list'] = 'custom'
+
+    # Convert epoch and save_every_n_epochs values to int if they are strings
     for key in ['epoch', 'save_every_n_epochs']:
         value = my_data.get(key, -1)
-        if type(value) == str:
-            if value != '':
-                my_data[key] = int(value)
-            else:
-                my_data[key] = -1
-                
+        if isinstance(value, str) and value:
+            my_data[key] = int(value)
+        elif not value:
+            my_data[key] = -1
+
+    # Update LoRA_type if it is set to LoCon
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
         my_data['LoRA_type'] = 'LyCORIS/LoCon'
-        
+
     return my_data
+
+
+# def update_my_data(my_data):
+#     if my_data.get('use_8bit_adam', False) == True:
+#         my_data['optimizer'] = 'AdamW8bit'
+#         # my_data['use_8bit_adam'] = False
+
+#     if (
+#         my_data.get('optimizer', 'missing') == 'missing'
+#         and my_data.get('use_8bit_adam', False) == False
+#     ):
+#         my_data['optimizer'] = 'AdamW'
+
+#     if my_data.get('model_list', 'custom') == []:
+#         print('Old config with empty model list. Setting to custom...')
+#         my_data['model_list'] = 'custom'
+
+#     # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
+#     if not my_data.get('pretrained_model_name_or_path', '') in ALL_PRESET_MODELS:
+#         my_data['model_list'] = 'custom'
+    
+#     # Fix old config files that contain epoch as str instead of int
+#     for key in ['epoch', 'save_every_n_epochs']:
+#         value = my_data.get(key, -1)
+#         if type(value) == str:
+#             if value != '':
+#                 my_data[key] = int(value)
+#             else:
+#                 my_data[key] = -1
+                
+#     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
+#         my_data['LoRA_type'] = 'LyCORIS/LoCon'
+        
+#     return my_data
 
 
 def get_dir_and_file(file_path):
@@ -70,39 +99,45 @@ def get_dir_and_file(file_path):
     return (dir_path, file_name)
 
 
-def has_ext_files(directory, extension):
-    # Iterate through all the files in the directory
-    for file in os.listdir(directory):
-        # If the file name ends with extension, return True
-        if file.endswith(extension):
-            return True
-    # If no extension files were found, return False
-    return False
+# def has_ext_files(directory, extension):
+#     # Iterate through all the files in the directory
+#     for file in os.listdir(directory):
+#         # If the file name ends with extension, return True
+#         if file.endswith(extension):
+#             return True
+#     # If no extension files were found, return False
+#     return False
 
 
 def get_file_path(
-    file_path='', defaultextension='.json', extension_name='Config files'
+    file_path='', default_extension='.json', extension_name='Config files'
 ):
     current_file_path = file_path
     # print(f'current file path: {current_file_path}')
 
     initial_dir, initial_file = get_dir_and_file(file_path)
 
+    # Create a hidden Tkinter root window
     root = Tk()
     root.wm_attributes('-topmost', 1)
     root.withdraw()
+
+    # Show the open file dialog and get the selected file path
     file_path = filedialog.askopenfilename(
         filetypes=(
-            (f'{extension_name}', f'{defaultextension}'),
-            ('All files', '*'),
+            (extension_name, f'*{default_extension}'),
+            ('All files', '*.*'),
         ),
-        defaultextension=defaultextension,
+        defaultextension=default_extension,
         initialfile=initial_file,
         initialdir=initial_dir,
     )
+
+    # Destroy the hidden root window
     root.destroy()
 
-    if file_path == '':
+    # If no file is selected, use the current file path
+    if not file_path:
         file_path = current_file_path
 
     return file_path
@@ -230,52 +265,146 @@ def get_saveasfilename_path(
 
 
 def add_pre_postfix(
-    folder='', prefix='', postfix='', caption_file_ext='.caption'
-):
-    if not has_ext_files(folder, caption_file_ext):
-        msgbox(
-            f'No files with extension {caption_file_ext} were found in {folder}...'
-        )
-        return
+        folder: str = '', 
+        prefix: str = '', 
+        postfix: str = '', 
+        caption_file_ext: str = '.caption'
+    ) -> None:
+    """
+    Add prefix and/or postfix to the content of caption files within a folder.
+    If no caption files are found, create one with the requested prefix and/or postfix.
+
+    Args:
+        folder (str): Path to the folder containing caption files.
+        prefix (str, optional): Prefix to add to the content of the caption files.
+        postfix (str, optional): Postfix to add to the content of the caption files.
+        caption_file_ext (str, optional): Extension of the caption files.
+    """
 
     if prefix == '' and postfix == '':
         return
 
-    files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
-    if not prefix == '':
-        prefix = f'{prefix} '
-    if not postfix == '':
-        postfix = f' {postfix}'
+    image_extensions = ('.jpg', '.jpeg', '.png', '.webp')
+    image_files = [f for f in os.listdir(folder) if f.lower().endswith(image_extensions)]
 
-    for file in files:
-        with open(os.path.join(folder, file), 'r+') as f:
-            content = f.read()
-            content = content.rstrip()
-            f.seek(0, 0)
-            f.write(f'{prefix}{content}{postfix}')
-    f.close()
+    for image_file in image_files:
+        caption_file_name = os.path.splitext(image_file)[0] + caption_file_ext
+        caption_file_path = os.path.join(folder, caption_file_name)
+
+        if not os.path.exists(caption_file_path):
+            with open(caption_file_path, 'w') as f:
+                separator = ' ' if prefix and postfix else ''
+                f.write(f'{prefix}{separator}{postfix}')
+        else:
+            with open(caption_file_path, 'r+') as f:
+                content = f.read()
+                content = content.rstrip()
+                f.seek(0, 0)
+
+                prefix_separator = ' ' if prefix else ''
+                postfix_separator = ' ' if postfix else ''
+                f.write(f'{prefix}{prefix_separator}{content}{postfix_separator}{postfix}')
+
+# def add_pre_postfix(
+#     folder='', prefix='', postfix='', caption_file_ext='.caption'
+# ):
+#     if not has_ext_files(folder, caption_file_ext):
+#         msgbox(
+#             f'No files with extension {caption_file_ext} were found in {folder}...'
+#         )
+#         return
+
+#     if prefix == '' and postfix == '':
+#         return
+
+#     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
+#     if not prefix == '':
+#         prefix = f'{prefix} '
+#     if not postfix == '':
+#         postfix = f' {postfix}'
+
+#     for file in files:
+#         with open(os.path.join(folder, file), 'r+') as f:
+#             content = f.read()
+#             content = content.rstrip()
+#             f.seek(0, 0)
+#             f.write(f'{prefix} {content} {postfix}')
+#     f.close()
 
 
-def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
+def has_ext_files(folder_path: str, file_extension: str) -> bool:
+    """
+    Check if there are any files with the specified extension in the given folder.
+    
+    Args:
+        folder_path (str): Path to the folder containing files.
+        file_extension (str): Extension of the files to look for.
+    
+    Returns:
+        bool: True if files with the specified extension are found, False otherwise.
+    """
+    for file in os.listdir(folder_path):
+        if file.endswith(file_extension):
+            return True
+    return False
+
+def find_replace(
+        folder_path: str = '', 
+        caption_file_ext: str = '.caption', 
+        search_text: str = '', 
+        replace_text: str = ''
+    ) -> None:
+    """
+    Find and replace text in caption files within a folder.
+    
+    Args:
+        folder_path (str, optional): Path to the folder containing caption files.
+        caption_file_ext (str, optional): Extension of the caption files.
+        search_text (str, optional): Text to search for in the caption files.
+        replace_text (str, optional): Text to replace the search text with.
+    """
     print('Running caption find/replace')
-    if not has_ext_files(folder, caption_file_ext):
+    
+    if not has_ext_files(folder_path, caption_file_ext):
         msgbox(
-            f'No files with extension {caption_file_ext} were found in {folder}...'
+            f'No files with extension {caption_file_ext} were found in {folder_path}...'
         )
         return
 
-    if find == '':
+    if search_text == '':
         return
 
-    files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
-    for file in files:
-        with open(os.path.join(folder, file), 'r', errors='ignore') as f:
+    caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
+    
+    for caption_file in caption_files:
+        with open(os.path.join(folder_path, caption_file), 'r', errors='ignore') as f:
             content = f.read()
-            f.close
-        content = content.replace(find, replace)
-        with open(os.path.join(folder, file), 'w') as f:
+
+        content = content.replace(search_text, replace_text)
+
+        with open(os.path.join(folder_path, caption_file), 'w') as f:
             f.write(content)
-            f.close()
+
+# def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
+#     print('Running caption find/replace')
+#     if not has_ext_files(folder, caption_file_ext):
+#         msgbox(
+#             f'No files with extension {caption_file_ext} were found in {folder}...'
+#         )
+#         return
+
+#     if find == '':
+#         return
+
+#     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
+#     for file in files:
+#         with open(os.path.join(folder, file), 'r', errors='ignore') as f:
+#             content = f.read()
+#             f.close
+#         content = content.replace(find, replace)
+#         with open(os.path.join(folder, file), 'w') as f:
+#             f.write(content)
+#             f.close()
 
 
 def color_aug_changed(color_aug):
