@@ -548,6 +548,16 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+                gamma = args.min_snr_gamma
+                if gamma:
+                  sigma = torch.sub(noisy_latents, latents) #find noise as applied
+                  zeros = torch.zeros_like(sigma) 
+                  alpha_mean_sq = torch.nn.functional.mse_loss(latents.float(), zeros.float(), reduction="none").mean([1, 2, 3]) #trick to get Mean Square
+                  sigma_mean_sq = torch.nn.functional.mse_loss(sigma.float(), zeros.float(), reduction="none").mean([1, 2, 3]) #trick to get Mean Square
+                  snr = torch.div(alpha_mean_sq,sigma_mean_sq) #Signal to Noise Ratio = ratio of Mean Squares
+                  gamma_over_snr = torch.div(torch.ones_like(snr)*gamma,snr)
+                  snr_weight = torch.minimum(gamma_over_snr,torch.ones_like(gamma_over_snr)).float() #from paper
+                  loss = loss * snr_weight
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
