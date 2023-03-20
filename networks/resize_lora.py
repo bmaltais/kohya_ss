@@ -311,7 +311,7 @@ def resize(args):
   save_to_file(args.save_to, state_dict, state_dict, save_dtype, metadata)
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
 
   parser.add_argument("--save_precision", type=str, default=None,
@@ -329,7 +329,12 @@ if __name__ == '__main__':
                       help="Specify dynamic resizing method, --new_rank is used as a hard limit for max rank")
   parser.add_argument("--dynamic_param", type=float, default=None,
                       help="Specify target for dynamic reduction")
-                                           
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   resize(args)
