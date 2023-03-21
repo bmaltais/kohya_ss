@@ -1197,6 +1197,10 @@ class FineTuningDataset(BaseDataset):
                 npz_file_flip = None
             return npz_file_norm, npz_file_flip
 
+        # if not full path, check image_dir. if image_dir is None, return None
+        if subset.image_dir is None:
+            return None, None
+        
         # image_key is relative path
         npz_file_norm = os.path.join(subset.image_dir, image_key + ".npz")
         npz_file_flip = os.path.join(subset.image_dir, image_key + "_flip.npz")
