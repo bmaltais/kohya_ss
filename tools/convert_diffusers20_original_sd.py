@@ -61,7 +61,7 @@ def convert(args):
     print(f"model saved.")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v1", action='store_true',
                       help='load v1.x model (v1 or v2 is required to load checkpoint) / 1.xのモデルを読み込む')
@@ -84,6 +84,10 @@ if __name__ == '__main__':
                       help="model to load: checkpoint file or Diffusers model's directory / 読み込むモデル、checkpointかDiffusers形式モデルのディレクトリ")
   parser.add_argument("model_to_save", type=str, default=None,
                       help="model to save: checkpoint (with extension) or Diffusers model's directory (without extension) / 変換後のモデル、拡張子がある場合はcheckpoint、ない場合はDiffusesモデルとして保存")
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   convert(args)

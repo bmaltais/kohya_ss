@@ -387,7 +387,7 @@ def train(args):
         print("model saved.")
 
 
-if __name__ == "__main__":
+def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     train_util.add_sd_models_arguments(parser)
@@ -399,6 +399,12 @@ if __name__ == "__main__":
 
     parser.add_argument("--diffusers_xformers", action="store_true", help="use xformers by diffusers / Diffusersでxformersを使用する")
     parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
+
+    return parser
+
+
+if __name__ == "__main__":
+    parser = setup_parser()
 
     args = parser.parse_args()
     args = train_util.read_config_from_file(args, parser)
