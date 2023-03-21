@@ -228,7 +228,7 @@ def train(args):
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
-            train_dataset_group.cache_latents(vae)
+            train_dataset_group.cache_latents(vae, args.vae_batch_size)
         vae.to("cpu")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -257,7 +257,7 @@ def train(args):
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * len(train_dataloader)
+        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
     # lr schedulerを用意する
@@ -526,7 +526,7 @@ def load_weights(file):
     return emb
 
 
-if __name__ == "__main__":
+def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     train_util.add_sd_models_arguments(parser)
@@ -564,6 +564,12 @@ if __name__ == "__main__":
         action="store_true",
         help="ignore caption and use default templates for stype / キャプションは使わずデフォルトのスタイル用テンプレートで学習する",
     )
+
+    return parser
+
+
+if __name__ == "__main__":
+    parser = setup_parser()
 
     args = parser.parse_args()
     args = train_util.read_config_from_file(args, parser)

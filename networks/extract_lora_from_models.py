@@ -162,7 +162,7 @@ def svd(args):
   print(f"LoRA weights are saved to: {args.save_to}")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v2", action='store_true',
                       help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
@@ -178,6 +178,12 @@ if __name__ == '__main__':
   parser.add_argument("--conv_dim", type=int, default=None,
                       help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   svd(args)
