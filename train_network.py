@@ -139,7 +139,7 @@ def train(args):
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
-            train_dataset_group.cache_latents(vae)
+            train_dataset_group.cache_latents(vae, args.vae_batch_size)
         vae.to("cpu")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
