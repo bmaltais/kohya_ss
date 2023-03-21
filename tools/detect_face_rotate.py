@@ -214,7 +214,7 @@ def process(args):
         buf.tofile(f)
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--src_dir", type=str, help="directory to load images / 画像を読み込むディレクトリ")
   parser.add_argument("--dst_dir", type=str, help="directory to save images / 画像を保存するディレクトリ")
@@ -234,6 +234,13 @@ if __name__ == '__main__':
   parser.add_argument("--multiple_faces", action="store_true",
                       help="output each faces / 複数の顔が見つかった場合、それぞれを切り出す")
   parser.add_argument("--debug", action="store_true", help="render rect for face / 処理後画像の顔位置に矩形を描画します")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
+
   args = parser.parse_args()
 
   process(args)

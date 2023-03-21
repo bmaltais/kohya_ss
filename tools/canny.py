@@ -13,12 +13,18 @@ def canny(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--input", type=str, default=None, help="input path")
   parser.add_argument("--output", type=str, default=None, help="output path")
   parser.add_argument("--thres1", type=int, default=32, help="thres1")
   parser.add_argument("--thres2", type=int, default=224, help="thres2")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   canny(args)

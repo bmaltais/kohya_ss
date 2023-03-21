@@ -98,7 +98,7 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
           shutil.copy(os.path.join(src_img_folder, asoc_file), os.path.join(dst_img_folder, new_asoc_file))
 
 
-def main():
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(
       description='Resize images in a folder to a specified max resolution(s) / 指定されたフォルダ内の画像を指定した最大画像サイズ（面積）以下にアスペクト比を維持したままリサイズします')
   parser.add_argument('src_img_folder', type=str, help='Source folder containing the images / 元画像のフォルダ')
@@ -112,6 +112,12 @@ def main():
   parser.add_argument('--save_as_png', action='store_true', help='Save as png format / png形式で保存')
   parser.add_argument('--copy_associated_files', action='store_true',
                       help='Copy files with same base name to images (captions etc) / 画像と同じファイル名（拡張子を除く）のファイルもコピーする')
+
+  return parser
+
+
+def main():
+  parser = setup_parser()
 
   args = parser.parse_args()
   resize_images(args.src_img_folder, args.dst_img_folder, args.max_resolution,
