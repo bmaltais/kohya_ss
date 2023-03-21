@@ -73,8 +73,7 @@ DEFAULT_LAST_OUTPUT_NAME = "last"
 
 # region dataset
 
-IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp"]
-# , ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]         # Linux?
+IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]
 
 
 class ImageInfo:
@@ -679,7 +678,7 @@ class BaseDataset(torch.utils.data.Dataset):
         # ちょっと速くした
         print("caching latents.")
 
-        image_infos= list(self.image_data.values())
+        image_infos = list(self.image_data.values())
 
         # sort by resolution
         image_infos.sort(key=lambda info: info.bucket_reso[0] * info.bucket_reso[1])
@@ -713,7 +712,7 @@ class BaseDataset(torch.utils.data.Dataset):
         if len(batch) > 0:
             batches.append(batch)
 
-        # iterate batches   
+        # iterate batches
         for batch in tqdm(batches, smoothing=1, total=len(batches)):
             images = []
             for info in batch:
