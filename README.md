@@ -127,35 +127,21 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-
-- 19 Mar. 2023, 2023/3/19:
-  - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
-    - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
-    - All sub-sections are combined to a single dictionary (the section names are ignored.)
-    - Omitted arguments are the default values for command line arguments.
-    - Command line args override the arguments in `.toml`.
-    - With `--output_config` option, you can output current command line options  to the `.toml` specified with`--config_file`. Please use as a template.
-  - Add `--lr_scheduler_type` and `--lr_scheduler_args` arguments for custom LR scheduler to each training script. Thanks to Isotr0py! [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
-    - Same as the optimizer.
-  - Add sample image generation with weight and no length limit. Thanks to mio2333! [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
-    - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
-  - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
-
-  - 各学習スクリプトでコマンドライン引数の代わりに`.toml` ファイルで引数を指定できるようになりました。Linaqruf氏の多大な貢献に感謝します。
-    - `--config_file` で `.toml` ファイルを指定してください。ファイルは `key=value` 形式の行で指定し、key はコマンドラインオプションと同じです。詳細は [#241](https://github.com/kohya-ss/sd-scripts/pull/241) をご覧ください。
-    - ファイル内のサブセクションはすべて無視されます。
-    - 省略した引数はコマンドライン引数のデフォルト値になります。
-    - コマンドライン引数で `.toml` の設定を上書きできます。
-    - `--output_config` オプションを指定すると、現在のコマンドライン引数を`--config_file` オプションで指定した `.toml` ファイルに出力します。ひな形としてご利用ください。
-  - 任意のスケジューラを使うための `--lr_scheduler_type` と `--lr_scheduler_args` オプションを各学習スクリプトに追加しました。Isotr0py氏に感謝します。 [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
-    - 任意のオプティマイザ指定と同じ形式です。
-  - 学習中のサンプル画像出力でプロンプトの重みづけができるようになりました。また長さ制限も緩和されています。mio2333氏に感謝します。 [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
-    - `( )`、 `(xxxx:1.2)` や `[ ]` が使えます。
-  -  `train_network.py` でローカルのDiffusersモデルを指定した時のエラーを修正しました。orenwang氏に感謝します。 [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
-
-- 11 Mar. 2023, 2023/3/11:
-    - Fix `svd_merge_lora.py` causes an error about the device.
-    - `svd_merge_lora.py` でデバイス関連のエラーが発生する不具合を修正しました。
+- 21 Mar. 2023, 2023/3/21:
+  - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
+    - Please start with`2` or `4` depending on the size of VRAM.
+  - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
+  - Extract parser setup to external scripts. Thanks to robertsmieja!
+  - Fix an issue without `.npz` and with `--full_path` in training.
+  - Support extensions with upper cases for images for not Windows environment.
+  - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
+  - latentsのキャッシュを高速化する`--vae_batch_size` オプションを各学習スクリプトに追加しました。VAE呼び出しをバッチ化します。
+    -VRAMサイズに応じて、`2` か `4` 程度から試してください。
+  - `--gradient_accumulation_steps` と `--max_train_epochs` を指定した時、当該のepochで学習が止まらない不具合を修正しました。tsukimiya氏に感謝します。
+  - 外部のスクリプト用に引数parserの構築が関数化されました。robertsmieja氏に感謝します。
+  - 学習時、`--full_path` 指定時に `.npz` が存在しない場合の不具合を解消しました。
+  - Windows以外の環境向けに、画像ファイルの大文字の拡張子をサポートしました。
+  - `resize_lora.py` を dynamic rank （rankが各LoRAモジュールで異なる場合、`conv_dim` が `network_dim` と異なる場合も含む）の時に正しく動作しない不具合を修正しました。toshiaki氏に感謝します。
 
 
   - Sample image generation:

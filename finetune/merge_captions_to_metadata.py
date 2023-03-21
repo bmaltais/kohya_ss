@@ -46,7 +46,7 @@ def main(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
@@ -60,6 +60,12 @@ if __name__ == '__main__':
   parser.add_argument("--recursive", action="store_true",
                       help="recursively look for training tags in all child folders of train_data_dir / train_data_dirのすべての子フォルダにある学習タグを再帰的に探す")
   parser.add_argument("--debug", action="store_true", help="debug mode")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
 

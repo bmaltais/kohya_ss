@@ -24,9 +24,16 @@ def main(file):
     print(f"{key},{str(tuple(value.size())).replace(', ', '-')},{torch.mean(torch.abs(value))},{torch.min(torch.abs(value))}")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("file", type=str, help="model file to check / 重みを確認するモデルファイル")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
+
   args = parser.parse_args()
 
   main(args.file)

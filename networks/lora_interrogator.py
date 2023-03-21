@@ -105,7 +105,7 @@ def interrogate(args):
     print(f"[{i:3d}]: {token:5d} {string:<20s}: {diff:.5f}")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v2", action='store_true',
                       help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
@@ -117,6 +117,12 @@ if __name__ == '__main__':
                       help="batch size for processing with Text Encoder / Text Encoderで処理するときのバッチサイズ")
   parser.add_argument("--clip_skip", type=int, default=None,
                       help="use output of nth layer from back of text encoder (n>=1) / text encoderの後ろからn番目の層の出力を用いる（nは1以上）")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   interrogate(args)
