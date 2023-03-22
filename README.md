@@ -192,7 +192,7 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/03/19 (v21.3.0)
+* 2023/03/22 (v21.3.0)
     - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
         - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
         - All sub-sections are combined to a single dictionary (the section names are ignored.)
