@@ -212,6 +212,7 @@ This will store your a backup file with your current locally installed pip packa
     - Fix an issue without `.npz` and with `--full_path` in training.
     - Support extensions with upper cases for images for not Windows environment.
     - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
+    - Fix issue: https://github.com/bmaltais/kohya_ss/issues/406
 * 2023/03/19 (v21.2.5):
     - Fix basic captioning logic
     - Add possibility to not train TE in Dreamboot by setting `Step text encoder training` to -1.

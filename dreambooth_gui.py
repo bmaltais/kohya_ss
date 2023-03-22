@@ -331,11 +331,11 @@ def train_model(
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
 
-    # Get a list of all subfolders in train_data_dir
+    # Get a list of all subfolders in train_data_dir, excluding hidden folders
     subfolders = [
         f
         for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
+        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith('.')
     ]
 
     total_steps = 0
