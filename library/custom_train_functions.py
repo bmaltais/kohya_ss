@@ -10,7 +10,7 @@ def apply_snr_weight(loss, latents, noisy_latents, gamma):
   gamma_over_snr = torch.div(torch.ones_like(snr)*gamma,snr)
   snr_weight = torch.minimum(gamma_over_snr,torch.ones_like(gamma_over_snr)).float() #from paper
   loss = loss * snr_weight
-  print(snr_weight)
+  #print(snr_weight)
   return loss
 
 def add_custom_train_arguments(parser: argparse.ArgumentParser):
