@@ -338,12 +338,21 @@ def train_model(
         if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith('.')
     ]
 
+    # Check if subfolders are present. If not let the user know and return
+    if not subfolders:
+        print('\033[33mNo subfolders were found in', train_data_dir, ' can\'t train\...033[0m')
+        return
+
     total_steps = 0
 
     # Loop through each subfolder and extract the number of repeats
     for folder in subfolders:
         # Extract the number of repeats from the folder name
-        repeats = int(folder.split('_')[0])
+        try:
+            repeats = int(folder.split('_')[0])
+        except ValueError:
+            print('\033[33mSubfolder', folder, 'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
+            continue
 
         # Count the number of images in the folder
         num_images = len(
@@ -356,13 +365,20 @@ def train_model(
                 or f.endswith('.webp')
             ]
         )
+        
+        if num_images == 0:
+            print(f'{folder} folder contain no images, skipping...')
+        else:
+            # Calculate the total number of steps for this folder
+            steps = repeats * num_images
+            total_steps += steps
 
-        # Calculate the total number of steps for this folder
-        steps = repeats * num_images
-        total_steps += steps
+            # Print the result
+            print('\033[33mFolder', folder, ':', steps, 'steps\033[0m')
 
-        # Print the result
-        print(f'Folder {folder}: {steps} steps')
+    if total_steps == 0:
+        print('\033[33mNo images were found in folder', train_data_dir, '... please rectify!\033[0m')
+        return
 
     # Print the result
     # print(f"{total_steps} total steps")
@@ -370,9 +386,7 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print(
-            'Regularisation images are used... Will double the number of steps required...'
-        )
+        print('\033[94mRegularisation images are used... Will double the number of steps required...\033[0m')
         reg_factor = 2
 
     # calculate max_train_steps

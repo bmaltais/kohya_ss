@@ -11,8 +11,8 @@ import library.model_util as model_util
 import lora
 
 
-CLAMP_QUANTILE = 0.99
-MIN_DIFF = 1e-6
+CLAMP_QUANTILE = 1
+MIN_DIFF = 1e-8
 
 
 def save_to_file(file_name, model, state_dict, dtype):
@@ -121,12 +121,12 @@ def svd(args):
 
       Vh = Vh[:rank, :]
 
-      dist = torch.cat([U.flatten(), Vh.flatten()])
-      hi_val = torch.quantile(dist, CLAMP_QUANTILE)
-      low_val = -hi_val
+      # dist = torch.cat([U.flatten(), Vh.flatten()])
+      # hi_val = torch.quantile(dist, CLAMP_QUANTILE)
+      # low_val = -hi_val
 
-      U = U.clamp(low_val, hi_val)
-      Vh = Vh.clamp(low_val, hi_val)
+      # U = U.clamp(low_val, hi_val)
+      # Vh = Vh.clamp(low_val, hi_val)
 
       if conv2d:
         U = U.reshape(out_dim, rank, 1, 1)
