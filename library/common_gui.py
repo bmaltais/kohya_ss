@@ -928,6 +928,12 @@ def gradio_advanced_training():
         caption_dropout_rate = gr.Slider(
             label='Rate of caption dropout', value=0, minimum=0, maximum=1
         )
+        vae_batch_size = gr.Slider(
+            label='VAE batch size',
+            minimum=0,
+            maximum=32,
+            value=0
+        )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
         resume = gr.Textbox(
@@ -972,6 +978,7 @@ def gradio_advanced_training():
         caption_dropout_rate,
         noise_offset,
         additional_parameters,
+        vae_batch_size,
     )
 
 
@@ -998,8 +1005,11 @@ def run_cmd_advanced_training(**kwargs):
         f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
-        f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
-        if float(kwargs.get('caption_dropout_rate', 0)) > 0
+        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
+        if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
+        else '',
+        f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
+        if int(kwargs.get('vae_batch_size', 0)) > 0
         else '',
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1

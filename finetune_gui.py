@@ -104,7 +104,7 @@ def save_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -217,7 +217,7 @@ def open_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -312,7 +312,7 @@ def train_model(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
@@ -470,6 +470,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
 
     run_cmd += run_cmd_sample(
@@ -686,6 +687,7 @@ def finetune_tab():
                 caption_dropout_rate,
                 noise_offset,
                 additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -780,6 +782,7 @@ def finetune_tab():
         sample_sampler,
         sample_prompts,
         additional_parameters,
+        vae_batch_size,
     ]
 
     button_run.click(train_model, inputs=settings_list)

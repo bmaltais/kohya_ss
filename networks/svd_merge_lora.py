@@ -76,7 +76,11 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
         down_weight = down_weight.to(device)
 
       # W <- W + U * D
-      scale = (alpha / network_dim).to(device)
+      scale = (alpha / network_dim)
+
+      if device:                      # and isinstance(scale, torch.Tensor):
+        scale = scale.to(device)
+
       if not conv2d:        # linear
         weight = weight + ratio * (up_weight @ down_weight) * scale
       elif kernel_size == (1, 1):
@@ -115,12 +119,12 @@ def merge_lora_models(models, ratios, new_rank, new_conv_rank, device, merge_dty
 
       Vh = Vh[:module_new_rank, :]
 
-      # dist = torch.cat([U.flatten(), Vh.flatten()])
-      # hi_val = torch.quantile(dist, CLAMP_QUANTILE)
-      # low_val = -hi_val
+      dist = torch.cat([U.flatten(), Vh.flatten()])
+      hi_val = torch.quantile(dist, CLAMP_QUANTILE)
+      low_val = -hi_val
 
-      # U = U.clamp(low_val, hi_val)
-      # Vh = Vh.clamp(low_val, hi_val)
+      U = U.clamp(low_val, hi_val)
+      Vh = Vh.clamp(low_val, hi_val)
 
       if conv2d:
         U = U.reshape(out_dim, module_new_rank, 1, 1)
@@ -160,7 +164,7 @@ def merge(args):
   save_to_file(args.save_to, state_dict, save_dtype)
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--save_precision", type=str, default=None,
                       choices=[None, "float", "fp16", "bf16"], help="precision in saving, same to merging if omitted / 保存時に精度を変更して保存する、省略時はマージ時の精度と同じ")
@@ -177,6 +181,12 @@ if __name__ == '__main__':
   parser.add_argument("--new_conv_rank", type=int, default=None,
                       help="Specify rank of output LoRA for Conv2d 3x3, None for same as new_rank / 出力するConv2D 3x3 LoRAのrank (dim)、Noneでnew_rankと同じ")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   merge(args)

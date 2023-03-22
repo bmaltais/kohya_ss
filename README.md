@@ -205,6 +205,13 @@ This will store your a backup file with your current locally installed pip packa
         - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
     - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
     - Add warning if you are about to overwrite an existing model: https://github.com/bmaltais/kohya_ss/issues/404
+    - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
+        - Please start with`2` or `4` depending on the size of VRAM.
+    - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
+    - Extract parser setup to external scripts. Thanks to robertsmieja!
+    - Fix an issue without `.npz` and with `--full_path` in training.
+    - Support extensions with upper cases for images for not Windows environment.
+    - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
 * 2023/03/19 (v21.2.5):
     - Fix basic captioning logic
     - Add possibility to not train TE in Dreamboot by setting `Step text encoder training` to -1.

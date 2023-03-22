@@ -107,6 +107,7 @@ def save_configuration(
     sample_sampler,
     sample_prompts,
     additional_parameters,
+    vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -214,6 +215,7 @@ def open_configuration(
     sample_sampler,
     sample_prompts,
     additional_parameters,
+    vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -303,6 +305,7 @@ def train_model(
     sample_sampler,
     sample_prompts,
     additional_parameters,
+    vae_batch_size,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -480,6 +483,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
 
     run_cmd += run_cmd_sample(
@@ -686,6 +690,7 @@ def dreambooth_tab(
                 caption_dropout_rate,
                 noise_offset,
                 additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -786,6 +791,7 @@ def dreambooth_tab(
         sample_sampler,
         sample_prompts,
         additional_parameters,
+        vae_batch_size,
     ]
 
     button_open_config.click(

@@ -158,7 +158,7 @@ def merge(args):
     save_to_file(args.save_to, state_dict, state_dict, save_dtype)
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v2", action='store_true',
                       help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
@@ -174,6 +174,12 @@ if __name__ == '__main__':
                       help="LoRA models to merge: ckpt or safetensors file / マージするLoRAモデル、ckptまたはsafetensors")
   parser.add_argument("--ratios", type=float, nargs='*',
                       help="ratios for each model / それぞれのLoRAモデルの比率")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   merge(args)
