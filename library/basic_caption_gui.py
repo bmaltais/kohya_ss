@@ -122,7 +122,7 @@ def gradio_basic_caption_gui_tab():
                 label='Replacement text',
                 placeholder='Eg: , by some artist. Leave empty if you just want to replace with nothing',
                 interactive=True,
-                )
+            )
             caption_button = gr.Button('Caption images')
             caption_button.click(
                 caption_images,

@@ -125,7 +125,7 @@ def main(args):
       tag_text = ""
       for i, p in enumerate(prob[4:]):                # numpyとか使うのが良いけど、まあそれほど数も多くないのでループで
         if p >= args.thresh and i < len(tags):
-          tag_text += ", " + (tags[i].replace("_", " ") if args.replace_underscores else tags[i])
+          tag_text += ", " + tags[i]
 
       if len(tag_text) > 0:
         tag_text = tag_text[2:]                   # 最初の ", " を消す
@@ -173,7 +173,7 @@ def main(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("--repo_id", type=str, default=DEFAULT_WD14_TAGGER_REPO,
@@ -190,7 +190,12 @@ if __name__ == '__main__':
                       help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
   parser.add_argument("--caption_extension", type=str, default=".txt", help="extension of caption file / 出力されるキャプションファイルの拡張子")
   parser.add_argument("--debug", action="store_true", help="debug mode")
-  parser.add_argument("--replace_underscores", action="store_true", help="replace underscores in tags with spaces / タグのアンダースコアをスペースに置き換える")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
 

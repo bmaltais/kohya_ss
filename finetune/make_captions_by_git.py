@@ -127,7 +127,7 @@ def main(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("--caption_extension", type=str, default=".caption", help="extension of caption file / 出力されるキャプションファイルの拡張子")
@@ -140,6 +140,12 @@ if __name__ == '__main__':
   parser.add_argument("--remove_words", action="store_true",
                       help="remove like `with the words xxx` from caption / `with the words xxx`のような部分をキャプションから削除する")
   parser.add_argument("--debug", action="store_true", help="debug mode")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   main(args)

@@ -2690,7 +2690,7 @@ def main(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
 
   parser.add_argument("--v2", action='store_true', help='load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む')
@@ -2785,6 +2785,12 @@ if __name__ == '__main__':
   parser.add_argument("--control_net_weights", type=float, default=None, nargs='*', help='ControlNet weights / ControlNetの重み')
   parser.add_argument("--control_net_ratios", type=float, default=None, nargs='*',
                       help='ControlNet guidance ratio for steps / ControlNetでガイドするステップ比率')
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   main(args)

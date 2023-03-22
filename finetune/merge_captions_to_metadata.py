@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from tqdm import tqdm
 import library.train_util as train_util
-
+import os
 
 def main(args):
   assert not args.recursive or (args.recursive and args.full_path), "recursive requires full_path / recursiveはfull_pathと同時に指定してください"
@@ -29,6 +29,9 @@ def main(args):
     caption_path = image_path.with_suffix(args.caption_extension)
     caption = caption_path.read_text(encoding='utf-8').strip()
 
+    if not os.path.exists(caption_path):
+      caption_path = os.path.join(image_path, args.caption_extension)
+
     image_key = str(image_path) if args.full_path else image_path.stem
     if image_key not in metadata:
       metadata[image_key] = {}
@@ -43,7 +46,7 @@ def main(args):
   print("done!")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
   parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
@@ -57,6 +60,12 @@ if __name__ == '__main__':
   parser.add_argument("--recursive", action="store_true",
                       help="recursively look for training tags in all child folders of train_data_dir / train_data_dirのすべての子フォルダにある学習タグを再帰的に探す")
   parser.add_argument("--debug", action="store_true", help="debug mode")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
 

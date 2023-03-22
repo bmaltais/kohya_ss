@@ -16,12 +16,23 @@ PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def extract_lycoris_locon(
-    db_model, base_model, output_name, device, 
-                    is_v2, mode, linear_dim, conv_dim,
-                    linear_threshold, conv_threshold,
-                    linear_ratio, conv_ratio,
-                    linear_quantile, conv_quantile,
-                    use_sparse_bias, sparsity, disable_cp
+    db_model,
+    base_model,
+    output_name,
+    device,
+    is_v2,
+    mode,
+    linear_dim,
+    conv_dim,
+    linear_threshold,
+    conv_threshold,
+    linear_ratio,
+    conv_ratio,
+    linear_quantile,
+    conv_quantile,
+    use_sparse_bias,
+    sparsity,
+    disable_cp,
 ):
     # Check for caption_text_input
     if db_model == '':
@@ -41,9 +52,7 @@ def extract_lycoris_locon(
         msgbox('The provided base model is not a file')
         return
 
-    run_cmd = (
-        f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
-    )
+    run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
     if is_v2:
         run_cmd += f' --is_v2'
     run_cmd += f' --device {device}'
@@ -89,10 +98,11 @@ def extract_lycoris_locon(
 #     if mode == 'threshold':
 #         return gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=True)
 
+
 def update_mode(mode):
     # Create a list of possible mode values
     modes = ['fixed', 'threshold', 'ratio', 'quantile']
-    
+
     # Initialize an empty list to store visibility updates
     updates = []
 
@@ -104,12 +114,15 @@ def update_mode(mode):
     # Return the visibility updates as a tuple
     return tuple(updates)
 
+
 def gradio_extract_lycoris_locon_tab():
     with gr.Tab('Extract LyCORIS LoCON'):
         gr.Markdown(
             'This utility can extract a LyCORIS LoCon network from a finetuned model.'
         )
-        lora_ext = gr.Textbox(value='*.safetensors', visible=False) # lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
+        lora_ext = gr.Textbox(
+            value='*.safetensors', visible=False
+        )   # lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
         model_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
         model_ext_name = gr.Textbox(value='Model types', visible=False)
@@ -161,14 +174,17 @@ def gradio_extract_lycoris_locon_tab():
             )
             device = gr.Dropdown(
                 label='Device',
-                choices=['cpu', 'cuda',],
+                choices=[
+                    'cpu',
+                    'cuda',
+                ],
                 value='cuda',
                 interactive=True,
             )
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
         mode = gr.Dropdown(
             label='Mode',
-            choices=['fixed', 'threshold','ratio','quantile'],
+            choices=['fixed', 'threshold', 'ratio', 'quantile'],
             value='fixed',
             interactive=True,
         )
@@ -241,7 +257,9 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
         with gr.Row():
-            use_sparse_bias = gr.Checkbox(label='Use sparse biais', value=False, interactive=True)
+            use_sparse_bias = gr.Checkbox(
+                label='Use sparse biais', value=False, interactive=True
+            )
             sparsity = gr.Slider(
                 minimum=0,
                 maximum=1,
@@ -250,24 +268,42 @@ def gradio_extract_lycoris_locon_tab():
                 step=0.01,
                 interactive=True,
             )
-            disable_cp = gr.Checkbox(label='Disable CP decomposition', value=False, interactive=True)
+            disable_cp = gr.Checkbox(
+                label='Disable CP decomposition', value=False, interactive=True
+            )
         mode.change(
             update_mode,
             inputs=[mode],
             outputs=[
-                fixed, threshold, ratio, quantile,
-            ]
+                fixed,
+                threshold,
+                ratio,
+                quantile,
+            ],
         )
 
         extract_button = gr.Button('Extract LyCORIS LoCon')
 
         extract_button.click(
             extract_lycoris_locon,
-            inputs=[db_model, base_model, output_name, device, 
-                    is_v2, mode, linear_dim, conv_dim,
-                    linear_threshold, conv_threshold,
-                    linear_ratio, conv_ratio,
-                    linear_quantile, conv_quantile,
-                    use_sparse_bias, sparsity, disable_cp],
+            inputs=[
+                db_model,
+                base_model,
+                output_name,
+                device,
+                is_v2,
+                mode,
+                linear_dim,
+                conv_dim,
+                linear_threshold,
+                conv_threshold,
+                linear_ratio,
+                conv_ratio,
+                linear_quantile,
+                conv_quantile,
+                use_sparse_bias,
+                sparsity,
+                disable_cp,
+            ],
             show_progress=False,
         )

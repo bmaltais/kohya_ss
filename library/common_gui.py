@@ -1,7 +1,7 @@
 from tkinter import filedialog, Tk
 import os
 import gradio as gr
-from easygui import msgbox
+import easygui
 import shutil
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -31,6 +31,34 @@ V1_MODELS = [
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
 
+def check_if_model_exist(output_name, output_dir, save_model_as):
+    if save_model_as in ['diffusers', 'diffusers_safetendors']:
+        ckpt_folder = os.path.join(output_dir, output_name)
+        if os.path.isdir(ckpt_folder):
+            msg = f'A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?'
+            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
+                print(
+                    'Aborting training due to existing model with same name...'
+                )
+                return True
+    elif save_model_as in ['ckpt', 'safetensors']:
+        ckpt_file = os.path.join(output_dir, output_name + '.' + save_model_as)
+        if os.path.isfile(ckpt_file):
+            msg = f'A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?'
+            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
+                print(
+                    'Aborting training due to existing model with same name...'
+                )
+                return True
+    else:
+        print(
+            'Can\'t verify if existing model exist when save model is set a "same as source model", continuing to train model...'
+        )
+        return False
+
+    return False
+
+
 def update_my_data(my_data):
     # Update optimizer based on use_8bit_adam flag
     use_8bit_adam = my_data.get('use_8bit_adam', False)
@@ -38,11 +66,16 @@ def update_my_data(my_data):
         my_data['optimizer'] = 'AdamW8bit'
     elif 'optimizer' not in my_data:
         my_data['optimizer'] = 'AdamW'
-    
+
     # Update model_list to custom if empty or pretrained_model_name_or_path is not a preset model
     model_list = my_data.get('model_list', [])
-    pretrained_model_name_or_path = my_data.get('pretrained_model_name_or_path', '')
-    if not model_list or pretrained_model_name_or_path not in ALL_PRESET_MODELS:
+    pretrained_model_name_or_path = my_data.get(
+        'pretrained_model_name_or_path', ''
+    )
+    if (
+        not model_list
+        or pretrained_model_name_or_path not in ALL_PRESET_MODELS
+    ):
         my_data['model_list'] = 'custom'
 
     # Convert epoch and save_every_n_epochs values to int if they are strings
@@ -78,7 +111,7 @@ def update_my_data(my_data):
 #     # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
 #     if not my_data.get('pretrained_model_name_or_path', '') in ALL_PRESET_MODELS:
 #         my_data['model_list'] = 'custom'
-    
+
 #     # Fix old config files that contain epoch as str instead of int
 #     for key in ['epoch', 'save_every_n_epochs']:
 #         value = my_data.get(key, -1)
@@ -87,10 +120,10 @@ def update_my_data(my_data):
 #                 my_data[key] = int(value)
 #             else:
 #                 my_data[key] = -1
-                
+
 #     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
 #         my_data['LoRA_type'] = 'LyCORIS/LoCon'
-        
+
 #     return my_data
 
 
@@ -265,11 +298,11 @@ def get_saveasfilename_path(
 
 
 def add_pre_postfix(
-        folder: str = '', 
-        prefix: str = '', 
-        postfix: str = '', 
-        caption_file_ext: str = '.caption'
-    ) -> None:
+    folder: str = '',
+    prefix: str = '',
+    postfix: str = '',
+    caption_file_ext: str = '.caption',
+) -> None:
     """
     Add prefix and/or postfix to the content of caption files within a folder.
     If no caption files are found, create one with the requested prefix and/or postfix.
@@ -285,7 +318,9 @@ def add_pre_postfix(
         return
 
     image_extensions = ('.jpg', '.jpeg', '.png', '.webp')
-    image_files = [f for f in os.listdir(folder) if f.lower().endswith(image_extensions)]
+    image_files = [
+        f for f in os.listdir(folder) if f.lower().endswith(image_extensions)
+    ]
 
     for image_file in image_files:
         caption_file_name = os.path.splitext(image_file)[0] + caption_file_ext
@@ -303,7 +338,10 @@ def add_pre_postfix(
 
                 prefix_separator = ' ' if prefix else ''
                 postfix_separator = ' ' if postfix else ''
-                f.write(f'{prefix}{prefix_separator}{content}{postfix_separator}{postfix}')
+                f.write(
+                    f'{prefix}{prefix_separator}{content}{postfix_separator}{postfix}'
+                )
+
 
 # def add_pre_postfix(
 #     folder='', prefix='', postfix='', caption_file_ext='.caption'
@@ -335,11 +373,11 @@ def add_pre_postfix(
 def has_ext_files(folder_path: str, file_extension: str) -> bool:
     """
     Check if there are any files with the specified extension in the given folder.
-    
+
     Args:
         folder_path (str): Path to the folder containing files.
         file_extension (str): Extension of the files to look for.
-    
+
     Returns:
         bool: True if files with the specified extension are found, False otherwise.
     """
@@ -348,15 +386,16 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
             return True
     return False
 
+
 def find_replace(
-        folder_path: str = '', 
-        caption_file_ext: str = '.caption', 
-        search_text: str = '', 
-        replace_text: str = ''
-    ) -> None:
+    folder_path: str = '',
+    caption_file_ext: str = '.caption',
+    search_text: str = '',
+    replace_text: str = '',
+) -> None:
     """
     Find and replace text in caption files within a folder.
-    
+
     Args:
         folder_path (str, optional): Path to the folder containing caption files.
         caption_file_ext (str, optional): Extension of the caption files.
@@ -364,7 +403,7 @@ def find_replace(
         replace_text (str, optional): Text to replace the search text with.
     """
     print('Running caption find/replace')
-    
+
     if not has_ext_files(folder_path, caption_file_ext):
         msgbox(
             f'No files with extension {caption_file_ext} were found in {folder_path}...'
@@ -374,16 +413,21 @@ def find_replace(
     if search_text == '':
         return
 
-    caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
-    
+    caption_files = [
+        f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)
+    ]
+
     for caption_file in caption_files:
-        with open(os.path.join(folder_path, caption_file), 'r', errors='ignore') as f:
+        with open(
+            os.path.join(folder_path, caption_file), 'r', errors='ignore'
+        ) as f:
             content = f.read()
 
         content = content.replace(search_text, replace_text)
 
         with open(os.path.join(folder_path, caption_file), 'w') as f:
             f.write(content)
+
 
 # def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
 #     print('Running caption find/replace')
@@ -477,17 +521,15 @@ def set_pretrained_model_name_or_path_input(
         if (
             str(pretrained_model_name_or_path) in V1_MODELS
             or str(pretrained_model_name_or_path) in V2_BASE_MODELS
-            or str(pretrained_model_name_or_path)
-            in V_PARAMETERIZATION_MODELS
+            or str(pretrained_model_name_or_path) in V_PARAMETERIZATION_MODELS
         ):
             pretrained_model_name_or_path = ''
             v2 = False
             v_parameterization = False
     return model_list, pretrained_model_name_or_path, v2, v_parameterization
 
-def set_v2_checkbox(
-    model_list, v2, v_parameterization
-):
+
+def set_v2_checkbox(model_list, v2, v_parameterization):
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
     if str(model_list) in V2_BASE_MODELS:
         v2 = True
@@ -504,6 +546,7 @@ def set_v2_checkbox(
 
     return v2, v_parameterization
 
+
 def set_model_list(
     model_list,
     pretrained_model_name_or_path,
@@ -515,7 +558,7 @@ def set_model_list(
         model_list = 'custom'
     else:
         model_list = pretrained_model_name_or_path
-        
+
     return model_list, v2, v_parameterization
 
 
@@ -538,7 +581,11 @@ def gradio_config():
                 interactive=True,
             )
             button_load_config = gr.Button('Load 💾', elem_id='open_folder')
-            config_file_name.change(remove_doublequote, inputs=[config_file_name], outputs=[config_file_name])
+            config_file_name.change(
+                remove_doublequote,
+                inputs=[config_file_name],
+                outputs=[config_file_name],
+            )
     return (
         button_open_config,
         button_save_config,
@@ -614,8 +661,18 @@ def gradio_source_model():
             v_parameterization = gr.Checkbox(
                 label='v_parameterization', value=False
             )
-            v2.change(set_v2_checkbox, inputs=[model_list, v2, v_parameterization], outputs=[v2, v_parameterization],show_progress=False)
-            v_parameterization.change(set_v2_checkbox, inputs=[model_list, v2, v_parameterization], outputs=[v2, v_parameterization],show_progress=False)
+            v2.change(
+                set_v2_checkbox,
+                inputs=[model_list, v2, v_parameterization],
+                outputs=[v2, v_parameterization],
+                show_progress=False,
+            )
+            v_parameterization.change(
+                set_v2_checkbox,
+                inputs=[model_list, v2, v_parameterization],
+                outputs=[v2, v_parameterization],
+                show_progress=False,
+            )
         model_list.change(
             set_pretrained_model_name_or_path_input,
             inputs=[
@@ -671,7 +728,9 @@ def gradio_training(
             step=1,
         )
         epoch = gr.Number(label='Epoch', value=1, precision=0)
-        save_every_n_epochs = gr.Number(label='Save every N epochs', value=1, precision=0)
+        save_every_n_epochs = gr.Number(
+            label='Save every N epochs', value=1, precision=0
+        )
         caption_extension = gr.Textbox(
             label='Caption Extension',
             placeholder='(Optional) Extension for caption files. default: .caption',
@@ -788,7 +847,7 @@ def run_cmd_training(**kwargs):
         if kwargs.get('save_precision')
         else '',
         f' --seed="{kwargs.get("seed", "")}"'
-        if kwargs.get('seed') != ""
+        if kwargs.get('seed') != ''
         else '',
         f' --caption_extension="{kwargs.get("caption_extension", "")}"'
         if kwargs.get('caption_extension')
@@ -807,7 +866,7 @@ def run_cmd_training(**kwargs):
 def gradio_advanced_training():
     with gr.Row():
         additional_parameters = gr.Textbox(
-            label='Additional parameters', 
+            label='Additional parameters',
             placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
         )
     with gr.Row():
@@ -869,6 +928,13 @@ def gradio_advanced_training():
         caption_dropout_rate = gr.Slider(
             label='Rate of caption dropout', value=0, minimum=0, maximum=1
         )
+        vae_batch_size = gr.Slider(
+            label='VAE batch size',
+            minimum=0,
+            maximum=32,
+            value=0,
+            every=1
+        )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
         resume = gr.Textbox(
@@ -913,6 +979,7 @@ def gradio_advanced_training():
         caption_dropout_rate,
         noise_offset,
         additional_parameters,
+        vae_batch_size,
     )
 
 
@@ -939,8 +1006,11 @@ def run_cmd_advanced_training(**kwargs):
         f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
-        f' --caption_dropout_rate="{kwargs.get("caption_dropout_rate", "")}"'
-        if float(kwargs.get('caption_dropout_rate', 0)) > 0
+        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
+        if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
+        else '',
+        f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
+        if int(kwargs.get('vae_batch_size', 0)) > 0
         else '',
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
@@ -964,7 +1034,7 @@ def run_cmd_advanced_training(**kwargs):
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if not kwargs.get('noise_offset', '') == ''
         else '',
-        f' {kwargs.get("additional_parameters", "")}'
+        f' {kwargs.get("additional_parameters", "")}',
     ]
     run_cmd = ''.join(options)
     return run_cmd

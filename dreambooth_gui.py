@@ -26,6 +26,7 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
+    check_if_model_exist,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -104,7 +105,9 @@ def save_configuration(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -210,15 +213,17 @@ def open_configuration(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     ask_for_file = True if ask_for_file.get('label') == 'True' else False
 
     original_file_path = file_path
-    
+
     if ask_for_file:
         file_path = get_file_path(file_path)
 
@@ -298,7 +303,9 @@ def train_model(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -321,19 +328,31 @@ def train_model(
         msgbox('Output folder path is missing')
         return
 
-    # Get a list of all subfolders in train_data_dir
+    if check_if_model_exist(output_name, output_dir, save_model_as):
+        return
+
+    # Get a list of all subfolders in train_data_dir, excluding hidden folders
     subfolders = [
         f
         for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
+        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith('.')
     ]
+
+    # Check if subfolders are present. If not let the user know and return
+    if not subfolders:
+        print('\033[33mNo subfolders were found in', train_data_dir, ' can\'t train\...033[0m')
+        return
 
     total_steps = 0
 
     # Loop through each subfolder and extract the number of repeats
     for folder in subfolders:
         # Extract the number of repeats from the folder name
-        repeats = int(folder.split('_')[0])
+        try:
+            repeats = int(folder.split('_')[0])
+        except ValueError:
+            print('\033[33mSubfolder', folder, 'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
+            continue
 
         # Count the number of images in the folder
         num_images = len(
@@ -346,13 +365,20 @@ def train_model(
                 or f.endswith('.webp')
             ]
         )
+        
+        if num_images == 0:
+            print(f'{folder} folder contain no images, skipping...')
+        else:
+            # Calculate the total number of steps for this folder
+            steps = repeats * num_images
+            total_steps += steps
 
-        # Calculate the total number of steps for this folder
-        steps = repeats * num_images
-        total_steps += steps
+            # Print the result
+            print('\033[33mFolder', folder, ':', steps, 'steps\033[0m')
 
-        # Print the result
-        print(f'Folder {folder}: {steps} steps')
+    if total_steps == 0:
+        print('\033[33mNo images were found in folder', train_data_dir, '... please rectify!\033[0m')
+        return
 
     # Print the result
     # print(f"{total_steps} total steps")
@@ -360,9 +386,7 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print(
-            'Regularisation images are used... Will double the number of steps required...'
-        )
+        print('\033[94mRegularisation images are used... Will double the number of steps required...\033[0m')
         reg_factor = 2
 
     # calculate max_train_steps
@@ -473,6 +497,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
 
     run_cmd += run_cmd_sample(
@@ -679,6 +704,7 @@ def dreambooth_tab(
                 caption_dropout_rate,
                 noise_offset,
                 additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -779,6 +805,7 @@ def dreambooth_tab(
         sample_sampler,
         sample_prompts,
         additional_parameters,
+        vae_batch_size,
     ]
 
     button_open_config.click(
@@ -787,7 +814,7 @@ def dreambooth_tab(
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
-    
+
     button_load_config.click(
         open_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,

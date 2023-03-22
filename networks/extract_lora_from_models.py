@@ -11,8 +11,8 @@ import library.model_util as model_util
 import lora
 
 
-CLAMP_QUANTILE = 0.99
-MIN_DIFF = 1e-6
+CLAMP_QUANTILE = 1
+MIN_DIFF = 1e-8
 
 
 def save_to_file(file_name, model, state_dict, dtype):
@@ -113,7 +113,7 @@ def svd(args):
         else:
           mat = mat.squeeze()
 
-      U, S, Vh = torch.linalg.svd(mat.to("cuda"))
+      U, S, Vh = torch.linalg.svd(mat)
 
       U = U[:, :rank]
       S = S[:rank]
@@ -121,7 +121,7 @@ def svd(args):
 
       Vh = Vh[:rank, :]
 
-      dist = torch.cat([U.flatten(), Vh.flatten()])
+      # dist = torch.cat([U.flatten(), Vh.flatten()])
       # hi_val = torch.quantile(dist, CLAMP_QUANTILE)
       # low_val = -hi_val
 
@@ -132,8 +132,8 @@ def svd(args):
         U = U.reshape(out_dim, rank, 1, 1)
         Vh = Vh.reshape(rank, in_dim, kernel_size[0], kernel_size[1])
 
-      U = U.to("cuda").contiguous()
-      Vh = Vh.to("cuda").contiguous()
+      U = U.to("cpu").contiguous()
+      Vh = Vh.to("cpu").contiguous()
 
       lora_weights[lora_name] = (U, Vh)
 
@@ -162,7 +162,7 @@ def svd(args):
   print(f"LoRA weights are saved to: {args.save_to}")
 
 
-if __name__ == '__main__':
+def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v2", action='store_true',
                       help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
@@ -178,6 +178,12 @@ if __name__ == '__main__':
   parser.add_argument("--conv_dim", type=int, default=None,
                       help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）")
   parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
+
+  return parser
+
+
+if __name__ == '__main__':
+  parser = setup_parser()
 
   args = parser.parse_args()
   svd(args)

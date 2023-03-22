@@ -4,6 +4,7 @@
 # v3.1: Adding captionning of images to utilities
 
 import gradio as gr
+import easygui
 import json
 import math
 import os
@@ -26,6 +27,7 @@ from library.common_gui import (
     run_cmd_training,
     # set_legacy_8bitadam,
     update_my_data,
+    check_if_model_exist,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -120,7 +122,8 @@ def save_configuration(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -236,15 +239,16 @@ def open_configuration(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     ask_for_file = True if ask_for_file.get('label') == 'True' else False
 
     original_file_path = file_path
-    
+
     if ask_for_file:
         file_path = get_file_path(file_path)
 
@@ -342,10 +346,11 @@ def train_model(
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
-    sample_prompts,additional_parameters,
+    sample_prompts,
+    additional_parameters,vae_batch_size,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
-    
+
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
         return
@@ -379,6 +384,9 @@ def train_model(
             'Output "stop text encoder training" is not yet supported. Ignoring'
         )
         stop_text_encoder_training_pct = 0
+
+    if check_if_model_exist(output_name, output_dir, save_model_as):
+        return
 
     # If string is empty set string to 0.
     if text_encoder_lr == '':
@@ -417,7 +425,7 @@ def train_model(
                 or f.endswith('.webp')
             ]
         )
-        
+
         print(f'Folder {folder}: {num_images} images found')
 
         # Calculate the total number of steps for this folder
@@ -425,7 +433,7 @@ def train_model(
 
         # Print the result
         print(f'Folder {folder}: {steps} steps')
-        
+
         total_steps += steps
 
     # calculate max_train_steps
@@ -492,9 +500,7 @@ def train_model(
             )
             return
         run_cmd += f' --network_module=lycoris.kohya'
-        run_cmd += (
-            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=lora"'
-        )
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=lora"'
     if LoRA_type == 'LyCORIS/LoHa':
         try:
             import lycoris
@@ -504,9 +510,7 @@ def train_model(
             )
             return
         run_cmd += f' --network_module=lycoris.kohya'
-        run_cmd += (
-            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
-        )
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
     if LoRA_type == 'Kohya LoCon':
         run_cmd += f' --network_module=networks.lora'
         run_cmd += (
@@ -585,6 +589,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
 
     run_cmd += run_cmd_sample(
@@ -595,8 +600,10 @@ def train_model(
         output_dir,
     )
 
-    if  print_only_bool:
-        print('\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n')
+    if print_only_bool:
+        print(
+            '\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n'
+        )
         print('\033[96m' + run_cmd + '\033[0m\n')
     else:
         print(run_cmd)
@@ -611,7 +618,9 @@ def train_model(
 
         if not last_dir.is_dir():
             # Copy inference model for v2 if required
-            save_inference_file(output_dir, v2, v_parameterization, output_name)
+            save_inference_file(
+                output_dir, v2, v_parameterization, output_name
+            )
 
 
 def lora_tab(
@@ -811,7 +820,12 @@ def lora_tab(
         # Show of hide LoCon conv settings depending on LoRA type selection
         def LoRA_type_change(LoRA_type):
             print('LoRA type changed...')
-            if LoRA_type == 'LoCon' or LoRA_type == 'Kohya LoCon' or LoRA_type == 'LyCORIS/LoHa' or LoRA_type == 'LyCORIS/LoCon':
+            if (
+                LoRA_type == 'LoCon'
+                or LoRA_type == 'Kohya LoCon'
+                or LoRA_type == 'LyCORIS/LoHa'
+                or LoRA_type == 'LyCORIS/LoCon'
+            ):
                 return gr.Group.update(visible=True)
             else:
                 return gr.Group.update(visible=False)
@@ -876,7 +890,9 @@ def lora_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,additional_parameters,
+                noise_offset,
+                additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -908,7 +924,7 @@ def lora_tab(
         gradio_verify_lora_tab()
 
     button_run = gr.Button('Train model', variant='primary')
-    
+
     button_print = gr.Button('Print training command')
 
     # Setup gradio tensorboard buttons
@@ -992,7 +1008,9 @@ def lora_tab(
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
-        sample_prompts,additional_parameters,
+        sample_prompts,
+        additional_parameters,
+        vae_batch_size,
     ]
 
     button_open_config.click(
@@ -1001,7 +1019,7 @@ def lora_tab(
         outputs=[config_file_name] + settings_list + [LoCon_row],
         show_progress=False,
     )
-    
+
     button_load_config.click(
         open_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
@@ -1028,7 +1046,7 @@ def lora_tab(
         inputs=[dummy_db_false] + settings_list,
         show_progress=False,
     )
-    
+
     button_print.click(
         train_model,
         inputs=[dummy_db_true] + settings_list,

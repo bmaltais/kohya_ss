@@ -23,6 +23,7 @@ def extract_lora(
     dim,
     v2,
     conv_dim,
+    device,
 ):
     # Check for caption_text_input
     if model_tuned == '':
@@ -50,6 +51,7 @@ def extract_lora(
     run_cmd += f' --model_org "{model_org}"'
     run_cmd += f' --model_tuned "{model_tuned}"'
     run_cmd += f' --dim {dim}'
+    run_cmd += f' --device {device}'
     if conv_dim > 0:
         run_cmd += f' --conv_dim {conv_dim}'
     if v2:
@@ -148,11 +150,29 @@ def gradio_extract_lora_tab():
                 interactive=True,
             )
             v2 = gr.Checkbox(label='v2', value=False, interactive=True)
+            device = gr.Dropdown(
+                label='Device',
+                choices=[
+                    'cpu',
+                    'cuda',
+                ],
+                value='cuda',
+                interactive=True,
+            )
 
         extract_button = gr.Button('Extract LoRA model')
 
         extract_button.click(
             extract_lora,
-            inputs=[model_tuned, model_org, save_to, save_precision, dim, v2, conv_dim],
+            inputs=[
+                model_tuned,
+                model_org,
+                save_to,
+                save_precision,
+                dim,
+                v2,
+                conv_dim,
+                device
+            ],
             show_progress=False,
         )

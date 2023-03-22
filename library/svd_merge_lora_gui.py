@@ -163,7 +163,10 @@ def gradio_svd_merge_lora_tab():
             )
             device = gr.Dropdown(
                 label='Device',
-                choices=['cpu', 'cuda',],
+                choices=[
+                    'cpu',
+                    'cuda',
+                ],
                 value='cuda',
                 interactive=True,
             )

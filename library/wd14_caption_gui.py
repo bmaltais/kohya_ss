@@ -5,7 +5,9 @@ from .common_gui import get_folder_path
 import os
 
 
-def caption_images(train_data_dir, caption_extension, batch_size, thresh, replace_underscores):
+def caption_images(
+    train_data_dir, caption_extension, batch_size, thresh, replace_underscores
+):
     # Check for caption_text_input
     # if caption_text_input == "":
     #     msgbox("Caption text is missing...")
@@ -76,7 +78,7 @@ def gradio_wd14_caption_gui_tab():
             batch_size = gr.Number(
                 value=1, label='Batch size', interactive=True
             )
-            
+
             replace_underscores = gr.Checkbox(
                 label='Replace underscores in filenames with spaces',
                 value=False,
@@ -87,6 +89,12 @@ def gradio_wd14_caption_gui_tab():
 
         caption_button.click(
             caption_images,
-            inputs=[train_data_dir, caption_extension, batch_size, thresh, replace_underscores],
+            inputs=[
+                train_data_dir,
+                caption_extension,
+                batch_size,
+                thresh,
+                replace_underscores,
+            ],
             show_progress=False,
         )

@@ -41,6 +41,9 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ## Installation
 
+### Runpod
+Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
+
 ### Ubuntu
 In the terminal, run
 
@@ -189,6 +192,28 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/22 (v21.3.0)
+    - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
+        - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
+        - All sub-sections are combined to a single dictionary (the section names are ignored.)
+        - Omitted arguments are the default values for command line arguments.
+        - Command line args override the arguments in `.toml`.
+        - With `--output_config` option, you can output current command line options  to the `.toml` specified with`--config_file`. Please use as a template.
+    - Add `--lr_scheduler_type` and `--lr_scheduler_args` arguments for custom LR scheduler to each training script. Thanks to Isotr0py! [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
+        - Same as the optimizer.
+    - Add sample image generation with weight and no length limit. Thanks to mio2333! [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
+        - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
+    - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
+    - Add warning if you are about to overwrite an existing model: https://github.com/bmaltais/kohya_ss/issues/404
+    - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
+        - Please start with`2` or `4` depending on the size of VRAM.
+    - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
+    - Extract parser setup to external scripts. Thanks to robertsmieja!
+    - Fix an issue without `.npz` and with `--full_path` in training.
+    - Support extensions with upper cases for images for not Windows environment.
+    - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
+    - Fix issue: https://github.com/bmaltais/kohya_ss/issues/406
+    - Add device support to LoRA extract.
 * 2023/03/19 (v21.2.5):
     - Fix basic captioning logic
     - Add possibility to not train TE in Dreamboot by setting `Step text encoder training` to -1.
