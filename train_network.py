@@ -23,7 +23,8 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
-
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight 
 
 def collate_fn(examples):
     return examples[0]
@@ -548,16 +549,9 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
-                gamma = args.min_snr_gamma
-                if gamma:
-                  sigma = torch.sub(noisy_latents, latents) #find noise as applied
-                  zeros = torch.zeros_like(sigma) 
-                  alpha_mean_sq = torch.nn.functional.mse_loss(latents.float(), zeros.float(), reduction="none").mean([1, 2, 3]) #trick to get Mean Square
-                  sigma_mean_sq = torch.nn.functional.mse_loss(sigma.float(), zeros.float(), reduction="none").mean([1, 2, 3]) #trick to get Mean Square
-                  snr = torch.div(alpha_mean_sq,sigma_mean_sq) #Signal to Noise Ratio = ratio of Mean Squares
-                  gamma_over_snr = torch.div(torch.ones_like(snr)*gamma,snr)
-                  snr_weight = torch.minimum(gamma_over_snr,torch.ones_like(gamma_over_snr)).float() #from paper
-                  loss = loss * snr_weight
+                 
+                if args.min_snr_gamma:
+                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -662,6 +656,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_training_arguments(parser, True)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument("--no_metadata", action="store_true", help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
     parser.add_argument(

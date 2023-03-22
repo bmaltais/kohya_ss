@@ -17,6 +17,8 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -377,6 +379,9 @@ def train(args):
 
                 loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
                 loss = loss.mean([1, 2, 3])
+                
+                if args.min_snr_gamma:
+                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
@@ -534,6 +539,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_training_arguments(parser, True)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument(
         "--save_model_as",
