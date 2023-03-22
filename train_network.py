@@ -15,6 +15,7 @@ from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 
 import library.train_util as train_util
+from library.custom_train_functions import apply_snr_weight
 from library.train_util import (
     DreamBoothDataset,
 )
@@ -548,6 +549,8 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+                
+                loss = apply_snr_weight(loss, noisy_latents, latents, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 

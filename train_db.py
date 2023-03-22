@@ -10,6 +10,7 @@ import os
 import toml
 
 from tqdm import tqdm
+from library.custom_train_functions import apply_snr_weight
 import torch
 from accelerate.utils import set_seed
 import diffusers
@@ -290,6 +291,8 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+                
+                loss = apply_snr_weight(loss, noisy_latents, latents, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
