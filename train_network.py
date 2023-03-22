@@ -200,6 +200,9 @@ def train(args):
         if is_main_process:
             print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
+    # データセット側にも学習ステップを送信
+    train_dataset_group.set_max_train_steps(args.max_train_steps)
+
     # lr schedulerを用意する
     lr_scheduler = train_util.get_scheduler_fix(args, optimizer, accelerator.num_processes)
 
@@ -505,6 +508,7 @@ def train(args):
 
         for step, batch in enumerate(train_dataloader):
             with accelerator.accumulate(network):
+                train_dataset_group.set_current_step(step + 1)
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
                         latents = batch["latents"].to(accelerator.device)
