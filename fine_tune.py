@@ -62,6 +62,7 @@ def train(args):
         }
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+    config_util.blueprint_args_conflict(args,blueprint)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
     if args.debug_dataset:
@@ -259,13 +260,13 @@ def train(args):
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
         train_dataset_group.set_current_epoch(epoch + 1)
+        train_dataset_group.set_current_step(global_step)
 
         for m in training_models:
             m.train()
 
         loss_total = 0
         for step, batch in enumerate(train_dataloader):
-            train_dataset_group.set_current_step(global_step)
             with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:

@@ -57,6 +57,7 @@ def train(args):
         }
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+    config_util.blueprint_args_conflict(args,blueprint)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
     if args.no_token_padding:
@@ -233,6 +234,7 @@ def train(args):
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
         train_dataset_group.set_current_epoch(epoch + 1)
+        train_dataset_group.set_current_step(global_step)
 
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
         unet.train()
@@ -241,7 +243,6 @@ def train(args):
             text_encoder.train()
 
         for step, batch in enumerate(train_dataloader):
-            train_dataset_group.set_current_step(global_step)
             # 指定したステップ数でText Encoderの学習を止める
             if global_step == args.stop_text_encoder_training:
                 print(f"stop text encoder training at step {global_step}")

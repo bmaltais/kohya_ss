@@ -497,6 +497,14 @@ def load_user_config(file: str) -> dict:
 
   return config
 
+def blueprint_args_conflict(args,blueprint:Blueprint):
+  # train_dataset_group.set_current_epoch()とtrain_dataset_group.set_current_step()がWorkerを生成するタイミングで適用される影響で、persistent_workers有効時はずっと一定になってしまうため無効にする
+  for b in blueprint.dataset_group.datasets:
+      for t in b.subsets:
+          if args.persistent_data_loader_workers and (t.params.caption_dropout_every_n_epochs > 0 or t.params.token_warmup_step>0):
+              print("Warning: %s: caption_dropout_every_n_epochs and token_warmup_step is ignored because --persistent_data_loader_workers option is used / --persistent_data_loader_workersオプションが使われているため、caption_dropout_every_n_epochs及びtoken_warmup_stepは無視されます。"%(t.params.image_dir))
+              t.params.caption_dropout_every_n_epochs = 0
+              t.params.token_warmup_step = 0
 
 # for config test
 if __name__ == "__main__":

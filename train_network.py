@@ -98,6 +98,7 @@ def train(args):
             }
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+    config_util.blueprint_args_conflict(args,blueprint)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
     if args.debug_dataset:
@@ -501,13 +502,13 @@ def train(args):
         if is_main_process:
             print(f"epoch {epoch+1}/{num_train_epochs}")
         train_dataset_group.set_current_epoch(epoch + 1)
+        train_dataset_group.set_current_step(global_step)
 
         metadata["ss_epoch"] = str(epoch + 1)
 
         network.on_epoch_start(text_encoder, unet)
 
         for step, batch in enumerate(train_dataloader):
-            train_dataset_group.set_current_step(global_step)
             with accelerator.accumulate(network):
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
