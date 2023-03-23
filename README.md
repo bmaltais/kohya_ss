@@ -192,6 +192,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/23 (v21.3.2)
+    - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
 * 2023/03/23 (v21.3.1)
     - Merge PR to fix refactor naming issue for basic captions. Thank @zrma
 * 2023/03/22 (v21.3.0)
