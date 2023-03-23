@@ -340,8 +340,8 @@ def train(args):
 
         loss_total = 0
         for step, batch in enumerate(train_dataloader):
+            train_dataset_group.set_current_step(global_step)
             with accelerator.accumulate(text_encoder):
-                train_dataset_group.set_current_step(step + 1)
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
                         latents = batch["latents"].to(accelerator.device)

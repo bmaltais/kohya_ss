@@ -2046,7 +2046,7 @@ def add_dataset_arguments(
     )
 
     parser.add_argument(
-        "--token_warmup_steps",
+        "--token_warmup_step",
         type=float,
         default=0,
         help="tag length reaches maximum on N steps (or N*max_train_steps if N<1) / N（N<1ならN*max_train_steps）ステップでタグ長が最大になる。デフォルトは0（最初から最大）",

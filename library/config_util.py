@@ -57,7 +57,7 @@ class BaseSubsetParams:
   caption_dropout_every_n_epochs: int = 0
   caption_tag_dropout_rate: float = 0.0
   token_warmup_min: int = 1
-  token_warmup_step: Union[float,int] = 0
+  token_warmup_step: float = 0
 
 @dataclass
 class DreamBoothSubsetParams(BaseSubsetParams):
@@ -140,7 +140,7 @@ class ConfigSanitizer:
     "shuffle_caption": bool,
     "keep_tokens": int,
     "token_warmup_min": int,
-    "token_warmup_step": Union[float,int],
+    "token_warmup_step": Any(float,int),
   }
   # DO means DropOut
   DO_SUBSET_ASCENDABLE_SCHEMA = {
