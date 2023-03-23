@@ -306,7 +306,7 @@ def train(args):
                 loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="mean")
 
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 accelerator.backward(loss)
                 if accelerator.sync_gradients and args.max_grad_norm != 0.0:

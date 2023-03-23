@@ -381,7 +381,7 @@ def train(args):
                 loss = loss.mean([1, 2, 3])
                 
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights

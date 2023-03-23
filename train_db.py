@@ -293,7 +293,8 @@ def train(args):
                 loss = loss * loss_weights
 
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 

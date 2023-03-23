@@ -489,7 +489,6 @@ def train(args):
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
-
     if accelerator.is_main_process:
         accelerator.init_trackers("network_train")
 
@@ -529,7 +528,6 @@ def train(args):
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
                 timesteps = timesteps.long()
-
                 # Add noise to the latents according to the noise magnitude at each timestep
                 # (this is the forward diffusion process)
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
@@ -551,7 +549,7 @@ def train(args):
                 loss = loss * loss_weights
                  
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, latents, noisy_latents, args.min_snr_gamma)
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
