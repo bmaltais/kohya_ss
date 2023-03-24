@@ -2300,7 +2300,10 @@ def main(args):
             else:
                 data = torch.load(embeds_file, map_location="cpu")
 
+            if "string_to_param" in data:
+                data = data["string_to_param"]
             embeds = next(iter(data.values()))
+
             if type(embeds) != torch.Tensor:
                 raise ValueError(f"weight file does not contains Tensor / 重みファイルのデータがTensorではありません: {embeds_file}")
 
