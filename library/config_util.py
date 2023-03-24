@@ -502,9 +502,8 @@ def blueprint_args_conflict(args,blueprint:Blueprint):
   for b in blueprint.dataset_group.datasets:
       for t in b.subsets:
           if args.persistent_data_loader_workers and (t.params.caption_dropout_every_n_epochs > 0 or t.params.token_warmup_step>0):
-              print("Warning: %s: caption_dropout_every_n_epochs and token_warmup_step is ignored because --persistent_data_loader_workers option is used / --persistent_data_loader_workersオプションが使われているため、caption_dropout_every_n_epochs及びtoken_warmup_stepは無視されます。"%(t.params.image_dir))
-              t.params.caption_dropout_every_n_epochs = 0
-              t.params.token_warmup_step = 0
+              print("Warning: %s: --persistent_data_loader_workers option is disabled because it conflicts with caption_dropout_every_n_epochs and token_wormup_step. / caption_dropout_every_n_epochs及びtoken_warmup_stepと競合するため、--persistent_data_loader_workersオプションは無効になります。"%(t.params.image_dir))
+              args.persistent_data_loader_workers = False
 
 # for config test
 if __name__ == "__main__":
