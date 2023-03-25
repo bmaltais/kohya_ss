@@ -257,7 +257,8 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             print('Loading config...')
-            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            
+            # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -648,7 +649,10 @@ def lora_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model()
+    ) = gradio_source_model(save_model_as_choices = [
+                    'ckpt',
+                    'safetensors',
+                ])
 
     with gr.Tab('Folders'):
         with gr.Row():
