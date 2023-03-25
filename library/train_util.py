@@ -2987,3 +2987,14 @@ class ImageLoadingDataset(torch.utils.data.Dataset):
 
 
 # endregion
+
+# colalte_fn用 epoch,stepはmultiprocessing.Value
+class collater_class:
+    def __init__(self,epoch,step):
+        self.current_epoch=epoch
+        self.current_step=step
+    def __call__(self, examples):
+        dataset = torch.utils.data.get_worker_info().dataset
+        dataset.set_current_epoch(self.current_epoch.value)
+        dataset.set_current_step(self.current_step.value)
+        return examples[0]

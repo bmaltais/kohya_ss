@@ -6,6 +6,7 @@ import gc
 import math
 import os
 import toml
+from multiprocessing import Value
 
 from tqdm import tqdm
 import torch
@@ -19,10 +20,6 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
-
-
-def collate_fn(examples):
-    return examples[0]
 
 
 def train(args):
@@ -64,6 +61,10 @@ def train(args):
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     config_util.blueprint_args_conflict(args,blueprint)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+
+    current_epoch = Value('i',0)
+    current_step = Value('i',0)
+    collater = train_util.collater_class(current_epoch,current_step)
 
     if args.debug_dataset:
         train_util.debug_dataset(train_dataset_group)
@@ -188,7 +189,7 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collate_fn,
+        collate_fn=collater,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
@@ -259,14 +260,14 @@ def train(args):
 
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        train_dataset_group.set_current_epoch(epoch + 1)
-        train_dataset_group.set_current_step(global_step)
+        current_epoch.value = epoch+1
 
         for m in training_models:
             m.train()
 
         loss_total = 0
         for step, batch in enumerate(train_dataloader):
+            current_step.value = global_step
             with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
