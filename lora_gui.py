@@ -1103,6 +1103,8 @@ def UI(**kwargs):
         launch_kwargs['server_port'] = kwargs.get('server_port', 0)
     if kwargs.get('inbrowser', False):
         launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
+    if kwargs.get('listen', True):
+        launch_kwargs['server_name'] = "0.0.0.0"
     print(launch_kwargs)
     interface.launch(**launch_kwargs)
 
@@ -1124,6 +1126,9 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--inbrowser', action='store_true', help='Open in browser'
+    )
+    parser.add_argument(
+        '--listen', action='store_true', help='Launch gradio with server name 0.0.0.0, allowing LAN access'
     )
 
     args = parser.parse_args()
