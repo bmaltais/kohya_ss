@@ -954,6 +954,7 @@ def gradio_advanced_training():
         max_data_loader_n_workers = gr.Textbox(
             label='Max num workers for DataLoader',
             placeholder='(Optional) Override number of epoch. Default: 8',
+            value="0",
         )
     return (
         # use_8bit_adam,
