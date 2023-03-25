@@ -570,7 +570,10 @@ def ti_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model()
+    ) = gradio_source_model(save_model_as_choices = [
+                    'ckpt',
+                    'safetensors',
+                ])
 
     with gr.Tab('Folders'):
         with gr.Row():

@@ -89,42 +89,16 @@ def update_my_data(my_data):
     # Update LoRA_type if it is set to LoCon
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
         my_data['LoRA_type'] = 'LyCORIS/LoCon'
+        
+    # Update model save choices due to changes for LoRA and TI training
+    if (my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
+        if my_data.get('LoRA_type'):
+            print('Updating save_model_as to safetensors because the current value in config file is no longer applicable to LoRA')
+        if my_data.get('num_vectors_per_token'):
+            print('Updating save_model_as to safetensors because the current value in config file is no longer applicable to TI')
+        my_data['save_model_as'] = 'safetensors'
 
     return my_data
-
-
-# def update_my_data(my_data):
-#     if my_data.get('use_8bit_adam', False) == True:
-#         my_data['optimizer'] = 'AdamW8bit'
-#         # my_data['use_8bit_adam'] = False
-
-#     if (
-#         my_data.get('optimizer', 'missing') == 'missing'
-#         and my_data.get('use_8bit_adam', False) == False
-#     ):
-#         my_data['optimizer'] = 'AdamW'
-
-#     if my_data.get('model_list', 'custom') == []:
-#         print('Old config with empty model list. Setting to custom...')
-#         my_data['model_list'] = 'custom'
-
-#     # If Pretrained model name or path is not one of the preset models then set the preset_model to custom
-#     if not my_data.get('pretrained_model_name_or_path', '') in ALL_PRESET_MODELS:
-#         my_data['model_list'] = 'custom'
-
-#     # Fix old config files that contain epoch as str instead of int
-#     for key in ['epoch', 'save_every_n_epochs']:
-#         value = my_data.get(key, -1)
-#         if type(value) == str:
-#             if value != '':
-#                 my_data[key] = int(value)
-#             else:
-#                 my_data[key] = -1
-
-#     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
-#         my_data['LoRA_type'] = 'LyCORIS/LoCon'
-
-#     return my_data
 
 
 def get_dir_and_file(file_path):
@@ -604,7 +578,13 @@ def get_pretrained_model_name_or_path_file(
     set_model_list(model_list, pretrained_model_name_or_path)
 
 
-def gradio_source_model():
+def gradio_source_model(save_model_as_choices = [
+                    'same as source model',
+                    'ckpt',
+                    'diffusers',
+                    'diffusers_safetensors',
+                    'safetensors',
+                ]):
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
@@ -646,13 +626,7 @@ def gradio_source_model():
             )
             save_model_as = gr.Dropdown(
                 label='Save trained model as',
-                choices=[
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ],
+                choices=save_model_as_choices,
                 value='safetensors',
             )
 
