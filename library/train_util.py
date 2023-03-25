@@ -437,8 +437,9 @@ class BaseDataset(torch.utils.data.Dataset):
         self.replacements = {}
 
     def set_current_epoch(self, epoch):
+        if not self.current_epoch == epoch:
+            self.shuffle_buckets()
         self.current_epoch = epoch
-        self.shuffle_buckets()
 
     def set_current_step(self, step):
         self.current_step = step
