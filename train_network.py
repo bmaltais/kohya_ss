@@ -24,6 +24,9 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight 
+
 
 # TODO 他のスクリプトと共通化する
 def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
@@ -492,7 +495,6 @@ def train(args):
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
-
     if accelerator.is_main_process:
         accelerator.init_trackers("network_train")
 
@@ -534,7 +536,6 @@ def train(args):
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
                 timesteps = timesteps.long()
-
                 # Add noise to the latents according to the noise magnitude at each timestep
                 # (this is the forward diffusion process)
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
@@ -554,6 +555,9 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+                 
+                if args.min_snr_gamma:
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -658,6 +662,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_training_arguments(parser, True)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument("--no_metadata", action="store_true", help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
     parser.add_argument(

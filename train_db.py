@@ -22,7 +22,8 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
-
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight 
 
 def train(args):
     train_util.verify_training_args(args)
@@ -296,6 +297,10 @@ def train(args):
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
 
+                if args.min_snr_gamma:
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+
+
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
                 accelerator.backward(loss)
@@ -395,6 +400,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument(
         "--no_token_padding",
