@@ -31,6 +31,8 @@ V1_MODELS = [
 # define a list of substrings to search for
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
+FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']
+
 
 def check_if_model_exist(output_name, output_dir, save_model_as):
     if save_model_as in ['diffusers', 'diffusers_safetendors']:
@@ -118,54 +120,58 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
-    current_file_path = file_path
-    # print(f'current file path: {current_file_path}')
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+        current_file_path = file_path
+        # print(f'current file path: {current_file_path}')
 
-    initial_dir, initial_file = get_dir_and_file(file_path)
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
-    # Create a hidden Tkinter root window
-    root = Tk()
-    root.wm_attributes('-topmost', 1)
-    root.withdraw()
+        # Create a hidden Tkinter root window
+        root = Tk()
+        root.wm_attributes('-topmost', 1)
+        root.withdraw()
 
-    # Show the open file dialog and get the selected file path
-    file_path = filedialog.askopenfilename(
-        filetypes=(
-            (extension_name, f'*{default_extension}'),
-            ('All files', '*.*'),
-        ),
-        defaultextension=default_extension,
-        initialfile=initial_file,
-        initialdir=initial_dir,
-    )
+        # Show the open file dialog and get the selected file path
+        file_path = filedialog.askopenfilename(
+            filetypes=(
+                (extension_name, f'*{default_extension}'),
+                ('All files', '*.*'),
+            ),
+            defaultextension=default_extension,
+            initialfile=initial_file,
+            initialdir=initial_dir,
+        )
 
-    # Destroy the hidden root window
-    root.destroy()
+        # Destroy the hidden root window
+        root.destroy()
 
-    # If no file is selected, use the current file path
-    if not file_path:
-        file_path = current_file_path
+        # If no file is selected, use the current file path
+        if not file_path:
+            file_path = current_file_path
+        current_file_path = file_path
+        # print(f'current file path: {current_file_path}')
 
     return file_path
 
 
 def get_any_file_path(file_path=''):
-    current_file_path = file_path
-    # print(f'current file path: {current_file_path}')
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+        current_file_path = file_path
+        # print(f'current file path: {current_file_path}')
 
-    initial_dir, initial_file = get_dir_and_file(file_path)
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
-    root = Tk()
-    root.wm_attributes('-topmost', 1)
-    root.withdraw()
-    file_path = filedialog.askopenfilename(
-        initialdir=initial_dir,
-        initialfile=initial_file,
-    )
-    root.destroy()
+        root = Tk()
+        root.wm_attributes('-topmost', 1)
+        root.withdraw()
+        file_path = filedialog.askopenfilename(
+            initialdir=initial_dir,
+            initialfile=initial_file,
+        )
+        root.destroy()
 
-    if file_path == '':
-        file_path = current_file_path
+        if file_path == '':
+            file_path = current_file_path
 
     return file_path
 
@@ -191,18 +197,19 @@ def remove_doublequote(file_path):
 
 
 def get_folder_path(folder_path=''):
-    current_folder_path = folder_path
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+        current_folder_path = folder_path
 
-    initial_dir, initial_file = get_dir_and_file(folder_path)
+        initial_dir, initial_file = get_dir_and_file(folder_path)
 
-    root = Tk()
-    root.wm_attributes('-topmost', 1)
-    root.withdraw()
-    folder_path = filedialog.askdirectory(initialdir=initial_dir)
-    root.destroy()
+        root = Tk()
+        root.wm_attributes('-topmost', 1)
+        root.withdraw()
+        folder_path = filedialog.askdirectory(initialdir=initial_dir)
+        root.destroy()
 
-    if folder_path == '':
-        folder_path = current_folder_path
+        if folder_path == '':
+            folder_path = current_folder_path
 
     return folder_path
 
@@ -210,34 +217,35 @@ def get_folder_path(folder_path=''):
 def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
-    current_file_path = file_path
-    # print(f'current file path: {current_file_path}')
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+        current_file_path = file_path
+        # print(f'current file path: {current_file_path}')
 
-    initial_dir, initial_file = get_dir_and_file(file_path)
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
-    root = Tk()
-    root.wm_attributes('-topmost', 1)
-    root.withdraw()
-    save_file_path = filedialog.asksaveasfile(
-        filetypes=(
-            (f'{extension_name}', f'{defaultextension}'),
-            ('All files', '*'),
-        ),
-        defaultextension=defaultextension,
-        initialdir=initial_dir,
-        initialfile=initial_file,
-    )
-    root.destroy()
+        root = Tk()
+        root.wm_attributes('-topmost', 1)
+        root.withdraw()
+        save_file_path = filedialog.asksaveasfile(
+            filetypes=(
+                (f'{extension_name}', f'{defaultextension}'),
+                ('All files', '*'),
+            ),
+            defaultextension=defaultextension,
+            initialdir=initial_dir,
+            initialfile=initial_file,
+        )
+        root.destroy()
 
-    # print(save_file_path)
+        # print(save_file_path)
 
-    if save_file_path == None:
-        file_path = current_file_path
-    else:
-        print(save_file_path.name)
-        file_path = save_file_path.name
+        if save_file_path == None:
+            file_path = current_file_path
+        else:
+            print(save_file_path.name)
+            file_path = save_file_path.name
 
-    # print(file_path)
+        # print(file_path)
 
     return file_path
 
@@ -245,27 +253,28 @@ def get_saveasfile_path(
 def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
-    current_file_path = file_path
-    # print(f'current file path: {current_file_path}')
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+        current_file_path = file_path
+        # print(f'current file path: {current_file_path}')
 
-    initial_dir, initial_file = get_dir_and_file(file_path)
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
-    root = Tk()
-    root.wm_attributes('-topmost', 1)
-    root.withdraw()
-    save_file_path = filedialog.asksaveasfilename(
-        filetypes=((f'{extension_name}', f'{extensions}'), ('All files', '*')),
-        defaultextension=extensions,
-        initialdir=initial_dir,
-        initialfile=initial_file,
-    )
-    root.destroy()
+        root = Tk()
+        root.wm_attributes('-topmost', 1)
+        root.withdraw()
+        save_file_path = filedialog.asksaveasfilename(
+            filetypes=((f'{extension_name}', f'{extensions}'), ('All files', '*')),
+            defaultextension=extensions,
+            initialdir=initial_dir,
+            initialfile=initial_file,
+        )
+        root.destroy()
 
-    if save_file_path == '':
-        file_path = current_file_path
-    else:
-        # print(save_file_path)
-        file_path = save_file_path
+        if save_file_path == '':
+            file_path = current_file_path
+        else:
+            # print(save_file_path)
+            file_path = save_file_path
 
     return file_path
 
@@ -314,33 +323,6 @@ def add_pre_postfix(
                 f.write(
                     f'{prefix}{prefix_separator}{content}{postfix_separator}{postfix}'
                 )
-
-
-# def add_pre_postfix(
-#     folder='', prefix='', postfix='', caption_file_ext='.caption'
-# ):
-#     if not has_ext_files(folder, caption_file_ext):
-#         msgbox(
-#             f'No files with extension {caption_file_ext} were found in {folder}...'
-#         )
-#         return
-
-#     if prefix == '' and postfix == '':
-#         return
-
-#     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
-#     if not prefix == '':
-#         prefix = f'{prefix} '
-#     if not postfix == '':
-#         postfix = f' {postfix}'
-
-#     for file in files:
-#         with open(os.path.join(folder, file), 'r+') as f:
-#             content = f.read()
-#             content = content.rstrip()
-#             f.seek(0, 0)
-#             f.write(f'{prefix} {content} {postfix}')
-#     f.close()
 
 
 def has_ext_files(folder_path: str, file_extension: str) -> bool:
@@ -400,28 +382,6 @@ def find_replace(
 
         with open(os.path.join(folder_path, caption_file), 'w') as f:
             f.write(content)
-
-
-# def find_replace(folder='', caption_file_ext='.caption', find='', replace=''):
-#     print('Running caption find/replace')
-#     if not has_ext_files(folder, caption_file_ext):
-#         msgbox(
-#             f'No files with extension {caption_file_ext} were found in {folder}...'
-#         )
-#         return
-
-#     if find == '':
-#         return
-
-#     files = [f for f in os.listdir(folder) if f.endswith(caption_file_ext)]
-#     for file in files:
-#         with open(os.path.join(folder, file), 'r', errors='ignore') as f:
-#             content = f.read()
-#             f.close
-#         content = content.replace(find, replace)
-#         with open(os.path.join(folder, file), 'w') as f:
-#             f.write(content)
-#             f.close()
 
 
 def color_aug_changed(color_aug):

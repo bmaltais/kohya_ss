@@ -118,7 +118,7 @@ When a new release comes out, you can upgrade your repo with the following comma
 upgrade_macos.sh
 ```
 
-Once the commands have completed successfully you should be ready to use the new version.
+Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
 ## Upgrading Windows
 
@@ -213,6 +213,9 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/26 (v21.3.5)
+    - Fix for https://github.com/bmaltais/kohya_ss/issues/230
+    - Added detection for Google Colab to not bring up the GUI file/folder window on the platform. Instead it will only use the file/folder path provided in the input field.
 * 2023/03/25 (v21.3.4)
     - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 

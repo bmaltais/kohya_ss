@@ -1,6 +1,5 @@
 venv
 __pycache__
-*.txt
 cudnn_windows
 .vscode
 *.egg-info
