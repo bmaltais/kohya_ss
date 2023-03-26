@@ -358,11 +358,10 @@ def train_model(
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower()) for file in os.listdir(os.path.join(train_data_dir, folder))
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
         
