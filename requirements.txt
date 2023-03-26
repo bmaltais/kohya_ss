@@ -27,6 +27,7 @@ huggingface-hub==0.12.0
 tensorflow==2.12.0
 numpy==1.22
 xformers==0.0.16
+torch==1.13.1
 # For locon support
 lycoris_lora==0.1.2
 # for kohya_ss library
