@@ -118,7 +118,7 @@ When a new release comes out, you can upgrade your repo with the following comma
 upgrade_macos.sh
 ```
 
-Once the commands have completed successfully you should be ready to use the new version.
+Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
 ## Upgrading Windows
 

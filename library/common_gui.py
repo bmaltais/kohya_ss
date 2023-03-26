@@ -31,6 +31,8 @@ V1_MODELS = [
 # define a list of substrings to search for
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
+FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']
+
 
 def check_if_model_exist(output_name, output_dir, save_model_as):
     if save_model_as in ['diffusers', 'diffusers_safetendors']:
@@ -118,7 +120,7 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -153,7 +155,7 @@ def get_file_path(
 
 
 def get_any_file_path(file_path=''):
-    if not any(var in os.environ for var in ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -195,7 +197,7 @@ def remove_doublequote(file_path):
 
 
 def get_folder_path(folder_path=''):
-    if not any(var in os.environ for var in ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_folder_path = folder_path
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
@@ -215,7 +217,7 @@ def get_folder_path(folder_path=''):
 def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -251,7 +253,7 @@ def get_saveasfile_path(
 def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
