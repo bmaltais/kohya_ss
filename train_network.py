@@ -8,6 +8,7 @@ import random
 import time
 import json
 import toml
+from multiprocessing import Value
 
 from tqdm import tqdm
 import torch
@@ -25,9 +26,6 @@ from library.config_util import (
 )
 import library.custom_train_functions as custom_train_functions
 from library.custom_train_functions import apply_snr_weight 
-
-def collate_fn(examples):
-    return examples[0]
 
 
 # TODO 他のスクリプトと共通化する
@@ -100,6 +98,10 @@ def train(args):
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+
+    current_epoch = Value('i',0)
+    current_step = Value('i',0)
+    collater = train_util.collater_class(current_epoch,current_step)
 
     if args.debug_dataset:
         train_util.debug_dataset(train_dataset_group)
@@ -186,11 +188,12 @@ def train(args):
     # dataloaderを準備する
     # DataLoaderのプロセス数：0はメインプロセスになる
     n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)  # cpu_count-1 ただし最大で指定された数まで
+    
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collate_fn,
+        collate_fn=collater,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
@@ -200,6 +203,9 @@ def train(args):
         args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
         if is_main_process:
             print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+
+    # データセット側にも学習ステップを送信
+    train_dataset_group.set_max_train_steps(args.max_train_steps)
 
     # lr schedulerを用意する
     lr_scheduler = train_util.get_scheduler_fix(args, optimizer, accelerator.num_processes)
@@ -494,16 +500,18 @@ def train(args):
 
     loss_list = []
     loss_total = 0.0
+    del train_dataset_group
     for epoch in range(num_train_epochs):
         if is_main_process:
             print(f"epoch {epoch+1}/{num_train_epochs}")
-        train_dataset_group.set_current_epoch(epoch + 1)
+        current_epoch.value = epoch+1
 
         metadata["ss_epoch"] = str(epoch + 1)
 
         network.on_epoch_start(text_encoder, unet)
 
         for step, batch in enumerate(train_dataloader):
+            current_step.value = global_step
             with accelerator.accumulate(network):
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
