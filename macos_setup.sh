@@ -30,7 +30,7 @@ if command -v python3.10 >/dev/null; then
   pip install torch==2.0.0 torchvision==0.15.1 -f https://download.pytorch.org/whl/cpu/torch_stable.html
   python -m pip install --use-pep517 --upgrade -r requirements_macos.txt
   accelerate config
-  echo -e "Setup finished! Run ./gui.sh to start."
+  echo -e "Setup finished! Run ./gui_macos.sh to start."
 else
   echo "Python not found. Please ensure you install Python."
   echo "The brew command for Python 3.10 is: brew install python@3.10"
