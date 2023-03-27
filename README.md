@@ -176,7 +176,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
   - Windows以外の環境向けに、画像ファイルの大文字の拡張子をサポートしました。
   - `resize_lora.py` を dynamic rank （rankが各LoRAモジュールで異なる場合、`conv_dim` が `network_dim` と異なる場合も含む）の時に正しく動作しない不具合を修正しました。toshiaki氏に感謝します。
 
-## Sample image generation during traiing
+## Sample image generation during training
   A prompt file might look like this, for example
 
 ```
