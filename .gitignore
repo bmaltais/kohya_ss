@@ -1,6 +1,5 @@
 venv
 __pycache__
-*.txt
 cudnn_windows
 .vscode
 *.egg-info
@@ -8,3 +7,5 @@ build
 wd14_tagger_model
 .DS_Store
 locon
+gui-user.bat
+gui-user.ps1

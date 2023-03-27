@@ -53,10 +53,10 @@ def caption_images(
             )
         if find_text:
             find_replace(
-                folder=images_dir,
+                folder_path=images_dir,
                 caption_file_ext=caption_ext,
-                find=find_text,
-                replace=replace_text,
+                search_text=find_text,
+                replace_text=replace_text,
             )
     else:
         if prefix or postfix:

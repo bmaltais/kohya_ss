@@ -44,6 +44,17 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
+### MacOS
+In the terminal, run
+
+```
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+bash macos_setup.sh
+```
+
+During the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
+
 ### Ubuntu
 In the terminal, run
 
@@ -99,7 +110,17 @@ Run the following commands to install:
 python .\tools\cudann_1.8_install.py
 ```
 
-## Upgrading
+## Upgrading MacOS
+
+When a new release comes out, you can upgrade your repo with the following commands in the root directory:
+
+```bash
+upgrade_macos.sh
+```
+
+Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
+
+## Upgrading Windows
 
 When a new release comes out, you can upgrade your repo with the following commands in the root directory:
 
@@ -192,7 +213,24 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
-* 2023/03/19 (v21.3.0)
+* 2023/03/26 (v21.3.6)
+    - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
+* 2023/03/26 (v21.3.5)
+    - Fix for https://github.com/bmaltais/kohya_ss/issues/230
+    - Added detection for Google Colab to not bring up the GUI file/folder window on the platform. Instead it will only use the file/folder path provided in the input field.
+* 2023/03/25 (v21.3.4)
+    - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
+
+    Let me know how this work. From the look of it it appear to be well tought out. I modified a few things to make it fit better with the rest of the code in the repo.
+    - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
+    - Removed non applicable save_model_as choices for LoRA and TI.
+* 2023/03/24 (v21.3.3)
+    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your prefered terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
+* 2023/03/23 (v21.3.2)
+    - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
+* 2023/03/23 (v21.3.1)
+    - Merge PR to fix refactor naming issue for basic captions. Thank @zrma
+* 2023/03/22 (v21.3.0)
     - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
         - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
         - All sub-sections are combined to a single dictionary (the section names are ignored.)
@@ -205,125 +243,12 @@ This will store your a backup file with your current locally installed pip packa
         - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
     - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
     - Add warning if you are about to overwrite an existing model: https://github.com/bmaltais/kohya_ss/issues/404
-* 2023/03/19 (v21.2.5):
-    - Fix basic captioning logic
-    - Add possibility to not train TE in Dreamboot by setting `Step text encoder training` to -1.
-    - Update linux scripts
-* 2023/03/12 (v21.2.4):
-    - Fix issue with kohya locon not training the convolution layers
-    - Update LyCORIS module version
-    - Update LyCORYS locon extract tool
-* 2023/03/12 (v21.2.3):
-    - Add validation that all requirements are met before starting the GUI.
-* 2023/03/11 (v21.2.2):
-    - Add support for LoRA LoHa type. See https://github.com/KohakuBlueleaf/LyCORIS for more details.
-* 2023/03/10 (v21.2.1):
-    - Update to latest sd-script code
-    - Add support for SVD based LoRA merge
-* 2023/03/09 (v21.2.0):
-    - Fix issue https://github.com/bmaltais/kohya_ss/issues/335
-    - Add option to print LoRA trainer command without executing it
-    - Add support for samples during trainin via a new `Sample images config` accordion in the `Training parameters` tab.
-    - Added new `Additional parameters` under the `Advanced Configuration` section of the `Training parameters` tab to allow for the specifications of parameters not handles by the GUI.
-    - Added support for sample as a new Accordion under the `Training parameters` tab. More info about the prompt options can be found here: https://github.com/kohya-ss/sd-scripts/issues/256#issuecomment-1455005709
-    - There may be problems due to major changes. If you cannot revert back to the previous version when problems occur, please do not update for a while.
-    - Minimum metadata (module name, dim, alpha and network_args) is recorded even with `--no_metadata`, issue https://github.com/kohya-ss/sd-scripts/issues/254
-    - `train_network.py` supports LoRA for Conv2d-3x3 (extended to conv2d with a kernel size not 1x1).
-        - Same as a current version of [LoCon](https://github.com/KohakuBlueleaf/LoCon). __Thank you very much KohakuBlueleaf for your help!__
-        - LoCon will be enhanced in the future. Compatibility for future versions is not guaranteed.
-        - Specify `--network_args` option like: `--network_args "conv_dim=4" "conv_alpha=1"`
-        - [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) version 0.5.0 or later is required to use 'LoRA for Conv2d-3x3' in Stable Diffusion web UI.
-        - __Stable Diffusion web UI built-in LoRA does not support 'LoRA for Conv2d-3x3' now. Consider carefully whether or not to use it.__
-    - Merging/extracting scripts also support LoRA for Conv2d-3x3.
-    - Free CUDA memory after sample generation to reduce VRAM usage, issue https://github.com/kohya-ss/sd-scripts/issues/260 
-    - Empty caption doesn't cause error now, issue https://github.com/kohya-ss/sd-scripts/issues/258
-    - Fix sample generation is crashing in Textual Inversion training when using templates, or if height/width is not divisible by 8.
-    - Update documents (Japanese only).
-    - Dependencies are updated, Please [upgrade](#upgrade) the repo.
-    - Add detail dataset config feature by extra config file. Thanks to fur0ut0 for this great contribution!
-        - Documentation is [here](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/config_README-ja.md) (only in Japanese currently.)
-        - Specify `.toml` file with `--dataset_config` option.
-        - The options supported under the previous release can be used as is instead of the `.toml` config file.
-        - There might be bugs due to the large scale of update, please report any problems if you find at https://github.com/kohya-ss/sd-scripts/issues.
-    - Add feature to generate sample images in the middle of training for each training scripts.
-        - `--sample_every_n_steps` and `--sample_every_n_epochs` options: frequency to generate.
-        - `--sample_prompts` option: the file contains prompts (each line generates one image.)
-        - The prompt is subset of `gen_img_diffusers.py`. The prompt options `w, h, d, l, s, n` are supported.
-        - `--sample_sampler` option: sampler (scheduler) for generating, such as ddim or k_euler. See help for useable samplers.
-    - Add `--tokenizer_cache_dir` to each training and generation scripts to cache Tokenizer locally from Diffusers.
-        - Scripts will support offline training/generation after caching.
-    - Support letents upscaling for highres. fix, and VAE batch size in `gen_img_diffusers.py` (no documentation yet.)
-
-    - Sample image generation:
-        A prompt file might look like this, for example
-
-        ```
-        # prompt 1
-        masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
-
-        # prompt 2
-        masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
-        ```
-
-        Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
-
-        * `--n` Negative prompt up to the next option.
-        * `--w` Specifies the width of the generated image.
-        * `--h` Specifies the height of the generated image.
-        * `--d` Specifies the seed of the generated image.
-        * `--l` Specifies the CFG scale of the generated image.
-        * `--s` Specifies the number of steps in the generation.
-
-        The prompt weighting such as `( )` and `[ ]` are not working.
-
-    Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
-
-* 2023/03/05 (v21.1.5):
-    - Add replace underscore with space option to WD14 captioning. Thanks @sALTaccount!
-    - Improve how custom preset is set and handles.
-    - Add support for `--listen` argument. This allow gradio to listen for connections from other devices on the network (or internet). For example: `gui.ps1 --listen "0.0.0.0"` will allow anyone to connect to the gradio webui.
-    - Updated `Resize LoRA` tab to support LoCon resizing. Added new resize
-* 2023/03/05 (v21.1.4):
-    - Removing legacy and confusing use 8bit adam chackbox. It is now configured using the Optimiser drop down list. It will be set properly based on legacy config files.
-* 2023/03/04 (v21.1.3):
-    - Fix progress bar being displayed when not required.
-    - Add support for linux, thank you @devNegative-asm
-* 2023/03/03 (v21.1.2):
-    - Fix issue https://github.com/bmaltais/kohya_ss/issues/277
-    - Fix issue https://github.com/bmaltais/kohya_ss/issues/278 introduce by LoCon project switching to pip module. Make sure to run upgrade.ps1 to install the latest pip requirements for LoCon support.
-* 2023/03/02 (v21.1.1):
-    - Emergency fix for https://github.com/bmaltais/kohya_ss/issues/261
-* 2023/03/02 (v21.1.0):
-    - Add LoCon support (https://github.com/KohakuBlueleaf/LoCon.git) to the Dreambooth LoRA tab. This will allow to create a new type of LoRA that include conv layers as part of the LoRA... hence the name LoCon. LoCon will work with the native Auto1111 implementation of LoRA. If you want to use it with the Kohya_ss additionalNetwork you will need to install this other extension... until Kohya_ss support it natively: https://github.com/KohakuBlueleaf/a1111-sd-webui-locon
-* 2023/03/01 (v21.0.1):
-    - Add warning to tensorboard start if the log information is missing
-    - Fix issue with 8bitadam on older config file load
-* 2023/02/27 (v21.0.0):
-    - Add tensorboard start and stop support to the GUI
-* 2023/02/26 (v20.8.2):
-    - Fix issue https://github.com/bmaltais/kohya_ss/issues/231
-    - Change default for seed to random
-    - Add support for --share argument to `kohya_gui.py` and `gui.ps1`
-    - Implement 8bit adam login to help with the legacy `Use 8bit adam` checkbox that is now superceided by the `Optimizer` dropdown selection. This field will be eventually removed. Kept for now for backward compatibility.
-* 2023/02/23 (v20.8.1):
-    - Fix instability training issue in `train_network.py`.
-        - `fp16` training is probably not affected by this issue.
-        - Training with `float` for SD2.x models will work now. Also training with bf16 might be improved.
-        - This issue seems to have occurred in [PR#190](https://github.com/kohya-ss/sd-scripts/pull/190).
-    - Add some metadata to LoRA model. Thanks to space-nuko!
-    - Raise an error if optimizer options conflict (e.g. `--optimizer_type` and `--use_8bit_adam`.)
-    - Support ControlNet in `gen_img_diffusers.py` (no documentation yet.)
-* 2023/02/22 (v20.8.0):
-    - Add gui support for optimizers: `AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor`
-    - Add gui support for `--noise_offset`
-    - Refactor optmizer options. Thanks to mgz-dev!
-        - Add `--optimizer_type` option for each training script. Please see help. Japanese documentation is [here](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=en-US&_x_tr_pto=wapp#%E3%82%AA%E3%83%97%E3%83%86%E3%82%A3%E3%83%9E%E3%82%A4%E3%82%B6%E3%81%AE%E6%8C%87%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6).
-        - `--use_8bit_adam` and `--use_lion_optimizer` options also work and will override the options above for backward compatibility.
-    - Add SGDNesterov and its 8bit.
-    - Add [D-Adaptation](https://github.com/facebookresearch/dadaptation) optimizer. Thanks to BootsofLagrangian and all! 
-        - Please install D-Adaptation optimizer with `pip install dadaptation` (it is not in requirements.txt currently.)
-        - Please see https://github.com/kohya-ss/sd-scripts/issues/181 for details.
-    - Add AdaFactor optimizer. Thanks to Toshiaki!
-    - Extra lr scheduler settings (num_cycles etc.) are working in training scripts other than `train_network.py`.
-    - Add `--max_grad_norm` option for each training script for gradient clipping. `0.0` disables clipping. 
-    - Symbolic link can be loaded in each training script. Thanks to TkskKurumi!
+    - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
+        - Please start with`2` or `4` depending on the size of VRAM.
+    - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
+    - Extract parser setup to external scripts. Thanks to robertsmieja!
+    - Fix an issue without `.npz` and with `--full_path` in training.
+    - Support extensions with upper cases for images for not Windows environment.
+    - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
+    - Fix issue: https://github.com/bmaltais/kohya_ss/issues/406
+    - Add device support to LoRA extract.

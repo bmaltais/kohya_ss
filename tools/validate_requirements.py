@@ -1,11 +1,17 @@
 import os
 import sys
 import pkg_resources
+import argparse
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description="Validate that requirements are satisfied.")
+parser.add_argument('-r', '--requirements', type=str, default='requirements.txt', help="Path to the requirements file.")
+args = parser.parse_args()
 
 print("Validating that requirements are satisfied.")
 
-# Load the requirements from the requirements.txt file
-with open('requirements.txt') as f:
+# Load the requirements from the specified requirements file
+with open(args.requirements) as f:
     requirements = f.readlines()
 
 # Check each requirement against the installed packages
@@ -34,7 +40,7 @@ if missing_requirements or wrong_version_requirements:
         for requirement, expected_version, actual_version in wrong_version_requirements:
             print(f" - {requirement} (expected version {expected_version}, found version {actual_version})")
     upgrade_script = "upgrade.ps1" if os.name == "nt" else "upgrade.sh"
-    print(f"\nRun \033[33m{upgrade_script}\033[0m or \033[33mpip install -U -r requirements.txt\033[0m to resolve the missing requirements listed above...")
+    print(f"\nRun \033[33m{upgrade_script}\033[0m or \033[33mpip install -U -r {args.requirements}\033[0m to resolve the missing requirements listed above...")
 
     sys.exit(1)
 

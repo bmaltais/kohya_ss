@@ -112,7 +112,7 @@ def save_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -225,7 +225,7 @@ def open_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -320,7 +320,7 @@ def train_model(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -375,11 +375,10 @@ def train_model(
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower()) for file in os.listdir(os.path.join(train_data_dir, folder))
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
 
@@ -511,6 +510,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -569,7 +569,10 @@ def ti_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model()
+    ) = gradio_source_model(save_model_as_choices = [
+                    'ckpt',
+                    'safetensors',
+                ])
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -770,6 +773,7 @@ def ti_tab(
                 caption_dropout_rate,
                 noise_offset,
                 additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -876,6 +880,7 @@ def ti_tab(
         sample_sampler,
         sample_prompts,
         additional_parameters,
+        vae_batch_size,
     ]
 
     button_open_config.click(

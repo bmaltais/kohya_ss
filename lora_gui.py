@@ -123,7 +123,7 @@ def save_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -240,7 +240,7 @@ def open_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -257,7 +257,8 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             print('Loading config...')
-            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
+            
+            # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
     else:
         file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -347,7 +348,7 @@ def train_model(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,
+    additional_parameters,vae_batch_size,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -418,13 +419,13 @@ def train_model(
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower()) for file in os.listdir(os.path.join(train_data_dir, folder))
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
+
 
         print(f'Folder {folder}: {num_images} images found')
 
@@ -589,6 +590,7 @@ def train_model(
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
+        vae_batch_size=vae_batch_size,
     )
 
     run_cmd += run_cmd_sample(
@@ -647,7 +649,10 @@ def lora_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model()
+    ) = gradio_source_model(save_model_as_choices = [
+                    'ckpt',
+                    'safetensors',
+                ])
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -891,6 +896,7 @@ def lora_tab(
                 caption_dropout_rate,
                 noise_offset,
                 additional_parameters,
+                vae_batch_size,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -1008,6 +1014,7 @@ def lora_tab(
         sample_sampler,
         sample_prompts,
         additional_parameters,
+        vae_batch_size,
     ]
 
     button_open_config.click(
@@ -1096,6 +1103,8 @@ def UI(**kwargs):
         launch_kwargs['server_port'] = kwargs.get('server_port', 0)
     if kwargs.get('inbrowser', False):
         launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
+    if kwargs.get('listen', True):
+        launch_kwargs['server_name'] = "0.0.0.0"
     print(launch_kwargs)
     interface.launch(**launch_kwargs)
 
@@ -1117,6 +1126,9 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--inbrowser', action='store_true', help='Open in browser'
+    )
+    parser.add_argument(
+        '--listen', action='store_true', help='Launch gradio with server name 0.0.0.0, allowing LAN access'
     )
 
     args = parser.parse_args()
