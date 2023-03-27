@@ -6,21 +6,29 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ### Table of Contents
 
-- [Tutorials](https://github.com/bmaltais/kohya_ss#tutorials)
-- [Required Dependencies](https://github.com/bmaltais/kohya_ss#required-dependencies)
-- [Installation](https://github.com/bmaltais/kohya_ss#installation)
-    - [CUDNN 8.6](https://github.com/bmaltais/kohya_ss#optional-cudnn-86)
-- [Upgrading](https://github.com/bmaltais/kohya_ss#upgrading)
-- [Launching the GUI](https://github.com/bmaltais/kohya_ss#launching-the-gui)
-- [Dreambooth](https://github.com/bmaltais/kohya_ss#dreambooth)
-- [Finetune](https://github.com/bmaltais/kohya_ss#finetune)
-- [Train Network](https://github.com/bmaltais/kohya_ss#train-network)
-- [LoRA](https://github.com/bmaltais/kohya_ss#lora)
-- [Troubleshooting](https://github.com/bmaltais/kohya_ss#troubleshooting)
-  - [Page File Limit](https://github.com/bmaltais/kohya_ss#page-file-limit)
-  - [No module called tkinter](https://github.com/bmaltais/kohya_ss#no-module-called-tkinter)
-  - [FileNotFoundError](https://github.com/bmaltais/kohya_ss#filenotfounderror)
-- [Change History](https://github.com/bmaltais/kohya_ss#change-history)
+- [Tutorials](#tutorials)
+- [Required Dependencies](#required-dependencies)
+  - [Linux/macOS](#linux-and-macos-dependencies)
+- [Installation](#installation)
+    - [Linux/macOS](#linux-and-macos)
+    - [Windows](#windows)
+    - [CUDNN 8.6](#optional--cudnn-86)
+- [Upgrading](#upgrading)
+  - [Windows](#windows-upgrade)
+  - [Linux/macOS](#linux-and-macos-upgrade)
+- [Launching the GUI](#starting-gui-service)
+  - [Windows](#launching-the-gui-on-windows)
+  - [Linux/macOS](#launching-the-gui-on-linux-and-macos)
+  - [Direct Launch via Python Script](#launching-the-gui-directly-using-kohyaguipy)
+- [Dreambooth](#dreambooth)
+- [Finetune](#finetune)
+- [Train Network](#train-network)
+- [LoRA](#lora)
+- [Troubleshooting](#troubleshooting)
+  - [Page File Limit](#page-file-limit)
+  - [No module called tkinter](#no-module-called-tkinter)
+  - [FileNotFoundError](#filenotfounderror)
+- [Change History](#change-history)
 
 ## Tutorials
 
@@ -39,32 +47,27 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - Install [Git](https://git-scm.com/download/win)
 - Install [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
+### Linux and macOS dependencies
+
+These dependencies are taken care of via `setup.sh` in the installation section. No additional steps should be needed unless the scripts inform you otherwise.
+
 ## Installation
 
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
-### MacOS
+### Linux and macOS
 In the terminal, run
 
 ```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-bash macos_setup.sh
+# May need to chmod +x ./setup.sh if you're on a machine with stricter security.
+./setup.sh
 ```
 
 During the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
-
-### Ubuntu
-In the terminal, run
-
-```
-git clone https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-bash ubuntu_setup.sh
-```
-
-then configure accelerate with the same answers as in the Windows instructions when prompted.
+These are the same answers as the Windows install.
 
 ### Windows
 
@@ -110,21 +113,13 @@ Run the following commands to install:
 python .\tools\cudann_1.8_install.py
 ```
 
-## Upgrading MacOS
-
-When a new release comes out, you can upgrade your repo with the following commands in the root directory:
-
-```bash
-upgrade_macos.sh
-```
-
 Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
-## Upgrading Windows
+## Upgrading
 
-When a new release comes out, you can upgrade your repo with the following commands in the root directory:
-
-```powershell
+The following commands will work from the root directory of the project if you'd prefer to not run scripts.
+These commands will work on any OS.
+```bash
 git pull
 
 .\venv\Scripts\activate
@@ -132,20 +127,40 @@ git pull
 pip install --use-pep517 --upgrade -r requirements.txt
 ```
 
+### Windows Upgrade
+When a new release comes out, you can upgrade your repo with the following commands in the root directory:
+
+```powershell
+./upgrade.ps1
+```
+
+### Linux and macOS Upgrade
+You can cd into the root directory and simply run
+
+```bash
+./upgrade.sh
+```
+
 Once the commands have completed successfully you should be ready to use the new version.
 
-## Launching the GUI using gui.bat or gui.ps1
+# Starting GUI Service
 
-The script can be run with several optional command line arguments:
-
+The following command line arguments can be passed to the scripts on any OS to configure the underlying service.
+```
 --listen: the IP address to listen on for connections to Gradio.
---username: a username for authentication.
---password: a password for authentication.
---server_port: the port to run the server listener on.
---inbrowser: opens the Gradio UI in a web browser.
+--username: a username for authentication. 
+--password: a password for authentication. 
+--server_port: the port to run the server listener on. 
+--inbrowser: opens the Gradio UI in a web browser. 
 --share: shares the Gradio UI.
+```
 
-These command line arguments can be passed to the UI function as keyword arguments. To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
+### Launching the GUI on Windows
+
+The two scripts to launch the GUI on Windows are gui.ps1 and gui.bat in the root directory.
+You can use whichever script you prefer.
+
+To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
 
 `gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
 
@@ -153,14 +168,19 @@ or
 
 `gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
 
-## Launching the GUI using kohya_gui.py
+## Launching the GUI on Linux and macOS
 
-To run the GUI, simply use this command:
+Run the launcher script with the desired command line arguments similar to Windows.
+`gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
+
+## Launching the GUI directly using kohya_gui.py
+
+To run the GUI directly bypassing the wrapper scripts, simply use this command from the root project directory:
 
 ```
 .\venv\Scripts\activate
 
-python.exe .\kohya_gui.py
+python .\kohya_gui.py
 ```
 
 ## Dreambooth

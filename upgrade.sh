@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check if there are any changes that need to be committed
 if [[ -n $(git status --short) ]]; then

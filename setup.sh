@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  # Check if root or sudo
+  root=true
+  if [ "$EUID" -ne 0 ]; then
+    root=false
+  fi
+
+  distro="$(python -mplatform)"
+  if "$distro" | grep -qi "Ubuntu"; then
+    echo "Ubuntu detected."
+    echo "Installing Python TK if not found on the system."
+    if [ ! $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+      if [ root = true ]; then
+        apt-get install python3-tk
+      else
+        echo "This script needs to be run as root or via sudo to install packages."
+        exit 1
+      fi
+    else
+      echo "Python TK found! Skipping install!"
+    fi
+  elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
+    if ! rpm -qa | grep -qi python3-tkinter; then
+      if [ root = true ]; then
+        dnf install python3-tkinter
+      else
+        echo "This script needs to be run as root or via sudo to install packages."
+        exit 1
+      fi
+    fi
+  fi
+
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+  pip install --use-pep517 --upgrade -r requirements.txt
+  pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
+  accelerate config
+
+  echo -e "Setup finished! Run \e[0;92m./gui.sh\e[0m to start."
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  # The initial setup script to prep the environment on macOS
+  # xformers has been omitted as that is for Nvidia GPUs only
+
+  if ! command -v brew >/dev/null; then
+    echo "Please install homebrew first. This is a requirement for the remaining setup."
+    echo "You can find that here: https://brew.sh"
+    exit 1
+  fi
+
+  # Install base python packages
+  echo "Installing Python 3.10 if not found."
+  if ! brew ls --versions python@3.10 >/dev/null; then
+    brew install python@3.10
+  else
+    echo "Python 3.10 found!"
+  fi
+  echo "Installing Python-TK 3.10 if not found."
+  if ! brew ls --versions python-tk@3.10 >/dev/null; then
+    brew install python-tk@3.10
+  else
+    echo "Python Tkinter 3.10 found!"
+  fi
+
+  if command -v python3.10 >/dev/null; then
+    python3.10 -m venv venv
+    source venv/bin/activate
+
+    # DEBUG ONLY
+    #pip install pydevd-pycharm~=223.8836.43
+
+    # Tensorflow installation
+    if wget https://github.com/apple/tensorflow_macos/releases/download/v0.1alpha3/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl /tmp; then
+      python -m pip install tensorflow==0.1a3 -f https://github.com/apple/tensorflow_macos/releases/download/v0.1alpha3/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl
+      rm -f /tmp/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl
+    fi
+
+    pip install torch==2.0.0 torchvision==0.15.1 -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    python -m pip install --use-pep517 --upgrade -r requirements.txt
+    accelerate config
+    echo -e "Setup finished! Run ./gui.sh to start."
+  else
+    echo "Python not found. Please ensure you install Python."
+    echo "The brew command for Python 3.10 is: brew install python@3.10"
+    exit 1
+  fi
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+  # Cygwin is a standalone suite of Linux utilies on Windows
+  echo "This hasn't been validated on cygwin yet."
+elif [[ "$OSTYPE" == "msys" ]]; then
+  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
+  # "git bash" on Windows may also be detected as msys.
+  echo "This hasn't been validated in msys (mingw) on Windows yet."
+fi
