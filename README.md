@@ -213,6 +213,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/26 (v21.3.6)
+    - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
 * 2023/03/26 (v21.3.5)
     - Fix for https://github.com/bmaltais/kohya_ss/issues/230
     - Added detection for Google Colab to not bring up the GUI file/folder window on the platform. Instead it will only use the file/folder path provided in the input field.
