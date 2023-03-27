@@ -39,7 +39,7 @@ def huggingface_upload(
     private = args.huggingface_repo_visibility == "private"
     api = HfApi()
     if not huggingface_exists_repo(
-        repo_id=repo_id, repo_type=repo_type, hf_token=hf_token
+        repo_id=repo_id, repo_type=repo_type, token=hf_token
     ):
         api.create_repo(
             token=hf_token, repo_id=repo_id, repo_type=repo_type, private=private
@@ -54,6 +54,7 @@ def huggingface_upload(
             repo_type=repo_type,
             folder_path=src,
             path_in_repo=path_in_repo,
+            token=hf_token,
         )
     else:
         api.upload_file(
@@ -61,4 +62,5 @@ def huggingface_upload(
             repo_type=repo_type,
             path_or_fileobj=src,
             path_in_repo=path_in_repo,
+            token=hf_token,
         )
