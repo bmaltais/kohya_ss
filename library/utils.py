@@ -14,12 +14,12 @@ def fire_in_thread(f):
 
 
 def huggingface_exists_repo(
-    repo_id: str, repo_type: str, revision: str = "main", hf_token: str = None
+    repo_id: str, repo_type: str, revision: str = "main", token: str = None
 ):
     api = HfApi()
     try:
         api.repo_info(
-            repo_id=repo_id, token=hf_token, revision=revision, repo_type=repo_type
+            repo_id=repo_id, token=token, revision=revision, repo_type=repo_type
         )
         return True
     except:
@@ -34,15 +34,15 @@ def huggingface_upload(
 ):
     repo_id = args.huggingface_repo_id
     repo_type = args.huggingface_repo_type
-    hf_token = args.huggingface_token
+    token = args.huggingface_token
     path_in_repo = args.huggingface_path_in_repo + dest_suffix
     private = args.huggingface_repo_visibility == "private"
     api = HfApi()
     if not huggingface_exists_repo(
-        repo_id=repo_id, repo_type=repo_type, token=hf_token
+        repo_id=repo_id, repo_type=repo_type, token=token
     ):
         api.create_repo(
-            token=hf_token, repo_id=repo_id, repo_type=repo_type, private=private
+            token=token, repo_id=repo_id, repo_type=repo_type, private=private
         )
 
     is_folder = (type(src) == str and os.path.isdir(src)) or (
@@ -54,7 +54,7 @@ def huggingface_upload(
             repo_type=repo_type,
             folder_path=src,
             path_in_repo=path_in_repo,
-            token=hf_token,
+            token=token,
         )
     else:
         api.upload_file(
@@ -62,5 +62,5 @@ def huggingface_upload(
             repo_type=repo_type,
             path_or_fileobj=src,
             path_in_repo=path_in_repo,
-            token=hf_token,
+            token=token,
         )
