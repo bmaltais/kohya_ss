@@ -58,6 +58,7 @@ from torch import einsum
 import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
+import library.utils as utils
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -1441,7 +1442,6 @@ def glob_images_pathlib(dir_path, recursive):
 
 # endregion
 
-
 # region モジュール入れ替え部
 """
 高速化のためのモジュール入れ替え
@@ -1896,6 +1896,12 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
 def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool):
     parser.add_argument("--output_dir", type=str, default=None, help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
     parser.add_argument("--output_name", type=str, default=None, help="base name of trained model file / 学習後のモデルの拡張子を除くファイル名")
+    parser.add_argument("--huggingface_repo_id", type=str, default=None, help="huggingface repo name to upload model / huggingfaceにアップロードするモデルのリポジトリ名")
+    parser.add_argument("--huggingface_repo_type", type=str, default=None, help="huggingface repo type to upload model / huggingfaceにアップロードするモデルのリポジトリの種類")
+    parser.add_argument("--huggingface_path_in_repo", type=str, default=None, help="huggingface model path to upload model / huggingfaceにアップロードするモデルのパス")
+    parser.add_argument("--huggingface_token", type=str, default=None, help="huggingface token to upload model / huggingfaceにアップロードするモデルのトークン")
+    parser.add_argument("--huggingface_repo_visibility", type=str, default=None, help="huggingface model visibility / huggingfaceにアップロードするモデルの公開設定")
+    parser.add_argument("--save_state_to_huggingface", action="store_true", help="save state to huggingface / huggingfaceにstateを保存する")
     parser.add_argument(
         "--save_precision",
         type=str,
@@ -2803,7 +2809,10 @@ def save_sd_model_on_epoch_end(
 
 def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, epoch_no):
     print("saving state.")
-    accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no)))
+    state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
+    accelerator.save_state(state_dir)
+    if args.save_state_to_huggingface:
+        utils.huggingface_upload(state_dir, args, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
 
     last_n_epochs = args.save_last_n_epochs_state if args.save_last_n_epochs_state else args.save_last_n_epochs
     if last_n_epochs is not None:
