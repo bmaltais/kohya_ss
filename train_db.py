@@ -8,6 +8,7 @@ import itertools
 import math
 import os
 import toml
+from multiprocessing import Value
 
 from tqdm import tqdm
 import torch
@@ -21,11 +22,8 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
-
-
-def collate_fn(examples):
-    return examples[0]
-
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight 
 
 def train(args):
     train_util.verify_training_args(args)
@@ -58,6 +56,10 @@ def train(args):
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+
+    current_epoch = Value('i',0)
+    current_step = Value('i',0)
+    collater = train_util.collater_class(current_epoch,current_step)
 
     if args.no_token_padding:
         train_dataset_group.disable_token_padding()
@@ -152,7 +154,7 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collate_fn,
+        collate_fn=collater,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
@@ -161,6 +163,9 @@ def train(args):
     if args.max_train_epochs is not None:
         args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+
+    # データセット側にも学習ステップを送信
+    train_dataset_group.set_max_train_steps(args.max_train_steps)
 
     if args.stop_text_encoder_training is None:
         args.stop_text_encoder_training = args.max_train_steps + 1  # do not stop until end
@@ -229,7 +234,7 @@ def train(args):
     loss_total = 0.0
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        train_dataset_group.set_current_epoch(epoch + 1)
+        current_epoch.value = epoch+1
 
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
         unet.train()
@@ -238,6 +243,7 @@ def train(args):
             text_encoder.train()
 
         for step, batch in enumerate(train_dataloader):
+            current_step.value = global_step
             # 指定したステップ数でText Encoderの学習を止める
             if global_step == args.stop_text_encoder_training:
                 print(f"stop text encoder training at step {global_step}")
@@ -290,6 +296,10 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+
+                if args.min_snr_gamma:
+                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -390,6 +400,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument(
         "--no_token_padding",

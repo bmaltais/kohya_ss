@@ -6,6 +6,7 @@ import gc
 import math
 import os
 import toml
+from multiprocessing import Value
 
 from tqdm import tqdm
 import torch
@@ -19,10 +20,8 @@ from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
-
-
-def collate_fn(examples):
-    return examples[0]
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight
 
 
 def train(args):
@@ -63,6 +62,10 @@ def train(args):
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+
+    current_epoch = Value("i", 0)
+    current_step = Value("i", 0)
+    collater = train_util.collater_class(current_epoch, current_step)
 
     if args.debug_dataset:
         train_util.debug_dataset(train_dataset_group)
@@ -187,15 +190,20 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collate_fn,
+        collate_fn=collater,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
+        args.max_train_steps = args.max_train_epochs * math.ceil(
+            len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
+        )
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+
+    # データセット側にも学習ステップを送信
+    train_dataset_group.set_max_train_steps(args.max_train_steps)
 
     # lr schedulerを用意する
     lr_scheduler = train_util.get_scheduler_fix(args, optimizer, accelerator.num_processes)
@@ -255,13 +263,14 @@ def train(args):
 
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        train_dataset_group.set_current_epoch(epoch + 1)
+        current_epoch.value = epoch + 1
 
         for m in training_models:
             m.train()
 
         loss_total = 0
         for step, batch in enumerate(train_dataloader):
+            current_step.value = global_step
             with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
@@ -302,7 +311,14 @@ def train(args):
                 else:
                     target = noise
 
-                loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="mean")
+                if args.min_snr_gamma:
+                    # do not mean over batch dimension for snr weight
+                    loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                    loss = loss.mean([1, 2, 3])
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = loss.mean()  # mean over batch dimension
+                else:
+                    loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="mean")
 
                 accelerator.backward(loss)
                 if accelerator.sync_gradients and args.max_grad_norm != 0.0:
@@ -396,6 +412,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument("--diffusers_xformers", action="store_true", help="use xformers by diffusers / Diffusersでxformersを使用する")
     parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
