@@ -9,8 +9,56 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     root=false
   fi
 
-  distro="$(python -mplatform)"
-  if "$distro" | grep -qi "Ubuntu"; then
+  get_distro_name() {
+    local line
+    if [ -f /etc/os-release ]; then
+      # We search for the line starting with ID=
+      # Then we remove the ID= prefix to get the name itself
+      line="$(grep -Ei '^ID=' /etc/os-release)"
+      line=${line##*=}
+      echo "$line"
+      return 0
+    elif command -v python >/dev/null; then
+      line="$(python -mplatform)"
+      echo "$line"
+      return 0
+    elif command -v python3 >/dev/null; then
+      line="$(python3 -mplatform)"
+      echo "$line"
+      return 0
+    else
+      line="None"
+      echo "$line"
+      return 1
+    fi
+  }
+
+  get_distro_family() {
+    local line
+    if [ -f /etc/os-release ]; then
+      # We search for the line starting with ID_LIKE=
+      # Then we remove the ID_LIKE= prefix to get the name itself
+      # This is the "type" of distro. For example, Ubuntu returns "debian".
+      if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
+        line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
+        line=${line##*=}
+        echo "$line"
+        return 0
+      else
+        line="None"
+        echo "$line"
+        return 1
+      fi
+    else
+      line="None"
+      echo "$line"
+      return 1
+    fi
+  }
+
+  distro=get_distro_name
+  family=get_distro_family
+  if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
     echo "Installing Python TK if not found on the system."
     if [ ! $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
@@ -32,6 +80,32 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         exit 1
       fi
     fi
+  elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
+    if ! pacman -Qi tk >/dev/null; then
+      if [ root = true ]; then
+        pacman -S tk
+      else
+        echo "This script needs to be run as root or via sudo to install packages."
+        exit 1
+      fi
+    fi
+  elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
+    if ! rpm -qa | grep -qi python-tk; then
+      if [ root = true ]; then
+        zypper install python-tk
+      else
+        echo "This script needs to be run as root or via sudo to install packages."
+        exit 1
+      fi
+    fi
+  elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
+    if [ "$distro" = "None" ]; then
+      echo "We could not detect your distribution of Linux. Please file a bug report on github with the contents of your /etc/os-release file."
+    fi
+
+    if [ "$family" = "None" ]; then
+      echo "We could not detect the family of your Linux distribution. Please file a bug report on github with the contents of your /etc/os-release file."
+    fi
   fi
 
   python3 -m venv venv
@@ -49,6 +123,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   if ! command -v brew >/dev/null; then
     echo "Please install homebrew first. This is a requirement for the remaining setup."
     echo "You can find that here: https://brew.sh"
+    #shellcheck disable=SC2016
+    echo 'The "brew" command should be in $PATH to be detected.'
     exit 1
   fi
 
