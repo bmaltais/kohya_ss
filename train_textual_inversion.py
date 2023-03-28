@@ -186,7 +186,8 @@ def train(args):
 
     current_epoch = Value('i',0)
     current_step = Value('i',0)
-    collater = train_util.collater_class(current_epoch,current_step)
+    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collater = train_util.collater_class(current_epoch,current_step, ds_for_collater)
 
     # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
     if use_template:
