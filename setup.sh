@@ -63,7 +63,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Installing Python TK if not found on the system."
     if [ ! $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
       if [ root = true ]; then
-        apt-get install python3-tk
+        apt install -y python3-tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
         exit 1
@@ -74,7 +74,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     if ! rpm -qa | grep -qi python3-tkinter; then
       if [ root = true ]; then
-        dnf install python3-tkinter
+        dnf install python3-tkinter -y
       else
         echo "This script needs to be run as root or via sudo to install packages."
         exit 1
@@ -83,7 +83,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     if ! pacman -Qi tk >/dev/null; then
       if [ root = true ]; then
-        pacman -S tk
+        pacman --noconfirm -S tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
         exit 1
@@ -92,7 +92,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
     if ! rpm -qa | grep -qi python-tk; then
       if [ root = true ]; then
-        zypper install python-tk
+        zypper install -y python-tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
         exit 1
