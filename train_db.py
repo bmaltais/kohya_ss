@@ -23,7 +23,8 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight 
+from library.custom_train_functions import apply_snr_weight
+
 
 def train(args):
     train_util.verify_training_args(args)
@@ -57,9 +58,10 @@ def train(args):
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
-    current_epoch = Value('i',0)
-    current_step = Value('i',0)
-    collater = train_util.collater_class(current_epoch,current_step)
+    current_epoch = Value("i", 0)
+    current_step = Value("i", 0)
+    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
 
     if args.no_token_padding:
         train_dataset_group.disable_token_padding()
@@ -161,7 +163,9 @@ def train(args):
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
+        args.max_train_steps = args.max_train_epochs * math.ceil(
+            len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
+        )
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
     # データセット側にも学習ステップを送信
@@ -234,7 +238,7 @@ def train(args):
     loss_total = 0.0
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        current_epoch.value = epoch+1
+        current_epoch.value = epoch + 1
 
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
         unet.train()
@@ -298,8 +302,7 @@ def train(args):
                 loss = loss * loss_weights
 
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
-
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
