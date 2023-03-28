@@ -127,8 +127,10 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- __There is an issue with the training script crashing when `max_data_loader_n_workers` is 0. Please temporarily set it to a value greater than 0.__
-- __現在、 `max_data_loader_n_workers` が0の時に学習スクリプトがエラーとなる不具合があります。一時的に1以上の値を設定してください。__
+- 28 Mar. 2023, 2023/3/28:
+  - Fix an issue that the training script crashes when `max_data_loader_n_workers` is 0.
+  - `max_data_loader_n_workers` が0の時に学習スクリプトがエラーとなる不具合を修正しました。
+
 - 27 Mar. 2023, 2023/3/27:
   - Fix issues when `--persistent_data_loader_workers` is specified.
     - The batch members of the bucket are not shuffled.
