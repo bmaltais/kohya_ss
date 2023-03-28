@@ -112,7 +112,9 @@ def save_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -225,7 +227,9 @@ def open_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -320,7 +324,9 @@ def train_model(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -376,7 +382,10 @@ def train_model(
             [
                 f
                 for f, lower_f in (
-                    (file, file.lower()) for file in os.listdir(os.path.join(train_data_dir, folder))
+                    (file, file.lower())
+                    for file in os.listdir(
+                        os.path.join(train_data_dir, folder)
+                    )
                 )
                 if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
@@ -511,6 +520,7 @@ def train_model(
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
+        min_snr_gamma=min_snr_gamma,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -569,10 +579,12 @@ def ti_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model(save_model_as_choices = [
-                    'ckpt',
-                    'safetensors',
-                ])
+    ) = gradio_source_model(
+        save_model_as_choices=[
+            'ckpt',
+            'safetensors',
+        ]
+    )
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -774,6 +786,7 @@ def ti_tab(
                 noise_offset,
                 additional_parameters,
                 vae_batch_size,
+                min_snr_gamma,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -881,6 +894,7 @@ def ti_tab(
         sample_prompts,
         additional_parameters,
         vae_batch_size,
+        min_snr_gamma,
     ]
 
     button_open_config.click(

@@ -840,6 +840,7 @@ def gradio_advanced_training():
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+        min_snr_gamma = gr.Slider(label='Min SNR gamma', value = 0, minimum=0, maximum=20, step=1)
     with gr.Row():
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True
@@ -914,6 +915,7 @@ def gradio_advanced_training():
         noise_offset,
         additional_parameters,
         vae_batch_size,
+        min_snr_gamma,
     )
 
 
@@ -949,13 +951,15 @@ def run_cmd_advanced_training(**kwargs):
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
         else '',
+        f' --min_snr_gamma={int(kwargs.get("min_snr_gamma", 0))}'
+        if int(kwargs.get('min_snr_gamma', 0)) >= 1
+        else '',
         ' --save_state' if kwargs.get('save_state') else '',
         ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
         ' --color_aug' if kwargs.get('color_aug') else '',
         ' --flip_aug' if kwargs.get('flip_aug') else '',
         ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
-        ' --gradient_checkpointing'
-        if kwargs.get('gradient_checkpointing')
+        ' --gradient_checkpointing' if kwargs.get('gradient_checkpointing')
         else '',
         ' --full_fp16' if kwargs.get('full_fp16') else '',
         ' --xformers' if kwargs.get('xformers') else '',
