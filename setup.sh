@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# This file will be the host environment setup file for all operating systems other than base Windows.
+
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # Check if root or sudo
   root=true
