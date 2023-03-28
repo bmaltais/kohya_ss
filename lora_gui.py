@@ -807,11 +807,11 @@ def lora_tab(
                 interactive=True,
             )
             network_alpha = gr.Slider(
-                minimum=1,
+                minimum=0.1,
                 maximum=1024,
                 label='Network Alpha',
                 value=1,
-                step=1,
+                step=0.1,
                 interactive=True,
             )
 
@@ -826,10 +826,10 @@ def lora_tab(
                 label='Convolution Rank (Dimension)',
             )
             conv_alpha = gr.Slider(
-                minimum=1,
+                minimum=0.1,
                 maximum=512,
                 value=1,
-                step=1,
+                step=0.1,
                 label='Convolution Alpha',
             )
         # Show of hide LoCon conv settings depending on LoRA type selection
