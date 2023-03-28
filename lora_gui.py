@@ -123,7 +123,9 @@ def save_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -240,7 +242,9 @@ def open_configuration(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -257,7 +261,7 @@ def open_configuration(
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             print('Loading config...')
-            
+
             # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
     else:
@@ -348,7 +352,9 @@ def train_model(
     sample_every_n_epochs,
     sample_sampler,
     sample_prompts,
-    additional_parameters,vae_batch_size,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -419,11 +425,13 @@ def train_model(
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower())
+                    for file in os.listdir(
+                        os.path.join(train_data_dir, folder)
+                    )
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
 
@@ -591,6 +599,7 @@ def train_model(
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
+        min_snr_gamma=min_snr_gamma,
     )
 
     run_cmd += run_cmd_sample(
@@ -649,10 +658,12 @@ def lora_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model(save_model_as_choices = [
-                    'ckpt',
-                    'safetensors',
-                ])
+    ) = gradio_source_model(
+        save_model_as_choices=[
+            'ckpt',
+            'safetensors',
+        ]
+    )
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -897,6 +908,7 @@ def lora_tab(
                 noise_offset,
                 additional_parameters,
                 vae_batch_size,
+                min_snr_gamma,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -1015,6 +1027,7 @@ def lora_tab(
         sample_prompts,
         additional_parameters,
         vae_batch_size,
+        min_snr_gamma,
     ]
 
     button_open_config.click(
@@ -1104,7 +1117,7 @@ def UI(**kwargs):
     if kwargs.get('inbrowser', False):
         launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
     if kwargs.get('listen', True):
-        launch_kwargs['server_name'] = "0.0.0.0"
+        launch_kwargs['server_name'] = '0.0.0.0'
     print(launch_kwargs)
     interface.launch(**launch_kwargs)
 
@@ -1128,7 +1141,9 @@ if __name__ == '__main__':
         '--inbrowser', action='store_true', help='Open in browser'
     )
     parser.add_argument(
-        '--listen', action='store_true', help='Launch gradio with server name 0.0.0.0, allowing LAN access'
+        '--listen',
+        action='store_true',
+        help='Launch gradio with server name 0.0.0.0, allowing LAN access',
     )
 
     args = parser.parse_args()
