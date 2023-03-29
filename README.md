@@ -68,6 +68,26 @@ cd kohya_ss
 ./setup.sh
 ```
 
+Setup.sh help included here:
+
+```bash
+Kohya_SS Installation Script for POSIX operating systems.
+
+The following options are useful in a runpod environment,
+but will not affect a local machine install.
+
+Usage:
+  setup.sh -b dev -d /workspace/kohya_ss -g https://mycustom.repo.tld/custom_fork.git
+  setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
+
+Options:
+  -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
+  -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
+  -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -h, --help                    Show this screen.
+```
+
 During the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
 These are the same answers as the Windows install.
 
