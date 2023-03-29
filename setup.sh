@@ -67,11 +67,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     root=true
   fi
 
+  # Checks to see if variable is set and non-empty.
   env_var_exists() {
-    local env_var=
-    env_var=$(declare -p "$1")
-    if ! [[ -v $1 && $env_var =~ ^declare\ -x ]]; then
+    if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
       return 1
+    else
+      return 0
     fi
   }
 
