@@ -11,6 +11,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
     - [Linux/macOS](#linux-and-macos)
+      - [Default Install Locations](#install-location)
     - [Windows](#windows)
     - [CUDNN 8.6](#optional--cudnn-86)
 - [Upgrading](#upgrading)
@@ -89,6 +90,13 @@ Options:
   -i, --interactive             Interactively configure accelerate instead of using default config file.
   -h, --help                    Show this screen.
 ```
+
+#### Install location
+
+The default install location for Linux is `/opt/kohya_ss`. If /opt is not writeable, the fallback is `$HOME/kohya_ss`. Lastly, if all else fails it will simply install to the current folder you are in.
+
+On macOS and other non-Linux machines, it will default install to `$HOME/kohya_ss` followed by where you're currently at if there's no access to $HOME.
+You can override this behavior by specifying an install directory with the -d option.
 
 If you are using the interactive mode, our default values for the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
 These are the same answers as the Windows install.

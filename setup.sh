@@ -24,15 +24,50 @@ Options:
 EOF
 }
 
+# Checks to see if variable is set and non-empty.
+# This is defined first, so we can use the function for some default variable values
+env_var_exists() {
+  if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# Need RUNPOD to have a default value before first access
+RUNPOD=false
+if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+  RUNPOD=true
+fi
+
 # Variables defined before the getopts loop, so we have sane default values.
-DIR="/workspace/kohya_ss"
+# Default installation locations based on OS and environment
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  if [ "$RUNPOD" = true ]; then
+    DIR="/workspace/kohya_ss"
+  elif [ -w "/opt" ]; then
+    DIR="/opt/kohya_ss"
+  elif env_var_exists HOME; then
+    DIR="$HOME/kohya_ss"
+  else
+    # The last fallback is simply PWD
+    DIR="$(PWD)"
+  fi
+else
+  if env_var_exists HOME; then
+    DIR="$HOME/kohya_ss"
+  else
+    # The last fallback is simply PWD
+    DIR="$(PWD)"
+  fi
+fi
+
 BRANCH="master"
 GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
-RUNPOD=false
 INTERACTIVE=false
 PUBLIC=false
 
-while getopts "b:d:g:ir-:" opt; do
+while getopts "b:d:g:ipr-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -66,15 +101,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif [ "$UID" = 0 ]; then
     root=true
   fi
-
-  # Checks to see if variable is set and non-empty.
-  env_var_exists() {
-    if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
-      return 1
-    else
-      return 0
-    fi
-  }
 
   get_distro_name() {
     local line
@@ -141,10 +167,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     local FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
     echo "$FREESPACEINGB"
   }
-
-  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
-    RUNPOD=true
-  fi
 
   # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
   if [ "$(size_available)" -lt 10 ]; then
