@@ -11,6 +11,8 @@ import numpy as np
 
 MIN_SV = 1e-6
 
+# Model save and load functions
+
 def load_state_dict(file_name, dtype):
   if model_util.is_safetensors(file_name):
     sd = load_file(file_name)
@@ -39,12 +41,13 @@ def save_to_file(file_name, model, state_dict, dtype, metadata):
     torch.save(model, file_name)
 
 
+# Indexing functions
+
 def index_sv_cumulative(S, target):
   original_sum = float(torch.sum(S))
   cumulative_sums = torch.cumsum(S, dim=0)/original_sum
   index = int(torch.searchsorted(cumulative_sums, target)) + 1
-  if index >= len(S):
-    index = len(S) - 1
+  index = max(1, min(index, len(S)-1))
 
   return index
 
@@ -54,8 +57,16 @@ def index_sv_fro(S, target):
   s_fro_sq = float(torch.sum(S_squared))
   sum_S_squared = torch.cumsum(S_squared, dim=0)/s_fro_sq
   index = int(torch.searchsorted(sum_S_squared, target**2)) + 1
-  if index >= len(S):
-    index = len(S) - 1
+  index = max(1, min(index, len(S)-1))
+
+  return index
+
+
+def index_sv_ratio(S, target):
+  max_sv = S[0]
+  min_sv = max_sv/target
+  index = int(torch.sum(S > min_sv).item())
+  index = max(1, min(index, len(S)-1))
 
   return index
 
@@ -125,26 +136,24 @@ def merge_linear(lora_down, lora_up, device):
     return weight
   
 
+# Calculate new rank
+
 def rank_resize(S, rank, dynamic_method, dynamic_param, scale=1):
     param_dict = {}
 
     if dynamic_method=="sv_ratio":
         # Calculate new dim and alpha based off ratio
-        max_sv = S[0]
-        min_sv = max_sv/dynamic_param
-        new_rank = max(torch.sum(S > min_sv).item(),1)
+        new_rank = index_sv_ratio(S, dynamic_param) + 1
         new_alpha = float(scale*new_rank)
 
     elif dynamic_method=="sv_cumulative":
         # Calculate new dim and alpha based off cumulative sum
-        new_rank = index_sv_cumulative(S, dynamic_param)
-        new_rank = max(new_rank, 1)
+        new_rank = index_sv_cumulative(S, dynamic_param) + 1
         new_alpha = float(scale*new_rank)
 
     elif dynamic_method=="sv_fro":
         # Calculate new dim and alpha based off sqrt sum of squares
-        new_rank = index_sv_fro(S, dynamic_param)
-        new_rank = min(max(new_rank, 1), len(S)-1)
+        new_rank = index_sv_fro(S, dynamic_param) + 1
         new_alpha = float(scale*new_rank)
     else:
         new_rank = rank
@@ -172,7 +181,7 @@ def rank_resize(S, rank, dynamic_method, dynamic_param, scale=1):
     param_dict["new_alpha"] = new_alpha
     param_dict["sum_retained"] = (s_rank)/s_sum
     param_dict["fro_retained"] = fro_percent
-    param_dict["max_ratio"] = S[0]/S[new_rank]
+    param_dict["max_ratio"] = S[0]/S[new_rank - 1]
 
     return param_dict
 
