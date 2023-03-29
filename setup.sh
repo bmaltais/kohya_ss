@@ -32,7 +32,7 @@ RUNPOD=false
 INTERACTIVE=false
 PUBLIC=false
 
-while getopts "b:d:g:ir-:" opt; do
+while getopts "b:d:g:ipr-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
