@@ -36,7 +36,6 @@ while getopts "b:d:g:r-:" opt; do
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
   case $opt in
-  # note the leading colon
   b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
