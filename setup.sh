@@ -17,6 +17,7 @@ Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
   -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
   -h, --help                    Show this screen.
@@ -29,6 +30,7 @@ BRANCH="master"
 GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 RUNPOD=false
 INTERACTIVE=false
+PUBLIC=false
 
 while getopts "b:d:g:ir-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -42,6 +44,7 @@ while getopts "b:d:g:ir-:" opt; do
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
   i | interactive) INTERACTIVE=true ;;
+  p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -149,7 +152,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
       cd "$DIR" || exit 1
-      sed -i "s/interface.launch(\*\*launch_kwargs)/interface.launch(\*\*launch_kwargs,share=True)/g" ./kohya_gui.py
     else
       echo "Clean installation on a runpod detected."
       cd "$PARENT_DIR" || exit 1
@@ -276,10 +278,18 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
     # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
     if command -v bash >/dev/null; then
-      bash "$DIR"/gui.sh
+      if [ "$PUBLIC" = false ]; then
+        bash "$DIR"/gui.sh
+      else
+        bash "$DIR"/gui.sh --share
+      fi
     else
       # This shouldn't happen, but we're going to try to help.
-      sh "$DIR"/gui.sh
+      if [ "$PUBLIC" = false ]; then
+        sh "$DIR"/gui.sh
+      else
+        sh "$DIR"/gui.sh --share
+      fi
     fi
   fi
 

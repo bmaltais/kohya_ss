@@ -84,6 +84,7 @@ Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
   -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
   -h, --help                    Show this screen.
