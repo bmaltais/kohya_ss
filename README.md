@@ -85,10 +85,11 @@ Options:
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
   -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -i, --interactive             Interactively configure accelerate instead of using default config file.
   -h, --help                    Show this screen.
 ```
 
-During the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
+If you are using the interactive mode, our default values for the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
 These are the same answers as the Windows install.
 
 ### Windows

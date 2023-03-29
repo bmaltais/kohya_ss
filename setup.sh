@@ -18,6 +18,7 @@ Options:
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
   -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -i, --interactive             Interactively configure accelerate instead of using default config file.
   -h, --help                    Show this screen.
 EOF
 }
@@ -27,8 +28,9 @@ DIR="/workspace/kohya_ss"
 BRANCH="master"
 GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 RUNPOD=false
+INTERACTIVE=false
 
-while getopts "b:d:g:r-:" opt; do
+while getopts "b:d:g:ir-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -39,6 +41,7 @@ while getopts "b:d:g:r-:" opt; do
   b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
+  i | interactive) INTERACTIVE=true ;;
   r | runpod) RUNPOD=true ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -116,8 +119,27 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   }
 
+  # This checks for free space on the installation drive and returns that in Gb.
+  size_available() {
+    local FREESPACEINKB="$(df -Pk "$DIR" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
+    local FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
+    echo "$FREESPACEINGB"
+  }
+
   if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
     RUNPOD=true
+  fi
+
+  # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
+  if [ "$(size_available)" -lt 10 ]; then
+    echo "You have less than 10Gb of free space. This installation may fail."
+    MSGTIMEOUT=10 # In seconds
+    MESSAGE="Continuing in..."
+    echo "Press control-c to cancel the installation."
+    for ((i = $MSGTIMEOUT; i >= 0; i--)); do
+      printf "\r${MESSAGE} %ss. " "${i}"
+      sleep 1
+    done
   fi
 
   # This is the pre-install work for a kohya installation on a runpod
@@ -221,6 +243,33 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/tensorrt/"
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
 
+    # Attempt to non-interactively install a default accelerate config file unless specified otherwise.
+    # Documentation for order of precedence locations for configuration file for automated installation:
+    # https://huggingface.co/docs/accelerate/basic_tutorials/launch#custom-configurations
+    if [ "$INTERACTIVE" = true ]; then
+      accelerate config
+    else
+      if env_var_exists HF_HOME; then
+        if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
+          mkdir -p "$HF_HOME/accelerate/" &&
+            cp ./config_files/accelerate/default_config.yaml "$HF_HOME/accelerate/default_config.yaml"
+        fi
+      elif env_var_exists XDG_CACHE_HOME; then
+        if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
+          mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
+            cp ./config_files/accelerate/default_config.yaml "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
+        fi
+      elif env_var_exists HOME; then
+        if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
+          mkdir -p "$HOME/.cache/huggingface/accelerate" &&
+            cp ./config_files/accelerate/default_config.yaml "$HOME/.cache/huggingface/accelerate/default_config.yaml"
+        fi
+      else
+        echo "Could not place the accelerate configuration file. Please configure manually."
+        accelerate config
+      fi
+    fi
+
     # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
     if command -v bash >/dev/null; then
       bash "$DIR"/gui.sh
@@ -229,8 +278,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       sh "$DIR"/gui.sh
     fi
   fi
-
-  accelerate config
 
   echo -e "Setup finished! Run \e[0;92m./gui.sh\e[0m to start."
 elif [[ "$OSTYPE" == "darwin"* ]]; then
