@@ -2,12 +2,65 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
+display_help() {
+  cat <<EOF
+Kohya_SS Installation Script for POSIX operating systems.
+
+The following options are useful in a runpod environment,
+but will not affect a local machine install.
+
+Usage:
+  setup.sh -b dev -d /workspace/kohya_ss
+  setup.sh --branch=dev --dir=/workspace/kohya_ss
+
+Options:
+  -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
+  -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
+  -h, --help                     Show this screen.
+EOF
+}
+
+# Variables defined before the getopts loop, so we have sane default values.
+DIR="/workspace/kohya_ss"
+BRANCH="dev"
+REPO="https://github.com/bmaltais/kohya_ss.git"
+
+while getopts "b:d:-:" opt; do
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
+    opt="${OPTARG%%=*}"     # extract long option name
+    OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
+  fi
+  case $opt in
+  # note the leading colon
+  b | branch) BRANCH="$OPTARG" ;;
+  d | dir) DIR="$OPTARG" ;;
+  r | repo) REPO="$OPTARG" ;;
+  h) display_help && exit 0 ;;
+  *) display_help && exit 0 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# This must be set after the getopts loop to account for $DIR changes.
+BASE_DIR="$(echo "$DIR" | cut -d "/" -f2)"
+VENV_DIR="$DIR/venv"
+
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # Check if root or sudo
   root=true
   if [ "$EUID" -ne 0 ]; then
     root=false
   fi
+
+  env_var_exists() {
+    local env_var=
+    env_var=$(declare -p "$1")
+    if ! [[ -v $1 && $env_var =~ ^declare\ -x ]]; then
+      return 1
+    fi
+  }
 
   get_distro_name() {
     local line
@@ -56,6 +109,23 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   }
 
+  # This is the pre-install work for a kohya installation on a runpod
+  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+    if [ -d "$VENV_DIR" ]; then
+      echo "Pre-existing installation on a runpod detected."
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
+      cd "$DIR" || exit 1
+      sed -i "s/interface.launch(\*\*launch_kwargs)/interface.launch(\*\*launch_kwargs,share=True)/g" kohya_gui.py
+    else
+      echo "Clean installation on a runpod detected."
+      cd "$BASE_DIR" || exit 1
+      git clone "$REPO"
+      cd "$DIR" || exit 1
+      git checkout "$BRANCH"
+    fi
+  fi
+
   distro=get_distro_name
   family=get_distro_family
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
@@ -63,7 +133,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Installing Python TK if not found on the system."
     if [ ! $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
       if [ root = true ]; then
-        apt install -y python3-tk
+        apt update -y && apt install -y python3-tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
         exit 1
@@ -113,6 +183,29 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
   pip install --use-pep517 --upgrade -r requirements.txt
   pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
+
+  # We need this extra package and setup if we are running in a runpod
+  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+    pip install tensorrt
+    ln -s "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8" \
+      "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
+    ln -s "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8" \
+      "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
+    ln -s "$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12" \
+      "$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
+
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/tensorrt/"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+
+    # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
+    if command -v bash >/dev/null; then
+      bash "$DIR"/gui.sh
+    else
+      # This shouldn't happen, but we're going to try to help.
+      sh "$DIR"/gui.sh
+    fi
+  fi
+
   accelerate config
 
   echo -e "Setup finished! Run \e[0;92m./gui.sh\e[0m to start."

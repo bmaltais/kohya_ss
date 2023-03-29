@@ -63,6 +63,8 @@ In the terminal, run
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 # May need to chmod +x ./setup.sh if you're on a machine with stricter security.
+# There are additional options if needed for a runpod environment.
+# Call 'setup.sh -h' or 'setup.sh --help' for more information.
 ./setup.sh
 ```
 
