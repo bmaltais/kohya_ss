@@ -57,10 +57,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     root=false
   fi
 
-  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
-    RUNPOD=true
-  fi
-
   env_var_exists() {
     local env_var=
     env_var=$(declare -p "$1")
@@ -115,6 +111,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       return 1
     fi
   }
+
+  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+    RUNPOD=true
+  fi
 
   # This is the pre-install work for a kohya installation on a runpod
   if [ "$RUNPOD" = true ]; then
