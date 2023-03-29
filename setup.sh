@@ -24,7 +24,7 @@ EOF
 
 # Variables defined before the getopts loop, so we have sane default values.
 DIR="/workspace/kohya_ss"
-BRANCH="dev"
+BRANCH="master"
 GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 RUNPOD=false
 
@@ -48,7 +48,7 @@ done
 shift $((OPTIND - 1))
 
 # This must be set after the getopts loop to account for $DIR changes.
-BASE_DIR="$(echo "$DIR" | cut -d "/" -f2)"
+PARENT_DIR="$(dirname "${DIR}")"
 VENV_DIR="$DIR/venv"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -127,10 +127,18 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       sed -i "s/interface.launch(\*\*launch_kwargs)/interface.launch(\*\*launch_kwargs,share=True)/g" ./kohya_gui.py
     else
       echo "Clean installation on a runpod detected."
-      cd "$BASE_DIR" || exit 1
-      git clone "$GIT_REPO"
-      cd "$DIR" || exit 1
-      git checkout "$BRANCH"
+      cd "$PARENT_DIR" || exit 1
+      if [ ! -d "$DIR/.git" ]; then
+        echo "Cloning $GIT_REPO."
+        git clone "$GIT_REPO"
+        cd "$DIR" || exit 1
+        git checkout "$BRANCH"
+      else
+        cd "$DIR" || exit 1
+        echo "git repo detected. Attempting tp update repo instead."
+        echo "Updating: $GIT_REPO"
+        git pull "$GIT_REPO"
+      fi
     fi
   fi
 
