@@ -124,7 +124,19 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   # This checks for free space on the installation drive and returns that in Gb.
   size_available() {
-    local FREESPACEINKB="$(df -Pk "$DIR" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
+    local folder
+    if [ -d "$DIR" ]; then
+      folder="$DIR"
+    elif [ -d "$PARENT_DIR" ]; then
+      folder="$PARENT_DIR"
+    elif [ -d "$(echo "$DIR" | cut -d "/" -f2)" ]; then
+      folder="$(echo "$DIR" | cut -d "/" -f2)"
+    else
+      echo "We are assuming a root drive install for space-checking purposes."
+      folder='/'
+    fi
+
+    local FREESPACEINKB="$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
     local FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
     echo "$FREESPACEINGB"
   }
