@@ -108,6 +108,7 @@ def save_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -216,6 +217,7 @@ def open_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -306,6 +308,7 @@ def train_model(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
+    min_snr_gamma,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -335,12 +338,17 @@ def train_model(
     subfolders = [
         f
         for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith('.')
+        if os.path.isdir(os.path.join(train_data_dir, f))
+        and not f.startswith('.')
     ]
 
     # Check if subfolders are present. If not let the user know and return
     if not subfolders:
-        print('\033[33mNo subfolders were found in', train_data_dir, ' can\'t train\...033[0m')
+        print(
+            '\033[33mNo subfolders were found in',
+            train_data_dir,
+            " can't train\...033[0m",
+        )
         return
 
     total_steps = 0
@@ -351,21 +359,27 @@ def train_model(
         try:
             repeats = int(folder.split('_')[0])
         except ValueError:
-            print('\033[33mSubfolder', folder, 'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
+            print(
+                '\033[33mSubfolder',
+                folder,
+                "does not have a proper repeat value, please correct the name or remove it... can't train...\033[0m",
+            )
             continue
 
         # Count the number of images in the folder
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower())
+                    for file in os.listdir(
+                        os.path.join(train_data_dir, folder)
+                    )
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
-        
+
         if num_images == 0:
             print(f'{folder} folder contain no images, skipping...')
         else:
@@ -377,7 +391,11 @@ def train_model(
             print('\033[33mFolder', folder, ':', steps, 'steps\033[0m')
 
     if total_steps == 0:
-        print('\033[33mNo images were found in folder', train_data_dir, '... please rectify!\033[0m')
+        print(
+            '\033[33mNo images were found in folder',
+            train_data_dir,
+            '... please rectify!\033[0m',
+        )
         return
 
     # Print the result
@@ -386,7 +404,9 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print('\033[94mRegularisation images are used... Will double the number of steps required...\033[0m')
+        print(
+            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        )
         reg_factor = 2
 
     # calculate max_train_steps
@@ -498,6 +518,7 @@ def train_model(
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
+        min_snr_gamma=min_snr_gamma,
     )
 
     run_cmd += run_cmd_sample(
@@ -705,6 +726,7 @@ def dreambooth_tab(
                 noise_offset,
                 additional_parameters,
                 vae_batch_size,
+                min_snr_gamma,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -806,6 +828,7 @@ def dreambooth_tab(
         sample_prompts,
         additional_parameters,
         vae_batch_size,
+        min_snr_gamma,
     ]
 
     button_open_config.click(
