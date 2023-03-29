@@ -10,22 +10,25 @@ The following options are useful in a runpod environment,
 but will not affect a local machine install.
 
 Usage:
-  setup.sh -b dev -d /workspace/kohya_ss
-  setup.sh --branch=dev --dir=/workspace/kohya_ss
+  setup.sh -b dev -d /workspace/kohya_ss -g https://mycustom.repo.tld/custom_fork.git
+  setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
 
 Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
-  -h, --help                     Show this screen.
+  -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -h, --help                    Show this screen.
 EOF
 }
 
 # Variables defined before the getopts loop, so we have sane default values.
 DIR="/workspace/kohya_ss"
 BRANCH="dev"
-REPO="https://github.com/bmaltais/kohya_ss.git"
+GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
+RUNPOD=false
 
-while getopts "b:d:-:" opt; do
+while getopts "b:d:g:r-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -36,7 +39,8 @@ while getopts "b:d:-:" opt; do
   # note the leading colon
   b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
-  r | repo) REPO="$OPTARG" ;;
+  g | git-repo) GIT_REPO="$OPTARG" ;;
+  r | runpod) RUNPOD=true ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
   esac
@@ -52,6 +56,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   root=true
   if [ "$EUID" -ne 0 ]; then
     root=false
+  fi
+
+  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+    RUNPOD=true
   fi
 
   env_var_exists() {
@@ -110,17 +118,17 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   }
 
   # This is the pre-install work for a kohya installation on a runpod
-  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+  if [ "$RUNPOD" = true ]; then
     if [ -d "$VENV_DIR" ]; then
       echo "Pre-existing installation on a runpod detected."
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
       cd "$DIR" || exit 1
-      sed -i "s/interface.launch(\*\*launch_kwargs)/interface.launch(\*\*launch_kwargs,share=True)/g" kohya_gui.py
+      sed -i "s/interface.launch(\*\*launch_kwargs)/interface.launch(\*\*launch_kwargs,share=True)/g" ./kohya_gui.py
     else
       echo "Clean installation on a runpod detected."
       cd "$BASE_DIR" || exit 1
-      git clone "$REPO"
+      git clone "$GIT_REPO"
       cd "$DIR" || exit 1
       git checkout "$BRANCH"
     fi
@@ -185,7 +193,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl
 
   # We need this extra package and setup if we are running in a runpod
-  if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+  if [ "$RUNPOD" = true ]; then
     pip install tensorrt
     ln -s "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8" \
       "$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
