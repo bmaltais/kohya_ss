@@ -52,9 +52,13 @@ VENV_DIR="$DIR/venv"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # Check if root or sudo
-  root=true
-  if [ "$EUID" -ne 0 ]; then
-    root=false
+  root=false
+  if [ "$EUID" = 0 ]; then
+    root=true
+  elif command -v id >/dev/null && [ "$(id -u)" = 0 ]; then
+    root=true
+  elif [ "$UID" = 0 ]; then
+    root=true
   fi
 
   env_var_exists() {
@@ -149,7 +153,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      if [ root = true ]; then
+      if [ "$root" = true ]; then
         apt update -y && apt install -y python3-tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
@@ -161,7 +165,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     echo "Redhat or Redhat base detected."
     if ! rpm -qa | grep -qi python3-tkinter; then
-      if [ root = true ]; then
+      if [ "$root" = true ]; then
         dnf install python3-tkinter -y
       else
         echo "This script needs to be run as root or via sudo to install packages."
@@ -171,7 +175,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     echo "Arch Linux or Arch base detected."
     if ! pacman -Qi tk >/dev/null; then
-      if [ root = true ]; then
+      if [ "$root" = true ]; then
         pacman --noconfirm -S tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
@@ -181,7 +185,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
     echo "OpenSUSE detected."
     if ! rpm -qa | grep -qi python-tk; then
-      if [ root = true ]; then
+      if [ "$root" = true ]; then
         zypper install -y python-tk
       else
         echo "This script needs to be run as root or via sudo to install packages."
