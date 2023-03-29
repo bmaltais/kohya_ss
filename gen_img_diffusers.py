@@ -781,21 +781,19 @@ class PipelineLike:
             text_embeddings_concat = []
             for layer in ['IN01', 'IN02', 'IN04', 'IN05', 'IN07', 'IN08', 'MID', 'OUT03', 'OUT04', 'OUT05', 'OUT06', 'OUT07', 'OUT08', 'OUT09', 'OUT10', 'OUT11']:
                 text_embeddings, uncond_embeddings, prompt_tokens = get_weighted_text_embeddings(
-                pipe=self,
-                prompt=prompt,
-                uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
-                max_embeddings_multiples=max_embeddings_multiples,
-                clip_skip=self.clip_skip,
-                layer=layer,
-                **kwargs,
+                    pipe=self,
+                    prompt=prompt,
+                    uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
+                    max_embeddings_multiples=max_embeddings_multiples,
+                    clip_skip=self.clip_skip,
+                    layer=layer,
+                    **kwargs,
                 )
                 if do_classifier_free_guidance:
                     if negative_scale is None:
                         text_embeddings_concat.append(torch.cat([uncond_embeddings, text_embeddings]))
                     else:
                         text_embeddings_concat.append(torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings]))
-
-
                 text_embeddings = torch.stack(text_embeddings_concat)
         else:
             if do_classifier_free_guidance:
@@ -803,7 +801,6 @@ class PipelineLike:
                     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
                 else:
                     text_embeddings = torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings])
-
                     text_embeddings, uncond_embeddings, prompt_tokens = get_weighted_text_embeddings(
                         pipe=self,
                         prompt=prompt,
