@@ -143,10 +143,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   distro=get_distro_name
   family=get_distro_family
+
+  echo "Installing Python TK if not found on the system."
+
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
-    echo "Installing Python TK if not found on the system."
-    if [ ! $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+    if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
       if [ root = true ]; then
         apt update -y && apt install -y python3-tk
       else
@@ -157,6 +159,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       echo "Python TK found! Skipping install!"
     fi
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
+    echo "Redhat or Redhat base detected."
     if ! rpm -qa | grep -qi python3-tkinter; then
       if [ root = true ]; then
         dnf install python3-tkinter -y
@@ -166,6 +169,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       fi
     fi
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
+    echo "Arch Linux or Arch base detected."
     if ! pacman -Qi tk >/dev/null; then
       if [ root = true ]; then
         pacman --noconfirm -S tk
@@ -175,6 +179,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       fi
     fi
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
+    echo "OpenSUSE detected."
     if ! rpm -qa | grep -qi python-tk; then
       if [ root = true ]; then
         zypper install -y python-tk
