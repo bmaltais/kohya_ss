@@ -252,20 +252,24 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       if env_var_exists HF_HOME; then
         if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
           mkdir -p "$HF_HOME/accelerate/" &&
-            cp ./config_files/accelerate/default_config.yaml "$HF_HOME/accelerate/default_config.yaml"
+            cp ./config_files/accelerate/default_config.yaml "$HF_HOME/accelerate/default_config.yaml" &&
+            echo "Copied accelerate config file to: $HF_HOME/accelerate/default_config.yaml"
         fi
       elif env_var_exists XDG_CACHE_HOME; then
         if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
           mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
-            cp ./config_files/accelerate/default_config.yaml "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
+            cp ./config_files/accelerate/default_config.yaml "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml" &&
+            echo "Copied accelerate config file to: $XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
         fi
       elif env_var_exists HOME; then
         if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
           mkdir -p "$HOME/.cache/huggingface/accelerate" &&
-            cp ./config_files/accelerate/default_config.yaml "$HOME/.cache/huggingface/accelerate/default_config.yaml"
+            cp ./config_files/accelerate/default_config.yaml "$HOME/.cache/huggingface/accelerate/default_config.yaml" &&
+            echo "Copying accelerate config file to: $HOME/.cache/huggingface/accelerate/default_config.yaml"
         fi
       else
         echo "Could not place the accelerate configuration file. Please configure manually."
+        sleep 2
         accelerate config
       fi
     fi
