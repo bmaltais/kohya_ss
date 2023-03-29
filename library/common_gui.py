@@ -31,7 +31,7 @@ V1_MODELS = [
 # define a list of substrings to search for
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
-FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_ENVIRONMENT']
+FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
 
 def check_if_model_exist(output_name, output_dir, save_model_as):

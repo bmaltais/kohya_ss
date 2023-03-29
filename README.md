@@ -213,6 +213,9 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/29 (v21.3.7)
+    - Allow for 0.1 increment in Network and Conv alpha values: https://github.com/bmaltais/kohya_ss/pull/471 Thanks to @srndpty
+    - Updated Lycoris module version
 * 2023/03/28 (v21.3.6)
     - Fix issues when `--persistent_data_loader_workers` is specified.
         - The batch members of the bucket are not shuffled.
