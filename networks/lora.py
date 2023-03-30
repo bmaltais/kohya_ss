@@ -66,6 +66,37 @@ class LoRAModule(torch.nn.Module):
         self.org_module.forward = self.forward
         del self.org_module
 
+    def merge_to(self, sd, dtype, device):
+        # get up/down weight
+        up_weight = sd["lora_up.weight"].to(torch.float).to(device)
+        down_weight = sd["lora_down.weight"].to(torch.float).to(device)
+
+        # extract weight from org_module
+        org_sd = self.org_module.state_dict()
+        weight = org_sd["weight"].to(torch.float)
+
+        # merge weight
+        if len(weight.size()) == 2:
+            # linear
+            weight = weight + self.multiplier * (up_weight @ down_weight) * self.scale
+        elif down_weight.size()[2:4] == (1, 1):
+            # conv2d 1x1
+            weight = (
+                weight
+                + self.multiplier
+                * (up_weight.squeeze(3).squeeze(2) @ down_weight.squeeze(3).squeeze(2)).unsqueeze(2).unsqueeze(3)
+                * self.scale
+            )
+        else:
+            # conv2d 3x3
+            conved = torch.nn.functional.conv2d(down_weight.permute(1, 0, 2, 3), up_weight).permute(1, 0, 2, 3)
+            # print(conved.size(), weight.size(), module.stride, module.padding)
+            weight = weight + self.multiplier * conved * self.scale
+
+        # set weight to org_module
+        org_sd["weight"] = weight.to(dtype)
+        self.org_module.load_state_dict(org_sd)
+
     def set_region(self, region):
         self.region = region
         self.region_mask = None
@@ -121,30 +152,30 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
             conv_alpha = float(conv_alpha)
 
     """
-  block_dims = kwargs.get("block_dims")
-  block_alphas = None
+    block_dims = kwargs.get("block_dims")
+    block_alphas = None
 
-  if block_dims is not None:
+    if block_dims is not None:
     block_dims = [int(d) for d in block_dims.split(',')]
     assert len(block_dims) == NUM_BLOCKS, f"Number of block dimensions is not same to {NUM_BLOCKS}"
     block_alphas = kwargs.get("block_alphas")
     if block_alphas is None:
-      block_alphas = [1] * len(block_dims)
+        block_alphas = [1] * len(block_dims)
     else:
-      block_alphas = [int(a) for a in block_alphas(',')]
+        block_alphas = [int(a) for a in block_alphas(',')]
     assert len(block_alphas) == NUM_BLOCKS, f"Number of block alphas is not same to {NUM_BLOCKS}"
 
-  conv_block_dims = kwargs.get("conv_block_dims")
-  conv_block_alphas = None
+    conv_block_dims = kwargs.get("conv_block_dims")
+    conv_block_alphas = None
 
-  if conv_block_dims is not None:
+    if conv_block_dims is not None:
     conv_block_dims = [int(d) for d in conv_block_dims.split(',')]
     assert len(conv_block_dims) == NUM_BLOCKS, f"Number of block dimensions is not same to {NUM_BLOCKS}"
     conv_block_alphas = kwargs.get("conv_block_alphas")
     if conv_block_alphas is None:
-      conv_block_alphas = [1] * len(conv_block_dims)
+        conv_block_alphas = [1] * len(conv_block_dims)
     else:
-      conv_block_alphas = [int(a) for a in conv_block_alphas(',')]
+        conv_block_alphas = [int(a) for a in conv_block_alphas(',')]
     assert len(conv_block_alphas) == NUM_BLOCKS, f"Number of block alphas is not same to {NUM_BLOCKS}"
   """
 
@@ -343,6 +374,35 @@ class LoRANetwork(torch.nn.Module):
             # if some weights are not in state dict, it is ok because initial LoRA does nothing (lora_up is initialized by zeros)
             info = self.load_state_dict(self.weights_sd, False)
             print(f"weights are loaded: {info}")
+
+    # TODO refactor to common function with apply_to
+    def merge_to(self, text_encoder, unet, dtype, device):
+        assert self.weights_sd is not None, "weights are not loaded"
+
+        apply_text_encoder = apply_unet = False
+        for key in self.weights_sd.keys():
+            if key.startswith(LoRANetwork.LORA_PREFIX_TEXT_ENCODER):
+                apply_text_encoder = True
+            elif key.startswith(LoRANetwork.LORA_PREFIX_UNET):
+                apply_unet = True
+
+        if apply_text_encoder:
+            print("enable LoRA for text encoder")
+        else:
+            self.text_encoder_loras = []
+
+        if apply_unet:
+            print("enable LoRA for U-Net")
+        else:
+            self.unet_loras = []
+
+        for lora in self.text_encoder_loras + self.unet_loras:
+            sd_for_lora = {}
+            for key in self.weights_sd.keys():
+                if key.startswith(lora.lora_name):
+                    sd_for_lora[key[len(lora.lora_name) + 1 :]] = self.weights_sd[key]
+            lora.merge_to(sd_for_lora, dtype, device)
+        print(f"weights are merged")
 
     def enable_gradient_checkpointing(self):
         # not supported
