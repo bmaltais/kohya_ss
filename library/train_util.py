@@ -2,6 +2,7 @@
 
 import argparse
 import ast
+import asyncio
 import importlib
 import json
 import pathlib
@@ -49,6 +50,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
 )
+from huggingface_hub import hf_hub_download
 import albumentations as albu
 import numpy as np
 from PIL import Image
@@ -58,7 +60,7 @@ from torch import einsum
 import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
-import library.utils as utils
+import library.huggingface_util as huggingface_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -1903,6 +1905,11 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     parser.add_argument("--huggingface_repo_visibility", type=str, default=None, help="huggingface model visibility / huggingfaceにアップロードするモデルの公開設定")
     parser.add_argument("--save_state_to_huggingface", action="store_true", help="save state to huggingface / huggingfaceにstateを保存する")
     parser.add_argument(
+        "--resume_from_huggingface",
+        action="store_true",
+        help="resume from huggingface (ex: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type}) / huggingfaceから学習を再開する(例: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type})",
+    )
+    parser.add_argument(
         "--save_precision",
         type=str,
         default=None,
@@ -2265,6 +2272,56 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
 # endregion
 
 # region utils
+
+def resume(accelerator, args):
+    if args.resume:
+        print(f"resume training from state: {args.resume}")
+        if args.resume_from_huggingface:
+            repo_id = args.resume.split("/")[0] + "/" + args.resume.split("/")[1]
+            path_in_repo = "/".join(args.resume.split("/")[2:])
+            revision = None
+            repo_type = None
+            if ":" in path_in_repo:
+                divided = path_in_repo.split(":")
+                if len(divided) == 2:
+                    path_in_repo, revision = divided
+                    repo_type = "model"
+                else:
+                    path_in_repo, revision, repo_type = divided
+            print(
+                f"Downloading state from huggingface: {repo_id}/{path_in_repo}@{revision}"
+            )
+
+            list_files = huggingface_util.list_dir(
+                repo_id=repo_id,
+                subfolder=path_in_repo,
+                revision=revision,
+                token=args.huggingface_token,
+                repo_type=repo_type,
+            )
+
+            async def download(filename) -> str:
+                def task():
+                    return hf_hub_download(
+                        repo_id=repo_id,
+                        filename=filename,
+                        revision=revision,
+                        repo_type=repo_type,
+                        token=args.huggingface_token,
+                    )
+
+                return await asyncio.get_event_loop().run_in_executor(None, task)
+
+            loop = asyncio.get_event_loop()
+            results = loop.run_until_complete(
+                asyncio.gather(
+                    *[download(filename=filename.rfilename) for filename in list_files]
+                )
+            )
+            dirname = os.path.dirname(results[0])
+            accelerator.load_state(dirname)
+        else:
+            accelerator.load_state(args.resume)
 
 
 def get_optimizer(args, trainable_params):
@@ -2812,7 +2869,7 @@ def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, e
     state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
     accelerator.save_state(state_dir)
     if args.save_state_to_huggingface:
-        utils.huggingface_upload(state_dir, args, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
+        huggingface_util.upload(state_dir, args, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
 
     last_n_epochs = args.save_last_n_epochs_state if args.save_last_n_epochs_state else args.save_last_n_epochs
     if last_n_epochs is not None:
