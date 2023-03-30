@@ -1,8 +1,11 @@
 import os
 import re
+
 import gradio as gr
-from easygui import msgbox, boolbox
+from easygui import boolbox
+
 from .common_gui import get_folder_path
+
 
 # def select_folder():
 #     # Open a file dialog to select a directory
@@ -16,14 +19,14 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
     if not concept_repeats > 0:
         # Display an error message if the total number of repeats is not a valid integer
-        msgbox('Please enter a valid integer for the total number of repeats.')
+        show_message_box('Please enter a valid integer for the total number of repeats.')
         return
 
     concept_repeats = int(concept_repeats)
 
     # Check if folder exist
     if folder == '' or not os.path.isdir(folder):
-        msgbox('Please enter a valid folder for balancing.')
+        show_message_box('Please enter a valid folder for balancing.')
         return
 
     pattern = re.compile(r'^\d+_.+$')
@@ -85,7 +88,7 @@ def dataset_balancing(concept_repeats, folder, insecure):
                 f'Skipping folder {subdir} because it does not match kohya_ss expected syntax...'
             )
 
-    msgbox('Dataset balancing completed...')
+    show_message_box('Dataset balancing completed...')
 
 
 def warning(insecure):

@@ -1,7 +1,8 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
+import subprocess
+
+import gradio as gr
+
 from .common_gui import get_folder_path, add_pre_postfix
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
@@ -21,16 +22,16 @@ def caption_images(
 ):
     # Check for caption_text_input
     # if caption_text_input == "":
-    #     msgbox("Caption text is missing...")
+    #     show_message_box("Caption text is missing...")
     #     return
 
     # Check for images_dir_input
     if train_data_dir == '':
-        msgbox('Image folder is missing...')
+        show_message_box('Image folder is missing...')
         return
 
     if caption_file_ext == '':
-        msgbox('Please provide an extension for the caption files.')
+        show_message_box('Please provide an extension for the caption files.')
         return
 
     print(f'Captioning files in {train_data_dir}...')

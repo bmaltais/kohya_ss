@@ -1,8 +1,9 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
 import shutil
+import subprocess
+
+import gradio as gr
+
 from .common_gui import get_folder_path, get_file_path
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -22,7 +23,7 @@ def convert_model(
 ):
     # Check for caption_text_input
     if source_model_type == '':
-        msgbox('Invalid source model type')
+        show_message_box('Invalid source model type')
         return
 
     # Check if source model exist
@@ -31,14 +32,14 @@ def convert_model(
     elif os.path.isdir(source_model_input):
         print('The provided model is a folder')
     else:
-        msgbox('The provided source model is neither a file nor a folder')
+        show_message_box('The provided source model is neither a file nor a folder')
         return
 
     # Check if source model exist
     if os.path.isdir(target_model_folder_input):
         print('The provided model folder exist')
     else:
-        msgbox('The provided target folder does not exist')
+        show_message_box('The provided target folder does not exist')
         return
 
     run_cmd = f'{PYTHON} "tools/convert_diffusers20_original_sd.py"'

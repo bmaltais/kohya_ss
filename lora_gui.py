@@ -3,14 +3,15 @@
 # v3: Add new Utilities tab for Dreambooth folder preparation
 # v3.1: Adding captionning of images to utilities
 
-import gradio as gr
-import easygui
+import argparse
 import json
 import math
 import os
-import subprocess
 import pathlib
-import argparse
+import subprocess
+
+import gradio as gr
+
 from library.common_gui import (
     get_folder_path,
     remove_doublequote,
@@ -27,24 +28,23 @@ from library.common_gui import (
     run_cmd_training,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist,
+    check_if_model_exist, show_message_box,
 )
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
+from library.merge_lora_gui import gradio_merge_lora_tab
+from library.resize_lora_gui import gradio_resize_lora_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -353,35 +353,35 @@ def train_model(
     print_only_bool = True if print_only.get('label') == 'True' else False
 
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        show_message_box('Source model information is missing')
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        show_message_box('Image folder path is missing')
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        show_message_box('Image folder does not exist')
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            show_message_box('Regularisation folder does not exist')
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        show_message_box('Output folder path is missing')
         return
 
     if int(bucket_reso_steps) < 1:
-        msgbox('Bucket resolution steps need to be greater than 0')
+        show_message_box('Bucket resolution steps need to be greater than 0')
         return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     if stop_text_encoder_training_pct > 0:
-        msgbox(
+        show_message_box(
             'Output "stop text encoder training" is not yet supported. Ignoring'
         )
         stop_text_encoder_training_pct = 0
@@ -396,7 +396,7 @@ def train_model(
         unet_lr = 0
 
     # if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-    #     msgbox(
+    #     show_message_box(
     #         'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
     #     )
     #     return
@@ -532,7 +532,7 @@ def train_model(
             run_cmd += f' --network_train_unet_only'
     else:
         if float(text_encoder_lr) == 0:
-            msgbox('Please input learning rate values.')
+            show_message_box('Please input learning rate values.')
             return
 
     run_cmd += f' --network_dim={network_dim}'

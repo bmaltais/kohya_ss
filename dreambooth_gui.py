@@ -3,13 +3,15 @@
 # v3: Add new Utilities tab for Dreambooth folder preparation
 # v3.1: Adding captionning of images to utilities
 
-import gradio as gr
+import argparse
 import json
 import math
 import os
-import subprocess
 import pathlib
-import argparse
+import subprocess
+
+import gradio as gr
+
 from library.common_gui import (
     get_folder_path,
     remove_doublequote,
@@ -26,88 +28,87 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist,
+    check_if_model_exist, is_valid_config, show_message_box,
 )
+from library.dreambooth_folder_creation_gui import (
+    gradio_dreambooth_folder_creation_tab,
+)
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from library.dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
 from library.utilities import utilities_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+document_symbol = '\U0001F4C4'  # 📄
 
 
 def save_configuration(
-    save_as,
-    file_path,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-    logging_dir,
-    train_data_dir,
-    reg_data_dir,
-    output_dir,
-    max_resolution,
-    learning_rate,
-    lr_scheduler,
-    lr_warmup,
-    train_batch_size,
-    epoch,
-    save_every_n_epochs,
-    mixed_precision,
-    save_precision,
-    seed,
-    num_cpu_threads_per_process,
-    cache_latents,
-    caption_extension,
-    enable_bucket,
-    gradient_checkpointing,
-    full_fp16,
-    no_token_padding,
-    stop_text_encoder_training,
-    # use_8bit_adam,
-    xformers,
-    save_model_as,
-    shuffle_caption,
-    save_state,
-    resume,
-    prior_loss_weight,
-    color_aug,
-    flip_aug,
-    clip_skip,
-    vae,
-    output_name,
-    max_token_length,
-    max_train_epochs,
-    max_data_loader_n_workers,
-    mem_eff_attn,
-    gradient_accumulation_steps,
-    model_list,
-    keep_tokens,
-    persistent_data_loader_workers,
-    bucket_no_upscale,
-    random_crop,
-    bucket_reso_steps,
-    caption_dropout_every_n_epochs,
-    caption_dropout_rate,
-    optimizer,
-    optimizer_args,
-    noise_offset,
-    sample_every_n_steps,
-    sample_every_n_epochs,
-    sample_sampler,
-    sample_prompts,
-    additional_parameters,
-    vae_batch_size,
+        save_as,
+        file_path,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        logging_dir,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        max_resolution,
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        cache_latents,
+        caption_extension,
+        enable_bucket,
+        gradient_checkpointing,
+        full_fp16,
+        no_token_padding,
+        stop_text_encoder_training,
+        # use_8bit_adam,
+        xformers,
+        save_model_as,
+        shuffle_caption,
+        save_state,
+        resume,
+        prior_loss_weight,
+        color_aug,
+        flip_aug,
+        clip_skip,
+        vae,
+        output_name,
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
+        mem_eff_attn,
+        gradient_accumulation_steps,
+        model_list,
+        keep_tokens,
+        persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
+        caption_dropout_every_n_epochs,
+        caption_dropout_rate,
+        optimizer,
+        optimizer_args,
+        noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+        additional_parameters,
+        vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -134,10 +135,10 @@ def save_configuration(
         name: value
         for name, value in parameters  # locals().items()
         if name
-        not in [
-            'file_path',
-            'save_as',
-        ]
+           not in [
+               'file_path',
+               'save_as',
+           ]
     }
 
     # Extract the destination directory from the file path
@@ -155,67 +156,67 @@ def save_configuration(
 
 
 def open_configuration(
-    ask_for_file,
-    file_path,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-    logging_dir,
-    train_data_dir,
-    reg_data_dir,
-    output_dir,
-    max_resolution,
-    learning_rate,
-    lr_scheduler,
-    lr_warmup,
-    train_batch_size,
-    epoch,
-    save_every_n_epochs,
-    mixed_precision,
-    save_precision,
-    seed,
-    num_cpu_threads_per_process,
-    cache_latents,
-    caption_extension,
-    enable_bucket,
-    gradient_checkpointing,
-    full_fp16,
-    no_token_padding,
-    stop_text_encoder_training,
-    # use_8bit_adam,
-    xformers,
-    save_model_as,
-    shuffle_caption,
-    save_state,
-    resume,
-    prior_loss_weight,
-    color_aug,
-    flip_aug,
-    clip_skip,
-    vae,
-    output_name,
-    max_token_length,
-    max_train_epochs,
-    max_data_loader_n_workers,
-    mem_eff_attn,
-    gradient_accumulation_steps,
-    model_list,
-    keep_tokens,
-    persistent_data_loader_workers,
-    bucket_no_upscale,
-    random_crop,
-    bucket_reso_steps,
-    caption_dropout_every_n_epochs,
-    caption_dropout_rate,
-    optimizer,
-    optimizer_args,
-    noise_offset,
-    sample_every_n_steps,
-    sample_every_n_epochs,
-    sample_sampler,
-    sample_prompts,
-    additional_parameters,
-    vae_batch_size,
+        ask_for_file,
+        file_path,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        logging_dir,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        max_resolution,
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        cache_latents,
+        caption_extension,
+        enable_bucket,
+        gradient_checkpointing,
+        full_fp16,
+        no_token_padding,
+        stop_text_encoder_training,
+        # use_8bit_adam,
+        xformers,
+        save_model_as,
+        shuffle_caption,
+        save_state,
+        resume,
+        prior_loss_weight,
+        color_aug,
+        flip_aug,
+        clip_skip,
+        vae,
+        output_name,
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
+        mem_eff_attn,
+        gradient_accumulation_steps,
+        model_list,
+        keep_tokens,
+        persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
+        caption_dropout_every_n_epochs,
+        caption_dropout_rate,
+        optimizer,
+        optimizer_args,
+        noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+        additional_parameters,
+        vae_batch_size,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -225,17 +226,20 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path(file_path)
+        file_path = get_file_path(file_path, filedialog_type="json")
 
-    if not file_path == '' and not file_path == None:
-        # load variables from JSON file
+    if not file_path == '' and file_path is not None:
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            print('Loading config...')
-            # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
-            my_data = update_my_data(my_data)
+            if is_valid_config(my_data):
+                print('Loading config...')
+                my_data = update_my_data(my_data)
+            else:
+                print("Invalid configuration file.")
+                my_data = {}
+                show_message_box("Invalid configuration file.")
     else:
-        file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
+        file_path = original_file_path
         my_data = {}
 
     values = [file_path]
@@ -247,85 +251,85 @@ def open_configuration(
 
 
 def train_model(
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-    logging_dir,
-    train_data_dir,
-    reg_data_dir,
-    output_dir,
-    max_resolution,
-    learning_rate,
-    lr_scheduler,
-    lr_warmup,
-    train_batch_size,
-    epoch,
-    save_every_n_epochs,
-    mixed_precision,
-    save_precision,
-    seed,
-    num_cpu_threads_per_process,
-    cache_latents,
-    caption_extension,
-    enable_bucket,
-    gradient_checkpointing,
-    full_fp16,
-    no_token_padding,
-    stop_text_encoder_training_pct,
-    # use_8bit_adam,
-    xformers,
-    save_model_as,
-    shuffle_caption,
-    save_state,
-    resume,
-    prior_loss_weight,
-    color_aug,
-    flip_aug,
-    clip_skip,
-    vae,
-    output_name,
-    max_token_length,
-    max_train_epochs,
-    max_data_loader_n_workers,
-    mem_eff_attn,
-    gradient_accumulation_steps,
-    model_list,  # Keep this. Yes, it is unused here but required given the common list used
-    keep_tokens,
-    persistent_data_loader_workers,
-    bucket_no_upscale,
-    random_crop,
-    bucket_reso_steps,
-    caption_dropout_every_n_epochs,
-    caption_dropout_rate,
-    optimizer,
-    optimizer_args,
-    noise_offset,
-    sample_every_n_steps,
-    sample_every_n_epochs,
-    sample_sampler,
-    sample_prompts,
-    additional_parameters,
-    vae_batch_size,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
+        logging_dir,
+        train_data_dir,
+        reg_data_dir,
+        output_dir,
+        max_resolution,
+        learning_rate,
+        lr_scheduler,
+        lr_warmup,
+        train_batch_size,
+        epoch,
+        save_every_n_epochs,
+        mixed_precision,
+        save_precision,
+        seed,
+        num_cpu_threads_per_process,
+        cache_latents,
+        caption_extension,
+        enable_bucket,
+        gradient_checkpointing,
+        full_fp16,
+        no_token_padding,
+        stop_text_encoder_training_pct,
+        # use_8bit_adam,
+        xformers,
+        save_model_as,
+        shuffle_caption,
+        save_state,
+        resume,
+        prior_loss_weight,
+        color_aug,
+        flip_aug,
+        clip_skip,
+        vae,
+        output_name,
+        max_token_length,
+        max_train_epochs,
+        max_data_loader_n_workers,
+        mem_eff_attn,
+        gradient_accumulation_steps,
+        model_list,  # Keep this. Yes, it is unused here but required given the common list used
+        keep_tokens,
+        persistent_data_loader_workers,
+        bucket_no_upscale,
+        random_crop,
+        bucket_reso_steps,
+        caption_dropout_every_n_epochs,
+        caption_dropout_rate,
+        optimizer,
+        optimizer_args,
+        noise_offset,
+        sample_every_n_steps,
+        sample_every_n_epochs,
+        sample_sampler,
+        sample_prompts,
+        additional_parameters,
+        vae_batch_size,
 ):
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        show_message_box('Source model information is missing')
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        show_message_box('Image folder path is missing')
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        show_message_box('Image folder does not exist')
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            show_message_box('Regularisation folder does not exist')
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        show_message_box('Output folder path is missing')
         return
 
     if check_if_model_exist(output_name, output_dir, save_model_as):
@@ -351,7 +355,8 @@ def train_model(
         try:
             repeats = int(folder.split('_')[0])
         except ValueError:
-            print('\033[33mSubfolder', folder, 'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
+            print('\033[33mSubfolder', folder,
+                  'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
             continue
 
         # Count the number of images in the folder
@@ -360,12 +365,12 @@ def train_model(
                 f
                 for f in os.listdir(os.path.join(train_data_dir, folder))
                 if f.endswith('.jpg')
-                or f.endswith('.jpeg')
-                or f.endswith('.png')
-                or f.endswith('.webp')
+                   or f.endswith('.jpeg')
+                   or f.endswith('.png')
+                   or f.endswith('.webp')
             ]
         )
-        
+
         if num_images == 0:
             print(f'{folder} folder contain no images, skipping...')
         else:
@@ -525,10 +530,10 @@ def train_model(
 
 
 def dreambooth_tab(
-    train_data_dir=gr.Textbox(),
-    reg_data_dir=gr.Textbox(),
-    output_dir=gr.Textbox(),
-    logging_dir=gr.Textbox(),
+        train_data_dir=gr.Textbox(),
+        reg_data_dir=gr.Textbox(),
+        output_dir=gr.Textbox(),
+        logging_dir=gr.Textbox(),
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)

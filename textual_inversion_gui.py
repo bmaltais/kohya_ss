@@ -3,13 +3,15 @@
 # v3: Add new Utilities tab for Dreambooth folder preparation
 # v3.1: Adding captionning of images to utilities
 
-import gradio as gr
+import argparse
 import json
 import math
 import os
-import subprocess
 import pathlib
-import argparse
+import subprocess
+
+import gradio as gr
+
 from library.common_gui import (
     get_folder_path,
     remove_doublequote,
@@ -28,17 +30,16 @@ from library.common_gui import (
     update_my_data,
     check_if_model_exist,
 )
+from library.dreambooth_folder_creation_gui import (
+    gradio_dreambooth_folder_creation_tab,
+)
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from library.dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
 from library.utilities import utilities_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -323,32 +324,32 @@ def train_model(
     additional_parameters,vae_batch_size,
 ):
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        show_message_box('Source model information is missing')
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        show_message_box('Image folder path is missing')
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        show_message_box('Image folder does not exist')
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            show_message_box('Regularisation folder does not exist')
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        show_message_box('Output folder path is missing')
         return
 
     if token_string == '':
-        msgbox('Token string is missing')
+        show_message_box('Token string is missing')
         return
 
     if init_word == '':
-        msgbox('Init word is missing')
+        show_message_box('Init word is missing')
         return
 
     if not os.path.exists(output_dir):

@@ -1,8 +1,9 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
-from .common_gui import get_saveasfilename_path, get_file_path
+import subprocess
+
+import gradio as gr
+
+from .common_gui import get_file_path, get_saveasfile_path
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
@@ -23,24 +24,24 @@ def resize_lora(
 ):
     # Check for caption_text_input
     if model == '':
-        msgbox('Invalid model file')
+        show_message_box('Invalid model file')
         return
 
     # Check if source model exist
     if not os.path.isfile(model):
-        msgbox('The provided model is not a file')
+        show_message_box('The provided model is not a file')
         return
 
     if dynamic_method == 'sv_ratio':
         if float(dynamic_param) < 2:
-            msgbox(
+            show_message_box(
                 f'Dynamic parameter for {dynamic_method} need to be 2 or greater...'
             )
             return
 
     if dynamic_method == 'sv_fro' or dynamic_method == 'sv_cumulative':
         if float(dynamic_param) < 0 or float(dynamic_param) > 1:
-            msgbox(
+            show_message_box(
                 f'Dynamic parameter for {dynamic_method} need to be between 0 and 1...'
             )
             return
@@ -134,7 +135,7 @@ def gradio_resize_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_saveasfilename_path,
+                get_saveasfile_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
                 show_progress=False,

@@ -1,8 +1,9 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, find_replace
 import os
+import subprocess
+
+import gradio as gr
+
+from .common_gui import get_folder_path, add_pre_postfix, find_replace
 
 
 def caption_images(
@@ -17,11 +18,11 @@ def caption_images(
 ):
     # Check for images_dir
     if not images_dir:
-        msgbox('Image folder is missing...')
+        show_message_box('Image folder is missing...')
         return
 
     if not caption_ext:
-        msgbox('Please provide an extension for the caption files.')
+        show_message_box('Please provide an extension for the caption files.')
         return
 
     if caption_text:
@@ -60,7 +61,7 @@ def caption_images(
             )
     else:
         if prefix or postfix:
-            msgbox(
+            show_message_box(
                 'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...'
             )
 

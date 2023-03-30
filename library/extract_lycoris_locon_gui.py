@@ -1,11 +1,10 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
+import subprocess
+
+import gradio as gr
+
 from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
-    get_file_path,
+    get_file_path, get_saveasfile_path,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -36,20 +35,20 @@ def extract_lycoris_locon(
 ):
     # Check for caption_text_input
     if db_model == '':
-        msgbox('Invalid finetuned model file')
+        show_message_box('Invalid finetuned model file')
         return
 
     if base_model == '':
-        msgbox('Invalid base model file')
+        show_message_box('Invalid base model file')
         return
 
     # Check if source model exist
     if not os.path.isfile(db_model):
-        msgbox('The provided finetuned model is not a file')
+        show_message_box('The provided finetuned model is not a file')
         return
 
     if not os.path.isfile(base_model):
-        msgbox('The provided base model is not a file')
+        show_message_box('The provided base model is not a file')
         return
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
@@ -167,7 +166,7 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_output_name.click(
-                get_saveasfilename_path,
+                get_saveasfile_path,
                 inputs=[output_name, lora_ext, lora_ext_name],
                 outputs=output_name,
                 show_progress=False,

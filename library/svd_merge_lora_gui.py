@@ -1,11 +1,10 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
+import subprocess
+
+import gradio as gr
+
 from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
-    get_file_path,
+    get_file_path, get_saveasfile_path,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -28,20 +27,20 @@ def svd_merge_lora(
 ):
     # Check for caption_text_input
     if lora_a_model == '':
-        msgbox('Invalid model A file')
+        show_message_box('Invalid model A file')
         return
 
     if lora_b_model == '':
-        msgbox('Invalid model B file')
+        show_message_box('Invalid model B file')
         return
 
     # Check if source model exist
     if not os.path.isfile(lora_a_model):
-        msgbox('The provided model A is not a file')
+        show_message_box('The provided model A is not a file')
         return
 
     if not os.path.isfile(lora_b_model):
-        msgbox('The provided model B is not a file')
+        show_message_box('The provided model B is not a file')
         return
 
     ratio_a = ratio
@@ -144,7 +143,7 @@ def gradio_svd_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_saveasfilename_path,
+                get_saveasfile_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
                 show_progress=False,
