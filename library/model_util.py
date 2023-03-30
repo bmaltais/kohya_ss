@@ -831,7 +831,7 @@ def is_safetensors(path):
   return os.path.splitext(path)[1].lower() == '.safetensors'
 
 
-def load_checkpoint_with_text_encoder_conversion(ckpt_path):
+def load_checkpoint_with_text_encoder_conversion(ckpt_path, device):
   # text encoderの格納形式が違うモデルに対応する ('text_model'がない)
   TEXT_ENCODER_KEY_REPLACEMENTS = [
       ('cond_stage_model.transformer.embeddings.', 'cond_stage_model.transformer.text_model.embeddings.'),
@@ -841,9 +841,9 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path):
 
   if is_safetensors(ckpt_path):
     checkpoint = None
-    state_dict = load_file(ckpt_path, "cpu")
+    state_dict = load_file(ckpt_path, device)
   else:
-    checkpoint = torch.load(ckpt_path, map_location="cpu")
+    checkpoint = torch.load(ckpt_path, map_location=device)
     if "state_dict" in checkpoint:
       state_dict = checkpoint["state_dict"]
     else:
@@ -865,18 +865,14 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path):
 
 
 # TODO dtype指定の動作が怪しいので確認する text_encoderを指定形式で作れるか未確認
-def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
-  _, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path)
-  if dtype is not None:
-    for k, v in state_dict.items():
-      if type(v) is torch.Tensor:
-        state_dict[k] = v.to(dtype)
+def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, device='cpu', dtype=None):
+  _, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path, device)
 
   # Convert the UNet2DConditionModel model.
   unet_config = create_unet_diffusers_config(v2)
   converted_unet_checkpoint = convert_ldm_unet_checkpoint(v2, state_dict, unet_config)
 
-  unet = UNet2DConditionModel(**unet_config)
+  unet = UNet2DConditionModel(**unet_config).to(device)
   info = unet.load_state_dict(converted_unet_checkpoint)
   print("loading u-net:", info)
 
@@ -884,7 +880,7 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
   vae_config = create_vae_diffusers_config()
   converted_vae_checkpoint = convert_ldm_vae_checkpoint(state_dict, vae_config)
 
-  vae = AutoencoderKL(**vae_config)
+  vae = AutoencoderKL(**vae_config).to(device)
   info = vae.load_state_dict(converted_vae_checkpoint)
   print("loading vae:", info)
 
@@ -918,7 +914,7 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, dtype=None):
     converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
 
     logging.set_verbosity_error()                                                       # don't show annoying warning
-    text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
+    text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
     logging.set_verbosity_warning()
 
     info = text_model.load_state_dict(converted_text_encoder_checkpoint)
