@@ -127,58 +127,21 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- 28 Mar. 2023, 2023/3/28:
-  - Fix an issue that the training script crashes when `max_data_loader_n_workers` is 0.
-  - `max_data_loader_n_workers` が0の時に学習スクリプトがエラーとなる不具合を修正しました。
+- 30 Mar. 2023, 2023/3/30:
+  - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
+    - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
+    - Use `train_textual_inversion_XTI.py` for training. The usage is almost the same as `train_textual_inversion.py`. However, sample image generation during training is not supported.
+    - Use `gen_img_diffusers.py` for image generation (I think Web UI is not supported). Specify the embedding with `--XTI_embeddings` option.
+  - Reduce RAM usage at startup in `train_network.py`. [#332](https://github.com/kohya-ss/sd-scripts/pull/332)  Thank you guaneec!
+  - Support pre-merge for LoRA in `gen_img_diffusers.py`. Specify `--network_merge` option. Note that the `--am` option of the prompt option is no longer available with this option.
 
-- 27 Mar. 2023, 2023/3/27:
-  - Fix issues when `--persistent_data_loader_workers` is specified.
-    - The batch members of the bucket are not shuffled.
-    - `--caption_dropout_every_n_epochs` does not work.
-    - These issues occurred because the epoch transition was not recognized correctly. Thanks to u-haru for reporting the issue.
-  - Fix an issue that images are loaded twice in Windows environment.
-  - Add Min-SNR Weighting strategy. Details are in [#308](https://github.com/kohya-ss/sd-scripts/pull/308). Thank you to AI-Casanova for this great work!
-    - Add `--min_snr_gamma` option to training scripts, 5 is recommended by paper.
-
-  - Add tag warmup. Details are in [#322](https://github.com/kohya-ss/sd-scripts/pull/322). Thanks to u-haru!
-    - Add `token_warmup_min` and `token_warmup_step` to dataset settings.
-    - Gradually increase the number of tokens from `token_warmup_min` to `token_warmup_step`.
-    - For example, if `token_warmup_min` is `3` and `token_warmup_step` is `10`, the first step will use the first 3 tokens, and the 10th step will use all tokens.
-  - Fix a bug in `resize_lora.py`. Thanks to mgz-dev! [#328](https://github.com/kohya-ss/sd-scripts/pull/328)  
-  - Add `--debug_dataset` option to step to the next step with `S` key and to the next epoch with `E` key.
-  - Fix other bugs.
-
-  - `--persistent_data_loader_workers` を指定した時の各種不具合を修正しました。
-    - `--caption_dropout_every_n_epochs` が効かない。
-    - バケットのバッチメンバーがシャッフルされない。
-    - エポックの遷移が正しく認識されないために発生していました。ご指摘いただいたu-haru氏に感謝します。
-  - Windows環境で画像が二重に読み込まれる不具合を修正しました。
-  - Min-SNR Weighting strategyを追加しました。 詳細は [#308](https://github.com/kohya-ss/sd-scripts/pull/308) をご参照ください。AI-Casanova氏の素晴らしい貢献に感謝します。
-    - `--min_snr_gamma` オプションを学習スクリプトに追加しました。論文では5が推奨されています。
-  - タグのウォームアップを追加しました。詳細は [#322](https://github.com/kohya-ss/sd-scripts/pull/322) をご参照ください。u-haru氏に感謝します。
-    - データセット設定に `token_warmup_min` と `token_warmup_step` を追加しました。
-    - `token_warmup_min` で指定した数のトークン（カンマ区切りの文字列）から、`token_warmup_step` で指定したステップまで、段階的にトークンを増やしていきます。
-    - たとえば `token_warmup_min`に `3` を、`token_warmup_step` に `10` を指定すると、最初のステップでは最初から3個のトークンが使われ、10ステップ目では全てのトークンが使われます。
-  - `resize_lora.py` の不具合を修正しました。mgz-dev氏に感謝します。[#328](https://github.com/kohya-ss/sd-scripts/pull/328)  
-  - `--debug_dataset` オプションで、`S`キーで次のステップへ、`E`キーで次のエポックへ進めるようにしました。
-  - その他の不具合を修正しました。
-
-
-- 21 Mar. 2023, 2023/3/21:
-  - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
-    - Please start with`2` or `4` depending on the size of VRAM.
-  - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
-  - Extract parser setup to external scripts. Thanks to robertsmieja!
-  - Fix an issue without `.npz` and with `--full_path` in training.
-  - Support extensions with upper cases for images for not Windows environment.
-  - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
-  - latentsのキャッシュを高速化する`--vae_batch_size` オプションを各学習スクリプトに追加しました。VAE呼び出しをバッチ化します。
-    -VRAMサイズに応じて、`2` か `4` 程度から試してください。
-  - `--gradient_accumulation_steps` と `--max_train_epochs` を指定した時、当該のepochで学習が止まらない不具合を修正しました。tsukimiya氏に感謝します。
-  - 外部のスクリプト用に引数parserの構築が関数化されました。robertsmieja氏に感謝します。
-  - 学習時、`--full_path` 指定時に `.npz` が存在しない場合の不具合を解消しました。
-  - Windows以外の環境向けに、画像ファイルの大文字の拡張子をサポートしました。
-  - `resize_lora.py` を dynamic rank （rankが各LoRAモジュールで異なる場合、`conv_dim` が `network_dim` と異なる場合も含む）の時に正しく動作しない不具合を修正しました。toshiaki氏に感謝します。
+  - [P+](https://prompt-plus.github.io/) の学習に対応しました。jakaline-dev氏に感謝します。 
+    - 詳細は [#327](https://github.com/kohya-ss/sd-scripts/pull/327) をご参照ください。
+    - 学習には `train_textual_inversion_XTI.py` を使用します。使用法は `train_textual_inversion.py` とほぼ同じです。た
+    だし学習中のサンプル生成には対応していません。
+    - 画像生成には `gen_img_diffusers.py` を使用してください（Web UIは対応していないと思われます）。`--XTI_embeddings` オプションで学習したembeddingを指定してください。
+  - `train_network.py` で起動時のRAM使用量を削減しました。[#332](https://github.com/kohya-ss/sd-scripts/pull/332) guaneec氏に感謝します。
+  - `gen_img_diffusers.py` でLoRAの事前マージに対応しました。`--network_merge` オプションを指定してください。なおプロンプトオプションの `--am` は使用できなくなります。
 
 ## Sample image generation during training
   A prompt file might look like this, for example
