@@ -441,7 +441,7 @@ class LoRANetwork(torch.nn.Module):
         def get_list(name) -> list[float]:
             import math 
             if name=="cosine":
-                return [math.cos(math.pi*(i/(max_len-1))/2) for i in range(max_len)]
+                return [math.sin(math.pi*(i/(max_len-1))/2) for i in reversed(range(max_len))]
             elif name=="sine":
                 return [math.sin(math.pi*(i/(max_len-1))/2) for i in range(max_len)]
             elif name=="linear":
