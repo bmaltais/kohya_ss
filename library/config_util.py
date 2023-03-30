@@ -486,7 +486,8 @@ def load_user_config(file: str) -> dict:
 
   if file.name.lower().endswith('.json'):
     try:
-      config = json.load(file)
+      with open(file, 'r') as f:
+        config = json.load(f)
     except Exception:
       print(f"Error on parsing JSON config file. Please check the format. / JSON 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}")
       raise
