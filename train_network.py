@@ -191,7 +191,7 @@ def train(args):
     # 学習に必要なクラスを準備する
     print("prepare optimizer, data loader etc.")
 
-    trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+    trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr, args.learning_rate)
     optimizer_name, optimizer_args, optimizer = train_util.get_optimizer(args, trainable_params)
 
     # dataloaderを準備する
