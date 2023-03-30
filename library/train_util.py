@@ -2648,6 +2648,7 @@ def load_target_model(args: argparse.Namespace, weight_dtype, device='cpu'):
         print("load StableDiffusion checkpoint")
         text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, name_or_path, device)
     else:
+        # Diffusers model is loaded to CPU
         print("load Diffusers pretrained models")
         try:
             pipe = StableDiffusionPipeline.from_pretrained(name_or_path, tokenizer=None, safety_checker=None)
