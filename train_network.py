@@ -57,8 +57,9 @@ def train(args):
     use_dreambooth_method = args.in_json is None
     use_user_config = args.dataset_config is not None
 
-    if args.seed is not None:
-        set_seed(args.seed)
+    if args.seed is None:
+        args.seed = random.randint(0, 2**32)
+    set_seed(args.seed)
 
     tokenizer = train_util.load_tokenizer(args)
 
