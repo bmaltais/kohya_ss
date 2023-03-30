@@ -202,7 +202,7 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
         if "," in down_weight:
             down_weight = [float(s) for s in down_weight.split(",") if s]
 
-    network.set_stratified_lr_weight(up_weight,float(kwargs.get('mid_weight', 1.0)),down_weight,float(kwargs.get('lr_weight_threshold', 0.0)))
+    network.set_stratified_lr_weight(up_weight,float(kwargs.get('mid_weight', 1.0)),down_weight,float(kwargs.get('stratified_zero_threshold', 0.0)))
 
     return network
 
