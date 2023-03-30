@@ -4,7 +4,7 @@ import subprocess
 import gradio as gr
 
 from .common_gui import (
-    get_file_path,
+    get_file_path, get_file_path_gradio_wrapper,
 )
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
@@ -68,7 +68,8 @@ def gradio_verify_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_model_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[lora_model, lora_ext, lora_ext_name],
                 outputs=lora_model,
                 show_progress=False,

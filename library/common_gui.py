@@ -89,23 +89,6 @@ def check_if_model_exist(output_name, output_dir, save_model_as):
 
     return False
 
-
-def is_valid_config(data):
-    # Check if the data is a dictionary
-    if not isinstance(data, dict):
-        return False
-
-    # Add checks for expected keys and valid values
-    # For example, check if 'use_8bit_adam' is a boolean
-    if "use_8bit_adam" in data and not isinstance(data["use_8bit_adam"], bool):
-        return False
-
-    # Add more checks for other keys as needed
-
-    # If all checks pass, return True
-    return True
-
-
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
     use_8bit_adam = my_data.get('use_8bit_adam', False)
@@ -154,6 +137,24 @@ def update_my_data(my_data):
 #             return True
 #     # If no extension files were found, return False
 #     return False
+
+def get_file_path_gradio_wrapper(file_path, filedialog_type="all"):
+    file_extension = os.path.splitext(file_path)[-1].lower()
+
+    filetype_filters = {
+        'db': ['.db'],
+        'json': ['.json'],
+        'lora': ['.pt', '.ckpt', '.safetensors'],
+    }
+
+    # Find the appropriate filedialog_type based on the file extension
+    filedialog_type = 'all'
+    for key, extensions in filetype_filters.items():
+        if file_extension in extensions:
+            filedialog_type = key
+            break
+
+    return get_file_path(file_path, filedialog_type)
 
 
 def get_file_path(file_path='', filedialog_type="lora"):

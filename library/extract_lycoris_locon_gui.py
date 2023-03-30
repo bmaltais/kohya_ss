@@ -4,7 +4,7 @@ import subprocess
 import gradio as gr
 
 from .common_gui import (
-    get_file_path, get_saveasfile_path,
+    get_file_path, get_saveasfile_path, get_file_path_gradio_wrapper,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -136,7 +136,8 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_db_model_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[db_model, model_ext, model_ext_name],
                 outputs=db_model,
                 show_progress=False,
@@ -151,7 +152,8 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_base_model_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[base_model, model_ext, model_ext_name],
                 outputs=base_model,
                 show_progress=False,

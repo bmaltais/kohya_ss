@@ -28,8 +28,9 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, is_valid_config, show_message_box,
+    check_if_model_exist, show_message_box, get_file_path_gradio_wrapper,
 )
+from library.common_utilities import is_valid_config
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
@@ -228,7 +229,8 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path(file_path, filedialog_type="json")
+        print(f"File path: {file_path}")
+        file_path = get_file_path_gradio_wrapper(file_path)
 
     if not file_path == '' and file_path is not None:
         with open(file_path, 'r') as f:
@@ -836,15 +838,15 @@ def dreambooth_tab(
     ]
 
     button_open_config.click(
-        open_configuration,
+        lambda *args, **kwargs: open_configuration(*args),
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_load_config.click(
-        open_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
+        lambda *args, **kwargs: open_configuration(*args),
+        inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )

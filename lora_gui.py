@@ -28,7 +28,7 @@ from library.common_gui import (
     run_cmd_training,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, show_message_box,
+    check_if_model_exist, show_message_box, get_file_path_gradio_wrapper,
 )
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.dreambooth_folder_creation_gui import (
@@ -254,7 +254,7 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path(file_path)
+        file_path = get_file_path_gradio_wrapper(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
@@ -1031,14 +1031,14 @@ def lora_tab(
     ]
 
     button_open_config.click(
-        open_configuration,
+        lambda *args, **kwargs: open_configuration(),
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list + [LoCon_row],
         show_progress=False,
     )
 
     button_load_config.click(
-        open_configuration,
+        lambda *args, **kwargs: open_configuration(),
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list + [LoCon_row],
         show_progress=False,

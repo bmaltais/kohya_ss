@@ -4,25 +4,25 @@ import subprocess
 import gradio as gr
 
 from .common_gui import (
-    get_file_path, get_saveasfile_path,
+    get_file_path, get_saveasfile_path, get_file_path_gradio_wrapper,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+document_symbol = '\U0001F4C4'  # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def extract_lora(
-    model_tuned,
-    model_org,
-    save_to,
-    save_precision,
-    dim,
-    v2,
-    conv_dim,
-    device,
+        model_tuned,
+        model_org,
+        save_to,
+        save_precision,
+        dim,
+        v2,
+        conv_dim,
+        device,
 ):
     # Check for caption_text_input
     if model_tuned == '':
@@ -43,7 +43,7 @@ def extract_lora(
         return
 
     run_cmd = (
-        f'{PYTHON} "{os.path.join("networks","extract_lora_from_models.py")}"'
+        f'{PYTHON} "{os.path.join("networks", "extract_lora_from_models.py")}"'
     )
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
@@ -90,7 +90,8 @@ def gradio_extract_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_model_tuned_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[model_tuned, model_ext, model_ext_name],
                 outputs=model_tuned,
                 show_progress=False,
@@ -105,7 +106,8 @@ def gradio_extract_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_model_org_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[model_org, model_ext, model_ext_name],
                 outputs=model_org,
                 show_progress=False,

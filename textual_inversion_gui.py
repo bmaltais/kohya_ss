@@ -28,7 +28,7 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist,
+    check_if_model_exist, get_file_path_gradio_wrapper,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -240,7 +240,7 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path(file_path)
+        file_path = get_file_path_gradio_wrapper(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file
@@ -673,7 +673,7 @@ def ti_tab(
             )
             weights_file_input = gr.Button('📂', elem_id='open_folder_small')
             weights_file_input.click(
-                get_file_path,
+                lambda *args, **kwargs: get_file_path_gradio_wrapper,
                 outputs=weights,
                 show_progress=False,
             )
@@ -899,14 +899,14 @@ def ti_tab(
     ]
 
     button_open_config.click(
-        open_configuration,
+        lambda *args, **kwargs: open_configuration(),
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_load_config.click(
-        open_configuration,
+        lambda *args, **kwargs: open_configuration(),
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,

@@ -4,7 +4,7 @@ import subprocess
 import gradio as gr
 
 from .common_gui import (
-    get_file_path, get_saveasfile_path,
+    get_file_path, get_saveasfile_path, get_file_path_gradio_wrapper,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -81,7 +81,8 @@ def gradio_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_a_model_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[lora_a_model, lora_ext, lora_ext_name],
                 outputs=lora_a_model,
                 show_progress=False,
@@ -96,7 +97,8 @@ def gradio_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_b_model_file.click(
-                get_file_path,
+                lambda input1, input2, input3, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
                 inputs=[lora_b_model, lora_ext, lora_ext_name],
                 outputs=lora_b_model,
                 show_progress=False,

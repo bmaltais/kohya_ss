@@ -4,22 +4,22 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import get_folder_path, get_file_path
+from .common_gui import get_folder_path, get_file_path, get_file_path_gradio_wrapper
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+document_symbol = '\U0001F4C4'  # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def convert_model(
-    source_model_input,
-    source_model_type,
-    target_model_folder_input,
-    target_model_name_input,
-    target_model_type,
-    target_save_precision_type,
+        source_model_input,
+        source_model_type,
+        target_model_folder_input,
+        target_model_name_input,
+        target_model_type,
+        target_save_precision_type,
 ):
     # Check for caption_text_input
     if source_model_type == '':
@@ -61,8 +61,8 @@ def convert_model(
         run_cmd += f' --{target_save_precision_type}'
 
     if (
-        target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
+            target_model_type == 'diffuser'
+            or target_model_type == 'diffuser_safetensors'
     ):
         run_cmd += f' --reference_model="{source_model_type}"'
 
@@ -72,8 +72,8 @@ def convert_model(
     run_cmd += f' "{source_model_input}"'
 
     if (
-        target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
+            target_model_type == 'diffuser'
+            or target_model_type == 'diffuser_safetensors'
     ):
         target_model_path = os.path.join(
             target_model_folder_input, target_model_name_input
@@ -95,8 +95,8 @@ def convert_model(
         subprocess.run(run_cmd)
 
     if (
-        not target_model_type == 'diffuser'
-        or target_model_type == 'diffuser_safetensors'
+            not target_model_type == 'diffuser'
+            or target_model_type == 'diffuser_safetensors'
     ):
 
         v2_models = [
@@ -180,7 +180,8 @@ def gradio_convert_model_tab():
                 document_symbol, elem_id='open_folder_small'
             )
             button_source_model_file.click(
-                get_file_path,
+                lambda input1, *args, **kwargs:
+                get_file_path_gradio_wrapper(file_path=os.path.normpath(input1)),
                 inputs=[source_model_input],
                 outputs=source_model_input,
                 show_progress=False,
