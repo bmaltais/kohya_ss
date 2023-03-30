@@ -197,7 +197,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         git checkout "$BRANCH"
       else
         cd "$DIR" || exit 1
-        echo "git repo detected. Attempting tp update repo instead."
+        echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
         git pull "$GIT_REPO"
       fi
