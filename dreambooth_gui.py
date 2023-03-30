@@ -48,67 +48,68 @@ document_symbol = '\U0001F4C4'  # 📄
 
 
 def save_configuration(
-        save_as,
-        file_path,
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        max_resolution,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        cache_latents,
-        caption_extension,
-        enable_bucket,
-        gradient_checkpointing,
-        full_fp16,
-        no_token_padding,
-        stop_text_encoder_training,
-        # use_8bit_adam,
-        xformers,
-        save_model_as,
-        shuffle_caption,
-        save_state,
-        resume,
-        prior_loss_weight,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        vae,
-        output_name,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        mem_eff_attn,
-        gradient_accumulation_steps,
-        model_list,
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
+    save_as,
+    file_path,
+    pretrained_model_name_or_path,
+    v2,
+    v_parameterization,
+    logging_dir,
+    train_data_dir,
+    reg_data_dir,
+    output_dir,
+    max_resolution,
+    learning_rate,
+    lr_scheduler,
+    lr_warmup,
+    train_batch_size,
+    epoch,
+    save_every_n_epochs,
+    mixed_precision,
+    save_precision,
+    seed,
+    num_cpu_threads_per_process,
+    cache_latents,
+    caption_extension,
+    enable_bucket,
+    gradient_checkpointing,
+    full_fp16,
+    no_token_padding,
+    stop_text_encoder_training,
+    # use_8bit_adam,
+    xformers,
+    save_model_as,
+    shuffle_caption,
+    save_state,
+    resume,
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
+    clip_skip,
+    vae,
+    output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,
+    keep_tokens,
+    persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -156,67 +157,68 @@ def save_configuration(
 
 
 def open_configuration(
-        ask_for_file,
-        file_path,
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        max_resolution,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        cache_latents,
-        caption_extension,
-        enable_bucket,
-        gradient_checkpointing,
-        full_fp16,
-        no_token_padding,
-        stop_text_encoder_training,
-        # use_8bit_adam,
-        xformers,
-        save_model_as,
-        shuffle_caption,
-        save_state,
-        resume,
-        prior_loss_weight,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        vae,
-        output_name,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        mem_eff_attn,
-        gradient_accumulation_steps,
-        model_list,
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
+    ask_for_file,
+    file_path,
+    pretrained_model_name_or_path,
+    v2,
+    v_parameterization,
+    logging_dir,
+    train_data_dir,
+    reg_data_dir,
+    output_dir,
+    max_resolution,
+    learning_rate,
+    lr_scheduler,
+    lr_warmup,
+    train_batch_size,
+    epoch,
+    save_every_n_epochs,
+    mixed_precision,
+    save_precision,
+    seed,
+    num_cpu_threads_per_process,
+    cache_latents,
+    caption_extension,
+    enable_bucket,
+    gradient_checkpointing,
+    full_fp16,
+    no_token_padding,
+    stop_text_encoder_training,
+    # use_8bit_adam,
+    xformers,
+    save_model_as,
+    shuffle_caption,
+    save_state,
+    resume,
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
+    clip_skip,
+    vae,
+    output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,
+    keep_tokens,
+    persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -251,65 +253,66 @@ def open_configuration(
 
 
 def train_model(
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        max_resolution,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        cache_latents,
-        caption_extension,
-        enable_bucket,
-        gradient_checkpointing,
-        full_fp16,
-        no_token_padding,
-        stop_text_encoder_training_pct,
-        # use_8bit_adam,
-        xformers,
-        save_model_as,
-        shuffle_caption,
-        save_state,
-        resume,
-        prior_loss_weight,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        vae,
-        output_name,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        mem_eff_attn,
-        gradient_accumulation_steps,
-        model_list,  # Keep this. Yes, it is unused here but required given the common list used
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
+    pretrained_model_name_or_path,
+    v2,
+    v_parameterization,
+    logging_dir,
+    train_data_dir,
+    reg_data_dir,
+    output_dir,
+    max_resolution,
+    learning_rate,
+    lr_scheduler,
+    lr_warmup,
+    train_batch_size,
+    epoch,
+    save_every_n_epochs,
+    mixed_precision,
+    save_precision,
+    seed,
+    num_cpu_threads_per_process,
+    cache_latents,
+    caption_extension,
+    enable_bucket,
+    gradient_checkpointing,
+    full_fp16,
+    no_token_padding,
+    stop_text_encoder_training_pct,
+    # use_8bit_adam,
+    xformers,
+    save_model_as,
+    shuffle_caption,
+    save_state,
+    resume,
+    prior_loss_weight,
+    color_aug,
+    flip_aug,
+    clip_skip,
+    vae,
+    output_name,
+    max_token_length,
+    max_train_epochs,
+    max_data_loader_n_workers,
+    mem_eff_attn,
+    gradient_accumulation_steps,
+    model_list,  # Keep this. Yes, it is unused here but required given the common list used
+    keep_tokens,
+    persistent_data_loader_workers,
+    bucket_no_upscale,
+    random_crop,
+    bucket_reso_steps,
+    caption_dropout_every_n_epochs,
+    caption_dropout_rate,
+    optimizer,
+    optimizer_args,
+    noise_offset,
+    sample_every_n_steps,
+    sample_every_n_epochs,
+    sample_sampler,
+    sample_prompts,
+    additional_parameters,
+    vae_batch_size,
+    min_snr_gamma,
 ):
     if pretrained_model_name_or_path == '':
         show_message_box('Source model information is missing')
@@ -339,12 +342,17 @@ def train_model(
     subfolders = [
         f
         for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith('.')
+        if os.path.isdir(os.path.join(train_data_dir, f))
+        and not f.startswith('.')
     ]
 
     # Check if subfolders are present. If not let the user know and return
     if not subfolders:
-        print('\033[33mNo subfolders were found in', train_data_dir, ' can\'t train\...033[0m')
+        print(
+            '\033[33mNo subfolders were found in',
+            train_data_dir,
+            " can't train\...033[0m",
+        )
         return
 
     total_steps = 0
@@ -355,19 +363,24 @@ def train_model(
         try:
             repeats = int(folder.split('_')[0])
         except ValueError:
-            print('\033[33mSubfolder', folder,
-                  'does not have a proper repeat value, please correct the name or remove it... can\'t train...\033[0m')
+            print(
+                '\033[33mSubfolder',
+                folder,
+                "does not have a proper repeat value, please correct the name or remove it... can't train...\033[0m",
+            )
             continue
 
         # Count the number of images in the folder
         num_images = len(
             [
                 f
-                for f in os.listdir(os.path.join(train_data_dir, folder))
-                if f.endswith('.jpg')
-                   or f.endswith('.jpeg')
-                   or f.endswith('.png')
-                   or f.endswith('.webp')
+                for f, lower_f in (
+                    (file, file.lower())
+                    for file in os.listdir(
+                        os.path.join(train_data_dir, folder)
+                    )
+                )
+                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
             ]
         )
 
@@ -382,7 +395,11 @@ def train_model(
             print('\033[33mFolder', folder, ':', steps, 'steps\033[0m')
 
     if total_steps == 0:
-        print('\033[33mNo images were found in folder', train_data_dir, '... please rectify!\033[0m')
+        print(
+            '\033[33mNo images were found in folder',
+            train_data_dir,
+            '... please rectify!\033[0m',
+        )
         return
 
     # Print the result
@@ -391,7 +408,9 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print('\033[94mRegularisation images are used... Will double the number of steps required...\033[0m')
+        print(
+            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        )
         reg_factor = 2
 
     # calculate max_train_steps
@@ -503,6 +522,7 @@ def train_model(
         noise_offset=noise_offset,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
+        min_snr_gamma=min_snr_gamma,
     )
 
     run_cmd += run_cmd_sample(
@@ -710,6 +730,7 @@ def dreambooth_tab(
                 noise_offset,
                 additional_parameters,
                 vae_batch_size,
+                min_snr_gamma,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -811,6 +832,7 @@ def dreambooth_tab(
         sample_prompts,
         additional_parameters,
         vae_batch_size,
+        min_snr_gamma,
     ]
 
     button_open_config.click(

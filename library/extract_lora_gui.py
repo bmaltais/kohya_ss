@@ -135,7 +135,7 @@ def gradio_extract_lora_tab():
             dim = gr.Slider(
                 minimum=4,
                 maximum=1024,
-                label='Network Dimension',
+                label='Network Dimension (Rank)',
                 value=128,
                 step=1,
                 interactive=True,
@@ -143,8 +143,8 @@ def gradio_extract_lora_tab():
             conv_dim = gr.Slider(
                 minimum=0,
                 maximum=1024,
-                label='Conv Dimension',
-                value=0,
+                label='Conv Dimension (Rank)',
+                value=128,
                 step=1,
                 interactive=True,
             )
