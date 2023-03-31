@@ -82,13 +82,16 @@ Usage:
   setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
 
 Options:
-  -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
+  -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
-  -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -g, --git_repo                You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+  -h, --help                    Show this screen.
+  -i, --interactive             Interactively configure accelerate instead of using default config file.
+  -n, --no-update               Do not update kohya_ss repo. No git pull or clone operations.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
-  -i, --interactive             Interactively configure accelerate instead of using default config file.
-  -h, --help                    Show this screen.
+  -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -v, --verbose                 Increase verbosity levels up to 3.
 ```
 
 #### Install location
@@ -170,7 +173,11 @@ When a new release comes out, you can upgrade your repo with the following comma
 You can cd into the root directory and simply run
 
 ```bash
-./upgrade.sh
+# Refresh and update everything
+./setup.sh
+
+# This will refresh everything, but NOT close or pull the git repo.
+./setup.sh --no-git-update
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.

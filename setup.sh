@@ -13,15 +13,16 @@ Usage:
   # Same as example 1, but uses long options
   setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
 
-  # Maximum verbosity, fully automated install in a runpod environment skipping the runpod env checks
+  # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
   setup.sh -vvv --skip-space-check --runpod
 
 Options:
-  -b BRANCH, --branch=BRANCH    Select which branch of kohya to checkout on new installs.
+  -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
-  -g, --git_repo                You can optionally provide a git repo to checkout for runpod installation. Useful for custom forks.
+  -g, --git_repo                You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
+  -n, --no-git-update               Do not update kohya_ss repo. No git pull or clone operations.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
@@ -45,11 +46,15 @@ if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
   RUNPOD=true
 fi
 
+SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
+
 # Variables defined before the getopts loop, so we have sane default values.
 # Default installation locations based on OS and environment
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   if [ "$RUNPOD" = true ]; then
     DIR="/workspace/kohya_ss"
+  elif [ -d "$SCRIPT_DIR/.git" ]; then
+    DIR="$SCRIPT_DIR"
   elif [ -w "/opt" ]; then
     DIR="/opt/kohya_ss"
   elif env_var_exists HOME; then
@@ -59,7 +64,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     DIR="$(PWD)"
   fi
 else
-  if env_var_exists HOME; then
+  if [ -d "$SCRIPT_DIR/.git" ]; then
+    DIR="$SCRIPT_DIR"
+  elif env_var_exists HOME; then
     DIR="$HOME/kohya_ss"
   else
     # The last fallback is simply PWD
@@ -75,8 +82,9 @@ GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
+SKIP_GIT_UPDATE=false
 
-while getopts ":vb:d:g:iprs-:" opt; do
+while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -88,6 +96,7 @@ while getopts ":vb:d:g:iprs-:" opt; do
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
   i | interactive) INTERACTIVE=true ;;
+  n | no-git-update) SKIP_GIT_UPDATE=true ;;
   p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
@@ -97,6 +106,15 @@ while getopts ":vb:d:g:iprs-:" opt; do
   esac
 done
 shift $((OPTIND - 1))
+
+# Just in case someone puts in a relative path into $DIR,
+# we're going to get the absolute path of that.
+if [[ "$DIR" != /* ]] && [[ "$DIR" != ~* ]]; then
+  DIR="$(
+    cd "$(dirname "$DIR")" || exit 1
+    pwd
+  )/$(basename "$DIR")"
+fi
 
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
   seq 3 $VERBOSITY
@@ -123,7 +141,8 @@ INTERACTIVE: $INTERACTIVE
 PUBLIC: $PUBLIC
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
-VERBOSITY: $VERBOSITY" >&5
+VERBOSITY: $VERBOSITY
+Script directory is ${SCRIPT_DIR}." >&5
 
 # This must be set after the getopts loop to account for $DIR changes.
 PARENT_DIR="$(dirname "${DIR}")"
@@ -144,13 +163,15 @@ size_available() {
     folder='/'
   fi
 
-  local FREESPACEINKB="$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
+  local FREESPACEINKB
+  FREESPACEINKB="$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
   echo "Detected available space in Kb: $FREESPACEINKB" >&5
-  local FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
+  local FREESPACEINGB
+  FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
   echo "$FREESPACEINGB"
 }
 
-# The expected usage is create_symlinks $symlink $target_file
+# The expected usage is create_symlinks symlink target_file
 create_symlinks() {
   echo "Checking symlinks now."
   # Next line checks for valid symlink
@@ -171,6 +192,33 @@ create_symlinks() {
     echo "Linking $(basename "$1")."
     ln -s "$2" "$1"
   fi
+}
+
+install_pip_dependencies() {
+  # Updating pip if there is one
+  echo "Checking for pip updates before Python operations."
+  python3 -m pip install --upgrade pip >&3
+
+  echo "Installing python dependencies. This could take a few minutes as it downloads files."
+  echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
+  case "$OSTYPE" in
+  "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
+    --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
+    pip install -U -I --no-deps \
+      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
+  "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
+    -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
+  "cygwin")
+    :
+    ;;
+  "msys")
+    :
+    ;;
+  esac
+
+  # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
+  # pip install pydevd-pycharm~=223.8836.43
+  python -m pip install --use-pep517 --upgrade -r requirements.txt >&3
 }
 
 # Attempt to non-interactively install a default accelerate config file unless specified otherwise.
@@ -218,10 +266,40 @@ check_storage_space() {
       MSGTIMEOUT=10 # In seconds
       MESSAGE="Continuing in..."
       echo "Press control-c to cancel the installation."
-      for ((i = $MSGTIMEOUT; i >= 0; i--)); do
+      for ((i = MSGTIMEOUT; i >= 0; i--)); do
         printf "\r${MESSAGE} %ss. " "${i}"
         sleep 1
       done
+    fi
+  fi
+}
+
+update_kohya_ss() {
+  if [ "$SKIP_GIT_UPDATE" = false ]; then
+    if command -v git >/dev/null; then
+      # First, we make sure there are no changes that need to be made in git, so no work is lost.
+      if [ -z "$(git -c "$DIR" status --porcelain=v1 2>/dev/null)" ]; then
+        echo "There are changes that need to be committed."
+        echo "Commit those changes or run this script with -n to skip git operations entirely."
+        exit 1
+      fi
+
+      cd "$PARENT_DIR" || exit 1
+      echo "Attempting to clone $GIT_REPO."
+      if [ ! -d "$DIR/.git" ]; then
+        git -c "$DIR" clone "$GIT_REPO" "$(basename "$DIR")" >&3
+        cd "$DIR" || exit 1
+        git -c "$DIR" checkout -b "$BRANCH" >&3
+      else
+        cd "$DIR" || exit 1
+        echo "git repo detected. Attempting to update repository instead."
+        echo "Updating: $GIT_REPO"
+        git pull "$GIT_REPO" >&3
+        git checkout -b "$BRANCH"
+      fi
+    else
+      echo "You need to install git."
+      echo "Rerun this after installing git or run this script with -n to skip the git operations."
     fi
   fi
 }
@@ -296,22 +374,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
       cd "$DIR" || exit 1
-    else
-      echo "Clean installation on a runpod detected."
-      cd "$PARENT_DIR" || exit 1
-      if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning $GIT_REPO."
-        git clone "$GIT_REPO" >&3
-        cd "$DIR" || exit 1
-        git checkout "$BRANCH" >&3
-      else
-        cd "$DIR" || exit 1
-        echo "git repo detected. Attempting to update repository instead."
-        echo "Updating: $GIT_REPO"
-        git pull "$GIT_REPO" >&3
-      fi
     fi
   fi
+
+  update_kohya_ss
 
   distro=get_distro_name
   family=get_distro_family
@@ -373,21 +439,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   python3 -m venv venv
   source venv/bin/activate
-
-  # Updating pip if there is one
-  echo "Checking for pip updates before Python operations."
-  python3 -m pip install --upgrade pip >&3
-
-  echo "Installing python dependencies. This could take a few minutes as it downloads files."
-  echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
-  pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116 >&3
-  pip install --use-pep517 --upgrade -r requirements.txt >&3
-  pip install -U -I --no-deps \
-    https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3
+  install_pip_dependencies
 
   # We need this extra package and setup if we are running in a runpod
   if [ "$RUNPOD" = true ]; then
-    pip install tensorrt
+    echo "Installing tenssort."
+    pip install tensorrt >&3
     # Symlink paths
     libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
     libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
@@ -457,30 +514,12 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Python Tkinter 3.10 found!"
   fi
 
+  update_kohya_ss
+
   if command -v python3.10 >/dev/null; then
     python3.10 -m venv venv
     source venv/bin/activate
-
-    # DEBUG ONLY
-    #pip install pydevd-pycharm~=223.8836.43
-
-    # Updating pip if there is one
-    echo "Checking for pip updates before Python operations."
-    python3 -m pip install --upgrade pip >&3
-
-    # Tensorflow installation
-    echo "Downloading and installing macOS Tensorflow."
-    if wget https://github.com/apple/tensorflow_macos/releases/download/v0.1alpha3/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl /tmp &>3; then
-      python -m pip install tensorflow==0.1a3 \
-        -f https://github.com/apple/tensorflow_macos/releases/download/v0.1alpha3/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl >&3
-      rm -f /tmp/tensorflow_macos-0.1a3-cp38-cp38-macosx_11_0_arm64.whl
-    fi
-
-    echo "Installing python dependencies. This could take a few minutes as it downloads files."
-    echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
-    pip install torch==2.0.0 torchvision==0.15.1 \
-      -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3
-    python -m pip install --use-pep517 --upgrade -r requirements.txt >&3
+    install_pip_dependencies
     configure_accelerate
     echo -e "Setup finished! Run ./gui.sh to start."
   else

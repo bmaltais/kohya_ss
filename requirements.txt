@@ -25,6 +25,7 @@ timm==0.6.12
 # tensorflow<2.11
 huggingface-hub==0.13.0
 tensorflow==2.10.1; sys_platform != 'darwin'
+tensorflow-macos==2.12.0; sys_platform == 'darwin'
 # For locon support
 lycoris_lora==0.1.4
 # for kohya_ss library
