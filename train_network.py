@@ -25,7 +25,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight 
+from library.custom_train_functions import apply_snr_weight
 
 
 # TODO 他のスクリプトと共通化する
@@ -131,16 +131,21 @@ def train(args):
         # TODO: modify other training scripts as well
         if pi == accelerator.state.local_process_index:
             print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
-            text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator.device)
+
+            text_encoder, vae, unet, _ = train_util.load_target_model(
+                args, weight_dtype, accelerator.device if args.lowram else "cpu"
+            )
+
+            # work on low-ram device
+            if args.lowram:
+                text_encoder.to(accelerator.device)
+                unet.to(accelerator.device)
+                vae.to(accelerator.device)
+
             gc.collect()
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
 
-    # work on low-ram device
-    # NOTE: this may not be necessary because we already load them on gpu
-    if args.lowram:
-        text_encoder.to(accelerator.device)
-        unet.to(accelerator.device)
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
@@ -197,7 +202,7 @@ def train(args):
     # dataloaderを準備する
     # DataLoaderのプロセス数：0はメインプロセスになる
     n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)  # cpu_count-1 ただし最大で指定された数まで
-    
+
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset_group,
         batch_size=1,
@@ -564,9 +569,9 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
-                 
+
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 

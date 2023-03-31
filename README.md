@@ -127,6 +127,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 31 Mar. 2023, 2023/3/31:
+  - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
+  - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
+  - `train_network.py` でモデル読み込み時にVRAM使用量が一時的に大きくなる不具合を修正しました。
+  - `train_network.py` で `.safetensors` 形式のモデルを読み込むとエラーになる不具合を修正しました。[#354](https://github.com/kohya-ss/sd-scripts/issues/354)
 - 30 Mar. 2023, 2023/3/30:
   - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
     - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
