@@ -841,7 +841,7 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path, device):
 
   if is_safetensors(ckpt_path):
     checkpoint = None
-    state_dict = load_file(ckpt_path, device)
+    state_dict = load_file(ckpt_path) # , device) # may causes error
   else:
     checkpoint = torch.load(ckpt_path, map_location=device)
     if "state_dict" in checkpoint:
