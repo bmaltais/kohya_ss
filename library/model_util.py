@@ -866,7 +866,7 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path, device="cpu"):
 
 # TODO dtype指定の動作が怪しいので確認する text_encoderを指定形式で作れるか未確認
 def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, device='cpu', dtype=None):
-  _, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path) # no need to specify device in loading state_dict
+  _, state_dict = load_checkpoint_with_text_encoder_conversion(ckpt_path, device)
 
   # Convert the UNet2DConditionModel model.
   unet_config = create_unet_diffusers_config(v2)
