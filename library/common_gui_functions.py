@@ -1,12 +1,14 @@
 import os
 import shutil
 import subprocess
+from contextlib import contextmanager
+import tkinter as tk
 from tkinter import filedialog, Tk
 
 import easygui
 import gradio as gr
 
-from library.gui_subprocesses import save_file_dialog
+from library.common_utilities import CommonUtilities
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -35,6 +37,16 @@ V1_MODELS = [
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
 FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
+
+
+@contextmanager
+def tk_context():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        yield root
+    finally:
+        root.destroy()
 
 
 def open_file_dialog(initial_dir, initial_file, file_types="all"):
@@ -89,6 +101,7 @@ def check_if_model_exist(output_name, output_dir, save_model_as):
 
     return False
 
+
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
     use_8bit_adam = my_data.get('use_8bit_adam', False)
@@ -138,28 +151,37 @@ def update_my_data(my_data):
 #     # If no extension files were found, return False
 #     return False
 
-def get_file_path_gradio_wrapper(file_path, filedialog_type="all"):
+# def get_file_path_gradio_wrapper(file_path, filedialog_type="all"):
+#     file_extension = os.path.splitext(file_path)[-1].lower()
+#
+#     filetype_filters = {
+#         'db': ['.db'],
+#         'json': ['.json'],
+#         'lora': ['.pt', '.ckpt', '.safetensors'],
+#     }
+#
+#     # Find the appropriate filedialog_type based on the file extension
+#     filedialog_type = 'all'
+#     for key, extensions in filetype_filters.items():
+#         if file_extension in extensions:
+#             filedialog_type = key
+#             break
+#
+#     return get_file_path(file_path, filedialog_type)
+
+
+def get_file_path(file_path='', filedialog_type="lora"):
     file_extension = os.path.splitext(file_path)[-1].lower()
 
-    filetype_filters = {
-        'db': ['.db'],
-        'json': ['.json'],
-        'lora': ['.pt', '.ckpt', '.safetensors'],
-    }
-
     # Find the appropriate filedialog_type based on the file extension
-    filedialog_type = 'all'
-    for key, extensions in filetype_filters.items():
+    for key, extensions in CommonUtilities.file_filters.items():
         if file_extension in extensions:
             filedialog_type = key
             break
 
-    return get_file_path(file_path, filedialog_type)
-
-
-def get_file_path(file_path='', filedialog_type="lora"):
     current_file_path = file_path
 
+    print(f"File type: {filedialog_type}")
     initial_dir, initial_file = os.path.split(file_path)
     file_path = open_file_dialog(initial_dir, initial_file, file_types=filedialog_type)
 
@@ -169,7 +191,6 @@ def get_file_path(file_path='', filedialog_type="lora"):
     current_file_path = file_path
 
     return file_path
-
 
 
 def get_any_file_path(file_path=''):
@@ -823,7 +844,7 @@ def gradio_advanced_training():
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-        min_snr_gamma = gr.Slider(label='Min SNR gamma', value = 0, minimum=0, maximum=20, step=1)
+        min_snr_gamma = gr.Slider(label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1)
     with gr.Row():
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True

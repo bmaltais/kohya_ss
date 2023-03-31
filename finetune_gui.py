@@ -1,17 +1,18 @@
-import gradio as gr
+import argparse
 import json
 import math
 import os
-import subprocess
 import pathlib
-import argparse
-from library.common_gui import (
+import subprocess
+
+import gradio as gr
+
+from library.common_gui_functions import (
     get_folder_path,
     get_file_path,
     get_saveasfile_path,
     save_inference_file,
     gradio_advanced_training,
-    run_cmd_advanced_training,
     gradio_training,
     run_cmd_advanced_training,
     gradio_config,
@@ -20,15 +21,15 @@ from library.common_gui import (
     run_cmd_training,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, get_file_path_gradio_wrapper,
+    check_if_model_exist,
 )
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
 from library.utilities import utilities_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -231,7 +232,7 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path_gradio_wrapper(file_path)
+        file_path = get_file_path(file_path)
 
     if not file_path == '' and file_path is not None:
         # load variables from JSON file

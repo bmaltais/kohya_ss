@@ -3,7 +3,7 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import get_folder_path, add_pre_postfix
+from .common_gui_functions import get_folder_path, add_pre_postfix
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 

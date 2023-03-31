@@ -3,8 +3,8 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import (
-    get_file_path, get_saveasfile_path, get_file_path_gradio_wrapper,
+from .common_gui_functions import (
+    get_file_path, get_saveasfile_path,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -90,8 +90,7 @@ def gradio_extract_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_model_tuned_file.click(
-                lambda input1, input2, input3, *args, **kwargs:
-                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
+                lambda *args, **kwargs: get_file_path(*args),
                 inputs=[model_tuned, model_ext, model_ext_name],
                 outputs=model_tuned,
                 show_progress=False,
@@ -107,7 +106,7 @@ def gradio_extract_lora_tab():
             )
             button_model_org_file.click(
                 lambda input1, input2, input3, *args, **kwargs:
-                get_file_path_gradio_wrapper(file_path=os.path.join(input1, input2 + input3)),
+                lambda *args, **kwargs: get_file_path(*args),
                 inputs=[model_org, model_ext, model_ext_name],
                 outputs=model_org,
                 show_progress=False,

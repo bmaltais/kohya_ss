@@ -1,84 +1,82 @@
+import os
+import pathlib
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-
-def open_file_dialog(initial_dir=None, initial_file=None, file_types="all"):
-    file_type_filters = {
-        "all": [("All files", "*.*")],
-        "video": [("Video files", "*.mp4;*.avi;*.mkv;*.mov;*.flv;*.wmv")],
-        "images": [("Image files", "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tiff")],
-        "json": [("JSON files", "*.json")],
-        "lora": [("LoRa files", "*.ckpt;*.pt;*.safetensors")],
-        "directory": [],
-    }
-
-    if file_types in file_type_filters:
-        filters = file_type_filters[file_types]
-    else:
-        filters = file_type_filters["all"]
-
-    if file_types == "directory":
-        return filedialog.askdirectory(initialdir=initial_dir)
-    else:
-        return filedialog.askopenfilename(initialdir=initial_dir, initialfile=initial_file, filetypes=filters)
+from library.common_gui_functions import tk_context
+from library.common_utilities import CommonUtilities
 
 
-def save_file_dialog(initial_dir, initial_file, files_type="all"):
-    root = tk.Tk()
-    root.withdraw()
+class TkGui:
+    def __init__(self):
+        self.file_types = None
 
-    filetypes_switch = {
-        "all": [("All files", "*.*")],
-        "video": [("Video files", "*.mp4;*.avi;*.mkv;*.webm;*.flv;*.mov;*.wmv")],
-        "images": [("Image files", "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tiff;*.ico")],
-        "json": [("JSON files", "*.json")],
-        "lora": [("LoRa files", "*.ckpt;*.pt;*.safetensors")],
-    }
+    def open_file_dialog(self, initial_dir=None, initial_file=None, file_types="all"):
+        print(f"File types: {self.file_types}")
+        with tk_context():
+            self.file_types = file_types
+            if self.file_types in CommonUtilities.file_filters:
+                filters = CommonUtilities.file_filters[self.file_types]
+            else:
+                filters = CommonUtilities.file_filters["all"]
 
-    filetypes = filetypes_switch.get(files_type, filetypes_switch["all"])
-    save_file_path = filedialog.asksaveasfilename(initialdir=initial_dir, initialfile=initial_file, filetypes=filetypes,
-                                                  defaultextension=filetypes)
+            if self.file_types == "directory":
+                return filedialog.askdirectory(initialdir=initial_dir)
+            else:
+                return filedialog.askopenfilename(initialdir=initial_dir, initialfile=initial_file, filetypes=filters)
 
-    root.destroy()
+    def save_file_dialog(self, initial_dir, initial_file, file_types="all"):
+        self.file_types = file_types
 
-    return save_file_path
+        # Use the tk_context function with the 'with' statement
+        with tk_context():
+            if self.file_types in CommonUtilities.file_filters:
+                filters = CommonUtilities.file_filters[self.file_types]
+            else:
+                filters = CommonUtilities.file_filters["all"]
 
+            save_file_path = filedialog.asksaveasfilename(initialdir=initial_dir, initialfile=initial_file,
+                                                          filetypes=filters, defaultextension=".safetensors")
 
-def show_message_box(_message, _title="Message", _level="info"):
-    root = tk.Tk()
-    root.withdraw()
+        return save_file_path
 
-    message_type = {
-        "warning": messagebox.showwarning,
-        "error": messagebox.showerror,
-        "info": messagebox.showinfo,
-        "question": messagebox.askquestion,
-        "okcancel": messagebox.askokcancel,
-        "retrycancel": messagebox.askretrycancel,
-        "yesno": messagebox.askyesno,
-        "yesnocancel": messagebox.askyesnocancel
-    }
+    def show_message_box(_message, _title="Message", _level="info"):
+        with tk_context():
+            message_type = {
+                "warning": messagebox.showwarning,
+                "error": messagebox.showerror,
+                "info": messagebox.showinfo,
+                "question": messagebox.askquestion,
+                "okcancel": messagebox.askokcancel,
+                "retrycancel": messagebox.askretrycancel,
+                "yesno": messagebox.askyesno,
+                "yesnocancel": messagebox.askyesnocancel
+            }
 
-    if _level in message_type:
-        message_type[_level](_title, _message)
-    else:
-        messagebox.showinfo(_title, _message)
-
-    root.destroy()
+            if _level in message_type:
+                message_type[_level](_title, _message)
+            else:
+                messagebox.showinfo(_title, _message)
 
 
 if __name__ == '__main__':
-    mode = sys.argv[1]
+    try:
+        mode = sys.argv[1]
 
-    if mode == 'file_dialog':
-        starting_dir = sys.argv[2] if len(sys.argv) > 2 else None
-        starting_file = sys.argv[3] if len(sys.argv) > 3 else None
-        file_class = sys.argv[2] if len(sys.argv) > 2 else None
-        file_path = open_file_dialog(starting_dir, starting_file, file_class)
-        print(file_path)
+        if mode == 'file_dialog':
+            starting_dir = sys.argv[2] if len(sys.argv) > 2 else None
+            starting_file = sys.argv[3] if len(sys.argv) > 3 else None
+            file_class = sys.argv[4] if len(sys.argv) > 4 else None  # Update this to sys.argv[4]
+            gui = TkGui()
+            file_path = gui.open_file_dialog(starting_dir, starting_file, file_class)
+            print(file_path)  # Make sure to print the result
 
-    elif mode == 'msgbox':
-        message = sys.argv[2]
-        title = sys.argv[3] if len(sys.argv) > 3 else ""
-        show_message_box(message, title)
+        elif mode == 'msgbox':
+            message = sys.argv[2]
+            title = sys.argv[3] if len(sys.argv) > 3 else ""
+            gui = TkGui()
+            gui.show_message_box(message, title)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)

@@ -3,7 +3,7 @@ import shutil
 
 import gradio as gr
 
-from .common_gui import get_folder_path
+from .common_gui_functions import get_folder_path
 
 
 def copy_info_to_Folders_tab(training_folder):

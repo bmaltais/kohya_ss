@@ -4,7 +4,7 @@ import re
 import gradio as gr
 from easygui import boolbox
 
-from .common_gui import get_folder_path
+from .common_gui_functions import get_folder_path
 
 
 # def select_folder():

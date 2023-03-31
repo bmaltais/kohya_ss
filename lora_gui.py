@@ -12,7 +12,7 @@ import subprocess
 
 import gradio as gr
 
-from library.common_gui import (
+from library.common_gui_functions import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
@@ -28,7 +28,7 @@ from library.common_gui import (
     run_cmd_training,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, show_message_box, get_file_path_gradio_wrapper,
+    check_if_model_exist, show_message_box,
 )
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.dreambooth_folder_creation_gui import (
@@ -254,7 +254,7 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path_gradio_wrapper(file_path)
+        file_path = get_file_path(file_path)
 
     if not file_path == '' and not file_path == None:
         # load variables from JSON file

@@ -12,7 +12,7 @@ import subprocess
 
 import gradio as gr
 
-from library.common_gui import (
+from library.common_gui_functions import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
@@ -28,7 +28,7 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, get_file_path_gradio_wrapper,
+    check_if_model_exist,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -240,9 +240,9 @@ def open_configuration(
     original_file_path = file_path
 
     if ask_for_file:
-        file_path = get_file_path_gradio_wrapper(file_path)
+        file_path = get_file_path(file_path)
 
-    if not file_path == '' and not file_path == None:
+    if not file_path == '' and file_path is not None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -673,7 +673,7 @@ def ti_tab(
             )
             weights_file_input = gr.Button('📂', elem_id='open_folder_small')
             weights_file_input.click(
-                lambda *args, **kwargs: get_file_path_gradio_wrapper,
+                lambda *args, **kwargs: get_file_path(*args),
                 outputs=weights,
                 show_progress=False,
             )

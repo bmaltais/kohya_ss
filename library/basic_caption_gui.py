@@ -3,7 +3,7 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import get_folder_path, add_pre_postfix, find_replace
+from .common_gui_functions import get_folder_path, add_pre_postfix, find_replace
 
 
 def caption_images(

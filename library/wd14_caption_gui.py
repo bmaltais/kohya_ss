@@ -3,7 +3,7 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import get_folder_path
+from .common_gui_functions import get_folder_path
 
 
 def replace_underscore_with_space(folder_path, file_extension):

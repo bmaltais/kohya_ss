@@ -4,7 +4,7 @@ import subprocess
 
 import gradio as gr
 
-from .common_gui import get_folder_path, get_file_path, get_file_path_gradio_wrapper
+from .common_gui_functions import get_folder_path, get_file_path
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -180,8 +180,7 @@ def gradio_convert_model_tab():
                 document_symbol, elem_id='open_folder_small'
             )
             button_source_model_file.click(
-                lambda input1, *args, **kwargs:
-                get_file_path_gradio_wrapper(file_path=os.path.normpath(input1)),
+                lambda *args, **kwargs: get_file_path(*args),
                 inputs=[source_model_input],
                 outputs=source_model_input,
                 show_progress=False,

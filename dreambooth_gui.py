@@ -9,10 +9,11 @@ import math
 import os
 import pathlib
 import subprocess
+import sys
 
 import gradio as gr
 
-from library.common_gui import (
+from library.common_gui_functions import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
@@ -28,9 +29,9 @@ from library.common_gui import (
     gradio_source_model,
     # set_legacy_8bitadam,
     update_my_data,
-    check_if_model_exist, show_message_box, get_file_path_gradio_wrapper,
+    check_if_model_exist, show_message_box,
 )
-from library.common_utilities import is_valid_config
+from library.common_utilities import CommonUtilities
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
@@ -230,12 +231,12 @@ def open_configuration(
 
     if ask_for_file:
         print(f"File path: {file_path}")
-        file_path = get_file_path_gradio_wrapper(file_path)
+        file_path = get_file_path(file_path, filedialog_type="json")
 
     if not file_path == '' and file_path is not None:
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            if is_valid_config(my_data):
+            if CommonUtilities.is_valid_config(my_data):
                 print('Loading config...')
                 my_data = update_my_data(my_data)
             else:
@@ -838,14 +839,14 @@ def dreambooth_tab(
     ]
 
     button_open_config.click(
-        lambda *args, **kwargs: open_configuration(*args),
+        lambda *_args, **kwargs: open_configuration(*_args, **kwargs),
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_load_config.click(
-        lambda *args, **kwargs: open_configuration(*args),
+        lambda *args, **kwargs: open_configuration(*args, **kwargs),
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
