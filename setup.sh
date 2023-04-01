@@ -194,7 +194,22 @@ create_symlinks() {
   fi
 }
 
-install_pip_dependencies() {
+install_python_dependencies() {
+  # Switch to local virtual env
+  echo "Switching to virtual Python environment."
+  if command -v python3 >/dev/null; then
+    python3 -m venv venv
+  elif command -v python3.10 >/dev/null; then
+    python3.10 -m venv venv
+  else
+    echo "Valid python3 or python3.10 binary not found."
+    echo "Cannot proceed with the python steps."
+    return 1
+  fi
+
+  # Activate the virtual environment
+  source venv/bin/activate
+
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
   python3 -m pip install --upgrade pip >&3
@@ -216,9 +231,23 @@ install_pip_dependencies() {
     ;;
   esac
 
+  if [ "$RUNPOD" = true ]; then
+    echo "Installing tenssort."
+    pip install tensorrt >&3
+  fi
+
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
-  python -m pip install --use-pep517 --upgrade -r requirements.txt >&3
+  python -m pip install --use-pep517 --upgrade -r "$DIR/requirements.txt" >&3
+
+  if [ -n "$VIRTUAL_ENV" ]; then
+    if command -v deactivate >/dev/null; then
+      echo "Exiting Python virtual environment."
+      deactivate
+    else
+      echo "deactivate command not found. Could still be in the Python virtual environment."
+    fi
+  fi
 }
 
 # Attempt to non-interactively install a default accelerate config file unless specified otherwise.
@@ -301,6 +330,8 @@ update_kohya_ss() {
       echo "You need to install git."
       echo "Rerun this after installing git or run this script with -n to skip the git operations."
     fi
+  else
+    echo "Skipping git operations."
   fi
 }
 
@@ -437,14 +468,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   fi
 
-  python3 -m venv venv
-  source venv/bin/activate
-  install_pip_dependencies
+  install_python_dependencies
 
-  # We need this extra package and setup if we are running in a runpod
+  # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
-    echo "Installing tenssort."
-    pip install tensorrt >&3
     # Symlink paths
     libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
     libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
@@ -516,17 +543,12 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 
   update_kohya_ss
 
-  if command -v python3.10 >/dev/null; then
-    python3.10 -m venv venv
-    source venv/bin/activate
-    install_pip_dependencies
-    configure_accelerate
-    echo -e "Setup finished! Run ./gui.sh to start."
-  else
-    echo "Python not found. Please ensure you install Python."
-    echo "The brew command for Python 3.10 is: brew install python@3.10"
-    exit 1
+  if ! install_python_dependencies; then
+    echo "You may need to install Python. The command for this is brew install python@3.10."
   fi
+
+  configure_accelerate
+  echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
   # Cygwin is a standalone suite of Linux utilies on Windows
   echo "This hasn't been validated on cygwin yet."
