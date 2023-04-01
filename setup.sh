@@ -357,7 +357,7 @@ update_kohya_ss() {
         fi
 
         if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
-          git -C "$DIR" switch "$BRANCH" >&3
+          git -C "$DIR" switch "$(git rev-parse --abbrev-ref HEAD)" >&3
         else
           if ! git -C "$DIR" switch "$BRANCH" >&4; then
             echo "Branch $BRANCH did not exist. Creating it." >&4
