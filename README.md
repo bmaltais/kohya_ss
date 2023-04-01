@@ -96,9 +96,11 @@ Options:
 
 #### Install location
 
-The default install location for Linux is `/opt/kohya_ss`. If /opt is not writeable, the fallback is `$HOME/kohya_ss`. Lastly, if all else fails it will simply install to the current folder you are in.
+The default install location for Linux is where the script is located if a previous installation is detected that location.
+Otherwise, it will fall to `/opt/kohya_ss`. If /opt is not writeable, the fallback is `$HOME/kohya_ss`. Lastly, if all else fails it will simply install to the current folder you are in (PWD).
 
-On macOS and other non-Linux machines, it will default install to `$HOME/kohya_ss` followed by where you're currently at if there's no access to $HOME.
+On macOS and other non-Linux machines, it will first try to detect an install where the script is run from and then run setup there if that's detected. 
+If a previous install isn't found at that location, then it will default install to `$HOME/kohya_ss` followed by where you're currently at if there's no access to $HOME.
 You can override this behavior by specifying an install directory with the -d option.
 
 If you are using the interactive mode, our default values for the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.

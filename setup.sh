@@ -46,6 +46,7 @@ if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
   RUNPOD=true
 fi
 
+# This gets the directory the script is run from so pathing can work relative to the script where needed.
 SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 
 # Variables defined before the getopts loop, so we have sane default values.
