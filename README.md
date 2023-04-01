@@ -257,6 +257,11 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2024/04/01 (v21.4.0)
+    - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
+    - Fix issue with "missing library" error.
+* 2023/04/01 (v21.3.9)
+    - Update how setup is done on Windows by introducing a setup.bat script. This will make it easier to install/re-install on Windows if needed. Many thanks to @missionfloyd for his PR: https://github.com/bmaltais/kohya_ss/pull/496
 * 2023/03/30 (v21.3.8)
     - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
 * 2023/03/29 (v21.3.7)
