@@ -149,6 +149,12 @@ Script directory is ${SCRIPT_DIR}." >&5
 PARENT_DIR="$(dirname "${DIR}")"
 VENV_DIR="$DIR/venv"
 
+if [ ! -w "$DIR" ]; then
+  echo "We cannot write to ${DIR}."
+  echo "Please ensure the install directory is accurate and you have the correct permissions."
+  exit 1
+fi
+
 # Shared functions
 # This checks for free space on the installation drive and returns that in Gb.
 size_available() {
@@ -213,7 +219,7 @@ install_python_dependencies() {
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
-  python3 -m pip install --upgrade pip >&3
+  pip install --upgrade pip >&3
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
