@@ -149,6 +149,11 @@ Script directory is ${SCRIPT_DIR}." >&5
 PARENT_DIR="$(dirname "${DIR}")"
 VENV_DIR="$DIR/venv"
 
+if [ -w "$PARENT_DIR" ] && [ ! -d "$DIR" ]; then
+  echo "Creating install folder ${DIR}."
+  mkdir "$DIR"
+fi
+
 if [ ! -w "$DIR" ]; then
   echo "We cannot write to ${DIR}."
   echo "Please ensure the install directory is accurate and you have the correct permissions."
@@ -339,8 +344,8 @@ update_kohya_ss() {
 
       echo "Attempting to clone $GIT_REPO."
       if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >*4
-        git -C "$DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
+        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
+        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
         git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
