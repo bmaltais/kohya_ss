@@ -319,7 +319,7 @@ update_kohya_ss() {
   if [ "$SKIP_GIT_UPDATE" = false ]; then
     if command -v git >/dev/null; then
       # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ "$(git -C "$DIR" status --porcelain=v1 >/dev/null)" == "" ] &&
+      if [ "$(git -C "$DIR" status --porcelain=v1 2>/dev/null | wc -l)" -gt 0 ] &&
         echo "These files need to be committed or discarded: " >&4 &&
         git -C "$DIR" status >&4; then
         echo "There are changes that need to be committed or discarded in the repo in $DIR."
