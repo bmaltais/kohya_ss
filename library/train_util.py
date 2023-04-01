@@ -2830,6 +2830,8 @@ def save_sd_model_on_epoch_end(
             model_util.save_stable_diffusion_checkpoint(
                 args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
             )
+            if args.huggingface_repo_id is not None:
+                huggingface_util.upload(ckpt_file, args, "/" + ckpt_name)
 
         def remove_sd(old_epoch_no):
             _, old_ckpt_name = get_epoch_ckpt_name(args, use_safetensors, old_epoch_no)

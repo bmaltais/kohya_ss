@@ -13,6 +13,7 @@ import diffusers
 from diffusers import DDPMScheduler
 
 import library.train_util as train_util
+import library.huggingface_util as huggingface_util
 import library.config_util as config_util
 from library.config_util import (
     ConfigSanitizer,
@@ -493,6 +494,8 @@ def train(args):
                 ckpt_file = os.path.join(args.output_dir, ckpt_name)
                 print(f"saving checkpoint: {ckpt_file}")
                 save_weights(ckpt_file, updated_embs, save_dtype)
+                if args.huggingface_repo_id is not None:
+                    huggingface_util.upload(ckpt_file, args, "/" + ckpt_name)
 
             def remove_old_func(old_epoch_no):
                 old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
