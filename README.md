@@ -192,8 +192,20 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/04/01 (v21.4.0)
+    - Fix an issue that `merge_lora.py` does not work with the latest version.
+    - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
+    - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
+    - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
+    - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
+        - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
+        - Use `train_textual_inversion_XTI.py` for training. The usage is almost the same as `train_textual_inversion.py`. However, sample image generation during training is not supported.
+        - Use `gen_img_diffusers.py` for image generation (I think Web UI is not supported). Specify the embedding with `--XTI_embeddings` option.
+    - Reduce RAM usage at startup in `train_network.py`. [#332](https://github.com/kohya-ss/sd-scripts/pull/332)  Thank you guaneec!
+    - Support pre-merge for LoRA in `gen_img_diffusers.py`. Specify `--network_merge` option. Note that the `--am` option of the prompt option is no longer available with this option.
 * 2023/04/01 (v21.3.9)
     - Update how setup is done on Windows by introducing a setup.bat script. This will make it easier to install/re-install on Windows if needed. Many thanks to @missionfloyd for his PR: https://github.com/bmaltais/kohya_ss/pull/496
+    - Fix issue with WD14 caption script by applying a custom fix to kohya_ss code.
 * 2023/03/30 (v21.3.8)
     - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
 * 2023/03/29 (v21.3.7)

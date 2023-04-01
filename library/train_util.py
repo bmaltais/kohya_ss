@@ -404,6 +404,8 @@ class BaseDataset(torch.utils.data.Dataset):
 
         self.token_padding_disabled = False
         self.tag_frequency = {}
+        self.XTI_layers = None
+        self.token_strings = None
 
         self.enable_bucket = False
         self.bucket_manager: BucketManager = None  # not initialized
@@ -463,6 +465,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
     def disable_token_padding(self):
         self.token_padding_disabled = True
+
+    def enable_XTI(self, layers=None, token_strings=None):
+        self.XTI_layers = layers
+        self.token_strings = token_strings
 
     def add_replacement(self, str_from, str_to):
         self.replacements[str_from] = str_to
@@ -909,9 +915,22 @@ class BaseDataset(torch.utils.data.Dataset):
             latents_list.append(latents)
 
             caption = self.process_caption(subset, image_info.caption)
-            captions.append(caption)
+            if self.XTI_layers:
+                caption_layer = []
+                for layer in self.XTI_layers:
+                    token_strings_from = " ".join(self.token_strings)
+                    token_strings_to = " ".join([f"{x}_{layer}" for x in self.token_strings])
+                    caption_ = caption.replace(token_strings_from, token_strings_to)
+                    caption_layer.append(caption_)
+                captions.append(caption_layer)
+            else:
+                captions.append(caption)
             if not self.token_padding_disabled:  # this option might be omitted in future
-                input_ids_list.append(self.get_input_ids(caption))
+                if self.XTI_layers:
+                    token_caption = self.get_input_ids(caption_layer)
+                else:
+                    token_caption = self.get_input_ids(caption)
+                input_ids_list.append(token_caption)
 
         example = {}
         example["loss_weights"] = torch.FloatTensor(loss_weights)
@@ -1313,6 +1332,10 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
     # def make_buckets(self):
     #   for dataset in self.datasets:
     #     dataset.make_buckets()
+
+    def enable_XTI(self, *args, **kwargs):
+        for dataset in self.datasets:
+            dataset.enable_XTI(*args, **kwargs)
 
     def cache_latents(self, vae, vae_batch_size=1):
         for i, dataset in enumerate(self.datasets):
@@ -2617,14 +2640,15 @@ def prepare_dtype(args: argparse.Namespace):
     return weight_dtype, save_dtype
 
 
-def load_target_model(args: argparse.Namespace, weight_dtype):
+def load_target_model(args: argparse.Namespace, weight_dtype, device='cpu'):
     name_or_path = args.pretrained_model_name_or_path
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
     if load_stable_diffusion_format:
         print("load StableDiffusion checkpoint")
-        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, name_or_path)
+        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, name_or_path, device)
     else:
+        # Diffusers model is loaded to CPU
         print("load Diffusers pretrained models")
         try:
             pipe = StableDiffusionPipeline.from_pretrained(name_or_path, tokenizer=None, safety_checker=None)
