@@ -1,5 +1,9 @@
 @echo off
-python -m venv venv
+IF NOT EXIST venv (
+    python -m venv venv
+) ELSE (
+    echo venv folder already exists, skipping creation...
+)
 call .\venv\Scripts\activate.bat
 
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
