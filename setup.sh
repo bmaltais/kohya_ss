@@ -33,10 +33,10 @@ EOF
 # Checks to see if variable is set and non-empty.
 # This is defined first, so we can use the function for some default variable values
 env_var_exists() {
-  if [[ -n "${!1}" ]]; then
-    return 0
-  else
+  if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
     return 1
+  else
+    return 0
   fi
 }
 
@@ -84,7 +84,6 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
-MANUAL_BRANCH_SWITCH=false
 
 while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -94,7 +93,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) BRANCH="$OPTARG" && MANUAL_BRANCH_SWITCH=true ;;
+  b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
   i | interactive) INTERACTIVE=true ;;
@@ -149,17 +148,6 @@ Script directory is ${SCRIPT_DIR}." >&5
 # This must be set after the getopts loop to account for $DIR changes.
 PARENT_DIR="$(dirname "${DIR}")"
 VENV_DIR="$DIR/venv"
-
-if [ -w "$PARENT_DIR" ] && [ ! -d "$DIR" ]; then
-  echo "Creating install folder ${DIR}."
-  mkdir "$DIR"
-fi
-
-if [ ! -w "$DIR" ]; then
-  echo "We cannot write to ${DIR}."
-  echo "Please ensure the install directory is accurate and you have the correct permissions."
-  exit 1
-fi
 
 # Shared functions
 # This checks for free space on the installation drive and returns that in Gb.
@@ -225,7 +213,7 @@ install_python_dependencies() {
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip >&3
+  python3 -m pip install --upgrade pip >&3
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
@@ -343,28 +331,19 @@ update_kohya_ss() {
         exit 1
       fi
 
-      echo "Attempting to clone ${GIT_REPO}:${BRANCH}"
+      echo "Attempting to clone $GIT_REPO."
       if [ ! -d "$DIR/.git" ]; then
-        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
+        echo "Cloning and switching to $GIT_REPO:$BRANCH" >*4
+        git -C "$DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
         git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
-        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
-          git -C "$DIR" pull "$GIT_REPO" "$(git rev-parse --abbrev-ref HEAD)" >&3
-        else
-          git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        if ! git -C "$DIR" switch "$BRANCH" >&4; then
+          echo "Branch $BRANCH did not exist. Creating it." >&4
+          git -C "$DIR" switch -c "$BRANCH" >&4
         fi
-
-        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
-          git -C "$DIR" switch "$(git rev-parse --abbrev-ref HEAD)" >&3
-        else
-          if ! git -C "$DIR" switch "$BRANCH" >&4; then
-            echo "Branch $BRANCH did not exist. Creating it." >&4
-            git -C "$DIR" switch -c "$BRANCH" >&4
-          fi
-        fi
-
       fi
     else
       echo "You need to install git."
@@ -437,6 +416,17 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   }
 
   check_storage_space
+
+  # This is the pre-install work for a kohya installation on a runpod
+  if [ "$RUNPOD" = true ]; then
+    if [ -d "$VENV_DIR" ]; then
+      echo "Pre-existing installation on a runpod detected."
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
+      cd "$DIR" || exit 1
+    fi
+  fi
+
   update_kohya_ss
 
   distro=get_distro_name
@@ -516,17 +506,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
     create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
-    fi
-
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
-    fi
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/tensorrt/"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
 
     configure_accelerate
 
@@ -588,10 +569,10 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   configure_accelerate
   echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilities on Windows
+  # Cygwin is a standalone suite of Linux utilies on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
