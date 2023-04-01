@@ -176,7 +176,7 @@ You can cd into the root directory and simply run
 # Refresh and update everything
 ./setup.sh
 
-# This will refresh everything, but NOT close or pull the git repo.
+# This will refresh everything, but NOT clone or pull the git repo.
 ./setup.sh --no-git-update
 ```
 
