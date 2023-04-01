@@ -282,7 +282,7 @@ This will store your a backup file with your current locally installed pip packa
     - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
     - Removed non applicable save_model_as choices for LoRA and TI.
 * 2023/03/24 (v21.3.3)
-    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your prefered terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
+    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your preferred terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
 * 2023/03/23 (v21.3.2)
     - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
 * 2023/03/23 (v21.3.1)
