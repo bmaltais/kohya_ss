@@ -4,7 +4,7 @@
 source venv/bin/activate
 
 # Validate the requirements and store the exit code
-python tools/validate_requirements.py
+python tools/validate_requirements.py --requirements requirements_macos.txt
 exit_code=$?
 
 # If the exit code is 0, run the kohya_gui.py script with the command-line arguments
