@@ -10,7 +10,7 @@ if %errorlevel%==1 (
 git pull
 
 :: Activate the virtual environment
-call .\venv\Scripts\activate.baT
+call .\venv\Scripts\activate.bat
 
 :: Upgrade the required packages
 pip install --upgrade -r requirements.txt

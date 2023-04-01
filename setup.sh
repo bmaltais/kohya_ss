@@ -84,6 +84,7 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
+MANUAL_BRANCH_SWITCH=false
 
 while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -93,7 +94,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) BRANCH="$OPTARG" ;;
+  b | branch) BRANCH="$OPTARG" && MANUAL_BRANCH_SWITCH=true ;;
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
   i | interactive) INTERACTIVE=true ;;
@@ -342,19 +343,28 @@ update_kohya_ss() {
         exit 1
       fi
 
-      echo "Attempting to clone $GIT_REPO."
+      echo "Attempting to clone ${GIT_REPO}:${BRANCH}"
       if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
         git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
         git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
-        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
-        if ! git -C "$DIR" switch "$BRANCH" >&4; then
-          echo "Branch $BRANCH did not exist. Creating it." >&4
-          git -C "$DIR" switch -c "$BRANCH" >&4
+        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
+          git -C "$DIR" pull "$GIT_REPO" "$(git rev-parse --abbrev-ref HEAD)" >&3
+        else
+          git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
         fi
+
+        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
+          git -C "$DIR" switch "$(git rev-parse --abbrev-ref HEAD)" >&3
+        else
+          if ! git -C "$DIR" switch "$BRANCH" >&4; then
+            echo "Branch $BRANCH did not exist. Creating it." >&4
+            git -C "$DIR" switch -c "$BRANCH" >&4
+          fi
+        fi
+
       fi
     else
       echo "You need to install git."
@@ -578,10 +588,10 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   configure_accelerate
   echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilies on Windows
+  # Cygwin is a standalone suite of Linux utilities on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
