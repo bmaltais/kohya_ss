@@ -270,7 +270,7 @@ This will store your a backup file with your current locally installed pip packa
     - Fix an issue that images are loaded twice in Windows environment.
     - Add Min-SNR Weighting strategy. Details are in [#308](https://github.com/kohya-ss/sd-scripts/pull/308). Thank you to AI-Casanova for this great work!
         - Add `--min_snr_gamma` option to training scripts, 5 is recommended by paper.
-        - The Min SNR gamma fiels can be found unser the advanced training tab in all trainers.
+        - The Min SNR gamma fields can be found under the advanced training tab in all trainers.
     - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
 * 2023/03/26 (v21.3.5)
     - Fix for https://github.com/bmaltais/kohya_ss/issues/230
@@ -278,7 +278,7 @@ This will store your a backup file with your current locally installed pip packa
 * 2023/03/25 (v21.3.4)
     - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
-    Let me know how this work. From the look of it it appear to be well tought out. I modified a few things to make it fit better with the rest of the code in the repo.
+    Let me know how this work. From the look of it it appears to be well-thought-out. I modified a few things to make it fit better with the rest of the code in the repo.
     - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
     - Removed non applicable save_model_as choices for LoRA and TI.
 * 2023/03/24 (v21.3.3)
