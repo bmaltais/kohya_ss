@@ -107,32 +107,15 @@ If you are using the interactive mode, our default values for the accelerate con
 These are the same answers as the Windows install.
 
 ### Windows
+In the terminal, run:
 
-Give unrestricted script access to powershell so venv can work:
-
-- Run PowerShell as an administrator
-- Run `Set-ExecutionPolicy Unrestricted` and answer 'A'
-- Close PowerShell
-
-Open a regular user Powershell terminal and run the following commands:
-
-```powershell
+```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-
-python -m venv venv
-.\venv\Scripts\activate
-
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --use-pep517 --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
-accelerate config
+setup.bat
 ```
+
+Then configure accelerate with the same answers as in the MacOS instructions when prompted.
 
 ### Optional: CUDNN 8.6
 
@@ -168,7 +151,7 @@ pip install --use-pep517 --upgrade -r requirements.txt
 When a new release comes out, you can upgrade your repo with the following commands in the root directory:
 
 ```powershell
-./upgrade.ps1
+upgrade.bat
 ```
 
 ### Linux and macOS Upgrade
@@ -274,6 +257,8 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/03/30 (v21.3.8)
+    - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
 * 2023/03/29 (v21.3.7)
     - Allow for 0.1 increment in Network and Conv alpha values: https://github.com/bmaltais/kohya_ss/pull/471 Thanks to @srndpty
     - Updated Lycoris module version
