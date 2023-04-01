@@ -127,6 +127,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 1 Apr. 2023, 2023/4/1:
+  - Fix an issue that `merge_lora.py` does not work with the latest version.
+  - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
+  - 最新のバージョンで`merge_lora.py` が動作しない不具合を修正しました。
+  - `merge_lora.py` で `no module found for LoRA weight: ...` と表示され Conv2d3x3 拡張の重みがマージされない不具合を修正しました。
 - 31 Mar. 2023, 2023/3/31:
   - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
   - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
