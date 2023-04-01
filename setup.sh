@@ -33,10 +33,10 @@ EOF
 # Checks to see if variable is set and non-empty.
 # This is defined first, so we can use the function for some default variable values
 env_var_exists() {
-  if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
-    return 1
-  else
+  if [[ -n "${!1}" ]]; then
     return 0
+  else
+    return 1
   fi
 }
 
@@ -149,6 +149,17 @@ Script directory is ${SCRIPT_DIR}." >&5
 PARENT_DIR="$(dirname "${DIR}")"
 VENV_DIR="$DIR/venv"
 
+if [ -w "$PARENT_DIR" ] && [ ! -d "$DIR" ]; then
+  echo "Creating install folder ${DIR}."
+  mkdir "$DIR"
+fi
+
+if [ ! -w "$DIR" ]; then
+  echo "We cannot write to ${DIR}."
+  echo "Please ensure the install directory is accurate and you have the correct permissions."
+  exit 1
+fi
+
 # Shared functions
 # This checks for free space on the installation drive and returns that in Gb.
 size_available() {
@@ -213,7 +224,7 @@ install_python_dependencies() {
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
-  python3 -m pip install --upgrade pip >&3
+  pip install --upgrade pip >&3
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
@@ -333,8 +344,8 @@ update_kohya_ss() {
 
       echo "Attempting to clone $GIT_REPO."
       if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >*4
-        git -C "$DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
+        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
+        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
         git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
@@ -416,17 +427,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   }
 
   check_storage_space
-
-  # This is the pre-install work for a kohya installation on a runpod
-  if [ "$RUNPOD" = true ]; then
-    if [ -d "$VENV_DIR" ]; then
-      echo "Pre-existing installation on a runpod detected."
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
-      cd "$DIR" || exit 1
-    fi
-  fi
-
   update_kohya_ss
 
   distro=get_distro_name
@@ -506,8 +506,17 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
     create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/tensorrt/"
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
+    else
+      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
+    fi
+
+    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    else
+      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
+    fi
 
     configure_accelerate
 
