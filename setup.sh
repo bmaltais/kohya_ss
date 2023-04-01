@@ -356,10 +356,15 @@ update_kohya_ss() {
           git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
         fi
 
-        if ! git -C "$DIR" switch "$BRANCH" >&4; then
-          echo "Branch $BRANCH did not exist. Creating it." >&4
-          git -C "$DIR" switch -c "$BRANCH" >&4
+        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
+          git -C "$DIR" switch "$BRANCH" >&3
+        else
+          if ! git -C "$DIR" switch "$BRANCH" >&4; then
+            echo "Branch $BRANCH did not exist. Creating it." >&4
+            git -C "$DIR" switch -c "$BRANCH" >&4
+          fi
         fi
+
       fi
     else
       echo "You need to install git."
