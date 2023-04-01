@@ -244,7 +244,11 @@ install_python_dependencies() {
   echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
   echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
-  python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+  if [ $VERBOSITY == 2 ]; then
+    python -m pip install --quiet --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+  else
+    python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+  fi
 
   echo "Removing the temp requirements file."
   if [ -f /tmp/requirements_tmp.txt ]; then
