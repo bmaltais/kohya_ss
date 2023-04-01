@@ -33,10 +33,10 @@ EOF
 # Checks to see if variable is set and non-empty.
 # This is defined first, so we can use the function for some default variable values
 env_var_exists() {
-  if [[ ! -v "$1" ]] || [[ -z "$1" ]]; then
-    return 1
-  else
+  if [[ -n "${!1}" ]]; then
     return 0
+  else
+    return 1
   fi
 }
 
@@ -416,17 +416,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   }
 
   check_storage_space
-
-  # This is the pre-install work for a kohya installation on a runpod
-  if [ "$RUNPOD" = true ]; then
-    if [ -d "$VENV_DIR" ]; then
-      echo "Pre-existing installation on a runpod detected."
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/tensorrt/
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$VENV_DIR"/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/
-      cd "$DIR" || exit 1
-    fi
-  fi
-
   update_kohya_ss
 
   distro=get_distro_name
@@ -506,8 +495,17 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
     create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/tensorrt/"
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
+    else
+      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
+    fi
+
+    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    else
+      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
+    fi
 
     configure_accelerate
 
