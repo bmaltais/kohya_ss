@@ -25,7 +25,19 @@ for requirement in requirements:
     try:
         pkg_resources.require(requirement)
     except pkg_resources.DistributionNotFound:
-        missing_requirements.append(requirement)
+        # Check if the requirement contains a VCS URL
+        if "@" in requirement:
+            # If it does, split the requirement into two parts: the package name and the VCS URL
+            package_name, vcs_url = requirement.split("@", 1)
+            # Use pip to install the package from the VCS URL
+            os.system(f"pip install -e {vcs_url}")
+            # Try to require the package again
+            try:
+                pkg_resources.require(package_name)
+            except pkg_resources.DistributionNotFound:
+                missing_requirements.append(requirement)
+        else:
+            missing_requirements.append(requirement)
     except pkg_resources.VersionConflict as e:
         wrong_version_requirements.append((requirement, str(e.req), e.dist.version))
 

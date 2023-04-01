@@ -34,7 +34,7 @@ def caption_images(
         return
 
     print(f'Captioning files in {train_data_dir}...')
-    run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
+    run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger_bmaltais.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --thresh="{thresh}"'
     run_cmd += f' --caption_extension="{caption_extension}"'
