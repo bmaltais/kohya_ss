@@ -199,9 +199,9 @@ install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
   if command -v python3 >/dev/null; then
-    python3 -m venv venv
+    python3 -m venv "$DIR/venv"
   elif command -v python3.10 >/dev/null; then
-    python3.10 -m venv venv
+    python3.10 -m venv "$DIR/venv"
   else
     echo "Valid python3 or python3.10 binary not found."
     echo "Cannot proceed with the python steps."
@@ -209,7 +209,7 @@ install_python_dependencies() {
   fi
 
   # Activate the virtual environment
-  source venv/bin/activate
+  source "$DIR/venv/bin/activate"
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
@@ -239,7 +239,17 @@ install_python_dependencies() {
 
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
-  python -m pip install --use-pep517 --upgrade -r "$DIR/requirements.txt" >&3
+
+  #This will copy our requirements.txt file out, make the khoya_ss lib a dynamic location then cleanup.
+  echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
+  echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
+  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
+  python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+
+  echo "Removing the temp requirements file."
+  if [ -f /tmp/requirements_tmp.txt ]; then
+    rm /tmp/requirements_tmp.txt
+  fi
 
   if [ -n "$VIRTUAL_ENV" ]; then
     if command -v deactivate >/dev/null; then
@@ -304,6 +314,7 @@ check_storage_space() {
   fi
 }
 
+# These are the git operations that will run to update or clone the repo
 update_kohya_ss() {
   if [ "$SKIP_GIT_UPDATE" = false ]; then
     if command -v git >/dev/null; then
@@ -373,12 +384,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   }
 
+  # We search for the line starting with ID_LIKE=
+  # Then we remove the ID_LIKE= prefix to get the name itself
+  # This is the "type" of distro. For example, Ubuntu returns "debian".
   get_distro_family() {
     local line
     if [ -f /etc/os-release ]; then
-      # We search for the line starting with ID_LIKE=
-      # Then we remove the ID_LIKE= prefix to get the name itself
-      # This is the "type" of distro. For example, Ubuntu returns "debian".
       if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
         line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
         echo "Raw detected os-release distro family line: $line" >&5
