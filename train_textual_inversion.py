@@ -493,6 +493,8 @@ def train(args):
 
         print(f"save trained model to {ckpt_file}")
         save_weights(ckpt_file, updated_embs, save_dtype)
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(ckpt_file, args, "/" + ckpt_name)
         print("model saved.")
 
 
