@@ -42,7 +42,9 @@ def merge_to_sd_model(text_encoder, unet, models, ratios, merge_dtype):
             target_replace_modules = lora.LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE
         else:
             prefix = lora.LoRANetwork.LORA_PREFIX_UNET
-            target_replace_modules = lora.LoRANetwork.UNET_TARGET_REPLACE_MODULE
+            target_replace_modules = (
+                lora.LoRANetwork.UNET_TARGET_REPLACE_MODULE + lora.LoRANetwork.UNET_TARGET_REPLACE_MODULE_CONV2D_3X3
+            )
 
         for name, module in root_module.named_modules():
             if module.__class__.__name__ in target_replace_modules:
