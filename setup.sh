@@ -319,7 +319,7 @@ update_kohya_ss() {
   if [ "$SKIP_GIT_UPDATE" = false ]; then
     if command -v git >/dev/null; then
       # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ -z "$(git -C "$DIR" status --porcelain=v1 >/dev/null)" ]; then
+      if [ -z "$(git -C "$DIR" status --porcelain=v1 >&4)" ]; then
         echo "There are changes that need to be committed or discarded in the repo in $DIR."
         echo "Commit those changes or run this script with -n to skip git operations entirely."
         exit 1
@@ -328,13 +328,13 @@ update_kohya_ss() {
       echo "Attempting to clone $GIT_REPO."
       if [ ! -d "$DIR/.git" ]; then
         git -C "$DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
-        git -C "$DIR" switch "$BRANCH" >&3
+        git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
         git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
-        if ! git -C "$DIR" switch "$BRANCH" >/dev/null; then
-          git -C "$DIR" switch -c "$BRANCH" >/dev/null
+        if ! git -C "$DIR" switch "$BRANCH" >&4; then
+          git -C "$DIR" switch -c "$BRANCH" >&4
         fi
       fi
     else
