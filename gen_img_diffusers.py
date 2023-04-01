@@ -95,6 +95,8 @@ import library.train_util as train_util
 import tools.original_control_net as original_control_net
 from tools.original_control_net import ControlNetInfo
 
+from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
+
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う
@@ -491,6 +493,9 @@ class PipelineLike:
         # Textual Inversion
         self.token_replacements = {}
 
+        # XTI
+        self.token_replacements_XTI = {}
+
         # CLIP guidance
         self.clip_guidance_scale = clip_guidance_scale
         self.clip_image_guidance_scale = clip_image_guidance_scale
@@ -514,14 +519,25 @@ class PipelineLike:
     def add_token_replacement(self, target_token_id, rep_token_ids):
         self.token_replacements[target_token_id] = rep_token_ids
 
-    def replace_token(self, tokens):
+    def replace_token(self, tokens, layer=None):
         new_tokens = []
         for token in tokens:
             if token in self.token_replacements:
-                new_tokens.extend(self.token_replacements[token])
+                replacer_ = self.token_replacements[token]
+                if layer:
+                    replacer = []
+                for r in replacer_:
+                    if r in self.token_replacements_XTI:
+                        replacer.append(self.token_replacements_XTI[r][layer])
+                    else:
+                        replacer = replacer_
+                new_tokens.extend(replacer)
             else:
                 new_tokens.append(token)
         return new_tokens
+
+    def add_token_replacement_XTI(self, target_token_id, rep_token_ids):
+        self.token_replacements_XTI[target_token_id] = rep_token_ids
 
     def set_control_nets(self, ctrl_nets):
         self.control_nets = ctrl_nets
@@ -744,14 +760,15 @@ class PipelineLike:
                 " the batch size of `prompt`."
             )
 
-        text_embeddings, uncond_embeddings, prompt_tokens = get_weighted_text_embeddings(
-            pipe=self,
-            prompt=prompt,
-            uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
-            max_embeddings_multiples=max_embeddings_multiples,
-            clip_skip=self.clip_skip,
-            **kwargs,
-        )
+        if not self.token_replacements_XTI:
+            text_embeddings, uncond_embeddings, prompt_tokens = get_weighted_text_embeddings(
+                pipe=self,
+                prompt=prompt,
+                uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
+                max_embeddings_multiples=max_embeddings_multiples,
+                clip_skip=self.clip_skip,
+                **kwargs,
+            )
 
         if negative_scale is not None:
             _, real_uncond_embeddings, _ = get_weighted_text_embeddings(
@@ -763,11 +780,47 @@ class PipelineLike:
                 **kwargs,
             )
 
-        if do_classifier_free_guidance:
-            if negative_scale is None:
-                text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-            else:
-                text_embeddings = torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings])
+        if self.token_replacements_XTI:
+            text_embeddings_concat = []
+            for layer in [
+                "IN01",
+                "IN02",
+                "IN04",
+                "IN05",
+                "IN07",
+                "IN08",
+                "MID",
+                "OUT03",
+                "OUT04",
+                "OUT05",
+                "OUT06",
+                "OUT07",
+                "OUT08",
+                "OUT09",
+                "OUT10",
+                "OUT11",
+            ]:
+                text_embeddings, uncond_embeddings, prompt_tokens = get_weighted_text_embeddings(
+                    pipe=self,
+                    prompt=prompt,
+                    uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
+                    max_embeddings_multiples=max_embeddings_multiples,
+                    clip_skip=self.clip_skip,
+                    layer=layer,
+                    **kwargs,
+                )
+                if do_classifier_free_guidance:
+                    if negative_scale is None:
+                        text_embeddings_concat.append(torch.cat([uncond_embeddings, text_embeddings]))
+                    else:
+                        text_embeddings_concat.append(torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings]))
+                text_embeddings = torch.stack(text_embeddings_concat)
+        else:
+            if do_classifier_free_guidance:
+                if negative_scale is None:
+                    text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+                else:
+                    text_embeddings = torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings])
 
         # CLIP guidanceで使用するembeddingsを取得する
         if self.clip_guidance_scale > 0:
@@ -1675,7 +1728,7 @@ def parse_prompt_attention(text):
     return res
 
 
-def get_prompts_with_weights(pipe: PipelineLike, prompt: List[str], max_length: int):
+def get_prompts_with_weights(pipe: PipelineLike, prompt: List[str], max_length: int, layer=None):
     r"""
     Tokenize a list of prompts and return its tokens with weights of each token.
     No padding, starting or ending token is included.
@@ -1691,7 +1744,7 @@ def get_prompts_with_weights(pipe: PipelineLike, prompt: List[str], max_length: 
             # tokenize and discard the starting and the ending token
             token = pipe.tokenizer(word).input_ids[1:-1]
 
-            token = pipe.replace_token(token)
+            token = pipe.replace_token(token, layer=layer)
 
             text_token += token
             # copy the weight by length of token
@@ -1807,6 +1860,7 @@ def get_weighted_text_embeddings(
     skip_parsing: Optional[bool] = False,
     skip_weighting: Optional[bool] = False,
     clip_skip=None,
+    layer=None,
     **kwargs,
 ):
     r"""
@@ -1837,11 +1891,11 @@ def get_weighted_text_embeddings(
         prompt = [prompt]
 
     if not skip_parsing:
-        prompt_tokens, prompt_weights = get_prompts_with_weights(pipe, prompt, max_length - 2)
+        prompt_tokens, prompt_weights = get_prompts_with_weights(pipe, prompt, max_length - 2, layer=layer)
         if uncond_prompt is not None:
             if isinstance(uncond_prompt, str):
                 uncond_prompt = [uncond_prompt]
-            uncond_tokens, uncond_weights = get_prompts_with_weights(pipe, uncond_prompt, max_length - 2)
+            uncond_tokens, uncond_weights = get_prompts_with_weights(pipe, uncond_prompt, max_length - 2, layer=layer)
     else:
         prompt_tokens = [token[1:-1] for token in pipe.tokenizer(prompt, max_length=max_length, truncation=True).input_ids]
         prompt_weights = [[1.0] * len(token) for token in prompt_tokens]
@@ -2229,13 +2283,17 @@ def main(args):
             if network is None:
                 return
 
-            network.apply_to(text_encoder, unet)
+            if not args.network_merge:
+                network.apply_to(text_encoder, unet)
 
-            if args.opt_channels_last:
-                network.to(memory_format=torch.channels_last)
-            network.to(dtype).to(device)
+                if args.opt_channels_last:
+                    network.to(memory_format=torch.channels_last)
+                network.to(dtype).to(device)
 
-            networks.append(network)
+                networks.append(network)
+            else:
+                network.merge_to(text_encoder, unet, dtype, device)
+
     else:
         networks = []
 
@@ -2289,6 +2347,11 @@ def main(args):
     if args.diffusers_xformers:
         pipe.enable_xformers_memory_efficient_attention()
 
+    if args.XTI_embeddings:
+        diffusers.models.UNet2DConditionModel.forward = unet_forward_XTI
+        diffusers.models.unet_2d_blocks.CrossAttnDownBlock2D.forward = downblock_forward_XTI
+        diffusers.models.unet_2d_blocks.CrossAttnUpBlock2D.forward = upblock_forward_XTI
+
     # Textual Inversionを処理する
     if args.textual_inversion_embeddings:
         token_ids_embeds = []
@@ -2334,6 +2397,71 @@ def main(args):
         for token_ids, embeds in token_ids_embeds:
             for token_id, embed in zip(token_ids, embeds):
                 token_embeds[token_id] = embed
+
+    if args.XTI_embeddings:
+        XTI_layers = [
+            "IN01",
+            "IN02",
+            "IN04",
+            "IN05",
+            "IN07",
+            "IN08",
+            "MID",
+            "OUT03",
+            "OUT04",
+            "OUT05",
+            "OUT06",
+            "OUT07",
+            "OUT08",
+            "OUT09",
+            "OUT10",
+            "OUT11",
+        ]
+        token_ids_embeds_XTI = []
+        for embeds_file in args.XTI_embeddings:
+            if model_util.is_safetensors(embeds_file):
+                from safetensors.torch import load_file
+
+                data = load_file(embeds_file)
+            else:
+                data = torch.load(embeds_file, map_location="cpu")
+            if set(data.keys()) != set(XTI_layers):
+                raise ValueError("NOT XTI")
+            embeds = torch.concat(list(data.values()))
+            num_vectors_per_token = data["MID"].size()[0]
+
+            token_string = os.path.splitext(os.path.basename(embeds_file))[0]
+            token_strings = [token_string] + [f"{token_string}{i+1}" for i in range(num_vectors_per_token - 1)]
+
+            # add new word to tokenizer, count is num_vectors_per_token
+            num_added_tokens = tokenizer.add_tokens(token_strings)
+            assert (
+                num_added_tokens == num_vectors_per_token
+            ), f"tokenizer has same word to token string (filename). please rename the file / 指定した名前（ファイル名）のトークンが既に存在します。ファイルをリネームしてください: {embeds_file}"
+
+            token_ids = tokenizer.convert_tokens_to_ids(token_strings)
+            print(f"XTI embeddings `{token_string}` loaded. Tokens are added: {token_ids}")
+
+            # if num_vectors_per_token > 1:
+            pipe.add_token_replacement(token_ids[0], token_ids)
+
+            token_strings_XTI = []
+            for layer_name in XTI_layers:
+                token_strings_XTI += [f"{t}_{layer_name}" for t in token_strings]
+            tokenizer.add_tokens(token_strings_XTI)
+            token_ids_XTI = tokenizer.convert_tokens_to_ids(token_strings_XTI)
+            token_ids_embeds_XTI.append((token_ids_XTI, embeds))
+            for t in token_ids:
+                t_XTI_dic = {}
+                for i, layer_name in enumerate(XTI_layers):
+                    t_XTI_dic[layer_name] = t + (i + 1) * num_added_tokens
+                pipe.add_token_replacement_XTI(t, t_XTI_dic)
+
+            text_encoder.resize_token_embeddings(len(tokenizer))
+            token_embeds = text_encoder.get_input_embeddings().weight.data
+            for token_ids, embeds in token_ids_embeds_XTI:
+                for token_id, embed in zip(token_ids, embeds):
+                    token_embeds[token_id] = embed
 
     # promptを取得する
     if args.from_file is not None:
@@ -2983,12 +3111,20 @@ def setup_parser() -> argparse.ArgumentParser:
         "--network_args", type=str, default=None, nargs="*", help="additional argmuments for network (key=value) / ネットワークへの追加の引数"
     )
     parser.add_argument("--network_show_meta", action="store_true", help="show metadata of network model / ネットワークモデルのメタデータを表示する")
+    parser.add_argument("--network_merge", action="store_true", help="merge network weights to original model / ネットワークの重みをマージする")
     parser.add_argument(
         "--textual_inversion_embeddings",
         type=str,
         default=None,
         nargs="*",
         help="Embeddings files of Textual Inversion / Textual Inversionのembeddings",
+    )
+    parser.add_argument(
+        "--XTI_embeddings",
+        type=str,
+        default=None,
+        nargs="*",
+        help="Embeddings files of Extended Textual Inversion / Extended Textual Inversionのembeddings",
     )
     parser.add_argument("--clip_skip", type=int, default=None, help="layer number from bottom to use in CLIP / CLIPの後ろからn層目の出力を使う")
     parser.add_argument(

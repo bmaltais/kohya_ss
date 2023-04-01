@@ -20,6 +20,7 @@ from library.config_util import (
 )
 import library.custom_train_functions as custom_train_functions
 from library.custom_train_functions import apply_snr_weight
+from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -82,6 +83,11 @@ def train(args):
     train_util.verify_training_args(args)
     train_util.prepare_dataset_args(args, True)
 
+    if args.sample_every_n_steps is not None or args.sample_every_n_epochs is not None:
+        print(
+            "sample_every_n_steps and sample_every_n_epochs are not supported in this script currently / sample_every_n_stepsとsample_every_n_epochsは現在このスクリプトではサポートされていません"
+        )
+
     cache_latents = args.cache_latents
 
     if args.seed is not None:
@@ -121,14 +127,39 @@ def train(args):
     assert min(token_ids) == token_ids[0] and token_ids[-1] == token_ids[0] + len(token_ids) - 1, f"token ids is not ordered"
     assert len(tokenizer) - 1 == token_ids[-1], f"token ids is not end of tokenize: {len(tokenizer)}"
 
+    token_strings_XTI = []
+    XTI_layers = [
+        "IN01",
+        "IN02",
+        "IN04",
+        "IN05",
+        "IN07",
+        "IN08",
+        "MID",
+        "OUT03",
+        "OUT04",
+        "OUT05",
+        "OUT06",
+        "OUT07",
+        "OUT08",
+        "OUT09",
+        "OUT10",
+        "OUT11",
+    ]
+    for layer_name in XTI_layers:
+        token_strings_XTI += [f"{t}_{layer_name}" for t in token_strings]
+
+    tokenizer.add_tokens(token_strings_XTI)
+    token_ids_XTI = tokenizer.convert_tokens_to_ids(token_strings_XTI)
+    print(f"tokens are added (XTI): {token_ids_XTI}")
     # Resize the token embeddings as we are adding new special tokens to the tokenizer
     text_encoder.resize_token_embeddings(len(tokenizer))
 
     # Initialise the newly added placeholder token with the embeddings of the initializer token
     token_embeds = text_encoder.get_input_embeddings().weight.data
     if init_token_ids is not None:
-        for i, token_id in enumerate(token_ids):
-            token_embeds[token_id] = token_embeds[init_token_ids[i % len(init_token_ids)]]
+        for i, token_id in enumerate(token_ids_XTI):
+            token_embeds[token_id] = token_embeds[init_token_ids[(i // 16) % len(init_token_ids)]]
             # print(token_id, token_embeds[token_id].mean(), token_embeds[token_id].min())
 
     # load weights
@@ -138,7 +169,7 @@ def train(args):
             embeddings
         ), f"num_vectors_per_token is mismatch for weights / 指定した重みとnum_vectors_per_tokenの値が異なります: {len(embeddings)}"
         # print(token_ids, embeddings.size())
-        for token_id, embedding in zip(token_ids, embeddings):
+        for token_id, embedding in zip(token_ids_XTI, embeddings):
             token_embeds[token_id] = embedding
             # print(token_id, token_embeds[token_id].mean(), token_embeds[token_id].min())
         print(f"weighs loaded")
@@ -183,10 +214,11 @@ def train(args):
 
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
-
-    current_epoch = Value('i',0)
-    current_step = Value('i',0)
-    collater = train_util.collater_class(current_epoch,current_step)
+    train_dataset_group.enable_XTI(XTI_layers, token_strings=token_strings)
+    current_epoch = Value("i", 0)
+    current_step = Value("i", 0)
+    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
 
     # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
     if use_template:
@@ -224,6 +256,9 @@ def train(args):
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+    diffusers.models.UNet2DConditionModel.forward = unet_forward_XTI
+    diffusers.models.unet_2d_blocks.CrossAttnDownBlock2D.forward = downblock_forward_XTI
+    diffusers.models.unet_2d_blocks.CrossAttnUpBlock2D.forward = upblock_forward_XTI
 
     # 学習を準備する
     if cache_latents:
@@ -260,7 +295,9 @@ def train(args):
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
+        args.max_train_steps = args.max_train_epochs * math.ceil(
+            len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
+        )
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
     # データセット側にも学習ステップを送信
@@ -274,7 +311,7 @@ def train(args):
         text_encoder, optimizer, train_dataloader, lr_scheduler
     )
 
-    index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
+    index_no_updates = torch.arange(len(tokenizer)) < token_ids_XTI[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
     orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
 
@@ -337,7 +374,7 @@ def train(args):
 
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        current_epoch.value = epoch+1
+        current_epoch.value = epoch + 1
 
         text_encoder.train()
 
@@ -358,7 +395,12 @@ def train(args):
                 # Get the text embedding for conditioning
                 input_ids = batch["input_ids"].to(accelerator.device)
                 # weight_dtype) use float instead of fp16/bf16 because text encoder is float
-                encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, torch.float)
+                encoder_hidden_states = torch.stack(
+                    [
+                        train_util.get_hidden_states(args, s, tokenizer, text_encoder, weight_dtype)
+                        for s in torch.split(input_ids, 1, dim=1)
+                    ]
+                )
 
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents, device=latents.device)
@@ -375,7 +417,7 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states=encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training
@@ -385,9 +427,9 @@ def train(args):
 
                 loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
                 loss = loss.mean([1, 2, 3])
-                
+
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
@@ -413,10 +455,10 @@ def train(args):
             if accelerator.sync_gradients:
                 progress_bar.update(1)
                 global_step += 1
-
-                train_util.sample_images(
-                    accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
-                )
+                # TODO: fix sample_images
+                # train_util.sample_images(
+                #     accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
+                # )
 
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
@@ -441,7 +483,7 @@ def train(args):
 
         accelerator.wait_for_everyone()
 
-        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
             model_name = train_util.DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
@@ -463,9 +505,10 @@ def train(args):
             if saving and args.save_state:
                 train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
 
-        train_util.sample_images(
-            accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
-        )
+        # TODO: fix sample_images
+        # train_util.sample_images(
+        #     accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
+        # )
 
         # end of epoch
 
@@ -478,7 +521,7 @@ def train(args):
     if args.save_state:
         train_util.save_state_on_train_end(args, accelerator)
 
-    updated_embs = text_encoder.get_input_embeddings().weight[token_ids].data.detach().clone()
+    updated_embs = text_encoder.get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
 
     del accelerator  # この後メモリを使うのでこれは消す
 
@@ -495,13 +538,35 @@ def train(args):
 
 
 def save_weights(file, updated_embs, save_dtype):
-    state_dict = {"emb_params": updated_embs}
+    updated_embs = updated_embs.reshape(16, -1, updated_embs.shape[-1])
+    updated_embs = updated_embs.chunk(16)
+    XTI_layers = [
+        "IN01",
+        "IN02",
+        "IN04",
+        "IN05",
+        "IN07",
+        "IN08",
+        "MID",
+        "OUT03",
+        "OUT04",
+        "OUT05",
+        "OUT06",
+        "OUT07",
+        "OUT08",
+        "OUT09",
+        "OUT10",
+        "OUT11",
+    ]
+    state_dict = {}
+    for i, layer_name in enumerate(XTI_layers):
+        state_dict[layer_name] = updated_embs[i].squeeze(0).detach().clone().to("cpu").to(save_dtype)
 
-    if save_dtype is not None:
-        for key in list(state_dict.keys()):
-            v = state_dict[key]
-            v = v.detach().clone().to("cpu").to(save_dtype)
-            state_dict[key] = v
+    # if save_dtype is not None:
+    #     for key in list(state_dict.keys()):
+    #         v = state_dict[key]
+    #         v = v.detach().clone().to("cpu").to(save_dtype)
+    #         state_dict[key] = v
 
     if os.path.splitext(file)[1] == ".safetensors":
         from safetensors.torch import save_file
@@ -517,22 +582,12 @@ def load_weights(file):
 
         data = load_file(file)
     else:
-        # compatible to Web UI's file format
-        data = torch.load(file, map_location="cpu")
-        if type(data) != dict:
-            raise ValueError(f"weight file is not dict / 重みファイルがdict形式ではありません: {file}")
+        raise ValueError(f"NOT XTI: {file}")
 
-        if "string_to_param" in data:  # textual inversion embeddings
-            data = data["string_to_param"]
-            if hasattr(data, "_parameters"):  # support old PyTorch?
-                data = getattr(data, "_parameters")
+    if len(data.values()) != 16:
+        raise ValueError(f"NOT XTI: {file}")
 
-    emb = next(iter(data.values()))
-    if type(emb) != torch.Tensor:
-        raise ValueError(f"weight file does not contains Tensor / 重みファイルのデータがTensorではありません: {file}")
-
-    if len(emb.size()) == 1:
-        emb = emb.unsqueeze(0)
+    emb = torch.concat([x for x in data.values()])
 
     return emb
 

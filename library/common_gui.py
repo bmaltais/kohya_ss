@@ -867,7 +867,7 @@ def gradio_advanced_training():
             minimum=0,
             maximum=32,
             value=0,
-            every=1
+            step=1
         )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
