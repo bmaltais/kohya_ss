@@ -319,24 +319,23 @@ update_kohya_ss() {
   if [ "$SKIP_GIT_UPDATE" = false ]; then
     if command -v git >/dev/null; then
       # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ -z "$(git -c "$DIR" status --porcelain=v1 2>/dev/null)" ]; then
-        echo "There are changes that need to be committed."
+      if [ -z "$(git -C "$DIR" status --porcelain=v1 >/dev/null)" ]; then
+        echo "There are changes that need to be committed or discarded in the repo in $DIR."
         echo "Commit those changes or run this script with -n to skip git operations entirely."
         exit 1
       fi
 
-      cd "$PARENT_DIR" || exit 1
       echo "Attempting to clone $GIT_REPO."
       if [ ! -d "$DIR/.git" ]; then
-        git -c "$DIR" clone "$GIT_REPO" "$(basename "$DIR")" >&3
-        cd "$DIR" || exit 1
-        git -c "$DIR" checkout -b "$BRANCH" >&3
+        git -C "$DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
+        git -C "$DIR" switch "$BRANCH" >&3
       else
-        cd "$DIR" || exit 1
         echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
-        git pull "$GIT_REPO" >&3
-        git checkout -b "$BRANCH"
+        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        if ! git -C "$DIR" switch "$BRANCH" >/dev/null; then
+          git -C "$DIR" switch -c "$BRANCH" >/dev/null
+        fi
       fi
     else
       echo "You need to install git."
