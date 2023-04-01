@@ -1898,11 +1898,11 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
 def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: bool):
     parser.add_argument("--output_dir", type=str, default=None, help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
     parser.add_argument("--output_name", type=str, default=None, help="base name of trained model file / 学習後のモデルの拡張子を除くファイル名")
-    parser.add_argument("--huggingface_repo_id", type=str, default=None, help="huggingface repo name to upload model / huggingfaceにアップロードするモデルのリポジトリ名")
-    parser.add_argument("--huggingface_repo_type", type=str, default=None, help="huggingface repo type to upload model / huggingfaceにアップロードするモデルのリポジトリの種類")
-    parser.add_argument("--huggingface_path_in_repo", type=str, default=None, help="huggingface model path to upload model / huggingfaceにアップロードするモデルのパス")
-    parser.add_argument("--huggingface_token", type=str, default=None, help="huggingface token to upload model / huggingfaceにアップロードするモデルのトークン")
-    parser.add_argument("--huggingface_repo_visibility", type=str, default=None, help="huggingface model visibility / huggingfaceにアップロードするモデルの公開設定")
+    parser.add_argument("--huggingface_repo_id", type=str, default=None, help="huggingface repo name to upload / huggingfaceにアップロードするリポジトリ名")
+    parser.add_argument("--huggingface_repo_type", type=str, default=None, help="huggingface repo type to upload / huggingfaceにアップロードするリポジトリの種類")
+    parser.add_argument("--huggingface_path_in_repo", type=str, default=None, help="huggingface model path to upload files / huggingfaceにアップロードするファイルのパス")
+    parser.add_argument("--huggingface_token", type=str, default=None, help="huggingface token / huggingfaceのトークン")
+    parser.add_argument("--huggingface_repo_visibility", type=str, default=None, help="huggingface repository visibility / huggingfaceにアップロードするリポジトリの公開設定")
     parser.add_argument("--save_state_to_huggingface", action="store_true", help="save state to huggingface / huggingfaceにstateを保存する")
     parser.add_argument(
         "--resume_from_huggingface",
