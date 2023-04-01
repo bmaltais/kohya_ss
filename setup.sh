@@ -84,6 +84,7 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
+MANUAL_BRANCH_SWITCH=false
 
 while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -93,7 +94,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) BRANCH="$OPTARG" ;;
+  b | branch) BRANCH="$OPTARG" && MANUAL_BRANCH_SWITCH=true ;;
   d | dir) DIR="$OPTARG" ;;
   g | git-repo) GIT_REPO="$OPTARG" ;;
   i | interactive) INTERACTIVE=true ;;
@@ -342,15 +343,19 @@ update_kohya_ss() {
         exit 1
       fi
 
-      echo "Attempting to clone $GIT_REPO."
+      echo "Attempting to clone ${GIT_REPO}:${BRANCH}"
       if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
         git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
         git -C "$DIR" switch "$BRANCH" >&4
       else
         echo "git repo detected. Attempting to update repository instead."
         echo "Updating: $GIT_REPO"
-        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        if [ "$MANUAL_BRANCH_SWITCH" = false ]; then
+          git -C "$DIR" pull "$GIT_REPO" "$(git rev-parse --abbrev-ref HEAD)" >&3
+        else
+          git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        fi
+
         if ! git -C "$DIR" switch "$BRANCH" >&4; then
           echo "Branch $BRANCH did not exist. Creating it." >&4
           git -C "$DIR" switch -c "$BRANCH" >&4
