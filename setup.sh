@@ -2,6 +2,12 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
+# Set the required package versions here.
+# They will be appended to the requirements.txt file in the installation directory.
+TENSORFLOW_VERSION="2.12.0"
+TENSORFLOW_MACOS_VERSION="2.12.0"
+TENSORFLOW_METAL_VERSION="0.8.0"
+
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -232,7 +238,7 @@ install_python_dependencies() {
   "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
     --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
     pip install -U -I --no-deps \
-      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
+      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
   "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
   "cygwin")
@@ -251,19 +257,35 @@ install_python_dependencies() {
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements.txt file out, make the khoya_ss lib a dynamic location then cleanup.
-  echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
-  echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
+  #This will copy our requirements.txt file out and make the khoya_ss lib a dynamic location then cleanup.
+  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
+  echo "Copying $DIR/requirements.txt to $TEMP_REQUIREMENTS_FILE" >&3
+  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >"$TEMP_REQUIREMENTS_FILE"
+
+  # This will check if macOS is running then determine if M1+ or Intel CPU.
+  # It will append the appropriate packages to the requirements.txt file.
+  # Other OSs won't be affected and the version variables are at the top of this file.
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # Check if the processor is Apple Silicon (arm64)
+    if [[ "$(uname -m)" == "arm64" ]]; then
+      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+    # Check if the processor is Intel (x86_64)
+    elif [[ "$(uname -m)" == "x86_64" ]]; then
+      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+    fi
+  fi
+
   if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
   else
-    python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
   fi
 
   echo "Removing the temp requirements file."
-  if [ -f /tmp/requirements_tmp.txt ]; then
-    rm /tmp/requirements_tmp.txt
+  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
+    rm -f "$TEMP_REQUIREMENTS_FILE"
   fi
 
   if [ -n "$VIRTUAL_ENV" ]; then
@@ -578,10 +600,10 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   configure_accelerate
   echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilies on Windows
+  # Cygwin is a standalone suite of Linux utilities on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
