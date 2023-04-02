@@ -23,8 +23,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight
-
+from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings
 
 def train(args):
     train_util.verify_training_args(args)
@@ -273,10 +272,19 @@ def train(args):
 
                 # Get the text embedding for conditioning
                 with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):
-                    input_ids = batch["input_ids"].to(accelerator.device)
-                    encoder_hidden_states = train_util.get_hidden_states(
-                        args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
-                    )
+                    if args.weighted_captions:
+                      encoder_hidden_states = get_weighted_text_embeddings(tokenizer,
+                        text_encoder,
+                        batch["captions"],
+                        accelerator.device,
+                        args.max_token_length // 75 if args.max_token_length else 1,
+                        clip_skip=args.clip_skip,
+                        )
+                    else:
+                      input_ids = batch["input_ids"].to(accelerator.device)
+                      encoder_hidden_states = train_util.get_hidden_states(
+                          args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
+                      )
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)

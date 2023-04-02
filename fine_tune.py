@@ -21,7 +21,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight
+from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings
 
 
 def train(args):
@@ -284,10 +284,19 @@ def train(args):
 
                 with torch.set_grad_enabled(args.train_text_encoder):
                     # Get the text embedding for conditioning
-                    input_ids = batch["input_ids"].to(accelerator.device)
-                    encoder_hidden_states = train_util.get_hidden_states(
-                        args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
-                    )
+                    if args.weighted_captions:
+                      encoder_hidden_states = get_weighted_text_embeddings(tokenizer,
+                        text_encoder,
+                        batch["captions"],
+                        accelerator.device,
+                        args.max_token_length // 75 if args.max_token_length else 1,
+                        clip_skip=args.clip_skip,
+                        )
+                    else:
+                      input_ids = batch["input_ids"].to(accelerator.device)
+                      encoder_hidden_states = train_util.get_hidden_states(
+                          args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
+                      )
 
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents, device=latents.device)
