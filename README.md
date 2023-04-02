@@ -253,7 +253,7 @@ pip freeze > uninstall.txt
 pip uninstall -r uninstall.txt
 ```
 
-This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
+This will store a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
 
 ## Change History
 
