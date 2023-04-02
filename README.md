@@ -127,6 +127,30 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+- 3 Apr. 2023, 2023/4/3:
+  - Add `--network_args` option to `train_network.py` to specify block weights for learning rates. Thanks to u-haru for your great contribution!
+    - Specify the weights of 25 blocks for the full model.
+      - No LoRA corresponds to the first block, but 25 blocks are specified for compatibility with 'LoRA block weight' etc. Also, if you do not expand to conv2d3x3, some blocks do not have LoRA, but please specify 25 values ​​for the argument for consistency.
+    - Specify the following arguments with `--network_args`.
+    - `down_lr_weight` : Specify the learning rate weight of the down blocks of U-Net. The following can be specified.
+      - The weight for each block: Specify 12 numbers such as `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"`.
+      - Specify from preset: Specify such as `"down_lr_weight=sine"` (the weights by sine curve). sine, cosine, linear, reverse_linear, zeros can be specified. Also, if you add `+number` such as `"down_lr_weight=cosine+.25"`, the specified number is added (such as 0.25~1.25).
+    - `mid_lr_weight` : Specify the learning rate weight of the mid block of U-Net. Specify one number such as `"down_lr_weight=0.5"`.
+    - `up_lr_weight` : Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.
+    - If you omit the some arguments, the 1.0 is used. Also, if you set the weight to 0, the LoRA modules of that block are not created.
+
+  - 階層別学習率を `train_network.py` で指定できるようにしました。u-haru 氏の多大な貢献に感謝します。
+    - フルモデルの25個のブロックの重みを指定できます。
+      - 最初のブロックに該当するLoRAは存在しませんが、階層別LoRA適用等との互換性のために25個としています。またconv2d3x3に拡張しない場合は一部のブロックにはLoRAが存在しませんが、記述を統一するため常に25個の値を指定してください。
+    -`--network_args` で以下の引数を指定してください。
+    - `down_lr_weight` : U-Netのdown blocksの学習率の重みを指定します。以下が指定可能です。
+      - ブロックごとの重み : `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"` のように12個の数値を指定します。
+      - プリセットからの指定 : `"down_lr_weight=sine"` のように指定します（サインカーブで重みを指定します）。sine, cosine, linear, reverse_linear, zeros が指定可能です。また `"down_lr_weight=cosine+.25"` のように `+数値` を追加すると、指定した数値を加算します（0.25~1.25になります）。
+    - `mid_lr_weight` : U-Netのmid blockの学習率の重みを指定します。`"down_lr_weight=0.5"` のように数値を一つだけ指定します。
+    - `up_lr_weight` : U-Netのup blocksの学習率の重みを指定します。down_lr_weightと同様です。
+    - 指定を省略した部分は1.0として扱われます。また重みを0にするとそのブロックのLoRAモジュールは作成されません。
+ 
+
 - 1 Apr. 2023, 2023/4/1:
   - Fix an issue that `merge_lora.py` does not work with the latest version.
   - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
