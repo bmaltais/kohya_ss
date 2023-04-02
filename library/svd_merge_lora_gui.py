@@ -1,10 +1,11 @@
-import os
-import subprocess
-
 import gradio as gr
-
-from .common_gui_functions import (
-    get_file_path, get_saveasfile_path,
+from easygui import msgbox
+import subprocess
+import os
+from .common_gui import (
+    get_saveasfilename_path,
+    get_any_file_path,
+    get_file_path,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -27,20 +28,20 @@ def svd_merge_lora(
 ):
     # Check for caption_text_input
     if lora_a_model == '':
-        show_message_box('Invalid model A file')
+        msgbox('Invalid model A file')
         return
 
     if lora_b_model == '':
-        show_message_box('Invalid model B file')
+        msgbox('Invalid model B file')
         return
 
     # Check if source model exist
     if not os.path.isfile(lora_a_model):
-        show_message_box('The provided model A is not a file')
+        msgbox('The provided model A is not a file')
         return
 
     if not os.path.isfile(lora_b_model):
-        show_message_box('The provided model B is not a file')
+        msgbox('The provided model B is not a file')
         return
 
     ratio_a = ratio
@@ -87,7 +88,7 @@ def gradio_svd_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_a_model_file.click(
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 inputs=[lora_a_model, lora_ext, lora_ext_name],
                 outputs=lora_a_model,
                 show_progress=False,
@@ -102,7 +103,7 @@ def gradio_svd_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_b_model_file.click(
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 inputs=[lora_b_model, lora_ext, lora_ext_name],
                 outputs=lora_b_model,
                 show_progress=False,
@@ -143,7 +144,7 @@ def gradio_svd_merge_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_save_to.click(
-                get_saveasfile_path,
+                get_saveasfilename_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
                 show_progress=False,
