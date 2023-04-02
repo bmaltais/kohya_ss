@@ -1,7 +1,6 @@
 import tempfile
 import os
 import gradio as gr
-from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
