@@ -13,7 +13,6 @@ class TkGui:
         self.file_types = None
 
     def open_file_dialog(self, initial_dir=None, initial_file=None, file_types="all"):
-        print(f"File types: {self.file_types}")
         with tk_context():
             self.file_types = file_types
             if self.file_types in CommonUtilities.file_filters:
@@ -22,9 +21,14 @@ class TkGui:
                 filters = CommonUtilities.file_filters["all"]
 
             if self.file_types == "directory":
-                return filedialog.askdirectory(initialdir=initial_dir)
+                result = filedialog.askdirectory(initialdir=initial_dir)
             else:
-                return filedialog.askopenfilename(initialdir=initial_dir, initialfile=initial_file, filetypes=filters)
+                result = filedialog.askopenfilename(initialdir=initial_dir, initialfile=initial_file, filetypes=filters)
+
+            # Return a tuple (file_path, canceled)
+            # file_path: the selected file path or an empty string if no file is selected
+            # canceled: True if the user pressed the cancel button, False otherwise
+            return result, result == ""
 
     def save_file_dialog(self, initial_dir, initial_file, file_types="all"):
         self.file_types = file_types

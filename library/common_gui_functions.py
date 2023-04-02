@@ -151,26 +151,8 @@ def update_my_data(my_data):
 #     # If no extension files were found, return False
 #     return False
 
-# def get_file_path_gradio_wrapper(file_path, filedialog_type="all"):
-#     file_extension = os.path.splitext(file_path)[-1].lower()
-#
-#     filetype_filters = {
-#         'db': ['.db'],
-#         'json': ['.json'],
-#         'lora': ['.pt', '.ckpt', '.safetensors'],
-#     }
-#
-#     # Find the appropriate filedialog_type based on the file extension
-#     filedialog_type = 'all'
-#     for key, extensions in filetype_filters.items():
-#         if file_extension in extensions:
-#             filedialog_type = key
-#             break
-#
-#     return get_file_path(file_path, filedialog_type)
 
-
-def get_file_path(file_path='', filedialog_type="lora"):
+def get_file_path(file_path, initial_dir=None, initial_file=None, filedialog_type="lora"):
     file_extension = os.path.splitext(file_path)[-1].lower()
 
     # Find the appropriate filedialog_type based on the file extension
@@ -181,16 +163,10 @@ def get_file_path(file_path='', filedialog_type="lora"):
 
     current_file_path = file_path
 
-    print(f"File type: {filedialog_type}")
     initial_dir, initial_file = os.path.split(file_path)
-    file_path = open_file_dialog(initial_dir, initial_file, file_types=filedialog_type)
-
-    # If no file is selected, use the current file path
-    if not file_path:
-        file_path = current_file_path
-    current_file_path = file_path
-
-    return file_path
+    result = open_file_dialog(initial_dir=initial_dir, initial_file=initial_file, file_types=filedialog_type)
+    file_path, canceled = result[:2]
+    return file_path, canceled
 
 
 def get_any_file_path(file_path=''):
