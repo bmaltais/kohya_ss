@@ -1,30 +1,31 @@
+from torch.nn.parallel import DistributedDataParallel as DDP
+import importlib
 import argparse
 import gc
-import importlib
-import json
 import math
 import os
 import random
 import time
+import json
+import toml
 from multiprocessing import Value
 
+from tqdm import tqdm
 import torch
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
-from torch.nn.parallel import DistributedDataParallel as DDP
-from tqdm import tqdm
 
-import library.config_ml_util as config_util
-import library.custom_train_functions as custom_train_functions
 import library.train_util as train_util
-from library.config_ml_util import (
-    ConfigSanitizer,
-    BlueprintGenerator,
-)
-from library.custom_train_functions import apply_snr_weight
 from library.train_util import (
     DreamBoothDataset,
 )
+import library.config_util as config_util
+from library.config_util import (
+    ConfigSanitizer,
+    BlueprintGenerator,
+)
+import library.custom_train_functions as custom_train_functions
+from library.custom_train_functions import apply_snr_weight
 
 
 # TODO 他のスクリプトと共通化する
@@ -126,12 +127,25 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+    for pi in range(accelerator.state.num_processes):
+        # TODO: modify other training scripts as well
+        if pi == accelerator.state.local_process_index:
+            print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
 
-    # work on low-ram device
-    if args.lowram:
-        text_encoder.to("cuda")
-        unet.to("cuda")
+            text_encoder, vae, unet, _ = train_util.load_target_model(
+                args, weight_dtype, accelerator.device if args.lowram else "cpu"
+            )
+
+            # work on low-ram device
+            if args.lowram:
+                text_encoder.to(accelerator.device)
+                unet.to(accelerator.device)
+                vae.to(accelerator.device)
+
+            gc.collect()
+            torch.cuda.empty_cache()
+        accelerator.wait_for_everyone()
+
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
@@ -188,7 +202,7 @@ def train(args):
     # dataloaderを準備する
     # DataLoaderのプロセス数：0はメインプロセスになる
     n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)  # cpu_count-1 ただし最大で指定された数まで
-    
+
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset_group,
         batch_size=1,
@@ -555,9 +569,9 @@ def train(args):
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
-                 
+
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 

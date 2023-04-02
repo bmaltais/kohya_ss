@@ -64,35 +64,18 @@ cd kohya_ss
 bash ubuntu_setup.sh
 ```
 
-then configure accelerate with the same answers as in the Windows instructions when prompted.
+then configure accelerate with the same answers as in the MacOS instructions when prompted.
 
 ### Windows
+In the terminal, run
 
-Give unrestricted script access to powershell so venv can work:
-
-- Run PowerShell as an administrator
-- Run `Set-ExecutionPolicy Unrestricted` and answer 'A'
-- Close PowerShell
-
-Open a regular user Powershell terminal and run the following commands:
-
-```powershell
+```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-
-python -m venv venv
-.\venv\Scripts\activate
-
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --use-pep517 --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
-accelerate config
+setup.bat
 ```
+
+then configure accelerate with the same answers as in the MacOS instructions when prompted.
 
 ### Optional: CUDNN 8.6
 
@@ -125,11 +108,7 @@ Once the commands have completed successfully you should be ready to use the new
 When a new release comes out, you can upgrade your repo with the following commands in the root directory:
 
 ```powershell
-git pull
-
-.\venv\Scripts\activate
-
-pip install --use-pep517 --upgrade -r requirements.txt
+upgrade.bat
 ```
 
 Once the commands have completed successfully you should be ready to use the new version.
@@ -213,6 +192,22 @@ This will store your a backup file with your current locally installed pip packa
 
 ## Change History
 
+* 2023/04/01 (v21.4.0)
+    - Fix an issue that `merge_lora.py` does not work with the latest version.
+    - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
+    - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
+    - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
+    - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
+        - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
+        - Use `train_textual_inversion_XTI.py` for training. The usage is almost the same as `train_textual_inversion.py`. However, sample image generation during training is not supported.
+        - Use `gen_img_diffusers.py` for image generation (I think Web UI is not supported). Specify the embedding with `--XTI_embeddings` option.
+    - Reduce RAM usage at startup in `train_network.py`. [#332](https://github.com/kohya-ss/sd-scripts/pull/332)  Thank you guaneec!
+    - Support pre-merge for LoRA in `gen_img_diffusers.py`. Specify `--network_merge` option. Note that the `--am` option of the prompt option is no longer available with this option.
+* 2023/04/01 (v21.3.9)
+    - Update how setup is done on Windows by introducing a setup.bat script. This will make it easier to install/re-install on Windows if needed. Many thanks to @missionfloyd for his PR: https://github.com/bmaltais/kohya_ss/pull/496
+    - Fix issue with WD14 caption script by applying a custom fix to kohya_ss code.
+* 2023/03/30 (v21.3.8)
+    - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
 * 2023/03/29 (v21.3.7)
     - Allow for 0.1 increment in Network and Conv alpha values: https://github.com/bmaltais/kohya_ss/pull/471 Thanks to @srndpty
     - Updated Lycoris module version

@@ -25,6 +25,7 @@ timm==0.6.12
 huggingface-hub==0.13.0
 tensorflow==2.10.1
 # For locon support
-lycoris_lora==0.1.4
+lycoris-lora @ git+https://github.com/KohakuBlueleaf/LyCORIS.git@c3d925421209a22a60d863ffa3de0b3e7e89f047
+# lycoris_lora==0.1.4
 # for kohya_ss library
 .
