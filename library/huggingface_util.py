@@ -20,11 +20,11 @@ def exists_repo(
         return False
 
 
-@fire_in_thread
 def upload(
-    src: Union[str, Path, bytes, BinaryIO],
     args: argparse.Namespace,
+    src: Union[str, Path, bytes, BinaryIO],
     dest_suffix: str = "",
+    force_sync_upload: bool = False,
 ):
     repo_id = args.huggingface_repo_id
     repo_type = args.huggingface_repo_type
@@ -38,20 +38,27 @@ def upload(
     is_folder = (type(src) == str and os.path.isdir(src)) or (
         isinstance(src, Path) and src.is_dir()
     )
-    if is_folder:
-        api.upload_folder(
-            repo_id=repo_id,
-            repo_type=repo_type,
-            folder_path=src,
-            path_in_repo=path_in_repo,
-        )
+
+    def uploader():
+        if is_folder:
+            api.upload_folder(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                folder_path=src,
+                path_in_repo=path_in_repo,
+            )
+        else:
+            api.upload_file(
+                repo_id=repo_id,
+                repo_type=repo_type,
+                path_or_fileobj=src,
+                path_in_repo=path_in_repo,
+            )
+
+    if args.async_upload and not force_sync_upload:
+        fire_in_thread(uploader)
     else:
-        api.upload_file(
-            repo_id=repo_id,
-            repo_type=repo_type,
-            path_or_fileobj=src,
-            path_in_repo=path_in_repo,
-        )
+        uploader()
 
 
 def list_dir(

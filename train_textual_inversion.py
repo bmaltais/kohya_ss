@@ -452,7 +452,7 @@ def train(args):
                 print(f"saving checkpoint: {ckpt_file}")
                 save_weights(ckpt_file, updated_embs, save_dtype)
                 if args.huggingface_repo_id is not None:
-                    huggingface_util.upload(ckpt_file, args, "/" + ckpt_name)
+                    huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
 
             def remove_old_func(old_epoch_no):
                 old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
@@ -494,7 +494,7 @@ def train(args):
         print(f"save trained model to {ckpt_file}")
         save_weights(ckpt_file, updated_embs, save_dtype)
         if args.huggingface_repo_id is not None:
-            huggingface_util.upload(ckpt_file, args, "/" + ckpt_name)
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
         print("model saved.")
 
 
