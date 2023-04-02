@@ -54,8 +54,8 @@ def resize_lora(
 
     run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
-    run_cmd += f' --save_to {save_to}'
-    run_cmd += f' --model {model}'
+    run_cmd += f' --save_to "{save_to}"'
+    run_cmd += f' --model "{model}"'
     run_cmd += f' --new_rank {new_rank}'
     run_cmd += f' --device {device}'
     if not dynamic_method == 'None':
