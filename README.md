@@ -257,8 +257,11 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2024/04/02 (v21.4.1)
+* 2024/04/02 (v21.4.2)
     - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
+* 2023/04/01 (v21.4.1)
+    - Fix type for linux install by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/517
+    - Fix .gitignore by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/518
 * 2024/04/01 (v21.4.0)
     - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
     - Fix issue with "missing library" error.
