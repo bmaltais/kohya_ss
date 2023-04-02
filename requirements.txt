@@ -27,7 +27,6 @@ timm==0.6.12
 huggingface-hub==0.12.0; sys_platform != 'darwin'
 huggingface-hub==0.13.0; sys_platform == 'darwin'
 tensorflow==2.10.1; sys_platform != 'darwin'
-tensorflow-macos==2.12.0; sys_platform == 'darwin'
 # For locon support
 lycoris-lora @ git+https://github.com/KohakuBlueleaf/LyCORIS.git@c3d925421209a22a60d863ffa3de0b3e7e89f047
 # lycoris_lora==0.1.4

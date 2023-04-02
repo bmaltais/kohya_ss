@@ -2,6 +2,12 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
+# Set the required package versions here.
+# They will be appended to the requirements.txt file in the installation directory.
+TENSORFLOW_VERSION="2.12.0"
+TENSORFLOW_MACOS_VERSION="2.12.0"
+TENSORFLOW_METAL_VERSION="0.8.0"
+
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -251,19 +257,35 @@ install_python_dependencies() {
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements.txt file out, make the khoya_ss lib a dynamic location then cleanup.
-  echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
-  echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
+  #This will copy our requirements.txt file out and make the khoya_ss lib a dynamic location then cleanup.
+  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
+  echo "Copying $DIR/requirements.txt to $TEMP_REQUIREMENTS_FILE" >&3
+  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >"$TEMP_REQUIREMENTS_FILE"
+
+  # This will check if macOS is running then determine if M1+ or Intel CPU.
+  # It will append the appropriate packages to the requirements.txt file.
+  # Other OSs won't be affected and the version variables are at the top of this file.
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # Check if the processor is Apple Silicon (arm64)
+    if [[ "$(uname -m)" == "arm64" ]]; then
+      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+    # Check if the processor is Intel (x86_64)
+    elif [[ "$(uname -m)" == "x86_64" ]]; then
+      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+    fi
+  fi
+
   if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
   else
-    python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
+    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
   fi
 
   echo "Removing the temp requirements file."
-  if [ -f /tmp/requirements_tmp.txt ]; then
-    rm /tmp/requirements_tmp.txt
+  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
+    rm -f "$TEMP_REQUIREMENTS_FILE"
   fi
 
   if [ -n "$VIRTUAL_ENV" ]; then
