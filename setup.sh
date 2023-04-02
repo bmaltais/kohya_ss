@@ -600,10 +600,10 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   configure_accelerate
   echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilies on Windows
+  # Cygwin is a standalone suite of Linux utilities on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
