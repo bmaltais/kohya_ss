@@ -1,13 +1,13 @@
 import argparse
-import functools
-import json
-import random
 from dataclasses import (
   asdict,
   dataclass,
 )
-from pathlib import Path
+import functools
+import random
 from textwrap import dedent, indent
+import json
+from pathlib import Path
 # from toolz import curry
 from typing import (
   List,
@@ -19,7 +19,6 @@ from typing import (
 
 import toml
 import voluptuous
-from transformers import CLIPTokenizer
 from voluptuous import (
   Any,
   ExactSequence,
@@ -28,6 +27,7 @@ from voluptuous import (
   Required,
   Schema,
 )
+from transformers import CLIPTokenizer
 
 from . import train_util
 from .train_util import (

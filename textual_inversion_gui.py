@@ -3,16 +3,14 @@
 # v3: Add new Utilities tab for Dreambooth folder preparation
 # v3.1: Adding captionning of images to utilities
 
-import argparse
+import gradio as gr
 import json
 import math
 import os
-import pathlib
 import subprocess
-
-import gradio as gr
-
-from library.common_gui_functions import (
+import pathlib
+import argparse
+from library.common_gui import (
     get_folder_path,
     remove_doublequote,
     get_file_path,
@@ -30,16 +28,17 @@ from library.common_gui_functions import (
     update_my_data,
     check_if_model_exist,
 )
-from library.dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
+from library.dreambooth_folder_creation_gui import (
+    gradio_dreambooth_folder_creation_tab,
+)
 from library.utilities import utilities_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -242,7 +241,7 @@ def open_configuration(
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and file_path is not None:
+    if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -330,32 +329,32 @@ def train_model(
     min_snr_gamma,
 ):
     if pretrained_model_name_or_path == '':
-        show_message_box('Source model information is missing')
+        msgbox('Source model information is missing')
         return
 
     if train_data_dir == '':
-        show_message_box('Image folder path is missing')
+        msgbox('Image folder path is missing')
         return
 
     if not os.path.exists(train_data_dir):
-        show_message_box('Image folder does not exist')
+        msgbox('Image folder does not exist')
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            show_message_box('Regularisation folder does not exist')
+            msgbox('Regularisation folder does not exist')
             return
 
     if output_dir == '':
-        show_message_box('Output folder path is missing')
+        msgbox('Output folder path is missing')
         return
 
     if token_string == '':
-        show_message_box('Token string is missing')
+        msgbox('Token string is missing')
         return
 
     if init_word == '':
-        show_message_box('Init word is missing')
+        msgbox('Init word is missing')
         return
 
     if not os.path.exists(output_dir):
@@ -673,7 +672,7 @@ def ti_tab(
             )
             weights_file_input = gr.Button('📂', elem_id='open_folder_small')
             weights_file_input.click(
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 outputs=weights,
                 show_progress=False,
             )
@@ -899,14 +898,14 @@ def ti_tab(
     ]
 
     button_open_config.click(
-        lambda *args, **kwargs: open_configuration(),
+        open_configuration,
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_load_config.click(
-        lambda *args, **kwargs: open_configuration(),
+        open_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,

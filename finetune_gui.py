@@ -1,18 +1,17 @@
-import argparse
+import gradio as gr
 import json
 import math
 import os
-import pathlib
 import subprocess
-
-import gradio as gr
-
-from library.common_gui_functions import (
+import pathlib
+import argparse
+from library.common_gui import (
     get_folder_path,
     get_file_path,
     get_saveasfile_path,
     save_inference_file,
     gradio_advanced_training,
+    run_cmd_advanced_training,
     gradio_training,
     run_cmd_advanced_training,
     gradio_config,
@@ -23,13 +22,13 @@ from library.common_gui_functions import (
     update_my_data,
     check_if_model_exist,
 )
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
 from library.utilities import utilities_tab
+from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -234,7 +233,7 @@ def open_configuration(
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and file_path is not None:
+    if not file_path == '' and not file_path == None:
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
@@ -800,14 +799,14 @@ def finetune_tab():
     button_run.click(train_model, inputs=settings_list)
 
     button_open_config.click(
-        lambda *args, **kwargs: open_configuration(),
+        open_configuration,
         inputs=[dummy_db_true, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,
     )
 
     button_load_config.click(
-        lambda *args, **kwargs: open_configuration(),
+        open_configuration,
         inputs=[dummy_db_false, config_file_name] + settings_list,
         outputs=[config_file_name] + settings_list,
         show_progress=False,

@@ -1,9 +1,8 @@
-import os
-import shutil
-
 import gradio as gr
-
-from .common_gui_functions import get_folder_path
+from easygui import diropenbox, msgbox
+from .common_gui import get_folder_path
+import shutil
+import os
 
 
 def copy_info_to_Folders_tab(training_folder):
@@ -40,12 +39,12 @@ def dreambooth_folder_preparation(
 
     # Check for instance prompt
     if util_instance_prompt_input == '':
-        show_message_box('Instance prompt missing...')
+        msgbox('Instance prompt missing...')
         return
 
     # Check for class prompt
     if util_class_prompt_input == '':
-        show_message_box('Class prompt missing...')
+        msgbox('Class prompt missing...')
         return
 
     # Create the training_dir path

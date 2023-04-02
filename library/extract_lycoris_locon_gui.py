@@ -1,10 +1,11 @@
-import os
-import subprocess
-
 import gradio as gr
-
-from .common_gui_functions import (
-    get_file_path, get_saveasfile_path,
+from easygui import msgbox
+import subprocess
+import os
+from .common_gui import (
+    get_saveasfilename_path,
+    get_any_file_path,
+    get_file_path,
 )
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -35,20 +36,20 @@ def extract_lycoris_locon(
 ):
     # Check for caption_text_input
     if db_model == '':
-        show_message_box('Invalid finetuned model file')
+        msgbox('Invalid finetuned model file')
         return
 
     if base_model == '':
-        show_message_box('Invalid base model file')
+        msgbox('Invalid base model file')
         return
 
     # Check if source model exist
     if not os.path.isfile(db_model):
-        show_message_box('The provided finetuned model is not a file')
+        msgbox('The provided finetuned model is not a file')
         return
 
     if not os.path.isfile(base_model):
-        show_message_box('The provided base model is not a file')
+        msgbox('The provided base model is not a file')
         return
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
@@ -136,8 +137,7 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_db_model_file.click(
-                lambda input1, input2, input3, *args, **kwargs:
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 inputs=[db_model, model_ext, model_ext_name],
                 outputs=db_model,
                 show_progress=False,
@@ -152,7 +152,7 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_base_model_file.click(
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 inputs=[base_model, model_ext, model_ext_name],
                 outputs=base_model,
                 show_progress=False,
@@ -167,7 +167,7 @@ def gradio_extract_lycoris_locon_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_output_name.click(
-                get_saveasfile_path,
+                get_saveasfilename_path,
                 inputs=[output_name, lora_ext, lora_ext_name],
                 outputs=output_name,
                 show_progress=False,

@@ -1,29 +1,28 @@
+import gradio as gr
+from easygui import msgbox
+import subprocess
 import os
 import shutil
-import subprocess
-
-import gradio as gr
-
-from .common_gui_functions import get_folder_path, get_file_path
+from .common_gui import get_folder_path, get_file_path
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'  # 📄
+document_symbol = '\U0001F4C4'   # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def convert_model(
-        source_model_input,
-        source_model_type,
-        target_model_folder_input,
-        target_model_name_input,
-        target_model_type,
-        target_save_precision_type,
+    source_model_input,
+    source_model_type,
+    target_model_folder_input,
+    target_model_name_input,
+    target_model_type,
+    target_save_precision_type,
 ):
     # Check for caption_text_input
     if source_model_type == '':
-        show_message_box('Invalid source model type')
+        msgbox('Invalid source model type')
         return
 
     # Check if source model exist
@@ -32,14 +31,14 @@ def convert_model(
     elif os.path.isdir(source_model_input):
         print('The provided model is a folder')
     else:
-        show_message_box('The provided source model is neither a file nor a folder')
+        msgbox('The provided source model is neither a file nor a folder')
         return
 
     # Check if source model exist
     if os.path.isdir(target_model_folder_input):
         print('The provided model folder exist')
     else:
-        show_message_box('The provided target folder does not exist')
+        msgbox('The provided target folder does not exist')
         return
 
     run_cmd = f'{PYTHON} "tools/convert_diffusers20_original_sd.py"'
@@ -61,8 +60,8 @@ def convert_model(
         run_cmd += f' --{target_save_precision_type}'
 
     if (
-            target_model_type == 'diffuser'
-            or target_model_type == 'diffuser_safetensors'
+        target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
     ):
         run_cmd += f' --reference_model="{source_model_type}"'
 
@@ -72,8 +71,8 @@ def convert_model(
     run_cmd += f' "{source_model_input}"'
 
     if (
-            target_model_type == 'diffuser'
-            or target_model_type == 'diffuser_safetensors'
+        target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
     ):
         target_model_path = os.path.join(
             target_model_folder_input, target_model_name_input
@@ -95,8 +94,8 @@ def convert_model(
         subprocess.run(run_cmd)
 
     if (
-            not target_model_type == 'diffuser'
-            or target_model_type == 'diffuser_safetensors'
+        not target_model_type == 'diffuser'
+        or target_model_type == 'diffuser_safetensors'
     ):
 
         v2_models = [
@@ -180,7 +179,7 @@ def gradio_convert_model_tab():
                 document_symbol, elem_id='open_folder_small'
             )
             button_source_model_file.click(
-                lambda *args, **kwargs: get_file_path(*args),
+                get_file_path,
                 inputs=[source_model_input],
                 outputs=source_model_input,
                 show_progress=False,
