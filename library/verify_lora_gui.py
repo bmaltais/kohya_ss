@@ -1,10 +1,9 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
-from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
+import subprocess
+
+import gradio as gr
+
+from .common_gui_functions import (
     get_file_path,
 )
 
@@ -20,12 +19,12 @@ def verify_lora(
 ):
     # verify for caption_text_input
     if lora_model == '':
-        msgbox('Invalid model A file')
+        show_message_box('Invalid model A file')
         return
 
     # verify if source model exist
     if not os.path.isfile(lora_model):
-        msgbox('The provided model A is not a file')
+        show_message_box('The provided model A is not a file')
         return
 
     run_cmd = [
@@ -69,7 +68,7 @@ def gradio_verify_lora_tab():
                 folder_symbol, elem_id='open_folder_small'
             )
             button_lora_model_file.click(
-                get_file_path,
+                lambda *args, **kwargs: get_file_path(*args),
                 inputs=[lora_model, lora_ext, lora_ext_name],
                 outputs=lora_model,
                 show_progress=False,

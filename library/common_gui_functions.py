@@ -1,14 +1,19 @@
-from tkinter import filedialog, Tk
-from easygui import msgbox
 import os
-import gradio as gr
-import easygui
 import shutil
+import subprocess
+from contextlib import contextmanager
+import tkinter as tk
+from tkinter import filedialog, Tk
+
+import easygui
+import gradio as gr
+
+from library.common_utilities import CommonUtilities
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+document_symbol = '\U0001F4C4'  # 📄
 
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
@@ -32,6 +37,41 @@ V1_MODELS = [
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
 FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
+
+
+@contextmanager
+def tk_context():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        yield root
+    finally:
+        root.destroy()
+
+
+def open_file_dialog(initial_dir, initial_file, file_types="all"):
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    args = ["python", f"{current_directory}/gui_subprocesses.py", "file_dialog"]
+    if initial_dir:
+        args.append(initial_dir)
+    if initial_file:
+        args.append(initial_file)
+    if file_types:
+        args.append(file_types)
+
+    file_path = subprocess.check_output(args).decode("utf-8").strip()
+    return file_path
+
+
+def show_message_box(message, title=""):
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    args = ["python", f"{current_directory}/gui_subprocesses.py", "msgbox", message]
+    if title:
+        args.append(title)
+
+    subprocess.run(args)
 
 
 def check_if_model_exist(output_name, output_dir, save_model_as):
@@ -87,8 +127,8 @@ def update_my_data(my_data):
 
     # Update model save choices due to changes for LoRA and TI training
     if (
-        (my_data.get('LoRA_type') or my_data.get('num_vectors_per_token'))
-        and my_data.get('save_model_as') not in ['safetensors', 'ckpt']
+            (my_data.get('LoRA_type') or my_data.get('num_vectors_per_token'))
+            and my_data.get('save_model_as') not in ['safetensors', 'ckpt']
     ):
         message = (
             'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
@@ -102,11 +142,6 @@ def update_my_data(my_data):
     return my_data
 
 
-def get_dir_and_file(file_path):
-    dir_path, file_name = os.path.split(file_path)
-    return (dir_path, file_name)
-
-
 # def has_ext_files(directory, extension):
 #     # Iterate through all the files in the directory
 #     for file in os.listdir(directory):
@@ -117,67 +152,38 @@ def get_dir_and_file(file_path):
 #     return False
 
 
-def get_file_path(
-    file_path='', default_extension='.json', extension_name='Config files'
-):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
-        current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+def get_file_path(file_path, initial_dir=None, initial_file=None, filedialog_type="lora"):
+    file_extension = os.path.splitext(file_path)[-1].lower()
 
-        initial_dir, initial_file = get_dir_and_file(file_path)
+    # Find the appropriate filedialog_type based on the file extension
+    for key, extensions in CommonUtilities.file_filters.items():
+        if file_extension in extensions:
+            filedialog_type = key
+            break
 
-        # Create a hidden Tkinter root window
-        root = Tk()
-        root.wm_attributes('-topmost', 1)
-        root.withdraw()
+    current_file_path = file_path
 
-        # Show the open file dialog and get the selected file path
-        file_path = filedialog.askopenfilename(
-            filetypes=(
-                (extension_name, f'*{default_extension}'),
-                ('All files', '*.*'),
-            ),
-            defaultextension=default_extension,
-            initialfile=initial_file,
-            initialdir=initial_dir,
-        )
-
-        # Destroy the hidden root window
-        root.destroy()
-
-        # If no file is selected, use the current file path
-        if not file_path:
-            file_path = current_file_path
-        current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
-
-    return file_path
+    initial_dir, initial_file = os.path.split(file_path)
+    result = open_file_dialog(initial_dir=initial_dir, initial_file=initial_file, file_types=filedialog_type)
+    file_path, canceled = result[:2]
+    return file_path, canceled
 
 
 def get_any_file_path(file_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
-        current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+    current_file_path = file_path
+    # print(f'current file path: {current_file_path}')
 
-        initial_dir, initial_file = get_dir_and_file(file_path)
+    initial_dir, initial_file = os.path.split(file_path)
+    file_path = open_file_dialog(initial_dir, initial_file, "all")
 
-        root = Tk()
-        root.wm_attributes('-topmost', 1)
-        root.withdraw()
-        file_path = filedialog.askopenfilename(
-            initialdir=initial_dir,
-            initialfile=initial_file,
-        )
-        root.destroy()
-
-        if file_path == '':
-            file_path = current_file_path
+    if file_path == '':
+        file_path = current_file_path
 
     return file_path
 
 
 def remove_doublequote(file_path):
-    if file_path != None:
+    if file_path is not None:
         file_path = file_path.replace('"', '')
 
     return file_path
@@ -196,62 +202,37 @@ def remove_doublequote(file_path):
 #         )
 
 
-def get_folder_path(folder_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
-        current_folder_path = folder_path
+def get_folder_path(folder_path='', filedialog_type="directory"):
+    current_folder_path = folder_path
 
-        initial_dir, initial_file = get_dir_and_file(folder_path)
+    initial_dir, initial_file = os.path.split(folder_path)
+    file_path = open_file_dialog(initial_dir, initial_file, filedialog_type)
 
-        root = Tk()
-        root.wm_attributes('-topmost', 1)
-        root.withdraw()
-        folder_path = filedialog.askdirectory(initialdir=initial_dir)
-        root.destroy()
-
-        if folder_path == '':
-            folder_path = current_folder_path
+    if folder_path == '':
+        folder_path = current_folder_path
 
     return folder_path
 
 
 def get_saveasfile_path(
-    file_path='', defaultextension='.json', extension_name='Config files'
+        file_path='', filedialog_type="json"
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
-        current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+    current_file_path = file_path
 
-        initial_dir, initial_file = get_dir_and_file(file_path)
+    initial_dir, initial_file = os.path.split(file_path)
+    save_file_path = save_file_dialog(initial_dir, initial_file, filedialog_type)
 
-        root = Tk()
-        root.wm_attributes('-topmost', 1)
-        root.withdraw()
-        save_file_path = filedialog.asksaveasfile(
-            filetypes=(
-                (f'{extension_name}', f'{defaultextension}'),
-                ('All files', '*'),
-            ),
-            defaultextension=defaultextension,
-            initialdir=initial_dir,
-            initialfile=initial_file,
-        )
-        root.destroy()
-
-        # print(save_file_path)
-
-        if save_file_path == None:
-            file_path = current_file_path
-        else:
-            print(save_file_path.name)
-            file_path = save_file_path.name
-
-        # print(file_path)
+    if save_file_path is None:
+        file_path = current_file_path
+    else:
+        print(save_file_path.name)
+        file_path = save_file_path.name
 
     return file_path
 
 
 def get_saveasfilename_path(
-    file_path='', extensions='*', extension_name='Config files'
+        file_path='', extensions='*', extension_name='Config files'
 ):
     if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
         current_file_path = file_path
@@ -280,10 +261,10 @@ def get_saveasfilename_path(
 
 
 def add_pre_postfix(
-    folder: str = '',
-    prefix: str = '',
-    postfix: str = '',
-    caption_file_ext: str = '.caption',
+        folder: str = '',
+        prefix: str = '',
+        postfix: str = '',
+        caption_file_ext: str = '.caption',
 ) -> None:
     """
     Add prefix and/or postfix to the content of caption files within a folder.
@@ -343,10 +324,10 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
 
 
 def find_replace(
-    folder_path: str = '',
-    caption_file_ext: str = '.caption',
-    search_text: str = '',
-    replace_text: str = '',
+        folder_path: str = '',
+        caption_file_ext: str = '.caption',
+        search_text: str = '',
+        replace_text: str = '',
 ) -> None:
     """
     Find and replace text in caption files within a folder.
@@ -360,7 +341,7 @@ def find_replace(
     print('Running caption find/replace')
 
     if not has_ext_files(folder_path, caption_file_ext):
-        msgbox(
+        show_message_box(
             f'No files with extension {caption_file_ext} were found in {folder_path}...'
         )
         return
@@ -374,7 +355,7 @@ def find_replace(
 
     for caption_file in caption_files:
         with open(
-            os.path.join(folder_path, caption_file), 'r', errors='ignore'
+                os.path.join(folder_path, caption_file), 'r', errors='ignore'
         ) as f:
             content = f.read()
 
@@ -386,7 +367,7 @@ def find_replace(
 
 def color_aug_changed(color_aug):
     if color_aug:
-        msgbox(
+        show_message_box(
             'Disabling "Cache latent" because "Color augmentation" has been selected...'
         )
         return gr.Checkbox.update(value=False, interactive=False)
@@ -427,7 +408,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
 
 def set_pretrained_model_name_or_path_input(
-    model_list, pretrained_model_name_or_path, v2, v_parameterization
+        model_list, pretrained_model_name_or_path, v2, v_parameterization
 ):
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
     if str(model_list) in V2_BASE_MODELS:
@@ -452,9 +433,9 @@ def set_pretrained_model_name_or_path_input(
 
     if model_list == 'custom':
         if (
-            str(pretrained_model_name_or_path) in V1_MODELS
-            or str(pretrained_model_name_or_path) in V2_BASE_MODELS
-            or str(pretrained_model_name_or_path) in V_PARAMETERIZATION_MODELS
+                str(pretrained_model_name_or_path) in V1_MODELS
+                or str(pretrained_model_name_or_path) in V2_BASE_MODELS
+                or str(pretrained_model_name_or_path) in V_PARAMETERIZATION_MODELS
         ):
             pretrained_model_name_or_path = ''
             v2 = False
@@ -481,12 +462,11 @@ def set_v2_checkbox(model_list, v2, v_parameterization):
 
 
 def set_model_list(
-    model_list,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
+        model_list,
+        pretrained_model_name_or_path,
+        v2,
+        v_parameterization,
 ):
-
     if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
         model_list = 'custom'
     else:
@@ -529,7 +509,7 @@ def gradio_config():
 
 
 def get_pretrained_model_name_or_path_file(
-    model_list, pretrained_model_name_or_path
+        model_list, pretrained_model_name_or_path
 ):
     pretrained_model_name_or_path = get_any_file_path(
         pretrained_model_name_or_path
@@ -537,13 +517,13 @@ def get_pretrained_model_name_or_path_file(
     set_model_list(model_list, pretrained_model_name_or_path)
 
 
-def gradio_source_model(save_model_as_choices = [
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ]):
+def gradio_source_model(save_model_as_choices=[
+    'same as source model',
+    'ckpt',
+    'diffusers',
+    'diffusers_safetensors',
+    'safetensors',
+]):
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
@@ -648,9 +628,9 @@ def gradio_source_model(save_model_as_choices = [
 
 
 def gradio_training(
-    learning_rate_value='1e-6',
-    lr_scheduler_value='constant',
-    lr_warmup_value='0',
+        learning_rate_value='1e-6',
+        lr_scheduler_value='constant',
+        lr_warmup_value='0',
 ):
     with gr.Row():
         train_batch_size = gr.Slider(
@@ -840,7 +820,7 @@ def gradio_advanced_training():
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-        min_snr_gamma = gr.Slider(label='Min SNR gamma', value = 0, minimum=0, maximum=20, step=1)
+        min_snr_gamma = gr.Slider(label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1)
     with gr.Row():
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True

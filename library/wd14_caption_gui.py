@@ -1,8 +1,9 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
-from .common_gui import get_folder_path
 import os
+import subprocess
+
+import gradio as gr
+
+from .common_gui_functions import get_folder_path
 
 
 def replace_underscore_with_space(folder_path, file_extension):
@@ -20,16 +21,16 @@ def caption_images(
 ):
     # Check for caption_text_input
     # if caption_text_input == "":
-    #     msgbox("Caption text is missing...")
+    #     show_message_box("Caption text is missing...")
     #     return
 
     # Check for images_dir_input
     if train_data_dir == '':
-        msgbox('Image folder is missing...')
+        show_message_box('Image folder is missing...')
         return
 
     if caption_extension == '':
-        msgbox('Please provide an extension for the caption files.')
+        show_message_box('Please provide an extension for the caption files.')
         return
 
     print(f'Captioning files in {train_data_dir}...')
