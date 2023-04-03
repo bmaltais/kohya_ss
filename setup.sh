@@ -2,12 +2,6 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
-# Set the required package versions here.
-# They will be appended to the requirements.txt file in the installation directory.
-TENSORFLOW_VERSION="2.12.0"
-TENSORFLOW_MACOS_VERSION="2.12.0"
-TENSORFLOW_METAL_VERSION="0.8.0"
-
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -32,7 +26,12 @@ Options:
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
-  -u, --no-gui                  Skips launching the GUI.
+  --gui-listen=IP               IP to listen on for connections to Gradio.
+  --gui-username=USERNAME       Username for authentication.
+  --gui-password=PASSWORD       Password for authentication.
+  --gui-server-port=PORT        Port to run the server listener on.
+  --gui-inbrowser               Open in browser.
+  --gui-share                   Share your installation.
   -v, --verbose                 Increase verbosity levels up to 3.
 EOF
 }
@@ -91,9 +90,8 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
-SKIP_GUI=false
 
-while getopts ":vb:d:g:inprus-:" opt; do
+while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -109,7 +107,12 @@ while getopts ":vb:d:g:inprus-:" opt; do
   p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
-  u | no-gui) SKIP_GUI=true ;;
+  gui-listen) GUI_LISTEN="$OPTARG" ;;
+  gui-username) GUI_USERNAME="$OPTARG" ;;
+  gui-password) GUI_PASSWORD="$OPTARG" ;;
+  gui-server-port) GUI_SERVER_PORT="$OPTARG" ;;
+  gui-inbrowser) GUI_INBROWSER=true ;;
+  gui-share) GUI_SHARE=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -218,20 +221,18 @@ create_symlinks() {
 install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
-  if ! inDocker; then
-    if command -v python3.10 >/dev/null; then
-      python3.10 -m venv "$DIR/venv"
-    elif command -v python3 >/dev/null; then
-      python3 -m venv "$DIR/venv"
-    else
-      echo "Valid python3 or python3.10 binary not found."
-      echo "Cannot proceed with the python steps."
-      return 1
-    fi
-
-    # Activate the virtual environment
-    source "$DIR/venv/bin/activate"
+  if command -v python3 >/dev/null; then
+    python3 -m venv "$DIR/venv"
+  elif command -v python3.10 >/dev/null; then
+    python3.10 -m venv "$DIR/venv"
+  else
+    echo "Valid python3 or python3.10 binary not found."
+    echo "Cannot proceed with the python steps."
+    return 1
   fi
+
+  # Activate the virtual environment
+  source "$DIR/venv/bin/activate"
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
@@ -243,7 +244,7 @@ install_python_dependencies() {
   "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
     --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
     pip install -U -I --no-deps \
-      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
+      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
   "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
   "cygwin")
@@ -262,38 +263,22 @@ install_python_dependencies() {
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements.txt file out and make the khoya_ss lib a dynamic location then cleanup.
-  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
-  echo "Copying $DIR/requirements.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >"$TEMP_REQUIREMENTS_FILE"
-
-  # This will check if macOS is running then determine if M1+ or Intel CPU.
-  # It will append the appropriate packages to the requirements.txt file.
-  # Other OSs won't be affected and the version variables are at the top of this file.
-  if [[ "$(uname)" == "Darwin" ]]; then
-    # Check if the processor is Apple Silicon (arm64)
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    # Check if the processor is Intel (x86_64)
-    elif [[ "$(uname -m)" == "x86_64" ]]; then
-      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    fi
-  fi
-
+  #This will copy our requirements.txt file out, make the khoya_ss lib a dynamic location then cleanup.
+  echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
+  echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
+  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
   if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+    python -m pip install --quiet --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
   else
-    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+    python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
   fi
 
   echo "Removing the temp requirements file."
-  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
-    rm -f "$TEMP_REQUIREMENTS_FILE"
+  if [ -f /tmp/requirements_tmp.txt ]; then
+    rm /tmp/requirements_tmp.txt
   fi
 
-  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
+  if [ -n "$VIRTUAL_ENV" ]; then
     if command -v deactivate >/dev/null; then
       echo "Exiting Python virtual environment."
       deactivate
@@ -353,28 +338,6 @@ check_storage_space() {
         sleep 1
       done
     fi
-  fi
-}
-
-isContainerOrPod() {
-  local cgroup=/proc/1/cgroup
-  test -f $cgroup && (grep -qE ':cpuset:/(docker|kubepods)' $cgroup || grep -q ':/docker/' $cgroup)
-}
-
-isDockerBuildkit() {
-  local cgroup=/proc/1/cgroup
-  test -f $cgroup && grep -q ':cpuset:/docker/buildkit' $cgroup
-}
-
-isDockerContainer() {
-  [ -e /.dockerenv ]
-}
-
-inDocker() {
-  if isContainerOrPod || isDockerBuildkit || isDockerContainer; then
-    return 0
-  else
-    return 1
   fi
 }
 
@@ -540,12 +503,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
-    if inDocker; then
-      # We get the site-packages from python itself, then cut the string, so no other code changes required.
-      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
-    fi
-
     # Symlink paths
     libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
     libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
@@ -576,24 +533,18 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     configure_accelerate
 
     # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
-    if [ "$SKIP_GUI" = false ]; then
-      if command -v bash >/dev/null; then
-        if [ "$PUBLIC" = false ]; then
-          bash "$DIR"/gui.sh
-          exit 0
-        else
-          bash "$DIR"/gui.sh --share
-          exit 0
-        fi
+    if command -v bash >/dev/null; then
+      if [ "$PUBLIC" = false ]; then
+        bash "$DIR"/gui.sh
       else
-        # This shouldn't happen, but we're going to try to help.
-        if [ "$PUBLIC" = false ]; then
-          sh "$DIR"/gui.sh
-          exit 0
-        else
-          sh "$DIR"/gui.sh --share
-          exit 0
-        fi
+        bash "$DIR"/gui.sh --share
+      fi
+    else
+      # This shouldn't happen, but we're going to try to help.
+      if [ "$PUBLIC" = false ]; then
+        sh "$DIR"/gui.sh
+      else
+        sh "$DIR"/gui.sh --share
       fi
     fi
   fi
@@ -639,10 +590,40 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   configure_accelerate
   echo -e "Setup finished! Run ./gui.sh to start."
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilities on Windows
+  # Cygwin is a standalone suite of Linux utilies on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
+
+run_launcher() {
+  if command -v python3.10 >/dev/null 2>&1; then
+    local PYTHON_EXEC="python3.10"
+  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python3"
+  else
+    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
+    exit 1
+  fi
+
+  "$PYTHON_EXEC" launcher.py \
+    --branch="$BRANCH" \
+    --dir="$DIR" \
+    --gitrepo="$GIT_REPO" \
+    --interactive="$INTERACTIVE" \
+    --nogitupdate="$SKIP_GIT_UPDATE" \
+    --public="$PUBLIC" \
+    --runpod="$RUNPOD" \
+    --skipspacecheck="$SKIP_SPACE_CHECK" \
+    --listen="$GUI_LISTEN" \
+    --username="$GUI_USERNAME" \
+    --password="$GUI_PASSWORD" \
+    --server_port="$GUI_SERVER_PORT" \
+    --inbrowser="$GUI_INBROWSER" \
+    --share="$GUI_SHARE" \
+    --verbose="$VERBOSITY"
+}
+
+run_launcher

@@ -44,3 +44,33 @@ arguments:
     long: --verbose
     description: Increase verbosity levels up to 3.
     default: 0
+  - name: GuiListen
+    short: --gui-listen
+    long: --gui-listen
+    description: IP to listen on for connections to Gradio.
+    default: 127.0.0.1
+  - name: GuiUsername
+    short: --gui-username
+    long: --gui-username
+    description: Username for authentication.
+    default: ''
+  - name: GuiPassword
+    short: --gui-password
+    long: --gui-password
+    description: Password for authentication.
+    default: ''
+  - name: GuiServerPort
+    short: --gui-server-port
+    long: --gui-server-port
+    description: Port to run the server listener on.
+    default: 0
+  - name: GuiInbrowser
+    short: --gui-inbrowser
+    long: --gui-inbrowser
+    description: Open in browser.
+    default: false
+  - name: GuiShare
+    short: --gui-share
+    long: --gui-share
+    description: Share the gradio UI.
+    default: false

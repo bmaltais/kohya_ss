@@ -1,11 +1,17 @@
 import argparse
-import shutil
-import sys
-import yaml
-import os
-import subprocess
-import platform
 import logging
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import time
+import kohya_gui
+from pathlib import Path
+
+import distro
+import yaml
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
 TENSORFLOW_VERSION = "2.12.0"
@@ -57,15 +63,24 @@ def parse_args(_config_data):
                                  "for custom forks.")
         parser.add_argument("-i", "--interactive", dest="interactive", action="store_true",
                             help="Interactively configure accelerate instead of using default config file.")
-        parser.add_argument("-n", "--no-git-update", dest="noGitUpdate", action="store_true",
+        parser.add_argument("-n", "--no-git-update", dest="gitUpdate", action="store_true",
                             help="Do not update kohya_ss repo. No git pull or clone operations.")
         parser.add_argument("-p", "--public", dest="public", action="store_true",
                             help="Expose public URL in runpod mode. Won't have an effect in other modes.")
         parser.add_argument("-r", "--runpod", dest="runpod", action="store_true",
                             help="Forces a runpod installation. Useful if detection fails for any reason.")
-        parser.add_argument("-s", "--skip-space-check", dest="skipSpaceCheck", action="store_true",
+        parser.add_argument("-s", "--skip-space-check", dest="spaceCheck", action="store_true",
                             help="Skip the 10Gb minimum storage space check.")
-        parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity levels up to 3.")
+        parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity levels up to 3.")
+
+        # Now the kohya_gui.py arguments to be passed through
+        parser.add_argument('--gui-listen', type=str, default='127.0.0.1',
+                            help='IP to listen on for connections to Gradio')
+        parser.add_argument('--gui-username', type=str, default='', help='Username for authentication')
+        parser.add_argument('--gui-password', type=str, default='', help='Password for authentication')
+        parser.add_argument('--gui-server-port', type=int, default=0, help='Port to run the server listener on')
+        parser.add_argument('--gui-inbrowser', action='store_true', help='Open in browser')
+        parser.add_argument('--gui-share', action='store_true', help='Share the gradio UI')
 
     _args = parser.parse_args()
     return _args
@@ -98,7 +113,189 @@ def get_default_dir(runpod, script_dir):
     return default_dir
 
 
-def install_python_dependencies(DIR, RUNPOD, VERBOSITY):
+def get_venv_directory():
+    # Get the current environment path
+    env_path = sys.prefix
+
+    # Get the site-packages directory
+    site_packages_dir = site.getsitepackages()[0]
+
+    # Return the environment path and site-packages path
+    return env_path, site_packages_dir
+
+
+def check_and_create_install_folder(parent_dir, _dir):
+    if os.access(parent_dir, os.W_OK) and not os.path.isdir(_dir):
+        print(f"Creating install folder {_dir}.")
+        os.makedirs(_dir)
+
+    if not os.access(_dir, os.W_OK):
+        print(f"We cannot write to {_dir}.")
+        print("Please ensure the install directory is accurate and you have the correct permissions.")
+        exit(1)
+
+
+def size_available():
+    folder = None
+    if os.path.isdir(DIR):
+        folder = DIR
+    elif os.path.isdir(PARENT_DIR):
+        folder = PARENT_DIR
+    else:
+        path_parts = os.path.split(DIR)
+        if path_parts[0] and os.path.isdir(path_parts[0]):
+            folder = path_parts[0]
+
+    if not folder:
+        print("We are assuming a root drive install for space-checking purposes.")
+        folder = os.path.abspath(os.sep)
+
+    free_space_in_bytes = shutil.disk_usage(folder).free
+    free_space_in_gb = free_space_in_bytes / (1024 * 1024 * 1024)
+    return free_space_in_gb
+
+
+def check_storage_space(space_check=True):
+    if space_check:
+        if size_available() < 10:
+            print("You have less than 10Gb of free space. This installation may fail.")
+            msg_timeout = 10  # In seconds
+            message = "Continuing in..."
+            print("Press control-c to cancel the installation.")
+
+            for i in range(msg_timeout, -1, -1):
+                print(f"\r{message} {i}s.", end="")
+                time.sleep(1)
+
+
+def create_symlinks(symlink, target_file):
+    print("Checking symlinks now.")
+    # Next line checks for valid symlink
+    if os.path.islink(symlink):
+        # Check if the linked file exists and points to the expected file
+        if os.path.exists(symlink) and os.path.realpath(symlink) == target_file:
+            print(f"{os.path.basename(symlink)} symlink looks fine. Skipping.")
+        else:
+            if os.path.isfile(target_file):
+                print(f"Broken symlink detected. Recreating {os.path.basename(symlink)}.")
+                os.remove(symlink)
+                os.symlink(target_file, symlink)
+            else:
+                print(f"{target_file} does not exist. Nothing to link.")
+    else:
+        print(f"Linking {os.path.basename(symlink)}.")
+        os.symlink(target_file, symlink)
+
+
+def setup_symlinks(venv_dir, site_packages_dir, runpod):
+    if runpod and in_container:
+        # Symlink paths
+        libnvinfer_plugin_symlink = os.path.join(site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
+        libnvinfer_symlink = os.path.join(site_packages_dir, "tensorrt", "libnvinfer.so.7")
+        libcudart_symlink = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.11.0")
+
+        # Target file paths
+        libnvinfer_plugin_target = os.path.join(site_packages_dir, "tensorrt", "libnvinfer_plugin.so.8")
+        libnvinfer_target = os.path.join(site_packages_dir, "tensorrt", "libnvinfer.so.8")
+        libcudart_target = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.12")
+
+        print("Checking symlinks now.")
+        create_symlinks(libnvinfer_plugin_symlink, libnvinfer_plugin_target)
+        create_symlinks(libnvinfer_symlink, libnvinfer_target)
+        create_symlinks(libcudart_symlink, libcudart_target)
+
+        tensorrt_dir = os.path.join(site_packages_dir, "tensorrt")
+        if os.path.isdir(tensorrt_dir):
+            os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{tensorrt_dir}"
+        else:
+            print(f"{tensorrt_dir} not found; not linking library.")
+
+        cuda_runtime_dir = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib")
+        if os.path.isdir(cuda_runtime_dir):
+            os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{cuda_runtime_dir}"
+        else:
+            print(f"{cuda_runtime_dir} not found; not linking library.")
+
+
+def in_container():
+    cgroup_path = "/proc/1/cgroup"
+
+    if not os.path.isfile(cgroup_path):
+        return False
+
+    with open(cgroup_path, "r") as cgroup_file:
+        content = cgroup_file.read()
+
+    container_indicators = [
+        r':cpuset:/(docker|kubepods)',
+        r':/docker/',
+        r':cpuset:/docker/buildkit',
+        r':/system.slice/docker-',
+        r':/system.slice/containerd-',
+        r':/system.slice/rkt-',
+        r':/system.slice/run-',
+        r':/system.slice/pod-',
+    ]
+
+    if any(re.search(pattern, content) for pattern in container_indicators) or os.path.exists('/.dockerenv'):
+        return True
+
+    return False
+
+
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, git_update):
+    if git_update:
+        if shutil.which("git"):
+            # First, we make sure there are no changes that need to be made in git, so no work is lost.
+            git_status = subprocess.run(["git", "-C", _dir, "status", "--porcelain=v1"], capture_output=True, text=True)
+            if git_status.stdout.strip():
+                print(f"These files need to be committed or discarded:")
+                print(git_status.stdout)
+                print(f"There are changes that need to be committed or discarded in the repo in {_dir}.")
+                print(f"Commit those changes or run this script with -n to skip git operations entirely.")
+                exit(1)
+
+            print(f"Attempting to clone {git_repo}.")
+            if not os.path.exists(os.path.join(_dir, ".git")):
+                print(f"Cloning and switching to {git_repo}:{branch}")
+                subprocess.run(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)])
+                subprocess.run(["git", "-C", _dir, "switch", branch])
+            else:
+                print("git repo detected. Attempting to update repository instead.")
+                print(f"Updating: {git_repo}")
+                subprocess.run(["git", "-C", _dir, "pull", git_repo, branch])
+                git_switch = subprocess.run(["git", "-C", _dir, "switch", branch], capture_output=True)
+                if git_switch.returncode != 0:
+                    print(f"Branch {branch} did not exist. Creating it.")
+                    subprocess.run(["git", "-C", _dir, "switch", "-c", branch])
+        else:
+            print("You need to install git.")
+            print("Rerun this after installing git or run this script with -n to skip the git operations.")
+    else:
+        print("Skipping git operations.")
+
+
+def get_distro_name():
+    try:
+        _distro_name = distro.id()
+        print("Distro name:", _distro_name)
+        return _distro_name
+    except Exception as e:
+        print("Error getting distro name:", e)
+        return None
+
+
+def get_distro_family():
+    try:
+        _distro_family = distro.like()
+        print("Distro family:", _distro_family)
+        return _distro_family
+    except Exception as e:
+        print("Error getting distro family:", e)
+        return None
+
+
+def install_python_dependencies(_dir, runpod, script_dir):
     # Check if python3 or python3.10 binary exists
     python_bin = None
     if shutil.which("python3"):
@@ -110,14 +307,15 @@ def install_python_dependencies(DIR, RUNPOD, VERBOSITY):
         print("Cannot proceed with the python steps.")
         return 1
 
-    # Create virtual environment
-    print("Switching to virtual Python environment.")
-    venv_path = os.path.join(DIR, "venv")
-    subprocess.run([python_bin, "-m", "venv", venv_path])
+    # Create and activate virtual environment if not in container environment
+    if not in_container:
+        print("Switching to virtual Python environment.")
+        venv_path = os.path.join(_dir, "venv")
+        subprocess.run([python_bin, "-m", "venv", venv_path])
 
-    # Activate the virtual environment
-    venv_activate = os.path.join(venv_path, "bin", "activate_this.py")
-    exec(open(venv_activate).read(), {'__file__': venv_activate})
+        # Activate the virtual environment
+        venv_activate = os.path.join(venv_path, "bin", "activate_this.py")
+        exec(open(venv_activate).read(), {'__file__': venv_activate})
 
     # Update pip
     print("Checking for pip updates before Python operations.")
@@ -136,19 +334,19 @@ def install_python_dependencies(DIR, RUNPOD, VERBOSITY):
         subprocess.run([sys.executable, "-m", "pip", "install", "torch==2.0.0", "torchvision==0.15.1", "-f",
                         "https://download.pytorch.org/whl/cpu/torch_stable.html"])
 
-    if RUNPOD:
+    if runpod:
         print("Installing tenssort.")
         subprocess.run([sys.executable, "-m", "pip", "install", "tensorrt"])
 
-    requirements_path = os.path.join(DIR, "requirements.txt")
+    requirements_path = os.path.join(_dir, "requirements.txt")
     # Set the path for the temporary requirements file
-    tmp_requirements_path = os.path.join(script_directory, "requirements_tmp.txt")
+    tmp_requirements_path = os.path.join(script_dir, "requirements_tmp.txt")
     # Copy the original requirements.txt and make the kohya_ss lib a dynamic location
-    with open(os.path.join(script_directory, "requirements.txt"), "r") as original_file, \
+    with open(os.path.join(script_dir, "requirements.txt"), "r") as original_file, \
             open(tmp_requirements_path, "w") as temp_file:
         for line in original_file:
             if "#.*kohya_ss.*library" in line:
-                line = line.replace(".", script_directory)
+                line = line.replace(".", script_dir)
             temp_file.write(line)
 
     # Check if the OS is macOS, then determine if M1+ or Intel CPU
@@ -166,7 +364,7 @@ def install_python_dependencies(DIR, RUNPOD, VERBOSITY):
     # Install the packages from the temporary requirements file
     pip_install_args = [sys.executable, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r",
                         tmp_requirements_path]
-    if VERBOSITY == 2:
+    if args.verbosity <= 1:
         pip_install_args.insert(4, "--quiet")
 
     subprocess.run(pip_install_args, check=True, stderr=subprocess.PIPE)
@@ -175,8 +373,50 @@ def install_python_dependencies(DIR, RUNPOD, VERBOSITY):
     if os.path.isfile(tmp_requirements_path):
         os.remove(tmp_requirements_path)
 
-    print("Exiting Python virtual environment.")
-    sys.exit(0)
+    # Only exit the virtual environment if we aren't in a container.
+    # This is because we never entered one at the beginning of the function if container detected.
+    if not in_container():
+        print("Exiting Python virtual environment.")
+        sys.exit(0)
+
+
+def configure_accelerate(interactive, source_config_file):
+    print(f"Source accelerate config location: {source_config_file}")
+
+    if interactive:
+        os.system("accelerate config")
+    else:
+        target_config_location = None
+
+        if env_var_exists("HF_HOME"):
+            target_config_location = Path(os.environ["HF_HOME"], "accelerate", "default_config.yaml")
+        elif env_var_exists("XDG_CACHE_HOME"):
+            target_config_location = Path(os.environ["XDG_CACHE_HOME"], "huggingface",
+                                          "accelerate", "default_config.yaml")
+        elif env_var_exists("HOME"):
+            target_config_location = Path(os.environ["HOME"], ".cache", "huggingface",
+                                          "accelerate", "default_config.yaml")
+
+        if target_config_location:
+            if not target_config_location.is_file():
+                target_config_location.parent.mkdir(parents=True, exist_ok=True)
+                print(f"Target accelerate config location: {target_config_location}")
+                shutil.copyfile(source_config_file, target_config_location)
+                print(f"Copied accelerate config file to: {target_config_location}")
+        else:
+            print("Could not place the accelerate configuration file. Please configure manually.")
+            os.system("accelerate config")
+
+
+def launch_kohya_gui(_args):
+    kohya_gui.UI(
+        listen=_args.gui_listen,
+        username=_args.gui_username,
+        password=_args.gui_password,
+        server_port=_args.gui_server_port,
+        inbrowser=_args.gui_inbrowser,
+        share=_args.gui_share
+    )
 
 
 def main(_args=None):
@@ -205,8 +445,19 @@ def main(_args=None):
             "command line arguments.")
         sys.exit(1)
 
+    # Define the directories relative to the install directory needed for install and launch
+    parent_dir = os.path.dirname(_dir)
+    venv_dir, site_packages_dir = get_venv_directory()
+    venv_dir, site_packages_dir = get_venv_directory()
+
     # The main logic will go here after the sanity checks.
-    install_python_dependencies(_dir, _args.runpod, _args.verbosity)
+    check_and_create_install_folder(parent_dir, _dir)
+    check_storage_space(_args.spaceCheck)
+    update_kohya_ss(_dir, _args.git_repo, _args.branch, parent_dir, _args.gitUpdate)
+    install_python_dependencies(_dir, _args.runpod, script_directory)
+    setup_symlinks(venv_dir, site_packages_dir, _args.runpod)
+    configure_accelerate(args.interactive, args.config_file)
+    launch_kohya_gui(args)
 
 
 if __name__ == "__main__":
@@ -233,7 +484,14 @@ if __name__ == "__main__":
     # logging.warning("This is a warning message.")
     # logging.error("This is an error message.")
 
-    for k, v in args.__dict__.items():
-        logging.debug(f"{k}: {v}")
+    distro_name = get_distro_name()
+    print("Distro name:", distro_name)
+
+    distro_family = get_distro_family()
+    print("Distro family:", distro_family)
+
+    if args.verbose >= 3:
+        for k, v in args.__dict__.items():
+            logging.debug(f"{k}: {v}")
 
     main(args)
