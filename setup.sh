@@ -541,7 +541,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
     if inDocker; then
+      # We get the site-packages from python itself, then cut the string, so no other code changes required.
       VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
     fi
 
     # Symlink paths
