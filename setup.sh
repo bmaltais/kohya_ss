@@ -32,6 +32,7 @@ Options:
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -u, --no-gui                  Skips launching the GUI.
   -v, --verbose                 Increase verbosity levels up to 3.
 EOF
 }
@@ -90,6 +91,7 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
+SKIP_GUI=false
 
 while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -107,6 +109,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
   p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
+  u | no-gui) SKIP_GUI=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -543,18 +546,20 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     configure_accelerate
 
     # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
-    if command -v bash >/dev/null; then
-      if [ "$PUBLIC" = false ]; then
-        bash "$DIR"/gui.sh
+    if [ "$SKIP_GUI" = false ]; then
+      if command -v bash >/dev/null; then
+        if [ "$PUBLIC" = false ]; then
+          bash "$DIR"/gui.sh
+        else
+          bash "$DIR"/gui.sh --share
+        fi
       else
-        bash "$DIR"/gui.sh --share
-      fi
-    else
-      # This shouldn't happen, but we're going to try to help.
-      if [ "$PUBLIC" = false ]; then
-        sh "$DIR"/gui.sh
-      else
-        sh "$DIR"/gui.sh --share
+        # This shouldn't happen, but we're going to try to help.
+        if [ "$PUBLIC" = false ]; then
+          sh "$DIR"/gui.sh
+        else
+          sh "$DIR"/gui.sh --share
+        fi
       fi
     fi
   fi
