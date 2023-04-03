@@ -93,7 +93,7 @@ SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
 SKIP_GUI=false
 
-while getopts ":vb:d:g:inprs-:" opt; do
+while getopts ":vb:d:g:inprus-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
