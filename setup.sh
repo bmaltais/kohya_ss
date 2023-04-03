@@ -81,15 +81,65 @@ else
   fi
 fi
 
-VERBOSITY=2    #Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
-MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
+parse_yaml() {
+  local yaml_file="$1"
+  local prefix="$2"
+  local line key value state
 
-BRANCH="master"
-GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
-INTERACTIVE=false
-PUBLIC=false
-SKIP_SPACE_CHECK=false
-SKIP_GIT_UPDATE=false
+  state="none"
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      state="searching_default"
+    elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*default:[[:space:]]*(.+)$ ]]; then
+      value="${BASH_REMATCH[1]}"
+      state="none"
+      eval "${prefix}_${key}=\"$value\""
+    else
+      state="none"
+    fi
+  done < "$yaml_file"
+}
+
+configFileLocations=(
+  "$1"
+  "$HOME/.kohya_ss/install_config.yaml"
+  "$DIR/install_config.yaml"
+  "$PSScriptRoot/install_config.yaml"
+)
+
+configFile=""
+
+for location in "${configFileLocations[@]}"; do
+  if [ -f "$location" ]; then
+    configFile="$location"
+    break
+  fi
+done
+
+if [ -n "$configFile" ]; then
+  parse_yaml "$configFile" "config"
+fi
+
+# Use the variables from the configuration file as default values
+BRANCH="${config_Branch:-master}"
+DIR="${config_Dir:-$HOME/kohya_ss}"
+GIT_REPO="${config_GitRepo:-https://github.com/kohya/kohya_ss.git}"
+INTERACTIVE="${config_Interactive:-false}"
+SKIP_GIT_UPDATE="${config_NoGitUpdate:-false}"
+PUBLIC="${config_Public:-false}"
+RUNPOD="${config_Runpod:-false}"
+SKIP_SPACE_CHECK="${config_SkipSpaceCheck:-false}"
+VERBOSE="${config_Verbose:-2}" #Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
+GUI_LISTEN="${config_GuiListen:-127.0.0.1}"
+GUI_USERNAME="${config_GuiUsername:-}"
+GUI_PASSWORD="${config_GuiPassword:-}"
+GUI_SERVER_PORT="${config_GuiServerPort:-8080}"
+GUI_INBROWSER="${config_GuiInbrowser:-false}"
+GUI_SHARE="${config_GuiShare:-false}"
+
+MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
 
 while getopts ":vb:d:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -113,7 +163,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
   gui-server-port) GUI_SERVER_PORT="$OPTARG" ;;
   gui-inbrowser) GUI_INBROWSER=true ;;
   gui-share) GUI_SHARE=true ;;
-  v) ((VERBOSITY = VERBOSITY + 1)) ;;
+  v) ((VERBOSE = VERBOSE + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
   esac

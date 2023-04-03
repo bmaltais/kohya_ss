@@ -43,66 +43,107 @@
 
 .PARAMETER Verbose
   Increase verbosity levels up to 3.
+
+.PARAMETER GUI_LISTEN
+  The IP address the GUI should listen on.
+
+.PARAMETER GUI_USERNAME
+  The username for the GUI.
+
+.PARAMETER GUI_PASSWORD
+  The password for the GUI.
+
+.PARAMETER GUI_SERVER_PORT
+  The port number the GUI server should use.
+
+.PARAMETER GUI_INBROWSER
+  Open the GUI in the default web browser.
+
+.PARAMETER GUI_SHARE
+  Share the GUI with other users on the network.
 #>
 
-param (
-    [string]$Branch = "master",
-    [string]$Dir = "$env:USERPROFILE\kohya_ss",
-    [string]$GitRepo = "https://github.com/kohya/kohya_ss.git",
-    [switch]$Interactive = $false,
-    [switch]$NoGitUpdate = $false,
-    [switch]$Public = $false,
-    [switch]$Runpod = $false,
-    [switch]$SkipSpaceCheck = $false,
-    [int]$Verbose = 0,
-    [string]$File = (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
-)
+
+function Get-Parameters {
+    param (
+        [string]$File = ""
+    )
+
+    # Define possible configuration file locations
+    $configFileLocations = if ($IsWindows) {
+        @(
+            $File,
+            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\install_config.yaml"),
+            (Join-Path -Path $env:LOCALAPPDATA -ChildPath "kohya_ss\install_config.yaml"),
+            (Join-Path -Path $PSBoundParameters['Dir'] -ChildPath "install_config.yaml"),
+            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
+        )
+    } else {
+        @(
+            $File,
+            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss\install_config.yaml"),
+            (Join-Path -Path $PSBoundParameters['Dir'] -ChildPath "install_config.yaml"),
+            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
+        )
+    }
+
+    # Load the configuration file from the first existing location
+    $Config = @{}
+    foreach ($location in $configFileLocations) {
+        if (Test-Path -Path $location) {
+            $Config = Get-Content -Path $location | ConvertFrom-Yaml
+            break
+        }
+    }
+
+    # Define the default values
+    $Defaults = @{
+        'Branch' = 'master'
+        'Dir' = "$env:USERPROFILE\kohya_ss"
+        'GitRepo' = 'https://github.com/kohya/kohya_ss.git'
+        'Interactive' = $false
+        'NoGitUpdate' = $false
+        'Public' = $false
+        'Runpod' = $false
+        'SkipSpaceCheck' = $false
+        'Verbose' = 0
+        'GUI_LISTEN' = '127.0.0.1'
+        'GUI_USERNAME' = ''
+        'GUI_PASSWORD' = ''
+        'GUI_SERVER_PORT' = 8080
+        'GUI_INBROWSER' = $true
+        'GUI_SHARE' = $false
+    }
+
+    # Iterate through the default values and set them if not defined in the config file
+    foreach ($key in $Defaults.Keys) {
+        if (-not $Config.ContainsKey($key)) {
+            $Config[$key] = $Defaults[$key]
+        }
+    }
+
+    # Merge CLI arguments with the configuration
+    $params = $PSBoundParameters.GetEnumerator() | Where-Object { $_.Key -ne "File" }
+    foreach ($param in $params) {
+        $Config[$param.Key] = $param.Value
+    }
+
+    return $Config
+}
 
 function Test-Value {
     param (
-        $Parameters
+        [hashtable]$Params,
+        [string[]]$RequiredKeys
     )
 
-    function Check-YamlModule {
-        if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
-            try {
-                Install-Module -Name powershell-yaml -Scope CurrentUser -ErrorAction Stop
-                Write-Host "powershell-yaml module installed successfully."
-                return $true
-            }
-            catch {
-                Write-Host "Warning: Unable to install powershell-yaml module. Please install it manually with:"
-                Write-Host "Install-Module -Name powershell-yaml -Scope CurrentUser"
-                Write-Host "Continuing without loading configuration file..."
-                return $false
-            }
-        }
-        return $true
-    }
-
-    if (Check-YamlModule) {
-        if (Test-Path $Parameters.File) {
-            if (Import-Module powershell-yaml) {
-                $config = ConvertFrom-Yaml (Get-Content -Raw $Parameters.File)
-                $defaultBranch = $config.arguments.Branch.default
-                $defaultDir = $config.arguments.Dir.default
-                $defaultGitRepo = $config.arguments.GitRepo.default
-            }
-            else {
-                Write-Host "Error: Could not load YAML installation config file."
-            }
-        }
-        else {
-            Write-Host "Warning: YAML configuration file not found. Continuing with command line arguments or default values."
+    foreach ($key in $RequiredKeys) {
+        if ($null -eq $Params[$key]) {
+            return $false
         }
     }
-
-    # Check if gitRepo, Branch, and Dir have values
-    if (-not $Parameters.GitRepo -or -not $Parameters.Branch -or -not $Parameters.Dir) {
-        Write-Host "Error: gitRepo, Branch, and Dir must have a value. Please provide values in the config file or through command line arguments."
-        return $false
-    }
-
     return $true
 }
 
@@ -343,7 +384,8 @@ function Main {
     )
 
     begin {
-        if (-not (Test-Value $Parameters)) {
+        $requiredKeys = @("Dir", "Branch", "GitRepo")
+        if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
             Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
             exit 1
         }
@@ -366,17 +408,17 @@ function Main {
     end {
         $pyExe = Get-PythonExePath
 
-        if ($pyExe -ne $null) {
-            $installArgs = @("launcher.py")
+        if ($pythonExec -ne $null) {
+            $$launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
 
-            # Iterate through the parameters and add them to the installArgs array
-            foreach ($key in $Parameters.Keys) {
-                if ($null -ne $Parameters[$key]) {
-                    $installArgs += "-$key", $Parameters[$key]
-                }
+            $installArgs = @()
+            foreach ($key in $Params.Keys) {
+                $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
+                $installArgs += $argName, $Params[$key]
             }
 
-            & $pyExe $installArgs
+            # Call launcher.py with the appropriate parameters
+            & $pythonExec -u "$launcher" $installArgs
         } else {
             Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
             exit 1
@@ -384,7 +426,16 @@ function Main {
     }
 }
 
-
-
-Main -Parameters $PSBoundParameters
+# Call the Get-Parameters function to process the arguments in the intended fashion
+# Parameter value assignments should be as follows:
+# 1) Command line arguments (user overrides)
+# 2) Configuration file (install_config.yml). Default locations:
+#    a) OS-specific standard folders
+#       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
+#       Non-Windows: $env:HOME/kohya_ss/
+#    b) Installation Directory
+#    c) The folder this script is run from
+# 3) Default values built into the scripts if none specified by user and there is no config file.
+$Params = Get-Parameters
+Main -Parameters $Params
 
