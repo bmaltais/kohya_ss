@@ -26,6 +26,12 @@ Options:
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  --gui-listen=IP               IP to listen on for connections to Gradio.
+  --gui-username=USERNAME       Username for authentication.
+  --gui-password=PASSWORD       Password for authentication.
+  --gui-server-port=PORT        Port to run the server listener on.
+  --gui-inbrowser               Open in browser.
+  --gui-share                   Share your installation.
   -v, --verbose                 Increase verbosity levels up to 3.
 EOF
 }
@@ -101,6 +107,12 @@ while getopts ":vb:d:g:inprs-:" opt; do
   p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
+  gui-listen) GUI_LISTEN="$OPTARG" ;;
+  gui-username) GUI_USERNAME="$OPTARG" ;;
+  gui-password) GUI_PASSWORD="$OPTARG" ;;
+  gui-server-port) GUI_SERVER_PORT="$OPTARG" ;;
+  gui-inbrowser) GUI_INBROWSER=true ;;
+  gui-share) GUI_SHARE=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -585,3 +597,33 @@ elif [[ "$OSTYPE" == "msys" ]]; then
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
+
+run_launcher() {
+  if command -v python3.10 >/dev/null 2>&1; then
+    local PYTHON_EXEC="python3.10"
+  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python3"
+  else
+    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
+    exit 1
+  fi
+
+  "$PYTHON_EXEC" launcher.py \
+    --branch="$BRANCH" \
+    --dir="$DIR" \
+    --gitrepo="$GIT_REPO" \
+    --interactive="$INTERACTIVE" \
+    --nogitupdate="$SKIP_GIT_UPDATE" \
+    --public="$PUBLIC" \
+    --runpod="$RUNPOD" \
+    --skipspacecheck="$SKIP_SPACE_CHECK" \
+    --listen="$GUI_LISTEN" \
+    --username="$GUI_USERNAME" \
+    --password="$GUI_PASSWORD" \
+    --server_port="$GUI_SERVER_PORT" \
+    --inbrowser="$GUI_INBROWSER" \
+    --share="$GUI_SHARE" \
+    --verbose="$VERBOSITY"
+}
+
+run_launcher
