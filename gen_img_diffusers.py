@@ -2285,7 +2285,7 @@ def main(args):
 
             if not args.network_merge:
                 network.apply_to(text_encoder, unet)
-                info = network.load_state_dict(weights_sd, False)
+                info = network.load_state_dict(weights_sd, False)       # network.load_weightsを使うようにするとよい
                 print(f"weights are loaded: {info}")
 
                 if args.opt_channels_last:
