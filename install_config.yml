@@ -1,0 +1,46 @@
+arguments:
+  - name: Branch
+    short: -b
+    long: --branch
+    description: Select which branch of kohya to check out on new installs.
+    default: master
+  - name: Dir
+    short: -d
+    long: --dir
+    description: The full path you want kohya_ss installed to.
+    default: ~/kohya_ss
+  - name: GitRepo
+    short: -g
+    long: --gitrepo
+    description: You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+    default: https://github.com/kohya/kohya_ss.git
+  - name: Interactive
+    short: -i
+    long: --interactive
+    description: Interactively configure accelerate instead of using default config file.
+    default: false
+  - name: NoGitUpdate
+    short: -n
+    long: --nogitupdate
+    description: Do not update kohya_ss repo. No git pull or clone operations.
+    default: false
+  - name: Public
+    short: -p
+    long: --public
+    description: Expose public URL in runpod mode. Won't have an effect in other modes.
+    default: false
+  - name: Runpod
+    short: -r
+    long: --runpod
+    description: Forces a runpod installation. Useful if detection fails for any reason.
+    default: false
+  - name: SkipSpaceCheck
+    short: -s
+    long: --skipspacecheck
+    description: Skip the 10Gb minimum storage space check.
+    default: false
+  - name: Verbose
+    short: -v
+    long: --verbose
+    description: Increase verbosity levels up to 3.
+    default: 0
