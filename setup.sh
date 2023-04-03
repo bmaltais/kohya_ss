@@ -218,18 +218,20 @@ create_symlinks() {
 install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
-  if command -v python3 >/dev/null; then
-    python3 -m venv "$DIR/venv"
-  elif command -v python3.10 >/dev/null; then
-    python3.10 -m venv "$DIR/venv"
-  else
-    echo "Valid python3 or python3.10 binary not found."
-    echo "Cannot proceed with the python steps."
-    return 1
-  fi
+  if ! inDocker; then
+    if command -v python3 >/dev/null; then
+      python3 -m venv "$DIR/venv"
+    elif command -v python3.10 >/dev/null; then
+      python3.10 -m venv "$DIR/venv"
+    else
+      echo "Valid python3 or python3.10 binary not found."
+      echo "Cannot proceed with the python steps."
+      return 1
+    fi
 
-  # Activate the virtual environment
-  source "$DIR/venv/bin/activate"
+    # Activate the virtual environment
+    source "$DIR/venv/bin/activate"
+  fi
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
@@ -291,7 +293,7 @@ install_python_dependencies() {
     rm -f "$TEMP_REQUIREMENTS_FILE"
   fi
 
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
     if command -v deactivate >/dev/null; then
       echo "Exiting Python virtual environment."
       deactivate
@@ -351,6 +353,28 @@ check_storage_space() {
         sleep 1
       done
     fi
+  fi
+}
+
+isContainerOrPod() {
+  local cgroup=/proc/1/cgroup
+  test -f $cgroup && (grep -qE ':cpuset:/(docker|kubepods)' $cgroup || grep -q ':/docker/' $cgroup)
+}
+
+isDockerBuildkit() {
+  local cgroup=/proc/1/cgroup
+  test -f $cgroup && grep -q ':cpuset:/docker/buildkit' $cgroup
+}
+
+isDockerContainer() {
+  [ -e /.dockerenv ]
+}
+
+inDocker() {
+  if isContainerOrPod || isDockerBuildkit || isDockerContainer; then
+    return 0
+  else
+    return 1
   fi
 }
 
@@ -516,6 +540,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
+    if inDocker; then
+      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    fi
+
     # Symlink paths
     libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
     libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
@@ -550,15 +578,19 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       if command -v bash >/dev/null; then
         if [ "$PUBLIC" = false ]; then
           bash "$DIR"/gui.sh
+          exit 0
         else
           bash "$DIR"/gui.sh --share
+          exit 0
         fi
       else
         # This shouldn't happen, but we're going to try to help.
         if [ "$PUBLIC" = false ]; then
           sh "$DIR"/gui.sh
+          exit 0
         else
           sh "$DIR"/gui.sh --share
+          exit 0
         fi
       fi
     fi
