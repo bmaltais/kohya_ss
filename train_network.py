@@ -346,6 +346,7 @@ def train(args):
         "ss_caption_tag_dropout_rate": args.caption_tag_dropout_rate,
         "ss_face_crop_aug_range": args.face_crop_aug_range,
         "ss_prior_loss_weight": args.prior_loss_weight,
+        "ss_min_snr_gamma": args.min_snr_gamma,
     }
 
     if use_user_config:
