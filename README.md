@@ -127,8 +127,8 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-- 3 Apr. 2023, 2023/4/3:
-  - Add `--network_args` option to `train_network.py` to specify block weights for learning rates. Thanks to u-haru for your great contribution!
+- 4 Apr. 2023, 2023/4/4:
+  - Add options to `train_network.py` to specify block weights for learning rates. Thanks to u-haru for the great contribution!
     - Specify the weights of 25 blocks for the full model.
       - No LoRA corresponds to the first block, but 25 blocks are specified for compatibility with 'LoRA block weight' etc. Also, if you do not expand to conv2d3x3, some blocks do not have LoRA, but please specify 25 values ​​for the argument for consistency.
     - Specify the following arguments with `--network_args`.
@@ -138,10 +138,19 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - `mid_lr_weight` : Specify the learning rate weight of the mid block of U-Net. Specify one number such as `"down_lr_weight=0.5"`.
     - `up_lr_weight` : Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.
     - If you omit the some arguments, the 1.0 is used. Also, if you set the weight to 0, the LoRA modules of that block are not created.
+    - `block_lr_zero_threshold` : If the weight is not more than this value, the LoRA module is not created. The default is 0.
 
-  - 階層別学習率を `train_network.py` で指定できるようにしました。u-haru 氏の多大な貢献に感謝します。
+  - Add options to `train_network.py` to specify block dims (ranks) for variable rank.
+    - Specify 25 values ​​for the full model of 25 blocks. Some blocks do not have LoRA, but specify 25 values ​​always.
+    - Specify the following arguments with `--network_args`.
+    - `block_dims` : Specify the dim (rank) of each block. Specify 25 numbers such as `"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`.
+    - `block_alphas` : Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.
+    - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
+    - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
+
+  - 階層別学習率を `train_network.py` で指定できるようになりました。u-haru 氏の多大な貢献に感謝します。
     - フルモデルの25個のブロックの重みを指定できます。
-      - 最初のブロックに該当するLoRAは存在しませんが、階層別LoRA適用等との互換性のために25個としています。またconv2d3x3に拡張しない場合は一部のブロックにはLoRAが存在しませんが、記述を統一するため常に25個の値を指定してください。
+      - 最初のブロックに該当するLoRAは存在しませんが、階層別LoRA適用等との互換性のために25個としています。またconv2d3x3に拡張しない場合も一部のブロックにはLoRAが存在しませんが、記述を統一するため常に25個の値を指定してください。
     -`--network_args` で以下の引数を指定してください。
     - `down_lr_weight` : U-Netのdown blocksの学習率の重みを指定します。以下が指定可能です。
       - ブロックごとの重み : `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"` のように12個の数値を指定します。
@@ -149,33 +158,30 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
     - `mid_lr_weight` : U-Netのmid blockの学習率の重みを指定します。`"down_lr_weight=0.5"` のように数値を一つだけ指定します。
     - `up_lr_weight` : U-Netのup blocksの学習率の重みを指定します。down_lr_weightと同様です。
     - 指定を省略した部分は1.0として扱われます。また重みを0にするとそのブロックのLoRAモジュールは作成されません。
- 
+    - `block_lr_zero_threshold` : 重みがこの値以下の場合、LoRAモジュールを作成しません。デフォルトは0です。
 
-- 1 Apr. 2023, 2023/4/1:
-  - Fix an issue that `merge_lora.py` does not work with the latest version.
-  - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
-  - 最新のバージョンで`merge_lora.py` が動作しない不具合を修正しました。
-  - `merge_lora.py` で `no module found for LoRA weight: ...` と表示され Conv2d3x3 拡張の重みがマージされない不具合を修正しました。
-- 31 Mar. 2023, 2023/3/31:
-  - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
-  - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
-  - `train_network.py` でモデル読み込み時にVRAM使用量が一時的に大きくなる不具合を修正しました。
-  - `train_network.py` で `.safetensors` 形式のモデルを読み込むとエラーになる不具合を修正しました。[#354](https://github.com/kohya-ss/sd-scripts/issues/354)
-- 30 Mar. 2023, 2023/3/30:
-  - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
-    - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
-    - Use `train_textual_inversion_XTI.py` for training. The usage is almost the same as `train_textual_inversion.py`. However, sample image generation during training is not supported.
-    - Use `gen_img_diffusers.py` for image generation (I think Web UI is not supported). Specify the embedding with `--XTI_embeddings` option.
-  - Reduce RAM usage at startup in `train_network.py`. [#332](https://github.com/kohya-ss/sd-scripts/pull/332)  Thank you guaneec!
-  - Support pre-merge for LoRA in `gen_img_diffusers.py`. Specify `--network_merge` option. Note that the `--am` option of the prompt option is no longer available with this option.
+  - 階層別dim (rank)を `train_network.py` で指定できるようになりました。
+    - フルモデルの25個のブロックのdim (rank)を指定できます。階層別学習率と同様に一部のブロックにはLoRAが存在しない場合がありますが、常に25個の値を指定してください。
+    - `--network_args` で以下の引数を指定してください。
+    - `block_dims` : 各ブロックのdim (rank)を指定します。`"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"` のように25個の数値を指定します。
+    - `block_alphas` : 各ブロックのalphaを指定します。block_dimsと同様に25個の数値を指定します。省略時はnetwork_alphaの値が使用されます。
+    - `conv_block_dims` : LoRAをConv2d 3x3に拡張し、各ブロックのdim (rank)を指定します。
+    - `conv_block_alphas` : LoRAをConv2d 3x3に拡張したときの各ブロックのalphaを指定します。省略時はconv_alphaの値が使用されます。
 
-  - [P+](https://prompt-plus.github.io/) の学習に対応しました。jakaline-dev氏に感謝します。 
-    - 詳細は [#327](https://github.com/kohya-ss/sd-scripts/pull/327) をご参照ください。
-    - 学習には `train_textual_inversion_XTI.py` を使用します。使用法は `train_textual_inversion.py` とほぼ同じです。た
-    だし学習中のサンプル生成には対応していません。
-    - 画像生成には `gen_img_diffusers.py` を使用してください（Web UIは対応していないと思われます）。`--XTI_embeddings` オプションで学習したembeddingを指定してください。
-  - `train_network.py` で起動時のRAM使用量を削減しました。[#332](https://github.com/kohya-ss/sd-scripts/pull/332) guaneec氏に感謝します。
-  - `gen_img_diffusers.py` でLoRAの事前マージに対応しました。`--network_merge` オプションを指定してください。なおプロンプトオプションの `--am` は使用できなくなります。
+  - 階層別学習率コマンドライン指定例 / Examples of block learning rate command line specification:
+
+    ` --network_args "down_lr_weight=0.5,0.5,0.5,0.5,1.0,1.0,1.0,1.0,1.5,1.5,1.5,1.5" "mid_lr_weight=2.0" "up_lr_weight=1.5,1.5,1.5,1.5,1.0,1.0,1.0,1.0,0.5,0.5,0.5,0.5"`
+  
+    ` --network_args "block_lr_zero_threshold=0.1" "down_lr_weight=sine+.5" "mid_lr_weight=1.5" "up_lr_weight=cosine+.5"`
+
+  - 階層別dim (rank)コマンドライン指定例 / Examples of block dim (rank) command line specification:
+
+    ` --network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2"`
+  
+    ` --network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2" "conv_block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`
+
+    ` --network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2" "block_alphas=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`
+
 
 ## Sample image generation during training
   A prompt file might look like this, for example

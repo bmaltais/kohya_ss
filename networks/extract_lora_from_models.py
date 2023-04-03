@@ -145,8 +145,8 @@ def svd(args):
     lora_sd[lora_name + '.alpha'] = torch.tensor(down_weight.size()[0])
 
   # load state dict to LoRA and save it
-  lora_network_save = lora.create_network_from_weights(1.0, None, None, text_encoder_o, unet_o, weights_sd=lora_sd)
-  lora_network_save.apply_to(text_encoder_o, unet_o)        # create internal module references for state_dict
+  lora_network_save, lora_sd = lora.create_network_from_weights(1.0, None, None, text_encoder_o, unet_o, weights_sd=lora_sd)
+  lora_network_save.apply_to(text_encoder_o, unet_o)  # create internal module references for state_dict  
 
   info = lora_network_save.load_state_dict(lora_sd)
   print(f"Loading extracted LoRA weights: {info}")
