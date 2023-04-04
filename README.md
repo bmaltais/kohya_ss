@@ -9,10 +9,13 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - [Tutorials](#tutorials)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
-- [Installation](#installation)
-    - [Linux/macOS](#linux-and-macos)
-      - [Default Install Locations](#install-location)
-    - [Windows](#windows)
+- [Installation and Upgrading](#installation-and-upgrading)
+  - [Runpod](#runpod)
+  - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
+    - [Configuration](#configuration)
+      - [Command Line Arguments](#command-line-arguments)
+      - [Configuration File](#configuration-file)
+    - [Running Kohya_SS](#running-kohya_ss)
     - [CUDNN 8.6](#optional--cudnn-86)
 - [Upgrading](#upgrading)
   - [Windows](#windows-upgrade)
@@ -29,6 +32,8 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
   - [Page File Limit](#page-file-limit)
   - [No module called tkinter](#no-module-called-tkinter)
   - [FileNotFoundError](#filenotfounderror)
+  - [Installation Issues](#installation-issues)
+    - [General Installation Workflow](#general-installation-workflow)
 - [Change History](#change-history)
 
 ## Tutorials
@@ -52,70 +57,67 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 These dependencies are taken care of via `setup.sh` in the installation section. No additional steps should be needed unless the scripts inform you otherwise.
 
-## Installation
+## Installation and Upgrading
 
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
-### Linux and macOS
-In the terminal, run
+### macOS, Windows, Linux, BSD
+To set up and install the application, use the provided setup scripts depending on your operating system:
 
-```
-git clone https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-# May need to chmod +x ./setup.sh if you're on a machine with stricter security.
-# There are additional options if needed for a runpod environment.
-# Call 'setup.sh -h' or 'setup.sh --help' for more information.
-./setup.sh
-```
+For Windows or any OS with PowerShell available, use setup.ps1.
+For all non-Windows operating systems, use setup.sh.
 
-Setup.sh help included here:
+**Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.**
 
-```bash
-Kohya_SS Installation Script for POSIX operating systems.
+#### Configuration
 
-The following options are useful in a runpod environment,
-but will not affect a local machine install.
+##### Command Line Arguments
 
-Usage:
-  setup.sh -b dev -d /workspace/kohya_ss -g https://mycustom.repo.tld/custom_fork.git
-  setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
+The following command-line arguments are supported by setup.ps1 and setup.sh:
 
-Options:
-  -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
-  -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
-  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
-  -h, --help                    Show this screen.
-  -i, --interactive             Interactively configure accelerate instead of using default config file.
-  -n, --no-update               Do not update kohya_ss repo. No git pull or clone operations.
-  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
-  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
-  -s, --skip-space-check        Skip the 10Gb minimum storage space check.
-  -v, --verbose                 Increase verbosity levels up to 3.
-```
+-b BRANCH or --branch=BRANCH: Select which branch of kohya to check out on new installs.
+-d DIR or --dir=DIR: The full path you want kohya_ss installed to.
+-g REPO or --git_repo=REPO: You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+-h or --help: Show help information.
+-i or --interactive: Interactively configure accelerate instead of using the default config file.
+-n or --no-git-update: Do not update kohya_ss repo. No git pull or clone operations.
+-p or --public: Expose public URL in runpod mode. Won't have an effect in other modes.
+-r or --runpod: Forces a runpod installation. Useful if detection fails for any reason.
+-s or --skip-space-check: Skip the 10Gb minimum storage space check.
+-v or --verbose: Increase verbosity levels up to 3.
 
-#### Install location
+GUI Arguments
+The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
+Use them in the same manner is the above arguments:
 
-The default install location for Linux is where the script is located if a previous installation is detected that location.
-Otherwise, it will fall to `/opt/kohya_ss`. If /opt is not writeable, the fallback is `$HOME/kohya_ss`. Lastly, if all else fails it will simply install to the current folder you are in (PWD).
+--listen or -l: The IP address to listen on (default: 127.0.0.1).
+--username or -u: The username for the GUI (default: empty string).
+--password or -p: The password for the GUI (default: empty string).
+--server_port or -s: The server port for the GUI (default: 8080).
+--inbrowser or -i: Launch the GUI in the default web browser (default: false).
+--share or -r: Share the GUI over the network (default: false).
 
-On macOS and other non-Linux machines, it will first try to detect an install where the script is run from and then run setup there if that's detected. 
-If a previous install isn't found at that location, then it will default install to `$HOME/kohya_ss` followed by where you're currently at if there's no access to $HOME.
-You can override this behavior by specifying an install directory with the -d option.
+##### Configuration File
+The setup scripts look for a configuration file called install_config.yaml in various locations to determine the command-line arguments for the installation process. The order in which the scripts search for this file is as follows:
 
-If you are using the interactive mode, our default values for the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
-These are the same answers as the Windows install.
+The path specified by a variable in the script itself (if any).
+For Windows users: the kohya_ss folder within your AppData or LocalAppData directories.
+For non-Windows users: a hidden folder named .kohya_ss in your home directory.
+The installation directory you've chosen for kohya_ss.
+The kohya_ss folder within your user profile directory.
+The same directory as the setup script.
+The setup scripts will use the first install_config.yaml file they find in this order. This allows you to place your configuration file in a location that suits your needs, making it easy for you to customize the installation process. If you're not familiar with some of these locations, don't worry—simply placing the configuration file in the same directory as the setup script is a straightforward and effective option.
 
-### Windows
-In the terminal, run:
+#### Running Kohya_SS
+Run the setup script with default settings:
 
-```
-git clone https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-setup.bat
-```
+On Windows: .\setup.ps1
+On non-Windows: ./setup.sh
+Run the setup script with custom settings:
 
-Then configure accelerate with the same answers as in the MacOS instructions when prompted.
+On Windows: .\setup.ps1 -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true --branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+On non-Windows: ./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 
 ### Optional: CUDNN 8.6
 
@@ -134,68 +136,6 @@ python .\tools\cudann_1.8_install.py
 ```
 
 Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
-
-## Upgrading
-
-The following commands will work from the root directory of the project if you'd prefer to not run scripts.
-These commands will work on any OS.
-```bash
-git pull
-
-.\venv\Scripts\activate
-
-pip install --use-pep517 --upgrade -r requirements.txt
-```
-
-### Windows Upgrade
-When a new release comes out, you can upgrade your repo with the following commands in the root directory:
-
-```powershell
-upgrade.bat
-```
-
-### Linux and macOS Upgrade
-You can cd into the root directory and simply run
-
-```bash
-# Refresh and update everything
-./setup.sh
-
-# This will refresh everything, but NOT clone or pull the git repo.
-./setup.sh --no-git-update
-```
-
-Once the commands have completed successfully you should be ready to use the new version.
-
-# Starting GUI Service
-
-The following command line arguments can be passed to the scripts on any OS to configure the underlying service.
-```
---listen: the IP address to listen on for connections to Gradio.
---username: a username for authentication. 
---password: a password for authentication. 
---server_port: the port to run the server listener on. 
---inbrowser: opens the Gradio UI in a web browser. 
---share: shares the Gradio UI.
-```
-
-### Launching the GUI on Windows
-
-The two scripts to launch the GUI on Windows are gui.ps1 and gui.bat in the root directory.
-You can use whichever script you prefer.
-
-To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
-
-`gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
-
-or
-
-`gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
-
-## Launching the GUI on Linux and macOS
-
-Run the launcher script with the desired command line arguments similar to Windows.
-`gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
 
 ## Launching the GUI directly using kohya_gui.py
 
@@ -254,6 +194,16 @@ pip uninstall -r uninstall.txt
 ```
 
 This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
+
+### Installation Issues
+
+#### General Installation Workflow
+1. Run setup.ps1 on Windows or setup.sh on non-Windows operating systems with the desired command-line arguments.
+2. The setup script will execute launcher.py with the same arguments.
+3. launcher.py will pass the command-line arguments through to kohya_gui.py, which will use these arguments to configure the GUI and other settings according to your preferences.
+Now the workflow is complete, and your application is set up and configured. 
+
+You can run launcher.py whenever you want to launch the application with the specified settings.
 
 ## Change History
 
