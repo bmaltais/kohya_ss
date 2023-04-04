@@ -46,24 +46,34 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 [![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
 
-## Required Dependencies
+## Installation and Upgrading
+
+### Required Dependencies
+
+These dependencies are taken care of via `setup.sh` or `setup.ps1` in the installation section. 
+
+No additional steps should be needed unless the scripts inform you otherwise.
 
 - Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
   - make sure to tick the box to add Python to the 'PATH' environment variable
 - Install [Git](https://git-scm.com/download/win)
 - Install [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
-### Linux and macOS dependencies
-
-These dependencies are taken care of via `setup.sh` in the installation section. No additional steps should be needed unless the scripts inform you otherwise.
-
-## Installation and Upgrading
-
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
 ### macOS, Windows, Linux, BSD
 To set up and install the application, use the provided setup scripts depending on your operating system:
+
+If you get any errors about permissions running the setup.ps1 script on Windows try the following:
+```bash
+$Policy = Get-ExecutionPolicy -Scope CurrentUser; if ($Policy -eq "Restricted" -or $Policy -eq "AllSigned") { Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force }
+```
+
+This command does the following:
+
+1. Retrieves the current execution policy for the current user.
+2. If the policy is set to Restricted or AllSigned, it changes the policy to RemoteSigned for the current user only, allowing local unsigned scripts to run. The -Force flag is used to bypass the confirmation prompt.
 
 For Windows or any OS with PowerShell available, use setup.ps1.
 For all non-Windows operating systems, use setup.sh.
@@ -76,6 +86,7 @@ For all non-Windows operating systems, use setup.sh.
 
 The following command-line arguments are supported by setup.ps1 and setup.sh:
 
+```bash
 -b BRANCH or --branch=BRANCH: Select which branch of kohya to check out on new installs.
 -d DIR or --dir=DIR: The full path you want kohya_ss installed to.
 -g REPO or --git_repo=REPO: You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
@@ -86,17 +97,20 @@ The following command-line arguments are supported by setup.ps1 and setup.sh:
 -r or --runpod: Forces a runpod installation. Useful if detection fails for any reason.
 -s or --skip-space-check: Skip the 10Gb minimum storage space check.
 -v or --verbose: Increase verbosity levels up to 3.
+```
 
 GUI Arguments
 The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
 Use them in the same manner is the above arguments:
 
+```bash
 --listen or -l: The IP address to listen on (default: 127.0.0.1).
 --username or -u: The username for the GUI (default: empty string).
 --password or -p: The password for the GUI (default: empty string).
 --server_port or -s: The server port for the GUI (default: 8080).
 --inbrowser or -i: Launch the GUI in the default web browser (default: false).
 --share or -r: Share the GUI over the network (default: false).
+```
 
 ##### Configuration File
 The setup scripts look for a configuration file called install_config.yaml in various locations to determine the command-line arguments for the installation process. The order in which the scripts search for this file is as follows:
@@ -116,8 +130,16 @@ On Windows: .\setup.ps1
 On non-Windows: ./setup.sh
 Run the setup script with custom settings:
 
-On Windows: .\setup.ps1 -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true --branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
-On non-Windows: ./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+On Windows: 
+```bash
+setup.ps1 -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true \
+--branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+```
+On non-Windows: 
+```bash
+setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true \
+--branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+```
 
 ### Optional: CUDNN 8.6
 

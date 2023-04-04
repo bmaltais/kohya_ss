@@ -160,6 +160,37 @@ function Get-Parameters {
     return $Config
 }
 
+<#
+.SYNOPSIS
+    Tests if the specified keys exist in a given hashtable.
+
+.DESCRIPTION
+    This function takes a hashtable and an array of required keys as input. It returns true if all the required keys exist in the hashtable, and false otherwise.
+
+.PARAMETER Params
+    A hashtable containing key-value pairs.
+
+.PARAMETER RequiredKeys
+    An array of strings representing the required keys.
+
+.OUTPUTS
+    Boolean
+        Returns true if all the required keys exist in the hashtable, and false otherwise.
+
+.EXAMPLE
+    $params = @{
+        'key1' = 'value1'
+        'key2' = 'value2'
+        'key3' = 'value3'
+    }
+    $requiredKeys = @('key1', 'key2', 'key3')
+    $result = Test-Value -Params $params -RequiredKeys $requiredKeys
+    if ($result) {
+        Write-Host "All required keys are present."
+    } else {
+        Write-Host "Some required keys are missing."
+    }
+#>
 function Test-Value {
     param (
         [hashtable]$Params,
@@ -321,66 +352,88 @@ function Update-InstallScope {
 
 <#
 .SYNOPSIS
-   Detects the Linux distribution and returns its name.
+    Retrieves information about the current operating system.
 
 .DESCRIPTION
-   This function attempts to detect the Linux distribution by examining the contents of various files such as
-   /etc/os-release and /etc/redhat-release. It returns the distribution name if detected, otherwise "Generic Linux".
+    This function returns an object containing the operating system's name, family, and version. It supports Linux, macOS, and Windows systems.
 
 .OUTPUTS
-   System.String
-   Outputs the Linux distribution name or "Generic Linux" if not detected.
+    PSCustomObject
+        An object containing the name, family, and version of the operating system.
+
+.EXAMPLE
+    $os = Get-OsInfo
+    Write-Host "Operating System: $($os.name)"
+    Write-Host "OS Family: $($os.family)"
+    Write-Host "OS Version: $($os.version)"
 #>
-function Get-LinuxDistribution {
+function Get-OsInfo {
     $os = @{
         name    = "Unknown"
         family  = "Unknown"
         version = "Unknown"
     }
 
-    if (Test-Path "/etc/os-release") {
+    if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+        $os.name = "Windows"
+        $os.family = "Windows"
+        $os.version = [System.Environment]::OSVersion.Version.ToString()
+    }
+    elseif (Test-Path "/System/Library/CoreServices/SystemVersion.plist") {
+        $os.name = "macOS"
+        $os.family = "macOS"
+        $os.version = "Unknown"
         try {
-            $os_release = Get-Content "/etc/os-release" -Raw -ErrorAction Stop
-            $os.name = if ($os_release -match 'ID="?([^"\n]+)') { $matches[1] } else { "Unknown" }
-            $os.family = if ($os_release -match 'ID_LIKE="?([^"\n]+)') { $matches[1] } else { "Unknown" }
-            $os.version = if ($os_release -match 'VERSION="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+            $os.version = (Get-Content -Raw -Path "/System/Library/CoreServices/SystemVersion.plist" -ErrorAction Stop | Select-String -Pattern "<string>([\d\.]+)</string>" | ForEach-Object { $_.Matches.Groups[1].Value }) -join ""
         }
         catch {
-            Write-Warning "Error reading /etc/os-release: $_"
+            Write-Warning "Error reading /System/Library/CoreServices/SystemVersion.plist: $_"
         }
     }
-    elseif (Test-Path "/etc/redhat-release") {
-        try {
-            $redhat_release = Get-Content "/etc/redhat-release"
-            if ($redhat_release -match '([^ ]+) release ([^ ]+)') {
-                $os.name = $matches[1]
-                $os.family = "RedHat"
-                $os.version = $matches[2]
+    elseif (Test-Path "/etc/os-release") {
+        if (Test-Path "/etc/os-release") {
+            try {
+                $os_release = Get-Content "/etc/os-release" -Raw -ErrorAction Stop
+                $os.name = if ($os_release -match 'ID="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+                $os.family = if ($os_release -match 'ID_LIKE="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+                $os.version = if ($os_release -match 'VERSION="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+            }
+            catch {
+                Write-Warning "Error reading /etc/os-release: $_"
             }
         }
-        catch {
-            Write-Warning "Error reading /etc/redhat-release: $_"
+        elseif (Test-Path "/etc/redhat-release") {
+            try {
+                $redhat_release = Get-Content "/etc/redhat-release"
+                if ($redhat_release -match '([^ ]+) release ([^ ]+)') {
+                    $os.name = $matches[1]
+                    $os.family = "RedHat"
+                    $os.version = $matches[2]
+                }
+            }
+            catch {
+                Write-Warning "Error reading /etc/redhat-release: $_"
+            }
+        }
+
+        if ($os.name -eq "Unknown") {
+            try {
+                $uname = uname -a
+                if ($uname -match "Ubuntu") { $os.name = "Ubuntu"; $os.family = "Ubuntu" }
+                elseif ($uname -match "Debian") { $os.name = "Debian"; $os.family = "Debian" }
+                elseif ($uname -match "Red Hat" -or $uname -match "CentOS") { $os.name = "RedHat"; $os.family = "RedHat" }
+                elseif ($uname -match "Fedora") { $os.name = "Fedora"; $os.family = "Fedora" }
+                elseif ($uname -match "SUSE") { $os.name = "openSUSE"; $os.family = "SUSE" }
+                elseif ($uname -match "Arch") { $os.name = "Arch"; $os.family = "Arch" }
+                else { $os.name = "Generic Linux"; $os.family = "Generic Linux" }
+            }
+            catch {
+                Write-Warning "Error executing uname command: $_"
+                $os.name = "Generic Linux"
+                $os.family = "Generic Linux"
+            }
         }
     }
-
-    if ($os.name -eq "Unknown") {
-        try {
-            $uname = uname -a
-            if ($uname -match "Ubuntu") { $os.name = "Ubuntu"; $os.family = "Ubuntu" }
-            elseif ($uname -match "Debian") { $os.name = "Debian"; $os.family = "Debian" }
-            elseif ($uname -match "Red Hat" -or $uname -match "CentOS") { $os.name = "RedHat"; $os.family = "RedHat" }
-            elseif ($uname -match "Fedora") { $os.name = "Fedora"; $os.family = "Fedora" }
-            elseif ($uname -match "SUSE") { $os.name = "openSUSE"; $os.family = "SUSE" }
-            elseif ($uname -match "Arch") { $os.name = "Arch"; $os.family = "Arch" }
-            else { $os.name = "Generic Linux"; $os.family = "Generic Linux" }
-        }
-        catch {
-            Write-Warning "Error executing uname command: $_"
-            $os.name = "Generic Linux"
-            $os.family = "Generic Linux"
-        }
-    }
-
     return [PSCustomObject]$os
 }
 
@@ -573,8 +626,9 @@ function Install-Python310 {
             exit 1
         }
     }
+}
 
-    <#
+<#
 .SYNOPSIS
    Installs the Python 3 Tk package using pip.
 
@@ -585,123 +639,350 @@ function Install-Python310 {
 .OUTPUTS
    None
 #>
-    function Install-Python3Tk {
-        param (
-            [ValidateSet('allusers', 'user')]
-            [string]$installScope = 'user'
-        )
+function Install-Python3Tk {
+    param (
+        [ValidateSet('allusers', 'user')]
+        [string]$installScope = 'user'
+    )
 
-        $os = Get-LinuxDistribution
-        $elevate = Get-ElevationCommand
+    $os = Get-LinuxDistribution
+    $elevate = Get-ElevationCommand
 
-        if ($PSVersionTable.Platform -eq 'Unix') {
-            # Linux / macOS installation
-            switch ($os.family) {
-                "Ubuntu" {
-                    # Ubuntu installation
-                    try {
-                        & $elevate apt update
-                        & $elevate apt install -y python3.10-tk
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
-                    }
+    if ($PSVersionTable.Platform -eq 'Unix') {
+        # Linux / macOS installation
+        switch ($os.family) {
+            "Ubuntu" {
+                # Ubuntu installation
+                try {
+                    & $elevate apt update
+                    & $elevate apt install -y python3.10-tk
                 }
-                "Debian" {
-                    # Debian installation
-                    try {
-                        & $elevate apt-get update
-                        & $elevate apt-get install -y python3.10-tk
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
-                    }
-                }
-                "RedHat" {
-                    # Red Hat installation
-                    try {
-                        & $elevate dnf install -y python3.10-tkinter
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
-                    }
-                }
-                "Arch" {
-                    # Arch installation
-                    try {
-                        & $elevate pacman -S --noconfirm tk
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
-                    }
-                }
-                "openSUSE" {
-                    # openSUSE installation
-                    try {
-                        & $elevate zypper install -y python3.10-tk
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
-                    }
-                }
-                "macOS" {
-                    if (Test-Path "/usr/local/bin/brew") {
-                        try {
-                            # macOS installation using Homebrew
-                            Invoke-Expression "brew install python-tk@3.10"
-                        }
-                        catch {
-                            Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
-                        }
-                    }
-                    else {
-                        Write-Host "Unsupported Unix platform or package manager not found."
-                    }
-                }
-                default {
-                    Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
                 }
             }
-        }
-        else {
-            # Windows installation
-            $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
-            $pythonInstallerFile = "python-3.10.0-amd64.exe"
-            $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
-            $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
-            Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
-
-            $installScope = Update-InstallScope($Interactive) 
-
-            if ($installScope -eq 'allusers') {
-                if (Test-IsAdmin) {
+            "Debian" {
+                # Debian installation
+                try {
+                    & $elevate apt-get update
+                    & $elevate apt-get install -y python3.10-tk
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
+                }
+            }
+            "RedHat" {
+                # Red Hat installation
+                try {
+                    & $elevate dnf install -y python3.10-tkinter
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
+                }
+            }
+            "Arch" {
+                # Arch installation
+                try {
+                    & $elevate pacman -S --noconfirm tk
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
+                }
+            }
+            "openSUSE" {
+                # openSUSE installation
+                try {
+                    & $elevate zypper install -y python3.10-tk
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
+                }
+            }
+            "macOS" {
+                if (Test-Path "/usr/local/bin/brew") {
                     try {
-                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
+                        # macOS installation using Homebrew
+                        Invoke-Expression "brew install python-tk@3.10"
                     }
                     catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
+                        Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
                     }
                 }
                 else {
-                    if (Test-IsAdmin) {
-                        Write-Host "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
-                    }
+                    Write-Host "Unsupported Unix platform or package manager not found."
+                }
+            }
+            default {
+                Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
+            }
+        }
+    }
+    else {
+        # Windows installation
+        $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+        $pythonInstallerFile = "python-3.10.0-amd64.exe"
+        $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
+        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
+        Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
+
+        $installScope = Update-InstallScope($Interactive) 
+
+        if ($installScope -eq 'allusers') {
+            if (Test-IsAdmin) {
+                try {
+                    Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
+                }
+            }
+            else {
+                if (Test-IsAdmin) {
+                    Write-Host "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
+                }
+                try {
+                    Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
+                }
+            }
+
+            Remove-Item $installerPath
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+   Installs Git using the specified installer.
+
+.DESCRIPTION
+   This function downloads and installs Git using the specified installer URL.
+   It also adds Git to the system PATH variable.
+
+.PARAMETER InstallerURL
+   The URL of the Git installer.
+
+.OUTPUTS
+   None
+#>
+function Install-Git {
+    param (
+        [switch]$Interactive
+    )
+
+    function Test-GitInstalled {
+        try {
+            git --version
+            return $true
+        }
+        catch {
+            return $false
+        }
+    }
+
+    function Install-GitWindows {
+        $packageManagerFound = $false
+
+        if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
+            scoop install git
+            $packageManagerFound = $true
+        }
+        elseif (Get-Command "choco" -ErrorAction SilentlyContinue) {
+            choco install git
+            $packageManagerFound = $true
+        }
+        elseif (Get-Command "winget" -ErrorAction SilentlyContinue) {
+            winget install --id Git.Git
+            $packageManagerFound = $true
+        }
+
+        if (-not $packageManagerFound) {
+            if (Test-IsAdmin) {
+                $installScope = Update-InstallScope($Interactive)
+
+                $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.35.1.windows.1/Git-2.35.1-64-bit.exe"
+                $gitInstallerName = "Git-2.35.1-64-bit.exe"
+                $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
+                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $gitInstallerName
+
+                if (-not (Test-Path $installerPath)) {
                     try {
-                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                        Invoke-WebRequest -Uri $gitUrl -OutFile $installerPath
                     }
                     catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
+                        Write-Host "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
+                        exit 1
                     }
+                }
+
+                if ($installScope -eq "user") {
+                    Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
+                }
+                else {
+                    Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
                 }
 
                 Remove-Item $installerPath
             }
+            else {
+                # We default to installing at a user level if admin is not detected.
+                Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
+            }
         }
     }
 
+    function Install-GitMac {
+        if (Get-Command "brew" -ErrorAction SilentlyContinue) {
+            brew install git
+        }
+        else {
+            Write-Host "Please install Homebrew first to continue with Git installation."
+            Write-Host "You can find that here: https://brew.sh"
+            exit 1
+        }
+    }
+
+    function Install-GitLinux {
+        $elevate = ""
+        if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
+            $elevate = "sudo"
+        }
+        $os = Get-LinuxDistribution
+
+        switch ($os.family) {
+            "Ubuntu" {
+                if (& $elevate apt-get update) {
+                    if (!(& $elevate apt-get install -y git)) {
+                        Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
+                    }
+                }
+                else {
+                    Write-Host "Error: Failed to update package list. Installation of Git aborted."
+                }
+            }
+            "Debian" {
+                if (& $elevate apt-get update) {
+                    if (!(& $elevate apt-get install -y git)) {
+                        Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
+                    }
+                }
+                else {
+                    Write-Host "Error: Failed to update package list. Installation of Git aborted."
+                }
+            }
+            "RedHat" {
+                if (!(& $elevate dnf install -y git)) {
+                    Write-Host "Error: Failed to install Git via dnf. Installation of Git aborted."
+                }
+            }
+            "Arch" {
+                if (!(& $elevate pacman -Sy --noconfirm git)) {
+                    Write-Host "Error: Failed to install Git via pacman. Installation of Git aborted."
+                }
+            }
+            "openSUSE" {
+                if (!(& $elevate zypper install -y git)) {
+                    Write-Host "Error: Failed to install Git via zypper. Installation of Git aborted."
+                }
+            }
+            default {
+                Write-Host "Unsupported Linux distribution. Please install Git manually."
+                exit 1
+            }
+        }
+    }
+
+    if (Test-GitInstalled) {
+        Write-Host "Git is already installed."
+        return
+    }
+
+    $osPlatform = ""
+    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
+        $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+    }
+    elseif ($PSVersionTable.Platform -eq 'Unix') {
+        $osPlatform = (uname -s).ToString()
+    }
+    elseif ($PSVersionTable.Platform -eq 'MacOS') {
+        $osPlatform = (uname -s).ToString()
+    }
+    else {
+        Write-Host "Unsupported operating system. Please install Git manually."
+        exit 1
+    }
+
+    if ($osPlatform -like "*Windows*") {
+        Install-GitWindows
+    }
+    elseif ($osPlatform -like "*Mac*") {
+        Install-GitMac
+    }
+    elseif ($osPlatform -like "*Linux*") {
+        Install-GitLinux
+    }
+    else {
+        Write-Host "Unsupported operating system. Please install Git manually."
+        exit 1
+    }
+
+    if (Test-GitInstalled) {
+        Write-Host "Git installed successfully."
+    }
+    else {
+        Write-Host 'Failed to install. Please ensure Git is installed and available in $PATH.'
+        exit 1
+    }
+}
+
+<#
+.SYNOPSIS
+    Installs the Visual Studio redistributables on Windows systems.
+
+.DESCRIPTION
+    This function downloads and installs the Visual Studio 2015, 2017, 2019, and 2022 redistributable on Windows systems. It checks for administrator privileges and prompts the user for elevation if necessary.
+
+.PARAMETER Interactive
+    A boolean value that indicates whether to prompt the user for choices during the installation process.
+
+.EXAMPLE
+    Install-VCRedistWindows -Interactive $true
+#>
+function Install-VCRedistWindows {
+    $os = Get-OsInfo
+    if ($os.Name -ne "Windows") {
+        return
+    }
+
+    if (-not (Test-IsAdmin)) {
+        Write-Host "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
+        exit 1
+    }
+
+    $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    $vcRedistInstallerName = "vc_redist.x64.exe"
+    $downloadsFolder = "$env:USERPROFILE\Downloads"
+    $installerPath = Join-Path -Path $downloadsFolder -ChildPath $vcRedistInstallerName
+
+    if (-not (Test-Path $installerPath)) {
+        try {
+            Invoke-WebRequest -Uri $vcRedistUrl -OutFile $installerPath
+        }
+        catch {
+            Write-Host "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+            exit 1
+        }
+    }
+
+    Start-Process -FilePath $installerPath -ArgumentList "/install", "/quiet", "/norestart" -Wait
+    Remove-Item -Path $installerPath -Force
+}
 
 
-    <#
+
+<#
 .SYNOPSIS
    The main function for the setup.ps1 script.
 
@@ -713,66 +994,66 @@ function Install-Python310 {
 .OUTPUTS
    None
 #>
-    function Main {
-        param (
-            $Parameters
-        )
+function Main {
+    param (
+        $Parameters
+    )
 
-        begin {
-            $requiredKeys = @("Dir", "Branch", "GitRepo")
-            if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
-                Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
-                exit 1
-            }
-        }
-
-        process {
-            if (-not (Test-Python310Installed)) {
-                Install-Python310 -Interactive:$Parameters.Interactive
-            }
-
-            if ($PSVersionTable.Platform -eq 'Unix') {
-                $linuxDistribution = Get-LinuxDistribution
-            }
-            else {
-                $linuxDistribution = $null
-            }
-
-            Install-Python3Tk -LinuxDistribution $linuxDistribution
-        }
-
-        end {
-            $pyExe = Get-PythonExePath
-
-            if ($null -ne $pyExe) {
-                $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
-
-                $installArgs = @()
-                foreach ($key in $Params.Keys) {
-                    $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
-                    $installArgs += $argName, $Params[$key]
-                }
-
-                # Call launcher.py with the appropriate parameters
-                & $pyExe -u "$launcher" $installArgs
-            }
-            else {
-                Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
-                exit 1
-            }
+    begin {
+        $requiredKeys = @("Dir", "Branch", "GitRepo")
+        if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
+            Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
+            exit 1
         }
     }
 
-    # Call the Get-Parameters function to process the arguments in the intended fashion
-    # Parameter value assignments should be as follows:
-    # 1) Command line arguments (user overrides)
-    # 2) Configuration file (install_config.yml). Default locations:
-    #    a) OS-specific standard folders
-    #       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
-    #       Non-Windows: $env:HOME/kohya_ss/
-    #    b) Installation Directory
-    #    c) The folder this script is run from
-    # 3) Default values built into the scripts if none specified by user and there is no config file.
-    $Params = Get-Parameters
-    Main -Parameters $Params
+    process {
+        if (-not (Test-Python310Installed)) {
+            Install-Python310 -Interactive:$Parameters.Interactive
+        }
+
+        if ($PSVersionTable.Platform -eq 'Unix') {
+            $linuxDistribution = Get-LinuxDistribution
+        }
+        else {
+            $linuxDistribution = $null
+        }
+
+        Install-Python3Tk -LinuxDistribution $linuxDistribution
+    }
+
+    end {
+        $pyExe = Get-PythonExePath
+
+        if ($null -ne $pyExe) {
+            $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
+
+            $installArgs = @()
+            foreach ($key in $Params.Keys) {
+                $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
+                $installArgs += $argName, $Params[$key]
+            }
+
+            # Call launcher.py with the appropriate parameters
+            & $pyExe -u "$launcher" $installArgs
+        }
+        else {
+            Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
+            exit 1
+        }
+    }
+}
+
+# Call the Get-Parameters function to process the arguments in the intended fashion
+# Parameter value assignments should be as follows:
+# 1) Command line arguments (user overrides)
+# 2) Configuration file (install_config.yml). Default locations:
+#    a) OS-specific standard folders
+#       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
+#       Non-Windows: $env:HOME/kohya_ss/
+#    b) Installation Directory
+#    c) The folder this script is run from
+# 3) Default values built into the scripts if none specified by user and there is no config file.
+$Params = Get-Parameters
+Main -Parameters $Params
 

@@ -215,22 +215,105 @@ VERBOSITY: $VERBOSITY
 Script directory is ${SCRIPT_DIR}." >&5
 
 # Shared functions
+is_admin() {
+  if [ "$(uname -s)" = "Windows" ] || [ "$(uname -s)" = "MINGW64_NT" ] || [ "$(uname -s)" = "CYGWIN_NT" ]; then
+    if net session >/dev/null 2>&1; then
+      return 0
+    else
+      return 1
+    fi
+  else
+    if [ "$EUID" = 0 ] || [ "$(id -u)" = 0 ] || [ "$UID" = 0 ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
+update_install_scope() {
+  local interactive="$1"
+  local install_option
+  local install_scope
+
+  if [ "$interactive" = true ]; then
+    while true; do
+      read -rp "Choose installation option: (1) Local (2) Global: " install_option
+      if [ "$install_option" = "1" ] || [ "$install_option" = "2" ]; then
+        break
+      fi
+    done
+  else
+    install_option=2
+  fi
+
+  if [ "$install_option" = "1" ]; then
+    install_scope="user"
+  else
+    install_scope="allusers"
+  fi
+
+  echo "$install_scope"
+}
+
+normalize_path() {
+  local path="$1"
+  os=$(get_os_info)
+
+  case $os in
+  "Windows")
+    if command -v cygpath >/dev/null 2>&1; then
+      path=$(cygpath -m -a "$path" 2>/dev/null || echo "$path")
+    else
+      # Fallback method for Windows without cygpath
+      path="$(cd "$(dirname "$path")" && pwd -W)/$(basename "$path")"
+    fi
+    ;;
+  *)
+    # Portable approach for Linux and BSD systems, including minimal environments like Alpine Linux
+    # shellcheck disable=SC2164
+    path=$(
+      cd "$(dirname "$path")"
+      pwd
+    )/$(basename "$path")
+    ;;
+  esac
+
+  echo "$path"
+}
 # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 size_available() {
   local folder
-  if [ -d "$DIR" ]; then
-    folder="$DIR"
-  elif [ -d "$PARENT_DIR" ]; then
-    folder="$PARENT_DIR"
-  elif [ -d "$(echo "$DIR" | cut -d "/" -f2)" ]; then
-    folder="$(echo "$DIR" | cut -d "/" -f2)"
-  else
-    echo "We are assuming a root drive install for space-checking purposes."
-    folder='/'
-  fi
+  os=$(get_os_info)
+
+  case $os in
+  "Windows")
+    folder="C:"
+    ;;
+  *)
+    if [ -d "$DIR" ]; then
+      folder="$DIR"
+    elif [ -d "$PARENT_DIR" ]; then
+      folder="$PARENT_DIR"
+    elif [ -d "$(echo "$DIR" | cut -d "/" -f2)" ]; then
+      folder="$(echo "$DIR" | cut -d "/" -f2)"
+    else
+      echo "We are assuming a root drive install for space-checking purposes."
+      folder='/'
+    fi
+    ;;
+  esac
 
   local FREESPACEINKB
-  FREESPACEINKB="$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
+  case $os in
+  "Windows")
+    FREESPACEINKB=$(wmic logicaldisk where "DeviceID='$folder'" get FreeSpace | awk 'NR==2 {print int($1/1024)}')
+    ;;
+  *)
+    FREESPACEINKB=$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')
+    ;;
+  esac
+
   echo "Detected available space in Kb: $FREESPACEINKB" >&5
   local FREESPACEINGB
   FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
@@ -280,168 +363,327 @@ run_launcher() {
     --verbose="$VERBOSITY"
 }
 
-# Start OS-specific detection and work
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  # Check if root or sudo
-  root=false
-  if [ "$EUID" = 0 ]; then
-    root=true
-  elif command -v id >/dev/null && [ "$(id -u)" = 0 ]; then
-    root=true
-  elif [ "$UID" = 0 ]; then
-    root=true
+get_os_info() {
+  os_name="Unknown"
+  os_family="Unknown"
+  os_version="Unknown"
+
+  case "$(uname -s)" in
+  Darwin*)
+    os_name="macOS"
+    os_family="macOS"
+    os_version=$(sw_vers -productVersion)
+    ;;
+  MINGW64_NT* | MSYS_NT* | CYGWIN_NT*)
+    os_name="Windows"
+    os_family="Windows"
+    os_version=$(systeminfo | grep "^OS Version" | awk -F: '{print $2}' | tr -d '[:space:]')
+    ;;
+  Linux*)
+    if [ -f /etc/os-release ]; then
+      os_name=$(grep -oP '(?<=^ID=).*' /etc/os-release | tr -d '"')
+      os_family=$(grep -oP '(?<=^ID_LIKE=).*' /etc/os-release | tr -d '"')
+      os_version=$(grep -oP '(?<=^VERSION=).*' /etc/os-release | tr -d '"')
+    elif [ -f /etc/redhat-release ]; then
+      os_name=$(awk '{print $1}' /etc/redhat-release)
+      os_family="RedHat"
+      os_version=$(awk '{print $3}' /etc/redhat-release)
+    fi
+
+    if [ "$os_name" == "Unknown" ]; then
+      uname_output=$(uname -a)
+      if [[ $uname_output == *"Ubuntu"* ]]; then
+        os_name="Ubuntu"
+        os_family="Ubuntu"
+      elif [[ $uname_output == *"Debian"* ]]; then
+        os_name="Debian"
+        os_family="Debian"
+      elif [[ $uname_output == *"Red Hat"* || $uname_output == *"CentOS"* ]]; then
+        os_name="RedHat"
+        os_family="RedHat"
+      elif [[ $uname_output == *"Fedora"* ]]; then
+        os_name="Fedora"
+        os_family="Fedora"
+      elif [[ $uname_output == *"SUSE"* ]]; then
+        os_name="openSUSE"
+        os_family="SUSE"
+      elif [[ $uname_output == *"Arch"* ]]; then
+        os_name="Arch"
+        os_family="Arch"
+      else
+        os_name="Generic Linux"
+        os_family="Generic Linux"
+      fi
+    fi
+    ;;
+  *)
+    os_name="Unknown"
+    os_family="Unknown"
+    ;;
+  esac
+
+  echo "$os_name"
+}
+
+install_git_windows() {
+  local interactive="$1"
+  local package_manager_found=false
+
+  if command -v git >/dev/null 2>&1; then
+    echo "Git is already installed."
+    return 0
   fi
 
-  get_distro_name() {
-    local line
-    if [ -f /etc/os-release ]; then
-      # We search for the line starting with ID=
-      # Then we remove the ID= prefix to get the name itself
-      line="$(grep -Ei '^ID=' /etc/os-release)"
-      echo "Raw detected os-release distro line: $line" >&5
-      line=${line##*=}
-      echo "$line"
-      return 0
-    elif command -v python >/dev/null; then
-      line="$(python -mplatform)"
-      echo "$line"
-      return 0
-    elif command -v python3 >/dev/null; then
-      line="$(python3 -mplatform)"
-      echo "$line"
-      return 0
-    else
-      line="None"
-      echo "$line"
-      return 1
-    fi
-  }
-
-  # We search for the line starting with ID_LIKE=
-  # Then we remove the ID_LIKE= prefix to get the name itself
-  # This is the "type" of distro. For example, Ubuntu returns "debian".
-  get_distro_family() {
-    local line
-    if [ -f /etc/os-release ]; then
-      if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
-        line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
-        echo "Raw detected os-release distro family line: $line" >&5
-        line=${line##*=}
-        echo "$line"
-        return 0
-      else
-        line="None"
-        echo "$line"
-        return 1
-      fi
-    else
-      line="None"
-      echo "$line"
-      return 1
-    fi
-  }
-
-  distro=get_distro_name
-  family=get_distro_family
-  echo "Raw detected distro string: $distro" >&4
-  echo "Raw detected distro family string: $family" >&4
-
-  echo "Installing Python TK if not found on the system."
-  if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
-    echo "Ubuntu detected."
-    if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      if [ "$root" = true ]; then
-        apt update -y >&3 && apt install -y python3-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    else
-      echo "Python TK found! Skipping install!"
-    fi
-  elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
-    echo "Redhat or Redhat base detected."
-    if ! rpm -qa | grep -qi python3-tkinter; then
-      if [ "$root" = true ]; then
-        dnf install python3-tkinter -y >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
-    echo "Arch Linux or Arch base detected."
-    if ! pacman -Qi tk >/dev/null; then
-      if [ "$root" = true ]; then
-        pacman --noconfirm -S tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
-    echo "OpenSUSE detected."
-    if ! rpm -qa | grep -qi python-tk; then
-      if [ "$root" = true ]; then
-        zypper install -y python-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
-    if [ "$distro" = "None" ]; then
-      echo "We could not detect your distribution of Linux. Please file a bug report on github with the contents of your /etc/os-release file."
-    fi
-
-    if [ "$family" = "None" ]; then
-      echo "We could not detect the family of your Linux distribution. Please file a bug report on github with the contents of your /etc/os-release file."
-    fi
+  if command -v scoop >/dev/null 2>&1; then
+    scoop install git
+    package_manager_found=true
+  elif command -v choco >/dev/null 2>&1; then
+    choco install git
+    package_manager_found=true
+  elif command -v winget >/dev/null 2>&1; then
+    winget install --id Git.Git
+    package_manager_found=true
   fi
 
-  # Setup should be completed by now. Run the launcher for remaining tasks and running the GUI.
-  echo -e "Python setup finished. Running launcher.py to complete installation."
-  run_launcher
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  # The initial setup script to prep the environment on macOS
-  # xformers has been omitted as that is for Nvidia GPUs only
+  if [ "$package_manager_found" = false ]; then
+    if is_admin; then
+      local install_scope=$(update_install_scope "$interactive")
+    else
+      install_scope="user"
+    fi
 
-  if ! command -v brew >/dev/null; then
-    echo "Please install homebrew first. This is a requirement for the remaining setup."
-    echo "You can find that here: https://brew.sh"
-    #shellcheck disable=SC2016
-    echo 'The "brew" command should be in $PATH to be detected.'
+    local git_url="https://github.com/git-for-windows/git/releases/download/v2.35.1.windows.1/Git-2.35.1-64-bit.exe"
+    local git_installer_name="Git-2.35.1-64-bit.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${git_installer_name}"
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -o "$installer_path" -L "$git_url"; then
+        echo "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
+        exit 1
+      fi
+    fi
+
+    if [ "$install_scope" = "user" ]; then
+      start /wait "$installer_path" /VERYSILENT /NORESTART /LOG /NOICONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+    else
+      start /wait "$installer_path" /VERYSILENT /NORESTART /LOG /NOICONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh" /ALLUSERS=1
+    fi
+
+    rm -f "$installer_path"
+  fi
+}
+
+install_git() {
+  os=$(get_os_info)
+
+  if command -v git >/dev/null 2>&1; then
+    echo "Git is already installed."
+    return 0
+  fi
+
+  case $os in
+  "Windows")
+    install_git_windows "$interactive"
+    ;;
+  "macOS")
+    if command -v brew >/dev/null 2>&1; then
+      brew install git
+    else
+      echo "Please install Homebrew first to continue with Git installation."
+      echo "You can find that here: https://brew.sh"
+      exit 1
+    fi
+    ;;
+  "Ubuntu" | "Debian")
+    if is_admin; then
+      sudo apt-get update && sudo apt-get install -y git
+    else
+      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      exit 1
+    fi
+    ;;
+  "Fedora" | "CentOS" | "RedHat")
+    if is_admin; then
+      sudo dnf install -y git
+    else
+      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      exit 1
+    fi
+    ;;
+  "Arch" | "Manjaro")
+    if is_admin; then
+      sudo pacman -Sy --noconfirm git
+    else
+      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      exit 1
+    fi
+    ;;
+  "openSUSE")
+    if is_admin; then
+      sudo zypper install -y git
+    else
+      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Unsupported operating system. Please install Git manually."
+    exit 1
+    ;;
+  esac
+}
+
+install_python310_windows() {
+  local interactive="$1"
+
+  if command -v scoop >/dev/null 2>&1; then
+    package_manager_found=false
+  elif command -v choco >/dev/null 2>&1; then
+    choco install python --version=3.10 --params "/IncludeTclTk"
+    package_manager_found=true
+  elif command -v winget >/dev/null 2>&1; then
+    winget install --id Python.Python --version 3.10.*
+    package_manager_found=true
+  fi
+
+  if [ "$package_manager_found" = false ]; then
+    if is_admin; then
+      local install_scope=$(update_install_scope "$interactive")
+    else
+      install_scope="user"
+    fi
+
+    local python_url="https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+    local python_installer_name="python-3.10.0-amd64.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${python_installer_name}"
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -o "$installer_path" -L "$python_url"; then
+        echo "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
+        exit 1
+      fi
+    fi
+
+    if [ "$install_scope" = "user" ]; then
+      start /wait "$installer_path" /passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1
+    else
+      start /wait "$installer_path" /passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1
+    fi
+
+    rm -f "$installer_path"
+  fi
+}
+
+install_python_and_tk() {
+  os=$(get_os_info)
+
+  if command -v python3.10 >/dev/null 2>&1; then
+    echo "Python 3.10 is already installed."
+  else
+    case $os in
+    "Windows")
+      install_python310_windows "$interactive"
+      ;;
+    "macOS")
+      if command -v brew >/dev/null 2>&1; then
+        brew install python@3.10
+        brew link --overwrite --force python@3.10
+        brew install tcl-tk
+      else
+        echo "Please install Homebrew first to continue with Python 3.10 and Tk installation."
+        echo "You can find that here: https://brew.sh"
+        exit 1
+      fi
+      ;;
+    "Ubuntu" | "Debian")
+      if is_admin; then
+        sudo apt update && sudo apt install -y python3.10 python3.10-tk
+      else
+        echo "Root privileges are required to install Python and Tk on Ubuntu/Debian. Exiting."
+        exit 1
+      fi
+      ;;
+    "Fedora" | "CentOS" | "RedHat")
+      if is_admin; then
+        sudo dnf install -y python3.10 python3.10-tkinter
+      else
+        echo "Root privileges are required to install Python and Tk on Fedora/CentOS/RedHat. Exiting."
+        exit 1
+      fi
+      ;;
+    "Arch" | "Manjaro")
+      # Get the latest 3.10.x version of Python available in the repository
+      # shellcheck disable=SC2155
+      local latest_python310_version=$(pacman -Si python | grep -oP '3.10\.\d+' | head -n 1)
+
+      if [[ -n "$latest_python310_version" ]]; then
+        # Install the latest 3.10.x version of Python along with python-tk
+        if is_admin; then
+          sudo pacman -Sy --noconfirm "python=${latest_python310_version}" python-tk
+        else
+          echo "Root privileges are required to install Python and Tk on Arch/Manjaro. Exiting."
+          exit 1
+        fi
+      else
+        echo "Python 3.10.x not found in the repository."
+        exit 1
+      fi
+      ;;
+    "openSUSE")
+      if is_admin; then
+        sudo zypper install -y python3.10 python3.10-tk
+      else
+        echo "Root privileges are required to install Python and Tk on openSUSE. Exiting."
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually."
+      echo "For manual installation, you can download the official Python tar.gz packages from:"
+      echo "https://www.python.org/downloads/source/"
+      exit 1
+      ;;
+    esac
+  fi
+}
+
+install_vc_redist_windows() {
+  os=$(get_os_info)
+  if [ "$os" != "Windows" ]; then
+    return 0
+  fi
+
+  if ! is_admin; then
+    echo "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
     exit 1
   fi
 
-  # Will warn the user if their space is low before installing Python.
-  # check_storage_space 1 means it will warn the user if 1gb of storage space or less detected.
-  check_storage_space 1
+  local vc_redist_url="https://aka.ms/vs/17/release/vc_redist.x64.exe"
+  local vc_redist_installer_name="vc_redist.x64.exe"
+  local downloads_folder="$HOME/Downloads"
+  local installer_path="${downloads_folder}/${vc_redist_installer_name}"
 
-  # Install base python packages
-  echo "Installing Python 3.10 if not found."
-  if ! brew ls --versions python@3.10 >/dev/null; then
-    echo "Installing Python 3.10."
-    brew install python@3.10 >&3
-  else
-    echo "Python 3.10 found!"
-  fi
-  echo "Installing Python-TK 3.10 if not found."
-  if ! brew ls --versions python-tk@3.10 >/dev/null; then
-    echo "Installing Python TK 3.10."
-    brew install python-tk@3.10 >&3
-  else
-    echo "Python Tkinter 3.10 found!"
+  if [ ! -f "$installer_path" ]; then
+    if ! curl -o "$installer_path" -L "$vc_redist_url"; then
+      echo "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+      exit 1
+    fi
   fi
 
-  # Setup should be completed by now. Run the launcher for remaining tasks and running the GUI.
-  echo -e "Python setup finished. Running launcher.py to complete installation."
+  start /wait "$installer_path" /install /quiet /norestart
+  rm -f "$installer_path"
+}
+
+function main() {
+  DIR="$(normalize_path "$DIR")"
+  # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
+  check_storage_space 5
+  install_git
+  install_python_and_tk
+  install_vc_redist_windows
   run_launcher
-elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilities on Windows
-  echo "This hasn't been validated on cygwin yet."
-elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
-  # "git bash" on Windows may also be detected as msys.
-  echo "This hasn't been validated in msys (mingw) on Windows yet."
-fi
+}
+
+main
