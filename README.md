@@ -258,12 +258,44 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2024/04/02 (v21.4.2)
+* 2023/04/04 (v21.5.0)
+    - Update MacOS and Linux install scripts. Thanks @jstayco
+    - Update windows upgrade ps1 and bat
+    - Update kohya_ss sd-script code to latest release... this is a big one so it might cause some training issue. If you find that this release is causing issues for you you can go back to the previous release with `git checkout v21.4.2` and then run the upgrade script for your platform. Here is the list of changes in the new sd-scripts:
+        - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
+        - The learning rate and dim (rank) of each block may not work with other modules (LyCORIS, etc.) because the module needs to be changed.
+
+        - Fix some bugs and add some features.
+            - Fix an issue that `.json` format dataset config files cannot be read.  [issue #351](https://github.com/kohya-ss/sd-scripts/issues/351) Thanks to rockerBOO!
+            - Raise an error when an invalid `--lr_warmup_steps` option is specified (when warmup is not valid for the specified scheduler).  [PR #364](https://github.com/kohya-ss/sd-scripts/pull/364)  Thanks to shirayu!
+            - Add `min_snr_gamma` to metadata in `train_network.py`. [PR #373](https://github.com/kohya-ss/sd-scripts/pull/373) Thanks to rockerBOO!
+            - Fix the data type handling in `fine_tune.py`. This may fix an error that occurs in some environments when using xformers, npz format cache, and mixed_precision.
+
+        - Add options to `train_network.py` to specify block weights for learning rates. [PR #355](https://github.com/kohya-ss/sd-scripts/pull/355) Thanks to u-haru for the great contribution!
+            - Specify the weights of 25 blocks for the full model.
+            - No LoRA corresponds to the first block, but 25 blocks are specified for compatibility with 'LoRA block weight' etc. Also, if you do not expand to conv2d3x3, some blocks do not have LoRA, but please specify 25 values ​​for the argument for consistency.
+            - Specify the following arguments with `--network_args`.
+            - `down_lr_weight` : Specify the learning rate weight of the down blocks of U-Net. The following can be specified.
+            - The weight for each block: Specify 12 numbers such as `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"`.
+            - Specify from preset: Specify such as `"down_lr_weight=sine"` (the weights by sine curve). sine, cosine, linear, reverse_linear, zeros can be specified. Also, if you add `+number` such as `"down_lr_weight=cosine+.25"`, the specified number is added (such as 0.25~1.25).
+            - `mid_lr_weight` : Specify the learning rate weight of the mid block of U-Net. Specify one number such as `"down_lr_weight=0.5"`.
+            - `up_lr_weight` : Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.
+            - If you omit the some arguments, the 1.0 is used. Also, if you set the weight to 0, the LoRA modules of that block are not created.
+            - `block_lr_zero_threshold` : If the weight is not more than this value, the LoRA module is not created. The default is 0.
+
+        - Add options to `train_network.py` to specify block dims (ranks) for variable rank.
+            - Specify 25 values ​​for the full model of 25 blocks. Some blocks do not have LoRA, but specify 25 values ​​always.
+            - Specify the following arguments with `--network_args`.
+            - `block_dims` : Specify the dim (rank) of each block. Specify 25 numbers such as `"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`.
+            - `block_alphas` : Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.
+            - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
+            - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
+* 2023/04/02 (v21.4.2)
     - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
 * 2023/04/01 (v21.4.1)
     - Fix type for linux install by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/517
     - Fix .gitignore by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/518
-* 2024/04/01 (v21.4.0)
+* 2023/04/01 (v21.4.0)
     - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
     - Fix issue with "missing library" error.
 * 2023/04/01 (v21.3.9)

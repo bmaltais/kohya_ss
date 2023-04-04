@@ -32,16 +32,31 @@ from library.custom_train_functions import apply_snr_weight
 def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_scheduler):
     logs = {"loss/current": current_loss, "loss/average": avr_loss}
 
-    if args.network_train_unet_only:
-        logs["lr/unet"] = float(lr_scheduler.get_last_lr()[0])
-    elif args.network_train_text_encoder_only:
-        logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
-    else:
-        logs["lr/textencoder"] = float(lr_scheduler.get_last_lr()[0])
-        logs["lr/unet"] = float(lr_scheduler.get_last_lr()[-1])  # may be same to textencoder
+    lrs = lr_scheduler.get_last_lr()
 
-    if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value of unet.
-        logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]["d"] * lr_scheduler.optimizers[-1].param_groups[0]["lr"]
+    if args.network_train_text_encoder_only or len(lrs) <= 2:  # not block lr (or single block)
+        if args.network_train_unet_only:
+            logs["lr/unet"] = float(lrs[0])
+        elif args.network_train_text_encoder_only:
+            logs["lr/textencoder"] = float(lrs[0])
+        else:
+            logs["lr/textencoder"] = float(lrs[0])
+            logs["lr/unet"] = float(lrs[-1])  # may be same to textencoder
+
+        if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value of unet.
+            logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]["d"] * lr_scheduler.optimizers[-1].param_groups[0]["lr"]
+    else:
+        idx = 0
+        if not args.network_train_unet_only:
+            logs["lr/textencoder"] = float(lrs[0])
+            idx = 1
+
+        for i in range(idx, len(lrs)):
+            logs[f"lr/group{i}"] = float(lrs[i])
+            if args.optimizer_type.lower() == "DAdaptation".lower():
+                logs[f"lr/d*lr/group{i}"] = (
+                    lr_scheduler.optimizers[-1].param_groups[i]["d"] * lr_scheduler.optimizers[-1].param_groups[i]["lr"]
+                )
 
     return logs
 
@@ -99,10 +114,10 @@ def train(args):
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
-    current_epoch = Value('i',0)
-    current_step = Value('i',0)
+    current_epoch = Value("i", 0)
+    current_step = Value("i", 0)
     ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
-    collater = train_util.collater_class(current_epoch,current_step, ds_for_collater)
+    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
 
     if args.debug_dataset:
         train_util.debug_dataset(train_dataset_group)
@@ -146,7 +161,6 @@ def train(args):
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
 
-
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
@@ -179,14 +193,17 @@ def train(args):
     network = network_module.create_network(1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
     if network is None:
         return
-
-    if args.network_weights is not None:
-        print("load network weights from:", args.network_weights)
-        network.load_weights(args.network_weights)
+    
+    if hasattr(network, "prepare_network"):
+        network.prepare_network(args)
 
     train_unet = not args.network_train_text_encoder_only
     train_text_encoder = not args.network_train_unet_only
     network.apply_to(text_encoder, unet, train_text_encoder, train_unet)
+
+    if args.network_weights is not None:
+        info = network.load_weights(args.network_weights)
+        print(f"load network weights from {args.network_weights}: {info}")
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -196,7 +213,13 @@ def train(args):
     # 学習に必要なクラスを準備する
     print("prepare optimizer, data loader etc.")
 
-    trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+    # 後方互換性を確保するよ
+    try:
+        trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr, args.learning_rate)
+    except TypeError:
+        print("Deprecated: use prepare_optimizer_params(text_encoder_lr, unet_lr, learning_rate) instead of prepare_optimizer_params(text_encoder_lr, unet_lr)")
+        trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
+
     optimizer_name, optimizer_args, optimizer = train_util.get_optimizer(args, trainable_params)
 
     # dataloaderを準備する
@@ -214,7 +237,9 @@ def train(args):
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
+        args.max_train_steps = args.max_train_epochs * math.ceil(
+            len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
+        )
         if is_main_process:
             print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
@@ -346,6 +371,7 @@ def train(args):
         "ss_caption_tag_dropout_rate": args.caption_tag_dropout_rate,
         "ss_face_crop_aug_range": args.face_crop_aug_range,
         "ss_prior_loss_weight": args.prior_loss_weight,
+        "ss_min_snr_gamma": args.min_snr_gamma,
     }
 
     if use_user_config:
@@ -474,8 +500,6 @@ def train(args):
     # add extra args
     if args.network_args:
         metadata["ss_network_args"] = json.dumps(net_kwargs)
-        # for key, value in net_kwargs.items():
-        #   metadata["ss_arg_" + key] = value
 
     # model name and hash
     if args.pretrained_model_name_or_path is not None:
@@ -518,7 +542,7 @@ def train(args):
     for epoch in range(num_train_epochs):
         if is_main_process:
             print(f"epoch {epoch+1}/{num_train_epochs}")
-        current_epoch.value = epoch+1
+        current_epoch.value = epoch + 1
 
         metadata["ss_epoch"] = str(epoch + 1)
 

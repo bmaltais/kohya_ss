@@ -120,7 +120,7 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -155,7 +155,7 @@ def get_file_path(
 
 
 def get_any_file_path(file_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -197,7 +197,7 @@ def remove_doublequote(file_path):
 
 
 def get_folder_path(folder_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION) and sys.platform != 'darwin':
         current_folder_path = folder_path
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
@@ -217,7 +217,7 @@ def get_folder_path(folder_path=''):
 def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -253,7 +253,7 @@ def get_saveasfile_path(
 def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in FILE_ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
