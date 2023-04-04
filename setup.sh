@@ -36,50 +36,8 @@ Options:
 EOF
 }
 
-# Checks to see if variable is set and non-empty.
-# This is defined first, so we can use the function for some default variable values
-env_var_exists() {
-  if [[ -n "${!1}" ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Need RUNPOD to have a default value before first access
-RUNPOD=false
-if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
-  RUNPOD=true
-fi
-
 # This gets the directory the script is run from so pathing can work relative to the script where needed.
 SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
-
-# Variables defined before the getopts loop, so we have sane default values.
-# Default installation locations based on OS and environment
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  if [ "$RUNPOD" = true ]; then
-    DIR="/workspace/kohya_ss"
-  elif [ -d "$SCRIPT_DIR/.git" ]; then
-    DIR="$SCRIPT_DIR"
-  elif [ -w "/opt" ]; then
-    DIR="/opt/kohya_ss"
-  elif env_var_exists HOME; then
-    DIR="$HOME/kohya_ss"
-  else
-    # The last fallback is simply PWD
-    DIR="$(PWD)"
-  fi
-else
-  if [ -d "$SCRIPT_DIR/.git" ]; then
-    DIR="$SCRIPT_DIR"
-  elif env_var_exists HOME; then
-    DIR="$HOME/kohya_ss"
-  else
-    # The last fallback is simply PWD
-    DIR="$(PWD)"
-  fi
-fi
 
 parse_yaml() {
   local yaml_file="$1"
@@ -99,28 +57,8 @@ parse_yaml() {
     else
       state="none"
     fi
-  done < "$yaml_file"
+  done <"$yaml_file"
 }
-
-configFileLocations=(
-  "$1"
-  "$HOME/.kohya_ss/install_config.yaml"
-  "$DIR/install_config.yaml"
-  "$PSScriptRoot/install_config.yaml"
-)
-
-configFile=""
-
-for location in "${configFileLocations[@]}"; do
-  if [ -f "$location" ]; then
-    configFile="$location"
-    break
-  fi
-done
-
-if [ -n "$configFile" ]; then
-  parse_yaml "$configFile" "config"
-fi
 
 # Use the variables from the configuration file as default values
 BRANCH="${config_Branch:-master}"
@@ -141,7 +79,23 @@ GUI_SHARE="${config_GuiShare:-false}"
 
 MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
 
-while getopts ":vb:d:g:inprs-:" opt; do
+# This code handles the loading of parameter values in the following order of precedence:
+# 1. Command-line arguments provided by the user
+# 2. Values defined in a configuration file
+# 3. Default values specified in the script
+#
+# First, the code checks for the presence of a configuration file in the specified locations.
+# If found, the configuration file's values are loaded as default values for the variables.
+# Then, the getopts loop processes any command-line arguments provided by the user.
+# If the user has provided a value for a parameter via the command-line, it will override
+# the corresponding value from the configuration file or the script's default value.
+# If neither a configuration file nor a command-line argument is provided for a parameter,
+# the script will use the default value specified within the script.
+
+USER_CONFIG_FILE=""
+declare -A CLI_ARGUMENTS
+
+while getopts ":vb:d:f:g:inprs-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -149,44 +103,96 @@ while getopts ":vb:d:g:inprs-:" opt; do
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) BRANCH="$OPTARG" ;;
-  d | dir) DIR="$OPTARG" ;;
-  g | git-repo) GIT_REPO="$OPTARG" ;;
-  i | interactive) INTERACTIVE=true ;;
-  n | no-git-update) SKIP_GIT_UPDATE=true ;;
-  p | public) PUBLIC=true ;;
-  r | runpod) RUNPOD=true ;;
-  s | skip-space-check) SKIP_SPACE_CHECK=true ;;
-  gui-listen) GUI_LISTEN="$OPTARG" ;;
-  gui-username) GUI_USERNAME="$OPTARG" ;;
-  gui-password) GUI_PASSWORD="$OPTARG" ;;
-  gui-server-port) GUI_SERVER_PORT="$OPTARG" ;;
-  gui-inbrowser) GUI_INBROWSER=true ;;
-  gui-share) GUI_SHARE=true ;;
-  v) ((VERBOSE = VERBOSE + 1)) ;;
+  b | branch) CLI_ARGUMENTS["Branch"]="$OPTARG" ;;
+  d | dir) CLI_ARGUMENTS["Dir"]="$OPTARG" ;;
+  f | file) USER_CONFIG_FILE="$OPTARG" ;;
+  g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
+  i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
+  n | no-git-update) CLI_ARGUMENTS["NoGitUpdate"]="true" ;;
+  p | public) CLI_ARGUMENTS["Public"]="true" ;;
+  r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
+  s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
+  gui-listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
+  gui-username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
+  gui-password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
+  gui-server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
+  gui-inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
+  gui-share) CLI_ARGUMENTS["GuiShare"]="true" ;;
+  v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
   esac
 done
 shift $((OPTIND - 1))
 
-# Just in case someone puts in a relative path into $DIR,
-# we're going to get the absolute path of that.
-if [[ "$DIR" != /* ]] && [[ "$DIR" != ~* ]]; then
-  DIR="$(
-    cd "$(dirname "$DIR")" || exit 1
-    pwd
-  )/$(basename "$DIR")"
+configFileLocations=(
+  "$USER_CONFIG_FILE"
+  "$HOME/.kohya_ss/install_config.yaml"
+  "$DIR/install_config.yaml"
+  "$SCRIPT_DIR/install_config.yaml"
+)
+
+configFile=""
+
+for location in "${configFileLocations[@]}"; do
+  if [ -f "$location" ]; then
+    configFile="$location"
+    break
+  fi
+done
+
+if [ -n "$configFile" ]; then
+  parse_yaml "$configFile" "config"
 fi
 
+# Set default values
+config_Branch="${config_Branch:-master}"
+config_Dir="${config_Dir:-$HOME/kohya_ss}"
+config_GitRepo="${config_GitRepo:-https://github.com/kohya/kohya_ss.git}"
+config_Interactive="${config_Interactive:-false}"
+config_NoGitUpdate="${config_NoGitUpdate:-false}"
+config_Public="${config_Public:-false}"
+config_Runpod="${config_Runpod:-false}"
+config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
+config_Verbose="${config_Verbose:-2}"
+config_GuiListen="${config_GuiListen:-127.0.0.1}"
+config_GuiUsername="${config_GuiUsername:-}"
+config_GuiPassword="${config_GuiPassword:-}"
+config_GuiServerPort="${config_GuiServerPort:-8080}"
+config_GuiInbrowser="${config_GuiInbrowser:-false}"
+config_GuiShare="${config_GuiShare:-false}"
+
+# Override config values with CLI arguments
+for key in "${!CLI_ARGUMENTS[@]}"; do
+  configVar="config_$key"
+  eval "$configVar=${CLI_ARGUMENTS[$key]}"
+done
+
+# Use the variables from the configuration file as default values
+BRANCH="$config_Branch"
+DIR="$config_Dir"
+GIT_REPO="$config_GitRepo"
+INTERACTIVE="$config_Interactive"
+SKIP_GIT_UPDATE="$config_NoGitUpdate"
+PUBLIC="$config_Public"
+RUNPOD="$config_Runpod"
+SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
+VERBOSE="$config_Verbose"
+GUI_LISTEN="$config_GuiListen"
+GUI_USERNAME="$config_GuiUsername"
+GUI_PASSWORD="$config_GuiPassword"
+GUI_SERVER_PORT="$config_GuiServerPort"
+GUI_INBROWSER="$config_GuiInbrowser"
+GUI_SHARE="$config_GuiShare"
+
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 $VERBOSITY
+  seq 3 $VERBOSE
 ); do
-  (("$v" <= "$MAXVERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
+  (("$v" <= "$VERBOSE")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
 done
 
 for v in $( #From the verbosity level one higher than requested, through the maximum;
-  seq $((VERBOSITY + 1)) $MAXVERBOSITY
+  seq $((VERBOSE + 1)) $MAXVERBOSITY
 ); do
   (("$v" > "2")) && eval exec "$v>/dev/null" #Redirect these to bitbucket, provided that they don't match stdout and stderr.
 done
@@ -200,6 +206,7 @@ done
 echo "BRANCH: $BRANCH
 DIR: $DIR
 GIT_REPO: $GIT_REPO
+Config file location: $USER_CONFIG_FILE
 INTERACTIVE: $INTERACTIVE
 PUBLIC: $PUBLIC
 RUNPOD: $RUNPOD
@@ -207,23 +214,8 @@ SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
 VERBOSITY: $VERBOSITY
 Script directory is ${SCRIPT_DIR}." >&5
 
-# This must be set after the getopts loop to account for $DIR changes.
-PARENT_DIR="$(dirname "${DIR}")"
-VENV_DIR="$DIR/venv"
-
-if [ -w "$PARENT_DIR" ] && [ ! -d "$DIR" ]; then
-  echo "Creating install folder ${DIR}."
-  mkdir "$DIR"
-fi
-
-if [ ! -w "$DIR" ]; then
-  echo "We cannot write to ${DIR}."
-  echo "Please ensure the install directory is accurate and you have the correct permissions."
-  exit 1
-fi
-
 # Shared functions
-# This checks for free space on the installation drive and returns that in Gb.
+# Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 size_available() {
   local folder
   if [ -d "$DIR" ]; then
@@ -245,140 +237,9 @@ size_available() {
   echo "$FREESPACEINGB"
 }
 
-# The expected usage is create_symlinks symlink target_file
-create_symlinks() {
-  echo "Checking symlinks now."
-  # Next line checks for valid symlink
-  if [ -L "$1" ]; then
-    # Check if the linked file exists and points to the expected file
-    if [ -e "$1" ] && [ "$(readlink "$1")" == "$2" ]; then
-      echo "$(basename "$1") symlink looks fine. Skipping."
-    else
-      if [ -f "$2" ]; then
-        echo "Broken symlink detected. Recreating $(basename "$1")."
-        rm "$1" &&
-          ln -s "$2" "$1"
-      else
-        echo "$2 does not exist. Nothing to link."
-      fi
-    fi
-  else
-    echo "Linking $(basename "$1")."
-    ln -s "$2" "$1"
-  fi
-}
-
-install_python_dependencies() {
-  # Switch to local virtual env
-  echo "Switching to virtual Python environment."
-  if command -v python3 >/dev/null; then
-    python3 -m venv "$DIR/venv"
-  elif command -v python3.10 >/dev/null; then
-    python3.10 -m venv "$DIR/venv"
-  else
-    echo "Valid python3 or python3.10 binary not found."
-    echo "Cannot proceed with the python steps."
-    return 1
-  fi
-
-  # Activate the virtual environment
-  source "$DIR/venv/bin/activate"
-
-  # Updating pip if there is one
-  echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip >&3
-
-  echo "Installing python dependencies. This could take a few minutes as it downloads files."
-  echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
-  case "$OSTYPE" in
-  "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
-    --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
-    pip install -U -I --no-deps \
-      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
-  "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
-  "cygwin")
-    :
-    ;;
-  "msys")
-    :
-    ;;
-  esac
-
-  if [ "$RUNPOD" = true ]; then
-    echo "Installing tenssort."
-    pip install tensorrt >&3
-  fi
-
-  # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
-  # pip install pydevd-pycharm~=223.8836.43
-
-  #This will copy our requirements.txt file out, make the khoya_ss lib a dynamic location then cleanup.
-  echo "Copying $DIR/requirements.txt to /tmp/requirements_tmp.txt" >&3
-  echo "Replacing the . for lib to our DIR variable in tmp/requirements_tmp.txt." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >/tmp/requirements_tmp.txt
-  if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
-  else
-    python -m pip install --use-pep517 --upgrade -r /tmp/requirements_tmp.txt >&3
-  fi
-
-  echo "Removing the temp requirements file."
-  if [ -f /tmp/requirements_tmp.txt ]; then
-    rm /tmp/requirements_tmp.txt
-  fi
-
-  if [ -n "$VIRTUAL_ENV" ]; then
-    if command -v deactivate >/dev/null; then
-      echo "Exiting Python virtual environment."
-      deactivate
-    else
-      echo "deactivate command not found. Could still be in the Python virtual environment."
-    fi
-  fi
-}
-
-# Attempt to non-interactively install a default accelerate config file unless specified otherwise.
-# Documentation for order of precedence locations for configuration file for automated installation:
-# https://huggingface.co/docs/accelerate/basic_tutorials/launch#custom-configurations
-configure_accelerate() {
-  echo "Source accelerate config location: $DIR/config_files/accelerate/default_config.yaml" >&3
-  if [ "$INTERACTIVE" = true ]; then
-    accelerate config
-  else
-    if env_var_exists HF_HOME; then
-      if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
-        mkdir -p "$HF_HOME/accelerate/" &&
-          echo "Target accelerate config location: $HF_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HF_HOME/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $HF_HOME/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists XDG_CACHE_HOME; then
-      if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
-        mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
-          echo "Target accelerate config location: $XDG_CACHE_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists HOME; then
-      if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
-        mkdir -p "$HOME/.cache/huggingface/accelerate" &&
-          echo "Target accelerate config location: $HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HOME/.cache/huggingface/accelerate/default_config.yaml" &&
-          echo "Copying accelerate config file to: $HOME/.cache/huggingface/accelerate/default_config.yaml"
-      fi
-    else
-      echo "Could not place the accelerate configuration file. Please configure manually."
-      sleep 2
-      accelerate config
-    fi
-  fi
-}
-
-# Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 check_storage_space() {
   if [ "$SKIP_SPACE_CHECK" = false ]; then
-    if [ "$(size_available)" -lt 10 ]; then
+    if [ "$(size_available)" -lt "$1" ]; then
       echo "You have less than 10Gb of free space. This installation may fail."
       MSGTIMEOUT=10 # In seconds
       MESSAGE="Continuing in..."
@@ -391,40 +252,32 @@ check_storage_space() {
   fi
 }
 
-# These are the git operations that will run to update or clone the repo
-update_kohya_ss() {
-  if [ "$SKIP_GIT_UPDATE" = false ]; then
-    if command -v git >/dev/null; then
-      # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ "$(git -C "$DIR" status --porcelain=v1 2>/dev/null | wc -l)" -gt 0 ] &&
-        echo "These files need to be committed or discarded: " >&4 &&
-        git -C "$DIR" status >&4; then
-        echo "There are changes that need to be committed or discarded in the repo in $DIR."
-        echo "Commit those changes or run this script with -n to skip git operations entirely."
-        exit 1
-      fi
-
-      echo "Attempting to clone $GIT_REPO."
-      if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
-        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
-        git -C "$DIR" switch "$BRANCH" >&4
-      else
-        echo "git repo detected. Attempting to update repository instead."
-        echo "Updating: $GIT_REPO"
-        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
-        if ! git -C "$DIR" switch "$BRANCH" >&4; then
-          echo "Branch $BRANCH did not exist. Creating it." >&4
-          git -C "$DIR" switch -c "$BRANCH" >&4
-        fi
-      fi
-    else
-      echo "You need to install git."
-      echo "Rerun this after installing git or run this script with -n to skip the git operations."
-    fi
+run_launcher() {
+  if command -v python3.10 >/dev/null 2>&1; then
+    local PYTHON_EXEC="python3.10"
+  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python3"
   else
-    echo "Skipping git operations."
+    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
+    exit 1
   fi
+
+  "$PYTHON_EXEC" launcher.py \
+    --branch="$BRANCH" \
+    --dir="$DIR" \
+    --gitrepo="$GIT_REPO" \
+    --interactive="$INTERACTIVE" \
+    --nogitupdate="$SKIP_GIT_UPDATE" \
+    --public="$PUBLIC" \
+    --runpod="$RUNPOD" \
+    --skipspacecheck="$SKIP_SPACE_CHECK" \
+    --listen="$GUI_LISTEN" \
+    --username="$GUI_USERNAME" \
+    --password="$GUI_PASSWORD" \
+    --server_port="$GUI_SERVER_PORT" \
+    --inbrowser="$GUI_INBROWSER" \
+    --share="$GUI_SHARE" \
+    --verbose="$VERBOSITY"
 }
 
 # Start OS-specific detection and work
@@ -488,9 +341,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   }
 
-  check_storage_space
-  update_kohya_ss
-
   distro=get_distro_name
   family=get_distro_family
   echo "Raw detected distro string: $distro" >&4
@@ -549,58 +399,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
   fi
 
-  install_python_dependencies
-
-  # We need just a little bit more setup for non-interactive environments
-  if [ "$RUNPOD" = true ]; then
-    # Symlink paths
-    libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
-    libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
-    libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
-
-    #Target file paths
-    libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
-    libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
-    libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
-
-    echo "Checking symlinks now."
-    create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
-    create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
-    create_symlinks "$libcudart_symlink" "$libcudart_target"
-
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
-    fi
-
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
-    fi
-
-    configure_accelerate
-
-    # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
-    if command -v bash >/dev/null; then
-      if [ "$PUBLIC" = false ]; then
-        bash "$DIR"/gui.sh
-      else
-        bash "$DIR"/gui.sh --share
-      fi
-    else
-      # This shouldn't happen, but we're going to try to help.
-      if [ "$PUBLIC" = false ]; then
-        sh "$DIR"/gui.sh
-      else
-        sh "$DIR"/gui.sh --share
-      fi
-    fi
-  fi
-
-  echo -e "Setup finished! Run \e[0;92m./gui.sh\e[0m to start."
-  echo "Please note if you'd like to expose your public server you need to run ./gui.sh --share"
+  # Setup should be completed by now. Run the launcher for remaining tasks and running the GUI.
+  echo -e "Python setup finished. Running launcher.py to complete installation."
+  run_launcher
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   # The initial setup script to prep the environment on macOS
   # xformers has been omitted as that is for Nvidia GPUs only
@@ -613,7 +414,9 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     exit 1
   fi
 
-  check_storage_space
+  # Will warn the user if their space is low before installing Python.
+  # check_storage_space 1 means it will warn the user if 1gb of storage space or less detected.
+  check_storage_space 1
 
   # Install base python packages
   echo "Installing Python 3.10 if not found."
@@ -631,49 +434,14 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Python Tkinter 3.10 found!"
   fi
 
-  update_kohya_ss
-
-  if ! install_python_dependencies; then
-    echo "You may need to install Python. The command for this is brew install python@3.10."
-  fi
-
-  configure_accelerate
-  echo -e "Setup finished! Run ./gui.sh to start."
+  # Setup should be completed by now. Run the launcher for remaining tasks and running the GUI.
+  echo -e "Python setup finished. Running launcher.py to complete installation."
+  run_launcher
 elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilies on Windows
+  # Cygwin is a standalone suite of Linux utilities on Windows
   echo "This hasn't been validated on cygwin yet."
 elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilies on Windows
+  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
   # "git bash" on Windows may also be detected as msys.
   echo "This hasn't been validated in msys (mingw) on Windows yet."
 fi
-
-run_launcher() {
-  if command -v python3.10 >/dev/null 2>&1; then
-    local PYTHON_EXEC="python3.10"
-  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
-    local PYTHON_EXEC="python3"
-  else
-    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
-    exit 1
-  fi
-
-  "$PYTHON_EXEC" launcher.py \
-    --branch="$BRANCH" \
-    --dir="$DIR" \
-    --gitrepo="$GIT_REPO" \
-    --interactive="$INTERACTIVE" \
-    --nogitupdate="$SKIP_GIT_UPDATE" \
-    --public="$PUBLIC" \
-    --runpod="$RUNPOD" \
-    --skipspacecheck="$SKIP_SPACE_CHECK" \
-    --listen="$GUI_LISTEN" \
-    --username="$GUI_USERNAME" \
-    --password="$GUI_PASSWORD" \
-    --server_port="$GUI_SERVER_PORT" \
-    --inbrowser="$GUI_INBROWSER" \
-    --share="$GUI_SHARE" \
-    --verbose="$VERBOSITY"
-}
-
-run_launcher
