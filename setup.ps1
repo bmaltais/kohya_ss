@@ -64,6 +64,32 @@
 #>
 
 
+<#
+.SYNOPSIS
+   Handles the loading of parameter values with a specific order of precedence.
+
+.DESCRIPTION
+   This function handles the loading of parameter values in the following order of precedence:
+   1. Command-line arguments provided by the user
+   2. Values defined in a configuration file
+   3. Default values specified in the function
+
+   First, the function checks for the presence of a configuration file in the specified locations.
+   If found, the configuration file's values are loaded into a hashtable.
+   Then, default values are added to the hashtable for any parameters not defined in the configuration file.
+   Finally, any command-line arguments provided by the user are merged into the hashtable,
+   overriding the corresponding values from the configuration file or the function's default values.
+   If neither a configuration file nor a command-line argument is provided for a parameter,
+   the function will use the default value specified within the function.
+
+.PARAMETER File
+   An optional parameter to specify the path to a configuration file.
+
+.OUTPUTS
+   System.Collections.Hashtable
+   Outputs a hashtable containing the merged parameter values.
+#>
+
 function Get-Parameters {
     param (
         [string]$File = ""
@@ -79,7 +105,8 @@ function Get-Parameters {
             (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),
             (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
         )
-    } else {
+    }
+    else {
         @(
             $File,
             (Join-Path -Path $env:HOME -ChildPath ".kohya_ss\install_config.yaml"),
@@ -100,21 +127,21 @@ function Get-Parameters {
 
     # Define the default values
     $Defaults = @{
-        'Branch' = 'master'
-        'Dir' = "$env:USERPROFILE\kohya_ss"
-        'GitRepo' = 'https://github.com/kohya/kohya_ss.git'
-        'Interactive' = $false
-        'NoGitUpdate' = $false
-        'Public' = $false
-        'Runpod' = $false
-        'SkipSpaceCheck' = $false
-        'Verbose' = 0
-        'GUI_LISTEN' = '127.0.0.1'
-        'GUI_USERNAME' = ''
-        'GUI_PASSWORD' = ''
-        'GUI_SERVER_PORT' = 8080
-        'GUI_INBROWSER' = $true
-        'GUI_SHARE' = $false
+        'Branch'          = 'master'
+        'Dir'             = "$env:USERPROFILE\kohya_ss"
+        'GitRepo'         = 'https://github.com/kohya/kohya_ss.git'
+        'Interactive'     = $false
+        'NoGitUpdate'     = $false
+        'Public'          = $false
+        'Runpod'          = $false
+        'SkipSpaceCheck'  = $false
+        'Verbose'         = 0
+        'GUI_LISTEN'      = '127.0.0.1'
+        'GUI_USERNAME'    = ''
+        'GUI_PASSWORD'    = ''
+        'GUI_SERVER_PORT' = 7861
+        'GUI_INBROWSER'   = $true
+        'GUI_SHARE'       = $false
     }
 
     # Iterate through the default values and set them if not defined in the config file
@@ -147,45 +174,230 @@ function Test-Value {
     return $true
 }
 
+<#
+.SYNOPSIS
+   Checks if the current user has administrator privileges.
 
+.DESCRIPTION
+   This function tests if the current user has administrator privileges by attempting to create a new event log source.
+   If successful, it will remove the event log source and return $true, otherwise, it returns $false.
+
+.OUTPUTS
+   System.Boolean
+   Outputs $true if the user has administrator privileges, $false otherwise.
+.NOTES
+   This function should work on Windows, Linux, macOS, and BSD systems.
+#>
 function Test-IsAdmin {
     if ($PSVersionTable.Platform -eq 'Win32NT') {
+        # Windows-specific code
         $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
         $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
         return $isAdmin
     }
     else {
-        try {
+        # POSIX-specific code
+        $isBSD = (uname -s) -match 'BSD'
+        if ($isBSD) {
+            # BSD-specific id output format
+            $userId = (id -u -r)
+        }
+        else {
+            # Default POSIX id output format
             $userId = (id -u)
-            $result = ($userId -eq 0)
         }
-        catch {
-            $result = $false
-        }
+        $result = ($userId -eq 0)
         return $result
     }
 }
 
-function Get-LinuxDistribution {
-    if (Test-Path "/etc/os-release") {
-        $os_release = Get-Content "/etc/os-release"
-        if ($os_release -match "Ubuntu") {
-            return "Ubuntu"
+
+<#
+.SYNOPSIS
+Returns the appropriate command to elevate a PowerShell command to administrator/root privileges.
+
+.DESCRIPTION
+The Get-ElevationCommand function returns a command that can be used to elevate a PowerShell command to administrator/root privileges, depending on the current operating system and user permissions. On Windows, the function returns an empty string if the current user already has administrator privileges, or a command that uses the Start-Process cmdlet to restart the current script with administrator privileges if not. On POSIX systems, the function returns an empty string if the current user is already root, has sudo privileges, or has su privileges, or a command that uses either sudo or su to run the command as root if not.
+
+.PARAMETER None
+This function takes no parameters.
+
+.EXAMPLE
+$elevate = Get-ElevationCommand
+& $elevate apt install -y python3.10-tk
+Runs the "apt install -y python3.10-tk" command with elevated privileges, using the appropriate method for the current operating system.
+
+.NOTES
+This function should work on Windows, Linux, macOS, and BSD systems.
+#>
+function Get-ElevationCommand {
+    if ($IsWindows) {
+        # On Windows, use the Start-Process cmdlet to run the command as administrator
+        if ((Test-IsAdmin) -eq $true) {
+            return ""
         }
-        elseif ($os_release -match "Red Hat") {
-            return "RedHat"
+        else {
+            return "Start-Process powershell.exe -Verb RunAs -ArgumentList '-Command',$(&{[scriptblock]::Create($args[0])} '$args[1..$($args.count)]')"
         }
-    }
-    elseif (Test-Path "/etc/redhat-release") {
-        return "RedHat"
     }
     else {
-        return "Unknown"
+        # On POSIX systems, check if we're running as root already
+        if ($EUID -eq 0) {
+            return ""
+        }
+        else {
+            # Check if we have admin privileges
+            if ((Test-IsAdmin) -eq $true) {
+                return ""
+            }
+            else {
+                # Check if sudo is installed
+                if (Get-Command sudo -ErrorAction SilentlyContinue) {
+                    # Use sudo to run the command as root
+                    return "sudo -S $(get-command $args[0]).source $($args[1..$($args.count)] -join ' ')"
+                }
+                else {
+                    # Fall back to su to run the command as root
+                    return "su -c '$($args -join ' ')'"
+                }
+            }
+        }
     }
 }
 
+<#
+.SYNOPSIS
+Prompts the user to choose between installing a package for the current user only or for all users on the system.
 
+.DESCRIPTION
+The Choose-InstallScope function prompts the user to choose between installing a package for the current user only or for all users on the system. If the $Interactive parameter is set to $false, the function will assume that the package should be installed for all users.
+
+.PARAMETER Interactive
+If this parameter is set to $true, the function will prompt the user to choose between a local installation (for the current user only) or a global installation (for all users). If this parameter is set to $false, the function will assume that the package should be installed globally.
+
+.OUTPUTS
+System.String
+Returns the string "user" if the package should be installed for the current user only, or "allusers" if the package should be installed for all users.
+
+.EXAMPLE
+PS C:\> $installScope = Choose-InstallScope -Interactive $true
+Choose installation option: (1) Local (2) Global
+1
+PS C:\> $installScope
+user
+Prompts the user to choose between a local or global installation, and returns the string "user" if the user chooses a local installation or "allusers" if the user chooses a global installation.
+
+.NOTES
+This function does not check for administrator/root privileges. The calling code should ensure that the function is called with appropriate permissions.
+#>
+function Update-InstallScope {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [bool]$Interactive = $false
+    )
+    
+    if ($Interactive) {
+        do {
+            $installOption = Read-Host -Prompt "Choose installation option: (1) Local (2) Global"
+        } while ($installOption -ne "1" -and $installOption -ne "2")
+    }
+    else {
+        $installOption = 2
+    }
+
+    if ($installOption -eq 1) {
+        $installScope = "user"
+    }
+    else {
+        $installScope = "allusers"
+    }
+
+    return $installScope
+}
+
+
+
+<#
+.SYNOPSIS
+   Detects the Linux distribution and returns its name.
+
+.DESCRIPTION
+   This function attempts to detect the Linux distribution by examining the contents of various files such as
+   /etc/os-release and /etc/redhat-release. It returns the distribution name if detected, otherwise "Generic Linux".
+
+.OUTPUTS
+   System.String
+   Outputs the Linux distribution name or "Generic Linux" if not detected.
+#>
+function Get-LinuxDistribution {
+    $os = @{
+        name    = "Unknown"
+        family  = "Unknown"
+        version = "Unknown"
+    }
+
+    if (Test-Path "/etc/os-release") {
+        try {
+            $os_release = Get-Content "/etc/os-release" -Raw -ErrorAction Stop
+            $os.name = if ($os_release -match 'ID="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+            $os.family = if ($os_release -match 'ID_LIKE="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+            $os.version = if ($os_release -match 'VERSION="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+        }
+        catch {
+            Write-Warning "Error reading /etc/os-release: $_"
+        }
+    }
+    elseif (Test-Path "/etc/redhat-release") {
+        try {
+            $redhat_release = Get-Content "/etc/redhat-release"
+            if ($redhat_release -match '([^ ]+) release ([^ ]+)') {
+                $os.name = $matches[1]
+                $os.family = "RedHat"
+                $os.version = $matches[2]
+            }
+        }
+        catch {
+            Write-Warning "Error reading /etc/redhat-release: $_"
+        }
+    }
+
+    if ($os.name -eq "Unknown") {
+        try {
+            $uname = uname -a
+            if ($uname -match "Ubuntu") { $os.name = "Ubuntu"; $os.family = "Ubuntu" }
+            elseif ($uname -match "Debian") { $os.name = "Debian"; $os.family = "Debian" }
+            elseif ($uname -match "Red Hat" -or $uname -match "CentOS") { $os.name = "RedHat"; $os.family = "RedHat" }
+            elseif ($uname -match "Fedora") { $os.name = "Fedora"; $os.family = "Fedora" }
+            elseif ($uname -match "SUSE") { $os.name = "openSUSE"; $os.family = "SUSE" }
+            elseif ($uname -match "Arch") { $os.name = "Arch"; $os.family = "Arch" }
+            else { $os.name = "Generic Linux"; $os.family = "Generic Linux" }
+        }
+        catch {
+            Write-Warning "Error executing uname command: $_"
+            $os.name = "Generic Linux"
+            $os.family = "Generic Linux"
+        }
+    }
+
+    return [PSCustomObject]$os
+}
+
+<#
+.SYNOPSIS
+   Installs Python 3.10 using the specified installer.
+
+.DESCRIPTION
+   This function downloads and installs Python 3.10 using the specified installer URL.
+   It also adds Python and pip to the system PATH variable.
+
+.PARAMETER InstallerURL
+   The URL of the Python 3.10 installer.
+
+.OUTPUTS
+   None
+#>
 function Install-Python310 {
     param (
         [switch]$Interactive
@@ -202,240 +414,365 @@ function Install-Python310 {
     }
 
     function Install-Python310Windows {
-    $packageManagerFound = $false
-
-    if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
-        # This should have worked, but it looks like scoop might not have Python 3.10 available,
-        # so we're just going to use the native method for now.
-        #scoop install python@3.10
-        #$packageManagerFound = $true
         $packageManagerFound = $false
-    }
-    elseif (Get-Command "choco" -ErrorAction SilentlyContinue) {
-        choco install python --version=3.10
-        $packageManagerFound = $true
-    }
-    elseif (Get-Command "winget" -ErrorAction SilentlyContinue) {
-        winget install --id Python.Python --version 3.10.*
-        $packageManagerFound = $true
-    }
 
-    if (-not $packageManagerFound) {
-        if (Test-IsAdmin) {
-            if ($Interactive) {
-                do {
-                       $installOption = Read-Host -Prompt "Choose installation option: (1) Local (2) Global"
-                } while ($installOption -ne "1" -and $installOption -ne "2")
-            }
-            else {
-                $installOption = 2
-            }
-
-            if ($installOption -eq 1) {
-                $installScope = "user"
-            }
-            else {
-                $installScope = "allusers"
-            }
+        if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
+            # This should have worked, but it looks like scoop might not have Python 3.10 available,
+            # so we're just going to use the native method for now.
+            #scoop install python@3.10
+            #$packageManagerFound = $true
+            $packageManagerFound = $false
         }
-        else {
-            $installScope = "user"
+        elseif (Get-Command "choco" -ErrorAction SilentlyContinue) {
+            choco install python --version=3.10
+            $packageManagerFound = $true
+        }
+        elseif (Get-Command "winget" -ErrorAction SilentlyContinue) {
+            winget install --id Python.Python --version 3.10.*
+            $packageManagerFound = $true
         }
 
-        $pythonUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
-        $$pythonInstallerName = "python-3.10.0-amd64.exe"
-        $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
-        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerName
+        if (-not $packageManagerFound) {
+            if (Test-IsAdmin) {
+                $installScope = Update-InstallScope($Interactive) 
 
-        if (-not (Test-Path $installerPath)) {
-            try {
-                $pythonUrl = "https://www.python.org/ftp/python/3.10.0/$pythonInstallerName"
-                Invoke-WebRequest -Uri $pythonUrl -OutFile $installerPath
+                $pythonUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+                $pythonInstallerName = "python-3.10.0-amd64.exe"
+                $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
+                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerName
+
+                if (-not (Test-Path $installerPath)) {
+                    try {
+                        $pythonUrl = "https://www.python.org/ftp/python/3.10.0/$pythonInstallerName"
+                        Invoke-WebRequest -Uri $pythonUrl -OutFile $installerPath
+                    }
+                    catch {
+                        Write-Host "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
+                        exit 1
+                    }
+                }
+
+                if ($installScope -eq "user") {
+                    Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                }
+                else {
+                    Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
+                }
+
+                Remove-Item $installerPath
             }
-            catch {
-                Write-Host "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
+            else {
+                # We default to installing at a user level if admin is not detected.
+                Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+            }
+        }
+
+        function Install-Python310Mac {
+            if (Get-Command "brew" -ErrorAction SilentlyContinue) {
+                brew install python@3.10
+                brew link --overwrite --force python@3.10
+            }
+            else {
+                Write-Host "Please install Homebrew first to continue with Python 3.10 installation."
+                Write-Host "You can find that here: https://brew.sh"
                 exit 1
             }
         }
 
-        if ($installScope -eq "user") {
-            Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
-        } else {
-            Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
-        }
+        function Install-Python310Linux {
+            $elevate = ""
+            if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
+                $elevate = "sudo"
+            }
+            $os = Get-LinuxDistribution
 
-        Remove-Item $installerPath
-        }
-    }
-
-    function Install-Python310Mac {
-        if (Get-Command "brew" -ErrorAction SilentlyContinue) {
-            brew install python@3.10
-            brew link --overwrite --force python@3.10
-        }
-        else {
-            Write-Host "Please install Homebrew first to continue with Python 3.10 installation."
-        }
-    }
-
-    function Install-Python310Linux {
-        $distribution = Get-LinuxDistribution
-
-        if ($distribution -eq "Ubuntu") {
-            if (sudo apt-get update) {
-                sudo apt-get install -y python3.10
-            } else {
-                Write-Host "Error: Failed to update package list. Installation of Python 3.10 aborted."
+            switch ($os.family) {
+                "Ubuntu" {
+                    if (& $elevate apt-get update) {
+                        if (!(& $elevate apt-get install -y python3.10)) {
+                            Write-Host "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                        }
+                    }
+                    else {
+                        Write-Host "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                    }
+                }
+                "Debian" {
+                    if (& $elevate apt-get update) {
+                        if (!(& $elevate apt-get install -y python3.10)) {
+                            Write-Host "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                        }
+                    }
+                    else {
+                        Write-Host "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                    }
+                }
+                "RedHat" {
+                    if (!(& $elevate dnf install -y python3.10)) {
+                        Write-Host "Error: Failed to install python via dnf. Installation of Python 3.10 aborted."
+                    }
+                }
+                "Arch" {
+                    if (!(& $elevate pacman -Sy --noconfirm python3.10)) {
+                        Write-Host "Error: Failed to install python via pacman. Installation of Python 3.10 aborted."
+                    }
+                }
+                "openSUSE" {
+                    if (!(& $elevate zypper install -y python3.10)) {
+                        Write-Host "Error: Failed to install python via zypper. Installation of Python 3.10 aborted."
+                    }
+                }
+                default {
+                    Write-Host "Unsupported Linux distribution. Please install Python 3.10 manually."
+                    exit 1
+                }
             }
         }
-        elseif ($distribution -eq "RedHat") {
-            sudo dnf install -y python3.10
+
+
+        if (Test-Python310Installed) {
+            Write-Host "Python 3.10 is already installed."
+            return
+        }
+
+        $osPlatform = ""
+        if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
+            $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+        }
+        elseif ($PSVersionTable.Platform -eq 'Unix') {
+            $osPlatform = (uname -s).ToString()
+        }
+        elseif ($PSVersionTable.Platform -eq 'MacOS') {
+            $osPlatform = (uname -s).ToString()
         }
         else {
-            Write-Host "Unsupported Linux distribution. Please install Python 3.10 manually."
+            Write-Host "Unsupported operating system. Please install Python 3.10 manually."
+            exit 1
+        }
+
+
+        if ($osPlatform -like "*Windows*") {
+            Install-Python310Windows
+        }
+        elseif ($osPlatform -like "*Mac*") {
+            Install-Python310Mac
+        }
+        elseif ($osPlatform -like "*Linux*") {
+            Install-Python310Linux
+        }
+        else {
+            Write-Host "Unsupported operating system. Please install Python 3.10 manually."
+            exit 1
+        }
+
+        if (Test-Python310Installed) {
+            Write-Host "Python 3.10 installed successfully."
+        }
+        else {
+            Write-Host 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
+            exit 1
         }
     }
 
-    if (Test-Python310Installed) {
-        Write-Host "Python 3.10 is already installed."
-        return
-    }
+    <#
+.SYNOPSIS
+   Installs the Python 3 Tk package using pip.
 
-    $osPlatform = ""
-    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
-        $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
-    } elseif ($PSVersionTable.Platform -eq 'Unix') {
-        $osPlatform = (uname -s).ToString()
-    } elseif ($PSVersionTable.Platform -eq 'MacOS') {
-        $osPlatform = (uname -s).ToString()
-    } else {
-        Write-Host "Unsupported operating system. Please install Python 3.10 manually."
-        exit 1
-    }
+.DESCRIPTION
+   This function installs the Tk package for Python 3 using pip.
+   It ensures that pip is up to date before installing the package.
 
+.OUTPUTS
+   None
+#>
+    function Install-Python3Tk {
+        param (
+            [ValidateSet('allusers', 'user')]
+            [string]$installScope = 'user'
+        )
 
-    if ($osPlatform -like "*Windows*") {
-        Install-Python310Windows
-    }
-    elseif ($osPlatform -like "*Mac*") {
-        Install-Python310Mac
-    }
-    elseif ($osPlatform -like "*Linux*") {
-        Install-Python310Linux
-    }
-    else {
-        Write-Host "Unsupported operating system. Please install Python 3.10 manually."
-        exit 1
-    }
-
-    if (Test-Python310Installed) {
-        Write-Host "Python 3.10 installed successfully."
-    }
-    else {
-        Write-Host "Failed to install"
-    }
-}
-
-function Install-Python3Tk {
-    if (Test-IsAdmin) {
-        Write-Host "Running as an administrator. Installing packages."
+        $os = Get-LinuxDistribution
+        $elevate = Get-ElevationCommand
 
         if ($PSVersionTable.Platform -eq 'Unix') {
             # Linux / macOS installation
-            $distribution = Get-LinuxDistribution
-                if ($distribution -eq "Ubuntu") {
+            switch ($os.family) {
+                "Ubuntu" {
                     # Ubuntu installation
-                    Invoke-Expression "apt-get update"
-                    Invoke-Expression "apt-get install -y python3.10-tk"
+                    try {
+                        & $elevate apt update
+                        & $elevate apt install -y python3.10-tk
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+                    }
                 }
-                elseif ($distribution -eq "RedHat") {
+                "Debian" {
+                    # Debian installation
+                    try {
+                        & $elevate apt-get update
+                        & $elevate apt-get install -y python3.10-tk
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
+                    }
+                }
+                "RedHat" {
                     # Red Hat installation
-                    Invoke-Expression "yum install -y python3.10-tkinter"
+                    try {
+                        & $elevate dnf install -y python3.10-tkinter
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
+                    }
                 }
-            }
-            elseif (Test-Path "/usr/local/bin/brew") {
-                # macOS installation using Homebrew
-                Invoke-Expression "brew install python-tk@3.10"
-            }
-            else {
-                Write-Host "Unsupported Unix platform or package manager not found."
+                "Arch" {
+                    # Arch installation
+                    try {
+                        & $elevate pacman -S --noconfirm tk
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
+                    }
+                }
+                "openSUSE" {
+                    # openSUSE installation
+                    try {
+                        & $elevate zypper install -y python3.10-tk
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
+                    }
+                }
+                "macOS" {
+                    if (Test-Path "/usr/local/bin/brew") {
+                        try {
+                            # macOS installation using Homebrew
+                            Invoke-Expression "brew install python-tk@3.10"
+                        }
+                        catch {
+                            Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
+                        }
+                    }
+                    else {
+                        Write-Host "Unsupported Unix platform or package manager not found."
+                    }
+                }
+                default {
+                    Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
+                }
             }
         }
         else {
             # Windows installation
-            if (Test-Path "C:\Python310\python.exe") {
-                Write-Host "Python 3.10 is already installed."
+            $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+            $pythonInstallerFile = "python-3.10.0-amd64.exe"
+            $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
+            $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
+            Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
+
+            $installScope = Update-InstallScope($Interactive) 
+
+            if ($installScope -eq 'allusers') {
+                if (Test-IsAdmin) {
+                    try {
+                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
+                    }
+                }
+                else {
+                    if (Test-IsAdmin) {
+                        Write-Host "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
+                    }
+                    try {
+                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
+                    }
+                }
+
+                Remove-Item $installerPath
+            }
+        }
+    }
+
+
+
+    <#
+.SYNOPSIS
+   The main function for the setup.ps1 script.
+
+.DESCRIPTION
+   This function orchestrates the entire setup process for the Kohya application.
+   It handles parameter loading, checks for administrator privileges, installs Python 3.10 and the Tk package,
+   and performs any other necessary setup tasks.
+
+.OUTPUTS
+   None
+#>
+    function Main {
+        param (
+            $Parameters
+        )
+
+        begin {
+            $requiredKeys = @("Dir", "Branch", "GitRepo")
+            if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
+                Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
+                exit 1
+            }
+        }
+
+        process {
+            if (-not (Test-Python310Installed)) {
+                Install-Python310 -Interactive:$Parameters.Interactive
+            }
+
+            if ($PSVersionTable.Platform -eq 'Unix') {
+                $linuxDistribution = Get-LinuxDistribution
             }
             else {
-                Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe" -OutFile "python-3.10.0-amd64.exe"
-                Start-Process -FilePath "python-3.10.0-amd64.exe" -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
-                Remove-Item "python-3.10.0-amd64.exe"
-        }
-    }
-    else {
-        Write-Host "This script needs to be run as an administrator or via 'Run as administrator' to install packages."
-        exit 1
-    }
-}
-
-function Main {
-    param (
-        $Parameters
-    )
-
-    begin {
-        $requiredKeys = @("Dir", "Branch", "GitRepo")
-        if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
-            Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
-            exit 1
-        }
-    }
-
-    process {
-        if (-not (Test-Python310Installed)) {
-            Install-Python310 -Interactive:$Parameters.Interactive
-        }
-
-        if ($PSVersionTable.Platform -eq 'Unix') {
-            $linuxDistribution = Get-LinuxDistribution
-        } else {
-            $linuxDistribution = $null
-        }
-
-        Install-Python3Tk -LinuxDistribution $linuxDistribution
-    }
-
-    end {
-        $pyExe = Get-PythonExePath
-
-        if ($pythonExec -ne $null) {
-            $$launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
-
-            $installArgs = @()
-            foreach ($key in $Params.Keys) {
-                $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
-                $installArgs += $argName, $Params[$key]
+                $linuxDistribution = $null
             }
 
-            # Call launcher.py with the appropriate parameters
-            & $pythonExec -u "$launcher" $installArgs
-        } else {
-            Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
-            exit 1
+            Install-Python3Tk -LinuxDistribution $linuxDistribution
+        }
+
+        end {
+            $pyExe = Get-PythonExePath
+
+            if ($null -ne $pyExe) {
+                $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
+
+                $installArgs = @()
+                foreach ($key in $Params.Keys) {
+                    $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
+                    $installArgs += $argName, $Params[$key]
+                }
+
+                # Call launcher.py with the appropriate parameters
+                & $pyExe -u "$launcher" $installArgs
+            }
+            else {
+                Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
+                exit 1
+            }
         }
     }
-}
 
-# Call the Get-Parameters function to process the arguments in the intended fashion
-# Parameter value assignments should be as follows:
-# 1) Command line arguments (user overrides)
-# 2) Configuration file (install_config.yml). Default locations:
-#    a) OS-specific standard folders
-#       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
-#       Non-Windows: $env:HOME/kohya_ss/
-#    b) Installation Directory
-#    c) The folder this script is run from
-# 3) Default values built into the scripts if none specified by user and there is no config file.
-$Params = Get-Parameters
-Main -Parameters $Params
+    # Call the Get-Parameters function to process the arguments in the intended fashion
+    # Parameter value assignments should be as follows:
+    # 1) Command line arguments (user overrides)
+    # 2) Configuration file (install_config.yml). Default locations:
+    #    a) OS-specific standard folders
+    #       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
+    #       Non-Windows: $env:HOME/kohya_ss/
+    #    b) Installation Directory
+    #    c) The folder this script is run from
+    # 3) Default values built into the scripts if none specified by user and there is no config file.
+    $Params = Get-Parameters
+    Main -Parameters $Params
 
