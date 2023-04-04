@@ -1,0 +1,23 @@
+# Ensure LF line endings for certain file types
+*.py text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.yml text eol=lf
+
+# Ensure CRLF line endings for .bat files
+*.bat text eol=crlf
+
+# Set default line endings to LF
+* text eol=lf
+
+# Set text files to be normalized and end with a newline character
+*.txt text
+*.csv text
+*.tsv text
+*.json text
+*.html text
+*.xml text
+*.yaml text
+*.yml text
