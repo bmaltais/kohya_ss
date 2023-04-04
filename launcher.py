@@ -4,13 +4,13 @@ import os
 import platform
 import re
 import shutil
+import site
 import subprocess
 import sys
 import time
 import kohya_gui
 from pathlib import Path
 
-import distro
 import yaml
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
@@ -135,14 +135,14 @@ def check_and_create_install_folder(parent_dir, _dir):
         exit(1)
 
 
-def size_available():
+def size_available(_dir, parent_dir):
     folder = None
-    if os.path.isdir(DIR):
-        folder = DIR
-    elif os.path.isdir(PARENT_DIR):
-        folder = PARENT_DIR
+    if os.path.isdir(_dir):
+        folder = _dir
+    elif os.path.isdir(parent_dir):
+        folder = parent_dir
     else:
-        path_parts = os.path.split(DIR)
+        path_parts = os.path.split(_dir)
         if path_parts[0] and os.path.isdir(path_parts[0]):
             folder = path_parts[0]
 
@@ -155,9 +155,9 @@ def size_available():
     return free_space_in_gb
 
 
-def check_storage_space(space_check=True):
+def check_storage_space(_dir, parent_dir, space_check=True):
     if space_check:
-        if size_available() < 10:
+        if size_available(_dir, parent_dir) < 10:
             print("You have less than 10Gb of free space. This installation may fail.")
             msg_timeout = 10  # In seconds
             message = "Continuing in..."
@@ -187,7 +187,25 @@ def create_symlinks(symlink, target_file):
         os.symlink(target_file, symlink)
 
 
-def setup_symlinks(venv_dir, site_packages_dir, runpod):
+def setup_file_links(site_packages_dir, runpod):
+    if os_info.family == "Windows":
+        bitsandbytes_source = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitsandbytes_windows")
+        bitsandbytes_dest = os.path.join(site_packages_dir, "bitsandbytes")
+        bitsandbytes_cuda_dest = os.path.join(bitsandbytes_dest, "cuda_setup")
+
+        if os.path.exists(bitsandbytes_source):
+            # Copy .dll files
+            for file in os.listdir(bitsandbytes_source):
+                if file.endswith(".dll"):
+                    shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
+
+            # Copy cextension.py
+            shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
+                        os.path.join(bitsandbytes_dest, "cextension.py"))
+
+            # Copy main.py
+            shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
+
     if runpod and in_container:
         # Symlink paths
         libnvinfer_plugin_symlink = os.path.join(site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
@@ -275,29 +293,104 @@ def update_kohya_ss(_dir, git_repo, branch, parent_dir, git_update):
         print("Skipping git operations.")
 
 
-def get_distro_name():
-    try:
-        _distro_name = distro.id()
-        print("Distro name:", _distro_name)
-        return _distro_name
-    except Exception as e:
-        print("Error getting distro name:", e)
-        return None
+class OSInfo:
+    def __init__(self):
+        self.name = "Unknown"
+        self.family = "Unknown"
+        self.version = "Unknown"
+        self.detect_os()
+
+    def detect_os(self):
+        system = platform.system()
+        if system == "Windows":
+            self.name = "Windows"
+            self.family = "Windows"
+            self.version = platform.version()
+
+        elif system == "Darwin":
+            self.name = "macOS"
+            self.family = "macOS"
+            self.version = "Unknown"
+
+            try:
+                with open("/System/Library/CoreServices/SystemVersion.plist", "r") as f:
+                    content = f.read()
+                    version_match = re.search(r"<string>([\d.]+)</string>", content)
+                    if version_match:
+                        self.version = version_match.group(1)
+            except Exception as e:
+                print(f"Error reading /System/Library/CoreServices/SystemVersion.plist: {e}")
+
+        elif system == "Linux":
+            if os.path.exists("/etc/os-release"):
+                try:
+                    with open("/etc/os-release", "r") as f:
+                        content = f.read()
+                        self.name = re.search(r'ID="?([^"\n]+)', content).group(1)
+                        self.family = re.search(r'ID_LIKE="?([^"\n]+)', content).group(1)
+                        self.version = re.search(r'VERSION="?([^"\n]+)', content).group(1)
+                except Exception as e:
+                    print(f"Error reading /etc/os-release: {e}")
+
+            elif os.path.exists("/etc/redhat-release"):
+                try:
+                    with open("/etc/redhat-release", "r") as f:
+                        content = f.read()
+                        match = re.search(r'([^ ]+) release ([^ ]+)', content)
+                        if match:
+                            self.name = match.group(1)
+                            self.family = "RedHat"
+                            self.version = match.group(2)
+                except Exception as e:
+                    print(f"Error reading /etc/redhat-release: {e}")
+
+            if self.name == "Unknown":
+                try:
+                    uname = subprocess.getoutput("uname -a")
+                    if "Ubuntu" in uname:
+                        self.name = "Ubuntu"
+                        self.family = "Ubuntu"
+                    elif "Debian" in uname:
+                        self.name = "Debian"
+                        self.family = "Debian"
+                    elif "Red Hat" in uname or "CentOS" in uname:
+                        self.name = "RedHat"
+                        self.family = "RedHat"
+                    elif "Fedora" in uname:
+                        self.name = "Fedora"
+                        self.family = "Fedora"
+                    elif "SUSE" in uname:
+                        self.name = "openSUSE"
+                        self.family = "SUSE"
+                    elif "Arch" in uname:
+                        self.name = "Arch"
+                        self.family = "Arch"
+                    else:
+                        self.name = "Generic Linux"
+                        self.family = "Generic Linux"
+                except Exception as e:
+                    print(f"Error executing uname command: {e}")
+                    self.name = "Generic Linux"
+                    self.family = "Generic Linux"
+            return {
+                "name": self.name,
+                "family": self.family,
+                "version": self.version
+            }
 
 
-def get_distro_family():
-    try:
-        _distro_family = distro.like()
-        print("Distro family:", _distro_family)
-        return _distro_family
-    except Exception as e:
-        print("Error getting distro family:", e)
-        return None
+def get_os_info():
+    return OSInfo()
 
 
 def install_python_dependencies(_dir, runpod, script_dir):
-    # Check if python3 or python3.10 binary exists
+
+    # Following check disabled as PyCharm can't detect it's being used in a subprocess
+    # noinspection PyUnusedLocal
     python_bin = None
+    venv_python_bin = None
+
+    # Check if python3 or python3.10 binary exists
     if shutil.which("python3"):
         python_bin = "python3"
     elif shutil.which("python3.10"):
@@ -314,8 +407,8 @@ def install_python_dependencies(_dir, runpod, script_dir):
         subprocess.run([python_bin, "-m", "venv", venv_path])
 
         # Activate the virtual environment
-        venv_activate = os.path.join(venv_path, "bin", "activate_this.py")
-        exec(open(venv_activate).read(), {'__file__': venv_activate})
+        venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
+        venv_python_bin = os.path.join(venv_bin_dir, python_bin)
 
     # Update pip
     print("Checking for pip updates before Python operations.")
@@ -323,26 +416,32 @@ def install_python_dependencies(_dir, runpod, script_dir):
 
     # Install python dependencies
     print("Installing python dependencies. This could take a few minutes as it downloads files.")
-    if platform.system() == "Linux":
-        subprocess.run([sys.executable, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+    if os_info.family == "Windows":
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
                         "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
-        subprocess.run([sys.executable, "-m", "pip", "install", "-U", "-I", "--no-deps",
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r", "requirements.txt"])
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "-U", "-I", "--no-deps",
+                        "https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14"
+                        ".dev0-cp310-cp310-win_amd64.whl"])
+    elif platform.system() == "Linux":
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+                        "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "-U", "-I", "--no-deps",
                         "https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0"
                         ".14.dev0-cp310-cp310-linux_x86_64.whl"])
-
-    elif platform.system() == "Darwin":
-        subprocess.run([sys.executable, "-m", "pip", "install", "torch==2.0.0", "torchvision==0.15.1", "-f",
+    elif os_info.family == "Darwin":
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==2.0.0", "torchvision==0.15.1", "-f",
                         "https://download.pytorch.org/whl/cpu/torch_stable.html"])
 
     if runpod:
         print("Installing tenssort.")
         subprocess.run([sys.executable, "-m", "pip", "install", "tensorrt"])
 
+    # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
-    # Set the path for the temporary requirements file
     tmp_requirements_path = os.path.join(script_dir, "requirements_tmp.txt")
     # Copy the original requirements.txt and make the kohya_ss lib a dynamic location
-    with open(os.path.join(script_dir, "requirements.txt"), "r") as original_file, \
+    with (open(requirements_path), "r") as original_file, \
             open(tmp_requirements_path, "w") as temp_file:
         for line in original_file:
             if "#.*kohya_ss.*library" in line:
@@ -351,7 +450,7 @@ def install_python_dependencies(_dir, runpod, script_dir):
 
     # Check if the OS is macOS, then determine if M1+ or Intel CPU
     # and append the appropriate packages to the requirements.txt file
-    if platform.system() == "Darwin":
+    if os_info.family == "Darwin":
         with open(tmp_requirements_path, "a") as temp_file:
             # Check if the processor is Apple Silicon (arm64)
             if platform.machine() == "arm64":
@@ -448,14 +547,13 @@ def main(_args=None):
     # Define the directories relative to the install directory needed for install and launch
     parent_dir = os.path.dirname(_dir)
     venv_dir, site_packages_dir = get_venv_directory()
-    venv_dir, site_packages_dir = get_venv_directory()
 
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _dir)
-    check_storage_space(_args.spaceCheck)
+    check_storage_space(_args.spaceCheck, _args.dir, parent_dir)
     update_kohya_ss(_dir, _args.git_repo, _args.branch, parent_dir, _args.gitUpdate)
     install_python_dependencies(_dir, _args.runpod, script_directory)
-    setup_symlinks(venv_dir, site_packages_dir, _args.runpod)
+    setup_file_links(site_packages_dir, _args.runpod)
     configure_accelerate(args.interactive, args.config_file)
     launch_kohya_gui(args)
 
@@ -464,6 +562,9 @@ if __name__ == "__main__":
     config_file = parse_file_arg()
     config_data = load_config(config_file)
     args = parse_args(config_data)
+
+    # Initialize log_level with a default value
+    log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
     if args.verbose == 0:
@@ -484,11 +585,10 @@ if __name__ == "__main__":
     # logging.warning("This is a warning message.")
     # logging.error("This is an error message.")
 
-    distro_name = get_distro_name()
-    print("Distro name:", distro_name)
-
-    distro_family = get_distro_family()
-    print("Distro family:", distro_family)
+    os_info = get_os_info()
+    print("OS name:", os_info.name)
+    print("OS family:", os_info.family)
+    print("OS version:", os_info.version)
 
     if args.verbose >= 3:
         for k, v in args.__dict__.items():
