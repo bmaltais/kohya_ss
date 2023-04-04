@@ -1,7 +1,16 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Set default values for command line options
+rem Check for Python 3.10
+for /f "tokens=* USEBACKQ" %%F in (`python --version 2^>^&1`) do (set "py_ver=%%F")
+set "py_ver_req=Python 3.10"
+if not "%py_ver%"=="%py_ver_req%" (
+    echo Error: Python 3.10 is required, but '%py_ver%' is installed.
+    echo Please download and install Python 3.10 from https://www.python.org/downloads/
+    exit /b 1
+)
+
+rem Set default values for command line options
 set Branch=master
 set Dir=%~dp0
 set GitRepo=https://github.com/kohya/kohya_ss.git
@@ -18,7 +27,7 @@ set GUI_SERVER_PORT=7861
 set GUI_INBROWSER=1
 set GUI_SHARE=0
 
-:: Parse command line arguments
+rem Parse command line arguments
 :arg_loop
 if "%~1"=="" goto arg_end
 if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
@@ -41,25 +50,23 @@ goto arg_loop
 
 :arg_end
 
-:: Create venv if it doesn't exist
+rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
+set Args=-b "%Branch%" -d "%Dir%" -f "%ConfigFile%" -g "%GitRepo%" ^
+          -i:%Interactive% -n:%NoGitUpdate% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
+          --gui-listen "%GUI_LISTEN%" --gui-username "%GUI_USERNAME%" --gui-password "%GUI_PASSWORD%" ^
+          --gui-server-port %GUI_SERVER_PORT% --gui-inbrowser:%GUI_INBROWSER% --gui-share:%GUI_SHARE%
+
+rem Create venv if it doesn't exist
 if not exist "%Dir%\venv" (
     python -m venv "%Dir%\venv"
 ) else (
     echo venv folder already exists, skipping creation...
 )
 
-call "%Dir%\venv\Scripts\activate.bat"
-
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --use-pep517 --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-copy /y "%Dir%\bits
-
-:: Copy required files
-xcopy /y /q "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
+copy /y "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
 copy /y "%Dir%\bitsandbytes_windows\cextension.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cextension.py"
 copy /y "%Dir%\bitsandbytes_windows\main.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py"
 
-:: Run accelerate configuration
-accelerate config
+rem Call launcher.py with the provided arguments
+python "%Dir%\launcher.py" %Args%
+

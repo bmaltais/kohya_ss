@@ -14,7 +14,6 @@ opencv-python==4.7.0.68
 pytorch-lightning==1.9.0
 packaging~=23.0
 setuptools==67.6.1
-distro~=1.8.0
 PyYAML~=6.0
 safetensors==0.2.6
 tensorboard==2.10.1 ; sys_platform != 'darwin'
