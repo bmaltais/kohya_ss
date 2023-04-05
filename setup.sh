@@ -106,34 +106,53 @@ shift $((OPTIND - 1))
 # For each argument in the sections, it looks for a 'name' and a 'default' value,
 # and then stores the default value in a variable named "${prefix}_<name>"
 # or "${prefix}_gui_<name>" for the respective sections.
-parse_yaml() {
+parse_and_validate_yaml() {
   local yaml_file="$1"
   local prefix="$2"
-  local line key value state section
+  local line key value state section valid_yaml
 
   state="none"
   section="none"
+  valid_yaml=true
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ^[[:space:]]*arguments:[[:space:]]*$ ]]; then
-      section="setup_arguments"
-    elif [[ "$line" =~ ^[[:space:]]*kohya_gui_arguments:[[:space:]]*$ ]]; then
-      section="kohya_gui_arguments"
+    if [[ "$line" =~ ^[[:space:]]*(setup_arguments|kohya_gui_arguments):[[:space:]]*$ ]]; then
+      section="${BASH_REMATCH[1]}"
     elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
       key="${BASH_REMATCH[1]}"
       state="searching_default"
     elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*value:[[:space:]]*(.+)$ ]]; then
       value="${BASH_REMATCH[1]}"
       state="none"
-      if [[ "$section" == "arguments" ]]; then
+      if [[ "$section" == "setup_arguments" ]]; then
         eval "${prefix}_${key}=\"$value\""
       elif [[ "$section" == "kohya_gui_arguments" ]]; then
         eval "${prefix}_${key}=\"$value\""
       fi
-    else
+    elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*(.+)$ ]]; then
       state="none"
+    else
+      valid_yaml=false
+      break
     fi
   done <"$yaml_file"
+
+  if [ "$valid_yaml" = false ]; then
+    cat <<-EOF
+Error: Invalid configuration file format.
+Expected format example:
+setup_arguments:
+  - name: Branch
+    description: Select which branch of kohya to check out on new installs.
+    value: master
+
+kohya_gui_arguments:
+  - name: Listen
+    description: IP to listen on for connections to Gradio.
+    value: 127.0.0.1
+EOF
+    exit 1
+  fi
 }
 
 configFileLocations=(
@@ -153,7 +172,7 @@ for location in "${configFileLocations[@]}"; do
 done
 
 if [ -n "$configFile" ]; then
-  parse_yaml "$configFile" "config"
+  parse_and_validate_yaml "$configFile" "config"
 fi
 
 
