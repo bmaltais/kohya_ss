@@ -128,7 +128,7 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <details>
 <summary>Bypass all setup steps, installation checks, and Python validations and run the GUI directly</summary>
 
-Bypass all setup steps, installation checks, and Python validations and run the GUI directly:
+The -x or --exclude-setup options bypass all setup and checks:
 ```bash
 # Windows
 python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
@@ -144,7 +144,7 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <details>
 <summary>Permission Errors when running setup.ps1</summary>
 
-If you get any errors about permissions running the setup.ps1 script on Windows try the following:
+Try the following command in PowerShell:
 ```pwsh
 $Policy = Get-ExecutionPolicy -Scope CurrentUser; 
 if ($Policy -eq "Restricted" -or $Policy -eq "AllSigned") { 
