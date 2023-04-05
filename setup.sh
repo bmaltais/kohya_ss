@@ -29,12 +29,12 @@ Options:
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
   -v, --verbose                 Increase verbosity levels up to 3.
-  --gui-listen=IP               IP to listen on for connections to Gradio.
-  --gui-username=USERNAME       Username for authentication.
-  --gui-password=PASSWORD       Password for authentication.
-  --gui-server-port=PORT        Port to run the server listener on.
-  --gui-inbrowser               Open in browser.
-  --gui-share                   Share your installation.
+  --listen=IP               IP to listen on for connections to Gradio.
+  --username=USERNAME       Username for authentication.
+  --password=PASSWORD       Password for authentication.
+  --server-port=PORT        Port to run the server listener on.
+  --inbrowser               Open in browser.
+  --share                   Share your installation.
 EOF
 }
 
@@ -88,17 +88,24 @@ while getopts ":vb:d:f:g:inprsx-:" opt; do
   s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
   x | exclude-setup) CLI_ARGUMENTS["ExcludeSetup"]="true" ;;
   v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
-  gui-listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
-  gui-username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
-  gui-password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
-  gui-server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
-  gui-inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
-  gui-share) CLI_ARGUMENTS["GuiShare"]="true" ;;
+  listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
+  username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
+  password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
+  server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
+  inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
+  share) CLI_ARGUMENTS["GuiShare"]="true" ;;
   *) display_help && exit 0 ;;
   esac
 done
 shift $((OPTIND - 1))
 
+
+# This reads a YAML configuration file and extracts default argument values.
+# It stores these values in variables with a specified prefix.
+# The function supports two sections: 'arguments' and 'kohya_gui_arguments'.
+# For each argument in the sections, it looks for a 'name' and a 'default' value,
+# and then stores the default value in a variable named "${prefix}_<name>"
+# or "${prefix}_gui_<name>" for the respective sections.
 parse_yaml() {
   local yaml_file="$1"
   local prefix="$2"
@@ -115,13 +122,13 @@ parse_yaml() {
     elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
       key="${BASH_REMATCH[1]}"
       state="searching_default"
-    elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*default:[[:space:]]*(.+)$ ]]; then
+    elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*value:[[:space:]]*(.+)$ ]]; then
       value="${BASH_REMATCH[1]}"
       state="none"
       if [[ "$section" == "arguments" ]]; then
         eval "${prefix}_${key}=\"$value\""
       elif [[ "$section" == "kohya_gui_arguments" ]]; then
-        eval "${prefix}_gui_${key}=\"$value\""
+        eval "${prefix}_${key}=\"$value\""
       fi
     else
       state="none"
@@ -160,13 +167,14 @@ config_Public="${config_Public:-false}"
 config_Runpod="${config_Runpod:-false}"
 config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
 config_Verbose="${config_Verbose:-2}"
-config_GuiListen="${config_GuiListen:-127.0.0.1}"
-config_GuiUsername="${config_GuiUsername:-}"
-config_GuiPassword="${config_GuiPassword:-}"
-config_GuiServerPort="${config_GuiServerPort:-8080}"
-config_GuiInbrowser="${config_GuiInbrowser:-false}"
-config_GuiShare="${config_GuiShare:-false}"
 config_ExcludeSetup="${config_ExcludeSetup:-false}"
+config_Listen="${config_Listen:-127.0.0.1}"
+config_Username="${config_Username:-}"
+config_Password="${config_Password:-}"
+config_ServerPort="${config_ServerPort:-8080}"
+config_Inbrowser="${config_Inbrowser:-false}"
+config_Share="${config_Share:-false}"
+
 
 # Override config values with CLI arguments
 for key in "${!CLI_ARGUMENTS[@]}"; do
@@ -184,13 +192,14 @@ PUBLIC="$config_Public"
 RUNPOD="$config_Runpod"
 SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
 VERBOSE="$config_Verbose"
-GUI_LISTEN="$config_GuiListen"
-GUI_USERNAME="$config_GuiUsername"
-GUI_PASSWORD="$config_GuiPassword"
-GUI_SERVER_PORT="$config_GuiServerPort"
-GUI_INBROWSER="$config_GuiInbrowser"
-GUI_SHARE="$config_GuiShare"
 EXCLUDE_SETUP="$config_ExcludeSetup"
+GUI_LISTEN="$config_Listen"
+GUI_USERNAME="$config_Username"
+GUI_PASSWORD="$config_Password"
+GUI_SERVER_PORT="$config_ServerPort"
+GUI_INBROWSER="$config_Inbrowser"
+GUI_SHARE="$config_Share"
+
 
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
   seq 3 $VERBOSE

@@ -1,83 +1,51 @@
 setup_arguments:
   - name: Branch
-    short: -b
-    long: --branch
     description: Select which branch of kohya to check out on new installs.
-    default: master
+    value: master
   - name: Dir
-    short: -d
-    long: --dir
     description: The full path you want kohya_ss installed to.
-    default: ~/kohya_ss
+    value: ~/kohya_ss
   - name: GitRepo
-    short: -g
-    long: --gitrepo
-    description: You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
-    default: https://github.com/kohya/kohya_ss.git
+    description: You can optionally provide a git repo to check out. Useful for custom forks.
+    value: https://github.com/kohya/kohya_ss.git
   - name: Interactive
-    short: -i
-    long: --interactive
-    description: Interactively configure accelerate instead of using default config file.
-    default: false
+    description: Interactively configure accelerate instead of using value config file.
+    value: false
   - name: NoGitUpdate
-    short: -n
-    long: --nogitupdate
     description: Do not update kohya_ss repo. No git pull or clone operations.
-    default: false
+    value: false
   - name: Public
-    short: -p
-    long: --public
     description: Expose public URL in runpod mode. Won't have an effect in other modes.
-    default: false
+    value: false
   - name: Runpod
-    short: -r
-    long: --runpod
     description: Forces a runpod installation. Useful if detection fails for any reason.
-    default: false
+    value: false
   - name: SkipSpaceCheck
-    short: -s
-    long: --skipspacecheck
     description: Skip the 10Gb minimum storage space check.
-    default: false
+    value: false
   - name: Verbose
-    short: -v
-    long: --verbose
     description: Increase verbosity levels up to 3.
-    default: 0
+    value: 0
   - name: SkipSetup
-    short: -x
-    long: --exclude-setup
     description: Skip all setup steps and only validate python requirements then launch GUI.
-    default: false
+    value: false
 
 kohya_gui_arguments:
-  - name: GuiListen
-    short: --gui-listen
-    long: --gui-listen
+  - name: Listen
     description: IP to listen on for connections to Gradio.
-    default: 127.0.0.1
-  - name: GuiUsername
-    short: --gui-username
-    long: --gui-username
+    value: 127.0.0.1
+  - name: Username
     description: Username for authentication.
-    default: ''
-  - name: GuiPassword
-    short: --gui-password
-    long: --gui-password
+    value: ''
+  - name: Password
     description: Password for authentication.
-    default: ''
-  - name: GuiServerPort
-    short: --gui-server-port
-    long: --gui-server-port
+    value: ''
+  - name: ServerPort
     description: Port to run the server listener on.
-    default: 0
-  - name: GuiInbrowser
-    short: --gui-inbrowser
-    long: --gui-inbrowser
+    value: 0
+  - name: Inbrowser
     description: Open in browser.
-    default: false
-  - name: GuiShare
-    short: --gui-share
-    long: --gui-share
+    value: false
+  - name: Share
     description: Share the gradio UI.
-    default: false
+    value: false

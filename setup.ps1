@@ -47,22 +47,22 @@ Skip all setup steps and only validate python requirements then launch GUI.
 .PARAMETER Verbose
   Increase verbosity levels up to 3.
 
-.PARAMETER GUI_LISTEN
+.PARAMETER LISTEN
   The IP address the GUI should listen on.
 
-.PARAMETER GUI_USERNAME
+.PARAMETER USERNAME
   The username for the GUI.
 
-.PARAMETER GUI_PASSWORD
+.PARAMETER PASSWORD
   The password for the GUI.
 
-.PARAMETER GUI_SERVER_PORT
+.PARAMETER SERVER_PORT
   The port number the GUI server should use.
 
-.PARAMETER GUI_INBROWSER
+.PARAMETER INBROWSER
   Open the GUI in the default web browser.
 
-.PARAMETER GUI_SHARE
+.PARAMETER SHARE
   Share the GUI with other users on the network.
 #>
 
@@ -141,8 +141,8 @@ function Get-Parameters {
             $yamlContent = Get-Content -Path $location | ConvertFrom-Yaml
             foreach ($section in $yamlContent.Keys) {
                 foreach ($key in $yamlContent[$section].Keys) {
-                    if ($yamlContent[$section][$key].ContainsKey('default')) {
-                        $Config["${section}_${key}"] = $yamlContent[$section][$key]['default']
+                    if ($yamlContent[$section][$key].ContainsKey('value')) {
+                        $Config["${section}_${key}"] = $yamlContent[$section][$key]['value']
                     }
                 }
             }
@@ -152,23 +152,24 @@ function Get-Parameters {
 
     # Define the default values
     $Defaults = @{
-        'setup_branch'       = 'master'
-        'setup_dir'          = "$env:USERPROFILE\kohya_ss"
-        'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
-        'setup_interactive'  = $false
-        'setup_gitUpdate'    = $false
-        'setup_public'       = $false
-        'setup_runpod'       = $false
-        'setup_spaceCheck'   = $false
-        'setup_verbosity'    = 0
-        'setup_excludeSetup' = $false
-        'gui_listen'         = '127.0.0.1'
-        'gui_username'       = ''
-        'gui_password'       = ''
-        'gui_server_port'    = 7861
-        'gui_inbrowser'      = $true
-        'gui_share'          = $false
+    'setup_branch'       = 'master'
+    'setup_dir'          = "$env:USERPROFILE\kohya_ss"
+    'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
+    'setup_interactive'  = $false
+    'setup_gitUpdate'    = $false
+    'setup_public'       = $false
+    'setup_runpod'       = $false
+    'setup_spaceCheck'   = $false
+    'setup_verbosity'    = 0
+    'setup_excludeSetup' = $false
+    'listen'             = '127.0.0.1'
+    'username'           = ''
+    'password'           = ''
+    'server_port'        = 7861
+    'inbrowser'          = $true
+    'share'              = $false
     }
+
 
     # Iterate through the default values and set them if not defined in the config file
     foreach ($key in $Defaults.Keys) {
