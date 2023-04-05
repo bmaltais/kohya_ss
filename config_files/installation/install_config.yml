@@ -1,4 +1,4 @@
-arguments:
+setup_arguments:
   - name: Branch
     short: -b
     long: --branch
@@ -54,6 +54,8 @@ arguments:
     long: --exclude-setup
     description: Skip all setup steps and only validate python requirements then launch GUI.
     default: false
+
+kohya_gui_arguments:
   - name: GuiListen
     short: --gui-listen
     long: --gui-listen

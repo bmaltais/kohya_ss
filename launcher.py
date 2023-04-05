@@ -38,50 +38,46 @@ def parse_file_arg():
 def parse_args(_config_data):
     parser = argparse.ArgumentParser(description="Launcher script for Kohya_SS.")
 
+    # Define the default arguments first
+    default_args = {
+        '--branch': 'master',
+        '--dir': os.path.expanduser("~/kohya_ss"),
+        '--file': 'install_config.yaml',
+        '--git-repo': 'https://github.com/kohya/kohya_ss.git',
+        '--interactive': False,
+        '--no-git-update': False,
+        '--public': False,
+        '--runpod': False,
+        '--skip-space-check': False,
+        '--verbosity': 0,
+        '--exclude-setup': False,
+        '--gui-listen': '127.0.0.1',
+        '--gui-username': '',
+        '--gui-password': '',
+        '--gui-server-port': 0,
+        '--gui-inbrowser': False,
+        '--gui-share': False,
+    }
+
+    # Update the default arguments with values from the config file
     if _config_data:
-        for arg in _config_data["arguments"]:
-            name = arg["name"]
-            short = arg["short"]
-            long = arg["long"]
-            description = arg["description"]
-            default = arg["default"]
+        if "arguments" in _config_data:
+            for arg in _config_data["arguments"]:
+                long = arg["long"]
+                default = arg["default"]
+                default_args[long] = default
+        if "kohya_gui_arguments" in _config_data:
+            for arg in _config_data["kohya_gui_arguments"]:
+                long = arg["long"]
+                default = arg["default"]
+                default_args[long] = default
 
-            if isinstance(default, bool):
-                parser.add_argument(short, long, dest=name, action="store_true", help=description)
-            else:
-                parser.add_argument(short, long, dest=name, default=default, help=description)
-    else:
-        parser.add_argument("-b", "--branch", dest="branch", default="master",
-                            help="Select which branch of kohya to check out on new installs.")
-        parser.add_argument("-d", "--dir", dest="dir", default=os.path.expanduser("~/kohya_ss"),
-                            help="The full path you want kohya_ss installed to.")
-        parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
-                            help="Path to the configuration file.")
-        parser.add_argument("-g", "--git-repo", dest="gitRepo", default="https://github.com/kohya/kohya_ss.git",
-                            help="You can optionally provide a git repo to check out. Useful "
-                                 "for custom forks.")
-        parser.add_argument("-i", "--interactive", dest="interactive", action="store_true",
-                            help="Interactively configure accelerate instead of using default config file.")
-        parser.add_argument("-n", "--no-git-update", dest="gitUpdate", action="store_true",
-                            help="Do not update kohya_ss repo. No git pull or clone operations.")
-        parser.add_argument("-p", "--public", dest="public", action="store_true",
-                            help="Expose public URL in runpod mode. Won't have an effect in other modes.")
-        parser.add_argument("-r", "--runpod", dest="runpod", action="store_true",
-                            help="Forces a runpod installation. Useful if detection fails for any reason.")
-        parser.add_argument("-s", "--skip-space-check", dest="spaceCheck", action="store_true",
-                            help="Skip the 10Gb minimum storage space check.")
-        parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity levels up to 3.")
-        parser.add_argument("-x", "--exclude-setup", dest="skip_setup", action="store_false",
-                            help="Skip all setup steps and only validate python requirements then launch GUI.")
-
-        # Now the kohya_gui.py arguments to be passed through
-        parser.add_argument('--gui-listen', type=str, default='127.0.0.1',
-                            help='IP to listen on for connections to Gradio')
-        parser.add_argument('--gui-username', type=str, default='', help='Username for authentication')
-        parser.add_argument('--gui-password', type=str, default='', help='Password for authentication')
-        parser.add_argument('--gui-server-port', type=int, default=0, help='Port to run the server listener on')
-        parser.add_argument('--gui-inbrowser', action='store_true', help='Open in browser')
-        parser.add_argument('--gui-share', action='store_true', help='Share the gradio UI')
+    # Add arguments to the parser with updated default values
+    for arg_name, default_value in default_args.items():
+        if isinstance(default_value, bool):
+            parser.add_argument(arg_name, dest=arg_name[2:], action='store_true', default=default_value)
+        else:
+            parser.add_argument(arg_name, dest=arg_name[2:], default=default_value)
 
     _args = parser.parse_args()
     return _args
