@@ -10,6 +10,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation and Upgrading](#installation-and-upgrading)
+  - [Containers](#containers)
   - [Runpod](#runpod)
   - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
     - [Configuration](#configuration)
@@ -71,6 +72,13 @@ No additional steps should be needed unless the scripts inform you otherwise. Ho
 - [Git](https://git-scm.com/download/win)
 - [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
+### Containers
+Notably, the setup scripts will not use a Python virtual environment if it detects a container environment and will opt to use the system-installed Python.
+
+At this time, containers are recommended to use the launcher.py method for installation recommended here: [Bypass Python, Python TK, and Git install checks](#bypass-some)
+
+For running the containers it is recommended to use launcher.py as the entrypoint with the `-x` option to skip all installation steps and run the GUI. The [GUI CLI arguments](#command-line-arguments) can be used in addition to this.
+
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
@@ -85,7 +93,7 @@ Non-Windows: Use **<ins>setup.sh</ins>** or **<ins>setup.ps1</ins>** if you have
 
 <br>
 
-#### Running Kohya_SS
+### Running Kohya_SS
 
 There are many configuration options which you can find just below this section. Here are some examples on how to run the scripts. They also have help functions.
 
@@ -110,7 +118,9 @@ Custom Settings:
 ```
 
 <details>
-<summary>Bypass all setup steps, installation checks, and Python validations and run the GUI directly</summary>
+<summary>Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</summary>
+
+#### Bypass Some
 
 Bypass Python, git, and tk checks by running launcher.py:
 ```bash
@@ -128,7 +138,9 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <br>
 
 <details>
-<summary>Bypass all setup steps, installation checks, and Python validations and run the GUI directly</summary>
+<summary>Bypass all setup steps, installation checks, and Python validations.</summary>
+
+####  Bypass Most
 
 The -x or --exclude-setup options bypass all setup and checks:
 ```bash
@@ -144,7 +156,27 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <br>
 
 <details>
+<summary>Bypass everything and run Kohya directly</summary>
+
+#### Bypass all
+
+Kohya GUI will also respect the configuration file like all other scripts:
+```bash
+# Windows
+python .\kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
+
+# Linux / Non-Windows / Cygwin, Msys, etc
+python3 kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
+```
+
+</details>
+
+<br>
+
+<details>
 <summary>Permission Errors when running setup.ps1</summary>
+
+#### Permission Errors
 
 Try the following command in PowerShell:
 ```pwsh
@@ -161,8 +193,9 @@ This command does the following:
 
 </details>
 
+<br>
 
-#### Configuration
+### Configuration
 
 <details>
 <summary>Command Line Arguments</summary>
@@ -241,14 +274,6 @@ python .\tools\cudann_1.8_install.py
 Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
 </details>
-
-## Launching the GUI directly using kohya_gui.py
-
-To run the GUI directly bypassing the wrapper scripts, simply use this command:
-
-```
-launcher.py -x 
-```
 
 ## Dreambooth
 
