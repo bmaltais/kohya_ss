@@ -99,7 +99,7 @@ function Get-Parameters {
     $configFileLocations = if ($IsWindows) {
         @(
             $File,
-            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\install_config.yaml"),
+            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\config_files\installation\install_config.yaml"),
             (Join-Path -Path $env:LOCALAPPDATA -ChildPath "kohya_ss\install_config.yaml"),
             (Join-Path -Path $PSBoundParameters['Dir'] -ChildPath "install_config.yaml"),
             (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),

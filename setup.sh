@@ -128,7 +128,7 @@ shift $((OPTIND - 1))
 configFileLocations=(
   "$USER_CONFIG_FILE"
   "$HOME/.kohya_ss/install_config.yaml"
-  "$DIR/install_config.yaml"
+  "$DIR/config_files/installation/install_config.yaml"
   "$SCRIPT_DIR/install_config.yaml"
 )
 

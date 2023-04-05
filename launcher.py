@@ -8,7 +8,6 @@ import site
 import subprocess
 import sys
 import time
-import kohya_gui
 from pathlib import Path
 
 import yaml
@@ -72,6 +71,8 @@ def parse_args(_config_data):
         parser.add_argument("-s", "--skip-space-check", dest="spaceCheck", action="store_true",
                             help="Skip the 10Gb minimum storage space check.")
         parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity levels up to 3.")
+        parser.add_argument("-x", "--exclude-setup", dest="skip_setup", action="store_false",
+                            help="Skip all setup steps and only validate python requirements then launch GUI.")
 
         # Now the kohya_gui.py arguments to be passed through
         parser.add_argument('--gui-listen', type=str, default='127.0.0.1',
@@ -384,7 +385,6 @@ def get_os_info():
 
 
 def install_python_dependencies(_dir, runpod, script_dir):
-
     # Following check disabled as PyCharm can't detect it's being used in a subprocess
     # noinspection PyUnusedLocal
     python_bin = None
@@ -508,15 +508,31 @@ def configure_accelerate(interactive, source_config_file):
 
 
 def launch_kohya_gui(_args):
-    kohya_gui.UI(
-        listen=_args.gui_listen,
-        username=_args.gui_username,
-        password=_args.gui_password,
-        server_port=_args.gui_server_port,
-        inbrowser=_args.gui_inbrowser,
-        share=_args.gui_share
-    )
+    venv_path = os.path.join(_args.dir, "venv")
+    kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
+    if not os.path.exists(venv_path):
+        print("Error: Virtual environment not found")
+        sys.exit(1)
+
+    python_executable = os.path.join(venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(venv_path, "Scripts", "python.exe")
+
+    if not os.path.exists(python_executable):
+        print("Error: Python executable not found in the virtual environment")
+        sys.exit(1)
+
+    cmd = [
+        python_executable,
+        kohya_gui_path,
+        "--listen", _args.gui_listen,
+        "--username", _args.gui_username,
+        "--password", _args.gui_password,
+        "--server_port", str(_args.gui_server_port),
+        "--inbrowser" if _args.gui_inbrowser else "",
+        "--share" if _args.gui_share else "",
+    ]
+
+    subprocess.run(cmd, check=True)
 
 def main(_args=None):
     if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
@@ -527,7 +543,9 @@ def main(_args=None):
     script_directory = os.path.dirname(os.path.realpath(__file__))
 
     # Read config file or use defaults
-    _config_file = _args.config_file if _args.config_file else os.path.join(script_directory, "install_config.yaml")
+    _config_file = _args.config_file if _args.config_file else os.path.join(script_directory,
+                                                                            "/config_files/installation"
+                                                                            "/install_config.yaml")
     config = load_config(_config_file)
 
     # Check for DIR in command line arguments, config file, or use the default
@@ -594,4 +612,8 @@ if __name__ == "__main__":
         for k, v in args.__dict__.items():
             logging.debug(f"{k}: {v}")
 
-    main(args)
+    if args.skip_setup:
+        launch_kohya_gui(args)
+        exit(0)
+    else:
+        main(args)
