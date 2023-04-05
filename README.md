@@ -103,7 +103,7 @@ Custom Settings:
 -Branch mybranch -Dir "C:\path\to\kohya_ss" -GitRepo "https://github.com/myfork/kohya_ss.git"
 
 # Linux / Non-Windows / Cygwin, Msys, etc
-./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r `
+./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
 
@@ -117,7 +117,7 @@ python .\launcher.py --listen 192.168.1.100 --username myusername --password myp
 --branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 
 # Linux / Non-Windows / Cygwin, Msys, etc
-python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod `
+python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
 
