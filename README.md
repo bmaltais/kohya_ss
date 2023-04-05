@@ -290,6 +290,7 @@ This will store a backup file with your current locally installed pip packages a
             - `block_alphas` : Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.
             - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
             - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
+    - Add GUI support for new features introduced above by kohya_ss. Those will be visible only if the LoRA is of type `Standard` or `kohya LoCon`. You will find the new parameters under the `Advanced Configuration` accordion in the `Training parameters` tab.
 * 2023/04/02 (v21.4.2)
     - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
 * 2023/04/01 (v21.4.1)
