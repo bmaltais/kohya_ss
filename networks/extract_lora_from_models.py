@@ -53,7 +53,7 @@ def svd(args):
   lora_network_o = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_o, unet_o, **kwargs)
   lora_network_t = lora.create_network(1.0, args.dim, args.dim, None, text_encoder_t, unet_t, **kwargs)
   assert len(lora_network_o.text_encoder_loras) == len(
-      lora_network_t.text_encoder_loras), f"model version is different (SD1.x vs SD2.x) / ???????????????????(SD1.x????SD2.x???) "
+      lora_network_t.text_encoder_loras), f"model version is different (SD1.x vs SD2.x) / それぞれのモデルのバージョンが違います（SD1.xベースとSD2.xベース） "
 
   # get diffs
   diffs = {}
@@ -165,19 +165,19 @@ def svd(args):
 def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
   parser.add_argument("--v2", action='store_true',
-                      help='load Stable Diffusion v2.x model / Stable Diffusion 2.x?????????')
+                      help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
   parser.add_argument("--save_precision", type=str, default=None,
-                      choices=[None, "float", "fp16", "bf16"], help="precision in saving, same to merging if omitted / ????????????????????float")
+                      choices=[None, "float", "fp16", "bf16"], help="precision in saving, same to merging if omitted / 保存時に精度を変更して保存する、省略時はfloat")
   parser.add_argument("--model_org", type=str, default=None,
-                      help="Stable Diffusion original model: ckpt or safetensors file / ?????ckpt???safetensors")
+                      help="Stable Diffusion original model: ckpt or safetensors file / 元モデル、ckptまたはsafetensors")
   parser.add_argument("--model_tuned", type=str, default=None,
-                      help="Stable Diffusion tuned model, LoRA is difference of `original to tuned`: ckpt or safetensors file / ?????(?????LoRA?????????????)?ckpt???safetensors")
+                      help="Stable Diffusion tuned model, LoRA is difference of `original to tuned`: ckpt or safetensors file / 派生モデル（生成されるLoRAは元→派生の差分になります）、ckptまたはsafetensors")
   parser.add_argument("--save_to", type=str, default=None,
-                      help="destination file name: ckpt or safetensors file / ??????????ckpt???safetensors")
-  parser.add_argument("--dim", type=int, default=4, help="dimension (rank) of LoRA (default 4) / LoRA????(rank)(?????4)")
+                      help="destination file name: ckpt or safetensors file / 保存先のファイル名、ckptまたはsafetensors")
+  parser.add_argument("--dim", type=int, default=4, help="dimension (rank) of LoRA (default 4) / LoRAの次元数（rank）（デフォルト4）")
   parser.add_argument("--conv_dim", type=int, default=None,
-                      help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRA?Conv2d-3x3????(rank)(?????None?????)")
-  parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / ??????????cuda ?GPU???")
+                      help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）")
+  parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
 
   return parser
 
