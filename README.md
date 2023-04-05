@@ -77,6 +77,8 @@ Notably, the setup scripts will not use a Python virtual environment if it detec
 
 At this time, containers are recommended to use the launcher.py method for installation recommended here: [Bypass Python, Python TK, and Git install checks](#bypass-some)
 
+It is also recommended to use a configuration file (install_config.yml) to incorporate in your container builds for reproducibility. See [Configuration File](#configuration-file) for more info.
+
 For running the containers it is recommended to use launcher.py as the entrypoint with the `-x` option to skip all installation steps and run the GUI. The [GUI CLI arguments](#command-line-arguments) can be used in addition to this.
 
 ### Runpod
@@ -247,6 +249,11 @@ The installation directory you've chosen for kohya_ss.
 The kohya_ss folder within your user profile directory.
 The same directory as the setup script.
 The setup scripts will use the first install_config.yaml file they find in this order. This allows you to place your configuration file in a location that suits your needs, making it easy for you to customize the installation process. If you're not familiar with some of these locations, don't worry—simply placing the configuration file in the same directory as the setup script is a straightforward and effective option.
+
+You may also specify a custom location for the configuration file via `-f` or `--file`.
+
+An example config file is available in the config_file/installation/install_config.yml file.
+
 
 </details>
 
