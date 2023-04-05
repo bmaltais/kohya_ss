@@ -9,11 +9,6 @@ setup_arguments:
     long: --dir
     description: The full path you want kohya_ss installed to.
     default: ~/kohya_ss
-  - name: File
-    short: -f
-    long: --file
-    description: Path to the configuration file.
-    default: ./config_files/installation/install_config.yaml
   - name: GitRepo
     short: -g
     long: --gitrepo
