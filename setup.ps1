@@ -152,22 +152,22 @@ function Get-Parameters {
 
     # Define the default values
     $Defaults = @{
-    'setup_branch'       = 'master'
-    'setup_dir'          = "$env:USERPROFILE\kohya_ss"
-    'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
-    'setup_interactive'  = $false
-    'setup_gitUpdate'    = $false
-    'setup_public'       = $false
-    'setup_runpod'       = $false
-    'setup_spaceCheck'   = $false
-    'setup_verbosity'    = 0
-    'setup_excludeSetup' = $false
-    'listen'             = '127.0.0.1'
-    'username'           = ''
-    'password'           = ''
-    'server_port'        = 7861
-    'inbrowser'          = $true
-    'share'              = $false
+        'setup_branch'       = 'master'
+        'setup_dir'          = "$env:USERPROFILE\kohya_ss"
+        'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
+        'setup_interactive'  = $false
+        'setup_gitUpdate'    = $false
+        'setup_public'       = $false
+        'setup_runpod'       = $false
+        'setup_spaceCheck'   = $false
+        'setup_verbosity'    = 0
+        'setup_excludeSetup' = $false
+        'listen'             = '127.0.0.1'
+        'username'           = ''
+        'password'           = ''
+        'server_port'        = 7861
+        'inbrowser'          = $true
+        'share'              = $false
     }
 
 
