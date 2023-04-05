@@ -65,7 +65,7 @@ def parse_file_arg():
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
     if _args.config_file is not None:
-        return os.path.abspath(_args.config_file)
+        return os.path.abspath(_args.file)
     else:
         return None
 
@@ -136,12 +136,12 @@ def parse_args(_config_data):
             if short_opt:
                 parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:], action=action, default=default_value)
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type)
         else:
             if short_opt:
                 parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:], default=default_value, type=arg_type)
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type)
 
     _args = parser.parse_args()
     return _args
@@ -322,8 +322,8 @@ def in_container():
     return False
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, git_update):
-    if git_update:
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
+    if not no_git_update:
         if shutil.which("git"):
             # First, we make sure there are no changes that need to be made in git, so no work is lost.
             git_status = subprocess.run(["git", "-C", _dir, "status", "--porcelain=v1"], capture_output=True, text=True)
@@ -609,7 +609,7 @@ def main(_args=None):
     script_directory = os.path.dirname(os.path.realpath(__file__))
 
     # Read config file or use defaults
-    _config_file = _args.config_file if _args.config_file else os.path.join(script_directory,
+    _config_file = _args.file if _args.file else os.path.join(script_directory,
                                                                             "/config_files/installation"
                                                                             "/install_config.yaml")
     config = load_config(_config_file)
@@ -622,7 +622,7 @@ def main(_args=None):
     else:
         _dir = get_default_dir(_args.runpod, script_directory)
 
-    if not _args.GitRepo or not _dir or not _args.Branch:
+    if not getattr(_args, "git-repo") or not _dir or not getattr(_args, "branch"):
         print(
             "Error: gitRepo, Branch, and Dir must have a value. Please provide values in the config file or through "
             "command line arguments.")
@@ -634,11 +634,11 @@ def main(_args=None):
 
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _dir)
-    check_storage_space(_args.spaceCheck, _args.dir, parent_dir)
-    update_kohya_ss(_dir, _args.git_repo, _args.branch, parent_dir, _args.gitUpdate)
+    check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
+    update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, parent_dir, getattr(_args, "no-git-update"))
     install_python_dependencies(_dir, _args.runpod, script_directory)
     setup_file_links(site_packages_dir, _args.runpod)
-    configure_accelerate(args.interactive, args.config_file)
+    configure_accelerate(args.interactive, args.file)
     launch_kohya_gui(args)
 
 
@@ -678,7 +678,7 @@ if __name__ == "__main__":
         for k, v in args.__dict__.items():
             logging.debug(f"{k}: {v}")
 
-    if args.exclude-setup:
+    if getattr(args, 'exclude-setup'):
         launch_kohya_gui(args)
         exit(0)
     else:
