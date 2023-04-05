@@ -337,10 +337,10 @@ You can run launcher.py whenever you want to launch the application with the spe
 
 </details>
 
-<details>
-<summary>Change History</summary>
-
 ## Change History
+
+<details>
+<summary>Changelog</summary>
 
 * 2024/04/01 (v21.4.0)
     - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
