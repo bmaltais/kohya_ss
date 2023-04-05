@@ -305,7 +305,7 @@ def train(args):
         text_encoder.to(weight_dtype)
 
     # resumeする
-    train_util.resume(accelerator, args)
+    train_util.resume_from_local_or_hf_if_specified(accelerator, args)
 
     # epoch数を計算する
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
