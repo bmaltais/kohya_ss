@@ -1,13 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# This gets the directory the script is run from so pathing can work relative to the script where needed.
+SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 
 # Activate the virtual environment
-source venv/bin/activate
+source "$SCRIPT_DIR/venv/bin/activate"
 
-# Validate the requirements and store the exit code
-python tools/validate_requirements.py
-exit_code=$?
-
-# If the exit code is 0, run the kohya_gui.py script with the command-line arguments
-if [ $exit_code -eq 0 ]; then
-    python kohya_gui.py "$@"
+# If the requirements are validated, run the kohya_gui.py script with the command-line arguments
+if python tools/validate_requirements.py; then
+    python "$SCRIPT_DIR/kohya_gui.py" "$@"
 fi

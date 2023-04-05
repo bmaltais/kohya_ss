@@ -4,6 +4,7 @@ import os
 import gradio as gr
 import easygui
 import shutil
+import sys
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -31,7 +32,7 @@ V1_MODELS = [
 # define a list of substrings to search for
 ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 
-FILE_ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
+ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
 
 def check_if_model_exist(output_name, output_dir, save_model_as):
@@ -120,7 +121,7 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -155,7 +156,7 @@ def get_file_path(
 
 
 def get_any_file_path(file_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -197,7 +198,7 @@ def remove_doublequote(file_path):
 
 
 def get_folder_path(folder_path=''):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
         current_folder_path = folder_path
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
@@ -217,7 +218,7 @@ def get_folder_path(folder_path=''):
 def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -253,7 +254,7 @@ def get_saveasfile_path(
 def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in FILE_ENV_EXCLUSION):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -867,7 +868,7 @@ def gradio_advanced_training():
             minimum=0,
             maximum=32,
             value=0,
-            every=1
+            step=1
         )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)

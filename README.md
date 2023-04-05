@@ -6,21 +6,30 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ### Table of Contents
 
-- [Tutorials](https://github.com/bmaltais/kohya_ss#tutorials)
-- [Required Dependencies](https://github.com/bmaltais/kohya_ss#required-dependencies)
-- [Installation](https://github.com/bmaltais/kohya_ss#installation)
-    - [CUDNN 8.6](https://github.com/bmaltais/kohya_ss#optional-cudnn-86)
-- [Upgrading](https://github.com/bmaltais/kohya_ss#upgrading)
-- [Launching the GUI](https://github.com/bmaltais/kohya_ss#launching-the-gui)
-- [Dreambooth](https://github.com/bmaltais/kohya_ss#dreambooth)
-- [Finetune](https://github.com/bmaltais/kohya_ss#finetune)
-- [Train Network](https://github.com/bmaltais/kohya_ss#train-network)
-- [LoRA](https://github.com/bmaltais/kohya_ss#lora)
-- [Troubleshooting](https://github.com/bmaltais/kohya_ss#troubleshooting)
-  - [Page File Limit](https://github.com/bmaltais/kohya_ss#page-file-limit)
-  - [No module called tkinter](https://github.com/bmaltais/kohya_ss#no-module-called-tkinter)
-  - [FileNotFoundError](https://github.com/bmaltais/kohya_ss#filenotfounderror)
-- [Change History](https://github.com/bmaltais/kohya_ss#change-history)
+- [Tutorials](#tutorials)
+- [Required Dependencies](#required-dependencies)
+  - [Linux/macOS](#linux-and-macos-dependencies)
+- [Installation](#installation)
+    - [Linux/macOS](#linux-and-macos)
+      - [Default Install Locations](#install-location)
+    - [Windows](#windows)
+    - [CUDNN 8.6](#optional--cudnn-86)
+- [Upgrading](#upgrading)
+  - [Windows](#windows-upgrade)
+  - [Linux/macOS](#linux-and-macos-upgrade)
+- [Launching the GUI](#starting-gui-service)
+  - [Windows](#launching-the-gui-on-windows)
+  - [Linux/macOS](#launching-the-gui-on-linux-and-macos)
+  - [Direct Launch via Python Script](#launching-the-gui-directly-using-kohyaguipy)
+- [Dreambooth](#dreambooth)
+- [Finetune](#finetune)
+- [Train Network](#train-network)
+- [LoRA](#lora)
+- [Troubleshooting](#troubleshooting)
+  - [Page File Limit](#page-file-limit)
+  - [No module called tkinter](#no-module-called-tkinter)
+  - [FileNotFoundError](#filenotfounderror)
+- [Change History](#change-history)
 
 ## Tutorials
 
@@ -39,35 +48,67 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - Install [Git](https://git-scm.com/download/win)
 - Install [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
+### Linux and macOS dependencies
+
+These dependencies are taken care of via `setup.sh` in the installation section. No additional steps should be needed unless the scripts inform you otherwise.
+
 ## Installation
 
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
-### MacOS
+### Linux and macOS
 In the terminal, run
 
 ```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-bash macos_setup.sh
+# May need to chmod +x ./setup.sh if you're on a machine with stricter security.
+# There are additional options if needed for a runpod environment.
+# Call 'setup.sh -h' or 'setup.sh --help' for more information.
+./setup.sh
 ```
 
-During the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
+Setup.sh help included here:
 
-### Ubuntu
-In the terminal, run
+```bash
+Kohya_SS Installation Script for POSIX operating systems.
 
+The following options are useful in a runpod environment,
+but will not affect a local machine install.
+
+Usage:
+  setup.sh -b dev -d /workspace/kohya_ss -g https://mycustom.repo.tld/custom_fork.git
+  setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
+
+Options:
+  -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
+  -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
+  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+  -h, --help                    Show this screen.
+  -i, --interactive             Interactively configure accelerate instead of using default config file.
+  -n, --no-update               Do not update kohya_ss repo. No git pull or clone operations.
+  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
+  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -u, --no-gui                  Skips launching the GUI.
+  -v, --verbose                 Increase verbosity levels up to 3.
 ```
-git clone https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-bash ubuntu_setup.sh
-```
 
-then configure accelerate with the same answers as in the MacOS instructions when prompted.
+#### Install location
+
+The default install location for Linux is where the script is located if a previous installation is detected that location.
+Otherwise, it will fall to `/opt/kohya_ss`. If /opt is not writeable, the fallback is `$HOME/kohya_ss`. Lastly, if all else fails it will simply install to the current folder you are in (PWD).
+
+On macOS and other non-Linux machines, it will first try to detect an install where the script is run from and then run setup there if that's detected. 
+If a previous install isn't found at that location, then it will default install to `$HOME/kohya_ss` followed by where you're currently at if there's no access to $HOME.
+You can override this behavior by specifying an install directory with the -d option.
+
+If you are using the interactive mode, our default values for the accelerate config screen after running the script answer "This machine", "None", "No" for the remaining questions.
+These are the same answers as the Windows install.
 
 ### Windows
-In the terminal, run
+In the terminal, run:
 
 ```
 git clone https://github.com/bmaltais/kohya_ss.git
@@ -75,7 +116,7 @@ cd kohya_ss
 setup.bat
 ```
 
-then configure accelerate with the same answers as in the MacOS instructions when prompted.
+Then configure accelerate with the same answers as in the MacOS instructions when prompted.
 
 ### Optional: CUDNN 8.6
 
@@ -93,38 +134,58 @@ Run the following commands to install:
 python .\tools\cudann_1.8_install.py
 ```
 
-## Upgrading MacOS
-
-When a new release comes out, you can upgrade your repo with the following commands in the root directory:
-
-```bash
-upgrade_macos.sh
-```
-
 Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
-## Upgrading Windows
+## Upgrading
 
+The following commands will work from the root directory of the project if you'd prefer to not run scripts.
+These commands will work on any OS.
+```bash
+git pull
+
+.\venv\Scripts\activate
+
+pip install --use-pep517 --upgrade -r requirements.txt
+```
+
+### Windows Upgrade
 When a new release comes out, you can upgrade your repo with the following commands in the root directory:
 
 ```powershell
 upgrade.bat
 ```
 
+### Linux and macOS Upgrade
+You can cd into the root directory and simply run
+
+```bash
+# Refresh and update everything
+./setup.sh
+
+# This will refresh everything, but NOT clone or pull the git repo.
+./setup.sh --no-git-update
+```
+
 Once the commands have completed successfully you should be ready to use the new version.
 
-## Launching the GUI using gui.bat or gui.ps1
+# Starting GUI Service
 
-The script can be run with several optional command line arguments:
-
+The following command line arguments can be passed to the scripts on any OS to configure the underlying service.
+```
 --listen: the IP address to listen on for connections to Gradio.
---username: a username for authentication.
---password: a password for authentication.
---server_port: the port to run the server listener on.
---inbrowser: opens the Gradio UI in a web browser.
+--username: a username for authentication. 
+--password: a password for authentication. 
+--server_port: the port to run the server listener on. 
+--inbrowser: opens the Gradio UI in a web browser. 
 --share: shares the Gradio UI.
+```
 
-These command line arguments can be passed to the UI function as keyword arguments. To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
+### Launching the GUI on Windows
+
+The two scripts to launch the GUI on Windows are gui.ps1 and gui.bat in the root directory.
+You can use whichever script you prefer.
+
+To launch the Gradio UI, run the script in a terminal with the desired command line arguments, for example:
 
 `gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
 
@@ -132,14 +193,19 @@ or
 
 `gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
 
-## Launching the GUI using kohya_gui.py
+## Launching the GUI on Linux and macOS
 
-To run the GUI, simply use this command:
+Run the launcher script with the desired command line arguments similar to Windows.
+`gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share`
+
+## Launching the GUI directly using kohya_gui.py
+
+To run the GUI directly bypassing the wrapper scripts, simply use this command from the root project directory:
 
 ```
 .\venv\Scripts\activate
 
-python.exe .\kohya_gui.py
+python .\kohya_gui.py
 ```
 
 ## Dreambooth
@@ -188,24 +254,53 @@ pip freeze > uninstall.txt
 pip uninstall -r uninstall.txt
 ```
 
-This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
+This will store a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
 
 ## Change History
 
+* 2023/04/04 (v21.5.0)
+    - Update MacOS and Linux install scripts. Thanks @jstayco
+    - Update windows upgrade ps1 and bat
+    - Update kohya_ss sd-script code to latest release... this is a big one so it might cause some training issue. If you find that this release is causing issues for you you can go back to the previous release with `git checkout v21.4.2` and then run the upgrade script for your platform. Here is the list of changes in the new sd-scripts:
+        - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
+        - The learning rate and dim (rank) of each block may not work with other modules (LyCORIS, etc.) because the module needs to be changed.
+
+        - Fix some bugs and add some features.
+            - Fix an issue that `.json` format dataset config files cannot be read.  [issue #351](https://github.com/kohya-ss/sd-scripts/issues/351) Thanks to rockerBOO!
+            - Raise an error when an invalid `--lr_warmup_steps` option is specified (when warmup is not valid for the specified scheduler).  [PR #364](https://github.com/kohya-ss/sd-scripts/pull/364)  Thanks to shirayu!
+            - Add `min_snr_gamma` to metadata in `train_network.py`. [PR #373](https://github.com/kohya-ss/sd-scripts/pull/373) Thanks to rockerBOO!
+            - Fix the data type handling in `fine_tune.py`. This may fix an error that occurs in some environments when using xformers, npz format cache, and mixed_precision.
+
+        - Add options to `train_network.py` to specify block weights for learning rates. [PR #355](https://github.com/kohya-ss/sd-scripts/pull/355) Thanks to u-haru for the great contribution!
+            - Specify the weights of 25 blocks for the full model.
+            - No LoRA corresponds to the first block, but 25 blocks are specified for compatibility with 'LoRA block weight' etc. Also, if you do not expand to conv2d3x3, some blocks do not have LoRA, but please specify 25 values ​​for the argument for consistency.
+            - Specify the following arguments with `--network_args`.
+            - `down_lr_weight` : Specify the learning rate weight of the down blocks of U-Net. The following can be specified.
+            - The weight for each block: Specify 12 numbers such as `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"`.
+            - Specify from preset: Specify such as `"down_lr_weight=sine"` (the weights by sine curve). sine, cosine, linear, reverse_linear, zeros can be specified. Also, if you add `+number` such as `"down_lr_weight=cosine+.25"`, the specified number is added (such as 0.25~1.25).
+            - `mid_lr_weight` : Specify the learning rate weight of the mid block of U-Net. Specify one number such as `"down_lr_weight=0.5"`.
+            - `up_lr_weight` : Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.
+            - If you omit the some arguments, the 1.0 is used. Also, if you set the weight to 0, the LoRA modules of that block are not created.
+            - `block_lr_zero_threshold` : If the weight is not more than this value, the LoRA module is not created. The default is 0.
+
+        - Add options to `train_network.py` to specify block dims (ranks) for variable rank.
+            - Specify 25 values ​​for the full model of 25 blocks. Some blocks do not have LoRA, but specify 25 values ​​always.
+            - Specify the following arguments with `--network_args`.
+            - `block_dims` : Specify the dim (rank) of each block. Specify 25 numbers such as `"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`.
+            - `block_alphas` : Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.
+            - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
+            - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
+    - Add GUI support for new features introduced above by kohya_ss. Those will be visible only if the LoRA is of type `Standard` or `kohya LoCon`. You will find the new parameters under the `Advanced Configuration` accordion in the `Training parameters` tab.
+* 2023/04/02 (v21.4.2)
+    - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
+* 2023/04/01 (v21.4.1)
+    - Fix type for linux install by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/517
+    - Fix .gitignore by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/518
 * 2023/04/01 (v21.4.0)
-    - Fix an issue that `merge_lora.py` does not work with the latest version.
-    - Fix an issue that `merge_lora.py` does not merge Conv2d3x3 weights.
-    - Fix an issue that the VRAM usage temporarily increases when loading a model in `train_network.py`.
-    - Fix an issue that an error occurs when loading a `.safetensors` model in `train_network.py`. [#354](https://github.com/kohya-ss/sd-scripts/issues/354)
-    - Support [P+](https://prompt-plus.github.io/) training. Thank you jakaline-dev!
-        - See [#327](https://github.com/kohya-ss/sd-scripts/pull/327) for details.
-        - Use `train_textual_inversion_XTI.py` for training. The usage is almost the same as `train_textual_inversion.py`. However, sample image generation during training is not supported.
-        - Use `gen_img_diffusers.py` for image generation (I think Web UI is not supported). Specify the embedding with `--XTI_embeddings` option.
-    - Reduce RAM usage at startup in `train_network.py`. [#332](https://github.com/kohya-ss/sd-scripts/pull/332)  Thank you guaneec!
-    - Support pre-merge for LoRA in `gen_img_diffusers.py`. Specify `--network_merge` option. Note that the `--am` option of the prompt option is no longer available with this option.
+    - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
+    - Fix issue with "missing library" error.
 * 2023/04/01 (v21.3.9)
     - Update how setup is done on Windows by introducing a setup.bat script. This will make it easier to install/re-install on Windows if needed. Many thanks to @missionfloyd for his PR: https://github.com/bmaltais/kohya_ss/pull/496
-    - Fix issue with WD14 caption script by applying a custom fix to kohya_ss code.
 * 2023/03/30 (v21.3.8)
     - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
 * 2023/03/29 (v21.3.7)
@@ -219,7 +314,7 @@ This will store your a backup file with your current locally installed pip packa
     - Fix an issue that images are loaded twice in Windows environment.
     - Add Min-SNR Weighting strategy. Details are in [#308](https://github.com/kohya-ss/sd-scripts/pull/308). Thank you to AI-Casanova for this great work!
         - Add `--min_snr_gamma` option to training scripts, 5 is recommended by paper.
-        - The Min SNR gamma fiels can be found unser the advanced training tab in all trainers.
+        - The Min SNR gamma fields can be found under the advanced training tab in all trainers.
     - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
 * 2023/03/26 (v21.3.5)
     - Fix for https://github.com/bmaltais/kohya_ss/issues/230
@@ -227,11 +322,11 @@ This will store your a backup file with your current locally installed pip packa
 * 2023/03/25 (v21.3.4)
     - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
-    Let me know how this work. From the look of it it appear to be well tought out. I modified a few things to make it fit better with the rest of the code in the repo.
+    Let me know how this work. From the look of it it appear to be well thought out. I modified a few things to make it fit better with the rest of the code in the repo.
     - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
     - Removed non applicable save_model_as choices for LoRA and TI.
 * 2023/03/24 (v21.3.3)
-    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your prefered terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
+    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your preferred terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
 * 2023/03/23 (v21.3.2)
     - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
 * 2023/03/23 (v21.3.1)
