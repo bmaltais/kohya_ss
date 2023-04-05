@@ -81,9 +81,23 @@ def load_config(_config_file):
     return _config_data
 
 
-
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
+
+    """
+    Argument priority order: CLI arguments > install_config.yml config file > default script values.
+
+    1. Define default_args dictionary with default values for each argument.
+    2. If a configuration file is found and contains the "kohya_gui_arguments" section,
+       update the default_args dictionary with the values from the configuration file.
+    3. Initialize the argparse.ArgumentParser() object and add arguments with updated
+       default values from the default_args dictionary.
+    4. When calling parser.parse_args(), any command-line arguments provided by the user
+       will override the corresponding default values in the parser. If a command-line
+       argument is not provided for a specific parameter, the parser will use the default
+       value (which be from the config file, if present, or the script's default values).
+    """
+
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
                         help="Path to the configuration file.")
