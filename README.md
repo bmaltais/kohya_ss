@@ -64,12 +64,12 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 These dependencies are taken care of via `setup.sh` or `setup.ps1` in the installation section. 
 
-No additional steps should be needed unless the scripts inform you otherwise.
+No additional steps should be needed unless the scripts inform you otherwise. However, for reference:
 
-- Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
-  - make sure to tick the box to add Python to the 'PATH' environment variable
-- Install [Git](https://git-scm.com/download/win)
-- Install [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+- [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
+  - Make sure to tick the box to add Python to the 'PATH' environment variable
+- [Git](https://git-scm.com/download/win)
+- [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
@@ -167,35 +167,24 @@ This command does the following:
 
 ##### Command Line Arguments
 
-The following command-line arguments are supported by setup.ps1 and setup.sh:
+The following command-line arguments are supported by setup.ps1, setup.sh, and launcher.py:
 
 ```bash
--b BRANCH or --branch=BRANCH: Select which branch of kohya to check out on new installs.
--d DIR or --dir=DIR: The full path you want kohya_ss installed to.
--g REPO or --git_repo=REPO: You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
--h or --help: Show help information.
--i or --interactive: Interactively configure accelerate instead of using the default config file.
--n or --no-git-update: Do not update kohya_ss repo. No git pull or clone operations.
--p or --public: Expose public URL in runpod mode. Won't have an effect in other modes.
--r or --runpod: Forces a runpod installation. Useful if detection fails for any reason.
--s or --skip-space-check: Skip the 10Gb minimum storage space check.
--v or --verbose: Increase verbosity levels up to 3.
+-b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
+-d DIR, --dir=DIR             The full path you want kohya_ss installed to.
+-f FILE, --file=FILE          Load a custom configuration file.
+-g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+-h, --help                    Show this screen.
+-i, --interactive             Interactively configure accelerate instead of using default config file.
+-n, --no-git-update           Do not update kohya_ss repo. No git pull or clone operations.
+-p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
+-r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+-s, --skip-space-check        Skip the 10Gb minimum storage space check.
+-x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
+-v, --verbose                 Increase verbosity levels up to 3.
 ```
 
 GUI Arguments
-The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
-Use them in the same manner is the above arguments:
-
-```bash
---listen or -l: The IP address to listen on (default: 127.0.0.1).
---username or -u: The username for the GUI (default: empty string).
---password or -p: The password for the GUI (default: empty string).
---server_port or -s: The server port for the GUI (default: 8080).
---inbrowser or -i: Launch the GUI in the default web browser (default: false).
---share or -r: Share the GUI over the network (default: false).
-```
-
-Launcher-specific Arguments
 The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
 Use them in the same manner is the above arguments:
 
