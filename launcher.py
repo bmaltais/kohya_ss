@@ -508,18 +508,23 @@ def configure_accelerate(interactive, source_config_file):
 
 
 def launch_kohya_gui(_args):
-    venv_path = os.path.join(_args.dir, "venv")
-    kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
+    if not in_container():
+        venv_path = os.path.join(_args.dir, "venv")
+        kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
-    if not os.path.exists(venv_path):
-        print("Error: Virtual environment not found")
-        sys.exit(1)
+        if not os.path.exists(venv_path):
+            print("Error: Virtual environment not found")
+            sys.exit(1)
 
-    python_executable = os.path.join(venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(venv_path, "Scripts", "python.exe")
+        python_executable = os.path.join(venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(
+            venv_path, "Scripts", "python.exe")
 
-    if not os.path.exists(python_executable):
-        print("Error: Python executable not found in the virtual environment")
-        sys.exit(1)
+        if not os.path.exists(python_executable):
+            print("Error: Python executable not found in the virtual environment")
+            sys.exit(1)
+    else:
+        python_executable = sys.executable
+        kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
     cmd = [
         python_executable,
@@ -533,6 +538,7 @@ def launch_kohya_gui(_args):
     ]
 
     subprocess.run(cmd, check=True)
+
 
 def main(_args=None):
     if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
