@@ -18,21 +18,56 @@ TENSORFLOW_MACOS_VERSION = "2.12.0"
 TENSORFLOW_METAL_VERSION = "0.8.0"
 
 
+def find_config_file(config_file_locations):
+    for location in config_file_locations:
+        abs_location = os.path.abspath(location)
+        if os.path.isfile(abs_location):
+            return abs_location
+    return None
+
+
 def load_config(_config_file):
-    if os.path.isfile(_config_file):
+    config_locations = []
+
+    if _config_file is not None:
+        config_locations.append(_config_file)
+
+    if sys.platform == "win32":
+        config_locations.extend([
+            os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation", "install_config.yaml"),
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "kohya_ss", "install_config.yaml")
+        ])
+
+    config_locations.extend([
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yaml"),
+        os.path.join(os.environ.get("USERPROFILE", ""), "kohya_ss", "install_config.yaml"),
+        os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yaml"),
+    ])
+
+    _config_file = ""
+    for location in config_locations:
+        if os.path.isfile(os.path.abspath(location)):
+            _config_file = location
+            break
+
+    if _config_file:
         with open(_config_file, "r") as f:
             _config_data = yaml.safe_load(f)
     else:
         _config_data = None
+
     return _config_data
 
 
 def parse_file_arg():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
+    parser.add_argument("-f", "--file", dest="config_file", default=None,
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
-    return _args.config_file
+    if _args.config_file is not None:
+        return os.path.abspath(_args.config_file)
+    else:
+        return None
 
 
 def parse_args(_config_data):
@@ -554,12 +589,12 @@ def launch_kohya_gui(_args):
     cmd = [
         python_executable,
         kohya_gui_path,
-        "--listen", _args.gui_listen,
-        "--username", _args.gui_username,
-        "--password", _args.gui_password,
-        "--server_port", str(_args.gui_server_port),
-        "--inbrowser" if _args.gui_inbrowser else "",
-        "--share" if _args.gui_share else "",
+        "--listen", _args.listen,
+        "--username", _args.username,
+        "--password", _args.password,
+        "--server_port", str(_args.server_port),
+        "--inbrowser" if _args.inbrowser else "",
+        "--share" if _args.share else "",
     ]
 
     subprocess.run(cmd, check=True)

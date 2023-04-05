@@ -23,7 +23,7 @@ setup_arguments:
   - name: SkipSpaceCheck
     description: Skip the 10Gb minimum storage space check.
     value: false
-  - name: Verbose
+  - name: Verbosity
     description: Increase verbosity levels up to 3.
     value: 0
   - name: SkipSetup
@@ -42,7 +42,7 @@ kohya_gui_arguments:
     value: ''
   - name: ServerPort
     description: Port to run the server listener on.
-    value: 0
+    value: 7861
   - name: Inbrowser
     description: Open in browser.
     value: false
