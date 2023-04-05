@@ -11,6 +11,8 @@ from library.merge_lora_gui import gradio_merge_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from lora_gui import lora_tab
 
+import yaml
+
 
 def UI(**kwargs):
     css = ''
@@ -70,32 +72,66 @@ def UI(**kwargs):
     interface.launch(**launch_kwargs)
 
 
+def load_config(_config_file):
+    if os.path.isfile(_config_file):
+        with open(_config_file, "r") as f:
+            _config_data = yaml.safe_load(f)
+    else:
+        _config_data = None
+    return _config_data
+
+
+
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
+                        help="Path to the configuration file.")
+    _file_args, _ = parser.parse_known_args()
+    config_file = _file_args.config_file
+    config_data = load_config(config_file)
+
+    # Define the default arguments first
+    default_args = {
+        '--listen': '127.0.0.1',
+        '--username': '',
+        '--password': '',
+        '--server_port': 0,
+        '--inbrowser': False,
+        '--share': False
+    }
+
+    # Update the default arguments with values from the config file
+    if config_data and "kohya_gui_arguments" in config_data:
+        for arg in config_data["kohya_gui_arguments"]:
+            long = arg["long"]
+            default = arg["default"]
+            default_args[long] = default
+
+    # Add arguments to the parser with updated default values
     parser.add_argument(
         '--listen',
         type=str,
-        default='127.0.0.1',
+        default=default_args['--listen'],
         help='IP to listen on for connections to Gradio',
     )
     parser.add_argument(
-        '--username', type=str, default='', help='Username for authentication'
+        '--username', type=str, default=default_args['--username'], help='Username for authentication'
     )
     parser.add_argument(
-        '--password', type=str, default='', help='Password for authentication'
+        '--password', type=str, default=default_args['--password'], help='Password for authentication'
     )
     parser.add_argument(
         '--server_port',
         type=int,
-        default=0,
+        default=default_args['--server_port'],
         help='Port to run the server listener on',
     )
     parser.add_argument(
-        '--inbrowser', action='store_true', help='Open in browser'
+        '--inbrowser', action='store_true', default=default_args['--inbrowser'], help='Open in browser'
     )
     parser.add_argument(
-        '--share', action='store_true', help='Share the gradio UI'
+        '--share', action='store_true', default=default_args['--share'], help='Share the gradio UI'
     )
 
     args = parser.parse_args()

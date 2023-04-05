@@ -95,6 +95,12 @@ function Get-Parameters {
         [string]$File = ""
     )
 
+    # Check for the existence of the powershell-yaml module and install it if necessary
+    if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
+        Install-Module -Name 'powershell-yaml' -Scope CurrentUser -Force
+    }
+    Import-Module 'powershell-yaml'
+
     # Define possible configuration file locations
     $configFileLocations = if ($IsWindows) {
         @(
@@ -120,28 +126,35 @@ function Get-Parameters {
     $Config = @{}
     foreach ($location in $configFileLocations) {
         if (Test-Path -Path $location) {
-            $Config = Get-Content -Path $location | ConvertFrom-Yaml
+            $yamlContent = Get-Content -Path $location | ConvertFrom-Yaml
+            foreach ($section in $yamlContent.Keys) {
+                foreach ($key in $yamlContent[$section].Keys) {
+                    if ($yamlContent[$section][$key].ContainsKey('default')) {
+                        $Config["${section}_${key}"] = $yamlContent[$section][$key]['default']
+                    }
+                }
+            }
             break
         }
     }
 
     # Define the default values
     $Defaults = @{
-        'Branch'          = 'master'
-        'Dir'             = "$env:USERPROFILE\kohya_ss"
-        'GitRepo'         = 'https://github.com/kohya/kohya_ss.git'
-        'Interactive'     = $false
-        'NoGitUpdate'     = $false
-        'Public'          = $false
-        'Runpod'          = $false
-        'SkipSpaceCheck'  = $false
-        'Verbose'         = 0
-        'GUI_LISTEN'      = '127.0.0.1'
-        'GUI_USERNAME'    = ''
-        'GUI_PASSWORD'    = ''
-        'GUI_SERVER_PORT' = 7861
-        'GUI_INBROWSER'   = $true
-        'GUI_SHARE'       = $false
+        'setup_branch'          = 'master'
+        'setup_dir'             = "$env:USERPROFILE\kohya_ss"
+        'setup_gitRepo'         = 'https://github.com/kohya/kohya_ss.git'
+        'setup_interactive'     = $false
+        'setup_gitUpdate'       = $false
+        'setup_public'          = $false
+        'setup_runpod'          = $false
+        'setup_spaceCheck'      = $false
+        'setup_verbosity'       = 0
+        'gui_listen'            = '127.0.0.1'
+        'gui_username'          = ''
+        'gui_password'          = ''
+        'gui_server_port'       = 7861
+        'gui_inbrowser'         = $true
+        'gui_share'             = $false
     }
 
     # Iterate through the default values and set them if not defined in the config file
@@ -159,6 +172,8 @@ function Get-Parameters {
 
     return $Config
 }
+
+
 
 <#
 .SYNOPSIS

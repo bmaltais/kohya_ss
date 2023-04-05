@@ -42,18 +42,27 @@ SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 parse_yaml() {
   local yaml_file="$1"
   local prefix="$2"
-  local line key value state
+  local line key value state section
 
   state="none"
+  section="none"
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
+    if [[ "$line" =~ ^[[:space:]]*arguments:[[:space:]]*$ ]]; then
+      section="setup_arguments"
+    elif [[ "$line" =~ ^[[:space:]]*kohya_gui_arguments:[[:space:]]*$ ]]; then
+      section="kohya_gui_arguments"
+    elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
       key="${BASH_REMATCH[1]}"
       state="searching_default"
     elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*default:[[:space:]]*(.+)$ ]]; then
       value="${BASH_REMATCH[1]}"
       state="none"
-      eval "${prefix}_${key}=\"$value\""
+      if [[ "$section" == "arguments" ]]; then
+        eval "${prefix}_${key}=\"$value\""
+      elif [[ "$section" == "kohya_gui_arguments" ]]; then
+        eval "${prefix}_gui_${key}=\"$value\""
+      fi
     else
       state="none"
     fi
@@ -61,21 +70,21 @@ parse_yaml() {
 }
 
 # Use the variables from the configuration file as default values
-BRANCH="${config_Branch:-master}"
-DIR="${config_Dir:-$HOME/kohya_ss}"
-GIT_REPO="${config_GitRepo:-https://github.com/kohya/kohya_ss.git}"
-INTERACTIVE="${config_Interactive:-false}"
-SKIP_GIT_UPDATE="${config_NoGitUpdate:-false}"
-PUBLIC="${config_Public:-false}"
-RUNPOD="${config_Runpod:-false}"
-SKIP_SPACE_CHECK="${config_SkipSpaceCheck:-false}"
-VERBOSE="${config_Verbose:-2}" #Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
-GUI_LISTEN="${config_GuiListen:-127.0.0.1}"
-GUI_USERNAME="${config_GuiUsername:-}"
-GUI_PASSWORD="${config_GuiPassword:-}"
-GUI_SERVER_PORT="${config_GuiServerPort:-8080}"
-GUI_INBROWSER="${config_GuiInbrowser:-false}"
-GUI_SHARE="${config_GuiShare:-false}"
+BRANCH="${config_branch:-master}"
+DIR="${config_dir:-$HOME/kohya_ss}"
+GIT_REPO="${config_gitRepo:-https://github.com/kohya/kohya_ss.git}"
+INTERACTIVE="${config_interactive:-false}"
+SKIP_GIT_UPDATE="${config_gitUpdate:-false}"
+PUBLIC="${config_public:-false}"
+RUNPOD="${config_runpod:-false}"
+SKIP_SPACE_CHECK="${config_spaceCheck:-false}"
+VERBOSE="${config_verbosity:-2}" # Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
+GUI_LISTEN="${config_gui_listen:-127.0.0.1}"
+GUI_USERNAME="${config_gui_username:-}"
+GUI_PASSWORD="${config_gui_password:-}"
+GUI_SERVER_PORT="${config_gui_server_port:-8080}"
+GUI_INBROWSER="${config_gui_inbrowser:-false}"
+GUI_SHARE="${config_gui_share:-false}"
 
 MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
 
