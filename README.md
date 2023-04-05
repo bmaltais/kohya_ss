@@ -38,13 +38,25 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ## Tutorials
 
+<details>
+<summary>How to Create a LoRA Part 1: Dataset Preparation</summary>
+
 [How to Create a LoRA Part 1: Dataset Preparation](https://www.youtube.com/watch?v=N4_-fB62Hwk):
 
 [![LoRA Part 1 Tutorial](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
 
+</details>
+
+<br>
+
+<details>
+<summary>How to Create a LoRA Part 2: Training the Model</summary>
+
 [How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
 
 [![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
+
+</details>
 
 ## Installation and Upgrading
 
@@ -65,9 +77,79 @@ Follow the instructions found in this discussion: https://github.com/bmaltais/ko
 ### macOS, Windows, Linux, BSD
 To set up and install the application, use the provided setup scripts depending on your operating system:
 
-If you get any errors about permissions running the setup.ps1 script on Windows try the following:
+Windows: Use <ins>setup.ps1</ins>. <ins>setup.bat</ins> is also available, but considered legacy.
+
+Non-Windows: Use <ins>setup.sh</ins> or <ins>setup.ps1</ins> if you have pwsh available.
+
+**Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.**
+
+#### Running Kohya_SS
+
+There are many configuration options which you can find just below this section. Here are some examples on how to run the scripts. They also have help functions.
+
+Default Settings: 
 ```bash
-$Policy = Get-ExecutionPolicy -Scope CurrentUser; if ($Policy -eq "Restricted" -or $Policy -eq "AllSigned") { Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force }
+# Windows
+.\setup.ps1
+
+# Linux / Non-Windows / Cygwin, Msys, etc
+./setup.sh
+```
+
+Custom Settings:
+```bash
+# Windows
+.\setup.ps1 -Listen 192.168.1.100 -Username myusername -Password mypassword -ServerPort 8000 -Interactive $true -RunPod $true `
+-Branch mybranch -Dir "C:\path\to\kohya_ss" -GitRepo "https://github.com/myfork/kohya_ss.git"
+
+# Linux / Non-Windows / Cygwin, Msys, etc
+./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r `
+--branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+```
+
+<details>
+<summary>Bypass all setup steps, installation checks, and Python validations and run the GUI directly</summary>
+
+Bypass Python, git, and tk checks by running launcher.py:
+```bash
+# Windows
+python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod `
+--branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+
+# Linux / Non-Windows / Cygwin, Msys, etc
+python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod `
+--branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
+```
+
+</details>
+
+<br>
+
+<details>
+<summary>Bypass all setup steps, installation checks, and Python validations and run the GUI directly</summary>
+
+Bypass all setup steps, installation checks, and Python validations and run the GUI directly:
+```bash
+# Windows
+python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+
+# Linux / Non-Windows / Cygwin, Msys, etc
+python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+```
+
+</details>
+
+<br>
+
+<details>
+<summary>Permission Errors when running setup.ps1</summary>
+
+If you get any errors about permissions running the setup.ps1 script on Windows try the following:
+```pwsh
+$Policy = Get-ExecutionPolicy -Scope CurrentUser; 
+if ($Policy -eq "Restricted" -or $Policy -eq "AllSigned") { 
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force 
+}
 ```
 
 This command does the following:
@@ -75,12 +157,13 @@ This command does the following:
 1. Retrieves the current execution policy for the current user.
 2. If the policy is set to Restricted or AllSigned, it changes the policy to RemoteSigned for the current user only, allowing local unsigned scripts to run. The -Force flag is used to bypass the confirmation prompt.
 
-For Windows or any OS with PowerShell available, use setup.ps1.
-For all non-Windows operating systems, use setup.sh.
+</details>
 
-**Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.**
 
 #### Configuration
+
+<details>
+<summary>Command Line Arguments</summary>
 
 ##### Command Line Arguments
 
@@ -112,6 +195,24 @@ Use them in the same manner is the above arguments:
 --share or -r: Share the GUI over the network (default: false).
 ```
 
+Launcher-specific Arguments
+The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
+Use them in the same manner is the above arguments:
+
+```bash
+--listen or -l: The IP address to listen on (default: 127.0.0.1).
+--username or -u: The username for the GUI (default: empty string).
+--password or -p: The password for the GUI (default: empty string).
+--server_port or -s: The server port for the GUI (default: 8080).
+--inbrowser or -i: Launch the GUI in the default web browser (default: false).
+--share or -r: Share the GUI over the network (default: false).
+```
+
+</details>
+<br>
+<details>
+<summary>Configuration File</summary>
+
 ##### Configuration File
 The setup scripts look for a configuration file called install_config.yaml in various locations to determine the command-line arguments for the installation process. The order in which the scripts search for this file is as follows:
 
@@ -123,23 +224,12 @@ The kohya_ss folder within your user profile directory.
 The same directory as the setup script.
 The setup scripts will use the first install_config.yaml file they find in this order. This allows you to place your configuration file in a location that suits your needs, making it easy for you to customize the installation process. If you're not familiar with some of these locations, don't worry—simply placing the configuration file in the same directory as the setup script is a straightforward and effective option.
 
-#### Running Kohya_SS
-Run the setup script with default settings:
+</details>
 
-On Windows: .\setup.ps1
-On non-Windows: ./setup.sh
-Run the setup script with custom settings:
+<br>
 
-On Windows: 
-```bash
-setup.ps1 -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true \
---branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
-```
-On non-Windows: 
-```bash
-setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i true -r true \
---branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
-```
+<details>
+<summary>Optional: CUDNN 8.6</summary>
 
 ### Optional: CUDNN 8.6
 
@@ -159,14 +249,14 @@ python .\tools\cudann_1.8_install.py
 
 Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
+</details>
+
 ## Launching the GUI directly using kohya_gui.py
 
-To run the GUI directly bypassing the wrapper scripts, simply use this command from the root project directory:
+To run the GUI directly bypassing the wrapper scripts, simply use this command:
 
 ```
-.\venv\Scripts\activate
-
-python .\kohya_gui.py
+launcher.py -x 
 ```
 
 ## Dreambooth
@@ -195,13 +285,26 @@ Once you have created the LoRA network, you can generate images via auto1111 by 
 
 ## Troubleshooting
 
+<details>
+<summary>Page File Limit</summary>
+
 ### Page File Limit
 
 - X error relating to `page file`: Increase the page file size limit in Windows.
 
+</details>
+
+<details>
+<summary>No module called tkinter</summary>
+
 ### No module called tkinter
 
 - Re-install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) on your system.
+
+</details>
+
+<details>
+<summary>FileNotFoundError</summary>
 
 ### FileNotFoundError
 
@@ -217,7 +320,12 @@ pip uninstall -r uninstall.txt
 
 This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
 
+</details>
+
 ### Installation Issues
+
+<details>
+<summary>General Installation Workflow</summary>
 
 #### General Installation Workflow
 1. Run setup.ps1 on Windows or setup.sh on non-Windows operating systems with the desired command-line arguments.
@@ -226,6 +334,11 @@ This will store your a backup file with your current locally installed pip packa
 Now the workflow is complete, and your application is set up and configured. 
 
 You can run launcher.py whenever you want to launch the application with the specified settings.
+
+</details>
+
+<details>
+<summary>Change History</summary>
 
 ## Change History
 
@@ -286,3 +399,5 @@ You can run launcher.py whenever you want to launch the application with the spe
     - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
     - Fix issue: https://github.com/bmaltais/kohya_ss/issues/406
     - Add device support to LoRA extract.
+
+</details>

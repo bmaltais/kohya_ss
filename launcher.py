@@ -39,25 +39,25 @@ def parse_args(_config_data):
     parser = argparse.ArgumentParser(description="Launcher script for Kohya_SS.")
 
     # Define the default arguments first
-    default_args = {
-        '--branch': 'master',
-        '--dir': os.path.expanduser("~/kohya_ss"),
-        '--file': 'install_config.yaml',
-        '--git-repo': 'https://github.com/kohya/kohya_ss.git',
-        '--interactive': False,
-        '--no-git-update': False,
-        '--public': False,
-        '--runpod': False,
-        '--skip-space-check': False,
-        '--verbosity': 0,
-        '--exclude-setup': False,
-        '--gui-listen': '127.0.0.1',
-        '--gui-username': '',
-        '--gui-password': '',
-        '--gui-server-port': 0,
-        '--gui-inbrowser': False,
-        '--gui-share': False,
-    }
+    default_args = [
+        {"short": "-b", "long": "--branch", "default": "master"},
+        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss")},
+        {"short": "-f", "long": "--file", "default": "install_config.yaml"},
+        {"short": "-g", "long": "--git-repo", "default": "https://github.com/kohya/kohya_ss.git"},
+        {"short": "-i", "long": "--interactive", "default": False},
+        {"short": "-n", "long": "--no-git-update", "default": False},
+        {"short": "-p", "long": "--public", "default": False},
+        {"short": "-r", "long": "--runpod", "default": False},
+        {"short": "-s", "long": "--skip-space-check", "default": False},
+        {"short": "-v", "long": "--verbosity", "default": 0},
+        {"short": "-x", "long": "--exclude-setup", "default": False},
+        {"short": "", "long": "--gui-listen", "default": "127.0.0.1"},
+        {"short": "", "long": "--gui-username", "default": ""},
+        {"short": "", "long": "--gui-password", "default": ""},
+        {"short": "", "long": "--gui-server-port", "default": 0},
+        {"short": "", "long": "--gui-inbrowser", "default": False},
+        {"short": "", "long": "--gui-share", "default": False},
+    ]
 
     # Update the default arguments with values from the config file
     if _config_data:
@@ -65,19 +65,27 @@ def parse_args(_config_data):
             for arg in _config_data["arguments"]:
                 long = arg["long"]
                 default = arg["default"]
-                default_args[long] = default
+                for default_arg in default_args:
+                    if default_arg["long"] == long:
+                        default_arg["default"] = default
         if "kohya_gui_arguments" in _config_data:
             for arg in _config_data["kohya_gui_arguments"]:
                 long = arg["long"]
                 default = arg["default"]
-                default_args[long] = default
+                for default_arg in default_args:
+                    if default_arg["long"] == long:
+                        default_arg["default"] = default
 
     # Add arguments to the parser with updated default values
-    for arg_name, default_value in default_args.items():
+    for arg in default_args:
+        short_opt = arg["short"]
+        long_opt = arg["long"]
+        default_value = arg["default"]
         if isinstance(default_value, bool):
-            parser.add_argument(arg_name, dest=arg_name[2:], action='store_true', default=default_value)
+            action = 'store_true' if default_value is False else 'store_false'
+            parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value)
         else:
-            parser.add_argument(arg_name, dest=arg_name[2:], default=default_value)
+            parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value)
 
     _args = parser.parse_args()
     return _args
