@@ -20,6 +20,9 @@
 .PARAMETER Dir
   The full path you want kohya_ss installed to.
 
+.PARAMETER ExcludeSetup
+Skip all setup steps and only validate python requirements then launch GUI.
+
 .PARAMETER File
   The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
 
@@ -80,7 +83,15 @@
    Finally, any command-line arguments provided by the user are merged into the hashtable,
    overriding the corresponding values from the configuration file or the function's default values.
    If neither a configuration file nor a command-line argument is provided for a parameter,
-   the function will use the default value specified within the function.
+   the function will fallback to the hard-coded default values.
+
+   To access arguments from the hashtable, use the following syntax:
+   $Config['parameter_name']
+
+   For example:
+   $Config['setup_branch']
+   $Config['setup_dir']
+   $Config['gui_listen']
 
 .PARAMETER File
    An optional parameter to specify the path to a configuration file.
@@ -89,6 +100,7 @@
    System.Collections.Hashtable
    Outputs a hashtable containing the merged parameter values.
 #>
+
 
 function Get-Parameters {
     param (
@@ -140,21 +152,22 @@ function Get-Parameters {
 
     # Define the default values
     $Defaults = @{
-        'setup_branch'          = 'master'
-        'setup_dir'             = "$env:USERPROFILE\kohya_ss"
-        'setup_gitRepo'         = 'https://github.com/kohya/kohya_ss.git'
-        'setup_interactive'     = $false
-        'setup_gitUpdate'       = $false
-        'setup_public'          = $false
-        'setup_runpod'          = $false
-        'setup_spaceCheck'      = $false
-        'setup_verbosity'       = 0
-        'gui_listen'            = '127.0.0.1'
-        'gui_username'          = ''
-        'gui_password'          = ''
-        'gui_server_port'       = 7861
-        'gui_inbrowser'         = $true
-        'gui_share'             = $false
+        'setup_branch'       = 'master'
+        'setup_dir'          = "$env:USERPROFILE\kohya_ss"
+        'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
+        'setup_interactive'  = $false
+        'setup_gitUpdate'    = $false
+        'setup_public'       = $false
+        'setup_runpod'       = $false
+        'setup_spaceCheck'   = $false
+        'setup_verbosity'    = 0
+        'setup_excludeSetup' = $false
+        'gui_listen'         = '127.0.0.1'
+        'gui_username'       = ''
+        'gui_password'       = ''
+        'gui_server_port'    = 7861
+        'gui_inbrowser'      = $true
+        'gui_share'          = $false
     }
 
     # Iterate through the default values and set them if not defined in the config file
@@ -165,15 +178,16 @@ function Get-Parameters {
     }
 
     # Merge CLI arguments with the configuration
-    $params = $PSBoundParameters.GetEnumerator() | Where-Object { $_.Key -ne "File" }
-    foreach ($param in $params) {
-        $Config[$param.Key] = $param.Value
+    $cliArgs = $MyInvocation.BoundParameters.GetEnumerator()
+    foreach ($arg in $cliArgs) {
+        $key = "setup_$($arg.Key.ToLower())"
+        if ($Config.ContainsKey($key)) {
+            $Config[$key] = $arg.Value
+        }
     }
 
     return $Config
 }
-
-
 
 <#
 .SYNOPSIS
@@ -502,7 +516,7 @@ function Install-Python310 {
 
         if (-not $packageManagerFound) {
             if (Test-IsAdmin) {
-                $installScope = Update-InstallScope($Interactive) 
+                $installScope = Update-InstallScope($Interactive)
 
                 $pythonUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
                 $pythonInstallerName = "python-3.10.0-amd64.exe"
@@ -552,7 +566,7 @@ function Install-Python310 {
             if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
                 $elevate = "sudo"
             }
-            $os = Get-LinuxDistribution
+            $os = Get-OsInfo
 
             switch ($os.family) {
                 "Ubuntu" {
@@ -660,7 +674,7 @@ function Install-Python3Tk {
         [string]$installScope = 'user'
     )
 
-    $os = Get-LinuxDistribution
+    $os = Get-OsInfo
     $elevate = Get-ElevationCommand
 
     if ($PSVersionTable.Platform -eq 'Unix') {
@@ -799,18 +813,37 @@ function Install-Git {
 
     function Install-GitWindows {
         $packageManagerFound = $false
+        $errorMsg = "Package manager detected, but install failed. Not attempting directly install to avoid conflicts. Please install Git manually from https://git-scm.com/download/win and re-run the script."
 
         if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
-            scoop install git
-            $packageManagerFound = $true
+            try {
+                scoop install git
+                $packageManagerFound = $true
+            }
+            catch {
+                $packageManagerFound = $false
+                Write-Host $errorMsg -ForegroundColor Red
+            }
         }
-        elseif (Get-Command "choco" -ErrorAction SilentlyContinue) {
-            choco install git
-            $packageManagerFound = $true
+        if (-not $packageManagerFound -and (Get-Command "choco" -ErrorAction SilentlyContinue)) {
+            try {
+                choco install git
+                $packageManagerFound = $true
+            }
+            catch {
+                $packageManagerFound = $false
+                Write-Host $errorMsg -ForegroundColor Red
+            }
         }
-        elseif (Get-Command "winget" -ErrorAction SilentlyContinue) {
-            winget install --id Git.Git
-            $packageManagerFound = $true
+        if (-not $packageManagerFound -and (Get-Command "winget" -ErrorAction SilentlyContinue)) {
+            try {
+                winget install --id Git.Git
+                $packageManagerFound = $true
+            }
+            catch {
+                $packageManagerFound = $false
+                Write-Host $errorMsg -ForegroundColor Red
+            }
         }
 
         if (-not $packageManagerFound) {
@@ -864,7 +897,7 @@ function Install-Git {
         if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
             $elevate = "sudo"
         }
-        $os = Get-LinuxDistribution
+        $os = Get-OsInfo
 
         switch ($os.family) {
             "Ubuntu" {
@@ -1015,26 +1048,24 @@ function Main {
     )
 
     begin {
-        $requiredKeys = @("Dir", "Branch", "GitRepo")
-        if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
-            Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
-            exit 1
+        if (-not $Params['setup_excludeSetup']) {
+            $requiredKeys = @("Dir", "Branch", "GitRepo")
+            if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
+                Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
+                exit 1
+            }
         }
     }
 
     process {
-        if (-not (Test-Python310Installed)) {
-            Install-Python310 -Interactive:$Parameters.Interactive
+        if (-not $Params['setup_excludeSetup']) {
+            if (-not (Test-Python310Installed)) {
+                Install-Python310 -Interactive:$Params['setup_interactive']
+            }
+            
+            $installScope = Update-InstallScope($Interactive)
+            Install-Python3Tk $installScope
         }
-
-        if ($PSVersionTable.Platform -eq 'Unix') {
-            $linuxDistribution = Get-LinuxDistribution
-        }
-        else {
-            $linuxDistribution = $null
-        }
-
-        Install-Python3Tk -LinuxDistribution $linuxDistribution
     }
 
     end {

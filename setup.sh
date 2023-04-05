@@ -19,6 +19,7 @@ Usage:
 Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
+  -f FILE, --file=FILE          Load a custom configuration file.
   -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
@@ -26,18 +27,77 @@ Options:
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
+  -v, --verbose                 Increase verbosity levels up to 3.
   --gui-listen=IP               IP to listen on for connections to Gradio.
   --gui-username=USERNAME       Username for authentication.
   --gui-password=PASSWORD       Password for authentication.
   --gui-server-port=PORT        Port to run the server listener on.
   --gui-inbrowser               Open in browser.
   --gui-share                   Share your installation.
-  -v, --verbose                 Increase verbosity levels up to 3.
 EOF
 }
 
 # This gets the directory the script is run from so pathing can work relative to the script where needed.
 SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
+
+# The highest verbosity level. This really starts counting from 3 as 1,2 are reserved by system.
+MAXVERBOSITY=6
+
+# This code handles the loading of parameter values in the following order of precedence:
+# 1. Command-line arguments provided by the user
+# 2. Values defined in install_config.yml (location order in configFileLocations or defined by -f)
+# 3. Default values specified in the script
+#
+# The default values are specified in the `config_<variable>` variables using the
+# `${config_<variable>:-<default_value>}` syntax. If the config file doesn't provide
+# a value, the default value will be used.
+#
+# The config file values are read and stored in the `config_<variable>` variables. If
+# the config file provides a value, it will override the default value.
+#
+# The CLI arguments are stored in the `CLI_ARGUMENTS` associative array.
+#
+# The loop `for key in "${!CLI_ARGUMENTS[@]}"; do` iterates through the CLI arguments
+# and overwrites the corresponding `config_<variable>` variable if a CLI argument
+# was provided.
+#
+# The final values for each option are assigned to their respective script defaults
+# (e.g., `BRANCH="$config_Branch"`).
+
+USER_CONFIG_FILE=""
+declare -A CLI_ARGUMENTS
+
+while getopts ":vb:d:f:g:inprsx-:" opt; do
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
+    opt="${OPTARG%%=*}"     # extract long option name
+    OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
+  fi
+  case $opt in
+  b | branch) CLI_ARGUMENTS["Branch"]="$OPTARG" ;;
+  d | dir) CLI_ARGUMENTS["Dir"]="$OPTARG" ;;
+  f | file) USER_CONFIG_FILE="$OPTARG" ;;
+  g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
+  h | help) display_help && exit 0 ;;
+  i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
+  n | no-git-update) CLI_ARGUMENTS["NoGitUpdate"]="true" ;;
+  p | public) CLI_ARGUMENTS["Public"]="true" ;;
+  r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
+  s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
+  x | exclude-setup) CLI_ARGUMENTS["ExcludeSetup"]="true" ;;
+  v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
+  gui-listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
+  gui-username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
+  gui-password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
+  gui-server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
+  gui-inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
+  gui-share) CLI_ARGUMENTS["GuiShare"]="true" ;;
+  *) display_help && exit 0 ;;
+  esac
+done
+shift $((OPTIND - 1))
 
 parse_yaml() {
   local yaml_file="$1"
@@ -69,76 +129,11 @@ parse_yaml() {
   done <"$yaml_file"
 }
 
-# Use the variables from the configuration file as default values
-BRANCH="${config_branch:-master}"
-DIR="${config_dir:-$HOME/kohya_ss}"
-GIT_REPO="${config_gitRepo:-https://github.com/kohya/kohya_ss.git}"
-INTERACTIVE="${config_interactive:-false}"
-SKIP_GIT_UPDATE="${config_gitUpdate:-false}"
-PUBLIC="${config_public:-false}"
-RUNPOD="${config_runpod:-false}"
-SKIP_SPACE_CHECK="${config_spaceCheck:-false}"
-VERBOSE="${config_verbosity:-2}" # Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
-GUI_LISTEN="${config_gui_listen:-127.0.0.1}"
-GUI_USERNAME="${config_gui_username:-}"
-GUI_PASSWORD="${config_gui_password:-}"
-GUI_SERVER_PORT="${config_gui_server_port:-8080}"
-GUI_INBROWSER="${config_gui_inbrowser:-false}"
-GUI_SHARE="${config_gui_share:-false}"
-
-MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
-
-# This code handles the loading of parameter values in the following order of precedence:
-# 1. Command-line arguments provided by the user
-# 2. Values defined in a configuration file
-# 3. Default values specified in the script
-#
-# First, the code checks for the presence of a configuration file in the specified locations.
-# If found, the configuration file's values are loaded as default values for the variables.
-# Then, the getopts loop processes any command-line arguments provided by the user.
-# If the user has provided a value for a parameter via the command-line, it will override
-# the corresponding value from the configuration file or the script's default value.
-# If neither a configuration file nor a command-line argument is provided for a parameter,
-# the script will use the default value specified within the script.
-
-USER_CONFIG_FILE=""
-declare -A CLI_ARGUMENTS
-
-while getopts ":vb:d:f:g:inprs-:" opt; do
-  # support long options: https://stackoverflow.com/a/28466267/519360
-  if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
-    opt="${OPTARG%%=*}"     # extract long option name
-    OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
-    OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
-  fi
-  case $opt in
-  b | branch) CLI_ARGUMENTS["Branch"]="$OPTARG" ;;
-  d | dir) CLI_ARGUMENTS["Dir"]="$OPTARG" ;;
-  f | file) USER_CONFIG_FILE="$OPTARG" ;;
-  g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
-  i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
-  n | no-git-update) CLI_ARGUMENTS["NoGitUpdate"]="true" ;;
-  p | public) CLI_ARGUMENTS["Public"]="true" ;;
-  r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
-  s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
-  gui-listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
-  gui-username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
-  gui-password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
-  gui-server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
-  gui-inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
-  gui-share) CLI_ARGUMENTS["GuiShare"]="true" ;;
-  v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
-  h) display_help && exit 0 ;;
-  *) display_help && exit 0 ;;
-  esac
-done
-shift $((OPTIND - 1))
-
 configFileLocations=(
   "$USER_CONFIG_FILE"
   "$HOME/.kohya_ss/install_config.yaml"
   "$DIR/config_files/installation/install_config.yaml"
-  "$SCRIPT_DIR/install_config.yaml"
+  "$SCRIPT_DIR/config_files/installation/install_config.yaml"
 )
 
 configFile=""
@@ -153,6 +148,7 @@ done
 if [ -n "$configFile" ]; then
   parse_yaml "$configFile" "config"
 fi
+
 
 # Set default values
 config_Branch="${config_Branch:-master}"
@@ -170,6 +166,7 @@ config_GuiPassword="${config_GuiPassword:-}"
 config_GuiServerPort="${config_GuiServerPort:-8080}"
 config_GuiInbrowser="${config_GuiInbrowser:-false}"
 config_GuiShare="${config_GuiShare:-false}"
+config_ExcludeSetup="${config_ExcludeSetup:-false}"
 
 # Override config values with CLI arguments
 for key in "${!CLI_ARGUMENTS[@]}"; do
@@ -193,6 +190,7 @@ GUI_PASSWORD="$config_GuiPassword"
 GUI_SERVER_PORT="$config_GuiServerPort"
 GUI_INBROWSER="$config_GuiInbrowser"
 GUI_SHARE="$config_GuiShare"
+EXCLUDE_SETUP="$config_ExcludeSetup"
 
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
   seq 3 $VERBOSE
@@ -342,34 +340,6 @@ check_storage_space() {
       done
     fi
   fi
-}
-
-run_launcher() {
-  if command -v python3.10 >/dev/null 2>&1; then
-    local PYTHON_EXEC="python3.10"
-  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
-    local PYTHON_EXEC="python3"
-  else
-    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
-    exit 1
-  fi
-
-  "$PYTHON_EXEC" launcher.py \
-    --branch="$BRANCH" \
-    --dir="$DIR" \
-    --gitrepo="$GIT_REPO" \
-    --interactive="$INTERACTIVE" \
-    --nogitupdate="$SKIP_GIT_UPDATE" \
-    --public="$PUBLIC" \
-    --runpod="$RUNPOD" \
-    --skipspacecheck="$SKIP_SPACE_CHECK" \
-    --listen="$GUI_LISTEN" \
-    --username="$GUI_USERNAME" \
-    --password="$GUI_PASSWORD" \
-    --server_port="$GUI_SERVER_PORT" \
-    --inbrowser="$GUI_INBROWSER" \
-    --share="$GUI_SHARE" \
-    --verbose="$VERBOSITY"
 }
 
 get_os_info() {
@@ -685,13 +655,45 @@ install_vc_redist_windows() {
   rm -f "$installer_path"
 }
 
+run_launcher() {
+  if command -v python3.10 >/dev/null 2>&1; then
+    local PYTHON_EXEC="python3.10"
+  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python3"
+  else
+    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
+    exit 1
+  fi
+
+  "$PYTHON_EXEC" launcher.py \
+    --branch="$BRANCH" \
+    --dir="$DIR" \
+    --gitrepo="$GIT_REPO" \
+    --interactive="$INTERACTIVE" \
+    --nogitupdate="$SKIP_GIT_UPDATE" \
+    --public="$PUBLIC" \
+    --runpod="$RUNPOD" \
+    --skipspacecheck="$SKIP_SPACE_CHECK" \
+    --listen="$GUI_LISTEN" \
+    --username="$GUI_USERNAME" \
+    --password="$GUI_PASSWORD" \
+    --server_port="$GUI_SERVER_PORT" \
+    --inbrowser="$GUI_INBROWSER" \
+    --share="$GUI_SHARE" \
+    --verbose="$VERBOSITY"
+}
+
 function main() {
-  DIR="$(normalize_path "$DIR")"
-  # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
-  check_storage_space 5
-  install_git
-  install_python_and_tk
-  install_vc_redist_windows
+  if ! "$EXCLUDE_SETUP"; then
+      DIR="$(normalize_path "$DIR")"
+
+      # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
+      check_storage_space 5
+      install_git
+      install_python_and_tk
+      install_vc_redist_windows
+  fi
+
   run_launcher
 }
 
