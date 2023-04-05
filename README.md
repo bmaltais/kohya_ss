@@ -77,11 +77,13 @@ Follow the instructions found in this discussion: https://github.com/bmaltais/ko
 ### macOS, Windows, Linux, BSD
 To set up and install the application, use the provided setup scripts depending on your operating system:
 
-Windows: Use <ins>setup.ps1</ins>. <ins>setup.bat</ins> is also available, but considered legacy.
+****Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.****
 
-Non-Windows: Use <ins>setup.sh</ins> or <ins>setup.ps1</ins> if you have pwsh available.
+Windows: Use **<ins>setup.ps1</ins>**. **<ins>setup.bat</ins>** is also available, but considered legacy.
 
-**Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.**
+Non-Windows: Use **<ins>setup.sh</ins>** or **<ins>setup.ps1</ins>** if you have pwsh available.
+
+<br>
 
 #### Running Kohya_SS
 
