@@ -44,21 +44,21 @@ for %%F in (
 :load_config
 if not "%ConfigFile%"=="" (
     for /f "tokens=1,2 delims=: " %%a in (%ConfigFile%) do (
-        if "%%a"=="branch" set Branch=%%b
-        if "%%a"=="dir" set Dir=%%b
-        if "%%a"=="gitrepo" set GitRepo=%%b
-        if "%%a"=="interactive" set Interactive=%%b
-        if "%%a"=="nogitupdate" set NoGitUpdate=%%b
-        if "%%a"=="public" set Public=%%b
-        if "%%a"=="runpod" set Runpod=%%b
-        if "%%a"=="skipspacecheck" set SkipSpaceCheck=%%b
-        if "%%a"=="verbose" set Verbose=%%b
-        if "%%a"=="gui_listen" set GUI_LISTEN=%%b
-        if "%%a"=="gui_username" set GUI_USERNAME=%%b
-        if "%%a"=="gui_password" set GUI_PASSWORD=%%b
-        if "%%a"=="gui_server_port" set GUI_SERVER_PORT=%%b
-        if "%%a"=="gui_inbrowser" set GUI_INBROWSER=%%b
-        if "%%a"=="gui_share" set GUI_SHARE=%%b
+        if "%%a"=="Branch" set Branch=%%b
+        if "%%a"=="Dir" set Dir=%%b
+        if "%%a"=="GitRepo" set GitRepo=%%b
+        if "%%a"=="Interactive" set Interactive=%%b
+        if "%%a"=="NoGitUpdate" set NoGitUpdate=%%b
+        if "%%a"=="Public" set Public=%%b
+        if "%%a"=="Runpod" set Runpod=%%b
+        if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
+        if "%%a"=="Verbose" set Verbose=%%b
+        if "%%a"=="Listen" set LISTEN=%%b
+        if "%%a"=="Username" set USERNAME=%%b
+        if "%%a"=="Password" set PASSWORD=%%b
+        if "%%a"=="ServerPort" set SERVER_PORT=%%b
+        if "%%a"=="InBrowser" set INBROWSER=%%b
+        if "%%a"=="Share" set SHARE=%%b
     )
 )
 
@@ -74,12 +74,12 @@ if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
 if /i "%~1"=="--runpod" (set Runpod=1) & shift & goto arg_loop
 if /i "%~1"=="--skipspacecheck" (set SkipSpaceCheck=1) & shift & goto arg_loop
 if /i "%~1"=="--verbose" (set /A Verbose=Verbose+1) & shift & goto arg_loop
-if /i "%~1"=="--gui-listen" (shift & set GUI_LISTEN=%1) & shift & goto arg_loop
-if /i "%~1"=="--gui-username" (shift & set GUI_USERNAME=%1) & shift & goto arg_loop
-if /i "%~1"=="--gui-password" (shift & set GUI_PASSWORD=%1) & shift & goto arg_loop
-if /i "%~1"=="--gui-server-port" (shift & set GUI_SERVER_PORT=%1) & shift & goto arg_loop
-if /i "%~1"=="--gui-inbrowser" (set GUI_INBROWSER=1) & shift & goto arg_loop
-if /i "%~1"=="--gui-share" (set GUI_SHARE=1) & shift & goto arg_loop
+if /i "%~1"=="--listen" (shift & set LISTEN=%1) & shift & goto arg_loop
+if /i "%~1"=="--username" (shift & set USERNAME=%1) & shift & goto arg_loop
+if /i "%~1"=="--password" (shift & set PASSWORD=%1) & shift & goto arg_loop
+if /i "%~1"=="--server-port" (shift & set SERVER_PORT=%1) & shift & goto arg_loop
+if /i "%~1"=="--inbrowser" (set INBROWSER=1) & shift & goto arg_loop
+if /i "%~1"=="--share" (set SHARE=1) & shift & goto arg_loop
 shift
 goto arg_loop
 
@@ -88,8 +88,8 @@ goto arg_loop
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 set Args=-b "%Branch%" -d "%Dir%" -f "%ConfigFile%" -g "%GitRepo%" ^
           -i:%Interactive% -n:%NoGitUpdate% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
-          --gui-listen "%GUI_LISTEN%" --gui-username "%GUI_USERNAME%" --gui-password "%GUI_PASSWORD%" ^
-          --gui-server-port %GUI_SERVER_PORT% --gui-inbrowser:%GUI_INBROWSER% --gui-share:%GUI_SHARE%
+          --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
+          --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE%
 
 rem Create venv if it doesn't exist
 if not exist "%Dir%\venv" (

@@ -32,60 +32,81 @@ def parse_file_arg():
     parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
-    return args.config_file
+    return _args.config_file
 
 
 def parse_args(_config_data):
-    parser = argparse.ArgumentParser(description="Launcher script for Kohya_SS.")
+    parser = argparse.ArgumentParser(
+        description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
+                    "application.",
+        epilog="""Examples:
+    Switch to the dev branch:
+    python launcher.py --branch dev
+    
+    Point to a custom installation directory, but skip any git operations:
+    python launcher.py --dir /path/to/kohya_ss --no-git-update
+    
+    Bypass all environment checks except Python dependency validation and launch the GUI:
+    python launcher.py --exclude-setup""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
     # Define the default arguments first
     default_args = [
-        {"short": "-b", "long": "--branch", "default": "master"},
-        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss")},
-        {"short": "-f", "long": "--file", "default": "install_config.yaml"},
-        {"short": "-g", "long": "--git-repo", "default": "https://github.com/kohya/kohya_ss.git"},
-        {"short": "-i", "long": "--interactive", "default": False},
-        {"short": "-n", "long": "--no-git-update", "default": False},
-        {"short": "-p", "long": "--public", "default": False},
-        {"short": "-r", "long": "--runpod", "default": False},
-        {"short": "-s", "long": "--skip-space-check", "default": False},
-        {"short": "-v", "long": "--verbosity", "default": 0},
-        {"short": "-x", "long": "--exclude-setup", "default": False},
-        {"short": "", "long": "--gui-listen", "default": "127.0.0.1"},
-        {"short": "", "long": "--gui-username", "default": ""},
-        {"short": "", "long": "--gui-password", "default": ""},
-        {"short": "", "long": "--gui-server-port", "default": 0},
-        {"short": "", "long": "--gui-inbrowser", "default": False},
-        {"short": "", "long": "--gui-share", "default": False},
+        {"short": "-b", "long": "--branch", "default": "master", "type": str},
+        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str},
+        {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str},
+        {"short": "-g", "long": "--git-repo", "default": "https://github.com/kohya/kohya_ss.git", "type": str},
+        {"short": "-i", "long": "--interactive", "default": False, "type": bool},
+        {"short": "-n", "long": "--no-git-update", "default": False, "type": bool},
+        {"short": "-p", "long": "--public", "default": False, "type": bool},
+        {"short": "-r", "long": "--runpod", "default": False, "type": bool},
+        {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool},
+        {"short": "-v", "long": "--verbosity", "default": 0, "type": int},
+        {"short": "-x", "long": "--exclude-setup", "default": False, "type": bool},
+        {"short": "", "long": "--listen", "default": "127.0.0.1", "type": str},
+        {"short": "", "long": "--username", "default": "", "type": str},
+        {"short": "", "long": "--password", "default": "", "type": str},
+        {"short": "", "long": "--server-port", "default": 0, "type": str},
+        {"short": "", "long": "--inbrowser", "default": False, "type": bool},
+        {"short": "", "long": "--share", "default": False, "type": bool},
     ]
 
     # Update the default arguments with values from the config file
     if _config_data:
         if "arguments" in _config_data:
             for arg in _config_data["arguments"]:
-                long = arg["long"]
-                default = arg["default"]
+                name = arg["name"]
+                value = arg["value"]
                 for default_arg in default_args:
-                    if default_arg["long"] == long:
-                        default_arg["default"] = default
+                    if f'--{name.lower()}' == default_arg["long"]:
+                        default_arg["default"] = value
         if "kohya_gui_arguments" in _config_data:
             for arg in _config_data["kohya_gui_arguments"]:
-                long = arg["long"]
-                default = arg["default"]
+                name = arg["name"]
+                value = arg["value"]
                 for default_arg in default_args:
-                    if default_arg["long"] == long:
-                        default_arg["default"] = default
+                    if f'--{name.lower()}' == default_arg["long"]:
+                        default_arg["default"] = value
 
     # Add arguments to the parser with updated default values
     for arg in default_args:
         short_opt = arg["short"]
         long_opt = arg["long"]
         default_value = arg["default"]
+        arg_type = arg.get("type", str)
+
         if isinstance(default_value, bool):
             action = 'store_true' if default_value is False else 'store_false'
-            parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value)
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:], action=action, default=default_value)
         else:
-            parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value)
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:], default=default_value, type=arg_type)
 
     _args = parser.parse_args()
     return _args
@@ -595,13 +616,13 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
-    if args.verbose == 0:
+    if args.verbosity == 0:
         log_level = logging.ERROR
-    elif args.verbose == 1:
+    elif args.verbosity == 1:
         log_level = logging.INFO
-    elif args.verbose == 2:
+    elif args.verbosity == 2:
         log_level = logging.WARNING
-    elif args.verbose >= 3:
+    elif args.verbosity >= 3:
         log_level = logging.DEBUG
 
     # Configure logging
@@ -618,11 +639,11 @@ if __name__ == "__main__":
     print("OS family:", os_info.family)
     print("OS version:", os_info.version)
 
-    if args.verbose >= 3:
+    if args.verbosity >= 3:
         for k, v in args.__dict__.items():
             logging.debug(f"{k}: {v}")
 
-    if args.skip_setup:
+    if args.exclude-setup:
         launch_kohya_gui(args)
         exit(0)
     else:
