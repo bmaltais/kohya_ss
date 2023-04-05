@@ -33,6 +33,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
   - [Page File Limit](#page-file-limit)
   - [No module called tkinter](#no-module-called-tkinter)
   - [FileNotFoundError](#filenotfounderror)
+  - [Deleting Downloaded Model Cache](#deleting-downloaded-model-cache)
   - [Installation Issues](#installation-issues)
     - [General Installation Workflow](#general-installation-workflow)
 - [Change History](#change-history)
@@ -344,6 +345,21 @@ pip uninstall -r uninstall.txt
 This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
 
 </details>
+
+<details>
+<summary>Deleting Downloaded Model Cache</summary>
+
+### Deleting Downloaded Model Cache
+
+By default huggingface stores its downloaded models in 
+
+- Non-Windows: `$HOME/.cache/huggingface`
+- Windows: `$env:USERPROFILE/.cache/huggingface`
+
+If you are going to delete the models, it is advised to shutdown the software while you do so.
+
+</details>
+
 
 ### Installation Issues
 
