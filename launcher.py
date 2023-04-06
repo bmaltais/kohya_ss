@@ -68,26 +68,27 @@ def parse_file_arg():
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
     if _args.config_file is not None:
+        logging.debug(f"Configuration file specified by command line: {os.path.abspath(_args.file)}")
         return os.path.abspath(_args.file)
     else:
         return None
 
 
-def normalize_paths(args, default_args):
+def normalize_paths(_args, default_args):
     def is_valid_path(value):
         try:
             path = os.path.abspath(value)
             return os.path.exists(path)
-        except Exception:
+        except TypeError:
             return False
 
     for arg in default_args:
         default_value = arg["default"]
         if isinstance(default_value, str) and is_valid_path(default_value):
             arg_name = arg["long"][2:].replace("-", "_")
-            path_value = getattr(args, arg_name)
+            path_value = getattr(_args, arg_name)
             if path_value:
-                setattr(args, arg_name, os.path.abspath(path_value))
+                setattr(_args, arg_name, os.path.abspath(path_value))
 
 
 def parse_args(_config_data):
@@ -211,12 +212,12 @@ def get_venv_directory():
 
 def check_and_create_install_folder(parent_dir, _dir):
     if os.access(parent_dir, os.W_OK) and not os.path.isdir(_dir):
-        print(f"Creating install folder {_dir}.")
+        logging.info(f"Creating install folder {_dir}.")
         os.makedirs(_dir)
 
     if not os.access(_dir, os.W_OK):
-        print(f"We cannot write to {_dir}.")
-        print("Please ensure the install directory is accurate and you have the correct permissions.")
+        logging.error(f"We cannot write to {_dir}.")
+        logging.info("Please ensure the install directory is accurate and you have the correct permissions.")
         exit(1)
 
 
@@ -232,7 +233,7 @@ def size_available(_dir, parent_dir):
             folder = path_parts[0]
 
     if not folder:
-        print("We are assuming a root drive install for space-checking purposes.")
+        logging.info("We are assuming a root drive install for space-checking purposes.")
         folder = os.path.abspath(os.sep)
 
     free_space_in_bytes = shutil.disk_usage(folder).free
@@ -243,10 +244,10 @@ def size_available(_dir, parent_dir):
 def check_storage_space(_dir, parent_dir, space_check=True):
     if space_check:
         if size_available(_dir, parent_dir) < 10:
-            print("You have less than 10Gb of free space. This installation may fail.")
+            logging.info("You have less than 10Gb of free space. This installation may fail.")
             msg_timeout = 10  # In seconds
             message = "Continuing in..."
-            print("Press control-c to cancel the installation.")
+            logging.info("Press control-c to cancel the installation.")
 
             for i in range(msg_timeout, -1, -1):
                 print(f"\r{message} {i}s.", end="")
@@ -259,16 +260,16 @@ def create_symlinks(symlink, target_file):
     if os.path.islink(symlink):
         # Check if the linked file exists and points to the expected file
         if os.path.exists(symlink) and os.path.realpath(symlink) == target_file:
-            print(f"{os.path.basename(symlink)} symlink looks fine. Skipping.")
+            logging.debug(f"{os.path.basename(symlink)} symlink looks fine. Skipping.")
         else:
             if os.path.isfile(target_file):
-                print(f"Broken symlink detected. Recreating {os.path.basename(symlink)}.")
+                logging.warning(f"Broken symlink detected. Recreating {os.path.basename(symlink)}.")
                 os.remove(symlink)
                 os.symlink(target_file, symlink)
             else:
                 print(f"{target_file} does not exist. Nothing to link.")
     else:
-        print(f"Linking {os.path.basename(symlink)}.")
+        logging.info(f"Linking {os.path.basename(symlink)}.")
         os.symlink(target_file, symlink)
 
 
@@ -302,7 +303,7 @@ def setup_file_links(site_packages_dir, runpod):
         libnvinfer_target = os.path.join(site_packages_dir, "tensorrt", "libnvinfer.so.8")
         libcudart_target = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.12")
 
-        print("Checking symlinks now.")
+        logging.info("Checking symlinks now.")
         create_symlinks(libnvinfer_plugin_symlink, libnvinfer_plugin_target)
         create_symlinks(libnvinfer_symlink, libnvinfer_target)
         create_symlinks(libcudart_symlink, libcudart_target)
@@ -311,13 +312,13 @@ def setup_file_links(site_packages_dir, runpod):
         if os.path.isdir(tensorrt_dir):
             os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{tensorrt_dir}"
         else:
-            print(f"{tensorrt_dir} not found; not linking library.")
+            logging.warning(f"{tensorrt_dir} not found; not linking library.")
 
         cuda_runtime_dir = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib")
         if os.path.isdir(cuda_runtime_dir):
             os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{cuda_runtime_dir}"
         else:
-            print(f"{cuda_runtime_dir} not found; not linking library.")
+            logging.warning(f"{cuda_runtime_dir} not found; not linking library.")
 
 
 def in_container():
@@ -346,14 +347,16 @@ def in_container():
     return False
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update, verbosity=0):
-    def run_git_command(args, capture_output=True, check_returncode=True):
-        result = subprocess.run(args, capture_output=capture_output, text=True)
-        if check_returncode and result.returncode != 0:
-            _error_message = f"Error: The following git command failed: {' '.join(args)}"
-            print(_error_message)
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
+    def run_git_command(_args):
+        logging.debug(f"Running git command: {' '.join(_args)}")
+        git_result = subprocess.run(_args, capture_output=True, text=True)
+
+        if git_result.returncode != 0:
+            logging.error(f"Error: The following git command failed: {' '.join(_args)}")
+            logging.error(f"Error output:\n{git_result.stderr}")
             exit(1)
-        return result
+        return git_result
 
     if not no_git_update:
         if shutil.which("git"):
@@ -366,34 +369,31 @@ def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update, verbosity
                     f"There are changes that need to be committed or discarded in the repo in {_dir}.\n"
                     f"Commit those changes or run this script with -n to skip git operations entirely."
                 )
-                print(error_message)
+                logging.error(error_message)
                 exit(1)
 
-            print(f"Attempting to clone {git_repo}.")
-            capture_output = verbosity <= 1
+            logging.info(f"Attempting to clone {git_repo}.")
             if not os.path.exists(os.path.join(_dir, ".git")):
-                print(f"Cloning and switching to {git_repo}:{branch}")
-                run_git_command(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)],
-                                capture_output)
-                run_git_command(["git", "-C", _dir, "switch", branch], capture_output)
+                logging.info(f"Cloning and switching to {git_repo}:{branch}")
+                run_git_command(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)])
+                run_git_command(["git", "-C", _dir, "switch", branch])
             else:
-                print("git repo detected. Attempting to update repository instead.")
-                print(f"Updating: {git_repo}")
-                run_git_command(["git", "-C", _dir, "pull", git_repo, branch], capture_output)
-                git_switch = run_git_command(["git", "-C", _dir, "switch", branch], capture_output,
-                                             check_returncode=False)
+                logging.info("git repo detected. Attempting to update repository instead.")
+                logging.info(f"Updating: {git_repo}")
+                run_git_command(["git", "-C", _dir, "pull", git_repo, branch])
+                git_switch = subprocess.run(["git", "-C", _dir, "switch", branch], capture_output=True, text=True)
                 if git_switch.returncode != 0:
-                    print(f"Branch {branch} did not exist. Attempting to create it.")
-                    run_git_command(["git", "-C", _dir, "switch", "-c", branch], capture_output)
+                    logging.warning(f"Branch {branch} did not exist. Attempting to create it.")
+                    run_git_command(["git", "-C", _dir, "switch", "-c", branch])
         else:
             error_message = (
                 "You need to install git.\n"
                 "Rerun this after installing git or run this script with -n to skip the git operations."
             )
-            print(error_message)
+            logging.error(error_message)
             exit(1)
     else:
-        print("Skipping git operations.")
+        logging.info("Skipping git operations.")
 
 
 class OSInfo:
@@ -422,7 +422,7 @@ class OSInfo:
                     if version_match:
                         self.version = version_match.group(1)
             except Exception as e:
-                print(f"Error reading /System/Library/CoreServices/SystemVersion.plist: {e}")
+                logging.error(f"Error reading /System/Library/CoreServices/SystemVersion.plist: {e}")
 
         elif system == "Linux":
             if os.path.exists("/etc/os-release"):
@@ -433,7 +433,7 @@ class OSInfo:
                         self.family = re.search(r'ID_LIKE="?([^"\n]+)', content).group(1)
                         self.version = re.search(r'VERSION="?([^"\n]+)', content).group(1)
                 except Exception as e:
-                    print(f"Error reading /etc/os-release: {e}")
+                    logging.error(f"Error reading /etc/os-release: {e}")
 
             elif os.path.exists("/etc/redhat-release"):
                 try:
@@ -445,7 +445,7 @@ class OSInfo:
                             self.family = "RedHat"
                             self.version = match.group(2)
                 except Exception as e:
-                    print(f"Error reading /etc/redhat-release: {e}")
+                    logging.error(f"Error reading /etc/redhat-release: {e}")
 
             if self.name == "Unknown":
                 try:
@@ -514,14 +514,14 @@ def check_permissions(_dir):
 
             missing_permissions = required_permissions & ~current_permissions
             if missing_permissions:
-                print(f"Missing permissions on file: {file_path}")
+                logging.info(f"Missing permissions on file: {file_path}")
 
                 try:
                     os.chmod(file_path, current_permissions | missing_permissions)
-                    print(f"Fixed permissions for file: {file_path}")
+                    logging.info(f"Fixed permissions for file: {file_path}")
                 except PermissionError as e:
-                    print(f"Unable to fix permissions for file: {file_path}")
-                    print(f"Error: {str(e)}")
+                    logging.error(f"Unable to fix permissions for file: {file_path}")
+                    logging.error(f"Error: {str(e)}")
                     return False
     return True
 
@@ -558,13 +558,13 @@ def install_python_dependencies(_dir, runpod, script_dir):
     # Check if python3 or python3.10 binary exists
     python_bin = find_python_binary()
     if not python_bin:
-        print("Valid python3 or python3.10 binary not found.")
-        print("Cannot proceed with the python steps.")
+        logging.error("Valid python3 or python3.10 binary not found.")
+        logging.error("Cannot proceed with the python steps.")
         exit(1)
 
     # Create and activate virtual environment if not in container environment
     if not in_container():
-        print("Switching to virtual Python environment.")
+        logging.info("Switching to virtual Python environment.")
         venv_path = os.path.join(_dir, "venv")
         subprocess.run([python_bin, "-m", "venv", venv_path])
 
@@ -575,15 +575,15 @@ def install_python_dependencies(_dir, runpod, script_dir):
         venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
         venv_python_bin = os.path.join(venv_bin_dir, python_bin)
     else:
-        print("In container, skipping virtual environment.")
+        logging.info("In container, skipping virtual environment.")
         venv_python_bin = python_bin
 
     # Update pip
-    print("Checking for pip updates before Python operations.")
+    logging.info("Checking for pip updates before Python operations.")
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
 
     # Install python dependencies
-    print("Installing python dependencies. This could take a few minutes as it downloads files.")
+    logging.info("Installing python dependencies. This could take a few minutes as it downloads files.")
     if os_info.family == "Windows":
         subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
                         "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
@@ -602,7 +602,7 @@ def install_python_dependencies(_dir, runpod, script_dir):
                         "https://download.pytorch.org/whl/cpu/torch_stable.html"])
 
     if runpod:
-        print("Installing tenssort.")
+        logging.info("Installing tenssort.")
         subprocess.run([venv_python_bin, "-m", "pip", "install", "tensorrt"])
 
     # Set the paths for the built-in requirements and temporary requirements files
@@ -636,19 +636,19 @@ def install_python_dependencies(_dir, runpod, script_dir):
 
     subprocess.run(pip_install_args, check=True, stderr=subprocess.PIPE)
 
-    print("Removing the temp requirements file.")
+    logging.debug("Removing the temp requirements file.")
     if os.path.isfile(tmp_requirements_path):
         os.remove(tmp_requirements_path)
 
     # Only exit the virtual environment if we aren't in a container.
     # This is because we never entered one at the beginning of the function if container detected.
     if not in_container():
-        print("Exiting Python virtual environment.")
+        logging.debug("Exiting Python virtual environment.")
         sys.exit(0)
 
 
 def configure_accelerate(interactive, source_config_file):
-    print(f"Source accelerate config location: {source_config_file}")
+    logging.debug(f"Source accelerate config location: {source_config_file}")
 
     if interactive:
         os.system("accelerate config")
@@ -667,11 +667,11 @@ def configure_accelerate(interactive, source_config_file):
         if target_config_location:
             if not target_config_location.is_file():
                 target_config_location.parent.mkdir(parents=True, exist_ok=True)
-                print(f"Target accelerate config location: {target_config_location}")
+                logging.debug(f"Target accelerate config location: {target_config_location}")
                 shutil.copyfile(source_config_file, target_config_location)
-                print(f"Copied accelerate config file to: {target_config_location}")
+                logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
-            print("Could not place the accelerate configuration file. Please configure manually.")
+            logging.info("Could not place the accelerate configuration file. Please configure manually.")
             os.system("accelerate config")
 
 
@@ -681,14 +681,14 @@ def launch_kohya_gui(_args):
         kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
         if not os.path.exists(venv_path):
-            print("Error: Virtual environment not found")
+            logging.info("Error: Virtual environment not found")
             sys.exit(1)
 
         python_executable = os.path.join(venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(
             venv_path, "Scripts", "python.exe")
 
         if not os.path.exists(python_executable):
-            print("Error: Python executable not found in the virtual environment")
+            logging.info("Error: Python executable not found in the virtual environment")
             sys.exit(1)
     else:
         python_executable = sys.executable
@@ -705,12 +705,13 @@ def launch_kohya_gui(_args):
         "--share" if _args.share else "",
     ]
 
+    logging.debug(f"Running command: {cmd}")
     subprocess.run(cmd, check=True)
 
 
 def main(_args=None):
     if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
-        print("Error: This script requires Python 3.10.")
+        logging.info("Error: This script requires Python 3.10.")
         sys.exit(1)
 
     # Get the directory where the script is located
@@ -731,7 +732,7 @@ def main(_args=None):
         _dir = get_default_dir(_args.runpod, script_directory)
 
     if not getattr(_args, "git-repo") or not _dir or not getattr(_args, "branch"):
-        print(
+        logging.info(
             "Error: gitRepo, Branch, and Dir must have a value. Please provide values in the config file or through "
             "command line arguments.")
         sys.exit(1)
@@ -760,9 +761,9 @@ if __name__ == "__main__":
 
     # Set logging level based on the verbosity count
     if args.verbosity == 0:
-        log_level = logging.ERROR
-    elif args.verbosity == 1:
         log_level = logging.INFO
+    elif args.verbosity == 1:
+        log_level = logging.ERROR
     elif args.verbosity == 2:
         log_level = logging.WARNING
     elif args.verbosity >= 3:
