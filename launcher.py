@@ -1,5 +1,6 @@
 import argparse
 import logging
+import mimetypes
 import os
 import platform
 import re
@@ -7,6 +8,7 @@ import shutil
 import site
 import subprocess
 import sys
+import stat
 import time
 from pathlib import Path
 
@@ -34,7 +36,8 @@ def load_config(_config_file):
 
     if sys.platform == "win32":
         config_locations.extend([
-            os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation", "install_config.yaml"),
+            os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation",
+                         "install_config.yaml"),
             os.path.join(os.environ.get("LOCALAPPDATA", ""), "kohya_ss", "install_config.yaml")
         ])
 
@@ -70,6 +73,23 @@ def parse_file_arg():
         return None
 
 
+def normalize_paths(args, default_args):
+    def is_valid_path(value):
+        try:
+            path = os.path.abspath(value)
+            return os.path.exists(path)
+        except Exception:
+            return False
+
+    for arg in default_args:
+        default_value = arg["default"]
+        if isinstance(default_value, str) and is_valid_path(default_value):
+            arg_name = arg["long"][2:].replace("-", "_")
+            path_value = getattr(args, arg_name)
+            if path_value:
+                setattr(args, arg_name, os.path.abspath(path_value))
+
+
 def parse_args(_config_data):
     parser = argparse.ArgumentParser(
         description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
@@ -77,10 +97,10 @@ def parse_args(_config_data):
         epilog="""Examples:
     Switch to the dev branch:
     python launcher.py --branch dev
-    
+
     Point to a custom installation directory, but skip any git operations:
     python launcher.py --dir /path/to/kohya_ss --no-git-update
-    
+
     Bypass all environment checks except Python dependency validation and launch the GUI:
     python launcher.py --exclude-setup""",
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -144,6 +164,10 @@ def parse_args(_config_data):
                 parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type)
 
     _args = parser.parse_args()
+
+    # Normalize paths to ensure absolute paths
+    normalize_paths(_args, default_args)
+
     return _args
 
 
@@ -322,34 +346,52 @@ def in_container():
     return False
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update, verbosity=0):
+    def run_git_command(args, capture_output=True, check_returncode=True):
+        result = subprocess.run(args, capture_output=capture_output, text=True)
+        if check_returncode and result.returncode != 0:
+            _error_message = f"Error: The following git command failed: {' '.join(args)}"
+            print(_error_message)
+            exit(1)
+        return result
+
     if not no_git_update:
         if shutil.which("git"):
             # First, we make sure there are no changes that need to be made in git, so no work is lost.
-            git_status = subprocess.run(["git", "-C", _dir, "status", "--porcelain=v1"], capture_output=True, text=True)
+            git_status = run_git_command(["git", "-C", _dir, "status", "--porcelain=v1"])
             if git_status.stdout.strip():
-                print(f"These files need to be committed or discarded:")
-                print(git_status.stdout)
-                print(f"There are changes that need to be committed or discarded in the repo in {_dir}.")
-                print(f"Commit those changes or run this script with -n to skip git operations entirely.")
+                error_message = (
+                    f"These files need to be committed or discarded:\n"
+                    f"{git_status.stdout}\n"
+                    f"There are changes that need to be committed or discarded in the repo in {_dir}.\n"
+                    f"Commit those changes or run this script with -n to skip git operations entirely."
+                )
+                print(error_message)
                 exit(1)
 
             print(f"Attempting to clone {git_repo}.")
+            capture_output = verbosity <= 1
             if not os.path.exists(os.path.join(_dir, ".git")):
                 print(f"Cloning and switching to {git_repo}:{branch}")
-                subprocess.run(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)])
-                subprocess.run(["git", "-C", _dir, "switch", branch])
+                run_git_command(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)],
+                                capture_output)
+                run_git_command(["git", "-C", _dir, "switch", branch], capture_output)
             else:
                 print("git repo detected. Attempting to update repository instead.")
                 print(f"Updating: {git_repo}")
-                subprocess.run(["git", "-C", _dir, "pull", git_repo, branch])
-                git_switch = subprocess.run(["git", "-C", _dir, "switch", branch], capture_output=True)
+                run_git_command(["git", "-C", _dir, "pull", git_repo, branch], capture_output)
+                git_switch = run_git_command(["git", "-C", _dir, "switch", branch], capture_output,
+                                             check_returncode=False)
                 if git_switch.returncode != 0:
-                    print(f"Branch {branch} did not exist. Creating it.")
-                    subprocess.run(["git", "-C", _dir, "switch", "-c", branch])
+                    print(f"Branch {branch} did not exist. Attempting to create it.")
+                    run_git_command(["git", "-C", _dir, "switch", "-c", branch], capture_output)
         else:
-            print("You need to install git.")
-            print("Rerun this after installing git or run this script with -n to skip the git operations.")
+            error_message = (
+                "You need to install git.\n"
+                "Rerun this after installing git or run this script with -n to skip the git operations."
+            )
+            print(error_message)
+            exit(1)
     else:
         print("Skipping git operations.")
 
@@ -444,6 +486,69 @@ def get_os_info():
     return OSInfo()
 
 
+def check_permissions(_dir):
+    venv_directory = os.path.join(_dir, "venv")
+    extensions_to_check = (".py", ".exe", ".elf")
+
+    for root, dirs, files in os.walk(venv_directory):
+        # Skip site-packages directory
+        if root.startswith(os.path.join(venv_directory, "Lib", "site-packages")):
+            continue
+
+        if root.startswith(os.path.join(venv_directory, "share", "doc")):
+            continue
+
+        for file in files:
+            file_path = os.path.join(root, file)
+            current_permissions = os.stat(file_path).st_mode
+
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if mime_type == 'application/x-executable' or file.endswith(extensions_to_check):
+                required_permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | \
+                                       stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | \
+                                       stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH
+            else:
+                required_permissions = stat.S_IRUSR | stat.S_IWUSR | \
+                                       stat.S_IRGRP | stat.S_IWGRP | \
+                                       stat.S_IROTH | stat.S_IWOTH
+
+            missing_permissions = required_permissions & ~current_permissions
+            if missing_permissions:
+                print(f"Missing permissions on file: {file_path}")
+
+                try:
+                    os.chmod(file_path, current_permissions | missing_permissions)
+                    print(f"Fixed permissions for file: {file_path}")
+                except PermissionError as e:
+                    print(f"Unable to fix permissions for file: {file_path}")
+                    print(f"Error: {str(e)}")
+                    return False
+    return True
+
+
+def find_python_binary():
+    possible_binaries = ["python3.10", "python3.9", "python3.8", "python3.7", "python3", "python"]
+
+    if os_info.family == "Windows":
+        possible_binaries = [binary + ".exe" for binary in possible_binaries] + possible_binaries
+
+    for binary in possible_binaries:
+        if shutil.which(binary):
+            try:
+                version_output = subprocess.check_output([binary, "--version"], stderr=subprocess.STDOUT).decode(
+                    "utf-8")
+                version_parts = version_output.strip().split(" ")[1].split(".")
+                major, minor = int(version_parts[0]), int(version_parts[1])
+
+                if major == 3 and minor >= 10:
+                    return binary
+
+            except (subprocess.CalledProcessError, IndexError, ValueError):
+                continue
+
+    return None
+
+
 def install_python_dependencies(_dir, runpod, script_dir):
     # Following check disabled as PyCharm can't detect it's being used in a subprocess
     # noinspection PyUnusedLocal
@@ -451,24 +556,27 @@ def install_python_dependencies(_dir, runpod, script_dir):
     venv_python_bin = None
 
     # Check if python3 or python3.10 binary exists
-    if shutil.which("python3"):
-        python_bin = "python3"
-    elif shutil.which("python3.10"):
-        python_bin = "python3.10"
-    else:
+    python_bin = find_python_binary()
+    if not python_bin:
         print("Valid python3 or python3.10 binary not found.")
         print("Cannot proceed with the python steps.")
-        return 1
+        exit(1)
 
     # Create and activate virtual environment if not in container environment
-    if not in_container:
+    if not in_container():
         print("Switching to virtual Python environment.")
         venv_path = os.path.join(_dir, "venv")
         subprocess.run([python_bin, "-m", "venv", venv_path])
 
+        # Check the virtual environment for permissions issues
+        check_permissions(_dir)
+
         # Activate the virtual environment
         venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
         venv_python_bin = os.path.join(venv_bin_dir, python_bin)
+    else:
+        print("In container, skipping virtual environment.")
+        venv_python_bin = python_bin
 
     # Update pip
     print("Checking for pip updates before Python operations.")
@@ -495,7 +603,7 @@ def install_python_dependencies(_dir, runpod, script_dir):
 
     if runpod:
         print("Installing tenssort.")
-        subprocess.run([sys.executable, "-m", "pip", "install", "tensorrt"])
+        subprocess.run([venv_python_bin, "-m", "pip", "install", "tensorrt"])
 
     # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
@@ -610,8 +718,8 @@ def main(_args=None):
 
     # Read config file or use defaults
     _config_file = _args.file if _args.file else os.path.join(script_directory,
-                                                                            "/config_files/installation"
-                                                                            "/install_config.yaml")
+                                                              "/config_files/installation"
+                                                              "/install_config.yaml")
     config = load_config(_config_file)
 
     # Check for DIR in command line arguments, config file, or use the default
@@ -663,17 +771,14 @@ if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
-    # Use logging in the script
+    # Use logging in the script like so
     # logging.debug("This is a debug message.")
     # logging.info("This is an info message.")
     # logging.warning("This is a warning message.")
     # logging.error("This is an error message.")
-
     os_info = get_os_info()
-    print("OS name:", os_info.name)
-    print("OS family:", os_info.family)
-    print("OS version:", os_info.version)
 
+    # Print all arguments and their values in verbose 3 mode
     if args.verbosity >= 3:
         for k, v in args.__dict__.items():
             logging.debug(f"{k}: {v}")
