@@ -28,7 +28,7 @@ def caption_images(
 
     print(f'GIT captioning files in {train_data_dir}...')
     run_cmd = (
-        f'{PYTHON} "./finetune/make_captions_by_git.py"'
+        f'{PYTHON} finetune/make_captions_by_git.py'
     )
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
