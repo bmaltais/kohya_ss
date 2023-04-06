@@ -253,10 +253,15 @@ pip freeze > uninstall.txt
 pip uninstall -r uninstall.txt
 ```
 
-This will store your a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
+This will store a backup file with your current locally installed pip packages and then uninstall them. Then, redo the installation instructions within the kohya_ss venv.
 
 ## Change History
 
+* 2024/04/02 (v21.4.2)
+    - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
+* 2023/04/01 (v21.4.1)
+    - Fix type for linux install by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/517
+    - Fix .gitignore by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/518
 * 2024/04/01 (v21.4.0)
     - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
     - Fix issue with "missing library" error.
@@ -275,7 +280,7 @@ This will store your a backup file with your current locally installed pip packa
     - Fix an issue that images are loaded twice in Windows environment.
     - Add Min-SNR Weighting strategy. Details are in [#308](https://github.com/kohya-ss/sd-scripts/pull/308). Thank you to AI-Casanova for this great work!
         - Add `--min_snr_gamma` option to training scripts, 5 is recommended by paper.
-        - The Min SNR gamma fiels can be found unser the advanced training tab in all trainers.
+        - The Min SNR gamma fields can be found under the advanced training tab in all trainers.
     - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
 * 2023/03/26 (v21.3.5)
     - Fix for https://github.com/bmaltais/kohya_ss/issues/230
@@ -283,11 +288,11 @@ This will store your a backup file with your current locally installed pip packa
 * 2023/03/25 (v21.3.4)
     - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
-    Let me know how this work. From the look of it it appear to be well tought out. I modified a few things to make it fit better with the rest of the code in the repo.
+    Let me know how this work. From the look of it it appear to be well thought out. I modified a few things to make it fit better with the rest of the code in the repo.
     - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
     - Removed non applicable save_model_as choices for LoRA and TI.
 * 2023/03/24 (v21.3.3)
-    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your prefered terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
+    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your preferred terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
 * 2023/03/23 (v21.3.2)
     - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
 * 2023/03/23 (v21.3.1)
