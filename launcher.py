@@ -1,4 +1,5 @@
 import argparse
+import errno
 import logging
 import importlib
 import mimetypes
@@ -10,9 +11,10 @@ import site
 import subprocess
 import sys
 import stat
+import tempfile
 import time
 from pathlib import Path
-from urllib.parse import urlparse
+from importlib.metadata import Distribution, PackageNotFoundError, version
 
 
 # This enables programmatically installing pip packages
@@ -295,13 +297,25 @@ def create_symlinks(symlink, target_file):
         os.symlink(target_file, symlink)
 
 
-def setup_file_links(site_packages_dir, runpod):
+def setup_file_links(_site_packages_dir, runpod):
     if os_info.family == "Windows":
         bitsandbytes_source = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitsandbytes_windows")
-        bitsandbytes_dest = os.path.join(site_packages_dir, "bitsandbytes")
-        bitsandbytes_cuda_dest = os.path.join(bitsandbytes_dest, "cuda_setup")
+        bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
+        bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
 
         if os.path.exists(bitsandbytes_source):
+            # Create destination directories if they don't exist
+            try:
+                os.makedirs(bitsandbytes_dest, exist_ok=True)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+            try:
+                os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+
             # Copy .dll files
             for file in os.listdir(bitsandbytes_source):
                 if file.endswith(".dll"):
@@ -316,27 +330,27 @@ def setup_file_links(site_packages_dir, runpod):
 
     if runpod and in_container:
         # Symlink paths
-        libnvinfer_plugin_symlink = os.path.join(site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
-        libnvinfer_symlink = os.path.join(site_packages_dir, "tensorrt", "libnvinfer.so.7")
-        libcudart_symlink = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.11.0")
+        libnvinfer_plugin_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
+        libnvinfer_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer.so.7")
+        libcudart_symlink = os.path.join(_site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.11.0")
 
         # Target file paths
-        libnvinfer_plugin_target = os.path.join(site_packages_dir, "tensorrt", "libnvinfer_plugin.so.8")
-        libnvinfer_target = os.path.join(site_packages_dir, "tensorrt", "libnvinfer.so.8")
-        libcudart_target = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.12")
+        libnvinfer_plugin_target = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.8")
+        libnvinfer_target = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer.so.8")
+        libcudart_target = os.path.join(_site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.12")
 
         logging.info("Checking symlinks now.")
         create_symlinks(libnvinfer_plugin_symlink, libnvinfer_plugin_target)
         create_symlinks(libnvinfer_symlink, libnvinfer_target)
         create_symlinks(libcudart_symlink, libcudart_target)
 
-        tensorrt_dir = os.path.join(site_packages_dir, "tensorrt")
+        tensorrt_dir = os.path.join(_site_packages_dir, "tensorrt")
         if os.path.isdir(tensorrt_dir):
             os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{tensorrt_dir}"
         else:
             logging.warning(f"{tensorrt_dir} not found; not linking library.")
 
-        cuda_runtime_dir = os.path.join(site_packages_dir, "nvidia", "cuda_runtime", "lib")
+        cuda_runtime_dir = os.path.join(_site_packages_dir, "nvidia", "cuda_runtime", "lib")
         if os.path.isdir(cuda_runtime_dir):
             os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{cuda_runtime_dir}"
         else:
@@ -397,7 +411,8 @@ def is_git_installed():
 
 def run_git_command(_args, cwd=None, timeout=10):
     try:
-        result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, timeout=timeout)
+        result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd,
+                                timeout=timeout)
         return result.stdout.decode("utf-8").strip()
     except subprocess.TimeoutExpired:
         logging.error("Git command timed out.")
@@ -459,6 +474,8 @@ def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
         logging.info(f"Cloning and switching to {_git_repo}:{_branch}")
 
         # Download the repo as a zip file
+        # Remove .git extension if present
+        _git_repo = _git_repo.rstrip('.git')
         _download_url = _git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(_git_repo)}.zip"
         auth = (_username, _password) if _username and _password else None
         logging.info(f"Attempting to download from: {_download_url}")
@@ -491,43 +508,53 @@ def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
 
     if not no_git_update:
         git_installed = is_git_installed()
-        if git_installed:
-            logging.debug(f"Git installed: {git_installed}")
-            # If the user has supplied a custom branch or repo via --branch or --git-repo, use git clone
-            if git_repo != "https://github.com/bmaltais/kohya_ss.git" or branch != "master":
-                try:
-                    if os.path.exists(_dir) and os.path.isdir(_dir):
-                        if os.listdir(_dir):
-                            logging.error(f"The destination path {_dir} already exists and is not an empty directory. "
-                                          f"Git will not clone in this situation. Please use a different path or clear "
-                                          f"the existing directory before running the script.")
-                            exit(1)
-                    run_git_command(["clone", "-b", branch, git_repo, _dir])
-                except Exception as e:
-                    logging.warning(f"Failed to clone the repository: {e}")
-            else:
-                # Download the latest release as a zip file from the default repository
-                try:
-                    download_url = git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(git_repo)}.zip"
-                    clone_and_switch(_dir, download_url, branch, parent_dir)
-                except Exception as e:
-                    logging.warning(f"Failed to download the latest release: {e}")
-                    try:
-                        username, password = get_stored_git_credentials(git_repo)
-                        git_repo_with_credentials = add_credentials_to_url(git_repo, username, password)
-                    except GitCredentialNotStoredError:
-                        logging.warning("No stored Git credentials found.")
-                        git_repo_with_credentials = git_repo
-                        username, password = None, None
-                    except GitCredentialError as e:
-                        logging.warning(f"Unable to get Git credentials: {e}")
-                        git_repo_with_credentials = git_repo
-                        username, password = None, None
 
-                    clone_and_switch(_dir, git_repo_with_credentials, branch, parent_dir, username, password)
-        else:
-            logging.error("Git not found. Please install git to use this script.")
-            exit(1)
+        try:
+            if git_installed:
+                logging.debug(f"Git installed: {git_installed}")
+                if os.path.exists(_dir) and os.path.isdir(_dir):
+                    logging.debug(
+                        f"Items counted in {_dir}: {len(os.listdir(_dir))}")
+
+                    if len(os.listdir(_dir)) > 1:
+                        logging.error(f"The destination path {_dir} already exists and is not an empty directory. "
+                                      f"Git will not clone in this situation. Please use a different path or clear "
+                                      f"the existing directory before running the script.")
+                        exit(1)
+                    elif len(os.listdir(_dir)) == 1 and os.path.exists(venv_path):
+                        logging.debug(
+                            f"Moving {os.path.join(_dir, 'venv')} to {os.path.join(tempfile.gettempdir(), 'venv')}")
+                        shutil.move(os.path.join(_dir, "venv"), os.path.join(tempfile.gettempdir(), "venv"))
+                        run_git_command(["clone", "-b", branch, git_repo, _dir])
+                    else:
+                        run_git_command(["clone", "-b", branch, git_repo, _dir])
+
+                if os.path.exists(os.path.join(tempfile.gettempdir(), "venv")):
+                    shutil.move(os.path.join(tempfile.gettempdir(), "venv"), os.path.join(_dir, "venv"))
+            else:
+                raise Exception("Git not installed.")
+        except Exception as e:
+            logging.warning(f"Failed to clone the repository using git: {e}")
+
+            # Download the latest release as a zip file from the default repository
+            try:
+                download_url = git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(git_repo)}.zip"
+                clone_and_switch(_dir, download_url, branch, parent_dir)
+            except Exception as e:
+                logging.warning(f"Failed to download the latest release: {e}")
+                try:
+                    username, password = get_stored_git_credentials(git_repo)
+                    git_repo_with_credentials = add_credentials_to_url(git_repo, username, password)
+                except GitCredentialNotStoredError:
+                    logging.warning("No stored Git credentials found.")
+                    git_repo_with_credentials = git_repo
+                    username, password = None, None
+                except GitCredentialError as e:
+                    logging.warning(f"Unable to get Git credentials: {e}")
+                    git_repo_with_credentials = git_repo
+                    username, password = None, None
+
+                clone_and_switch(_dir, git_repo_with_credentials, branch, parent_dir, username, password)
     else:
         logging.warning("Skipping git operations.")
 
@@ -685,106 +712,128 @@ def find_python_binary():
     return None
 
 
-def install_python_dependencies(_dir, runpod, script_dir):
-    # Following check disabled as PyCharm can't detect it's being used in a subprocess
-    # noinspection PyUnusedLocal
-    python_bin = None
-    venv_python_bin = None
+def validate_requirements(requirements_file='requirements.txt'):
+    logging.info("Validating that requirements are satisfied.")
 
-    # Check if python3 or python3.10 binary exists
-    python_bin = find_python_binary()
-    if not python_bin:
-        logging.error("Valid python3 or python3.10 binary not found.")
-        logging.error("Cannot proceed with the python steps.")
-        exit(1)
+    with open(requirements_file) as f:
+        requirements = f.readlines()
 
-    # Create and activate virtual environment if not in container environment
-    if not in_container():
-        logging.info("Switching to virtual Python environment.")
-        venv_path = os.path.join(_dir, "venv")
-        subprocess.run([python_bin, "-m", "venv", venv_path])
+    missing_requirements = []
+    wrong_version_requirements = []
 
-        # Check the virtual environment for permissions issues
-        check_permissions(_dir)
+    for requirement in requirements:
+        requirement = requirement.strip()
+        if requirement == ".":
+            continue
 
-        # Activate the virtual environment
-        venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
-        venv_python_bin = os.path.join(venv_bin_dir, python_bin)
-    else:
-        logging.info("In container, skipping virtual environment.")
-        venv_python_bin = python_bin
+        try:
+            split_req = re.split(r'[=<>!~]+', requirement)
+            if len(split_req) >= 2:
+                pkg_name, pkg_version = split_req[:2]
+            else:
+                pkg_name = split_req[0]
+                pkg_version = None
 
+            installed_version = version(pkg_name)
+            if pkg_version and installed_version != pkg_version:
+                wrong_version_requirements.append((requirement, pkg_version, installed_version))
+        except PackageNotFoundError:
+            if "@" in requirement:
+                package_name, vcs_url = requirement.split("@", 1)
+                os.system(f"pip install -e {vcs_url}")
+                try:
+                    version(package_name)
+                except PackageNotFoundError:
+                    missing_requirements.append(requirement)
+            else:
+                missing_requirements.append(requirement)
+
+    if missing_requirements or wrong_version_requirements:
+        if missing_requirements:
+            logging.error("The following packages are missing:")
+            for requirement in missing_requirements:
+                logging.error(f" - {requirement}")
+        if wrong_version_requirements:
+            logging.error("The following packages have the wrong version:")
+            for requirement, expected_version, actual_version in wrong_version_requirements:
+                logging.error(f" - {requirement} (expected version {expected_version}, found version {actual_version})")
+        upgrade_script = "upgrade.ps1" if os.name == "nt" else "upgrade.sh"
+        logging.error(
+            f"\nRun {upgrade_script} or pip install -U -r {requirements_file} to resolve the missing requirements listed above...")
+
+        return False
+
+    logging.info("All requirements satisfied.")
+    return True
+
+
+def install_python_dependencies(_dir, runpod):
     # Update pip
     logging.info("Checking for pip updates before Python operations.")
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
 
     # Install python dependencies
     logging.info("Installing python dependencies. This could take a few minutes as it downloads files.")
-    if os_info.family == "Windows":
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                        "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r", "requirements.txt"])
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "-U", "-I", "--no-deps",
-                        "https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14"
-                        ".dev0-cp310-cp310-win_amd64.whl"])
-    elif platform.system() == "Linux":
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                        "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "-U", "-I", "--no-deps",
-                        "https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0"
-                        ".14.dev0-cp310-cp310-linux_x86_64.whl"])
-    elif os_info.family == "Darwin":
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "torch==2.0.0", "torchvision==0.15.1", "-f",
-                        "https://download.pytorch.org/whl/cpu/torch_stable.html"])
-
-    if runpod:
-        logging.info("Installing tenssort.")
-        subprocess.run([venv_python_bin, "-m", "pip", "install", "tensorrt"])
 
     # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
-    tmp_requirements_path = os.path.join(script_dir, "requirements_tmp.txt")
-    # Copy the original requirements.txt and make the kohya_ss lib a dynamic location
-    with (open(requirements_path), "r") as original_file, \
-            open(tmp_requirements_path, "w") as temp_file:
-        for line in original_file:
-            if "#.*kohya_ss.*library" in line:
-                line = line.replace(".", script_dir)
-            temp_file.write(line)
+    if os.path.exists(requirements_path):
+        temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="wt")
 
-    # Check if the OS is macOS, then determine if M1+ or Intel CPU
-    # and append the appropriate packages to the requirements.txt file
-    if os_info.family == "Darwin":
-        with open(tmp_requirements_path, "a") as temp_file:
-            # Check if the processor is Apple Silicon (arm64)
-            if platform.machine() == "arm64":
-                temp_file.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
-                temp_file.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
-            # Check if the processor is Intel (x86_64)
-            elif platform.machine() == "x86_64":
-                temp_file.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+        with open(requirements_path, "r") as original_file, open(temp_requirements.name, "w") as temp_file:
+            for line in original_file:
+                if "#.*kohya_ss.*library" in line:
+                    line = line.replace(".", _dir)
+                temp_file.write(line)
 
-    # Install the packages from the temporary requirements file
-    pip_install_args = [sys.executable, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r",
-                        tmp_requirements_path]
-    if args.verbosity <= 1:
-        pip_install_args.insert(4, "--quiet")
+            # Append the appropriate packages based on the conditionals
+            if runpod:
+                temp_file.write("tensorrt\n")
 
-    subprocess.run(pip_install_args, check=True, stderr=subprocess.PIPE)
+            if os_info.family == "Darwin":
+                if platform.machine() == "arm64":
+                    temp_file.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
+                    temp_file.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
+                elif platform.machine() == "x86_64":
+                    temp_file.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+
+        if os.path.exists(temp_requirements.name):
+            if not validate_requirements(temp_requirements.name):
+                # Install the packages from the temporary requirements file
+                pip_install_args = [sys.executable, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r",
+                                    temp_requirements.name]
+                if args.verbosity <= 1:
+                    pip_install_args.insert(4, "--quiet")
+                subprocess.run(pip_install_args, check=True)
+
+            subprocess.run(pip_install_args, check=True, stderr=subprocess.PIPE)
+        else:
+            logging.error(f"Unable to locate {temp_requirements.name}")
+            exit(1)
+    else:
+        logging.error(f"Unable to locate requirements.txt in {_dir}")
+        exit(1)
 
     logging.debug("Removing the temp requirements file.")
-    if os.path.isfile(tmp_requirements_path):
-        os.remove(tmp_requirements_path)
+    if os.path.isfile(temp_requirements.name):
+        # Close the temporary file and remove
+        temp_requirements.close()
+        os.remove(temp_requirements.name)
 
     # Only exit the virtual environment if we aren't in a container.
     # This is because we never entered one at the beginning of the function if container detected.
     if not in_container():
         logging.debug("Exiting Python virtual environment.")
-        sys.exit(0)
+
+        # Reset sys.executable to its original value
+        sys.executable = original_sys_executable
+        logging.debug(f"sys.executable reset to: {sys.executable}")
 
 
-def configure_accelerate(interactive, source_config_file):
-    logging.debug(f"Source accelerate config location: {source_config_file}")
+def configure_accelerate(interactive):
+    source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
+                                                 "accelerate", "default_config.yaml")
+    logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
     if interactive:
         os.system("accelerate config")
@@ -804,7 +853,7 @@ def configure_accelerate(interactive, source_config_file):
             if not target_config_location.is_file():
                 target_config_location.parent.mkdir(parents=True, exist_ok=True)
                 logging.debug(f"Target accelerate config location: {target_config_location}")
-                shutil.copyfile(source_config_file, target_config_location)
+                shutil.copyfile(source_accelerate_config_file, target_config_location)
                 logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
@@ -813,15 +862,15 @@ def configure_accelerate(interactive, source_config_file):
 
 def launch_kohya_gui(_args):
     if not in_container():
-        venv_path = os.path.join(_args.dir, "venv")
+        _venv_path = os.path.join(_args.dir, "venv")
         kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
-        if not os.path.exists(venv_path):
+        if not os.path.exists(_venv_path):
             logging.info("Error: Virtual environment not found")
             sys.exit(1)
 
-        python_executable = os.path.join(venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(
-            venv_path, "Scripts", "python.exe")
+        python_executable = os.path.join(_venv_path, "bin", "python") if sys.platform != "win32" else os.path.join(
+            _venv_path, "Scripts", "python.exe")
 
         if not os.path.exists(python_executable):
             logging.info("Error: Python executable not found in the virtual environment")
@@ -831,17 +880,19 @@ def launch_kohya_gui(_args):
         kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
     cmd = [
-        python_executable,
-        kohya_gui_path,
-        "--listen", _args.listen,
-        "--username", _args.username,
-        "--password", _args.password,
-        "--server_port", str(_args.server_port),
-        "--inbrowser" if _args.inbrowser else "",
-        "--share" if _args.share else "",
+        venv_python_bin, os.path.join(_args.dir, "kohya_gui.py"),
+        "--listen", "127.0.0.1",
+        "--server_port", "7861",
     ]
 
-    logging.debug(f"Running command: {cmd}")
+    if _args.username:
+        cmd.extend(["--username", _args.username])
+
+    if _args.username:
+        cmd.extend(["--password", _args.username])
+
+    logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
+    logging.debug(f"Running kohya_gui.py as: {cmd}")
     subprocess.run(cmd, check=True)
 
 
@@ -875,15 +926,14 @@ def main(_args=None):
 
     # Define the directories relative to the install directory needed for install and launch
     parent_dir = os.path.dirname(_dir)
-    venv_dir, site_packages_dir = get_venv_directory()
 
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, parent_dir, getattr(_args, "no-git-update"))
-    install_python_dependencies(_dir, _args.runpod, script_directory)
+    install_python_dependencies(_dir, _args.runpod)
     setup_file_links(site_packages_dir, _args.runpod)
-    configure_accelerate(args.interactive, args.file)
+    configure_accelerate(args.interactive)
     launch_kohya_gui(args)
 
 
@@ -915,10 +965,54 @@ if __name__ == "__main__":
     # logging.error("This is an error message.")
     os_info = get_os_info()
 
+    # Store the original sys.executable value
+    original_sys_executable = sys.executable
+
     # Print all arguments and their values in verbose 3 mode
     if args.verbosity >= 3:
         for k, v in args.__dict__.items():
             logging.debug(f"{k}: {v}")
+
+    # Following check disabled as PyCharm can't detect it's being used in a subprocess
+    # noinspection PyUnusedLocal
+    python_bin = None
+    venv_python_bin = None
+
+    # Check if python3 or python3.10 binary exists
+    python_bin = find_python_binary()
+    if not python_bin:
+        logging.error("Valid python3 or python3.10 binary not found.")
+        logging.error("Cannot proceed with the python steps.")
+        exit(1)
+
+    # Create and activate virtual environment if not in container environment
+    if not in_container():
+        logging.info("Switching to virtual Python environment.")
+        venv_path = os.path.join(args.dir, "venv")
+        subprocess.run([python_bin, "-m", "venv", venv_path])
+
+        # Check the virtual environment for permissions issues
+        check_permissions(args.dir)
+
+        # Activate the virtual environment
+        venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
+        venv_python_bin = os.path.join(venv_bin_dir, python_bin)
+        sys.executable = os.path.join(venv_python_bin)
+        logging.debug(f"Python sys.executable: {sys.executable}")
+        logging.debug(f"venv_path: {venv_path}")
+        logging.debug(f"venv_bin_dir: {venv_bin_dir}")
+        logging.debug(f"python_bin: {python_bin}")
+        logging.debug(f"venv_python_bin: {venv_python_bin}")
+        site_packages_dir = os.path.join(venv_path, "Lib", "site-packages")
+    else:
+        logging.info("In container, skipping virtual environment.")
+        venv_python_bin = python_bin
+        python_executable_dir = os.path.dirname(python_bin)
+        if os.name == "Windows":
+            site_packages_dir = os.path.join(python_executable_dir, "Lib", "site-packages")
+        else:
+            site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
+                                             "site-packages")
 
     if getattr(args, 'exclude-setup'):
         launch_kohya_gui(args)
