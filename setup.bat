@@ -13,7 +13,7 @@ if not "%py_ver%"=="%py_ver_req%" (
 rem Define the default values
 set Branch=master
 set Dir=%~dp0
-set GitRepo=https://github.com/kohya/kohya_ss.git
+set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
 set NoGitUpdate=0
 set Public=0
