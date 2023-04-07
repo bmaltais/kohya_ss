@@ -32,6 +32,7 @@ Options:
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -u, --no-gui                  Skips launching the GUI.
   -v, --verbose                 Increase verbosity levels up to 3.
 EOF
 }
@@ -90,8 +91,9 @@ INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=false
+SKIP_GUI=false
 
-while getopts ":vb:d:g:inprs-:" opt; do
+while getopts ":vb:d:g:inprus-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -107,6 +109,7 @@ while getopts ":vb:d:g:inprs-:" opt; do
   p | public) PUBLIC=true ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
+  u | no-gui) SKIP_GUI=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
@@ -215,18 +218,20 @@ create_symlinks() {
 install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
-  if command -v python3 >/dev/null; then
-    python3 -m venv "$DIR/venv"
-  elif command -v python3.10 >/dev/null; then
-    python3.10 -m venv "$DIR/venv"
-  else
-    echo "Valid python3 or python3.10 binary not found."
-    echo "Cannot proceed with the python steps."
-    return 1
-  fi
+  if ! inDocker; then
+    if command -v python3 >/dev/null; then
+      python3 -m venv "$DIR/venv"
+    elif command -v python3.10 >/dev/null; then
+      python3.10 -m venv "$DIR/venv"
+    else
+      echo "Valid python3 or python3.10 binary not found."
+      echo "Cannot proceed with the python steps."
+      return 1
+    fi
 
-  # Activate the virtual environment
-  source "$DIR/venv/bin/activate"
+    # Activate the virtual environment
+    source "$DIR/venv/bin/activate"
+  fi
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
@@ -288,7 +293,7 @@ install_python_dependencies() {
     rm -f "$TEMP_REQUIREMENTS_FILE"
   fi
 
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
     if command -v deactivate >/dev/null; then
       echo "Exiting Python virtual environment."
       deactivate
@@ -348,6 +353,28 @@ check_storage_space() {
         sleep 1
       done
     fi
+  fi
+}
+
+isContainerOrPod() {
+  local cgroup=/proc/1/cgroup
+  test -f $cgroup && (grep -qE ':cpuset:/(docker|kubepods)' $cgroup || grep -q ':/docker/' $cgroup)
+}
+
+isDockerBuildkit() {
+  local cgroup=/proc/1/cgroup
+  test -f $cgroup && grep -q ':cpuset:/docker/buildkit' $cgroup
+}
+
+isDockerContainer() {
+  [ -e /.dockerenv ]
+}
+
+inDocker() {
+  if isContainerOrPod || isDockerBuildkit || isDockerContainer; then
+    return 0
+  else
+    return 1
   fi
 }
 
@@ -513,6 +540,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
+    if inDocker; then
+      # We get the site-packages from python itself, then cut the string, so no other code changes required.
+      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
+    fi
+
     # Symlink paths
     libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
     libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
@@ -543,18 +576,24 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     configure_accelerate
 
     # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
-    if command -v bash >/dev/null; then
-      if [ "$PUBLIC" = false ]; then
-        bash "$DIR"/gui.sh
+    if [ "$SKIP_GUI" = false ]; then
+      if command -v bash >/dev/null; then
+        if [ "$PUBLIC" = false ]; then
+          bash "$DIR"/gui.sh
+          exit 0
+        else
+          bash "$DIR"/gui.sh --share
+          exit 0
+        fi
       else
-        bash "$DIR"/gui.sh --share
-      fi
-    else
-      # This shouldn't happen, but we're going to try to help.
-      if [ "$PUBLIC" = false ]; then
-        sh "$DIR"/gui.sh
-      else
-        sh "$DIR"/gui.sh --share
+        # This shouldn't happen, but we're going to try to help.
+        if [ "$PUBLIC" = false ]; then
+          sh "$DIR"/gui.sh
+          exit 0
+        else
+          sh "$DIR"/gui.sh --share
+          exit 0
+        fi
       fi
     fi
   fi

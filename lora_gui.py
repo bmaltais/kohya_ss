@@ -126,6 +126,7 @@ def save_configuration(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -245,6 +246,7 @@ def open_configuration(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -355,6 +357,7 @@ def train_model(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -520,13 +523,25 @@ def train_model(
             return
         run_cmd += f' --network_module=lycoris.kohya'
         run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
-    if LoRA_type == 'Kohya LoCon':
+    
+        
+    if LoRA_type in ['Kohya LoCon', 'Standard']:
+        kohya_lora_var_list = ['down_lr_weight', 'mid_lr_weight', 'up_lr_weight', 'block_lr_zero_threshold', 'block_dims', 'block_alphas', 'conv_dims', 'conv_alphas']
+        
         run_cmd += f' --network_module=networks.lora'
-        run_cmd += (
-            f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
-        )
-    if LoRA_type == 'Standard':
-        run_cmd += f' --network_module=networks.lora'
+        kohya_lora_vars = {key: value for key, value in vars().items() if key in kohya_lora_var_list and value}
+
+        network_args = ''
+        if LoRA_type == 'Kohya LoCon':
+            network_args += f' "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f' {key}="{value}"'
+
+        if network_args:
+            run_cmd += f' --network_args{network_args}'
+        
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
         if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
@@ -609,6 +624,26 @@ def train_model(
         sample_prompts,
         output_dir,
     )
+    
+    # if not down_lr_weight == '':
+    #     run_cmd += f' --down_lr_weight="{down_lr_weight}"'
+    # if not mid_lr_weight == '':
+    #     run_cmd += f' --mid_lr_weight="{mid_lr_weight}"'
+    # if not up_lr_weight == '':
+    #     run_cmd += f' --up_lr_weight="{up_lr_weight}"'
+    # if not block_lr_zero_threshold == '':
+    #     run_cmd += f' --block_lr_zero_threshold="{block_lr_zero_threshold}"'
+    # if not block_dims == '':
+    #     run_cmd += f' --block_dims="{block_dims}"'
+    # if not block_alphas == '':
+    #     run_cmd += f' --block_alphas="{block_alphas}"'
+    # if not conv_dims == '':
+    #     run_cmd += f' --conv_dims="{conv_dims}"'
+    # if not conv_alphas == '':
+    #     run_cmd += f' --conv_alphas="{conv_alphas}"'
+        
+
+
 
     if print_only_bool:
         print(
@@ -832,22 +867,30 @@ def lora_tab(
                 step=0.1,
                 label='Convolution Alpha',
             )
+            
         # Show of hide LoCon conv settings depending on LoRA type selection
-        def LoRA_type_change(LoRA_type):
+        def update_LoRA_settings(LoRA_type):
             print('LoRA type changed...')
+            
+            LoRA_type_change = False
+            LoCon_row = False
+            
             if (
                 LoRA_type == 'LoCon'
                 or LoRA_type == 'Kohya LoCon'
                 or LoRA_type == 'LyCORIS/LoHa'
                 or LoRA_type == 'LyCORIS/LoCon'
             ):
-                return gr.Group.update(visible=True)
-            else:
-                return gr.Group.update(visible=False)
+                LoCon_row = True
+                
+            if (
+                LoRA_type == 'Standard'
+                or LoRA_type == 'Kohya LoCon'
+            ):
+                LoRA_type_change = True
 
-        LoRA_type.change(
-            LoRA_type_change, inputs=[LoRA_type], outputs=[LoCon_row]
-        )
+            return gr.Group.update(visible=LoCon_row), gr.Group.update(visible=LoRA_type_change)
+
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
@@ -862,7 +905,47 @@ def lora_tab(
                 label='Stop text encoder training',
             )
             enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            
         with gr.Accordion('Advanced Configuration', open=False):
+            with gr.Row(visible=True) as kohya_advanced_lora:
+                with gr.Tab(label='Weights'):
+                    with gr.Row(visible=True):
+                        down_lr_weight = gr.Textbox(
+                            label='Down LR weights',
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                        )
+                        mid_lr_weight = gr.Textbox(
+                            label='Mid LR weights',
+                            placeholder='(Optional) eg: 0.5'
+                        )
+                        up_lr_weight = gr.Textbox(
+                            label='Up LR weights',
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                        )
+                        block_lr_zero_threshold = gr.Textbox(
+                            label='Blocks LR zero threshold',
+                            placeholder='(Optional) eg: 0.1'
+                        )
+                with gr.Tab(label='Blocks'):
+                    with gr.Row(visible=True):
+                        block_dims = gr.Textbox(
+                            label='Block dims',
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                        )
+                        block_alphas = gr.Textbox(
+                            label='Block alphas',
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                        )
+                with gr.Tab(label='Conv'):
+                    with gr.Row(visible=True):
+                        conv_dims = gr.Textbox(
+                            label='Conv dims',
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                        )
+                        conv_alphas = gr.Textbox(
+                            label='Conv alphas',
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                        )
             with gr.Row():
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
@@ -922,6 +1005,10 @@ def lora_tab(
             sample_sampler,
             sample_prompts,
         ) = sample_gradio_config()
+        
+        LoRA_type.change(
+            update_LoRA_settings, inputs=[LoRA_type], outputs=[LoCon_row, kohya_advanced_lora]
+        )
 
     with gr.Tab('Tools'):
         gr.Markdown(
@@ -1028,6 +1115,7 @@ def lora_tab(
         additional_parameters,
         vae_batch_size,
         min_snr_gamma,
+        down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
     ]
 
     button_open_config.click(
