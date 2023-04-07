@@ -179,7 +179,7 @@ fi
 # Set default values
 config_Branch="${config_Branch:-master}"
 config_Dir="${config_Dir:-$HOME/kohya_ss}"
-config_GitRepo="${config_GitRepo:-https://github.com/kohya/kohya_ss.git}"
+config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_Interactive="${config_Interactive:-false}"
 config_NoGitUpdate="${config_NoGitUpdate:-false}"
 config_Public="${config_Public:-false}"

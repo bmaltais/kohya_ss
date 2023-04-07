@@ -1,5 +1,6 @@
 import argparse
 import logging
+import importlib
 import mimetypes
 import os
 import platform
@@ -11,8 +12,29 @@ import sys
 import stat
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
-import yaml
+
+# This enables programmatically installing pip packages
+def install_package(package_name):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+
+
+def check_and_import(module_name, package_name=None):
+    if package_name is None:
+        package_name = module_name
+
+    try:
+        return importlib.import_module(module_name)
+    except ImportError:
+        print(f"Installing {package_name}...")
+        install_package(package_name)
+        return importlib.import_module(module_name)
+
+
+base64 = check_and_import('base64')
+requests = check_and_import('requests')
+yaml = check_and_import('yaml', 'PyYAML')
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
 TENSORFLOW_VERSION = "2.12.0"
@@ -112,7 +134,7 @@ def parse_args(_config_data):
         {"short": "-b", "long": "--branch", "default": "master", "type": str},
         {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str},
         {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str},
-        {"short": "-g", "long": "--git-repo", "default": "https://github.com/kohya/kohya_ss.git", "type": str},
+        {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str},
         {"short": "-i", "long": "--interactive", "default": False, "type": bool},
         {"short": "-n", "long": "--no-git-update", "default": False, "type": bool},
         {"short": "-p", "long": "--public", "default": False, "type": bool},
@@ -347,53 +369,167 @@ def in_container():
     return False
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
-    def run_git_command(_args):
-        logging.debug(f"Running git command: {' '.join(_args)}")
-        git_result = subprocess.run(_args, capture_output=True, text=True)
+class GitCredentialError(Exception):
+    pass
 
-        if git_result.returncode != 0:
-            logging.error(f"Error: The following git command failed: {' '.join(_args)}")
-            logging.error(f"Error output:\n{git_result.stderr}")
-            exit(1)
-        return git_result
+
+class GitCredentialNotStoredError(GitCredentialError):
+    pass
+
+
+def is_git_installed():
+    git_commands = ["git"]
+    if sys.platform == "win32":
+        git_commands.append("git.exe")
+
+    for git_command in git_commands:
+        try:
+            subprocess.run([git_command, "--version"], check=True, capture_output=True)
+            logging.debug("Git found.")
+            return True
+        except FileNotFoundError:
+            logging.debug("Git not found.")
+            return False
+
+    logging.warning("Git not found.")
+    return False
+
+
+def run_git_command(_args, cwd=None, timeout=10):
+    try:
+        result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, timeout=timeout)
+        return result.stdout.decode("utf-8").strip()
+    except subprocess.TimeoutExpired:
+        logging.error("Git command timed out.")
+        exit(1)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Git command failed: {e}")
+        logging.debug(f"stdout: {e.stdout.decode('utf-8')}")
+        logging.debug(f"stderr: {e.stderr.decode('utf-8')}")
+        raise Exception("Git failed exiting script to be on the safe side.")
+
+
+def get_stored_git_credentials(url):
+    try:
+        output = run_git_command(["credential", "fill"], cwd=None)
+        return _parse_git_credential_output(output)
+    except GitCredentialError as e:
+        raise GitCredentialNotStoredError(f"Failed to get stored Git credentials: {e}")
+
+
+def _parse_git_credential_output(output):
+    username = None
+    password = None
+    for line in output.split("\n"):
+        key, value = line.split("=", 1)
+        if key == "username":
+            username = value
+        elif key == "password":
+            password = value
+    if username is None or password is None:
+        raise GitCredentialNotStoredError("Failed to parse Git credential output.")
+    return username, password
+
+
+def add_credentials_to_url(url, username, password):
+    url_parts = url.split("://", 1)
+    if len(url_parts) == 1:
+        return f"https://{username}:{password}@{url}"
+    else:
+        return f"{url_parts[0]}://{username}:{password}@{url_parts[1]}"
+
+
+def get_latest_tag(git_repo):
+    match = re.search(r'github.com/([^/]+)/([^/.]+)', git_repo)
+    if match:
+        owner, repo_name = match.groups()
+    else:
+        raise ValueError("Invalid GitHub repository URL")
+
+    url = f"https://api.github.com/repos/{owner}/{repo_name}/tags"
+    response = requests.get(url)
+    response.raise_for_status()
+    tags_data = response.json()
+    latest_tag = tags_data[0]["name"]
+    return latest_tag
+
+
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
+    def clone_and_switch(_dir, _git_repo, _branch, _parent_dir, _username=None, _password=None):
+        logging.info(f"Cloning and switching to {_git_repo}:{_branch}")
+
+        # Download the repo as a zip file
+        _download_url = _git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(_git_repo)}.zip"
+        auth = (_username, _password) if _username and _password else None
+        logging.info(f"Attempting to download from: {_download_url}")
+        response = requests.get(_download_url, auth=auth)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to download the repository: {response.status_code}")
+
+        # Save the zip file to a temporary location
+        temp_zip = tempfile.NamedTemporaryFile(delete=False)
+        for chunk in response.iter_content(chunk_size=8192):
+            temp_zip.write(chunk)
+        temp_zip.close()
+
+        # Extract the zip file to the parent directory
+        with zipfile.ZipFile(temp_zip.name, "r") as zip_ref:
+            zip_ref.extractall(_parent_dir)
+        os.unlink(temp_zip.name)
+
+        # Rename the extracted folder to the desired folder name
+        extracted_folder = os.path.join(_parent_dir, f"{os.path.basename(_dir)}-{_branch}")
+        if os.path.exists(_dir):
+            shutil.rmtree(_dir)
+        shutil.move(extracted_folder, _dir)
+
+        run_git_command(["git", "-C", _dir, "init"])
+        run_git_command(["git", "-C", _dir, "remote", "add", "origin", _git_repo])
+        run_git_command(["git", "-C", _dir, "fetch"])
+        run_git_command(["git", "-C", _dir, "checkout", _branch])
 
     if not no_git_update:
-        if shutil.which("git"):
-            # First, we make sure there are no changes that need to be made in git, so no work is lost.
-            git_status = run_git_command(["git", "-C", _dir, "status", "--porcelain=v1"])
-            if git_status.stdout.strip():
-                error_message = (
-                    f"These files need to be committed or discarded:\n"
-                    f"{git_status.stdout}\n"
-                    f"There are changes that need to be committed or discarded in the repo in {_dir}.\n"
-                    f"Commit those changes or run this script with -n to skip git operations entirely."
-                )
-                logging.error(error_message)
-                exit(1)
-
-            logging.info(f"Attempting to clone {git_repo}.")
-            if not os.path.exists(os.path.join(_dir, ".git")):
-                logging.info(f"Cloning and switching to {git_repo}:{branch}")
-                run_git_command(["git", "-C", parent_dir, "clone", "-b", branch, git_repo, os.path.basename(_dir)])
-                run_git_command(["git", "-C", _dir, "switch", branch])
+        git_installed = is_git_installed()
+        if git_installed:
+            logging.debug(f"Git installed: {git_installed}")
+            # If the user has supplied a custom branch or repo via --branch or --git-repo, use git clone
+            if git_repo != "https://github.com/bmaltais/kohya_ss.git" or branch != "master":
+                try:
+                    if os.path.exists(_dir) and os.path.isdir(_dir):
+                        if os.listdir(_dir):
+                            logging.error(f"The destination path {_dir} already exists and is not an empty directory. "
+                                          f"Git will not clone in this situation. Please use a different path or clear "
+                                          f"the existing directory before running the script.")
+                            exit(1)
+                    run_git_command(["clone", "-b", branch, git_repo, _dir])
+                except Exception as e:
+                    logging.warning(f"Failed to clone the repository: {e}")
             else:
-                logging.info("git repo detected. Attempting to update repository instead.")
-                logging.info(f"Updating: {git_repo}")
-                run_git_command(["git", "-C", _dir, "pull", git_repo, branch])
-                git_switch = subprocess.run(["git", "-C", _dir, "switch", branch], capture_output=True, text=True)
-                if git_switch.returncode != 0:
-                    logging.warning(f"Branch {branch} did not exist. Attempting to create it.")
-                    run_git_command(["git", "-C", _dir, "switch", "-c", branch])
+                # Download the latest release as a zip file from the default repository
+                try:
+                    download_url = git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(git_repo)}.zip"
+                    clone_and_switch(_dir, download_url, branch, parent_dir)
+                except Exception as e:
+                    logging.warning(f"Failed to download the latest release: {e}")
+                    try:
+                        username, password = get_stored_git_credentials(git_repo)
+                        git_repo_with_credentials = add_credentials_to_url(git_repo, username, password)
+                    except GitCredentialNotStoredError:
+                        logging.warning("No stored Git credentials found.")
+                        git_repo_with_credentials = git_repo
+                        username, password = None, None
+                    except GitCredentialError as e:
+                        logging.warning(f"Unable to get Git credentials: {e}")
+                        git_repo_with_credentials = git_repo
+                        username, password = None, None
+
+                    clone_and_switch(_dir, git_repo_with_credentials, branch, parent_dir, username, password)
         else:
-            error_message = (
-                "You need to install git.\n"
-                "Rerun this after installing git or run this script with -n to skip the git operations."
-            )
-            logging.error(error_message)
+            logging.error("Git not found. Please install git to use this script.")
             exit(1)
     else:
-        logging.info("Skipping git operations.")
+        logging.warning("Skipping git operations.")
 
 
 class OSInfo:

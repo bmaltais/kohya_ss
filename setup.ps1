@@ -154,7 +154,7 @@ function Get-Parameters {
     $Defaults = @{
         'setup_branch'       = 'master'
         'setup_dir'          = "$env:USERPROFILE\kohya_ss"
-        'setup_gitRepo'      = 'https://github.com/kohya/kohya_ss.git'
+        'setup_gitRepo'      = 'https://github.com/bmaltais/kohya_ss.git'
         'setup_interactive'  = $false
         'setup_gitUpdate'    = $false
         'setup_public'       = $false
