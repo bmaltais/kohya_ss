@@ -258,6 +258,22 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/08 (v21.5.1)
+    - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
+
+    - Added a feature to upload model and state to HuggingFace. Thanks to ddPn08 for the contribution! [PR #348](https://github.com/kohya-ss/sd-scripts/pull/348)
+    - When `--huggingface_repo_id` is specified, the model is uploaded to HuggingFace at the same time as saving the model.
+    - Please note that the access token is handled with caution. Please refer to the [HuggingFace documentation](https://huggingface.co/docs/hub/security-tokens).
+    - For example, specify other arguments as follows.
+        - `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
+    - If `public` is specified for `--huggingface_repo_visibility`, the repository will be public. If the option is omitted or `private` (or anything other than `public`) is specified, it will be private.
+    - If you specify `--save_state` and `--save_state_to_huggingface`, the state will also be uploaded.
+    - If you specify `--resume` and `--resume_from_huggingface`, the state will be downloaded from HuggingFace and resumed.
+        - In this case, the `--resume` option is `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`. For example: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
+    - If you specify `--async_upload`, the upload will be done asynchronously.
+    - Added the documentation for applying LoRA to generate with the standard pipeline of Diffusers.   [training LoRA](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=en-US&_x_tr_pto=wapp#diffusers%E3%81%AEpipeline%E3%81%A7%E7%94%9F%E6%88%90%E3%81%99%E3%82%8B) (Google translate from Japanese)
+    - Support for Attention Couple and regional LoRA in `gen_img_diffusers.py`.
+    - If you use ` AND ` to separate the prompts, each sub-prompt is sequentially applied to LoRA. `--mask_path` is treated as a mask image. The number of sub-prompts and the number of LoRA must match.
 * 2023/04/07 (v21.5.0)
     - Update MacOS and Linux install scripts. Thanks @jstayco
     - Update windows upgrade ps1 and bat
