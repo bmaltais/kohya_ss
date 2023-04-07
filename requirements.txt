@@ -24,6 +24,10 @@ tensorboard==2.10.1 ; sys_platform != 'darwin'
 tensorboard==2.12.1 ; sys_platform == 'darwin'
 tk==0.1.0
 toml==0.10.2
+torch==1.12.1+cu116; sys_platform != 'darwin'
+torch==2.0.0; sys_platform == 'darwin'
+torchvision==0.13.1+cu116; sys_platform != 'darwin'
+torchvision==0.15.1; sys_platform == 'darwin'
 transformers==4.26.0
 voluptuous==0.13.1
 wandb==0.15.0
@@ -39,3 +43,5 @@ tensorflow==2.10.1; sys_platform != 'darwin'
 lycoris_lora==0.1.4
 # for kohya_ss library
 .
+https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl; sys_platform == 'win32' #egg=xformers
+https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/downloadlinux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl; sys_platform == 'linux' #egg=xformers
