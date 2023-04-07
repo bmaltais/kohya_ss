@@ -11,8 +11,8 @@ import library.model_util as model_util
 import lora
 
 
-CLAMP_QUANTILE = 1
-MIN_DIFF = 1e-8
+CLAMP_QUANTILE = 0.99
+MIN_DIFF = 1e-6
 
 
 def save_to_file(file_name, model, state_dict, dtype):
@@ -121,12 +121,12 @@ def svd(args):
 
       Vh = Vh[:rank, :]
 
-      # dist = torch.cat([U.flatten(), Vh.flatten()])
-      # hi_val = torch.quantile(dist, CLAMP_QUANTILE)
-      # low_val = -hi_val
+      dist = torch.cat([U.flatten(), Vh.flatten()])
+      hi_val = torch.quantile(dist, CLAMP_QUANTILE)
+      low_val = -hi_val
 
-      # U = U.clamp(low_val, hi_val)
-      # Vh = Vh.clamp(low_val, hi_val)
+      U = U.clamp(low_val, hi_val)
+      Vh = Vh.clamp(low_val, hi_val)
 
       if conv2d:
         U = U.reshape(out_dim, rank, 1, 1)
@@ -145,8 +145,8 @@ def svd(args):
     lora_sd[lora_name + '.alpha'] = torch.tensor(down_weight.size()[0])
 
   # load state dict to LoRA and save it
-  lora_network_save = lora.create_network_from_weights(1.0, None, None, text_encoder_o, unet_o, weights_sd=lora_sd)
-  lora_network_save.apply_to(text_encoder_o, unet_o)        # create internal module references for state_dict
+  lora_network_save, lora_sd = lora.create_network_from_weights(1.0, None, None, text_encoder_o, unet_o, weights_sd=lora_sd)
+  lora_network_save.apply_to(text_encoder_o, unet_o)  # create internal module references for state_dict  
 
   info = lora_network_save.load_state_dict(lora_sd)
   print(f"Loading extracted LoRA weights: {info}")

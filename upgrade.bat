@@ -13,4 +13,4 @@ git pull
 call .\venv\Scripts\activate.bat
 
 :: Upgrade the required packages
-pip install --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements.txt

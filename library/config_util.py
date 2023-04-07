@@ -445,7 +445,7 @@ def generate_dreambooth_subsets_config_by_subdirs(train_data_dir: Optional[str] 
     try:
       n_repeats = int(tokens[0])
     except ValueError as e:
-      print(f"ignore directory without repeats / 繰り返し回数のないディレクトリを無視します: {dir}")
+      print(f"ignore directory without repeats / 繰り返し回数のないディレクトリを無視します: {name}")
       return 0, ""
     caption_by_folder = '_'.join(tokens[1:])
     return n_repeats, caption_by_folder
@@ -486,7 +486,8 @@ def load_user_config(file: str) -> dict:
 
   if file.name.lower().endswith('.json'):
     try:
-      config = json.load(file)
+      with open(file, 'r') as f:
+        config = json.load(f)
     except Exception:
       print(f"Error on parsing JSON config file. Please check the format. / JSON 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}")
       raise

@@ -44,6 +44,9 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
             # Count the number of image files
             images = len(image_files)
+            
+            if images == 0:
+                print(f'No images of type .jpg, .jpeg, .png, .gif, .webp were found in {os.listdir(os.path.join(folder, subdir))}')
 
             # Check if the subdirectory name starts with a number inside braces,
             # indicating that the repeats value should be multiplied
