@@ -1,4 +1,13 @@
 @echo off
+
+set PYTHON_VER=3.10.9
+
+REM Check if Python version meets the recommended version
+python --version 2>nul | findstr /b /c:"Python %PYTHON_VER%" >nul
+if errorlevel 1 (
+    echo Warning: Python version %PYTHON_VER% is recommended.
+)
+
 IF NOT EXIST venv (
     python -m venv venv
 ) ELSE (

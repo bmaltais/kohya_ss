@@ -258,7 +258,7 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/04/04 (v21.5.0)
+* 2023/04/07 (v21.5.0)
     - Update MacOS and Linux install scripts. Thanks @jstayco
     - Update windows upgrade ps1 and bat
     - Update kohya_ss sd-script code to latest release... this is a big one so it might cause some training issue. If you find that this release is causing issues for you you can go back to the previous release with `git checkout v21.4.2` and then run the upgrade script for your platform. Here is the list of changes in the new sd-scripts:
@@ -291,6 +291,8 @@ This will store a backup file with your current locally installed pip packages a
             - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
             - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
     - Add GUI support for new features introduced above by kohya_ss. Those will be visible only if the LoRA is of type `Standard` or `kohya LoCon`. You will find the new parameters under the `Advanced Configuration` accordion in the `Training parameters` tab.
+    - Various improvements to linux and macos srtup scripts thanks to @Oceanswave and @derVedro
+    - Integrated sd-scripts commits into commit history. Thanks to @Cauldrath
 * 2023/04/02 (v21.4.2)
     - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
 * 2023/04/01 (v21.4.1)
