@@ -188,6 +188,73 @@ gen_img_diffusers.pyに、--network_module、--network_weightsの各オプショ
 
 --network_mulオプションで0~1.0の数値を指定すると、LoRAの適用率を変えられます。
 
+## Diffusersのpipelineで生成する
+
+以下の例を参考にしてください。必要なファイルはnetworks/lora.pyのみです。Diffusersのバージョンは0.10.2以外では動作しない可能性があります。
+
+```python
+import torch
+from diffusers import StableDiffusionPipeline
+from networks.lora import LoRAModule, create_network_from_weights
+from safetensors.torch import load_file
+
+# if the ckpt is CompVis based, convert it to Diffusers beforehand with tools/convert_diffusers20_original_sd.py. See --help for more details.
+
+model_id_or_dir = r"model_id_on_hugging_face_or_dir"
+device = "cuda"
+
+# create pipe
+print(f"creating pipe from {model_id_or_dir}...")
+pipe = StableDiffusionPipeline.from_pretrained(model_id_or_dir, revision="fp16", torch_dtype=torch.float16)
+pipe = pipe.to(device)
+vae = pipe.vae
+text_encoder = pipe.text_encoder
+unet = pipe.unet
+
+# load lora networks
+print(f"loading lora networks...")
+
+lora_path1 = r"lora1.safetensors"
+sd = load_file(lora_path1)   # If the file is .ckpt, use torch.load instead.
+network1, sd = create_network_from_weights(0.5, None, vae, text_encoder,unet, sd)
+network1.apply_to(text_encoder, unet)
+network1.load_state_dict(sd)
+network1.to(device, dtype=torch.float16)
+
+# # You can merge weights instead of apply_to+load_state_dict. network.set_multiplier does not work
+# network.merge_to(text_encoder, unet, sd)
+
+lora_path2 = r"lora2.safetensors"
+sd = load_file(lora_path2) 
+network2, sd = create_network_from_weights(0.7, None, vae, text_encoder,unet, sd)
+network2.apply_to(text_encoder, unet)
+network2.load_state_dict(sd)
+network2.to(device, dtype=torch.float16)
+
+lora_path3 = r"lora3.safetensors"
+sd = load_file(lora_path3)
+network3, sd = create_network_from_weights(0.5, None, vae, text_encoder,unet, sd)
+network3.apply_to(text_encoder, unet)
+network3.load_state_dict(sd)
+network3.to(device, dtype=torch.float16)
+
+# prompts
+prompt = "masterpiece, best quality, 1girl, in white shirt, looking at viewer"
+negative_prompt = "bad quality, worst quality, bad anatomy, bad hands"
+
+# exec pipe
+print("generating image...")
+with torch.autocast("cuda"):
+    image = pipe(prompt, guidance_scale=7.5, negative_prompt=negative_prompt).images[0]
+
+# if not merged, you can use set_multiplier
+# network1.set_multiplier(0.8)
+# and generate image again...
+
+# save image
+image.save(r"by_diffusers..png")
+```
+
 ## 二つのモデルの差分からLoRAモデルを作成する
 
 [こちらのディスカッション](https://github.com/cloneofsimo/lora/discussions/56)を参考に実装したものです。数式はそのまま使わせていただきました（よく理解していませんが近似には特異値分解を用いるようです）。

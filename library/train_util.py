@@ -2,6 +2,7 @@
 
 import argparse
 import ast
+import asyncio
 import importlib
 import json
 import pathlib
@@ -49,6 +50,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
 )
+from huggingface_hub import hf_hub_download
 import albumentations as albu
 import numpy as np
 from PIL import Image
@@ -58,6 +60,7 @@ from torch import einsum
 import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
+import library.huggingface_util as huggingface_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -487,7 +490,7 @@ class BaseDataset(torch.utils.data.Dataset):
         else:
             if subset.shuffle_caption or subset.token_warmup_step > 0 or subset.caption_tag_dropout_rate > 0:
                 tokens = [t.strip() for t in caption.strip().split(",")]
-                if subset.token_warmup_step < 1: # 初回に上書きする
+                if subset.token_warmup_step < 1:  # 初回に上書きする
                     subset.token_warmup_step = math.floor(subset.token_warmup_step * self.max_train_steps)
                 if subset.token_warmup_step and self.current_step < subset.token_warmup_step:
                     tokens_len = (
@@ -1441,7 +1444,6 @@ def glob_images_pathlib(dir_path, recursive):
 
 # endregion
 
-
 # region モジュール入れ替え部
 """
 高速化のためのモジュール入れ替え
@@ -1897,6 +1899,38 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     parser.add_argument("--output_dir", type=str, default=None, help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
     parser.add_argument("--output_name", type=str, default=None, help="base name of trained model file / 学習後のモデルの拡張子を除くファイル名")
     parser.add_argument(
+        "--huggingface_repo_id", type=str, default=None, help="huggingface repo name to upload / huggingfaceにアップロードするリポジトリ名"
+    )
+    parser.add_argument(
+        "--huggingface_repo_type", type=str, default=None, help="huggingface repo type to upload / huggingfaceにアップロードするリポジトリの種類"
+    )
+    parser.add_argument(
+        "--huggingface_path_in_repo",
+        type=str,
+        default=None,
+        help="huggingface model path to upload files / huggingfaceにアップロードするファイルのパス",
+    )
+    parser.add_argument("--huggingface_token", type=str, default=None, help="huggingface token / huggingfaceのトークン")
+    parser.add_argument(
+        "--huggingface_repo_visibility",
+        type=str,
+        default=None,
+        help="huggingface repository visibility ('public' for public, 'private' or None for private) / huggingfaceにアップロードするリポジトリの公開設定（'public'で公開、'private'またはNoneで非公開）",
+    )
+    parser.add_argument(
+        "--save_state_to_huggingface", action="store_true", help="save state to huggingface / huggingfaceにstateを保存する"
+    )
+    parser.add_argument(
+        "--resume_from_huggingface",
+        action="store_true",
+        help="resume from huggingface (ex: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type}) / huggingfaceから学習を再開する(例: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type})",
+    )
+    parser.add_argument(
+        "--async_upload",
+        action="store_true",
+        help="upload to huggingface asynchronously / huggingfaceに非同期でアップロードする",
+    )
+    parser.add_argument(
         "--save_precision",
         type=str,
         default=None,
@@ -2259,6 +2293,57 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
 # endregion
 
 # region utils
+
+
+def resume_from_local_or_hf_if_specified(accelerator, args):
+    if not args.resume:
+        return
+
+    if not args.resume_from_huggingface:
+        print(f"resume training from local state: {args.resume}")
+        accelerator.load_state(args.resume)
+        return
+
+    print(f"resume training from huggingface state: {args.resume}")
+    repo_id = args.resume.split("/")[0] + "/" + args.resume.split("/")[1]
+    path_in_repo = "/".join(args.resume.split("/")[2:])
+    revision = None
+    repo_type = None
+    if ":" in path_in_repo:
+        divided = path_in_repo.split(":")
+        if len(divided) == 2:
+            path_in_repo, revision = divided
+            repo_type = "model"
+        else:
+            path_in_repo, revision, repo_type = divided
+    print(f"Downloading state from huggingface: {repo_id}/{path_in_repo}@{revision}")
+
+    list_files = huggingface_util.list_dir(
+        repo_id=repo_id,
+        subfolder=path_in_repo,
+        revision=revision,
+        token=args.huggingface_token,
+        repo_type=repo_type,
+    )
+
+    async def download(filename) -> str:
+        def task():
+            return hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                revision=revision,
+                repo_type=repo_type,
+                token=args.huggingface_token,
+            )
+
+        return await asyncio.get_event_loop().run_in_executor(None, task)
+
+    loop = asyncio.get_event_loop()
+    results = loop.run_until_complete(asyncio.gather(*[download(filename=filename.rfilename) for filename in list_files]))
+    if len(results) == 0:
+        raise ValueError("No files found in the specified repo id/path/revision / 指定されたリポジトリID/パス/リビジョンにファイルが見つかりませんでした")
+    dirname = os.path.dirname(results[0])
+    accelerator.load_state(dirname)
 
 
 def get_optimizer(args, trainable_params):
@@ -2645,7 +2730,7 @@ def prepare_dtype(args: argparse.Namespace):
     return weight_dtype, save_dtype
 
 
-def load_target_model(args: argparse.Namespace, weight_dtype, device='cpu'):
+def load_target_model(args: argparse.Namespace, weight_dtype, device="cpu"):
     name_or_path = args.pretrained_model_name_or_path
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
@@ -2772,6 +2857,8 @@ def save_sd_model_on_epoch_end(
             model_util.save_stable_diffusion_checkpoint(
                 args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
             )
+            if args.huggingface_repo_id is not None:
+                huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
 
         def remove_sd(old_epoch_no):
             _, old_ckpt_name = get_epoch_ckpt_name(args, use_safetensors, old_epoch_no)
@@ -2791,6 +2878,8 @@ def save_sd_model_on_epoch_end(
             model_util.save_diffusers_checkpoint(
                 args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
             )
+            if args.huggingface_repo_id is not None:
+                huggingface_util.upload(args, out_dir, "/" + model_name)
 
         def remove_du(old_epoch_no):
             out_dir_old = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, old_epoch_no))
@@ -2808,7 +2897,11 @@ def save_sd_model_on_epoch_end(
 
 def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, epoch_no):
     print("saving state.")
-    accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no)))
+    state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
+    accelerator.save_state(state_dir)
+    if args.save_state_to_huggingface:
+        print("uploading state to huggingface.")
+        huggingface_util.upload(args, state_dir, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
 
     last_n_epochs = args.save_last_n_epochs_state if args.save_last_n_epochs_state else args.save_last_n_epochs
     if last_n_epochs is not None:
@@ -2817,6 +2910,17 @@ def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, e
         if os.path.exists(state_dir_old):
             print(f"removing old state: {state_dir_old}")
             shutil.rmtree(state_dir_old)
+
+
+def save_state_on_train_end(args: argparse.Namespace, accelerator):
+    print("saving last state.")
+    os.makedirs(args.output_dir, exist_ok=True)
+    model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
+    state_dir = os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name))
+    accelerator.save_state(state_dir)
+    if args.save_state_to_huggingface:
+        print("uploading last state to huggingface.")
+        huggingface_util.upload(args, state_dir, "/" + LAST_STATE_NAME.format(model_name))
 
 
 def save_sd_model_on_train_end(
@@ -2843,6 +2947,8 @@ def save_sd_model_on_train_end(
         model_util.save_stable_diffusion_checkpoint(
             args.v2, ckpt_file, text_encoder, unet, src_path, epoch, global_step, save_dtype, vae
         )
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
     else:
         out_dir = os.path.join(args.output_dir, model_name)
         os.makedirs(out_dir, exist_ok=True)
@@ -2851,13 +2957,8 @@ def save_sd_model_on_train_end(
         model_util.save_diffusers_checkpoint(
             args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
         )
-
-
-def save_state_on_train_end(args: argparse.Namespace, accelerator):
-    print("saving last state.")
-    os.makedirs(args.output_dir, exist_ok=True)
-    model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-    accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name)))
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, out_dir, "/" + model_name, force_sync_upload=True)
 
 
 # scheduler:
@@ -3089,7 +3190,7 @@ class collater_class:
     def __init__(self, epoch, step, dataset):
         self.current_epoch = epoch
         self.current_step = step
-        self.dataset = dataset # not used if worker_info is not None, in case of multiprocessing
+        self.dataset = dataset  # not used if worker_info is not None, in case of multiprocessing
 
     def __call__(self, examples):
         worker_info = torch.utils.data.get_worker_info()
