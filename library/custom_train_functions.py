@@ -283,8 +283,6 @@ def get_weighted_text_embeddings(
         prompt = [prompt]
 
     prompt_tokens, prompt_weights = get_prompts_with_weights(tokenizer, prompt, max_length - 2)
-    # prompt_tokens = [token[1:-1] for token in tokenizer(prompt, max_length=max_length, truncation=True).input_ids]
-    # prompt_weights = [[1.0] * len(token) for token in prompt_tokens]
         
     # round up the longest length of tokens to a multiple of (model_max_length - 2)
     max_length = max([len(token) for token in prompt_tokens])
