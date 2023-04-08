@@ -1,9 +1,12 @@
 import argparse
 import errno
+import json
 import logging
 import importlib
 import mimetypes
 import os
+import pkgutil
+import pip
 import platform
 import re
 import shutil
@@ -13,8 +16,8 @@ import sys
 import stat
 import tempfile
 import time
+import zipfile
 from pathlib import Path
-from importlib.metadata import Distribution, PackageNotFoundError, version
 
 
 # This enables programmatically installing pip packages
@@ -677,11 +680,11 @@ def check_permissions(_dir):
 
             missing_permissions = required_permissions & ~current_permissions
             if missing_permissions:
-                logging.info(f"Missing permissions on file: {file_path}")
+                logging.debug(f"Missing permissions on file: {file_path}")
 
                 try:
                     os.chmod(file_path, current_permissions | missing_permissions)
-                    logging.info(f"Fixed permissions for file: {file_path}")
+                    logging.debug(f"Fixed permissions for file: {file_path}")
                 except PermissionError as e:
                     logging.error(f"Unable to fix permissions for file: {file_path}")
                     logging.error(f"Error: {str(e)}")
@@ -712,122 +715,103 @@ def find_python_binary():
     return None
 
 
-def validate_requirements(requirements_file='requirements.txt'):
-    logging.info("Validating that requirements are satisfied.")
-
-    with open(requirements_file) as f:
-        requirements = f.readlines()
-
-    missing_requirements = []
-    wrong_version_requirements = []
-
-    for requirement in requirements:
-        requirement = requirement.strip()
-        if requirement == ".":
-            continue
-
-        try:
-            split_req = re.split(r'[=<>!~]+', requirement)
-            if len(split_req) >= 2:
-                pkg_name, pkg_version = split_req[:2]
-            else:
-                pkg_name = split_req[0]
-                pkg_version = None
-
-            installed_version = version(pkg_name)
-            if pkg_version and installed_version != pkg_version:
-                wrong_version_requirements.append((requirement, pkg_version, installed_version))
-        except PackageNotFoundError:
-            if "@" in requirement:
-                package_name, vcs_url = requirement.split("@", 1)
-                os.system(f"pip install -e {vcs_url}")
-                try:
-                    version(package_name)
-                except PackageNotFoundError:
-                    missing_requirements.append(requirement)
-            else:
-                missing_requirements.append(requirement)
-
-    if missing_requirements or wrong_version_requirements:
-        if missing_requirements:
-            logging.error("The following packages are missing:")
-            for requirement in missing_requirements:
-                logging.error(f" - {requirement}")
-        if wrong_version_requirements:
-            logging.error("The following packages have the wrong version:")
-            for requirement, expected_version, actual_version in wrong_version_requirements:
-                logging.error(f" - {requirement} (expected version {expected_version}, found version {actual_version})")
-        upgrade_script = "upgrade.ps1" if os.name == "nt" else "upgrade.sh"
-        logging.error(
-            f"\nRun {upgrade_script} or pip install -U -r {requirements_file} to resolve the missing requirements listed above...")
-
-        return False
-
-    logging.info("All requirements satisfied.")
-    return True
-
-
 def install_python_dependencies(_dir, runpod):
     # Update pip
     logging.info("Checking for pip updates before Python operations.")
-    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+    if args.verbosity >= 2:
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+    else:
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
 
     # Install python dependencies
     logging.info("Installing python dependencies. This could take a few minutes as it downloads files.")
 
+    # def temp_opener(name, flag, mode=0o777):
+    #     return os.open(name, flag | os.O_TEMPORARY, mode)
+
     # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
+    logging.debug(f"Found requirements.txt at: {requirements_path}")
     if os.path.exists(requirements_path):
-        temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="wt")
+        temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="w+")
+        try:
+            found_comment = False
+            with open(requirements_path, "r") as original_file:
+                for line in original_file:
+                    logging.debug(f"Processing line: {line.strip()}")
+                    if found_comment:
+                        line = line.replace(".", _dir)
+                        logging.debug(f"Replaced . with: {line}")
+                        found_comment = False
+                    elif re.search(r"#.*kohya_ss.*library", line):
+                        logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
+                        found_comment = True
+                        continue
+                    else:
+                        logging.debug(f"Processing line without any conditions: {line.strip()}")
 
-        with open(requirements_path, "r") as original_file, open(temp_requirements.name, "w") as temp_file:
-            for line in original_file:
-                if "#.*kohya_ss.*library" in line:
-                    line = line.replace(".", _dir)
-                temp_file.write(line)
+                    logging.debug(f"Installing: {line.strip()}")
+                    temp_requirements.write(line)
 
-            # Append the appropriate packages based on the conditionals
-            if runpod:
-                temp_file.write("tensorrt\n")
+                # Append the appropriate packages based on the conditionals
+                if runpod:
+                    temp_requirements.write("tensorrt\n")
 
-            if os_info.family == "Darwin":
-                if platform.machine() == "arm64":
-                    temp_file.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
-                    temp_file.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
-                elif platform.machine() == "x86_64":
-                    temp_file.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+                if os_info.family == "Darwin":
+                    if platform.machine() == "arm64":
+                        temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
+                        temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
+                    elif platform.machine() == "x86_64":
+                        temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+                elif os_info.family == "Windows":
+                    torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+                    torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+                    if not (torch_installed and torchvision_installed):
+                        logging.info("Installing torch and torchvision packages")
+                        if args.verbosity < 3:
+                            subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+                                            "--extra-index-url", "https://download.pytorch.org/whl/cu116", "--quiet"])
+                        else:
+                            subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+                                            "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
 
-        if os.path.exists(temp_requirements.name):
-            if not validate_requirements(temp_requirements.name):
-                # Install the packages from the temporary requirements file
-                pip_install_args = [sys.executable, "-m", "pip", "install", "--use-pep517", "--upgrade", "-r",
-                                    temp_requirements.name]
-                if args.verbosity <= 1:
-                    pip_install_args.insert(4, "--quiet")
-                subprocess.run(pip_install_args, check=True)
+        finally:
+            temp_requirements.flush()
+            temp_requirements.close()
 
-            subprocess.run(pip_install_args, check=True, stderr=subprocess.PIPE)
+        installed_packages = [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+
+        # Add this right after creating the list of installed_packages
+        logging.debug(f"Installed packages: {installed_packages}")
+
+        with open(temp_requirements.name, "r") as f:
+            requirements = [line.strip().lower() for line in f.readlines()]
+            logging.debug(f"Requirements from temp file: {requirements}")
+        if all([req in installed_packages for req in requirements]):
+            logging.info("Requirements already satisfied.")
         else:
-            logging.error(f"Unable to locate {temp_requirements.name}")
-            exit(1)
-    else:
-        logging.error(f"Unable to locate requirements.txt in {_dir}")
-        exit(1)
+            logging.info("Installing required packages...")
+            if args.verbosity >= 3:
+                # logging.debug(temp_requirements.read())
+                subprocess.run([sys.executable, "-m", "pip", "install", "-r", temp_requirements.name])
+            else:
+                subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "-r", temp_requirements.name])
 
-    logging.debug("Removing the temp requirements file.")
-    if os.path.isfile(temp_requirements.name):
-        # Close the temporary file and remove
-        temp_requirements.close()
-        os.remove(temp_requirements.name)
+            # Validate the installed requirements
+            installed_packages = [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+            if all([req in installed_packages for req in requirements]):
+                logging.info("Requirements now satisfied.")
+            else:
+                logging.info("Requirements are still not met. There could've been an error. Exiting to be on the safe "
+                             "side.")
+                # Delete the temporary requirements file
+                logging.debug(f"Removing {temp_requirements.name}")
+                os.remove(temp_requirements.name)
+                exit(1)
 
-    # Only exit the virtual environment if we aren't in a container.
-    # This is because we never entered one at the beginning of the function if container detected.
-    if not in_container():
-        logging.debug("Exiting Python virtual environment.")
-
-        # Reset sys.executable to its original value
-        sys.executable = original_sys_executable
-        logging.debug(f"sys.executable reset to: {sys.executable}")
+    # Delete the temporary requirements file
+    logging.debug(f"Removing {temp_requirements.name}")
+    os.remove(temp_requirements.name)
 
 
 def configure_accelerate(interactive):
@@ -888,8 +872,8 @@ def launch_kohya_gui(_args):
     if _args.username:
         cmd.extend(["--username", _args.username])
 
-    if _args.username:
-        cmd.extend(["--password", _args.username])
+    if _args.password:
+        cmd.extend(["--password", _args.password])
 
     logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
     logging.debug(f"Running kohya_gui.py as: {cmd}")
