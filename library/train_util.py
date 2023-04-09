@@ -953,10 +953,10 @@ class BaseDataset(torch.utils.data.Dataset):
         example["images"] = images
 
         example["latents"] = torch.stack(latents_list) if latents_list[0] is not None else None
+        example["captions"] = captions
 
         if self.debug_dataset:
             example["image_keys"] = bucket[image_index : image_index + self.batch_size]
-            example["captions"] = captions
         return example
 
 
