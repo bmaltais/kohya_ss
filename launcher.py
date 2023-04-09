@@ -497,7 +497,7 @@ def is_git_installed():
     return False
 
 
-def run_git_command(_args, cwd=None, timeout=10, username=None, password=None):
+def run_git_command(_args, cwd=None, timeout=10, username=None, password=None, wait=True):
     env = os.environ.copy()
     if username and password:
         # Create a temporary file for the GIT_ASKPASS script
@@ -510,9 +510,14 @@ def run_git_command(_args, cwd=None, timeout=10, username=None, password=None):
         env["GIT_PASSWORD"] = password
 
     try:
-        result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd,
-                                timeout=timeout, env=env)
-        return result.stdout.decode("utf-8").strip()
+        if wait:
+            result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    cwd=cwd,
+                                    timeout=timeout, env=env)
+            return result.stdout.decode("utf-8").strip()
+        else:
+            subprocess.Popen(["git"] + _args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
+            return None
     except subprocess.TimeoutExpired:
         logging.error("Git command timed out.")
     except subprocess.CalledProcessError as e:
@@ -543,30 +548,83 @@ def get_latest_tag(git_repo):
 def update_kohya_ss(_dir, git_repo, branch, update):
     success = False
     logging.debug(f"Update: {update}")
-    logging.debug(f".git folder path: {os.path.join(_dir, '.git')}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
     logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
 
+    def has_uncommitted_changes():
+        output = subprocess.check_output(["git", "status", "--porcelain"], cwd=_dir).decode().strip()
+        return len(output) > 0
+
     def git_operations_with_credentials(username=None, password=None):
         nonlocal success
-        if len(os.listdir(_dir)) == 0 or (
-                len(os.listdir(_dir)) == 1 and os.path.exists(os.path.join(_dir, "venv"))):
-            logging.debug("git clone operation entered.")
-            run_git_command(["clone", "-b", branch, git_repo, _dir], username=username,
-                            password=password if password else None)
-            success = True
-        elif update and ".git" in os.listdir(_dir):
-            logging.debug("git pull operation entered.")
-            run_git_command(["pull"], cwd=_dir, username=username,
-                            password=password if password else None)
-            success = True
-        elif len(os.listdir(_dir)) > 1:
+        git_folder_present = ".git" in os.listdir(_dir)
+
+        if git_folder_present and not update:
             logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
                          f"Skipping updating folder contents.")
-            success = False
+            success = True
+            return
+        elif git_folder_present and update:
+            if has_uncommitted_changes():
+                logging.warning("Uncommitted changes detected. Please commit or stash your changes, "
+                                "or run with -n/--no-setup flag to skip setup, or do not use -u/--update flag to skip updating.")
+                success = False
+                return
+            else:
+                logging.debug("git pull operation entered.")
+                proc = run_git_command(["pull"], cwd=_dir, username=username,
+                                       password=password if password else None, wait=True)
+                success = True
+        elif not git_folder_present:
+            logging.debug("git clone operation entered.")
+
+            # Create a temporary directory using tempfile
+            with tempfile.TemporaryDirectory() as _temp_dir:
+                # Clone the repository into the temporary directory
+                proc = run_git_command(["clone", "-b", branch, git_repo, os.path.basename(_temp_dir)],
+                                       cwd=os.path.dirname(_temp_dir), username=username,
+                                       password=password if password else None, wait=True)
+
+                # Remove all contents in the target directory except the 'venv' directory
+                for item in os.listdir(_dir):
+                    if item != "venv":
+                        path_to_remove = os.path.join(_dir, item)
+                        retry_delete(path_to_remove)
+
+                # Move the contents of the temporary directory into the existing target directory
+                try:
+                    for item in os.listdir(_temp_dir):
+                        src_path = os.path.join(_temp_dir, item)
+                        dest_path = os.path.join(_dir, item)
+                        shutil.move(src_path, dest_path)
+                    success = True
+                except Exception as _e:
+                    logging.error(f"Could not copy temporary folder to target install folder. Error: {_e}")
+                    success = False
+
         else:
             logging.error("Git operations failed.")
             success = False
+            return
+
+        # Close the git process after it has finished executing
+        if proc is not None:
+            proc.terminate()
+
+    def retry_delete(path, max_retries=3, delay=1):
+        retries = 0
+        while retries < max_retries:
+            try:
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+                break
+            except Exception as e:
+                time.sleep(delay)
+                retries += 1
+                if retries >= max_retries:
+                    raise e
 
     git_installed = is_git_installed()
     max_attempts = 4
@@ -583,8 +641,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
             if os.path.exists(_dir) and os.path.isdir(_dir):
                 while attempt < max_attempts:
                     try:
-                        git_operations_with_credentials(username, password)
-                        break
+                        if git_operations_with_credentials(username, password):
+                            success = True
+                            break
                     except GitAuthenticationError as e:
                         if attempt < max_attempts - 1:
                             logging.warning(f"Git authentication failed: {e}")
@@ -594,7 +653,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                             password = getpass.getpass("Password: ")
                             attempt += 1
                         else:
-                            raise e
+                            success = False
         else:
             raise Exception("Git not installed.")
     except Exception as e:
@@ -792,8 +851,7 @@ def get_os_info():
 
 
 def brew_install_tensorflow_deps(verbosity=1):
-    brew_install_cmd = "brew install icu4c xz zlib bzip2 lz4 lzo openssl readline sqlite libyaml libiconv libarchive " \
-                       "libffi libxml2"
+    brew_install_cmd = "brew install llvm cctools ld64"
 
     def brew_installed():
         if os_info.family == "macOS":

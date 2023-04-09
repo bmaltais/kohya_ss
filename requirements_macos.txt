@@ -1,54 +1,5 @@
-# These were taken from the tensorflow-deps conda package
-six==1.16.0
-zstd==1.5.2
-toml==0.10.2
-conda-package-handling==1.8.1
-certifi==2022.9.14
-python-libarchive-c==4.0
-chardet==5.0.0
-conda==4.14.0
-pyrsistent==0.18.1
-PyYAML==6.0
-zipp==3.8.1
-typing-extensions==4.3.0
-attrs==22.1.0
-glob2==0.7
-python-dateutil==2.8.2
-urllib3==1.26.11
-toolz==0.12.0
-jupyter_core==4.11.1
-cryptography==37.0.4
-nbformat==5.5.0
-ncurses==6.3
-pysocks==1.7.1
-wheel==0.37.1
-soupsieve==2.3.2.post1
-Jinja2==3.1.2
-filelock==3.8.0
-requests==2.28.1
-importlib-metadata==4.11.4
-ruamel.yaml==0.15.80
-colorama==0.4.5
-lief==0.12.1
-pycosat==0.6.3
-patch==2.7.6
-charset-normalizer==2.1.1
-pyOpenSSL==22.0.0
-pip==22.2.2
-tzdata==2022c
-pkginfo==1.8.3
-beautifulsoup4==4.11.1
-jsonschema==4.16.0
-tqdm==4.64.1
-anaconda-client==1.8.0
-MarkupSafe==2.1.1
-pytz==2022.2.1
-importlib-resources==5.9.0
-psutil==5.9.2
-setuptools==65.3.0
-fastjsonschema==2.16.1
-huggingface-hub==0.13.0
-tensorboard==2.12.1
-gradio==3.23.0
-torch==2.0.0
-torchvision==0.15.1
+# Required for tensorflow-deps
+grpcio >=1.37.0,<2.0
+h5py >=3.6.0,<3.7
+numpy >=1.23.2,<1.23.3
+protobuf >=3.19.1,<3.20
