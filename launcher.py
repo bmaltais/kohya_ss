@@ -768,6 +768,23 @@ class OSInfo:
                 "family": self.family,
                 "version": self.version
             }
+        elif system == "FreeBSD":
+            self.name = "FreeBSD"
+            self.family = "FreeBSD"
+            self.version = "Unknown"
+
+            # Try the `uname -r` command first to get FreeBSD version number
+            try:
+                self.version = subprocess.getoutput("uname -r")
+            except Exception as e:
+                logging.warning(f"Error executing uname command: {e}")
+
+                # If `uname -r` fails, try using platform.release()
+                try:
+                    self.version = platform.release()
+                except Exception as e:
+                    logging.error(f"Error using platform.release(): {e}")
+                    self.version = "Unknown"
 
 
 def get_os_info():
@@ -779,14 +796,14 @@ def brew_install_tensorflow_deps(verbosity=1):
                        "libffi libxml2"
 
     def brew_installed():
-        if os_info.family == "Darwin":
+        if os_info.family == "macOS":
             try:
                 subprocess.run(["brew", "-v"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 return True
             except subprocess.CalledProcessError:
                 return False
 
-        if not os_info.family == "Darwin":
+        if not os_info.family == "macOS":
             logging.debug("Non-macOS detected. Skipping brew installation of dependencies.")
             return True
         else:
@@ -851,7 +868,7 @@ def check_permissions(_dir):
 
 
 def find_python_binary():
-    possible_binaries = ["python3.10", "python3.9", "python3.8", "python3.7", "python3", "python"]
+    possible_binaries = ["python3.10", "python310", "python3", "python"]
 
     if os_info.family == "Windows":
         possible_binaries = [binary + ".exe" for binary in possible_binaries] + possible_binaries
@@ -916,7 +933,7 @@ def install_python_dependencies(_dir, runpod):
                 if runpod:
                     temp_requirements.write("tensorrt\n")
 
-                if os_info.family == "Darwin":
+                if os_info.family == "macOS":
                     if platform.machine() == "arm64":
                         temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
                         temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
@@ -934,7 +951,7 @@ def install_python_dependencies(_dir, runpod):
                             subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
                                             "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
 
-                if os_info.family == "Darwin":
+                if os_info.family == "macOS":
                     macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
                     if os.path.exists(macos_requirements_path):
                         with open(macos_requirements_path, "r") as macos_req_file:
