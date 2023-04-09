@@ -426,6 +426,11 @@ get_os_info() {
       fi
     fi
     ;;
+  FreeBSD*)
+    os_name="FreeBSD"
+    os_family="FreeBSD"
+    os_version=$(uname -r)
+    ;;
   *)
     os_name="Unknown"
     os_family="Unknown"
@@ -532,6 +537,14 @@ install_git() {
   "openSUSE")
     if is_admin; then
       sudo zypper install -y git
+    else
+      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      exit 1
+    fi
+    ;;
+  "FreeBSD")
+    if is_admin; then
+      sudo pkg install -y git
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
@@ -646,6 +659,14 @@ install_python_and_tk() {
         sudo zypper install -y python3.10 python3.10-tk
       else
         echo "Root privileges are required to install Python and Tk on openSUSE. Exiting."
+        exit 1
+      fi
+      ;;
+    "FreeBSD")
+      if is_admin; then
+        sudo pkg install -y python310 py310-tkinter py310-pip
+      else
+        echo "Root privileges are required to install Python and Tk on FreeBSD. Exiting."
         exit 1
       fi
       ;;
