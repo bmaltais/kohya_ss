@@ -15,10 +15,11 @@ set Branch=master
 set Dir=%~dp0
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
-set NoGitUpdate=0
+set NoSetup=0
 set Public=0
 set Runpod=0
 set SkipSpaceCheck=0
+set Update=0
 set Verbose=0
 set GUI_LISTEN=127.0.0.1
 set GUI_USERNAME=
@@ -48,10 +49,11 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="Dir" set Dir=%%b
         if "%%a"=="GitRepo" set GitRepo=%%b
         if "%%a"=="Interactive" set Interactive=%%b
-        if "%%a"=="NoGitUpdate" set NoGitUpdate=%%b
+        if "%%a"=="NoSetup" set NoSetup=%%b
         if "%%a"=="Public" set Public=%%b
         if "%%a"=="Runpod" set Runpod=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
+        if "%%a"=="Update" set Update=%%b
         if "%%a"=="Verbose" set Verbose=%%b
         if "%%a"=="Listen" set LISTEN=%%b
         if "%%a"=="Username" set USERNAME=%%b
@@ -69,10 +71,11 @@ if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
 if /i "%~1"=="--dir" (shift & set Dir=%1) & shift & goto arg_loop
 if /i "%~1"=="--gitrepo" (shift & set GitRepo=%1) & shift & goto arg_loop
 if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
-if /i "%~1"=="--nogitupdate" (set NoGitUpdate=1) & shift & goto arg_loop
+if /i "%~1"=="--nosetup" (set NoSetup=1) & shift & goto arg_loop
 if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
 if /i "%~1"=="--runpod" (set Runpod=1) & shift & goto arg_loop
 if /i "%~1"=="--skipspacecheck" (set SkipSpaceCheck=1) & shift & goto arg_loop
+if /i "%~1"=="--update" (set Update=1) & shift & goto arg_loop
 if /i "%~1"=="--verbose" (set /A Verbose=Verbose+1) & shift & goto arg_loop
 if /i "%~1"=="--listen" (shift & set LISTEN=%1) & shift & goto arg_loop
 if /i "%~1"=="--username" (shift & set USERNAME=%1) & shift & goto arg_loop
@@ -87,7 +90,7 @@ goto arg_loop
 
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 set Args=-b "%Branch%" -d "%Dir%" -f "%ConfigFile%" -g "%GitRepo%" ^
-          -i:%Interactive% -n:%NoGitUpdate% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
+          -i:%Interactive% -n:%NoSetup% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
           --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
           --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE%
 

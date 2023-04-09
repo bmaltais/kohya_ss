@@ -20,7 +20,7 @@
 .PARAMETER Dir
   The full path you want kohya_ss installed to.
 
-.PARAMETER ExcludeSetup
+.PARAMETER NoSetup
 Skip all setup steps and only validate python requirements then launch GUI.
 
 .PARAMETER File
@@ -43,6 +43,9 @@ Skip all setup steps and only validate python requirements then launch GUI.
 
 .PARAMETER SkipSpaceCheck
   Skip the 10Gb minimum storage space check.
+
+.PARAMETER Update
+  Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
 
 .PARAMETER Verbose
   Increase verbosity levels up to 3.
@@ -156,12 +159,12 @@ function Get-Parameters {
         'setup_dir'          = "$env:USERPROFILE\kohya_ss"
         'setup_gitRepo'      = 'https://github.com/bmaltais/kohya_ss.git'
         'setup_interactive'  = $false
-        'setup_gitUpdate'    = $false
+        'setup_noSetup'      = $false
         'setup_public'       = $false
         'setup_runpod'       = $false
         'setup_spaceCheck'   = $false
         'setup_verbosity'    = 0
-        'setup_excludeSetup' = $false
+        'setup_update'       = $false
         'listen'             = '127.0.0.1'
         'username'           = ''
         'password'           = ''
@@ -755,7 +758,7 @@ function Install-Python3Tk {
         $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
         Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
 
-        $installScope = Update-InstallScope($Interactive) 
+        $installScope = Update-InstallScope($Interactive)
 
         if ($installScope -eq 'allusers') {
             if (Test-IsAdmin) {
@@ -902,7 +905,7 @@ function Install-Git {
 
         switch ($os.family) {
             "Ubuntu" {
-                if (& $elevate apt-get update) {
+                if (& $elevate apt update) {
                     if (!(& $elevate apt-get install -y git)) {
                         Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
                     }
@@ -912,7 +915,7 @@ function Install-Git {
                 }
             }
             "Debian" {
-                if (& $elevate apt-get update) {
+                if (& $elevate apt update) {
                     if (!(& $elevate apt-get install -y git)) {
                         Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
                     }
