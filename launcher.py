@@ -1,12 +1,11 @@
 import argparse
 import errno
-import json
 import logging
 import importlib
 import mimetypes
 import os
 import pkgutil
-import pip
+from getpass import getpass
 import platform
 import re
 import shutil
@@ -25,21 +24,28 @@ def install_package(package_name):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
 
 
-def check_and_import(module_name, package_name=None):
+def check_and_import(module_name, package_name=None, alias=None):
     if package_name is None:
         package_name = module_name
 
     try:
-        return importlib.import_module(module_name)
+        module = importlib.import_module(module_name)
     except ImportError:
         print(f"Installing {package_name}...")
         install_package(package_name)
-        return importlib.import_module(module_name)
+        module = importlib.import_module(module_name)
+
+    if alias:
+        sys.modules[alias] = module
+
+    return module
 
 
 base64 = check_and_import('base64')
 requests = check_and_import('requests')
 yaml = check_and_import('yaml', 'PyYAML')
+tqdm_module = check_and_import("tqdm", "tqdm")
+tqdm_progress = tqdm_module.tqdm
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
 TENSORFLOW_VERSION = "2.12.0"
@@ -118,6 +124,37 @@ def normalize_paths(_args, default_args):
                 setattr(_args, arg_name, os.path.abspath(path_value))
 
 
+# This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
+# verbosity and Unix style (-vvv).
+class CountOccurrencesAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if isinstance(values, int):
+            # If value is an integer, set verbosity level to that value
+            setattr(namespace, self.dest, values)
+        elif isinstance(values, str):
+            # If value is a string, check if it's a single integer
+            try:
+                count = int(values)
+                setattr(namespace, self.dest, count)
+            except ValueError:
+                # If value is not a single integer, check if it's a valid verbosity string
+                if not bool(re.search('[^v]', values)):
+                    # We add a single v because .count starts at zero and returns v - 1.
+                    count = (values + 'v').count('v')
+                    setattr(namespace, self.dest, count)
+                else:
+                    logging.error('Invalid verbosity level')
+                    exit(1)
+        else:
+            # If value is not a string or integer, raise an error
+            raise argparse.ArgumentTypeError('Invalid verbosity level')
+
+        # Check if verbosity level is a non-negative integer
+        if getattr(namespace, self.dest) < 0:
+            logging.error('Verbosity level must be a positive integer')
+            exit(1)
+
+
 def parse_args(_config_data):
     parser = argparse.ArgumentParser(
         description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
@@ -134,43 +171,80 @@ def parse_args(_config_data):
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    # Define the default arguments first
+    # Define the default arguments first. The spacing is purely for readability.
     default_args = [
-        {"short": "-b", "long": "--branch", "default": "master", "type": str},
-        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str},
-        {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str},
-        {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str},
-        {"short": "-i", "long": "--interactive", "default": False, "type": bool},
-        {"short": "-n", "long": "--no-git-update", "default": False, "type": bool},
-        {"short": "-p", "long": "--public", "default": False, "type": bool},
-        {"short": "-r", "long": "--runpod", "default": False, "type": bool},
-        {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool},
-        {"short": "-v", "long": "--verbosity", "default": 0, "type": int},
-        {"short": "-x", "long": "--exclude-setup", "default": False, "type": bool},
-        {"short": "", "long": "--listen", "default": "127.0.0.1", "type": str},
-        {"short": "", "long": "--username", "default": "", "type": str},
-        {"short": "", "long": "--password", "default": "", "type": str},
-        {"short": "", "long": "--server-port", "default": 0, "type": str},
-        {"short": "", "long": "--inbrowser", "default": False, "type": bool},
-        {"short": "", "long": "--share", "default": False, "type": bool},
+        {"short": "-b", "long": "--branch", "default": "master", "type": str,
+         "help": "Select which branch of kohya to check out on new installs."},
+
+        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str,
+         "help": "The full path you want kohya_ss installed to."},
+
+        {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str,
+         "help": "Configuration file with installation options."},
+
+        {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str,
+         "help": "You can optionally provide a git repo to check out. Useful for custom forks."},
+
+        {"short": "-i", "long": "--interactive", "default": False, "type": bool,
+         "help": "Interactively configure accelerate instead of using value config file."},
+
+        {"short": "-n", "long": "--no-setup", "default": False, "type": bool,
+         "help": "Skip setup operations and launch the GUI."},
+
+        {"short": "-p", "long": "--public", "default": False, "type": bool,
+         "help": "Expose public URL in runpod mode. Won't have an effect in other modes."},
+
+        {"short": "-r", "long": "--runpod", "default": False, "type": bool,
+         "help": "Forces a runpod installation. Useful if detection fails for any reason."},
+
+        {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
+         "help": "Skip the 10Gb minimum storage space check."},
+
+        {"short": "-u", "long": "--update", "default": False, "type": bool,
+         "help": "Update kohya_ss with specified branch, repo, or latest stable if git's unavailable."},
+
+        {"short": "-v", "long": "--verbosity", "default": 0,
+         "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
+         "action": CountOccurrencesAction},
+
+        {"short": "-x", "long": "--exclude-setup", "default": False, "type": bool,
+         "help": "Skip all setup steps and only validate python requirements then launch GUI."},
+
+        {"short": "", "long": "--listen", "default": "127.0.0.1", "type": str,
+         "help": "IP to listen on for connections to Gradio."},
+
+        {"short": "", "long": "--username", "default": "", "type": str, "help": "Username for authentication."},
+
+        {"short": "", "long": "--password", "default": "", "type": str, "help": "Password for authentication."},
+
+        {"short": "", "long": "--server-port", "default": 0, "type": str,
+         "help": "Port to run the server listener on."},
+
+        {"short": "", "long": "--inbrowser", "default": False, "type": bool, "help": "Open in browser."},
+
+        {"short": "", "long": "--share", "default": False, "type": bool, "help": "Share the gradio UI."},
     ]
 
     # Update the default arguments with values from the config file
     if _config_data:
-        if "arguments" in _config_data:
-            for arg in _config_data["arguments"]:
+        if "setup_arguments" in _config_data:
+            for arg in _config_data["setup_arguments"]:
                 name = arg["name"]
                 value = arg["value"]
+                description = arg["description"]
                 for default_arg in default_args:
                     if f'--{name.lower()}' == default_arg["long"]:
                         default_arg["default"] = value
+                        default_arg["help"] = description
         if "kohya_gui_arguments" in _config_data:
             for arg in _config_data["kohya_gui_arguments"]:
                 name = arg["name"]
                 value = arg["value"]
+                description = arg["description"]
                 for default_arg in default_args:
                     if f'--{name.lower()}' == default_arg["long"]:
                         default_arg["default"] = value
+                        default_arg["help"] = description
 
     # Add arguments to the parser with updated default values
     for arg in default_args:
@@ -178,24 +252,36 @@ def parse_args(_config_data):
         long_opt = arg["long"]
         default_value = arg["default"]
         arg_type = arg.get("type", str)
+        help_text = arg.get("help", None)
+        custom_action = arg.get("action", None)
 
-        if isinstance(default_value, bool):
+        if custom_action:
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=None, action=custom_action, default=default_value,
+                                    help=help_text)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=custom_action,
+                                    default=default_value, help=help_text)
+        elif isinstance(default_value, bool):
             action = 'store_true' if default_value is False else 'store_false'
             if short_opt:
-                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value)
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value,
+                                    help=help_text)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type)
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
+                                    help=help_text)
         else:
             if short_opt:
-                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type)
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type,
+                                    help=help_text)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type)
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
+                                    help=help_text)
 
     _args = parser.parse_args()
 
     # Normalize paths to ensure absolute paths
     normalize_paths(_args, default_args)
-
     return _args
 
 
@@ -231,10 +317,10 @@ def get_venv_directory():
     env_path = sys.prefix
 
     # Get the site-packages directory
-    site_packages_dir = site.getsitepackages()[0]
+    _site_packages_dir = site.getsitepackages()[0]
 
     # Return the environment path and site-packages path
-    return env_path, site_packages_dir
+    return env_path, _site_packages_dir
 
 
 def check_and_create_install_folder(parent_dir, _dir):
@@ -386,11 +472,7 @@ def in_container():
     return False
 
 
-class GitCredentialError(Exception):
-    pass
-
-
-class GitCredentialNotStoredError(GitCredentialError):
+class GitAuthenticationError(Exception):
     pass
 
 
@@ -412,154 +494,183 @@ def is_git_installed():
     return False
 
 
-def run_git_command(_args, cwd=None, timeout=10):
+def run_git_command(_args, cwd=None, timeout=10, username=None, password=None):
+    env = os.environ.copy()
+    if username and password:
+        # Create a temporary file for the GIT_ASKPASS script
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as askpass_file:
+            askpass_file.write(f"#!/usr/bin/env python\nimport sys\nprint('{password}')\n")
+            askpass_file_path = askpass_file.name
+
+        env["GIT_ASKPASS"] = askpass_file_path
+        env["GIT_USERNAME"] = username
+        env["GIT_PASSWORD"] = password
+
     try:
         result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd,
-                                timeout=timeout)
+                                timeout=timeout, env=env)
         return result.stdout.decode("utf-8").strip()
     except subprocess.TimeoutExpired:
         logging.error("Git command timed out.")
-        exit(1)
     except subprocess.CalledProcessError as e:
         logging.error(f"Git command failed: {e}")
         logging.debug(f"stdout: {e.stdout.decode('utf-8')}")
         logging.debug(f"stderr: {e.stderr.decode('utf-8')}")
         raise Exception("Git failed exiting script to be on the safe side.")
-
-
-def get_stored_git_credentials(url):
-    try:
-        output = run_git_command(["credential", "fill"], cwd=None)
-        return _parse_git_credential_output(output)
-    except GitCredentialError as e:
-        raise GitCredentialNotStoredError(f"Failed to get stored Git credentials: {e}")
-
-
-def _parse_git_credential_output(output):
-    username = None
-    password = None
-    for line in output.split("\n"):
-        key, value = line.split("=", 1)
-        if key == "username":
-            username = value
-        elif key == "password":
-            password = value
-    if username is None or password is None:
-        raise GitCredentialNotStoredError("Failed to parse Git credential output.")
-    return username, password
-
-
-def add_credentials_to_url(url, username, password):
-    url_parts = url.split("://", 1)
-    if len(url_parts) == 1:
-        return f"https://{username}:{password}@{url}"
-    else:
-        return f"{url_parts[0]}://{username}:{password}@{url_parts[1]}"
+    finally:
+        if username and password:
+            if os.path.exists(askpass_file_path):
+                os.remove(askpass_file_path)
 
 
 def get_latest_tag(git_repo):
-    match = re.search(r'github.com/([^/]+)/([^/.]+)', git_repo)
-    if match:
-        owner, repo_name = match.groups()
-    else:
-        raise ValueError("Invalid GitHub repository URL")
+    repo_name = git_repo.split("/")[-1].rstrip(".git")
+    owner = git_repo.split("/")[-2]
 
-    url = f"https://api.github.com/repos/{owner}/{repo_name}/tags"
-    response = requests.get(url)
-    response.raise_for_status()
-    tags_data = response.json()
-    latest_tag = tags_data[0]["name"]
-    return latest_tag
+    api_url = f"https://api.github.com/repos/{owner}/{repo_name}/releases/latest"
+    response = requests.get(api_url)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to get the latest release: {response.status_code}")
+
+    data = response.json()
+    return data["tag_name"]
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, no_git_update):
-    def clone_and_switch(_dir, _git_repo, _branch, _parent_dir, _username=None, _password=None):
-        logging.info(f"Cloning and switching to {_git_repo}:{_branch}")
+def update_kohya_ss(_dir, git_repo, branch, parent_dir, update=False):
+    success = False
 
-        # Download the repo as a zip file
-        # Remove .git extension if present
-        _git_repo = _git_repo.rstrip('.git')
-        _download_url = _git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(_git_repo)}.zip"
-        auth = (_username, _password) if _username and _password else None
-        logging.info(f"Attempting to download from: {_download_url}")
-        response = requests.get(_download_url, auth=auth)
+    def git_operations_with_credentials(username=None, password=None):
+        nonlocal success
+        if len(os.listdir(_dir)) == 0 or (
+                len(os.listdir(_dir)) == 1 and os.path.exists(os.path.join(_dir, "venv"))):
+            run_git_command(["clone", "-b", branch, git_repo, _dir], username=username,
+                            password=password if password else None)
+            success = True
+        elif update and os.path.exists(os.path.join(_dir, ".git")):
+            run_git_command(["pull"], cwd=_dir, username=username,
+                            password=password if password else None)
+            success = True
+        elif len(os.listdir(_dir)) > 1:
+            logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
+                         f"Skipping updating folder contents.")
+        else:
+            logging.error("Git operations failed.")
+            success = False
 
-        if response.status_code != 200:
-            raise Exception(f"Failed to download the repository: {response.status_code}")
+    git_installed = is_git_installed()
+    max_attempts = 4
+    attempt = 0
+    username = None
+    password = None
+    success = False
 
-        # Save the zip file to a temporary location
-        temp_zip = tempfile.NamedTemporaryFile(delete=False)
-        for chunk in response.iter_content(chunk_size=8192):
-            temp_zip.write(chunk)
-        temp_zip.close()
-
-        # Extract the zip file to the parent directory
-        with zipfile.ZipFile(temp_zip.name, "r") as zip_ref:
-            zip_ref.extractall(_parent_dir)
-        os.unlink(temp_zip.name)
-
-        # Rename the extracted folder to the desired folder name
-        extracted_folder = os.path.join(_parent_dir, f"{os.path.basename(_dir)}-{_branch}")
-        if os.path.exists(_dir):
-            shutil.rmtree(_dir)
-        shutil.move(extracted_folder, _dir)
-
-        run_git_command(["git", "-C", _dir, "init"])
-        run_git_command(["git", "-C", _dir, "remote", "add", "origin", _git_repo])
-        run_git_command(["git", "-C", _dir, "fetch"])
-        run_git_command(["git", "-C", _dir, "checkout", _branch])
-
-    if not no_git_update:
-        git_installed = is_git_installed()
-
-        try:
-            if git_installed:
-                logging.debug(f"Git installed: {git_installed}")
-                if os.path.exists(_dir) and os.path.isdir(_dir):
-                    logging.debug(
-                        f"Items counted in {_dir}: {len(os.listdir(_dir))}")
-
-                    if len(os.listdir(_dir)) > 1:
-                        logging.error(f"The destination path {_dir} already exists and is not an empty directory. "
-                                      f"Git will not clone in this situation. Please use a different path or clear "
-                                      f"the existing directory before running the script.")
-                        exit(1)
-                    elif len(os.listdir(_dir)) == 1 and os.path.exists(venv_path):
-                        logging.debug(
-                            f"Moving {os.path.join(_dir, 'venv')} to {os.path.join(tempfile.gettempdir(), 'venv')}")
-                        shutil.move(os.path.join(_dir, "venv"), os.path.join(tempfile.gettempdir(), "venv"))
-                        run_git_command(["clone", "-b", branch, git_repo, _dir])
-                    else:
-                        run_git_command(["clone", "-b", branch, git_repo, _dir])
-
-                if os.path.exists(os.path.join(tempfile.gettempdir(), "venv")):
-                    shutil.move(os.path.join(tempfile.gettempdir(), "venv"), os.path.join(_dir, "venv"))
-            else:
-                raise Exception("Git not installed.")
-        except Exception as e:
-            logging.warning(f"Failed to clone the repository using git: {e}")
+    try:
+        logging.debug(f"_dir contents: {os.listdir(_dir)}")
+        logging.debug(f"branch: {branch}")
+        logging.debug(f"git_repo: {git_repo}")
+        if git_installed:
+            if os.path.exists(_dir) and os.path.isdir(_dir):
+                while attempt < max_attempts:
+                    try:
+                        git_operations_with_credentials(username, password)
+                        break
+                    except GitAuthenticationError as e:
+                        if attempt < max_attempts - 1:
+                            logging.warning(f"Git authentication failed: {e}")
+                            logging.info(f"Attempting to authenticate to {git_repo}.")
+                            logging.info("Please enter your Git credentials:")
+                            username = input("Username: ")
+                            password = getpass.getpass("Password: ")
+                            attempt += 1
+                        else:
+                            raise e
+        else:
+            raise Exception("Git not installed.")
+    except Exception as e:
+        logging.warning(f"Failed to clone or update the repository using git: {e}")
+        logging.debug(f"update: {update}")
+        # Check if the directory is empty or contains only a "venv" folder, the branch is "master",
+        # and the Git repository URL starts with "https://github.com/bmaltais/kohya_ss" or the update flag is specified.
+        # If all conditions are met, we try to download the latest tag as a zip for installation.
+        # We only overwrite the files we download. Otherwise, skip the installation.
+        if (update or len(os.listdir(_dir)) == 0 or (
+                len(os.listdir(_dir)) == 1 and os.path.exists(os.path.join(_dir, "venv")))) and \
+                (not branch or branch == "master") and (
+                not git_repo or git_repo.startswith("https://github.com/bmaltais/kohya_ss")):
 
             # Download the latest release as a zip file from the default repository
             try:
+                # Download the repo as a zip file
+                # Remove .git extension if present
+                git_repo = git_repo.rstrip('.git')
                 download_url = git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(git_repo)}.zip"
-                clone_and_switch(_dir, download_url, branch, parent_dir)
+                auth = (username, password) if username and password else None
+                logging.info(f"Attempting to download from: {download_url}")
+                response = requests.get(download_url, auth=auth)
+
+                if response.status_code != 200:
+                    raise Exception(f"Failed to download the repository: {response.status_code}")
+
+                # Get the file size from the 'Content-Length' header
+                file_size = int(response.headers.get("Content-Length", 0))
+
+                # Create a progress bar
+                progress_bar = tqdm_progress(total=file_size, unit="B", unit_scale=True, desc="Downloading")
+
+                # Save the zip file to a temporary location
+                with tempfile.NamedTemporaryFile(delete=False) as temp_zip:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        temp_zip.write(chunk)
+                        progress_bar.update(len(chunk))  # Update the progress bar
+                    temp_zip.close()
+                    logging.debug(f"Zip file downloaded to: {temp_zip.name}")
+                    progress_bar.close()
+
+                    # Extract the zip file to a temporary directory
+                    with zipfile.ZipFile(temp_zip.name, "r") as zip_ref:
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            zip_ref.extractall(temp_dir)
+                            logging.debug(f"Zip file extracted to: {temp_dir}")
+
+                            # Get the actual extracted folder name
+                            extracted_folder = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+
+                            for root, _, files in os.walk(extracted_folder):
+                                rel_path = os.path.relpath(root, extracted_folder)
+                                target_dir = os.path.join(_dir, rel_path)
+
+                                if not os.path.exists(target_dir):
+                                    os.makedirs(target_dir)
+
+                                for file in files:
+                                    src_file = os.path.join(root, file)
+                                    dst_file = os.path.join(target_dir, file)
+                                    shutil.move(src_file, dst_file)
+                                    logging.debug(f"Moved file: {src_file} to {dst_file}")
+
+                            # Clean up the extracted folder
+                            shutil.rmtree(extracted_folder)
+                            logging.debug(f"Cleaned up extracted folder: {extracted_folder}")
+
+                # Remove the temporary zip file
+                os.remove(temp_zip.name)
+                logging.debug(f"Removed temporary zip file: {temp_zip.name}")
+                success = True
+
             except Exception as e:
                 logging.warning(f"Failed to download the latest release: {e}")
-                try:
-                    username, password = get_stored_git_credentials(git_repo)
-                    git_repo_with_credentials = add_credentials_to_url(git_repo, username, password)
-                except GitCredentialNotStoredError:
-                    logging.warning("No stored Git credentials found.")
-                    git_repo_with_credentials = git_repo
-                    username, password = None, None
-                except GitCredentialError as e:
-                    logging.warning(f"Unable to get Git credentials: {e}")
-                    git_repo_with_credentials = git_repo
-                    username, password = None, None
 
-                clone_and_switch(_dir, git_repo_with_credentials, branch, parent_dir, username, password)
-    else:
-        logging.warning("Skipping git operations.")
+        elif update is True and not git_repo.startswith("https://github.com/bmaltais/kohya_ss"):
+            logging.info("Sorry, we only support zip file updates for master branch on "
+                         "github.com/bmaltais/kohya_ss")
+            success = False
+
+        else:
+            logging.error("We could not download the latest release via git or zip file.")
+            success = False
+
+    return success
 
 
 class OSInfo:
@@ -724,10 +835,7 @@ def install_python_dependencies(_dir, runpod):
         subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
 
     # Install python dependencies
-    logging.info("Installing python dependencies. This could take a few minutes as it downloads files.")
-
-    # def temp_opener(name, flag, mode=0o777):
-    #     return os.open(name, flag | os.O_TEMPORARY, mode)
+    logging.info("Installing python dependencies. This could take a long time as it downloads some large files.")
 
     # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
@@ -779,39 +887,24 @@ def install_python_dependencies(_dir, runpod):
             temp_requirements.flush()
             temp_requirements.close()
 
-        installed_packages = [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-
-        # Add this right after creating the list of installed_packages
-        logging.debug(f"Installed packages: {installed_packages}")
-
-        with open(temp_requirements.name, "r") as f:
-            requirements = [line.strip().lower() for line in f.readlines()]
-            logging.debug(f"Requirements from temp file: {requirements}")
-        if all([req in installed_packages for req in requirements]):
-            logging.info("Requirements already satisfied.")
+        logging.info("Installing required packages...")
+        if args.verbosity >= 3:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-r", temp_requirements.name])
         else:
-            logging.info("Installing required packages...")
-            if args.verbosity >= 3:
-                # logging.debug(temp_requirements.read())
-                subprocess.run([sys.executable, "-m", "pip", "install", "-r", temp_requirements.name])
-            else:
-                subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "-r", temp_requirements.name])
+            # Count the number of packages in the temporary requirements file
+            with open(temp_requirements.name, "r") as f:
+                num_packages = sum(1 for line in f if line.strip())
 
-            # Validate the installed requirements
-            installed_packages = [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-            if all([req in installed_packages for req in requirements]):
-                logging.info("Requirements now satisfied.")
-            else:
-                logging.info("Requirements are still not met. There could've been an error. Exiting to be on the safe "
-                             "side.")
-                # Delete the temporary requirements file
-                logging.debug(f"Removing {temp_requirements.name}")
-                os.remove(temp_requirements.name)
-                exit(1)
+            with open(temp_requirements.name, "r") as f:
+                for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
+                    package = line.strip()
+                    if package:
+                        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", package])
 
-    # Delete the temporary requirements file
-    logging.debug(f"Removing {temp_requirements.name}")
-    os.remove(temp_requirements.name)
+        # Delete the temporary requirements file
+        logging.debug(f"Removing {temp_requirements.name}")
+        if os.path.exists(temp_requirements.name):
+            os.remove(temp_requirements.name)
 
 
 def configure_accelerate(interactive):
@@ -914,11 +1007,12 @@ def main(_args=None):
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
-    update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, parent_dir, getattr(_args, "no-git-update"))
-    install_python_dependencies(_dir, _args.runpod)
-    setup_file_links(site_packages_dir, _args.runpod)
-    configure_accelerate(args.interactive)
-    launch_kohya_gui(args)
+    if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, parent_dir,
+                       getattr(_args, "no-git-update")):
+        install_python_dependencies(_dir, _args.runpod)
+        setup_file_links(site_packages_dir, _args.runpod)
+        configure_accelerate(args.interactive)
+        launch_kohya_gui(args)
 
 
 if __name__ == "__main__":
@@ -998,7 +1092,7 @@ if __name__ == "__main__":
             site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
                                              "site-packages")
 
-    if getattr(args, 'exclude-setup'):
+    if getattr(args, 'no-setup'):
         launch_kohya_gui(args)
         exit(0)
     else:

@@ -23,10 +23,11 @@ Options:
   -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
-  -n, --no-git-update           Do not update kohya_ss repo. No git pull or clone operations.
+  -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
   -x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
   -v, --verbose                 Increase verbosity levels up to 3.
   --listen=IP               IP to listen on for connections to Gradio.
@@ -68,7 +69,7 @@ MAXVERBOSITY=6
 USER_CONFIG_FILE=""
 declare -A CLI_ARGUMENTS
 
-while getopts ":vb:d:f:g:inprsx-:" opt; do
+while getopts ":vb:d:f:g:inprsux-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -82,11 +83,11 @@ while getopts ":vb:d:f:g:inprsx-:" opt; do
   g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
   h | help) display_help && exit 0 ;;
   i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
-  n | no-git-update) CLI_ARGUMENTS["NoGitUpdate"]="true" ;;
+  n | no-setup) CLI_ARGUMENTS["NoSetup"]="true" ;;
   p | public) CLI_ARGUMENTS["Public"]="true" ;;
   r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
-  x | exclude-setup) CLI_ARGUMENTS["ExcludeSetup"]="true" ;;
+  u | update) CLI_ARGUMENTS["Update"]="true" ;;
   v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
   listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
   username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
@@ -181,12 +182,12 @@ config_Branch="${config_Branch:-master}"
 config_Dir="${config_Dir:-$HOME/kohya_ss}"
 config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_Interactive="${config_Interactive:-false}"
-config_NoGitUpdate="${config_NoGitUpdate:-false}"
 config_Public="${config_Public:-false}"
+config_NoSetup="${config_NoSetup:-false}"
 config_Runpod="${config_Runpod:-false}"
 config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
+config_Update="${config_Update:-false}"
 config_Verbose="${config_Verbose:-2}"
-config_ExcludeSetup="${config_ExcludeSetup:-false}"
 config_Listen="${config_Listen:-127.0.0.1}"
 config_Username="${config_Username:-}"
 config_Password="${config_Password:-}"
@@ -206,12 +207,12 @@ BRANCH="$config_Branch"
 DIR="$config_Dir"
 GIT_REPO="$config_GitRepo"
 INTERACTIVE="$config_Interactive"
-SKIP_GIT_UPDATE="$config_NoGitUpdate"
+NO_SETUP="$config_NoSetup"
 PUBLIC="$config_Public"
 RUNPOD="$config_Runpod"
 SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
+UPDATE="$config_Update"
 VERBOSE="$config_Verbose"
-EXCLUDE_SETUP="$config_ExcludeSetup"
 GUI_LISTEN="$config_Listen"
 GUI_USERNAME="$config_Username"
 GUI_PASSWORD="$config_Password"
@@ -246,6 +247,8 @@ INTERACTIVE: $INTERACTIVE
 PUBLIC: $PUBLIC
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
+UPDATE: $UPDATE
+Skip Setup: $NOSETUP
 VERBOSITY: $VERBOSITY
 Script directory is ${SCRIPT_DIR}." >&5
 
@@ -698,10 +701,11 @@ run_launcher() {
     --dir="$DIR" \
     --gitrepo="$GIT_REPO" \
     --interactive="$INTERACTIVE" \
-    --nogitupdate="$SKIP_GIT_UPDATE" \
+    --no-setup="$NO_SETUP" \
     --public="$PUBLIC" \
     --runpod="$RUNPOD" \
     --skipspacecheck="$SKIP_SPACE_CHECK" \
+    --update="$UPDATE" \
     --listen="$GUI_LISTEN" \
     --username="$GUI_USERNAME" \
     --password="$GUI_PASSWORD" \
@@ -712,7 +716,7 @@ run_launcher() {
 }
 
 function main() {
-  if ! "$EXCLUDE_SETUP"; then
+  if ! "$NO_SETUP"; then
       DIR="$(normalize_path "$DIR")"
 
       # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
