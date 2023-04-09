@@ -108,7 +108,7 @@ def save_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -217,7 +217,7 @@ def open_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -308,7 +308,7 @@ def train_model(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -443,6 +443,8 @@ def train_model(
         run_cmd += ' --enable_bucket'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
+    if weighted_captions:
+        run_cmd += ' --weighted_captions'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -687,6 +689,9 @@ def dreambooth_tab(
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
+                weighted_captions = gr.Checkbox(
+                    label='Weighted captions', value=False
+                )
             with gr.Row():
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
@@ -829,6 +834,7 @@ def dreambooth_tab(
         additional_parameters,
         vae_batch_size,
         min_snr_gamma,
+        weighted_captions,
     ]
 
     button_open_config.click(

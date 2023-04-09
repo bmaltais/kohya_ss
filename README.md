@@ -258,9 +258,19 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/09 (v21.5.2)
+
+    - Added support for training with weighted captions. Thanks to AI-Casanova for the great contribution! 
+    - Please refer to the PR for details: [PR #336](https://github.com/kohya-ss/sd-scripts/pull/336)
+    - Specify the `--weighted_captions` option. It is available for all training scripts except Textual Inversion and XTI.
+    - This option is also applicable to token strings of the DreamBooth method.
+    - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
+    - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
+  
 * 2023/04/08 (v21.5.1)
     - Integrate latest sd-scripts updates. Not integrated in the GUI. Will consider if you think it is wort integrating. At the moment you can add the required parameters using the `Additional parameters` field under the `Advanced Configuration` accordion in the `Training Parameters` tab:
         - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
+    - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
 
         - Added a feature to upload model and state to HuggingFace. Thanks to ddPn08 for the contribution! [PR #348](https://github.com/kohya-ss/sd-scripts/pull/348)
         - When `--huggingface_repo_id` is specified, the model is uploaded to HuggingFace at the same time as saving the model.
