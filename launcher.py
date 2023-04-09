@@ -31,7 +31,7 @@ def check_and_import(module_name, package_name=None, alias=None):
     try:
         module = importlib.import_module(module_name)
     except ImportError:
-        print(f"Installing {package_name}...")
+        logging.debug(f"Installing {package_name}...")
         install_package(package_name)
         module = importlib.import_module(module_name)
 
@@ -163,8 +163,11 @@ def parse_args(_config_data):
     Switch to the dev branch:
     python launcher.py --branch dev
 
-    Point to a custom installation directory, but skip any git operations:
-    python launcher.py --dir /path/to/kohya_ss --no-git-update
+    Point to a custom installation directory
+    python launcher.py --dir /path/to/kohya_ss
+    
+    Update to the latest stable mainline installation
+    python launcher.py --dir /path/to/kohya_ss --update
 
     Bypass all environment checks except Python dependency validation and launch the GUI:
     python launcher.py --exclude-setup""",
@@ -368,7 +371,7 @@ def check_storage_space(_dir, parent_dir, space_check=True):
 
 
 def create_symlinks(symlink, target_file):
-    print("Checking symlinks now.")
+    logging.info("Checking symlinks now.")
     # Next line checks for valid symlink
     if os.path.islink(symlink):
         # Check if the linked file exists and points to the expected file
@@ -380,7 +383,7 @@ def create_symlinks(symlink, target_file):
                 os.remove(symlink)
                 os.symlink(target_file, symlink)
             else:
-                print(f"{target_file} does not exist. Nothing to link.")
+                logging.error(f"{target_file} does not exist. Nothing to link.")
     else:
         logging.info(f"Linking {os.path.basename(symlink)}.")
         os.symlink(target_file, symlink)
@@ -537,23 +540,30 @@ def get_latest_tag(git_repo):
     return data["tag_name"]
 
 
-def update_kohya_ss(_dir, git_repo, branch, parent_dir, update=False):
+def update_kohya_ss(_dir, git_repo, branch, update):
     success = False
+    logging.debug(f"Update: {update}")
+    logging.debug(f".git folder path: {os.path.join(_dir, '.git')}")
+    logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
+    logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
 
     def git_operations_with_credentials(username=None, password=None):
         nonlocal success
         if len(os.listdir(_dir)) == 0 or (
                 len(os.listdir(_dir)) == 1 and os.path.exists(os.path.join(_dir, "venv"))):
+            logging.debug("git clone operation entered.")
             run_git_command(["clone", "-b", branch, git_repo, _dir], username=username,
                             password=password if password else None)
             success = True
-        elif update and os.path.exists(os.path.join(_dir, ".git")):
+        elif update and ".git" in os.listdir(_dir):
+            logging.debug("git pull operation entered.")
             run_git_command(["pull"], cwd=_dir, username=username,
                             password=password if password else None)
             success = True
         elif len(os.listdir(_dir)) > 1:
             logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
                          f"Skipping updating folder contents.")
+            success = False
         else:
             logging.error("Git operations failed.")
             success = False
@@ -589,7 +599,8 @@ def update_kohya_ss(_dir, git_repo, branch, parent_dir, update=False):
             raise Exception("Git not installed.")
     except Exception as e:
         logging.warning(f"Failed to clone or update the repository using git: {e}")
-        logging.debug(f"update: {update}")
+
+    if not success:
         # Check if the directory is empty or contains only a "venv" folder, the branch is "master",
         # and the Git repository URL starts with "https://github.com/bmaltais/kohya_ss" or the update flag is specified.
         # If all conditions are met, we try to download the latest tag as a zip for installation.
@@ -749,7 +760,7 @@ class OSInfo:
                         self.name = "Generic Linux"
                         self.family = "Generic Linux"
                 except Exception as e:
-                    print(f"Error executing uname command: {e}")
+                    logging.error(f"Error executing uname command: {e}")
                     self.name = "Generic Linux"
                     self.family = "Generic Linux"
             return {
@@ -761,6 +772,42 @@ class OSInfo:
 
 def get_os_info():
     return OSInfo()
+
+
+def brew_install_tensorflow_deps(verbosity=1):
+    brew_install_cmd = "brew install icu4c xz zlib bzip2 lz4 lzo openssl readline sqlite libyaml libiconv libarchive " \
+                       "libffi libxml2"
+
+    def brew_installed():
+        if os_info.family == "Darwin":
+            try:
+                subprocess.run(["brew", "-v"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                return True
+            except subprocess.CalledProcessError:
+                return False
+
+        if not os_info.family == "Darwin":
+            logging.debug("Non-macOS detected. Skipping brew installation of dependencies.")
+            return True
+        else:
+            if not brew_installed():
+                logging.error("Homebrew not found. Please install Homebrew before running this script.")
+                return False
+            stdout_setting = subprocess.PIPE if verbosity >= 3 else subprocess.DEVNULL
+            stderr_setting = subprocess.PIPE if verbosity >= 1 else subprocess.DEVNULL
+
+            try:
+                logging.info("Installing Homebrew packages...")
+                result = subprocess.run(brew_install_cmd.split(), stdout=stdout_setting, stderr=stderr_setting)
+                result.check_returncode()
+                if verbosity >= 3:
+                    logging.debug(result.stdout.decode('utf-8'))
+                logging.info("Homebrew packages installed successfully.")
+                return True
+            except subprocess.CalledProcessError as e:
+                if verbosity >= 1:
+                    logging.error(e.stderr.decode('utf-8'))
+                return False
 
 
 def check_permissions(_dir):
@@ -846,6 +893,10 @@ def install_python_dependencies(_dir, runpod):
             found_comment = False
             with open(requirements_path, "r") as original_file:
                 for line in original_file:
+                    # Skip comments and empty lines
+                    if line.strip().startswith("#") or not line.strip():
+                        continue
+
                     logging.debug(f"Processing line: {line.strip()}")
                     if found_comment:
                         line = line.replace(".", _dir)
@@ -883,13 +934,25 @@ def install_python_dependencies(_dir, runpod):
                             subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
                                             "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
 
+                if os_info.family == "Darwin":
+                    macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
+                    if os.path.exists(macos_requirements_path):
+                        with open(macos_requirements_path, "r") as macos_req_file:
+                            for line in macos_req_file:
+                                # Skip comments and empty lines
+                                if line.strip().startswith("#") or not line.strip():
+                                    continue
+
+                                logging.debug(f"Appending macOS requirement: {line.strip()}")
+                                temp_requirements.write(line)
+
         finally:
             temp_requirements.flush()
             temp_requirements.close()
 
         logging.info("Installing required packages...")
         if args.verbosity >= 3:
-            subprocess.run([sys.executable, "-m", "pip", "install", "-r", temp_requirements.name])
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "-r", temp_requirements.name])
         else:
             # Count the number of packages in the temporary requirements file
             with open(temp_requirements.name, "r") as f:
@@ -899,7 +962,7 @@ def install_python_dependencies(_dir, runpod):
                 for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
                     package = line.strip()
                     if package:
-                        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", package])
+                        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--quiet", package])
 
         # Delete the temporary requirements file
         logging.debug(f"Removing {temp_requirements.name}")
@@ -968,9 +1031,13 @@ def launch_kohya_gui(_args):
     if _args.password:
         cmd.extend(["--password", _args.password])
 
-    logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
-    logging.debug(f"Running kohya_gui.py as: {cmd}")
-    subprocess.run(cmd, check=True)
+    try:
+        logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
+        logging.debug(f"Running kohya_gui.py as: {cmd}")
+        subprocess.run(cmd, check=True)
+    except KeyboardInterrupt:
+        logging.info("Process terminated by the user. Exiting...")
+        sys.exit(0)
 
 
 def main(_args=None):
@@ -1007,12 +1074,12 @@ def main(_args=None):
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
-    if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, parent_dir,
-                       getattr(_args, "no-git-update")):
-        install_python_dependencies(_dir, _args.runpod)
-        setup_file_links(site_packages_dir, _args.runpod)
-        configure_accelerate(args.interactive)
-        launch_kohya_gui(args)
+    if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update):
+        if brew_install_tensorflow_deps(_args.verbosity):
+            install_python_dependencies(_dir, _args.runpod)
+            setup_file_links(site_packages_dir, _args.runpod)
+            configure_accelerate(args.interactive)
+            launch_kohya_gui(args)
 
 
 if __name__ == "__main__":
