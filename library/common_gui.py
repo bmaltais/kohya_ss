@@ -943,8 +943,8 @@ def run_cmd_advanced_training(**kwargs):
         f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
-        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
-        if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
+        f' --caption_dropout_rate="{float(kwargs.get("caption_dropout_rate", 0))}"'
+        if float(kwargs.get('caption_dropout_rate', 0)) > 0
         else '',
         f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
         if int(kwargs.get('vae_batch_size', 0)) > 0
