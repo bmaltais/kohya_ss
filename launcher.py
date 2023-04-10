@@ -479,6 +479,14 @@ class GitAuthenticationError(Exception):
     pass
 
 
+class UpdateSkippedException(Exception):
+    pass
+
+
+class UncommittedChangesException(Exception):
+    pass
+
+
 def is_git_installed():
     git_commands = ["git"]
     if sys.platform == "win32":
@@ -510,21 +518,24 @@ def run_git_command(_args, cwd=None, timeout=10, username=None, password=None, w
         env["GIT_PASSWORD"] = password
 
     try:
-        if wait:
-            result = subprocess.run(["git"] + _args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    cwd=cwd,
-                                    timeout=timeout, env=env)
-            return result.stdout.decode("utf-8").strip()
+        logging.debug(f"Executing git command: git {' '.join(_args)}")
+        result = subprocess.run(["git"] + _args, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                cwd=cwd,
+                                timeout=timeout, env=env)
+        if result.returncode != 0:
+            full_output = result.stdout.decode("utf-8").strip() + "\n" + result.stderr.decode("utf-8").strip()
+            logging.debug(f"Git command full output: {full_output}")
+            return full_output
         else:
-            subprocess.Popen(["git"] + _args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
-            return None
+            return result.stdout.decode("utf-8").strip()
     except subprocess.TimeoutExpired:
         logging.error("Git command timed out.")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Git command failed: {e}")
-        logging.debug(f"stdout: {e.stdout.decode('utf-8')}")
-        logging.debug(f"stderr: {e.stderr.decode('utf-8')}")
-        raise Exception("Git failed exiting script to be on the safe side.")
+        logging.error(f"Git command failed with error code {e.returncode}: {e.output.decode().strip()}")
+        return e.output.decode().strip()
+    except Exception as e:
+        logging.error(f"Unexpected error occurred during git command execution: {e}")
+        return str(e)
     finally:
         if username and password:
             if os.path.exists(askpass_file_path):
@@ -558,60 +569,81 @@ def update_kohya_ss(_dir, git_repo, branch, update):
     def git_operations_with_credentials(username=None, password=None):
         nonlocal success
         git_folder_present = ".git" in os.listdir(_dir)
+        try:
+            if git_folder_present and not update:
+                logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
+                             f"Skipping updating folder contents.")
+                raise UpdateSkippedException()
+            elif git_folder_present and update:
+                if has_uncommitted_changes():
+                    logging.warning("Uncommitted changes detected. Please commit or stash your changes, "
+                                    "or run with -n/--no-setup flag to skip setup, or do not use -u/--update flag to skip updating.")
+                    raise UncommittedChangesException()
+                else:
+                    logging.debug("git pull operation entered.")
+                    proc = run_git_command(["pull"], cwd=_dir, username=username,
+                                           password=password if password else None, wait=True)
+                    logging.debug(f"Git pull output: {proc}")
 
-        if git_folder_present and not update:
-            logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
-                         f"Skipping updating folder contents.")
-            success = True
-            return
-        elif git_folder_present and update:
-            if has_uncommitted_changes():
-                logging.warning("Uncommitted changes detected. Please commit or stash your changes, "
-                                "or run with -n/--no-setup flag to skip setup, or do not use -u/--update flag to skip updating.")
-                success = False
-                return
-            else:
-                logging.debug("git pull operation entered.")
-                proc = run_git_command(["pull"], cwd=_dir, username=username,
-                                       password=password if password else None, wait=True)
-                success = True
-        elif not git_folder_present:
-            logging.debug("git clone operation entered.")
+                    if any(err_msg in proc for err_msg in ["Authentication failed", "fatal: Authentication failed"]):
+                        raise GitAuthenticationError("Authentication failed during git pull.")
 
-            # Create a temporary directory using tempfile
-            with tempfile.TemporaryDirectory() as _temp_dir:
-                # Clone the repository into the temporary directory
-                proc = run_git_command(["clone", "-b", branch, git_repo, os.path.basename(_temp_dir)],
-                                       cwd=os.path.dirname(_temp_dir), username=username,
-                                       password=password if password else None, wait=True)
-
-                # Remove all contents in the target directory except the 'venv' directory
-                for item in os.listdir(_dir):
-                    if item != "venv":
-                        path_to_remove = os.path.join(_dir, item)
-                        retry_delete(path_to_remove)
-
-                # Move the contents of the temporary directory into the existing target directory
-                try:
-                    for item in os.listdir(_temp_dir):
-                        src_path = os.path.join(_temp_dir, item)
-                        dest_path = os.path.join(_dir, item)
-                        shutil.move(src_path, dest_path)
                     success = True
-                except Exception as _e:
-                    logging.error(f"Could not copy temporary folder to target install folder. Error: {_e}")
-                    success = False
+            elif not git_folder_present:
+                logging.debug("git clone operation entered.")
 
-        else:
-            logging.error("Git operations failed.")
+                # Create a temporary directory using tempfile
+                with tempfile.TemporaryDirectory() as _temp_dir:
+                    # Clone the repository into the temporary directory
+                    proc = run_git_command(["clone", "-b", branch, git_repo, _temp_dir],
+                                           cwd=os.path.dirname(_temp_dir), username=username,
+                                           password=password if password else None)
+                    logging.debug(f"Git clone output: {proc}")
+
+                    if any(err_msg in proc for err_msg in ["Authentication failed", "fatal: Authentication failed"]):
+                        raise GitAuthenticationError("Authentication failed during git clone.")
+
+                    # Check if there was an error during the git operation
+                    if isinstance(proc, str):
+                        logging.warning(f"Failed to clone or update the repository using git: {proc}")
+                        success = False
+                        return success
+
+                    # Remove all contents in the target directory except the 'venv' directory
+                    for item in os.listdir(_dir):
+                        if item != "venv":
+                            path_to_remove = os.path.join(_dir, item)
+                            retry_delete(path_to_remove)
+
+                    # Move the contents of the temporary directory into the existing target directory
+                    try:
+                        for item in os.listdir(_temp_dir):
+                            src_path = os.path.join(_temp_dir, item)
+                            dest_path = os.path.join(_dir, item)
+                            shutil.move(src_path, dest_path)
+                        success = True
+                    except Exception as _e:
+                        logging.error(f"Could not copy temporary folder to target install folder. Error: {_e}")
+                        success = False
+        except UpdateSkippedException:
+            success = True
+            return success
+
+        except UncommittedChangesException:
             success = False
-            return
+            return success
 
-        # Close the git process after it has finished executing
-        if proc is not None:
-            proc.terminate()
+        except Exception as _e:
+            logging.error(f"Unexpected error occurred during git operations: {_e}")
+            success = False
+            return success
+        finally:
+            # Close the git process after it has finished executing
+            if proc is not None and not isinstance(proc, str):
+                proc.terminate()
 
-    def retry_delete(path, max_retries=3, delay=1):
+    def retry_delete(path):
+        max_retries = 5
         retries = 0
         while retries < max_retries:
             try:
@@ -620,11 +652,11 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 else:
                     os.remove(path)
                 break
-            except Exception as e:
-                time.sleep(delay)
+            except PermissionError as _pe:
+                time.sleep(1)
                 retries += 1
-                if retries >= max_retries:
-                    raise e
+        if retries == max_retries:
+            raise PermissionError(f"Failed to delete '{path}' after {max_retries} retries")
 
     git_installed = is_git_installed()
     max_attempts = 4
@@ -639,7 +671,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
         logging.debug(f"git_repo: {git_repo}")
         if git_installed:
             if os.path.exists(_dir) and os.path.isdir(_dir):
-                while attempt < max_attempts:
+                while attempt < max_attempts and not success:
                     try:
                         if git_operations_with_credentials(username, password):
                             success = True
@@ -651,9 +683,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                             logging.info("Please enter your Git credentials:")
                             username = input("Username: ")
                             password = getpass.getpass("Password: ")
-                            attempt += 1
                         else:
                             success = False
+                    attempt += 1
         else:
             raise Exception("Git not installed.")
     except Exception as e:
@@ -740,6 +772,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
             logging.error("We could not download the latest release via git or zip file.")
             success = False
 
+    logging.debug(f"Kohya Update success: {success}")
     return success
 
 
@@ -861,28 +894,28 @@ def brew_install_tensorflow_deps(verbosity=1):
             except subprocess.CalledProcessError:
                 return False
 
-        if not os_info.family == "macOS":
-            logging.debug("Non-macOS detected. Skipping brew installation of dependencies.")
-            return True
-        else:
-            if not brew_installed():
-                logging.error("Homebrew not found. Please install Homebrew before running this script.")
-                return False
-            stdout_setting = subprocess.PIPE if verbosity >= 3 else subprocess.DEVNULL
-            stderr_setting = subprocess.PIPE if verbosity >= 1 else subprocess.DEVNULL
+    if not os_info.family == "macOS":
+        logging.debug("Non-macOS detected. Skipping brew installation of dependencies.")
+        return True
+    else:
+        if not brew_installed():
+            logging.error("Homebrew not found. Please install Homebrew before running this script.")
+            return False
+        stdout_setting = subprocess.PIPE if verbosity >= 3 else subprocess.DEVNULL
+        stderr_setting = subprocess.PIPE if verbosity >= 1 else subprocess.DEVNULL
 
-            try:
-                logging.info("Installing Homebrew packages...")
-                result = subprocess.run(brew_install_cmd.split(), stdout=stdout_setting, stderr=stderr_setting)
-                result.check_returncode()
-                if verbosity >= 3:
-                    logging.debug(result.stdout.decode('utf-8'))
-                logging.info("Homebrew packages installed successfully.")
-                return True
-            except subprocess.CalledProcessError as e:
-                if verbosity >= 1:
-                    logging.error(e.stderr.decode('utf-8'))
-                return False
+        try:
+            logging.info("Installing Homebrew packages...")
+            result = subprocess.run(brew_install_cmd.split(), stdout=stdout_setting, stderr=stderr_setting)
+            result.check_returncode()
+            if verbosity >= 3:
+                logging.debug(result.stdout.decode('utf-8'))
+            logging.info("Homebrew packages installed successfully.")
+            return True
+        except subprocess.CalledProcessError as e:
+            if verbosity >= 1:
+                logging.error(e.stderr.decode('utf-8'))
+            return False
 
 
 def check_permissions(_dir):
