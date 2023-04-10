@@ -13,6 +13,7 @@ import diffusers
 from diffusers import DDPMScheduler
 
 import library.train_util as train_util
+import library.huggingface_util as huggingface_util
 import library.config_util as config_util
 from library.config_util import (
     ConfigSanitizer,
@@ -340,9 +341,7 @@ def train(args):
         text_encoder.to(weight_dtype)
 
     # resumeする
-    if args.resume is not None:
-        print(f"resume training from state: {args.resume}")
-        accelerator.load_state(args.resume)
+    train_util.resume_from_local_or_hf_if_specified(accelerator, args)
 
     # epoch数を計算する
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
@@ -493,6 +492,8 @@ def train(args):
                 ckpt_file = os.path.join(args.output_dir, ckpt_name)
                 print(f"saving checkpoint: {ckpt_file}")
                 save_weights(ckpt_file, updated_embs, save_dtype)
+                if args.huggingface_repo_id is not None:
+                    huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
 
             def remove_old_func(old_epoch_no):
                 old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
@@ -534,6 +535,8 @@ def train(args):
 
         print(f"save trained model to {ckpt_file}")
         save_weights(ckpt_file, updated_embs, save_dtype)
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
         print("model saved.")
 
 
