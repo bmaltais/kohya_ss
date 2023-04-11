@@ -18,6 +18,7 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 # This enables programmatically installing pip packages
@@ -25,7 +26,7 @@ def install_package(package_name):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
 
 
-def check_and_import(module_name, package_name=None, alias=None):
+def check_and_import(module_name, package_name=None, imports=None):
     if package_name is None:
         package_name = module_name
 
@@ -36,15 +37,25 @@ def check_and_import(module_name, package_name=None, alias=None):
         install_package(package_name)
         module = importlib.import_module(module_name)
 
-    if alias:
-        sys.modules[alias] = module
+    if imports:
+        for obj_name, alias in imports:
+            obj = getattr(module, obj_name)
+            if alias:
+                sys.modules[alias] = obj
+            else:
+                sys.modules[obj_name] = obj
 
     return module
+
+
+# Usage example:
+# check_and_import("git", imports=[("Repo", None), ("GitCommandError", None)])
 
 
 base64 = check_and_import('base64')
 requests = check_and_import('requests')
 yaml = check_and_import('yaml', 'PyYAML')
+git = check_and_import("git", imports=[("Repo", None), ("GitCommandError", None)])
 tqdm_module = check_and_import("tqdm", "tqdm")
 tqdm_progress = tqdm_module.tqdm
 
@@ -156,6 +167,7 @@ class CountOccurrencesAction(argparse.Action):
             exit(1)
 
 
+# noinspection SpellCheckingInspection
 def parse_args(_config_data):
     parser = argparse.ArgumentParser(
         description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
@@ -390,6 +402,7 @@ def create_symlinks(symlink, target_file):
         os.symlink(target_file, symlink)
 
 
+# noinspection SpellCheckingInspection
 def setup_file_links(_site_packages_dir, runpod):
     if os_info.family == "Windows":
         bitsandbytes_source = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitsandbytes_windows")
@@ -450,6 +463,7 @@ def setup_file_links(_site_packages_dir, runpod):
             logging.warning(f"{cuda_runtime_dir} not found; not linking library.")
 
 
+# noinspection SpellCheckingInspection
 def in_container():
     cgroup_path = "/proc/1/cgroup"
 
@@ -490,7 +504,7 @@ class UncommittedChangesException(Exception):
 
 def is_git_installed():
     git_commands = ["git"]
-    if sys.platform == "win32":
+    if os_info.family == "Windows":
         git_commands.append("git.exe")
 
     for git_command in git_commands:
@@ -506,41 +520,29 @@ def is_git_installed():
     return False
 
 
-def run_git_command(_args, cwd=None, timeout=10, username=None, password=None, wait=True):
-    env = os.environ.copy()
+def run_git_command(repo, _args, username=None, password=None):
     if username and password:
-        # Create a temporary file for the GIT_ASKPASS script
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as askpass_file:
-            askpass_file.write(f"#!/usr/bin/env python\nimport sys\nprint('{password}')\n")
-            askpass_file_path = askpass_file.name
-
-        env["GIT_ASKPASS"] = askpass_file_path
-        env["GIT_USERNAME"] = username
-        env["GIT_PASSWORD"] = password
+        repo.git.update_environment(GIT_USERNAME=username, GIT_PASSWORD=password)
 
     try:
-        logging.debug(f"Executing git command: git {' '.join(_args)}")
-        result = subprocess.run(["git"] + _args, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                cwd=cwd,
-                                timeout=timeout, env=env)
-        if result.returncode != 0:
-            full_output = result.stdout.decode("utf-8").strip() + "\n" + result.stderr.decode("utf-8").strip()
-            logging.debug(f"Git command full output: {full_output}")
-            return full_output
+        git_cmd = _args
+        logging.debug(f"Executing git command: {git_cmd}")
+        result = repo.git.execute(git_cmd)
+
+        if result:
+            logging.debug(f"Git command completed successfully. stdout: {result}")
+            return result, None
         else:
-            return result.stdout.decode("utf-8").strip()
-    except subprocess.TimeoutExpired:
-        logging.error("Git command timed out.")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Git command failed with error code {e.returncode}: {e.output.decode().strip()}")
-        return e.output.decode().strip()
+            logging.error(f"Git command failed.")
+            return None, "Git command failed."
+
+    except git.GitCommandError as e:
+        logging.error(f"Git command failed with error code {e.status}: {e.stderr.strip()}")
+        return None, e.stderr.strip()
+
     except Exception as e:
-        logging.error(f"Unexpected error occurred during git command execution: {e}")
-        return str(e)
-    finally:
-        if username and password:
-            if os.path.exists(askpass_file_path):
-                os.remove(askpass_file_path)
+        logging.error(f"Unexpected error occurred during git operations: {str(e)}")
+        return None, str(e)
 
 
 def get_latest_tag(git_repo):
@@ -557,136 +559,157 @@ def get_latest_tag(git_repo):
     return data["tag_name"]
 
 
+def find_ssh_private_key_path(git_repo):
+    def get_git_config_ssh_key(_host):
+        try:
+            output = subprocess.check_output(["git", "config", f"host.{_host}.identityFile"], universal_newlines=True)
+            key_path = output.strip()
+            if os.path.exists(key_path):
+                logging.debug(f"Found SSH key in Git config for host '{_host}': {key_path}")
+                return key_path
+        except subprocess.CalledProcessError:
+            pass
+        return None
+
+    def find_key_in_ssh_folder():
+        home = os.path.expanduser("~")
+        ssh_folder = os.path.join(home, ".ssh")
+        common_key_names = ["id_rsa", "id_ecdsa", "id_ed25519"]
+
+        for file_name in os.listdir(ssh_folder):
+            full_path = os.path.join(ssh_folder, file_name)
+            if file_name in common_key_names and os.path.isfile(full_path):
+                logging.debug(f"Found SSH key in .ssh folder: {full_path}")
+                return full_path
+
+        logging.debug(f"No common SSH key names found in .ssh folder: {ssh_folder}")
+        return None
+
+    parsed_git_url = urlparse(git_repo)
+    host = parsed_git_url.hostname
+
+    # Check Git configuration for a specified key
+    git_config_key = get_git_config_ssh_key(host)
+    if git_config_key:
+        return git_config_key
+
+    # Look for common key names in the .ssh folder
+    key_in_ssh_folder = find_key_in_ssh_folder()
+    if key_in_ssh_folder:
+        return key_in_ssh_folder
+
+    logging.debug(f"No SSH key found for git repo: {git_repo}")
+    return None
+
+
 def update_kohya_ss(_dir, git_repo, branch, update):
-    success = False
     logging.debug(f"Update: {update}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
     logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
 
-    def has_uncommitted_changes():
-        output = subprocess.check_output(["git", "status", "--porcelain"], cwd=_dir).decode().strip()
-        return len(output) > 0
-
-    def git_operations_with_credentials(username=None, password=None):
-        nonlocal success
-        git_folder_present = ".git" in os.listdir(_dir)
+    def has_uncommitted_changes(local_git_repo):
         try:
-            if git_folder_present and not update:
+            git_status_output = local_git_repo.git.status("--porcelain")
+        except git.GitCommandError as _e:
+            logging.error(f"Error while checking for uncommitted changes: {_e}")
+            git_status_output = None
+
+        if git_status_output is not None and git_status_output.strip():
+            logging.warning(f"Uncommitted changes detected: {git_status_output.strip()}")
+
+        return len(git_status_output) > 0 if git_status_output is not None else False
+
+    def git_operations_with_credentials(_dir, _git_repo, _branch, _update, _username=None, _password=None):
+        git_folder_present = os.path.exists(os.path.join(_dir, ".git"))
+
+        parsed_git_url = urlparse(_git_repo)
+
+        if parsed_git_url.scheme == 'https':
+            # For HTTPS, set the username and password
+            git_credentials = {'username': _username, 'password': _password}
+        elif parsed_git_url.scheme == 'ssh':
+            # For SSH, we will find the default key.
+            private_key_path = find_ssh_private_key_path(_git_repo)
+            env = os.environ.copy()
+            env["GIT_SSH_COMMAND"] = f"ssh -i {private_key_path} -o StrictHostKeyChecking=no -F /dev/null"
+            git_credentials = {'env': env}
+        else:
+            raise ValueError("Invalid Git URL scheme. Only 'https' and 'ssh' are supported.")
+
+        _error = None
+
+        try:
+            if git_folder_present and not _update:
                 logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
                              f"Skipping updating folder contents.")
                 raise UpdateSkippedException()
-            elif git_folder_present and update:
-                if has_uncommitted_changes():
-                    logging.warning("Uncommitted changes detected. Please commit or stash your changes, "
-                                    "or run with -n/--no-setup flag to skip setup, or do not use -u/--update flag to skip updating.")
+            elif git_folder_present and _update:
+                local_git_repo = git.Repo(_dir)
+
+                if has_uncommitted_changes(local_git_repo):
                     raise UncommittedChangesException()
-                else:
-                    logging.debug("git pull operation entered.")
-                    proc = run_git_command(["pull"], cwd=_dir, username=username,
-                                           password=password if password else None, wait=True)
-                    logging.debug(f"Git pull output: {proc}")
 
-                    if any(err_msg in proc for err_msg in ["Authentication failed", "fatal: Authentication failed"]):
-                        raise GitAuthenticationError("Authentication failed during git pull.")
+                logging.debug("git pull operation entered.")
+                local_git_repo.remotes.origin.pull(**git_credentials)
 
-                    success = True
+                _success = True
+                return _success, _error
+
             elif not git_folder_present:
                 logging.debug("git clone operation entered.")
+                git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, **git_credentials)
 
-                # Create a temporary directory using tempfile
-                with tempfile.TemporaryDirectory() as _temp_dir:
-                    # Clone the repository into the temporary directory
-                    proc = run_git_command(["clone", "-b", branch, git_repo, _temp_dir],
-                                           cwd=os.path.dirname(_temp_dir), username=username,
-                                           password=password if password else None)
-                    logging.debug(f"Git clone output: {proc}")
+                _success = True
+                return _success, _error
 
-                    if any(err_msg in proc for err_msg in ["Authentication failed", "fatal: Authentication failed"]):
-                        raise GitAuthenticationError("Authentication failed during git clone.")
-
-                    # Check if there was an error during the git operation
-                    if isinstance(proc, str):
-                        logging.warning(f"Failed to clone or update the repository using git: {proc}")
-                        success = False
-                        return success
-
-                    # Remove all contents in the target directory except the 'venv' directory
-                    for item in os.listdir(_dir):
-                        if item != "venv":
-                            path_to_remove = os.path.join(_dir, item)
-                            retry_delete(path_to_remove)
-
-                    # Move the contents of the temporary directory into the existing target directory
-                    try:
-                        for item in os.listdir(_temp_dir):
-                            src_path = os.path.join(_temp_dir, item)
-                            dest_path = os.path.join(_dir, item)
-                            shutil.move(src_path, dest_path)
-                        success = True
-                    except Exception as _e:
-                        logging.error(f"Could not copy temporary folder to target install folder. Error: {_e}")
-                        success = False
+        except git.GitCommandError as _e:
+            logging.warning(f"Git command error: {_e}")
+            _success = False
+            if "Authentication failed" in str(_e):
+                _error = "authentication_error"
+            else:
+                _error = "unknown_error"
+            return _success, _error
         except UpdateSkippedException:
-            success = True
-            return success
-
+            _success = True
+            _error = "update_skipped"
+            return _success, _error
         except UncommittedChangesException:
-            success = False
-            return success
-
-        except Exception as _e:
-            logging.error(f"Unexpected error occurred during git operations: {_e}")
-            success = False
-            return success
-        finally:
-            # Close the git process after it has finished executing
-            if proc is not None and not isinstance(proc, str):
-                proc.terminate()
-
-    def retry_delete(path):
-        max_retries = 5
-        retries = 0
-        while retries < max_retries:
-            try:
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
-                break
-            except PermissionError as _pe:
-                time.sleep(1)
-                retries += 1
-        if retries == max_retries:
-            raise PermissionError(f"Failed to delete '{path}' after {max_retries} retries")
+            _success = False
+            _error = "uncommitted_changes"
+            return _success, _error
 
     git_installed = is_git_installed()
     max_attempts = 4
-    attempt = 0
     username = None
     password = None
     success = False
 
     try:
-        logging.debug(f"_dir contents: {os.listdir(_dir)}")
-        logging.debug(f"branch: {branch}")
-        logging.debug(f"git_repo: {git_repo}")
         if git_installed:
             if os.path.exists(_dir) and os.path.isdir(_dir):
-                while attempt < max_attempts and not success:
-                    try:
-                        if git_operations_with_credentials(username, password):
-                            success = True
-                            break
-                    except GitAuthenticationError as e:
-                        if attempt < max_attempts - 1:
-                            logging.warning(f"Git authentication failed: {e}")
-                            logging.info(f"Attempting to authenticate to {git_repo}.")
-                            logging.info("Please enter your Git credentials:")
-                            username = input("Username: ")
-                            password = getpass.getpass("Password: ")
-                        else:
-                            success = False
-                    attempt += 1
+                for _attempt in range(max_attempts):
+                    success, error_type = git_operations_with_credentials(_dir, git_repo, branch,
+                                                                          update, username, password)
+                    if success:
+                        break
+                    elif error_type == "uncommitted_changes":
+                        # If there are uncommitted changes, break the loop and proceed with the fallback method
+                        success = False
+                        return success
+                    elif error_type == "authentication_error":
+                        # Prompt for new credentials in case of authentication error
+                        logging.info("Please enter your Git credentials:")
+                        username = input("Username: ")
+                        password = getpass("Password: ")
+                    elif error_type == "update_skipped":
+                        success = True
+                        return success
+                    else:
+                        # For unexpected errors, break the loop and proceed with the fallback method
+                        logging.warning(
+                            "An unexpected error occurred during git operations. Proceeding with the fallback method.")
+                        break
         else:
             raise Exception("Git not installed.")
     except Exception as e:
@@ -711,6 +734,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 auth = (username, password) if username and password else None
                 logging.info(f"Attempting to download from: {download_url}")
                 response = requests.get(download_url, auth=auth)
+                logging.debug(f"Zip download response: {response.status_code}, {response.text}")
 
                 if response.status_code != 200:
                     raise Exception(f"Failed to download the repository: {response.status_code}")
@@ -885,6 +909,7 @@ def get_os_info():
 
 
 def brew_install_tensorflow_deps(verbosity=1):
+    # noinspection SpellCheckingInspection
     brew_install_cmd = "brew install llvm cctools ld64"
 
     def brew_installed():
@@ -1112,7 +1137,6 @@ def configure_accelerate(interactive):
 def launch_kohya_gui(_args):
     if not in_container():
         _venv_path = os.path.join(_args.dir, "venv")
-        kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
         if not os.path.exists(_venv_path):
             logging.info("Error: Virtual environment not found")
@@ -1124,9 +1148,6 @@ def launch_kohya_gui(_args):
         if not os.path.exists(python_executable):
             logging.info("Error: Python executable not found in the virtual environment")
             sys.exit(1)
-    else:
-        python_executable = sys.executable
-        kohya_gui_path = os.path.join(_args.dir, "kohya_gui.py")
 
     cmd = [
         venv_python_bin, os.path.join(_args.dir, "kohya_gui.py"),
@@ -1173,7 +1194,7 @@ def main(_args=None):
             "command line arguments.")
         sys.exit(1)
 
-    # Define the directories relative to the install directory needed for install and launch
+    # Define the directories relative to the installation directory needed for install and launch
     parent_dir = os.path.dirname(_dir)
 
     # The main logic will go here after the sanity checks.
@@ -1206,6 +1227,7 @@ if __name__ == "__main__":
         log_level = logging.DEBUG
 
     # Configure logging
+    # noinspection SpellCheckingInspection
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
     # Use logging in the script like so
@@ -1225,7 +1247,6 @@ if __name__ == "__main__":
 
     # Following check disabled as PyCharm can't detect it's being used in a subprocess
     # noinspection PyUnusedLocal
-    python_bin = None
     venv_python_bin = None
 
     # Check if python3 or python3.10 binary exists
