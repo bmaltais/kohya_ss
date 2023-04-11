@@ -1150,10 +1150,6 @@ def launch_kohya_gui(_args):
 
 
 def main(_args=None):
-    if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
-        logging.info("Error: This script requires Python 3.10.")
-        sys.exit(1)
-
     # Get the directory where the script is located
     script_directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -1238,6 +1234,11 @@ if __name__ == "__main__":
         logging.error("Valid python3 or python3.10 binary not found.")
         logging.error("Cannot proceed with the python steps.")
         exit(1)
+
+    if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
+        logging.info("Error: This script requires Python 3.10.")
+        logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
+        sys.exit(1)
 
     # Create and activate virtual environment if not in container environment
     if not in_container():
