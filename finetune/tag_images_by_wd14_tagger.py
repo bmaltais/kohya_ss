@@ -10,7 +10,7 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from huggingface_hub import hf_hub_download
 import torch
-import pathlib
+from pathlib import Path
 
 import library.train_util as train_util
 
@@ -103,8 +103,8 @@ def main(args):
 
     # 画像を読み込む
     
-    train_data_dir = pathlib.Path(args.train_data_dir)
-    image_paths = train_util.glob_images_pathlib(train_data_dir, args.recursive)
+    train_data_dir_path = Path(args.train_data_dir)
+    image_paths = train_util.glob_images_pathlib(train_data_dir_path, args.recursive)
     print(f"found {len(image_paths)} images.")
 
     tag_freq = {}
@@ -205,7 +205,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
+    parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
     parser.add_argument("--repo_id", type=str, default=DEFAULT_WD14_TAGGER_REPO,
     help="repo id for wd14 tagger on Hugging Face / Hugging Faceのwd14 taggerのリポジトリID")
     parser.add_argument("--model_dir", type=str, default="wd14_tagger_model",
