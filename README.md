@@ -266,6 +266,7 @@ This will store a backup file with your current locally installed pip packages a
     - This option is also applicable to token strings of the DreamBooth method.
     - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
     - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
+    - Run gui.sh from any place
   
 * 2023/04/08 (v21.5.1)
     - Integrate latest sd-scripts updates. Not integrated in the GUI. Will consider if you think it is wort integrating. At the moment you can add the required parameters using the `Additional parameters` field under the `Advanced Configuration` accordion in the `Training Parameters` tab:
