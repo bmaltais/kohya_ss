@@ -3,6 +3,9 @@
 # This gets the directory the script is run from so pathing can work relative to the script where needed.
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 
+# Step into GUI local directory
+cd "$SCRIPT_DIR"
+
 # Activate the virtual environment
 source "$SCRIPT_DIR/venv/bin/activate"
 
