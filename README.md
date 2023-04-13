@@ -127,56 +127,53 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-### 8 Apr. 2021, 2021/4/8:
+### Naming of LoRA
 
-- Added support for training with weighted captions. Thanks to AI-Casanova for the great contribution! 
-  - Please refer to the PR for details: [PR #336](https://github.com/kohya-ss/sd-scripts/pull/336)
-  - Specify the `--weighted_captions` option. It is available for all training scripts except Textual Inversion and XTI.
-  - This option is also applicable to token strings of the DreamBooth method.
-  - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
-  - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
+The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
 
-- 重みづけキャプションによる学習に対応しました。 AI-Casanova 氏の素晴らしい貢献に感謝します。
-  - 詳細はこちらをご確認ください。[PR #336](https://github.com/kohya-ss/sd-scripts/pull/336)
-  - `--weighted_captions` オプションを指定してください。Textual InversionおよびXTIを除く学習スクリプトで使用可能です。
-  - キャプションだけでなく DreamBooth 手法の token string でも有効です。
-  - 重みづけキャプションの記法はWeb UIとほぼ同じで、`(abc)`や`[abc]`、`(abc:1.23)`などが使用できます。入れ子も可能です。
-  - 括弧内にカンマを含めるとプロンプトのshuffle/dropoutで括弧の対応付けがおかしくなるため、括弧内にはカンマを含めないでください。
-  
-### 6 Apr. 2023, 2023/4/6:
-- There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
 
-- Added a feature to upload model and state to HuggingFace. Thanks to ddPn08 for the contribution! [PR #348](https://github.com/kohya-ss/sd-scripts/pull/348)
-  - When `--huggingface_repo_id` is specified, the model is uploaded to HuggingFace at the same time as saving the model.
-  - Please note that the access token is handled with caution. Please refer to the [HuggingFace documentation](https://huggingface.co/docs/hub/security-tokens).
-  - For example, specify other arguments as follows.
-    - `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
-  - If `public` is specified for `--huggingface_repo_visibility`, the repository will be public. If the option is omitted or `private` (or anything other than `public`) is specified, it will be private.
-  - If you specify `--save_state` and `--save_state_to_huggingface`, the state will also be uploaded.
-  - If you specify `--resume` and `--resume_from_huggingface`, the state will be downloaded from HuggingFace and resumed.
-    - In this case, the `--resume` option is `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`. For example: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
-  - If you specify `--async_upload`, the upload will be done asynchronously.
-- Added the documentation for applying LoRA to generate with the standard pipeline of Diffusers.   [training LoRA](./train_network_README-ja.md#diffusersのpipelineで生成する) (Japanese only)
-- Support for Attention Couple and regional LoRA in `gen_img_diffusers.py`.
-  - If you use ` AND ` to separate the prompts, each sub-prompt is sequentially applied to LoRA. `--mask_path` is treated as a mask image. The number of sub-prompts and the number of LoRA must match.
+    LoRA for Linear layers and Conv2d layers with 1x1 kernel
 
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
 
-- 大きく変更したため不具合があるかもしれません。問題が起きた時にスクリプトを前のバージョンに戻せない場合は、しばらく更新を控えてください。
+    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
+    
+LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
 
-- モデルおよびstateをHuggingFaceにアップロードする機能を各スクリプトに追加しました。 [PR #348](https://github.com/kohya-ss/sd-scripts/pull/348) ddPn08 氏の貢献に感謝します。
-  - `--huggingface_repo_id`が指定されているとモデル保存時に同時にHuggingFaceにアップロードします。
-  - アクセストークンの取り扱いに注意してください。[HuggingFaceのドキュメント](https://huggingface.co/docs/hub/security-tokens)を参照してください。
-  - 他の引数をたとえば以下のように指定してください。
-    - `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
-  - `--huggingface_repo_visibility`に`public`を指定するとリポジトリが公開されます。省略時または`private`（など`public`以外）を指定すると非公開になります。
-  - `--save_state`オプション指定時に`--save_state_to_huggingface`を指定するとstateもアップロードします。
-  - `--resume`オプション指定時に`--resume_from_huggingface`を指定するとHuggingFaceからstateをダウンロードして再開します。
-    - その時の `--resume`オプションは `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`になります。例: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
-  - `--async_upload`オプションを指定するとアップロードを非同期で行います。
-- [LoRAの文書](./train_network_README-ja.md#diffusersのpipelineで生成する)に、LoRAを適用してDiffusersの標準的なパイプラインで生成する方法を追記しました。
-- `gen_img_diffusers.py` で Attention Couple および領域別LoRAに対応しました。
-  - プロンプトを` AND `で区切ると各サブプロンプトが順にLoRAに適用されます。`--mask_path` がマスク画像として扱われます。サブプロンプトの数とLoRAの数は一致している必要があります。
+To use LoRA-C3Liar with Web UI, please use our extension.
 
+### LoRAの名称について
+
+`train_network.py` がサポートするLoRAについて、混乱を避けるため名前を付けました。ドキュメントは更新済みです。以下は当リポジトリ内の独自の名称です。
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers、リエラと読みます)
+
+    Linear 層およびカーネルサイズ 1x1 の Conv2d 層に適用されるLoRA
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers、セリアと読みます)
+
+    1.に加え、カーネルサイズ 3x3 の Conv2d 層に適用されるLoRA
+
+LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
+
+LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください。
+
+### 13 Apr. 2023, 2023/4/13:
+
+- Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
+- Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
+  - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
+  - Multi-GPU training has not been tested.
+  - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
+- Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
+
+- `train_network.py`でDyLoRAをサポートしました。詳細は[こちら](./train_network_README-ja.md#dylora)をご覧ください。
+- 各学習スクリプトでlatentのディスクへのキャッシュをサポートしました。`--cache_latents`オプションに __加えて__、`--cache_latents_to_disk`オプションを指定してください。
+  - 画像と同じフォルダに、拡張子 `.npz` で保存されます。`--flip_aug`オプションを指定した場合、`_flip.npz`が付いたファイルにも保存されます。
+  - マルチGPUでの学習は未テストです。
+  - すべてのDataset、学習スクリプトの組み合わせでテストしたわけではないため、不具合があるかもしれません。
+- `fine_tune.py`で、`fp16`および`bf16`の学習時にエラーが出る不具合に対して対策を行いました。
 
 ## Sample image generation during training
   A prompt file might look like this, for example
