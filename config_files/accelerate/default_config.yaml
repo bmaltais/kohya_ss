@@ -7,9 +7,9 @@ downcast_bf16: 'no'
 dynamo_backend: 'NO'
 fsdp_config: {}
 gpu_ids: all
+main_process_port: null
 machine_rank: 0
 main_process_ip: null
-main_process_port: null
 main_training_function: main
 megatron_lm_config: {}
 mixed_precision: 'no'

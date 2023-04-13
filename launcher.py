@@ -6,6 +6,7 @@ import importlib
 import mimetypes
 import os
 import pkgutil
+from datetime import datetime
 from getpass import getpass
 import platform
 import re
@@ -55,7 +56,7 @@ def check_and_import(module_name, package_name=None, imports=None):
 base64 = check_and_import('base64')
 requests = check_and_import('requests')
 yaml = check_and_import('yaml', 'PyYAML')
-git = check_and_import("git", imports=[("Repo", None), ("GitCommandError", None)])
+git = check_and_import("git", "gitpython", imports=[("Repo", None), ("GitCommandError", None)])
 tqdm_module = check_and_import("tqdm", "tqdm")
 tqdm_progress = tqdm_module.tqdm
 
@@ -1208,6 +1209,37 @@ def main(_args=None):
             launch_kohya_gui(args)
 
 
+class CustomFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__(fmt='%(levelname)s: %(message)s')
+
+    def format(self, record):
+        if record.levelno == logging.CRITICAL:
+            return f"{record.getMessage()}"
+        else:
+            return f"{record.levelname}: {record.getMessage()}"
+
+    @staticmethod
+    def generate_log_filename():
+        now = datetime.now()
+        current_time_str = now.strftime("%d%m%H")
+
+        logs_dir = 'logs'
+        os.makedirs(logs_dir, exist_ok=True)
+
+        counter = 0
+        while True:
+            counter_suffix = f"{counter}" if counter > 0 else ""
+            log_filename = f"{current_time_str}{counter_suffix}_install.log"
+            log_filepath = os.path.join(logs_dir, log_filename)
+
+            if not os.path.exists(log_filepath):
+                break
+            counter += 1
+
+        return log_filepath
+
+
 if __name__ == "__main__":
     config_file = parse_file_arg()
     config_data = load_config(config_file)
@@ -1217,19 +1249,36 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
+    print(f"Verbosity: {args.verbosity}")
     if args.verbosity == 0:
-        log_level = logging.INFO
-    elif args.verbosity == 1:
         log_level = logging.ERROR
-    elif args.verbosity == 2:
+    elif args.verbosity == 1:
         log_level = logging.WARNING
+    elif args.verbosity == 2:
+        log_level = logging.INFO
     elif args.verbosity >= 3:
         log_level = logging.DEBUG
 
     # Configure logging
     # noinspection SpellCheckingInspection
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+    log_file = CustomFormatter.generate_log_filename()
+    handler = logging.StreamHandler()
+    handler.setFormatter(CustomFormatter())
 
+    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
+                        handlers=[logging.StreamHandler(),
+                                  logging.FileHandler(log_file, mode='w')])
+
+    # Replace 'root' with an empty string in the logger name
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(CustomFormatter())
+
+    logging.getLogger().setLevel(logging.CRITICAL)
+    logging.info(f"log_level: {args.verbosity}")
+    logging.error(f"log_level: {args.verbosity}")
+    logging.warning(f"log_level: {args.verbosity}")
+    logging.critical(f"log_level: {args.verbosity}")
+    exit(1)
     # Use logging in the script like so
     # logging.debug("This is a debug message.")
     # logging.info("This is an info message.")
