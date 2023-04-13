@@ -275,7 +275,7 @@ def train(args):
             with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
-                        latents = batch["latents"].to(accelerator.device).to(dtype=weight_dtype)
+                        latents = batch["latents"].to(accelerator.device) # .to(dtype=weight_dtype)
                     else:
                         # latentに変換
                         latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
@@ -313,7 +313,8 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+                with accelerator.autocast():
+                    noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training

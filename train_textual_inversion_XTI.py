@@ -418,7 +418,8 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states=encoder_hidden_states).sample
+                with accelerator.autocast():
+                    noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states=encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training
