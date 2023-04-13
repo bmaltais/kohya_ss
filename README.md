@@ -161,14 +161,14 @@ LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください
 
 ### 13 Apr. 2023, 2023/4/13:
 
-- Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README.md) for details (currently only in Japanese).
+- Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
 - Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
   - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
   - Multi-GPU training has not been tested.
   - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
 - Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
 
-- `train_network.py`でDyLoRAをサポートしました。詳細は[こちら](./train_network_README-ja.md)をご覧ください。
+- `train_network.py`でDyLoRAをサポートしました。詳細は[こちら](./train_network_README-ja.md#dylora)をご覧ください。
 - 各学習スクリプトでlatentのディスクへのキャッシュをサポートしました。`--cache_latents`オプションに __加えて__、`--cache_latents_to_disk`オプションを指定してください。
   - 画像と同じフォルダに、拡張子 `.npz` で保存されます。`--flip_aug`オプションを指定した場合、`_flip.npz`が付いたファイルにも保存されます。
   - マルチGPUでの学習は未テストです。
