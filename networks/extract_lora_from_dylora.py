@@ -43,7 +43,7 @@ def split_lora_model(lora_sd, unit):
     print(f"Max rank: {max_rank}")
 
     rank = unit
-    splitted_models = []
+    split_models = []
     new_alpha = None
     while rank < max_rank:
         print(f"Splitting rank {rank}")
@@ -62,10 +62,10 @@ def split_lora_model(lora_sd, unit):
                 # new_sd[key] = new_alpha
                 new_sd[key] = value
 
-        splitted_models.append((new_sd, rank, new_alpha))
+        split_models.append((new_sd, rank, new_alpha))
         rank += unit
 
-    return max_rank, splitted_models
+    return max_rank, split_models
 
 
 def split(args):
@@ -73,10 +73,10 @@ def split(args):
     lora_sd, metadata = load_state_dict(args.model)
 
     print("Splitting Model...")
-    original_rank, splitted_models = split_lora_model(lora_sd, args.unit)
+    original_rank, split_models = split_lora_model(lora_sd, args.unit)
 
     comment = metadata.get("ss_training_comment", "")
-    for state_dict, new_rank, new_alpha in splitted_models:
+    for state_dict, new_rank, new_alpha in split_models:
         # update metadata
         if metadata is None:
             new_metadata = {}
