@@ -28,7 +28,6 @@ Options:
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
-  -x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
   -v, --verbose                 Increase verbosity levels up to 3.
   --listen=IP               IP to listen on for connections to Gradio.
   --username=USERNAME       Username for authentication.
@@ -40,7 +39,7 @@ EOF
 }
 
 # This gets the directory the script is run from so pathing can work relative to the script where needed.
-SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 
 # The highest verbosity level. This really starts counting from 3 as 1,2 are reserved by system.
 MAXVERBOSITY=6
@@ -88,7 +87,7 @@ while getopts ":vb:d:f:g:inprsux-:" opt; do
   r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
   u | update) CLI_ARGUMENTS["Update"]="true" ;;
-  v) ((CLI_ARGUMENTS["Verbose"] = CLI_ARGUMENTS["Verbose"] + 1)) ;;
+  v) ((CLI_ARGUMENTS["Verbosity"] = CLI_ARGUMENTS["Verbosity"] + 1)) ;;
   listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
   username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
   password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
@@ -99,7 +98,6 @@ while getopts ":vb:d:f:g:inprsux-:" opt; do
   esac
 done
 shift $((OPTIND - 1))
-
 
 # This reads a YAML configuration file and extracts default argument values.
 # It stores these values in variables with a specified prefix.
@@ -176,7 +174,6 @@ if [ -n "$configFile" ]; then
   parse_and_validate_yaml "$configFile" "config"
 fi
 
-
 # Set default values
 config_Branch="${config_Branch:-master}"
 config_Dir="${config_Dir:-$HOME/kohya_ss}"
@@ -187,14 +184,13 @@ config_NoSetup="${config_NoSetup:-false}"
 config_Runpod="${config_Runpod:-false}"
 config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
 config_Update="${config_Update:-false}"
-config_Verbose="${config_Verbose:-2}"
+config_Verbosity="${config_Verbosity:-0}"
 config_Listen="${config_Listen:-127.0.0.1}"
 config_Username="${config_Username:-}"
 config_Password="${config_Password:-}"
 config_ServerPort="${config_ServerPort:-8080}"
 config_Inbrowser="${config_Inbrowser:-false}"
 config_Share="${config_Share:-false}"
-
 
 # Override config values with CLI arguments
 for key in "${!CLI_ARGUMENTS[@]}"; do
@@ -212,7 +208,7 @@ PUBLIC="$config_Public"
 RUNPOD="$config_Runpod"
 SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
 UPDATE="$config_Update"
-VERBOSE="$config_Verbose"
+VERBOSITY="$config_Verbosity"
 GUI_LISTEN="$config_Listen"
 GUI_USERNAME="$config_Username"
 GUI_PASSWORD="$config_Password"
@@ -220,15 +216,14 @@ GUI_SERVER_PORT="$config_ServerPort"
 GUI_INBROWSER="$config_Inbrowser"
 GUI_SHARE="$config_Share"
 
-
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 $VERBOSE
+  seq 3 $VERBOSITY
 ); do
-  (("$v" <= "$VERBOSE")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
+  (("$v" <= "$VERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
 done
 
 for v in $( #From the verbosity level one higher than requested, through the maximum;
-  seq $((VERBOSE + 1)) $MAXVERBOSITY
+  seq $((VERBOSITY + 1)) $MAXVERBOSITY
 ); do
   (("$v" > "2")) && eval exec "$v>/dev/null" #Redirect these to bitbucket, provided that they don't match stdout and stderr.
 done
@@ -253,20 +248,105 @@ VERBOSITY: $VERBOSITY
 Script directory is ${SCRIPT_DIR}." >&5
 
 # Shared functions
+get_os_info() {
+  declare -A os_info
+  os_info["name"]="Unknown"
+  os_info["family"]="Unknown"
+  os_info["version"]="Unknown"
+
+  case "$(uname -s)" in
+  Darwin*)
+    os_info["name"]="macOS"
+    os_info["family"]="macOS"
+    os_info["version"]=$(sw_vers -productVersion)
+    ;;
+  MINGW64_NT* | MSYS_NT* | CYGWIN_NT*)
+    os_info["name"]="Windows"
+    os_info["family"]="Windows"
+    os_info["version"]=$(systeminfo | grep "^OS Version" | awk -F: '{print $2}' | tr -d '[:space:]')
+    ;;
+  Linux*)
+    if [ -f /etc/os-release ]; then
+      os_info["name"]=$(grep -oP '(?<=^ID=).*' /etc/os-release | tr -d '"')
+      os_info["family"]=$(grep -oP '(?<=^ID_LIKE=).*' /etc/os-release | tr -d '"')
+      os_info["version"]=$(grep -oP '(?<=^VERSION=).*' /etc/os-release | tr -d '"')
+    elif [ -f /etc/redhat-release ]; then
+      os_info["name"]=$(awk '{print $1}' /etc/redhat-release)
+      os_info["family"]="RedHat"
+      os_info["version"]=$(awk '{print $3}' /etc/redhat-release)
+    fi
+
+    if [ "${os_info["name"]}" == "Unknown" ]; then
+      local uname_output
+      uname_output=$(uname -a)
+
+      case $uname_output in
+      *Ubuntu*)
+        os_info["name"]="Ubuntu"
+        os_info["family"]="Ubuntu"
+        ;;
+      *Debian*)
+        os_info["name"]="Debian"
+        os_info["family"]="Debian"
+        ;;
+      *Red\ Hat* | *CentOS*)
+        os_info["name"]="RedHat"
+        os_info["family"]="RedHat"
+        ;;
+      *Fedora*)
+        os_info["name"]="Fedora"
+        os_info["family"]="Fedora"
+        ;;
+      *SUSE*)
+        os_info["name"]="openSUSE"
+        os_info["family"]="SUSE"
+        ;;
+      *Arch*)
+        os_info["name"]="Arch"
+        os_info["family"]="Arch"
+        ;;
+      *)
+        os_info["name"]="Generic Linux"
+        os_info["family"]="Generic Linux"
+        ;;
+      esac
+    fi
+    ;;
+
+  FreeBSD*)
+    os_info["name"]="FreeBSD"
+    os_info["family"]="FreeBSD"
+    os_info["version"]=$(uname -r)
+    ;;
+  *)
+    os_info["name"]="Unknown"
+    os_info["family"]="Unknown"
+    ;;
+  esac
+
+  declare -p os_info
+}
+
+# Eval here to make it global for the other functions
+eval "$(get_os_info)"
+
 is_admin() {
-  if [ "$(uname -s)" = "Windows" ] || [ "$(uname -s)" = "MINGW64_NT" ] || [ "$(uname -s)" = "CYGWIN_NT" ]; then
+  case "${os_info["name"]}" in
+  "Windows" | "MINGW64_NT" | "CYGWIN_NT")
     if net session >/dev/null 2>&1; then
       return 0
     else
       return 1
     fi
-  else
+    ;;
+  *)
     if [ "$EUID" = 0 ] || [ "$(id -u)" = 0 ] || [ "$UID" = 0 ]; then
       return 0
     else
       return 1
     fi
-  fi
+    ;;
+  esac
 }
 
 update_install_scope() {
@@ -296,9 +376,8 @@ update_install_scope() {
 
 normalize_path() {
   local path="$1"
-  os=$(get_os_info)
 
-  case $os in
+  case "${os_info["name"]}" in
   "Windows")
     if command -v cygpath >/dev/null 2>&1; then
       path=$(cygpath -m -a "$path" 2>/dev/null || echo "$path")
@@ -322,48 +401,49 @@ normalize_path() {
 # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 size_available() {
   local folder
-  os=$(get_os_info)
 
-  case $os in
+  case "${os_info["family"]}" in
   "Windows")
-    folder="C:"
+    if [ -d "$DIR" ]; then
+      folder="$DIR"
+    elif [ -d "$PARENT_DIR" ]; then
+      folder="$PARENT_DIR"
+    elif [ -d "$(echo "$DIR" | cut -d '/' -f1)" ]; then
+      folder="$(echo "$DIR" | cut -d '/' -f1)"
+    else
+      echo "We are assuming a C: drive install for space-checking purposes." >&2
+      folder='C:'
+    fi
     ;;
   *)
     if [ -d "$DIR" ]; then
       folder="$DIR"
     elif [ -d "$PARENT_DIR" ]; then
       folder="$PARENT_DIR"
-    elif [ -d "$(echo "$DIR" | cut -d "/" -f2)" ]; then
-      folder="$(echo "$DIR" | cut -d "/" -f2)"
+    elif [ -d "$(echo "$DIR" | cut -d '/' -f2)" ]; then
+      folder="$(echo "$DIR" | cut -d '/' -f2)"
     else
-      echo "We are assuming a root drive install for space-checking purposes."
+      echo "We are assuming a root drive install for space-checking purposes." >&2
       folder='/'
     fi
     ;;
   esac
 
-  local FREESPACEINKB
-  case $os in
-  "Windows")
-    FREESPACEINKB=$(wmic logicaldisk where "DeviceID='$folder'" get FreeSpace | awk 'NR==2 {print int($1/1024)}')
-    ;;
-  *)
-    FREESPACEINKB=$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')
-    ;;
-  esac
-
-  echo "Detected available space in Kb: $FREESPACEINKB" >&5
-  local FREESPACEINGB
-  FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
-  echo "$FREESPACEINGB"
+  # Return available space in GB
+  if [[ "${os_info["family"]}" == "Windows" ]]; then
+    powershell -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter \"DeviceID='$folder'\" | Select-Object FreeSpace" |
+      awk '/[0-9]+/ {print int($1 / 1024 / 1024 / 1024)}'
+  else
+    df --output=avail -B1G "$folder" | tail -n1 | awk '{print $1}'
+  fi
 }
 
 check_storage_space() {
   if [ "$SKIP_SPACE_CHECK" = false ]; then
     if [ "$(size_available)" -lt "$1" ]; then
       echo "You have less than 10Gb of free space. This installation may fail."
-      MSGTIMEOUT=10 # In seconds
-      MESSAGE="Continuing in..."
+      local MSGTIMEOUT=10 # In seconds
+      local MESSAGE="Continuing in..."
       echo "Press control-c to cancel the installation."
       for ((i = MSGTIMEOUT; i >= 0; i--)); do
         printf "\r${MESSAGE} %ss. " "${i}"
@@ -373,71 +453,33 @@ check_storage_space() {
   fi
 }
 
-get_os_info() {
-  os_name="Unknown"
-  os_family="Unknown"
-  os_version="Unknown"
+# Example access to that data.
+# echo "OS Name: ${os_info["name"]}"
+# echo "OS Family: ${os_info["family"]}"
+# echo "OS Version: ${os_info["version"]}"
 
-  case "$(uname -s)" in
-  Darwin*)
-    os_name="macOS"
-    os_family="macOS"
-    os_version=$(sw_vers -productVersion)
-    ;;
-  MINGW64_NT* | MSYS_NT* | CYGWIN_NT*)
-    os_name="Windows"
-    os_family="Windows"
-    os_version=$(systeminfo | grep "^OS Version" | awk -F: '{print $2}' | tr -d '[:space:]')
-    ;;
-  Linux*)
-    if [ -f /etc/os-release ]; then
-      os_name=$(grep -oP '(?<=^ID=).*' /etc/os-release | tr -d '"')
-      os_family=$(grep -oP '(?<=^ID_LIKE=).*' /etc/os-release | tr -d '"')
-      os_version=$(grep -oP '(?<=^VERSION=).*' /etc/os-release | tr -d '"')
-    elif [ -f /etc/redhat-release ]; then
-      os_name=$(awk '{print $1}' /etc/redhat-release)
-      os_family="RedHat"
-      os_version=$(awk '{print $3}' /etc/redhat-release)
-    fi
+package_exists() {
+  local package="$1"
 
-    if [ "$os_name" == "Unknown" ]; then
-      uname_output=$(uname -a)
-      if [[ $uname_output == *"Ubuntu"* ]]; then
-        os_name="Ubuntu"
-        os_family="Ubuntu"
-      elif [[ $uname_output == *"Debian"* ]]; then
-        os_name="Debian"
-        os_family="Debian"
-      elif [[ $uname_output == *"Red Hat"* || $uname_output == *"CentOS"* ]]; then
-        os_name="RedHat"
-        os_family="RedHat"
-      elif [[ $uname_output == *"Fedora"* ]]; then
-        os_name="Fedora"
-        os_family="Fedora"
-      elif [[ $uname_output == *"SUSE"* ]]; then
-        os_name="openSUSE"
-        os_family="SUSE"
-      elif [[ $uname_output == *"Arch"* ]]; then
-        os_name="Arch"
-        os_family="Arch"
-      else
-        os_name="Generic Linux"
-        os_family="Generic Linux"
-      fi
-    fi
-    ;;
-  FreeBSD*)
-    os_name="FreeBSD"
-    os_family="FreeBSD"
-    os_version=$(uname -r)
-    ;;
-  *)
-    os_name="Unknown"
-    os_family="Unknown"
-    ;;
-  esac
-
-  echo "$os_name"
+  if [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
+    dpkg -s "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ (Fedora|CentOS|RedHat) ]] || [[ "${os_info["family"]}" =~ (Fedora|CentOS|RedHat) ]]; then
+    rpm -q "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ (Arch|Manjaro) ]] || [[ "${os_info["family"]}" =~ (Arch|Manjaro) ]]; then
+    pacman -Qi "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ openSUSE ]] || [[ "${os_info["family"]}" =~ openSUSE ]]; then
+    zypper if "$package" | grep "Installed: Yes" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]] || [[ "${os_info["family"]}" =~ FreeBSD ]]; then
+    pkg info "$package" >/dev/null 2>&1
+    return $?
+  else
+    echo "Unsupported operating system for package_exists function."
+    return 1
+  fi
 }
 
 install_git_windows() {
@@ -462,7 +504,8 @@ install_git_windows() {
 
   if [ "$package_manager_found" = false ]; then
     if is_admin; then
-      local install_scope=$(update_install_scope "$interactive")
+      local install_scope
+      install_scope=$(update_install_scope "$interactive")
     else
       install_scope="user"
     fi
@@ -490,89 +533,93 @@ install_git_windows() {
 }
 
 install_git() {
-  os=$(get_os_info)
-
+  shopt -s nocasematch
   if command -v git >/dev/null 2>&1; then
     echo "Git is already installed."
     return 0
   fi
 
-  case $os in
-  "Windows")
-    install_git_windows "$interactive"
-    ;;
-  "macOS")
+  # Windows
+  if [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" =~ Windows ]]; then
+    install_git_windows "$INTERACTIVE"
+
+  # macOS
+  elif [[ "${os_info["name"]}" =~ macOS || "${os_info["family"]}" =~ macOS ]]; then
     if command -v brew >/dev/null 2>&1; then
-      brew install git
+      ! package_exists git && brew install git
     else
       echo "Please install Homebrew first to continue with Git installation."
       echo "You can find that here: https://brew.sh"
       exit 1
     fi
-    ;;
-  "Ubuntu" | "Debian")
+
+  # Ubuntu/Debian
+  elif [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
     if is_admin; then
-      sudo apt-get update && sudo apt-get install -y git
+      ! package_exists git && (sudo apt-get update && sudo apt-get install -y git)
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
     fi
-    ;;
-  "Fedora" | "CentOS" | "RedHat")
+  # RedHat
+  elif [[ "${os_info["name"]}" =~ Fedora|CentOS|RedHat || "${os_info["family"]}" =~ Fedora|CentOS|RedHat ]]; then
     if is_admin; then
-      sudo dnf install -y git
+      ! package_exists git && sudo dnf install -y git
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
     fi
-    ;;
-  "Arch" | "Manjaro")
+
+  # Arch
+  elif [[ "${os_info["name"]}" =~ Arch|Manjaro || "${os_info["family"]}" =~ Arch|Manjaro ]]; then
     if is_admin; then
-      sudo pacman -Sy --noconfirm git
+      ! package_exists git && sudo pacman -Sy --noconfirm git
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
     fi
-    ;;
-  "openSUSE")
+
+  # openSUSE
+  elif [[ "${os_info["name"]}" =~ openSUSE || "${os_info["family"]}" =~ openSUSE ]]; then
     if is_admin; then
-      sudo zypper install -y git
+      ! package_exists git && sudo zypper install -y git
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
     fi
-    ;;
-  "FreeBSD")
+
+  # FreeBSD
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]]; then
     if is_admin; then
-      sudo pkg install -y git
+      ! package_exists git && sudo pkg install -y git
     else
       echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
       exit 1
     fi
-    ;;
-  *)
+  else
     echo "Unsupported operating system. Please install Git manually."
     exit 1
-    ;;
-  esac
+  fi
+  shopt -u nocasematch
 }
 
 install_python310_windows() {
   local interactive="$1"
 
   if command -v scoop >/dev/null 2>&1; then
-    package_manager_found=false
+    local package_manager_found=false
   elif command -v choco >/dev/null 2>&1; then
     choco install python --version=3.10 --params "/IncludeTclTk"
-    package_manager_found=true
+    local package_manager_found=true
   elif command -v winget >/dev/null 2>&1; then
     winget install --id Python.Python --version 3.10.*
-    package_manager_found=true
+    local package_manager_found=true
   fi
 
   if [ "$package_manager_found" = false ]; then
     if is_admin; then
-      local install_scope=$(update_install_scope "$interactive")
+      local install_scope
+      install_scope=$(update_install_scope "$interactive")
     else
       install_scope="user"
     fi
@@ -600,94 +647,70 @@ install_python310_windows() {
 }
 
 install_python_and_tk() {
-  os=$(get_os_info)
+  local missing_packages=()
 
-  if command -v python3.10 >/dev/null 2>&1; then
-    echo "Python 3.10 is already installed."
-  else
-    case $os in
-    "Windows")
-      install_python310_windows "$interactive"
-      ;;
-    "macOS")
-      if command -v brew >/dev/null 2>&1; then
-        brew install python@3.10
-        brew link --overwrite --force python@3.10
-        brew install tcl-tk
-      else
-        echo "Please install Homebrew first to continue with Python 3.10 and Tk installation."
-        echo "You can find that here: https://brew.sh"
-        exit 1
-      fi
-      ;;
-    "Ubuntu" | "Debian")
-      if is_admin; then
-        sudo apt update && sudo apt install -y python3.10 python3.10-tk
-      else
-        echo "Root privileges are required to install Python and Tk on Ubuntu/Debian. Exiting."
-        exit 1
-      fi
-      ;;
-    "Fedora" | "CentOS" | "RedHat")
-      if is_admin; then
-        sudo dnf install -y python3.10 python3.10-tkinter
-      else
-        echo "Root privileges are required to install Python and Tk on Fedora/CentOS/RedHat. Exiting."
-        exit 1
-      fi
-      ;;
-    "Arch" | "Manjaro")
-      # Get the latest 3.10.x version of Python available in the repository
-      # shellcheck disable=SC2155
-      local latest_python310_version=$(pacman -Si python | grep -oP '3.10\.\d+' | head -n 1)
+  # Ubuntu/Debian
+  if [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
+    package_exists python3.10 || missing_packages+=("python3.10")
+    package_exists python3-tk || missing_packages+=("python3-tk")
+    package_exists python3.10-venv || missing_packages+=("python3.10-venv")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo apt-get update && sudo apt-get install -y "${missing_packages[@]}"
 
-      if [[ -n "$latest_python310_version" ]]; then
-        # Install the latest 3.10.x version of Python along with python-tk
-        if is_admin; then
-          sudo pacman -Sy --noconfirm "python=${latest_python310_version}" python-tk
-        else
-          echo "Root privileges are required to install Python and Tk on Arch/Manjaro. Exiting."
-          exit 1
-        fi
-      else
-        echo "Python 3.10.x not found in the repository."
-        exit 1
-      fi
-      ;;
-    "openSUSE")
-      if is_admin; then
-        sudo zypper install -y python3.10 python3.10-tk
-      else
-        echo "Root privileges are required to install Python and Tk on openSUSE. Exiting."
-        exit 1
-      fi
-      ;;
-    "FreeBSD")
-      if is_admin; then
-        sudo pkg install -y python310 py310-tkinter py310-pip
-      else
-        echo "Root privileges are required to install Python and Tk on FreeBSD. Exiting."
-        exit 1
-      fi
-      ;;
-    *)
-      echo "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually."
-      echo "For manual installation, you can download the official Python tar.gz packages from:"
-      echo "https://www.python.org/downloads/source/"
+  # Redhat
+  elif [[ "${os_info["name"]}" =~ Fedora|CentOS|RedHat || "${os_info["family"]}" =~ Fedora|CentOS|RedHat ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists python3-tkinter || missing_packages+=("python3-tkinter")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo yum install -y "${missing_packages[@]}"
+
+  # Arch
+  elif [[ "${os_info["name"]}" =~ Arch|Manjaro || "${os_info["family"]}" =~ Arch|Manjaro ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists tk || missing_packages+=("tk")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo pacman -Syu --needed "${missing_packages[@]}"
+
+  # openSUSE
+  elif [[ "${os_info["name"]}" =~ openSUSE || "${os_info["family"]}" =~ openSUSE ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists python3-tk || missing_packages+=("python3-tk")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo zypper in "${missing_packages[@]}"
+
+  # FreeBSD
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]]; then
+    package_exists py310-python || missing_packages+=("py310-python")
+    package_exists py310-tkinter || missing_packages+=("py310-tkinter")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo pkg install "${missing_packages[@]}"
+
+  # macOS
+  elif [[ "${os_info["name"]}" =~ macOS || "${os_info["family"]}" =~ macOS ]]; then
+    if command -v brew >/dev/null 2>&1; then
+      ! brew list --versions python@3.10 >/dev/null && missing_packages+=("python@3.10")
+      ! brew list --versions tcl-tk >/dev/null && missing_packages+=("tcl-tk")
+      [[ ${#missing_packages[@]} -ne 0 ]] && brew install "${missing_packages[@]}"
+      brew link --overwrite --force python@3.10
+    else
+      echo "Please install Homebrew first to continue with Python 3.10 and Tk installation."
+      echo "You can find that here: https://brew.sh"
       exit 1
-      ;;
-    esac
+    fi
+
+  # Windows
+  elif [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" =~ Windows ]]; then
+    install_python310_windows "$INTERACTIVE"
+  else
+    echo "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually."
+    echo "For manual installation, you can download the official Python tar.gz packages from:"
+    echo "https://www.python.org/downloads/source/"
+    exit 1
   fi
 }
 
 install_vc_redist_windows() {
-  os=$(get_os_info)
-  if [ "$os" != "Windows" ]; then
+  if [ "${os_info["family"]}" != "Windows" ]; then
     return 0
   fi
 
   if ! is_admin; then
-    echo "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
+    echo "Admin privileges are required to install the Visual Studio redistributable. Please run this script as an administrator."
     exit 1
   fi
 
@@ -720,31 +743,31 @@ run_launcher() {
   "$PYTHON_EXEC" launcher.py \
     --branch="$BRANCH" \
     --dir="$DIR" \
-    --gitrepo="$GIT_REPO" \
-    --interactive="$INTERACTIVE" \
-    --no-setup="$NO_SETUP" \
-    --public="$PUBLIC" \
-    --runpod="$RUNPOD" \
-    --skipspacecheck="$SKIP_SPACE_CHECK" \
-    --update="$UPDATE" \
+    --git-repo="$GIT_REPO" \
+    $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
+    $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
+    $([ "$PUBLIC" = "true" ] && echo "--public") \
+    $([ "$RUNPOD" = "true" ] && echo "--runpod") \
+    $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
+    $([ "$UPDATE" = "true" ] && echo "--update") \
     --listen="$GUI_LISTEN" \
     --username="$GUI_USERNAME" \
     --password="$GUI_PASSWORD" \
-    --server_port="$GUI_SERVER_PORT" \
-    --inbrowser="$GUI_INBROWSER" \
-    --share="$GUI_SHARE" \
-    --verbose="$VERBOSITY"
+    --server-port="$GUI_SERVER_PORT" \
+    $([ "$GUI_INBROWSER" = "true" ] && echo "--inbrowser") \
+    $([ "$GUI_SHARE" = "true" ] && echo "--share") \
+    -v "$VERBOSITY"
 }
 
 function main() {
   if ! "$NO_SETUP"; then
-      DIR="$(normalize_path "$DIR")"
+    DIR="$(normalize_path "$DIR")"
 
-      # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
-      check_storage_space 5
-      install_git
-      install_python_and_tk
-      install_vc_redist_windows
+    # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
+    check_storage_space 5
+    install_git
+    install_python_and_tk
+    install_vc_redist_windows
   fi
 
   run_launcher
