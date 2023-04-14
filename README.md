@@ -159,6 +159,10 @@ LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additio
 
 LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください。
 
+### 14 Apr. 2023, 2023/4/14:
+- Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
+- `train_network.py`で、DyLoRAを`--network_weight`オプションで読み込むとエラーになる不具合を修正しました。
+
 ### 13 Apr. 2023, 2023/4/13:
 
 - Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
