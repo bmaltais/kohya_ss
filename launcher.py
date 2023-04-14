@@ -6,6 +6,8 @@ import importlib
 import mimetypes
 import os
 import pkgutil
+import warnings
+from contextlib import redirect_stderr
 from datetime import datetime
 from getpass import getpass
 import platform
@@ -28,6 +30,25 @@ def install_package(package_name):
 
 
 def check_and_import(module_name, package_name=None, imports=None):
+    """
+    Check if a module is installed, and if not, install it and then import it.
+    This function also allows importing specific objects from the module and
+    adding them to sys.modules with a custom alias if needed.
+
+    Parameters:
+    module_name (str): The name of the module to be imported.
+    package_name (str, optional): The name of the package to be installed if the module
+                                   is not found. Defaults to the same as module_name.
+    imports (list of tuples, optional): A list of objects to import from the module.
+                                        Each tuple should contain the object name as its
+                                        first element, and an optional alias as its second
+                                        element. If no alias is provided, the object will
+                                        be added to sys.modules using its original name.
+                                        Defaults to None.
+
+    Returns:
+    module: The imported module.
+    """
     if package_name is None:
         package_name = module_name
 
@@ -47,10 +68,6 @@ def check_and_import(module_name, package_name=None, imports=None):
                 sys.modules[obj_name] = obj
 
     return module
-
-
-# Usage example:
-# check_and_import("git", imports=[("Repo", None), ("GitCommandError", None)])
 
 
 base64 = check_and_import('base64')
@@ -121,19 +138,13 @@ def parse_file_arg():
 
 
 def normalize_paths(_args, default_args):
-    def is_valid_path(value):
-        try:
-            path = os.path.abspath(value)
-            return os.path.exists(path)
-        except TypeError:
-            return False
-
     for arg in default_args:
+        arg_name = arg["long"][2:].replace("-", "_")
         default_value = arg["default"]
-        if isinstance(default_value, str) and is_valid_path(default_value):
-            arg_name = arg["long"][2:].replace("-", "_")
-            path_value = getattr(_args, arg_name)
-            if path_value:
+        is_path = arg.get("is_path", False)
+        if is_path and isinstance(default_value, str):
+            path_value = getattr(_args, arg_name, None)
+            if path_value and isinstance(path_value, str):
                 setattr(_args, arg_name, os.path.abspath(path_value))
 
 
@@ -141,26 +152,19 @@ def normalize_paths(_args, default_args):
 # verbosity and Unix style (-vvv).
 class CountOccurrencesAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if isinstance(values, int):
-            # If value is an integer, set verbosity level to that value
-            setattr(namespace, self.dest, values)
-        elif isinstance(values, str):
-            # If value is a string, check if it's a single integer
-            try:
-                count = int(values)
+        # If value is a string, check if it's a single integer
+        try:
+            count = int(values)
+            setattr(namespace, self.dest, count)
+        except ValueError:
+            # If value is not a single integer, check if it's a valid verbosity string
+            if not bool(re.search('[^v]', values)):
+                # We add a single v because .count starts at zero and returns v - 1.
+                count = (values + 'v').count('v')
                 setattr(namespace, self.dest, count)
-            except ValueError:
-                # If value is not a single integer, check if it's a valid verbosity string
-                if not bool(re.search('[^v]', values)):
-                    # We add a single v because .count starts at zero and returns v - 1.
-                    count = (values + 'v').count('v')
-                    setattr(namespace, self.dest, count)
-                else:
-                    logging.error('Invalid verbosity level')
-                    exit(1)
-        else:
-            # If value is not a string or integer, raise an error
-            raise argparse.ArgumentTypeError('Invalid verbosity level')
+            else:
+                logging.error('Invalid verbosity level')
+                exit(1)
 
         # Check if verbosity level is a non-negative integer
         if getattr(namespace, self.dest) < 0:
@@ -194,10 +198,10 @@ def parse_args(_config_data):
          "help": "Select which branch of kohya to check out on new installs."},
 
         {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str,
-         "help": "The full path you want kohya_ss installed to."},
+         "help": "The full path you want kohya_ss installed to.", "is_path": True},
 
         {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str,
-         "help": "Configuration file with installation options."},
+         "help": "Configuration file with installation options.", "is_path": True},
 
         {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str,
          "help": "You can optionally provide a git repo to check out. Useful for custom forks."},
@@ -220,12 +224,9 @@ def parse_args(_config_data):
         {"short": "-u", "long": "--update", "default": False, "type": bool,
          "help": "Update kohya_ss with specified branch, repo, or latest stable if git's unavailable."},
 
-        {"short": "-v", "long": "--verbosity", "default": 0,
+        {"short": "-v", "long": "--verbosity", "default": '0', "type": str,
          "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
          "action": CountOccurrencesAction},
-
-        {"short": "-x", "long": "--exclude-setup", "default": False, "type": bool,
-         "help": "Skip all setup steps and only validate python requirements then launch GUI."},
 
         {"short": "", "long": "--listen", "default": "127.0.0.1", "type": str,
          "help": "IP to listen on for connections to Gradio."},
@@ -274,11 +275,13 @@ def parse_args(_config_data):
 
         if custom_action:
             if short_opt:
-                parser.add_argument(short_opt, long_opt, dest=None, action=custom_action, default=default_value,
-                                    help=help_text)
+                parser.add_argument(short_opt, long_opt, dest=None, action=custom_action, nargs='?',
+                                    default=default_value,
+                                    type=str, help=help_text)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=custom_action,
-                                    default=default_value, help=help_text)
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=custom_action, nargs='?',
+                                    default=default_value, type=str, help=help_text)
+
         elif isinstance(default_value, bool):
             action = 'store_true' if default_value is False else 'store_false'
             if short_opt:
@@ -296,6 +299,7 @@ def parse_args(_config_data):
                                     help=help_text)
 
     _args = parser.parse_args()
+    _args.verbosity = int(_args.verbosity)
 
     # Normalize paths to ensure absolute paths
     normalize_paths(_args, default_args)
@@ -603,10 +607,45 @@ def find_ssh_private_key_path(git_repo):
     return None
 
 
+class GitProgressPrinter(git.remote.RemoteProgress):
+    def __init__(self, operation, repo_name, local_folder, total=None):
+        super().__init__()
+        self.operation = operation
+        self.repo_name = repo_name
+        self.local_folder = local_folder
+        self.total = total
+        self.received_objects = 0
+
+    def update(self, op_code, cur_count, max_count=None, message=''):
+        if self.total is None and max_count:
+            self.total = max_count
+            logging.critical(
+                f"{self.operation.capitalize()} {self.repo_name} to {self.local_folder}\n Total objects: {self.total}")
+
+        if cur_count > self.received_objects:
+            self.received_objects = cur_count
+            print(f"Received {self.received_objects}/{self.total} objects", end='\r')
+
+
 def update_kohya_ss(_dir, git_repo, branch, update):
     logging.debug(f"Update: {update}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
     logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
+
+    def move_venv_to_temp(_dir):
+        _venv_path = os.path.join(_dir, "venv")
+        _temp_dir = tempfile.TemporaryDirectory()
+        if os.path.exists(_venv_path):
+            shutil.move(_venv_path, _temp_dir.name)
+            logging.debug(f"Moved venv folder to temporary location: {_temp_dir.name}")
+        return _temp_dir
+
+    def move_venv_back_to_dir(_temp_dir, _dir):
+        venv_temp_path = os.path.join(_temp_dir.name, "venv")
+        venv_original_path = os.path.join(_dir, "venv")
+        if os.path.exists(venv_temp_path):
+            shutil.move(venv_temp_path, venv_original_path)
+            logging.debug(f"Moved venv folder back to the original location: {venv_original_path}")
 
     def has_uncommitted_changes(local_git_repo):
         try:
@@ -622,6 +661,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
 
     def git_operations_with_credentials(_dir, _git_repo, _branch, _update, _username=None, _password=None):
         git_folder_present = os.path.exists(os.path.join(_dir, ".git"))
+        venv_folder_present = os.path.exists(os.path.join(_dir, "venv"))
 
         parsed_git_url = urlparse(_git_repo)
 
@@ -651,17 +691,33 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                     raise UncommittedChangesException()
 
                 logging.debug("git pull operation entered.")
-                local_git_repo.remotes.origin.pull(**git_credentials)
+
+                pull_progress = GitProgressPrinter(operation="pull", repo_name=_git_repo, local_folder=_dir)
+                local_git_repo.remotes.origin.pull(progress=pull_progress, **git_credentials)
 
                 _success = True
                 return _success, _error
 
             elif not git_folder_present:
-                logging.debug("git clone operation entered.")
-                git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, **git_credentials)
 
-                _success = True
-                return _success, _error
+                if len(os.listdir(_dir)) in (0, 1) and (not git_folder_present or venv_folder_present):
+                    tmp_venv_path = None
+
+                    if venv_folder_present:
+                        tmp_venv_path = os.path.join(tempfile.mkdtemp(), "venv")
+                        shutil.move(os.path.join(_dir, "venv"), tmp_venv_path)
+
+                    logging.debug("git clone operation entered.")
+
+                    progress_printer = GitProgressPrinter("clone", _git_repo, _dir)
+                    git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1,
+                                        progress=progress_printer, **git_credentials)
+
+                    if venv_folder_present and tmp_venv_path is not None:
+                        shutil.move(tmp_venv_path, os.path.join(_dir, "venv"))
+
+                    _success = True
+                    return _success, _error
 
         except git.GitCommandError as _e:
             logging.warning(f"Git command error: {_e}")
@@ -733,7 +789,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 git_repo = git_repo.rstrip('.git')
                 download_url = git_repo.rstrip("/") + f"/archive/refs/tags/{get_latest_tag(git_repo)}.zip"
                 auth = (username, password) if username and password else None
-                logging.info(f"Attempting to download from: {download_url}")
+                logging.critical(f"Attempting to download from: {download_url}")
                 response = requests.get(download_url, auth=auth)
                 logging.debug(f"Zip download response: {response.status_code}, {response.text}")
 
@@ -979,9 +1035,12 @@ def check_permissions(_dir):
                     os.chmod(file_path, current_permissions | missing_permissions)
                     logging.debug(f"Fixed permissions for file: {file_path}")
                 except PermissionError as e:
-                    logging.error(f"Unable to fix permissions for file: {file_path}")
-                    logging.error(f"Error: {str(e)}")
-                    return False
+                    folder_name, file_name = os.path.split(file_path)
+
+                    if "bin" not in folder_name and "python" not in file_name:
+                        logging.error(f"Unable to fix permissions for file: {file_path}")
+                        logging.error(f"Error: {str(e)}")
+                        return False
     return True
 
 
@@ -1011,13 +1070,15 @@ def find_python_binary():
 def install_python_dependencies(_dir, runpod):
     # Update pip
     logging.info("Checking for pip updates before Python operations.")
+
     if args.verbosity >= 2:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
     else:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                        "--no-warn-script-location", "pip"], stderr=subprocess.DEVNULL)
 
     # Install python dependencies
-    logging.info("Installing python dependencies. This could take a long time as it downloads some large files.")
+    logging.critical("Installing python dependencies. This could take a long time as it downloads some large files.")
 
     # Set the paths for the built-in requirements and temporary requirements files
     requirements_path = os.path.join(_dir, "requirements.txt")
@@ -1085,10 +1146,13 @@ def install_python_dependencies(_dir, runpod):
             temp_requirements.flush()
             temp_requirements.close()
 
-        logging.info("Installing required packages...")
+        logging.debug("requirements.txt successfully processed and merged.")
         if args.verbosity >= 3:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "-r", temp_requirements.name])
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
+                            "-r", temp_requirements.name])
         else:
+            logging.critical("Please be patient. It takes time for the requirements to be collected before showing "
+                             "Python package validation and installation progress.")
             # Count the number of packages in the temporary requirements file
             with open(temp_requirements.name, "r") as f:
                 num_packages = sum(1 for line in f if line.strip())
@@ -1097,7 +1161,9 @@ def install_python_dependencies(_dir, runpod):
                 for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
                     package = line.strip()
                     if package:
-                        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--quiet", package])
+                        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
+                                        "--quiet", "--use-pep517", "--no-warn-script-location", package],
+                                       stderr=subprocess.DEVNULL)
 
         # Delete the temporary requirements file
         logging.debug(f"Removing {temp_requirements.name}")
@@ -1150,25 +1216,36 @@ def launch_kohya_gui(_args):
             logging.info("Error: Python executable not found in the virtual environment")
             sys.exit(1)
 
-    cmd = [
-        venv_python_bin, os.path.join(_args.dir, "kohya_gui.py"),
-        "--listen", "127.0.0.1",
-        "--server_port", "7861",
-    ]
+    kohya_gui_file = os.path.join(_args.dir, "kohya_gui.py")
+    logging.debug(f"kohya_gui.py expected at {kohya_gui_file}")
 
-    if _args.username:
-        cmd.extend(["--username", _args.username])
+    if os.path.exists(kohya_gui_file):
+        cmd = [
+            venv_python_bin, os.path.join(kohya_gui_file),
+            "--listen", "127.0.0.1",
+            "--server_port", "7861",
+        ]
 
-    if _args.password:
-        cmd.extend(["--password", _args.password])
+        if _args.username:
+            cmd.extend(["--username", _args.username])
 
-    try:
-        logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
-        logging.debug(f"Running kohya_gui.py as: {cmd}")
-        subprocess.run(cmd, check=True)
-    except KeyboardInterrupt:
-        logging.info("Process terminated by the user. Exiting...")
-        sys.exit(0)
+        if _args.password:
+            cmd.extend(["--password", _args.password])
+
+        try:
+            logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
+            logging.debug(f"Running kohya_gui.py as: {cmd}")
+            print("\n")
+            logging.critical("Running kohya_gui.py now. Press control+c in this terminal to shutdown the software.")
+            subprocess.run(cmd, check=True)
+            pass
+        except KeyboardInterrupt:
+            with open(os.devnull, 'w') as nullfile, redirect_stderr(nullfile):
+                logging.info("Process terminated by the user. Exiting...")
+                sys.exit(0)
+    else:
+        logging.critical("kohya_gui.py not found. Can't run the software.")
+        exit(1)
 
 
 def main(_args=None):
@@ -1222,7 +1299,7 @@ class CustomFormatter(logging.Formatter):
     @staticmethod
     def generate_log_filename():
         now = datetime.now()
-        current_time_str = now.strftime("%d%m%H")
+        current_time_str = now.strftime("%Y-%m-%dT%H%M%S")  # ISO 8601 format without timezone information
 
         logs_dir = 'logs'
         os.makedirs(logs_dir, exist_ok=True)
@@ -1230,7 +1307,7 @@ class CustomFormatter(logging.Formatter):
         counter = 0
         while True:
             counter_suffix = f"{counter}" if counter > 0 else ""
-            log_filename = f"{current_time_str}{counter_suffix}_install.log"
+            log_filename = f"install_log_{current_time_str}{counter_suffix}.log"
             log_filepath = os.path.join(logs_dir, log_filename)
 
             if not os.path.exists(log_filepath):
@@ -1249,7 +1326,6 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
-    print(f"Verbosity: {args.verbosity}")
     if args.verbosity == 0:
         log_level = logging.ERROR
     elif args.verbosity == 1:
@@ -1273,17 +1349,13 @@ if __name__ == "__main__":
     for handler in logging.getLogger().handlers:
         handler.setFormatter(CustomFormatter())
 
-    logging.getLogger().setLevel(logging.CRITICAL)
-    logging.info(f"log_level: {args.verbosity}")
-    logging.error(f"log_level: {args.verbosity}")
-    logging.warning(f"log_level: {args.verbosity}")
-    logging.critical(f"log_level: {args.verbosity}")
-    exit(1)
-    # Use logging in the script like so
-    # logging.debug("This is a debug message.")
-    # logging.info("This is an info message.")
-    # logging.warning("This is a warning message.")
+    # Use logging in the script like so (in order of log levels).
+    # logging.critical("This will always display.")
     # logging.error("This is an error message.")
+    # logging.warning("This is a warning message.")
+    # logging.info("This is an info message.")
+    # logging.debug("This is a debug message.")
+
     os_info = get_os_info()
 
     # Store the original sys.executable value
