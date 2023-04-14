@@ -28,13 +28,13 @@ Options:
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
-  -v, --verbose                 Increase verbosity levels up to 3.
-  --listen=IP               IP to listen on for connections to Gradio.
-  --username=USERNAME       Username for authentication.
-  --password=PASSWORD       Password for authentication.
-  --server-port=PORT        Port to run the server listener on.
-  --inbrowser               Open in browser.
-  --share                   Share your installation.
+  -v                            Increase verbosity levels up to 3. (e.g., -vvv)
+  --listen=IP                   IP to listen on for connections to Gradio.
+  --username=USERNAME           Username for authentication.
+  --password=PASSWORD           Password for authentication.
+  --server-port=PORT            Port to run the server listener on.
+  --inbrowser                   Open in browser.
+  --share                       Share your installation.
 EOF
 }
 
