@@ -307,6 +307,7 @@ This will store a backup file with your current locally installed pip packages a
     - Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
     - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
     - Update gui.bat and gui.ps1 based on: https://github.com/bmaltais/kohya_ss/issues/188
+    - Update `setup.bat` to install torch 2.0.0 instead of 1.2.1. If you want to upgrade from 1.2.1 to 2.0.0 run setup.bat again, select 1 to uninstall the previous torch modules, then select 2 for torch 2.0.0
 
 * 2023/04/09 (v21.5.2)
 
