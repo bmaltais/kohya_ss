@@ -172,11 +172,13 @@ def train(args):
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
-            train_dataset_group.cache_latents(vae, args.vae_batch_size)
+            train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
         vae.to("cpu")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
+
+        accelerator.wait_for_everyone()
 
     # prepare network
     import sys
@@ -195,7 +197,7 @@ def train(args):
     network = network_module.create_network(1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
     if network is None:
         return
-    
+
     if hasattr(network, "prepare_network"):
         network.prepare_network(args)
 
@@ -219,7 +221,9 @@ def train(args):
     try:
         trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr, args.learning_rate)
     except TypeError:
-        print("Deprecated: use prepare_optimizer_params(text_encoder_lr, unet_lr, learning_rate) instead of prepare_optimizer_params(text_encoder_lr, unet_lr)")
+        print(
+            "Deprecated: use prepare_optimizer_params(text_encoder_lr, unet_lr, learning_rate) instead of prepare_optimizer_params(text_encoder_lr, unet_lr)"
+        )
         trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
 
     optimizer_name, optimizer_args, optimizer = train_util.get_optimizer(args, trainable_params)
@@ -539,6 +543,12 @@ def train(args):
     loss_list = []
     loss_total = 0.0
     del train_dataset_group
+
+    # if hasattr(network, "on_step_start"):
+    #     on_step_start = network.on_step_start
+    # else:
+    #     on_step_start = lambda *args, **kwargs: None
+
     for epoch in range(num_train_epochs):
         if is_main_process:
             print(f"epoch {epoch+1}/{num_train_epochs}")
@@ -551,6 +561,8 @@ def train(args):
         for step, batch in enumerate(train_dataloader):
             current_step.value = global_step
             with accelerator.accumulate(network):
+                # on_step_start(text_encoder, unet)
+
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
                         latents = batch["latents"].to(accelerator.device)
@@ -563,16 +575,17 @@ def train(args):
                 with torch.set_grad_enabled(train_text_encoder):
                     # Get the text embedding for conditioning
                     if args.weighted_captions:
-                      encoder_hidden_states = get_weighted_text_embeddings(tokenizer,
-                        text_encoder,
-                        batch["captions"],
-                        accelerator.device,
-                        args.max_token_length // 75 if args.max_token_length else 1,
-                        clip_skip=args.clip_skip,
+                        encoder_hidden_states = get_weighted_text_embeddings(
+                            tokenizer,
+                            text_encoder,
+                            batch["captions"],
+                            accelerator.device,
+                            args.max_token_length // 75 if args.max_token_length else 1,
+                            clip_skip=args.clip_skip,
                         )
                     else:
-                      input_ids = batch["input_ids"].to(accelerator.device)
-                      encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, weight_dtype)
+                        input_ids = batch["input_ids"].to(accelerator.device)
+                        encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, weight_dtype)
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents, device=latents.device)
                 if args.noise_offset:

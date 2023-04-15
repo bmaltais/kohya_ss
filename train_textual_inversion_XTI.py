@@ -267,11 +267,13 @@ def train(args):
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
-            train_dataset_group.cache_latents(vae, args.vae_batch_size)
+            train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
         vae.to("cpu")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
+
+        accelerator.wait_for_everyone()
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -416,7 +418,8 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states=encoder_hidden_states).sample
+                with accelerator.autocast():
+                    noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states=encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training

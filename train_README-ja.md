@@ -2,7 +2,7 @@ __ドキュメント更新中のため記述に誤りがあるかもしれませ
 
 # 学習について、共通編
 
-当リポジトリではモデルのfine tuning、DreamBooth、およびLoRAとTextual Inversionの学習をサポートします。この文書ではそれらに共通する、学習データの準備方法やオプション等について説明します。
+当リポジトリではモデルのfine tuning、DreamBooth、およびLoRAとTextual Inversion（[XTI:P+](https://github.com/kohya-ss/sd-scripts/pull/327)を含む）の学習をサポートします。この文書ではそれらに共通する、学習データの準備方法やオプション等について説明します。
 
 # 概要
 
@@ -535,7 +535,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 - `--debug_dataset`
 
-    このオプションを付けることで学習を行う前に事前にどのような画像データ、キャプションで学習されるかを確認できます。Escキーを押すと終了してコマンドラインに戻ります。
+    このオプションを付けることで学習を行う前に事前にどのような画像データ、キャプションで学習されるかを確認できます。Escキーを押すと終了してコマンドラインに戻ります。`S`キーで次のステップ（バッチ）、`E`キーで次のエポックに進みます。
 
     ※Linux環境（Colabを含む）では画像は表示されません。
 
@@ -545,6 +545,13 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
     DreamBoothおよびfine tuningでは、保存されるモデルはこのVAEを組み込んだものになります。
 
+- `--cache_latents`
+
+    使用VRAMを減らすためVAEの出力をメインメモリにキャッシュします。`flip_aug` 以外のaugmentationは使えなくなります。また全体の学習速度が若干速くなります。
+
+- `--min_snr_gamma`
+
+    Min-SNR Weighting strategyを指定します。詳細は[こちら](https://github.com/kohya-ss/sd-scripts/pull/308)を参照してください。論文では`5`が推奨されています。
 
 ## オプティマイザ関係
 
@@ -570,13 +577,15 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
   
     学習率のスケジューラ関連の指定です。
 
-    lr_schedulerオプションで学習率のスケジューラをlinear, cosine, cosine_with_restarts, polynomial, constant, constant_with_warmupから選べます。デフォルトはconstantです。
+    lr_schedulerオプションで学習率のスケジューラをlinear, cosine, cosine_with_restarts, polynomial, constant, constant_with_warmup, 任意のスケジューラから選べます。デフォルトはconstantです。
     
     lr_warmup_stepsでスケジューラのウォームアップ（だんだん学習率を変えていく）ステップ数を指定できます。
     
     lr_scheduler_num_cycles は cosine with restartsスケジューラでのリスタート回数、lr_scheduler_power は polynomialスケジューラでのpolynomial power です。
 
     詳細については各自お調べください。
+
+    任意のスケジューラを使う場合、任意のオプティマイザと同様に、`--scheduler_args`でオプション引数を指定してください。
 
 ### オプティマイザの指定について
 

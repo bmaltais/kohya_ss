@@ -12,11 +12,31 @@ Conv2d 3x3への拡大は [cloneofsimo氏](https://github.com/cloneofsimo/lora) 
 
 [学習についての共通ドキュメント](./train_README-ja.md) もあわせてご覧ください。
 
+# 学習できるLoRAの種類
+
+以下の二種類をサポートします。以下は当リポジトリ内の独自の名称です。
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers、リエラと読みます)
+
+    Linear およびカーネルサイズ 1x1 の Conv2d に適用されるLoRA
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers、セリアと読みます)
+
+    1.に加え、カーネルサイズ 3x3 の Conv2d に適用されるLoRA
+
+LoRA-LierLaに比べ、LoRA-C3Liarは適用される層が増える分、高い精度が期待できるかもしれません。
+
+また学習時は __DyLoRA__ を使用することもできます（後述します）。
+
 ## 学習したモデルに関する注意
 
-cloneofsimo氏のリポジトリ、およびd8ahazard氏の[Dreambooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_dreambooth_extension)とは、現時点では互換性がありません。いくつかの機能拡張を行っているためです（後述）。
+LoRA-LierLa は、AUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
 
-WebUI等で画像生成する場合には、学習したLoRAのモデルを学習元のStable Diffusionのモデルにこのリポジトリ内のスクリプトであらかじめマージしておくか、こちらの[WebUI用extension](https://github.com/kohya-ss/sd-webui-additional-networks)を使ってください。
+LoRA-C3Liarを使いWeb UIで生成するには、こちらの[WebUI用extension](https://github.com/kohya-ss/sd-webui-additional-networks)を使ってください。
+
+いずれも学習したLoRAのモデルを、Stable Diffusionのモデルにこのリポジトリ内のスクリプトであらかじめマージすることもできます。
+
+cloneofsimo氏のリポジトリ、およびd8ahazard氏の[Dreambooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_dreambooth_extension)とは、現時点では互換性がありません。いくつかの機能拡張を行っているためです（後述）。
 
 # 学習の手順
 
@@ -31,9 +51,9 @@ WebUI等で画像生成する場合には、学習したLoRAのモデルを学�
 
 `train_network.py`を用います。
 
-`train_network.py`では `--network_module` オプションに、学習対象のモジュール名を指定します。LoRAに対応するのはnetwork.loraとなりますので、それを指定してください。
+`train_network.py`では `--network_module` オプションに、学習対象のモジュール名を指定します。LoRAに対応するのは`network.lora`となりますので、それを指定してください。
 
-なお学習率は通常のDreamBoothやfine tuningよりも高めの、1e-4程度を指定するとよいようです。
+なお学習率は通常のDreamBoothやfine tuningよりも高めの、`1e-4`～`1e-3`程度を指定するとよいようです。
 
 以下はコマンドラインの例です。
 
@@ -55,6 +75,8 @@ accelerate launch --num_cpu_threads_per_process 1 train_network.py
     --save_every_n_epochs=1 
     --network_module=networks.lora
 ```
+
+このコマンドラインでは LoRA-LierLa が学習されます。
 
 `--output_dir` オプションで指定したフォルダに、LoRAのモデルが保存されます。他のオプション、オプティマイザ等については [学習の共通ドキュメント](./train_README-ja.md) の「よく使われるオプション」も参照してください。
 
@@ -83,21 +105,142 @@ accelerate launch --num_cpu_threads_per_process 1 train_network.py
 
 `--network_train_unet_only` と `--network_train_text_encoder_only` の両方とも未指定時（デフォルト）はText EncoderとU-Netの両方のLoRAモジュールを有効にします。
 
-## LoRA を Conv2d に拡大して適用する
+# その他の学習方法
 
-通常のLoRAは Linear およぴカーネルサイズ 1x1 の Conv2d にのみ適用されますが、カーネルサイズ 3x3 のConv2dに適用を拡大することもできます。
+## LoRA-C3Lier を学習する
 
 `--network_args` に以下のように指定してください。`conv_dim` で Conv2d (3x3) の rank を、`conv_alpha` で alpha を指定してください。
 
 ```
---network_args "conv_dim=1" "conv_alpha=1"
+--network_args "conv_dim=4" "conv_alpha=1"
 ```
 
 以下のように alpha 省略時は1になります。
 
 ```
---network_args "conv_dim=1"
+--network_args "conv_dim=4"
 ```
+
+## DyLoRA
+
+DyLoRAはこちらの論文で提案されたものです。[DyLoRA: Parameter Efficient Tuning of Pre-trained Models using Dynamic Search-Free Low-Rank Adaptation](https://arxiv.org/abs/2210.07558)　公式実装は[こちら](https://github.com/huawei-noah/KD-NLP/tree/main/DyLoRA)です。
+
+論文によると、LoRAのrankは必ずしも高いほうが良いわけではなく、対象のモデル、データセット、タスクなどにより適切なrankを探す必要があるようです。DyLoRAを使うと、指定したdim(rank)以下のさまざまなrankで同時にLoRAを学習します。これにより最適なrankをそれぞれ学習して探す手間を省くことができます。
+
+当リポジトリの実装は公式実装をベースに独自の拡張を加えています（そのため不具合などあるかもしれません）。
+
+### 当リポジトリのDyLoRAの特徴
+
+学習後のDyLoRAのモデルファイルはLoRAと互換性があります。また、モデルファイルから指定したdim(rank)以下の複数のdimのLoRAを抽出できます。
+
+DyLoRA-LierLa、DyLoRA-C3Lierのどちらも学習できます。
+
+### DyLoRAで学習する
+
+`--network_module=networks.dylora` のように、DyLoRAに対応する`network.dylora`を指定してください。
+
+また `--network_args` に、たとえば`--network_args "unit=4"`のように`unit`を指定します。`unit`はrankを分割する単位です。たとえば`--network_dim=16 --network_args "unit=4"` のように指定します。`unit`は`network_dim`を割り切れる値（`network_dim`は`unit`の倍数）としてください。
+
+`unit`を指定しない場合は、`unit=1`として扱われます。
+
+記述例は以下です。
+
+```
+--network_module=networks.dylora --network_dim=16 --network_args "unit=4"
+
+--network_module=networks.dylora --network_dim=32 --network_alpha=16 --network_args "unit=4"
+```
+
+DyLoRA-C3Lierの場合は、`--network_args` に`"conv_dim=4"`のように`conv_dim`を指定します。通常のLoRAと異なり、`conv_dim`は`network_dim`と同じ値である必要があります。記述例は以下です。
+
+```
+--network_module=networks.dylora --network_dim=16 --network_args "conv_dim=16" "unit=4"
+
+--network_module=networks.dylora --network_dim=32 --network_alpha=16 --network_args "conv_dim=32" "conv_alpha=16" "unit=8"
+```
+
+たとえばdim=16、unit=4（後述）で学習すると、4、8、12、16の4つのrankのLoRAを学習、抽出できます。抽出した各モデルで画像を生成し、比較することで、最適なrankのLoRAを選択できます。
+
+その他のオプションは通常のLoRAと同じです。
+
+※ `unit`は当リポジトリの独自拡張で、DyLoRAでは同dim(rank)の通常LoRAに比べると学習時間が長くなることが予想されるため、分割単位を大きくしたものです。
+
+### DyLoRAのモデルからLoRAモデルを抽出する
+
+`networks`フォルダ内の `extract_lora_from_dylora.py`を使用します。指定した`unit`単位で、DyLoRAのモデルからLoRAのモデルを抽出します。
+
+コマンドラインはたとえば以下のようになります。
+
+```powershell
+python networks\extract_lora_from_dylora.py --model "foldername/dylora-model.safetensors" --save_to "foldername/dylora-model-split.safetensors" --unit 4
+```
+
+`--model` にはDyLoRAのモデルファイルを指定します。`--save_to` には抽出したモデルを保存するファイル名を指定します（rankの数値がファイル名に付加されます）。`--unit` にはDyLoRAの学習時の`unit`を指定します。
+
+## 階層別学習率
+
+詳細は[PR #355](https://github.com/kohya-ss/sd-scripts/pull/355) をご覧ください。
+
+フルモデルの25個のブロックの重みを指定できます。最初のブロックに該当するLoRAは存在しませんが、階層別LoRA適用等との互換性のために25個としています。またconv2d3x3に拡張しない場合も一部のブロックにはLoRAが存在しませんが、記述を統一するため常に25個の値を指定してください。
+
+`--network_args` で以下の引数を指定してください。
+
+- `down_lr_weight` : U-Netのdown blocksの学習率の重みを指定します。以下が指定可能です。
+  - ブロックごとの重み : `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"` のように12個の数値を指定します。
+  - プリセットからの指定 : `"down_lr_weight=sine"` のように指定します（サインカーブで重みを指定します）。sine, cosine, linear, reverse_linear, zeros が指定可能です。また `"down_lr_weight=cosine+.25"` のように `+数値` を追加すると、指定した数値を加算します（0.25~1.25になります）。
+- `mid_lr_weight` : U-Netのmid blockの学習率の重みを指定します。`"down_lr_weight=0.5"` のように数値を一つだけ指定します。
+- `up_lr_weight` : U-Netのup blocksの学習率の重みを指定します。down_lr_weightと同様です。
+- 指定を省略した部分は1.0として扱われます。また重みを0にするとそのブロックのLoRAモジュールは作成されません。
+- `block_lr_zero_threshold` : 重みがこの値以下の場合、LoRAモジュールを作成しません。デフォルトは0です。
+
+### 階層別学習率コマンドライン指定例:
+
+```powershell
+--network_args "down_lr_weight=0.5,0.5,0.5,0.5,1.0,1.0,1.0,1.0,1.5,1.5,1.5,1.5" "mid_lr_weight=2.0" "up_lr_weight=1.5,1.5,1.5,1.5,1.0,1.0,1.0,1.0,0.5,0.5,0.5,0.5"
+
+--network_args "block_lr_zero_threshold=0.1" "down_lr_weight=sine+.5" "mid_lr_weight=1.5" "up_lr_weight=cosine+.5"
+```
+
+###  階層別学習率tomlファイル指定例:
+
+```toml
+network_args = [ "down_lr_weight=0.5,0.5,0.5,0.5,1.0,1.0,1.0,1.0,1.5,1.5,1.5,1.5", "mid_lr_weight=2.0", "up_lr_weight=1.5,1.5,1.5,1.5,1.0,1.0,1.0,1.0,0.5,0.5,0.5,0.5",]
+
+network_args = [ "block_lr_zero_threshold=0.1", "down_lr_weight=sine+.5", "mid_lr_weight=1.5", "up_lr_weight=cosine+.5", ]
+```
+
+## 階層別dim (rank)
+
+フルモデルの25個のブロックのdim (rank)を指定できます。階層別学習率と同様に一部のブロックにはLoRAが存在しない場合がありますが、常に25個の値を指定してください。
+
+`--network_args` で以下の引数を指定してください。
+
+- `block_dims` : 各ブロックのdim (rank)を指定します。`"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"` のように25個の数値を指定します。
+- `block_alphas` : 各ブロックのalphaを指定します。block_dimsと同様に25個の数値を指定します。省略時はnetwork_alphaの値が使用されます。
+- `conv_block_dims` : LoRAをConv2d 3x3に拡張し、各ブロックのdim (rank)を指定します。
+- `conv_block_alphas` : LoRAをConv2d 3x3に拡張したときの各ブロックのalphaを指定します。省略時はconv_alphaの値が使用されます。
+
+###  階層別dim (rank)コマンドライン指定例:
+
+```powershell
+--network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2"
+
+--network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2" "conv_block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"
+
+--network_args "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2" "block_alphas=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"
+```
+
+###  階層別dim (rank)tomlファイル指定例:
+
+```toml
+network_args = [ "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2",]
+  
+network_args = [ "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,4,4,4,2", "block_alphas=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",]
+```
+
+# その他のスクリプト
+
+マージ等LoRAに関連するスクリプト群です。
 
 ## マージスクリプトについて
 
@@ -323,14 +466,14 @@ python tools\resize_images_to_resolution.py --max_resolution 512x512,384x384,256
   - 縮小時の補完方法を指定します。``area, cubic, lanczos4``から選択可能で、デフォルトは``area``です。
 
 
-## 追加情報
+# 追加情報
 
-### cloneofsimo氏のリポジトリとの違い
+## cloneofsimo氏のリポジトリとの違い
 
 2022/12/25時点では、当リポジトリはLoRAの適用個所をText EncoderのMLP、U-NetのFFN、Transformerのin/out projectionに拡大し、表現力が増しています。ただその代わりメモリ使用量は増え、8GBぎりぎりになりました。
 
 またモジュール入れ替え機構は全く異なります。
 
-### 将来拡張について
+## 将来拡張について
 
 LoRAだけでなく他の拡張にも対応可能ですので、それらも追加予定です。

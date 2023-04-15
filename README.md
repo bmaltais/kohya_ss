@@ -232,6 +232,44 @@ python lora_gui.py
 
 Once you have created the LoRA network, you can generate images via auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
 
+### Naming of LoRA
+
+The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
+
+    LoRA for Linear layers and Conv2d layers with 1x1 kernel
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
+
+    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
+    
+LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
+
+To use LoRA-C3Liar with Web UI, please use our extension.
+
+## Sample image generation during training
+A prompt file might look like this, for example
+
+```
+# prompt 1
+masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+# prompt 2
+masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+```
+
+  Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+  * `--n` Negative prompt up to the next option.
+  * `--w` Specifies the width of the generated image.
+  * `--h` Specifies the height of the generated image.
+  * `--d` Specifies the seed of the generated image.
+  * `--l` Specifies the CFG scale of the generated image.
+  * `--s` Specifies the number of steps in the generation.
+
+  The prompt weighting such as `( )` and `[ ]` are working.
+
 ## Troubleshooting
 
 ### Page File Limit
@@ -258,8 +296,16 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/04/14 (v21.5.3)
+* 2023/04/15 (v21.5.3)
     - Fix issue when Adafactor is used as optimizer and LR Warmup is not 0: https://github.com/bmaltais/kohya_ss/issues/617
+    - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
+    - Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
+    - Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
+        - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
+        - Multi-GPU training has not been tested.
+        - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
+    - Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
+    - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
 
 * 2023/04/09 (v21.5.2)
 

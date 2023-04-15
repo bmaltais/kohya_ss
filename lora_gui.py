@@ -127,7 +127,7 @@ def save_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -248,7 +248,7 @@ def open_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -360,7 +360,7 @@ def train_model(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -548,7 +548,21 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
+            
+    if LoRA_type in ['Kohya DyLoRA']:
+        kohya_lora_var_list = ['conv_dim', 'conv_alpha', 'down_lr_weight', 'mid_lr_weight', 'up_lr_weight', 'block_lr_zero_threshold', 'block_dims', 'block_alphas', 'conv_dims', 'conv_alphas', 'unit']
         
+        run_cmd += f' --network_module=networks.dylora'
+        kohya_lora_vars = {key: value for key, value in vars().items() if key in kohya_lora_var_list and value}
+
+        network_args = ''
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f' {key}="{value}"'
+
+        if network_args:
+            run_cmd += f' --network_args{network_args}'
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
         if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
@@ -787,6 +801,7 @@ def lora_tab(
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
                 choices=[
+                    'Kohya DyLoRA',
                     'Kohya LoCon',
                     # 'LoCon',
                     'LyCORIS/LoCon',
@@ -874,29 +889,37 @@ def lora_tab(
                 step=0.1,
                 label='Convolution Alpha',
             )
+        with gr.Row(visible=False) as kohya_dylora:
+            unit = gr.Slider(
+                minimum=1,
+                maximum=64,
+                label='DyLoRA Unit',
+                value=1,
+                step=1,
+                interactive=True,
+            )
             
         # Show of hide LoCon conv settings depending on LoRA type selection
         def update_LoRA_settings(LoRA_type):
+            # Print a message when LoRA type is changed
             print('LoRA type changed...')
-            
-            LoRA_type_change = False
-            LoCon_row = False
-            
-            if (
-                LoRA_type == 'LoCon'
-                or LoRA_type == 'Kohya LoCon'
-                or LoRA_type == 'LyCORIS/LoHa'
-                or LoRA_type == 'LyCORIS/LoCon'
-            ):
-                LoCon_row = True
-                
-            if (
-                LoRA_type == 'Standard'
-                or LoRA_type == 'Kohya LoCon'
-            ):
-                LoRA_type_change = True
 
-            return gr.Group.update(visible=LoCon_row), gr.Group.update(visible=LoRA_type_change)
+            # Determine if LoCon_row should be visible based on LoRA_type
+            LoCon_row = LoRA_type in {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LyCORIS/LoHa', 'LyCORIS/LoCon'}
+
+            # Determine if LoRA_type_change should be visible based on LoRA_type
+            LoRA_type_change = LoRA_type in {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'}
+
+            # Determine if kohya_dylora_visible should be visible based on LoRA_type
+            kohya_dylora_visible = LoRA_type == 'Kohya DyLoRA'
+
+            # Return the updated visibility settings for the groups
+            return (
+                gr.Group.update(visible=LoCon_row),
+                gr.Group.update(visible=LoRA_type_change),
+                gr.Group.update(visible=kohya_dylora_visible),
+            )
+
 
         with gr.Row():
             max_resolution = gr.Textbox(
@@ -1017,7 +1040,7 @@ def lora_tab(
         ) = sample_gradio_config()
         
         LoRA_type.change(
-            update_LoRA_settings, inputs=[LoRA_type], outputs=[LoCon_row, kohya_advanced_lora]
+            update_LoRA_settings, inputs=[LoRA_type], outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora]
         )
 
     with gr.Tab('Tools'):
@@ -1126,7 +1149,7 @@ def lora_tab(
         vae_batch_size,
         min_snr_gamma,
         down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-        weighted_captions,
+        weighted_captions, unit,
     ]
 
     button_open_config.click(
