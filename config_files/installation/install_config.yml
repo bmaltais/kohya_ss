@@ -1,7 +1,7 @@
 setup_arguments:
   - name: Branch
     description: Select which branch of kohya to check out on new installs.
-    value: master
+    value: dev
   - name: Dir
     description: The full path you want kohya_ss installed to.
     value: ~/kohya_ss
