@@ -92,6 +92,9 @@ def find_config_file(config_file_locations):
 
 
 def load_config(_config_file):
+    if _config_file is None:
+        return None
+
     config_locations = []
 
     if _config_file is not None:
@@ -116,13 +119,14 @@ def load_config(_config_file):
             _config_file = location
             break
 
-    if _config_file:
-        with open(_config_file, "r") as f:
+    try:
+        with open(_config_file, 'r') as f:
             _config_data = yaml.safe_load(f)
-    else:
-        _config_data = None
-
-    return _config_data
+            logging.debug(f"Loaded config data: {_config_data}")
+            return _config_data
+    except FileNotFoundError:
+        logging.debug(f"Config file not found: {_config_file}")
+        return None
 
 
 def parse_file_arg():
@@ -131,8 +135,8 @@ def parse_file_arg():
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
     if _args.config_file is not None:
-        logging.debug(f"Configuration file specified by command line: {os.path.abspath(_args.file)}")
-        return os.path.abspath(_args.file)
+        logging.debug(f"Configuration file specified by command line: {os.path.abspath(_args.config_file)}")
+        return os.path.abspath(_args.config_file)
     else:
         return None
 
@@ -200,7 +204,7 @@ def parse_args(_config_data):
         {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str,
          "help": "The full path you want kohya_ss installed to.", "is_path": True},
 
-        {"short": "-f", "long": "--file", "default": "install_config.yaml", "type": str,
+        {"short": "-f", "long": "--file", "default": "config_files/installation/install_config.yml", "type": str,
          "help": "Configuration file with installation options.", "is_path": True},
 
         {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str,
@@ -244,6 +248,7 @@ def parse_args(_config_data):
     ]
 
     # Update the default arguments with values from the config file
+    print(f"Config Data: {_config_data}")
     if _config_data:
         if "setup_arguments" in _config_data:
             for arg in _config_data["setup_arguments"]:
@@ -263,6 +268,7 @@ def parse_args(_config_data):
                     if f'--{name.lower()}' == default_arg["long"]:
                         default_arg["default"] = value
                         default_arg["help"] = description
+    print(f"Updated default_args: {default_args}")
 
     # Add arguments to the parser with updated default values
     for arg in default_args:
@@ -303,6 +309,7 @@ def parse_args(_config_data):
 
     # Normalize paths to ensure absolute paths
     normalize_paths(_args, default_args)
+    print(f"Args: {_args}")
     return _args
 
 
@@ -1326,6 +1333,7 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
+    print(f"Verbosity: {args.verbosity}")
     if args.verbosity == 0:
         log_level = logging.ERROR
     elif args.verbosity == 1:
@@ -1335,6 +1343,7 @@ if __name__ == "__main__":
     elif args.verbosity >= 3:
         log_level = logging.DEBUG
 
+    print(f"Log level: {log_level}")
     # Configure logging
     # noinspection SpellCheckingInspection
     log_file = CustomFormatter.generate_log_filename()
