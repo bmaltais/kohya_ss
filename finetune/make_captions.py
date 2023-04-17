@@ -4,6 +4,7 @@ import os
 import json
 import random
 
+from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
@@ -72,7 +73,8 @@ def main(args):
     os.chdir('finetune')
 
   print(f"load images from {args.train_data_dir}")
-  image_paths = train_util.glob_images(args.train_data_dir)
+  train_data_dir_path = Path(args.train_data_dir)
+  image_paths = train_util.glob_images_pathlib(train_data_dir_path, args.recursive)
   print(f"found {len(image_paths)} images.")
 
   print(f"loading BLIP caption: {args.caption_weights}")
@@ -152,7 +154,8 @@ def setup_parser() -> argparse.ArgumentParser:
   parser.add_argument("--min_length", type=int, default=5, help="min length of caption / captionの最小長")
   parser.add_argument('--seed', default=42, type=int, help='seed for reproducibility / 再現性を確保するための乱数seed')
   parser.add_argument("--debug", action="store_true", help="debug mode")
-
+  parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively")  
+  
   return parser
 
 
