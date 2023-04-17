@@ -108,10 +108,8 @@ def interrogate(args):
 
 def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
-  parser.add_argument("--v2", action='store_true',
-                      help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
-  parser.add_argument("--sd_model", type=str, default=None,
-                      help="Stable Diffusion model to load: ckpt or safetensors file / 読み込むSDのモデル、ckptまたはsafetensors")
+
+  train_util.add_sd_models_arguments(parser)
   parser.add_argument("--model", type=str, default=None,
                       help="LoRA model to interrogate: ckpt or safetensors file / 調査するLoRAモデル、ckptまたはsafetensors")
   parser.add_argument("--batch_size", type=int, default=16,
