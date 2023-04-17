@@ -127,6 +127,7 @@ def save_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
+    weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -247,6 +248,7 @@ def open_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
+    weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -358,6 +360,7 @@ def train_model(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
+    weighted_captions,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -481,6 +484,8 @@ def train_model(
         run_cmd += ' --enable_bucket'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
+    if weighted_captions:
+        run_cmd += ' --weighted_captions'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -951,6 +956,9 @@ def lora_tab(
                 gradient_accumulation_steps = gr.Number(
                     label='Gradient accumulate steps', value='1'
                 )
+                weighted_captions = gr.Checkbox(
+                    label='Weighted captions', value=False
+                )
             with gr.Row():
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
@@ -1114,6 +1122,7 @@ def lora_tab(
         vae_batch_size,
         min_snr_gamma,
         down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
+        weighted_captions,
     ]
 
     button_open_config.click(

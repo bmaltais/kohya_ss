@@ -603,7 +603,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_training_arguments(parser, True)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
-    custom_train_functions.add_custom_train_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser, False)
 
     parser.add_argument(
         "--save_model_as",

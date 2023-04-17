@@ -106,7 +106,7 @@ def save_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -221,7 +221,7 @@ def open_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -318,7 +318,7 @@ def train_model(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,
+    min_snr_gamma,weighted_captions,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
@@ -406,6 +406,8 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
+    if weighted_captions:
+        run_cmd += ' --weighted_captions'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -644,7 +646,11 @@ def finetune_tab():
                 latent_metadata_filename = gr.Textbox(
                     label='Latent metadata filename', value='meta_lat.json'
                 )
+            with gr.Row():
                 full_path = gr.Checkbox(label='Use full path', value=True)
+                weighted_captions = gr.Checkbox(
+                    label='Weighted captions', value=False
+                )
     with gr.Tab('Training parameters'):
         (
             learning_rate,
@@ -794,6 +800,7 @@ def finetune_tab():
         additional_parameters,
         vae_batch_size,
         min_snr_gamma,
+        weighted_captions,
     ]
 
     button_run.click(train_model, inputs=settings_list)
