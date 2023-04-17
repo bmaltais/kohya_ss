@@ -142,7 +142,7 @@ def setup_parser() -> argparse.ArgumentParser:
   parser.add_argument("--remove_words", action="store_true",
                       help="remove like `with the words xxx` from caption / `with the words xxx`のような部分をキャプションから削除する")
   parser.add_argument("--debug", action="store_true", help="debug mode")
-  parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively")  
+  parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively / サブフォルダを再帰的に検索する")  
   
   return parser
 

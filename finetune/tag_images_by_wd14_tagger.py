@@ -143,9 +143,9 @@ def main(args):
                         character_tag_text += ", " + tag_name
                         combined_tags.append(tag_name)
 
+            # 先頭のカンマを取る
             if len(general_tag_text) > 0:
                 general_tag_text = general_tag_text[2:]
-
             if len(character_tag_text) > 0:
                 character_tag_text = character_tag_text[2:]
 
@@ -218,18 +218,24 @@ if __name__ == '__main__':
     parser.add_argument("--caption_extention", type=str, default=None,
     help="extension of caption file (for backward compatibility) / 出力されるキャプションファイルの拡張子（スペルミスしていたのを残してあります）")
     parser.add_argument("--caption_extension", type=str, default=".txt", help="extension of caption file / 出力されるキャプションファイルの拡張子")
-    parser.add_argument("--general_threshold", type=float, default=0.35, help="threshold of confidence to add a tag for general category")
-    parser.add_argument("--character_threshold", type=float, default=0.35, help="threshold of confidence to add a tag for character category")
-    parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively")
-    parser.add_argument("--remove_underscore", action="store_true", help="replace underscores with spaces in the output tags")
+    parser.add_argument("--thresh", type=float, default=0.35, help="threshold of confidence to add a tag / タグを追加するか判定する閾値")
+    parser.add_argument("--general_threshold", type=float, default=None, help="threshold of confidence to add a tag for general category, same as --thresh if omitted / generalカテゴリのタグを追加するための確信度の閾値、省略時は --thresh と同じ")
+    parser.add_argument("--character_threshold", type=float, default=None, help="threshold of confidence to add a tag for character category, same as --thres if omitted / characterカテゴリのタグを追加するための確信度の閾値、省略時は --thresh と同じ")
+    parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively / サブフォルダを再帰的に検索する")
+    parser.add_argument("--remove_underscore", action="store_true", help="replace underscores with spaces in the output tags / 出力されるタグのアンダースコアをスペースに置き換える")
     parser.add_argument("--debug", action="store_true", help="debug mode")
-    parser.add_argument("--undesired_tags", type=str, default="", help="comma-separated list of undesired tags to remove from the output")
-    parser.add_argument('--frequency_tags', action='store_true', help='Show frequency of tags for images')
+    parser.add_argument("--undesired_tags", type=str, default="", help="comma-separated list of undesired tags to remove from the output / 出力から除外したいタグのカンマ区切りのリスト")
+    parser.add_argument('--frequency_tags', action='store_true', help='Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する')
 
     args = parser.parse_args()
 
     # スペルミスしていたオプションを復元する
     if args.caption_extention is not None:
         args.caption_extension = args.caption_extention
+    
+    if args.general_threshold is None:
+        args.general_threshold = args.thresh
+    if args.character_threshold is None:
+        args.character_threshold = args.thresh
 
     main(args)

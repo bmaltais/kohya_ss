@@ -73,7 +73,7 @@ def setup_parser() -> argparse.ArgumentParser:
   parser.add_argument("--float", action='store_true',
                       help='save as float (checkpoint only) / float(float32)形式で保存する（checkpointのみ対応）')
   parser.add_argument("--save_precision_as", type=str, default="no", choices=["fp16", "bf16", "float"], 
-                      help="save precision")
+                      help="save precision, do not specify with --fp16/--bf16/--float / 保存する精度、--fp16/--bf16/--floatと併用しないでください")
   parser.add_argument("--epoch", type=int, default=0, help='epoch to write to checkpoint / checkpointに記録するepoch数の値')
   parser.add_argument("--global_step", type=int, default=0,
                       help='global_step to write to checkpoint / checkpointに記録するglobal_stepの値')

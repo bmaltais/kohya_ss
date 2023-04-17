@@ -154,7 +154,7 @@ def setup_parser() -> argparse.ArgumentParser:
   parser.add_argument("--min_length", type=int, default=5, help="min length of caption / captionの最小長")
   parser.add_argument('--seed', default=42, type=int, help='seed for reproducibility / 再現性を確保するための乱数seed')
   parser.add_argument("--debug", action="store_true", help="debug mode")
-  parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively")  
+  parser.add_argument("--recursive", action="store_true", help="search for images in subfolders recursively / サブフォルダを再帰的に検索する")  
   
   return parser
 
