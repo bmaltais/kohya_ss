@@ -362,6 +362,10 @@ def train_model(
 
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
+    
+    if optimizer == 'Adafactor' and lr_warmup != '0':
+        msgbox("Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.", title="Warning")
+        lr_warmup = '0'
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [

@@ -127,7 +127,7 @@ def save_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -248,7 +248,7 @@ def open_configuration(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -360,7 +360,7 @@ def train_model(
     vae_batch_size,
     min_snr_gamma,
     down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-    weighted_captions,
+    weighted_captions,unit,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -400,6 +400,10 @@ def train_model(
 
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
+    
+    if optimizer == 'Adafactor' and lr_warmup != '0':
+        msgbox("Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.", title="Warning")
+        lr_warmup = '0'
 
     # If string is empty set string to 0.
     if text_encoder_lr == '':
@@ -544,7 +548,21 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
+            
+    if LoRA_type in ['Kohya DyLoRA']:
+        kohya_lora_var_list = ['conv_dim', 'conv_alpha', 'down_lr_weight', 'mid_lr_weight', 'up_lr_weight', 'block_lr_zero_threshold', 'block_dims', 'block_alphas', 'conv_dims', 'conv_alphas', 'unit']
         
+        run_cmd += f' --network_module=networks.dylora'
+        kohya_lora_vars = {key: value for key, value in vars().items() if key in kohya_lora_var_list and value}
+
+        network_args = ''
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f' {key}="{value}"'
+
+        if network_args:
+            run_cmd += f' --network_args{network_args}'
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
         if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
@@ -783,6 +801,7 @@ def lora_tab(
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
                 choices=[
+                    'Kohya DyLoRA',
                     'Kohya LoCon',
                     # 'LoCon',
                     'LyCORIS/LoCon',
@@ -851,8 +870,8 @@ def lora_tab(
                 value=1,
                 step=0.1,
                 interactive=True,
+                info='alpha for LoRA weight scaling',
             )
-
         with gr.Row(visible=False) as LoCon_row:
 
             # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
@@ -870,35 +889,44 @@ def lora_tab(
                 step=0.1,
                 label='Convolution Alpha',
             )
+        with gr.Row(visible=False) as kohya_dylora:
+            unit = gr.Slider(
+                minimum=1,
+                maximum=64,
+                label='DyLoRA Unit',
+                value=1,
+                step=1,
+                interactive=True,
+            )
             
         # Show of hide LoCon conv settings depending on LoRA type selection
         def update_LoRA_settings(LoRA_type):
+            # Print a message when LoRA type is changed
             print('LoRA type changed...')
-            
-            LoRA_type_change = False
-            LoCon_row = False
-            
-            if (
-                LoRA_type == 'LoCon'
-                or LoRA_type == 'Kohya LoCon'
-                or LoRA_type == 'LyCORIS/LoHa'
-                or LoRA_type == 'LyCORIS/LoCon'
-            ):
-                LoCon_row = True
-                
-            if (
-                LoRA_type == 'Standard'
-                or LoRA_type == 'Kohya LoCon'
-            ):
-                LoRA_type_change = True
 
-            return gr.Group.update(visible=LoCon_row), gr.Group.update(visible=LoRA_type_change)
+            # Determine if LoCon_row should be visible based on LoRA_type
+            LoCon_row = LoRA_type in {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LyCORIS/LoHa', 'LyCORIS/LoCon'}
+
+            # Determine if LoRA_type_change should be visible based on LoRA_type
+            LoRA_type_change = LoRA_type in {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'}
+
+            # Determine if kohya_dylora_visible should be visible based on LoRA_type
+            kohya_dylora_visible = LoRA_type == 'Kohya DyLoRA'
+
+            # Return the updated visibility settings for the groups
+            return (
+                gr.Group.update(visible=LoCon_row),
+                gr.Group.update(visible=LoRA_type_change),
+                gr.Group.update(visible=kohya_dylora_visible),
+            )
+
 
         with gr.Row():
             max_resolution = gr.Textbox(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
+                info='The maximum resolution of dataset images. W,H',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -906,8 +934,10 @@ def lora_tab(
                 value=0,
                 step=1,
                 label='Stop text encoder training',
+                info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
             )
-            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            enable_bucket = gr.Checkbox(label='Enable buckets', value=True,
+                info='Allow non similar resolution dataset images to be trained on.',)
             
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row(visible=True) as kohya_advanced_lora:
@@ -915,39 +945,47 @@ def lora_tab(
                     with gr.Row(visible=True):
                         down_lr_weight = gr.Textbox(
                             label='Down LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                            info='Specify the learning rate weight of the down blocks of U-Net.'
                         )
                         mid_lr_weight = gr.Textbox(
                             label='Mid LR weights',
-                            placeholder='(Optional) eg: 0.5'
+                            placeholder='(Optional) eg: 0.5',
+                            info='Specify the learning rate weight of the mid block of U-Net.'
                         )
                         up_lr_weight = gr.Textbox(
                             label='Up LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                            info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.'
                         )
                         block_lr_zero_threshold = gr.Textbox(
                             label='Blocks LR zero threshold',
-                            placeholder='(Optional) eg: 0.1'
+                            placeholder='(Optional) eg: 0.1',
+                            info='If the weight is not more than this value, the LoRA module is not created. The default is 0.'
                         )
                 with gr.Tab(label='Blocks'):
                     with gr.Row(visible=True):
                         block_dims = gr.Textbox(
                             label='Block dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the dim (rank) of each block. Specify 25 numbers.'
                         )
                         block_alphas = gr.Textbox(
                             label='Block alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.'
                         )
                 with gr.Tab(label='Conv'):
                     with gr.Row(visible=True):
                         conv_dims = gr.Textbox(
                             label='Conv dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.'
                         )
                         conv_alphas = gr.Textbox(
                             label='Conv alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.'
                         )
             with gr.Row():
                 no_token_padding = gr.Checkbox(
@@ -957,7 +995,7 @@ def lora_tab(
                     label='Gradient accumulate steps', value='1'
                 )
                 weighted_captions = gr.Checkbox(
-                    label='Weighted captions', value=False
+                    label='Weighted captions', value=False, info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
@@ -1013,7 +1051,7 @@ def lora_tab(
         ) = sample_gradio_config()
         
         LoRA_type.change(
-            update_LoRA_settings, inputs=[LoRA_type], outputs=[LoCon_row, kohya_advanced_lora]
+            update_LoRA_settings, inputs=[LoRA_type], outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora]
         )
 
     with gr.Tab('Tools'):
@@ -1122,7 +1160,7 @@ def lora_tab(
         vae_batch_size,
         min_snr_gamma,
         down_lr_weight,mid_lr_weight,up_lr_weight,block_lr_zero_threshold,block_dims,block_alphas,conv_dims,conv_alphas,
-        weighted_captions,
+        weighted_captions, unit,
     ]
 
     button_open_config.click(

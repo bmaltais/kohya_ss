@@ -29,6 +29,7 @@ from library.tensorboard_gui import (
 )
 from library.utilities import utilities_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -322,6 +323,10 @@ def train_model(
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
+    
+    if optimizer == 'Adafactor' and lr_warmup != '0':
+        msgbox("Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.", title="Warning")
+        lr_warmup = '0'
 
     # create caption json file
     if generate_caption_database:
