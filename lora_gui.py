@@ -870,8 +870,8 @@ def lora_tab(
                 value=1,
                 step=0.1,
                 interactive=True,
+                info='alpha for LoRA weight scaling',
             )
-
         with gr.Row(visible=False) as LoCon_row:
 
             # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
@@ -926,6 +926,7 @@ def lora_tab(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
+                info='The maximum resolution of dataset images. W,H',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -933,8 +934,10 @@ def lora_tab(
                 value=0,
                 step=1,
                 label='Stop text encoder training',
+                info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
             )
-            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            enable_bucket = gr.Checkbox(label='Enable buckets', value=True,
+                info='Allow non similar resolution dataset images to be trained on.',)
             
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row(visible=True) as kohya_advanced_lora:
@@ -942,39 +945,47 @@ def lora_tab(
                     with gr.Row(visible=True):
                         down_lr_weight = gr.Textbox(
                             label='Down LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                            info='Specify the learning rate weight of the down blocks of U-Net.'
                         )
                         mid_lr_weight = gr.Textbox(
                             label='Mid LR weights',
-                            placeholder='(Optional) eg: 0.5'
+                            placeholder='(Optional) eg: 0.5',
+                            info='Specify the learning rate weight of the mid block of U-Net.'
                         )
                         up_lr_weight = gr.Textbox(
                             label='Up LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1'
+                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                            info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.'
                         )
                         block_lr_zero_threshold = gr.Textbox(
                             label='Blocks LR zero threshold',
-                            placeholder='(Optional) eg: 0.1'
+                            placeholder='(Optional) eg: 0.1',
+                            info='If the weight is not more than this value, the LoRA module is not created. The default is 0.'
                         )
                 with gr.Tab(label='Blocks'):
                     with gr.Row(visible=True):
                         block_dims = gr.Textbox(
                             label='Block dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the dim (rank) of each block. Specify 25 numbers.'
                         )
                         block_alphas = gr.Textbox(
                             label='Block alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.'
                         )
                 with gr.Tab(label='Conv'):
                     with gr.Row(visible=True):
                         conv_dims = gr.Textbox(
                             label='Conv dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.'
                         )
                         conv_alphas = gr.Textbox(
                             label='Conv alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2'
+                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                            info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.'
                         )
             with gr.Row():
                 no_token_padding = gr.Checkbox(
@@ -984,7 +995,7 @@ def lora_tab(
                     label='Gradient accumulate steps', value='1'
                 )
                 weighted_captions = gr.Checkbox(
-                    label='Weighted captions', value=False
+                    label='Weighted captions', value=False, info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
