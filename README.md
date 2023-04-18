@@ -297,11 +297,9 @@ This will store a backup file with your current locally installed pip packages a
 ## Change History
 
 * 2023/04/17 (v21.5.4)
-  - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
-  - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
-  - Upgrade Gradio to latest release
-
-* 2023/04/15 (v21.5.3)
+    - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
+    - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
+    - Upgrade Gradio to latest release
     - Fix issue when Adafactor is used as optimizer and LR Warmup is not 0: https://github.com/bmaltais/kohya_ss/issues/617
     - Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
     - Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
