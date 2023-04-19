@@ -5,3 +5,4 @@ venv
 *.egg-info
 build
 .vscode
+wandb
