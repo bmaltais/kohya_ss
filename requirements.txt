@@ -7,7 +7,8 @@ diffusers[torch]==0.10.2
 easygui==0.98.3
 einops==0.6.0
 ftfy==6.1.1
-gradio==3.19.1; sys_platform != 'darwin'
+gradio==3.27.0; sys_platform != 'darwin'
+# gradio==3.19.1; sys_platform != 'darwin'
 gradio==3.23.0; sys_platform == 'darwin'
 lion-pytorch==0.0.6
 opencv-python==4.7.0.68

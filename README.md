@@ -232,6 +232,44 @@ python lora_gui.py
 
 Once you have created the LoRA network, you can generate images via auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
 
+### Naming of LoRA
+
+The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
+
+    LoRA for Linear layers and Conv2d layers with 1x1 kernel
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
+
+    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
+    
+LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
+
+To use LoRA-C3Liar with Web UI, please use our extension.
+
+## Sample image generation during training
+A prompt file might look like this, for example
+
+```
+# prompt 1
+masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+# prompt 2
+masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+```
+
+  Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+  * `--n` Negative prompt up to the next option.
+  * `--w` Specifies the width of the generated image.
+  * `--h` Specifies the height of the generated image.
+  * `--d` Specifies the seed of the generated image.
+  * `--l` Specifies the CFG scale of the generated image.
+  * `--s` Specifies the number of steps in the generation.
+
+  The prompt weighting such as `( )` and `[ ]` are working.
+
 ## Troubleshooting
 
 ### Page File Limit
@@ -258,6 +296,21 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/17 (v21.5.4)
+    - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
+    - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
+    - Upgrade Gradio to latest release
+    - Fix issue when Adafactor is used as optimizer and LR Warmup is not 0: https://github.com/bmaltais/kohya_ss/issues/617
+    - Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
+    - Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
+        - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
+        - Multi-GPU training has not been tested.
+        - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
+    - Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
+    - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
+    - Update gui.bat and gui.ps1 based on: https://github.com/bmaltais/kohya_ss/issues/188
+    - Update `setup.bat` to install torch 2.0.0 instead of 1.2.1. If you want to upgrade from 1.2.1 to 2.0.0 run setup.bat again, select 1 to uninstall the previous torch modules, then select 2 for torch 2.0.0
+
 * 2023/04/09 (v21.5.2)
 
     - Added support for training with weighted captions. Thanks to AI-Casanova for the great contribution! 
@@ -267,120 +320,3 @@ This will store a backup file with your current locally installed pip packages a
     - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
     - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
     - Run gui.sh from any place
-  
-* 2023/04/08 (v21.5.1)
-    - Integrate latest sd-scripts updates. Not integrated in the GUI. Will consider if you think it is wort integrating. At the moment you can add the required parameters using the `Additional parameters` field under the `Advanced Configuration` accordion in the `Training Parameters` tab:
-        - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
-    - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
-
-        - Added a feature to upload model and state to HuggingFace. Thanks to ddPn08 for the contribution! [PR #348](https://github.com/kohya-ss/sd-scripts/pull/348)
-        - When `--huggingface_repo_id` is specified, the model is uploaded to HuggingFace at the same time as saving the model.
-        - Please note that the access token is handled with caution. Please refer to the [HuggingFace documentation](https://huggingface.co/docs/hub/security-tokens).
-        - For example, specify other arguments as follows.
-            - `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
-        - If `public` is specified for `--huggingface_repo_visibility`, the repository will be public. If the option is omitted or `private` (or anything other than `public`) is specified, it will be private.
-        - If you specify `--save_state` and `--save_state_to_huggingface`, the state will also be uploaded.
-        - If you specify `--resume` and `--resume_from_huggingface`, the state will be downloaded from HuggingFace and resumed.
-            - In this case, the `--resume` option is `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`. For example: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
-        - If you specify `--async_upload`, the upload will be done asynchronously.
-        - Added the documentation for applying LoRA to generate with the standard pipeline of Diffusers.   [training LoRA](https://github-com.translate.goog/kohya-ss/sd-scripts/blob/main/train_network_README-ja.md?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=en-US&_x_tr_pto=wapp#diffusers%E3%81%AEpipeline%E3%81%A7%E7%94%9F%E6%88%90%E3%81%99%E3%82%8B) (Google translate from Japanese)
-        - Support for Attention Couple and regional LoRA in `gen_img_diffusers.py`.
-        - If you use ` AND ` to separate the prompts, each sub-prompt is sequentially applied to LoRA. `--mask_path` is treated as a mask image. The number of sub-prompts and the number of LoRA must match.
-    - Resolved bug https://github.com/bmaltais/kohya_ss/issues/554
-* 2023/04/07 (v21.5.0)
-    - Update MacOS and Linux install scripts. Thanks @jstayco
-    - Update windows upgrade ps1 and bat
-    - Update kohya_ss sd-script code to latest release... this is a big one so it might cause some training issue. If you find that this release is causing issues for you you can go back to the previous release with `git checkout v21.4.2` and then run the upgrade script for your platform. Here is the list of changes in the new sd-scripts:
-        - There may be bugs because I changed a lot. If you cannot revert the script to the previous version when a problem occurs, please wait for the update for a while.
-        - The learning rate and dim (rank) of each block may not work with other modules (LyCORIS, etc.) because the module needs to be changed.
-
-        - Fix some bugs and add some features.
-            - Fix an issue that `.json` format dataset config files cannot be read.  [issue #351](https://github.com/kohya-ss/sd-scripts/issues/351) Thanks to rockerBOO!
-            - Raise an error when an invalid `--lr_warmup_steps` option is specified (when warmup is not valid for the specified scheduler).  [PR #364](https://github.com/kohya-ss/sd-scripts/pull/364)  Thanks to shirayu!
-            - Add `min_snr_gamma` to metadata in `train_network.py`. [PR #373](https://github.com/kohya-ss/sd-scripts/pull/373) Thanks to rockerBOO!
-            - Fix the data type handling in `fine_tune.py`. This may fix an error that occurs in some environments when using xformers, npz format cache, and mixed_precision.
-
-        - Add options to `train_network.py` to specify block weights for learning rates. [PR #355](https://github.com/kohya-ss/sd-scripts/pull/355) Thanks to u-haru for the great contribution!
-            - Specify the weights of 25 blocks for the full model.
-            - No LoRA corresponds to the first block, but 25 blocks are specified for compatibility with 'LoRA block weight' etc. Also, if you do not expand to conv2d3x3, some blocks do not have LoRA, but please specify 25 values ​​for the argument for consistency.
-            - Specify the following arguments with `--network_args`.
-            - `down_lr_weight` : Specify the learning rate weight of the down blocks of U-Net. The following can be specified.
-            - The weight for each block: Specify 12 numbers such as `"down_lr_weight=0,0,0,0,0,0,1,1,1,1,1,1"`.
-            - Specify from preset: Specify such as `"down_lr_weight=sine"` (the weights by sine curve). sine, cosine, linear, reverse_linear, zeros can be specified. Also, if you add `+number` such as `"down_lr_weight=cosine+.25"`, the specified number is added (such as 0.25~1.25).
-            - `mid_lr_weight` : Specify the learning rate weight of the mid block of U-Net. Specify one number such as `"down_lr_weight=0.5"`.
-            - `up_lr_weight` : Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.
-            - If you omit the some arguments, the 1.0 is used. Also, if you set the weight to 0, the LoRA modules of that block are not created.
-            - `block_lr_zero_threshold` : If the weight is not more than this value, the LoRA module is not created. The default is 0.
-
-        - Add options to `train_network.py` to specify block dims (ranks) for variable rank.
-            - Specify 25 values ​​for the full model of 25 blocks. Some blocks do not have LoRA, but specify 25 values ​​always.
-            - Specify the following arguments with `--network_args`.
-            - `block_dims` : Specify the dim (rank) of each block. Specify 25 numbers such as `"block_dims=2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2"`.
-            - `block_alphas` : Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.
-            - `conv_block_dims` : Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block.
-            - `conv_block_alphas` : Specify the alpha of each block when expanding LoRA to Conv2d 3x3. If omitted, the value of conv_alpha is used.
-    - Add GUI support for new features introduced above by kohya_ss. Those will be visible only if the LoRA is of type `Standard` or `kohya LoCon`. You will find the new parameters under the `Advanced Configuration` accordion in the `Training parameters` tab.
-    - Various improvements to linux and macos srtup scripts thanks to @Oceanswave and @derVedro
-    - Integrated sd-scripts commits into commit history. Thanks to @Cauldrath
-* 2023/04/02 (v21.4.2)
-    - removes TensorFlow from requirements.txt for Darwin platforms as pip does not support advanced conditionals like CPU architecture. The logic is now defined in setup.sh to avoid version bump headaches, and the selection logic is in the pre-existing pip function. Additionally, the release includes the addition of the tensorflow-metal package for M1+ Macs, which enables GPU acceleration per Apple's documentation. Thanks @jstayco
-* 2023/04/01 (v21.4.1)
-    - Fix type for linux install by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/517
-    - Fix .gitignore by @bmaltais in https://github.com/bmaltais/kohya_ss/pull/518
-* 2023/04/01 (v21.4.0)
-    - Improved linux and macos installation and updates script. See README for more details. Many thanks to @jstayco and @Galunid for the great PR!
-    - Fix issue with "missing library" error.
-* 2023/04/01 (v21.3.9)
-    - Update how setup is done on Windows by introducing a setup.bat script. This will make it easier to install/re-install on Windows if needed. Many thanks to @missionfloyd for his PR: https://github.com/bmaltais/kohya_ss/pull/496
-* 2023/03/30 (v21.3.8)
-    - Fix issue with LyCORIS version not being found: https://github.com/bmaltais/kohya_ss/issues/481
-* 2023/03/29 (v21.3.7)
-    - Allow for 0.1 increment in Network and Conv alpha values: https://github.com/bmaltais/kohya_ss/pull/471 Thanks to @srndpty
-    - Updated Lycoris module version
-* 2023/03/28 (v21.3.6)
-    - Fix issues when `--persistent_data_loader_workers` is specified.
-        - The batch members of the bucket are not shuffled.
-        - `--caption_dropout_every_n_epochs` does not work.
-        - These issues occurred because the epoch transition was not recognized correctly. Thanks to u-haru for reporting the issue.
-    - Fix an issue that images are loaded twice in Windows environment.
-    - Add Min-SNR Weighting strategy. Details are in [#308](https://github.com/kohya-ss/sd-scripts/pull/308). Thank you to AI-Casanova for this great work!
-        - Add `--min_snr_gamma` option to training scripts, 5 is recommended by paper.
-        - The Min SNR gamma fields can be found under the advanced training tab in all trainers.
-    - Fixed the error while images are ended with capital image extensions. Thanks to @kvzn. https://github.com/bmaltais/kohya_ss/pull/454
-* 2023/03/26 (v21.3.5)
-    - Fix for https://github.com/bmaltais/kohya_ss/issues/230
-    - Added detection for Google Colab to not bring up the GUI file/folder window on the platform. Instead it will only use the file/folder path provided in the input field.
-* 2023/03/25 (v21.3.4)
-    - Added untested support for MacOS base on this gist: https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
-
-    Let me know how this work. From the look of it it appear to be well thought out. I modified a few things to make it fit better with the rest of the code in the repo.
-    - Fix for issue https://github.com/bmaltais/kohya_ss/issues/433 by implementing default of 0.
-    - Removed non applicable save_model_as choices for LoRA and TI.
-* 2023/03/24 (v21.3.3)
-    - Add support for custom user gui files. THey will be created at installation time or when upgrading is missing. You will see two files in the root of the folder. One named `gui-user.bat` and the other `gui-user.ps1`. Edit the file based on your preferred terminal. Simply add the parameters you want to pass the gui in there and execute it to start the gui with them. Enjoy!
-* 2023/03/23 (v21.3.2)
-    - Fix issue reported: https://github.com/bmaltais/kohya_ss/issues/439
-* 2023/03/23 (v21.3.1)
-    - Merge PR to fix refactor naming issue for basic captions. Thank @zrma
-* 2023/03/22 (v21.3.0)
-    - Add a function to load training config with `.toml` to each training script. Thanks to Linaqruf for this great contribution!
-        - Specify `.toml` file with `--config_file`. `.toml` file has `key=value` entries. Keys are same as command line options. See [#241](https://github.com/kohya-ss/sd-scripts/pull/241) for details.
-        - All sub-sections are combined to a single dictionary (the section names are ignored.)
-        - Omitted arguments are the default values for command line arguments.
-        - Command line args override the arguments in `.toml`.
-        - With `--output_config` option, you can output current command line options  to the `.toml` specified with`--config_file`. Please use as a template.
-    - Add `--lr_scheduler_type` and `--lr_scheduler_args` arguments for custom LR scheduler to each training script. Thanks to Isotr0py! [#271](https://github.com/kohya-ss/sd-scripts/pull/271)
-        - Same as the optimizer.
-    - Add sample image generation with weight and no length limit. Thanks to mio2333! [#288](https://github.com/kohya-ss/sd-scripts/pull/288)
-        - `( )`, `(xxxx:1.2)` and `[ ]` can be used.
-    - Fix exception on training model in diffusers format with `train_network.py` Thanks to orenwang! [#290](https://github.com/kohya-ss/sd-scripts/pull/290)
-    - Add warning if you are about to overwrite an existing model: https://github.com/bmaltais/kohya_ss/issues/404
-    - Add `--vae_batch_size` for faster latents caching to each training script. This  batches VAE calls.
-        - Please start with`2` or `4` depending on the size of VRAM.
-    - Fix a number of training steps with `--gradient_accumulation_steps` and `--max_train_epochs`. Thanks to tsukimiya!
-    - Extract parser setup to external scripts. Thanks to robertsmieja!
-    - Fix an issue without `.npz` and with `--full_path` in training.
-    - Support extensions with upper cases for images for not Windows environment.
-    - Fix `resize_lora.py` to work with LoRA with dynamic rank (including `conv_dim != network_dim`). Thanks to toshiaki!
-    - Fix issue: https://github.com/bmaltais/kohya_ss/issues/406
-    - Add device support to LoRA extract.

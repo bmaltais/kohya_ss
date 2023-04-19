@@ -20,7 +20,7 @@ def UI(**kwargs):
             print('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css, title='Kohya_ss GUI')
+    interface = gr.Blocks(css=css, title='Kohya_ss GUI', theme=gr.themes.Default())
 
     with interface:
         with gr.Tab('Dreambooth'):

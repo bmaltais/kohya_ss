@@ -4,7 +4,7 @@
 
 実装に当たっては https://github.com/huggingface/diffusers/tree/main/examples/textual_inversion を大いに参考にしました。
 
-学習したモデルはWeb UIでもそのまま使えます。なお恐らくSD2.xにも対応していますが現時点では未テストです。
+学習したモデルはWeb UIでもそのまま使えます。
 
 # 学習の手順
 
