@@ -2,6 +2,7 @@
 
 from tqdm import tqdm
 from library import model_util
+import library.train_util as train_util
 import argparse
 from transformers import CLIPTokenizer
 import torch
@@ -18,14 +19,14 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def interrogate(args):
   # いろいろ準備する
   print(f"loading SD model: {args.sd_model}")
-  text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.sd_model)
+  text_encoder, vae, unet, _ = train_util.load_target_model(args, args.sd_model, DEVICE)
 
   print(f"loading LoRA: {args.model}")
-  network = lora.create_network_from_weights(1.0, args.model, vae, text_encoder, unet)
+  network, weights_sd = lora.create_network_from_weights(1.0, args.model, vae, text_encoder, unet)
 
   # text encoder向けの重みがあるかチェックする：本当はlora側でやるのがいい
   has_te_weight = False
-  for key in network.weights_sd.keys():
+  for key in weights_sd.keys():
     if 'lora_te' in key:
       has_te_weight = True
       break
@@ -107,10 +108,8 @@ def interrogate(args):
 
 def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
-  parser.add_argument("--v2", action='store_true',
-                      help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
-  parser.add_argument("--sd_model", type=str, default=None,
-                      help="Stable Diffusion model to load: ckpt or safetensors file / 読み込むSDのモデル、ckptまたはsafetensors")
+
+  train_util.add_sd_models_arguments(parser)
   parser.add_argument("--model", type=str, default=None,
                       help="LoRA model to interrogate: ckpt or safetensors file / 調査するLoRAモデル、ckptまたはsafetensors")
   parser.add_argument("--batch_size", type=int, default=16,
