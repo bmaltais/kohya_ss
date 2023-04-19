@@ -127,10 +127,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-### 17 Apr. 2023, 2023/4/17:
-
-- Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
-- `finetune`フォルダ内の各スクリプトに再起的にフォルダを処理するオプション`--recursive`を追加しました。詳細は [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) を参照してください。Linaqruf 氏に感謝します。
+### 19 Apr. 2023, 2023/4/19:
+- Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
+- Fixed the handling of tags containing `_` in `tag_images_by_wd14_tagger.py`.
+- `lora_interrogator.py`が動作しなくなっていたのを修正しました。詳細は [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) をご参照ください。A2va氏およびheyalexchoi氏に感謝します。
+- `tag_images_by_wd14_tagger.py`で`_`を含むタグの取り扱いを修正しました。
 
 ### Naming of LoRA
 
@@ -163,6 +164,11 @@ To use LoRA-C3Liar with Web UI, please use our extension.
 LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
 
 LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください。
+
+### 17 Apr. 2023, 2023/4/17:
+
+- Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
+- `finetune`フォルダ内の各スクリプトに再起的にフォルダを処理するオプション`--recursive`を追加しました。詳細は [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) を参照してください。Linaqruf 氏に感謝します。
 
 ### 14 Apr. 2023, 2023/4/14:
 - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.

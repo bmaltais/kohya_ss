@@ -141,17 +141,19 @@ def main(args):
             character_tag_text = ""
             for i, p in enumerate(prob[4:]):
                 if i < len(general_tags) and p >= args.general_threshold:
-                    tag_name = general_tags[i].replace("_", " ") if args.remove_underscore else general_tags[i]
+                    tag_name = general_tags[i]
+                    if args.remove_underscore and len(tag_name) > 3:  # ignore emoji tags like >_< and ^_^
+                        tag_name = tag_name.replace("_", " ")
+
                     if tag_name not in undesired_tags:
                         tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
                         general_tag_text += ", " + tag_name
                         combined_tags.append(tag_name)
                 elif i >= len(general_tags) and p >= args.character_threshold:
-                    tag_name = (
-                        character_tags[i - len(general_tags)].replace("_", " ")
-                        if args.remove_underscore
-                        else character_tags[i - len(general_tags)]
-                    )
+                    tag_name = character_tags[i - len(general_tags)]
+                    if args.remove_underscore and len(tag_name) > 3:
+                        tag_name = tag_name.replace("_", " ")
+
                     if tag_name not in undesired_tags:
                         tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
                         character_tag_text += ", " + tag_name
