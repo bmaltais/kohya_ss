@@ -551,7 +551,7 @@ def train(args):
 
     for epoch in range(num_train_epochs):
         if is_main_process:
-            print(f"epoch {epoch+1}/{num_train_epochs}")
+            print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         metadata["ss_epoch"] = str(epoch + 1)
@@ -710,7 +710,7 @@ def train(args):
         ckpt_name = model_name + "." + args.save_model_as
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
-        print(f"save trained model to {ckpt_file}")
+        print(f"\nsave trained model to {ckpt_file}")
         network.save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
         if args.huggingface_repo_id is not None:
             huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
