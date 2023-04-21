@@ -200,7 +200,7 @@ def gradio_merge_lora_tab():
             
         with gr.Row():
             ratio_c = gr.Slider(
-                label='Model C erge ratio (eg: 0.5 mean 50%)',
+                label='Model C merge ratio (eg: 0.5 mean 50%)',
                 minimum=0,
                 maximum=1,
                 step=0.01,
