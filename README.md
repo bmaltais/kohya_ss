@@ -311,6 +311,7 @@ This will store a backup file with your current locally installed pip packages a
     - Fixed the handling of tags containing `_` in `tag_images_by_wd14_tagger.py`.
     - Add new Extract DyLoRA gui to the Utilities tab.
     - Add new Merge LyCORIS models into checkpoint gui to the Utilities tab.
+    - Add new info on startup to help debug things
 * 2023/04/17 (v21.5.4)
     - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
     - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
