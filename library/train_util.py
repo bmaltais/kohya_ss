@@ -1445,8 +1445,8 @@ def debug_dataset(train_dataset, show_input_ids=False):
                     im = im[:, :, ::-1]  # RGB -> BGR (OpenCV)
                     if os.name == "nt":  # only windows
                         cv2.imshow("img", im)
-                    k = cv2.waitKey()
-                    cv2.destroyAllWindows()
+                        k = cv2.waitKey()
+                        cv2.destroyAllWindows()
                     if k == 27 or k == ord("s") or k == ord("e"):
                         break
             steps += 1
