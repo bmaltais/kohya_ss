@@ -538,7 +538,7 @@ def train(args):
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
     if accelerator.is_main_process:
-        accelerator.init_trackers("network_train")
+        accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name)
 
     loss_list = []
     loss_total = 0.0

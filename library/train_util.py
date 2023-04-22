@@ -845,9 +845,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
         # 画像サイズはsizeより大きいのでリサイズする
         face_size = max(face_w, face_h)
+        size = min(self.height, self.width) # 短いほう
         min_scale = max(self.height / height, self.width / width)  # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
-        min_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
-        max_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
+        min_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
+        max_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
         if min_scale >= max_scale:  # range指定がmin==max
             scale = min_scale
         else:
@@ -872,7 +873,7 @@ class BaseDataset(torch.utils.data.Dataset):
             else:
                 # range指定があるときのみ、すこしだけランダムに（わりと適当）
                 if subset.face_crop_aug_range[0] != subset.face_crop_aug_range[1]:
-                    if face_size > self.size // 10 and face_size >= 40:
+                    if face_size > size // 10 and face_size >= 40:
                         p1 = p1 + random.randint(-face_size // 20, +face_size // 20)
 
             p1 = max(0, min(p1, length - target_size))
@@ -1445,8 +1446,8 @@ def debug_dataset(train_dataset, show_input_ids=False):
                     im = im[:, :, ::-1]  # RGB -> BGR (OpenCV)
                     if os.name == "nt":  # only windows
                         cv2.imshow("img", im)
-                    k = cv2.waitKey()
-                    cv2.destroyAllWindows()
+                        k = cv2.waitKey()
+                        cv2.destroyAllWindows()
                     if k == 27 or k == ord("s") or k == ord("e"):
                         break
             steps += 1
@@ -2067,7 +2068,17 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する",
     )
+    parser.add_argument(
+        "--log_with",
+        type=str,
+        default=None,
+        choices=["tensorboard", "wandb", "all"],
+        help="what logging tool(s) to use (if 'all', TensorBoard and WandB are both used) / ログ出力に使用するツール (allを指定するとTensorBoardとWandBの両方が使用される)",
+    )
     parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
+    parser.add_argument(
+        "--log_tracker_name", type=str, default=None, help="name of tracker to use for logging, default is script-specific default name / ログ出力に使用するtrackerの名前、省略時はスクリプトごとのデフォルト名"
+    )
     parser.add_argument(
         "--noise_offset",
         type=float,
@@ -2732,12 +2743,24 @@ def load_tokenizer(args: argparse.Namespace):
 
 def prepare_accelerator(args: argparse.Namespace):
     if args.logging_dir is None:
-        log_with = None
         logging_dir = None
     else:
-        log_with = "tensorboard"
         log_prefix = "" if args.log_prefix is None else args.log_prefix
         logging_dir = args.logging_dir + "/" + log_prefix + time.strftime("%Y%m%d%H%M%S", time.localtime())
+
+    if args.log_with is not None:
+        log_with = args.log_with
+        if log_with in ["tensorboard", "all"]:
+            if logging_dir is None:
+                raise ValueError("logging_dir is required when log_with is tensorboard / Tensorboardを使う場合、logging_dirを指定してください")
+        if log_with in ["wandb", "all"]:
+            try:
+                import wandb
+            except ImportError:
+                raise ImportError("No wandb / wandb がインストールされていないようです")
+            if logging_dir is not None:
+                os.makedirs(logging_dir, exist_ok=True)
+                os.environ["WANDB_DIR"] = logging_dir
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -3196,6 +3219,18 @@ def sample_images(
                 )
 
                 image.save(os.path.join(save_dir, img_filename))
+
+                # wandb有効時のみログを送信
+                try:
+                    wandb_tracker = accelerator.get_tracker("wandb")
+                    try:
+                        import wandb
+                    except ImportError:  # 事前に一度確認するのでここはエラー出ないはず
+                        raise ImportError("No wandb / wandb がインストールされていないようです")
+
+                    wandb_tracker.log({f"sample_{i}": wandb.Image(image)})
+                except:  # wandb 無効時
+                    pass
 
     # clear pipeline and cache to reduce vram usage
     del pipeline
