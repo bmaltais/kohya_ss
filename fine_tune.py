@@ -260,7 +260,7 @@ def train(args):
     )
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("finetuning")
+        accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name)
 
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
