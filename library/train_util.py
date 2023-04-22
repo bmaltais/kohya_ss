@@ -2748,7 +2748,9 @@ def prepare_accelerator(args: argparse.Namespace):
         log_prefix = "" if args.log_prefix is None else args.log_prefix
         logging_dir = args.logging_dir + "/" + log_prefix + time.strftime("%Y%m%d%H%M%S", time.localtime())
 
-    if args.log_with is not None:
+    if args.log_with is None:
+        log_with = None
+    else:
         log_with = args.log_with
         if log_with in ["tensorboard", "all"]:
             if logging_dir is None:
