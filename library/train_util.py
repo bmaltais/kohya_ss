@@ -845,9 +845,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
         # 画像サイズはsizeより大きいのでリサイズする
         face_size = max(face_w, face_h)
+        size = min(self.height, self.width) # 短いほう
         min_scale = max(self.height / height, self.width / width)  # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
-        min_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
-        max_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
+        min_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
+        max_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
         if min_scale >= max_scale:  # range指定がmin==max
             scale = min_scale
         else:
@@ -872,7 +873,7 @@ class BaseDataset(torch.utils.data.Dataset):
             else:
                 # range指定があるときのみ、すこしだけランダムに（わりと適当）
                 if subset.face_crop_aug_range[0] != subset.face_crop_aug_range[1]:
-                    if face_size > self.size // 10 and face_size >= 40:
+                    if face_size > size // 10 and face_size >= 40:
                         p1 = p1 + random.randint(-face_size // 20, +face_size // 20)
 
             p1 = max(0, min(p1, length - target_size))
