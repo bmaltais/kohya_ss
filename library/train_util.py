@@ -845,7 +845,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
         # 画像サイズはsizeより大きいのでリサイズする
         face_size = max(face_w, face_h)
-        size = min(self.height, self.width) # 短いほう
+        size = min(self.height, self.width)  # 短いほう
         min_scale = max(self.height / height, self.width / width)  # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
         min_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
         max_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
@@ -2077,7 +2077,16 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     )
     parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
     parser.add_argument(
-        "--log_tracker_name", type=str, default=None, help="name of tracker to use for logging, default is script-specific default name / ログ出力に使用するtrackerの名前、省略時はスクリプトごとのデフォルト名"
+        "--log_tracker_name",
+        type=str,
+        default=None,
+        help="name of tracker to use for logging, default is script-specific default name / ログ出力に使用するtrackerの名前、省略時はスクリプトごとのデフォルト名",
+    )
+    parser.add_argument(
+        "--wandb_api_key",
+        type=str,
+        default=None,
+        help="specify WandB API key to log in before starting training (optional). / WandB APIキーを指定して学習開始前にログインする（オプション）",
     )
     parser.add_argument(
         "--noise_offset",
@@ -2299,7 +2308,7 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
         args_dict = vars(args)
 
         # remove unnecessary keys
-        for key in ["config_file", "output_config"]:
+        for key in ["config_file", "output_config", "wandb_api_key"]:
             if key in args_dict:
                 del args_dict[key]
 
@@ -2763,6 +2772,8 @@ def prepare_accelerator(args: argparse.Namespace):
             if logging_dir is not None:
                 os.makedirs(logging_dir, exist_ok=True)
                 os.environ["WANDB_DIR"] = logging_dir
+            if args.wandb_api_key is not None:
+                wandb.login(key=args.wandb_api_key)
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,

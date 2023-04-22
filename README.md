@@ -130,13 +130,19 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 ### 22 Apr. 2023, 2023/4/22:
 
 - Added support for logging to wandb. Please refer to [PR #428](https://github.com/kohya-ss/sd-scripts/pull/428). Thank you p1atdev!
+  - `wandb` installation is required. Please install it with `pip install wandb`. Login to wandb with `wandb login` command, or set `--wandb_api_key` option for automatic login.
   - Please let me know if you find any bugs as the test is not complete. 
+- You can automatically login to wandb by setting the `--wandb_api_key` option. Please be careful with the handling of API Key. [PR #435](https://github.com/kohya-ss/sd-scripts/pull/435) Thank you Linaqruf!
+
 - Improved the behavior of `--debug_dataset` on non-Windows environments. [PR #429](https://github.com/kohya-ss/sd-scripts/pull/429) Thank you tsukimiya!
 - Fixed `--face_crop_aug` option not working in Fine tuning method.
 - Prepared code to use any upscaler in `gen_img_diffusers.py`.
 
 - wandbへのロギングをサポートしました。詳細は [PR #428](https://github.com/kohya-ss/sd-scripts/pull/428)をご覧ください。p1atdev氏に感謝します。
+  - `wandb` のインストールが別途必要です。`pip install wandb` でインストールしてください。また `wandb login` でログインしてください（学習スクリプト内でログインする場合は `--wandb_api_key` オプションを設定してください）。
   - テスト未了のため不具合等ありましたらご連絡ください。
+- wandbへのロギング時に `--wandb_api_key` オプションを設定することで自動ログインできます。API Keyの扱いにご注意ください。 [PR #435](https://github.com/kohya-ss/sd-scripts/pull/435) Linaqruf氏に感謝します。
+
 - Windows以外の環境での`--debug_dataset` の動作を改善しました。[PR #429](https://github.com/kohya-ss/sd-scripts/pull/429) tsukimiya氏に感謝します。
 - `--face_crop_aug`オプションがFine tuning方式で動作しなかったのを修正しました。
 - `gen_img_diffusers.py`に任意のupscalerを利用するためのコード準備を行いました。
