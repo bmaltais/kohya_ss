@@ -2761,6 +2761,8 @@ def prepare_accelerator(args: argparse.Namespace):
             if logging_dir is not None:
                 os.makedirs(logging_dir, exist_ok=True)
                 os.environ["WANDB_DIR"] = logging_dir
+    else:
+        log_with = None
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
