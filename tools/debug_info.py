@@ -11,11 +11,7 @@ processor = platform.processor()
 
 # Print system information
 print("System Information:")
-print(f"System: {system}")
-print(f"Release: {release}")
-print(f"Version: {version}")
-print(f"Machine: {machine}")
-print(f"Processor: {processor}")
+print(f"System: {system}, Release: {release}, Version: {version}, Machine: {machine}, Processor: {processor}")
 
 # Get Python information
 python_version = platform.python_version()
@@ -24,9 +20,7 @@ python_compiler = platform.python_compiler()
 
 # Print Python information
 print("\nPython Information:")
-print(f"Version: {python_version}")
-print(f"Implementation: {python_implementation}")
-print(f"Compiler: {python_compiler}")
+print(f"Version: {python_version}, Implementation: {python_implementation}, Compiler: {python_compiler}")
 
 # Get virtual environment information
 venv = os.environ.get('VIRTUAL_ENV', None)
@@ -53,8 +47,7 @@ except (subprocess.CalledProcessError, FileNotFoundError):
 
 # Print GPU information
 print("\nGPU Information:")
-print(f"Name: {gpu_name}")
-print(f"VRAM: {gpu_vram} MiB")
+print(f"Name: {gpu_name}, VRAM: {gpu_vram} MiB")
 
 # Print VRAM warning if necessary
 if gpu_vram_warning:
