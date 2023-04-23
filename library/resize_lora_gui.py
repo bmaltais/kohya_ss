@@ -72,7 +72,8 @@ def resize_lora(
     else:
         subprocess.run(run_cmd)
 
-
+    print('Done resizing...')
+    
 ###
 # Gradio UI
 ###

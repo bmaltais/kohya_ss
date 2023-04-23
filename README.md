@@ -108,13 +108,22 @@ If you are using the interactive mode, our default values for the accelerate con
 These are the same answers as the Windows install.
 
 ### Windows
+
+- Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
+  - make sure to tick the box to add Python to the 'PATH' environment variable
+- Install [Git](https://git-scm.com/download/win)
+- Install [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
 In the terminal, run:
 
 ```
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-setup.bat
+.\setup.bat
 ```
+
+If this is a 1st install answer No when asked `Do you want to uninstall previous versions of torch and associated files before installing`.
+
 
 Then configure accelerate with the same answers as in the MacOS instructions when prompted.
 
@@ -296,6 +305,13 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/22 (v21.5.5)
+    - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
+    - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
+    - Fixed the handling of tags containing `_` in `tag_images_by_wd14_tagger.py`.
+    - Add new Extract DyLoRA gui to the Utilities tab.
+    - Add new Merge LyCORIS models into checkpoint gui to the Utilities tab.
+    - Add new info on startup to help debug things
 * 2023/04/17 (v21.5.4)
     - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
     - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
