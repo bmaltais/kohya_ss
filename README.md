@@ -127,6 +127,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 23 Apr. 2023, 2023/4/23:
+
+- Fixed to log to TensorBoard when `--logging_dir` is specified and `--log_with` is not specified.
+- `--logging_dir`を指定し`--log_with`を指定しない場合に、以前と同様にTensorBoardへログ出力するよう修正しました。
+
 ### 22 Apr. 2023, 2023/4/22:
 
 - Added support for logging to wandb. Please refer to [PR #428](https://github.com/kohya-ss/sd-scripts/pull/428). Thank you p1atdev!
