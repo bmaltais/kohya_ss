@@ -428,32 +428,37 @@ def train_model(
 
     # Loop through each subfolder and extract the number of repeats
     for folder in subfolders:
-        # Extract the number of repeats from the folder name
-        repeats = int(folder.split('_')[0])
-
-        # Count the number of images in the folder
-        num_images = len(
-            [
-                f
-                for f, lower_f in (
-                    (file, file.lower())
-                    for file in os.listdir(
-                        os.path.join(train_data_dir, folder)
+        try:
+            # Extract the number of repeats from the folder name
+            repeats = int(folder.split('_')[0])
+            
+            # Count the number of images in the folder
+            num_images = len(
+                [
+                    f
+                    for f, lower_f in (
+                        (file, file.lower())
+                        for file in os.listdir(
+                            os.path.join(train_data_dir, folder)
+                        )
                     )
-                )
-                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
-            ]
-        )
+                    if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
+                ]
+            )
 
-        print(f'Folder {folder}: {num_images} images found')
+            print(f'Folder {folder}: {num_images} images found')
 
-        # Calculate the total number of steps for this folder
-        steps = repeats * num_images
+            # Calculate the total number of steps for this folder
+            steps = repeats * num_images
 
-        # Print the result
-        print(f'Folder {folder}: {steps} steps')
+            # Print the result
+            print(f'Folder {folder}: {steps} steps')
 
-        total_steps += steps
+            total_steps += steps
+            
+        except ValueError:
+            # Handle the case where the folder name does not contain an underscore
+            print(f"Error: '{folder}' does not contain an underscore, skipping...")    
 
     # calculate max_train_steps
     max_train_steps = int(

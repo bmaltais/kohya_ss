@@ -15,9 +15,9 @@ IF NOT EXIST venv (
 )
 call .\venv\Scripts\activate.bat
 
-echo Do you want to uninstall previous versions of torch and associated files before installing?
+echo Do you want to uninstall previous versions of torch and associated files before installing? Usefull if you are upgrading from torch 1.12.1 to torch 2.0.0 or if you are downgrading from torch 2.0.0 to torch 1.12.1.
 echo [1] - Yes
-echo [2] - No
+echo [2] - No (recommanded for most)
 set /p uninstall_choice="Enter your choice (1 or 2): "
 
 if %uninstall_choice%==1 (
@@ -26,8 +26,8 @@ if %uninstall_choice%==1 (
 )
 
 echo Please choose the version of torch you want to install:
-echo [1] - v1 (torch 1.12.1)
-echo [2] - v2 (torch 2.0.0)
+echo [1] - v1 (torch 1.12.1) (Recommended)
+echo [2] - v2 (torch 2.0.0) (Experimental)
 set /p choice="Enter your choice (1 or 2): "
 
 if %choice%==1 (
@@ -37,7 +37,7 @@ if %choice%==1 (
 ) else (
     pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
     pip install --use-pep517 --upgrade -r requirements.txt
-    pip install --upgrade  xformers==0.0.17
+    pip install --upgrade xformers==0.0.17
     rem pip install -U -I --no-deps https://files.pythonhosted.org/packages/d6/f7/02662286419a2652c899e2b3d1913c47723fc164b4ac06a85f769c291013/xformers-0.0.17rc482-cp310-cp310-win_amd64.whl
 )
 

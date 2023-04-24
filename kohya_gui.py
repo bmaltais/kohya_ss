@@ -9,6 +9,8 @@ from library.extract_lora_gui import gradio_extract_lora_tab
 from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
 from library.merge_lora_gui import gradio_merge_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
+from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
+from library.merge_lycoris_gui import gradio_merge_lycoris_tab
 from lora_gui import lora_tab
 
 
@@ -44,9 +46,11 @@ def UI(**kwargs):
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
             )
+            gradio_extract_dylora_tab()
             gradio_extract_lora_tab()
             gradio_extract_lycoris_locon_tab()
             gradio_merge_lora_tab()
+            gradio_merge_lycoris_tab()
             gradio_resize_lora_tab()
 
     # Show the interface
