@@ -1,7 +1,7 @@
 setup_arguments:
   - name: Branch
     description: Select which branch of kohya to check out on new installs.
-    value: dev
+    value: master
   - name: Dir
     description: The full path you want kohya_ss installed to.
     value: ~/kohya_ss
@@ -11,6 +11,9 @@ setup_arguments:
   - name: Interactive
     description: Interactively configure accelerate instead of using value config file.
     value: false
+  - name: LogDir
+    description: Override the default log directory.
+    value: ''
   - name: Public
     description: Expose public URL in runpod mode. Won't have an effect in other modes.
     value: false

@@ -23,6 +23,7 @@ Options:
   -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
+  -l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
   -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
@@ -68,7 +69,7 @@ MAXVERBOSITY=6
 USER_CONFIG_FILE=""
 declare -A CLI_ARGUMENTS
 
-while getopts ":vb:d:f:g:inprsux-:" opt; do
+while getopts ":vb:d:f:g:il:nprsux-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -82,6 +83,7 @@ while getopts ":vb:d:f:g:inprsux-:" opt; do
   g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
   h | help) display_help && exit 0 ;;
   i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
+  l | log-dir) CLI_ARGUMENTS["LogDir"]="$OPTARG" ;;
   n | no-setup) CLI_ARGUMENTS["NoSetup"]="true" ;;
   p | public) CLI_ARGUMENTS["Public"]="true" ;;
   r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
@@ -157,7 +159,6 @@ EOF
 configFileLocations=(
   "$USER_CONFIG_FILE"
   "$HOME/.kohya_ss/install_config.yaml"
-  "$DIR/config_files/installation/install_config.yaml"
   "$SCRIPT_DIR/config_files/installation/install_config.yaml"
 )
 
@@ -176,9 +177,10 @@ fi
 
 # Set default values
 config_Branch="${config_Branch:-master}"
-config_Dir="${config_Dir:-$HOME/kohya_ss}"
+config_Dir="${config_Dir:-$HOME/.kohya_ss}"
 config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_Interactive="${config_Interactive:-false}"
+config_LogDir="${config_LogDir:-$DIR/logs}"
 config_Public="${config_Public:-false}"
 config_NoSetup="${config_NoSetup:-false}"
 config_Runpod="${config_Runpod:-false}"
@@ -203,6 +205,7 @@ BRANCH="$config_Branch"
 DIR="$config_Dir"
 GIT_REPO="$config_GitRepo"
 INTERACTIVE="$config_Interactive"
+LOG_DIR="$config_LogDir"
 NO_SETUP="$config_NoSetup"
 PUBLIC="$config_Public"
 RUNPOD="$config_Runpod"
@@ -239,6 +242,7 @@ DIR: $DIR
 GIT_REPO: $GIT_REPO
 Config file location: $USER_CONFIG_FILE
 INTERACTIVE: $INTERACTIVE
+LOG_DIR: $LOG_DIR
 PUBLIC: $PUBLIC
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
@@ -740,11 +744,13 @@ run_launcher() {
     exit 1
   fi
 
+  # shellcheck disable=SC2046
   "$PYTHON_EXEC" launcher.py \
     --branch="$BRANCH" \
     --dir="$DIR" \
     --git-repo="$GIT_REPO" \
     $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
+    --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
     $([ "$PUBLIC" = "true" ] && echo "--public") \
     $([ "$RUNPOD" = "true" ] && echo "--runpod") \
