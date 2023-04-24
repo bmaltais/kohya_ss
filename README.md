@@ -127,36 +127,8 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
-### 23 Apr. 2023, 2023/4/23:
-
-- Fixed to log to TensorBoard when `--logging_dir` is specified and `--log_with` is not specified.
-- `--logging_dir`を指定し`--log_with`を指定しない場合に、以前と同様にTensorBoardへログ出力するよう修正しました。
-
-### 22 Apr. 2023, 2023/4/22:
-
-- Added support for logging to wandb. Please refer to [PR #428](https://github.com/kohya-ss/sd-scripts/pull/428). Thank you p1atdev!
-  - `wandb` installation is required. Please install it with `pip install wandb`. Login to wandb with `wandb login` command, or set `--wandb_api_key` option for automatic login.
-  - Please let me know if you find any bugs as the test is not complete. 
-- You can automatically login to wandb by setting the `--wandb_api_key` option. Please be careful with the handling of API Key. [PR #435](https://github.com/kohya-ss/sd-scripts/pull/435) Thank you Linaqruf!
-
-- Improved the behavior of `--debug_dataset` on non-Windows environments. [PR #429](https://github.com/kohya-ss/sd-scripts/pull/429) Thank you tsukimiya!
-- Fixed `--face_crop_aug` option not working in Fine tuning method.
-- Prepared code to use any upscaler in `gen_img_diffusers.py`.
-
-- wandbへのロギングをサポートしました。詳細は [PR #428](https://github.com/kohya-ss/sd-scripts/pull/428)をご覧ください。p1atdev氏に感謝します。
-  - `wandb` のインストールが別途必要です。`pip install wandb` でインストールしてください。また `wandb login` でログインしてください（学習スクリプト内でログインする場合は `--wandb_api_key` オプションを設定してください）。
-  - テスト未了のため不具合等ありましたらご連絡ください。
-- wandbへのロギング時に `--wandb_api_key` オプションを設定することで自動ログインできます。API Keyの扱いにご注意ください。 [PR #435](https://github.com/kohya-ss/sd-scripts/pull/435) Linaqruf氏に感謝します。
-
-- Windows以外の環境での`--debug_dataset` の動作を改善しました。[PR #429](https://github.com/kohya-ss/sd-scripts/pull/429) tsukimiya氏に感謝します。
-- `--face_crop_aug`オプションがFine tuning方式で動作しなかったのを修正しました。
-- `gen_img_diffusers.py`に任意のupscalerを利用するためのコード準備を行いました。
-  
-### 19 Apr. 2023, 2023/4/19:
-- Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
-- Fixed the handling of tags containing `_` in `tag_images_by_wd14_tagger.py`.
-- `lora_interrogator.py`が動作しなくなっていたのを修正しました。詳細は [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) をご参照ください。A2va氏およびheyalexchoi氏に感謝します。
-- `tag_images_by_wd14_tagger.py`で`_`を含むタグの取り扱いを修正しました。
+Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
+最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
 
 ### Naming of LoRA
 
@@ -189,31 +161,6 @@ To use LoRA-C3Liar with Web UI, please use our extension.
 LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
 
 LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください。
-
-### 17 Apr. 2023, 2023/4/17:
-
-- Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
-- `finetune`フォルダ内の各スクリプトに再起的にフォルダを処理するオプション`--recursive`を追加しました。詳細は [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) を参照してください。Linaqruf 氏に感謝します。
-
-### 14 Apr. 2023, 2023/4/14:
-- Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
-- `train_network.py`で、DyLoRAを`--network_weight`オプションで読み込むとエラーになる不具合を修正しました。
-
-### 13 Apr. 2023, 2023/4/13:
-
-- Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
-- Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
-  - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
-  - Multi-GPU training has not been tested.
-  - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
-- Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
-
-- `train_network.py`でDyLoRAをサポートしました。詳細は[こちら](./train_network_README-ja.md#dylora)をご覧ください。
-- 各学習スクリプトでlatentのディスクへのキャッシュをサポートしました。`--cache_latents`オプションに __加えて__、`--cache_latents_to_disk`オプションを指定してください。
-  - 画像と同じフォルダに、拡張子 `.npz` で保存されます。`--flip_aug`オプションを指定した場合、`_flip.npz`が付いたファイルにも保存されます。
-  - マルチGPUでの学習は未テストです。
-  - すべてのDataset、学習スクリプトの組み合わせでテストしたわけではないため、不具合があるかもしれません。
-- `fine_tune.py`で、`fp16`および`bf16`の学習時にエラーが出る不具合に対して対策を行いました。
 
 ## Sample image generation during training
   A prompt file might look like this, for example
@@ -259,5 +206,3 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
   `( )` や `[ ]` などの重みづけも動作します。
 
-Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
-最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
