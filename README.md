@@ -305,6 +305,9 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/24 (v21.5.6)
+    - Fix triton error
+    - Fix issue with merge lora path with spaces
 * 2023/04/22 (v21.5.5)
     - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
     - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
