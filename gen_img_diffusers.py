@@ -945,7 +945,7 @@ class PipelineLike:
 
             # encode the init image into latents and scale the latents
             init_image = init_image.to(device=self.device, dtype=latents_dtype)
-            if init_image.size()[1:] == (height // 8, width // 8):
+            if init_image.size()[-2:] == (height // 8, width // 8):
                 init_latents = init_image
             else:
                 if vae_batch_size >= batch_size:
