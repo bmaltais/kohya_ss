@@ -39,6 +39,7 @@ if %choice%==1 (
     pip install --use-pep517 --upgrade -r requirements.txt
     pip install --upgrade xformers==0.0.17
     rem pip install -U -I --no-deps https://files.pythonhosted.org/packages/d6/f7/02662286419a2652c899e2b3d1913c47723fc164b4ac06a85f769c291013/xformers-0.0.17rc482-cp310-cp310-win_amd64.whl
+    pip install https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl
 )
 
 copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
