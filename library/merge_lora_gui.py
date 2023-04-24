@@ -60,7 +60,7 @@ def merge_lora(
 
     run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
     if sd_model:
-        run_cmd += f' --sd_model {sd_model}'
+        run_cmd += f' --sd_model "{sd_model}"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --precision {precision}'
     run_cmd += f' --save_to "{save_to}"'
