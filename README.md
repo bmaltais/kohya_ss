@@ -134,14 +134,16 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
   - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
   - If you specify the `--save_state` option, the state will also be saved at the same time. You can specify the number of steps to keep the state with the `--save_last_n_steps_state` option (the same value as `--save_last_n_steps` is used if omitted).
   - You can use the epoch-based model saving and state saving options together.
+- `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
+- Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
   
 - モデル保存部分を変更していますので、何か不具合が起きた時にリポジトリを前のバージョンに戻せない場合には、しばらく更新を控えてください。
 - 各学習スクリプトに`--save_every_n_steps`オプションを追加しました。指定ステップごとにモデルを保存します。
   - `--save_last_n_steps`オプションに数値を指定すると、そのステップ数のモデルのみを保存します（古いモデルは削除されます）。
   - `--save_state`オプションを指定するとstateも同時に保存します。`--save_last_n_steps_state`オプションでstateを残すステップ数を指定できます（省略時は`--save_last_n_steps`と同じ値が使われます）。
   - エポックごとのモデル保存、state保存のオプションと共存できます。
-
-
+- `--cache_latents_to_disk`オプションが指定されたとき、`--cache_latents`オプションが自動的に有効になるようにしました。 [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
+- `gen_img_diffusers.py`でlatents upscalerがバッチサイズ2以上でエラーとなる不具合を修正しました。
 
 
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
