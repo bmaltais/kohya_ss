@@ -308,6 +308,14 @@ This will store a backup file with your current locally installed pip packages a
 * 2023/04/24 (v21.5.6)
     - Fix triton error
     - Fix issue with merge lora path with spaces
+    - Added support for logging to wandb. Please refer to PR #428. Thank you p1atdev!
+      - wandb installation is required. Please install it with pip install wandb. Login to wandb with wandb login command, or set --wandb_api_key option for automatic login.
+      - Please let me know if you find any bugs as the test is not complete.
+    - You can automatically login to wandb by setting the --wandb_api_key option. Please be careful with the handling of API Key. PR #435 Thank you Linaqruf!
+    - Improved the behavior of --debug_dataset on non-Windows environments. PR #429 Thank you tsukimiya!
+    - Fixed --face_crop_aug option not working in Fine tuning method.
+    - Prepared code to use any upscaler in gen_img_diffusers.py.
+    - Fixed to log to TensorBoard when --logging_dir is specified and --log_with is not specified.
 * 2023/04/22 (v21.5.5)
     - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
     - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!

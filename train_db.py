@@ -231,7 +231,7 @@ def train(args):
     )
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("dreambooth")
+        accelerator.init_trackers("dreambooth" if args.log_tracker_name is None else args.log_tracker_name)
 
     loss_list = []
     loss_total = 0.0
