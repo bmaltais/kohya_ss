@@ -32,6 +32,9 @@ Skip all setup steps and only validate python requirements then launch GUI.
 .PARAMETER Interactive
   Interactively configure accelerate instead of using default config file.
 
+.PARAMETER LogDir
+  Specifies the directory where log files will be stored.
+
 .PARAMETER NoGitUpdate
   Do not update kohya_ss repo. No git pull or clone operations.
 
@@ -120,20 +123,18 @@ function Get-Parameters {
     $configFileLocations = if ($IsWindows) {
         @(
             $File,
-            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\config_files\installation\install_config.yaml"),
-            (Join-Path -Path $env:LOCALAPPDATA -ChildPath "kohya_ss\install_config.yaml"),
-            (Join-Path -Path $PSBoundParameters['Dir'] -ChildPath "install_config.yaml"),
-            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
+            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\config_files\installation\install_config.yml"),
+            (Join-Path -Path $env:LOCALAPPDATA -ChildPath "kohya_ss\install_config.yml"),
+            (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml")
         )
     }
     else {
         @(
             $File,
-            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss\install_config.yaml"),
-            (Join-Path -Path $PSBoundParameters['Dir'] -ChildPath "install_config.yaml"),
-            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yaml"),
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yaml")
+            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss\install_config.yml"),
+            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml")
         )
     }
 
@@ -156,9 +157,10 @@ function Get-Parameters {
     # Define the default values
     $Defaults = @{
         'setup_branch'       = 'master'
-        'setup_dir'          = "$env:USERPROFILE\kohya_ss"
+        'setup_dir'          = "$env:USERPROFILE\.kohya_ss"
         'setup_gitRepo'      = 'https://github.com/bmaltais/kohya_ss.git'
         'setup_interactive'  = $false
+        'setup_logDir'       = "$env:USERPROFILE\.kohya_ss\logs"
         'setup_noSetup'      = $false
         'setup_public'       = $false
         'setup_runpod'       = $false

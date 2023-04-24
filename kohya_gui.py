@@ -102,8 +102,10 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--file", dest="config_file", default="install_config.yaml",
                         help="Path to the configuration file.")
     _file_args, _ = parser.parse_known_args()
-    config_file = _file_args.config_file
+    config_file = parse_file_arg()
     config_data = load_config(config_file)
+    args = parse_args(config_data)
+
 
     # Define the default arguments first
     default_args = {

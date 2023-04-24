@@ -91,41 +91,42 @@ def find_config_file(config_file_locations):
     return None
 
 
-def load_config(_config_file):
+def load_config(_config_file=None):
     if _config_file is None:
-        return None
+        config_locations = []
 
-    config_locations = []
+        if sys.platform == "win32":
+            config_locations.extend([
+                os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation",
+                             "install_config.yml"),
+                os.path.join(os.environ.get("LOCALAPPDATA", ""), "kohya_ss", "install_config.yml"),
+                os.path.join(os.environ.get("USERPROFILE", ""), "kohya_ss", "install_config.yml")
+            ])
 
-    if _config_file is not None:
-        config_locations.append(_config_file)
-
-    if sys.platform == "win32":
         config_locations.extend([
-            os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation",
-                         "install_config.yaml"),
-            os.path.join(os.environ.get("LOCALAPPDATA", ""), "kohya_ss", "install_config.yaml")
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
+            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files",
+                         "installation", "install_config.yml"),
         ])
 
-    config_locations.extend([
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yaml"),
-        os.path.join(os.environ.get("USERPROFILE", ""), "kohya_ss", "install_config.yaml"),
-        os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yaml"),
-    ])
+        logging.debug(f"Searching for configuration files in these locations: {config_locations}")
 
-    _config_file = ""
-    for location in config_locations:
-        if os.path.isfile(os.path.abspath(location)):
-            _config_file = location
-            break
+        for location in config_locations:
+            if os.path.isfile(os.path.abspath(location)):
+                _config_file = location
+                break
 
-    try:
-        with open(_config_file, 'r') as f:
-            _config_data = yaml.safe_load(f)
-            logging.debug(f"Loaded config data: {_config_data}")
-            return _config_data
-    except FileNotFoundError:
-        logging.debug(f"Config file not found: {_config_file}")
+    if _config_file is not None:
+        try:
+            with open(_config_file, 'r') as f:
+                _config_data = yaml.safe_load(f)
+                logging.debug(f"Loaded config data: {_config_data}")
+                return _config_data
+        except FileNotFoundError:
+            logging.debug(f"Config file not found: {_config_file}")
+            return None
+    else:
         return None
 
 
@@ -213,6 +214,9 @@ def parse_args(_config_data):
         {"short": "-i", "long": "--interactive", "default": False, "type": bool,
          "help": "Interactively configure accelerate instead of using value config file."},
 
+        {"short": "-l", "long": "--log-dir", "default": None, "type": str,
+         "help": "Override the default log directory.", "is_path": True},
+
         {"short": "-n", "long": "--no-setup", "default": False, "type": bool,
          "help": "Skip setup operations and launch the GUI."},
 
@@ -248,7 +252,7 @@ def parse_args(_config_data):
     ]
 
     # Update the default arguments with values from the config file
-    print(f"Config Data: {_config_data}")
+    logging.debug(f"Config Data: {_config_data}")
     if _config_data:
         if "setup_arguments" in _config_data:
             for arg in _config_data["setup_arguments"]:
@@ -268,7 +272,7 @@ def parse_args(_config_data):
                     if f'--{name.lower()}' == default_arg["long"]:
                         default_arg["default"] = value
                         default_arg["help"] = description
-    print(f"Updated default_args: {default_args}")
+    logging.debug(f"Updated default_args: {default_args}")
 
     # Add arguments to the parser with updated default values
     for arg in default_args:
@@ -309,7 +313,7 @@ def parse_args(_config_data):
 
     # Normalize paths to ensure absolute paths
     normalize_paths(_args, default_args)
-    print(f"Args: {_args}")
+    logging.debug(f"Args: {_args}")
     return _args
 
 
@@ -1256,41 +1260,35 @@ def launch_kohya_gui(_args):
 
 
 def main(_args=None):
-    # Get the directory where the script is located
-    script_directory = os.path.dirname(os.path.realpath(__file__))
-
-    # Read config file or use defaults
-    _config_file = _args.file if _args.file else os.path.join(script_directory,
-                                                              "/config_files/installation"
-                                                              "/install_config.yaml")
-    config = load_config(_config_file)
-
-    # Check for DIR in command line arguments, config file, or use the default
-    if _args.dir:
-        _dir = _args.dir
-    elif config and 'Dir' in config['arguments']:
-        _dir = config['arguments']['Dir']['default']
-    else:
-        _dir = get_default_dir(_args.runpod, script_directory)
-
-    if not getattr(_args, "git-repo") or not _dir or not getattr(_args, "branch"):
+    if not getattr(_args, "git-repo") or not _args.dir or not getattr(_args, "branch"):
         logging.info(
             "Error: gitRepo, Branch, and Dir must have a value. Please provide values in the config file or through "
             "command line arguments.")
         sys.exit(1)
 
     # Define the directories relative to the installation directory needed for install and launch
-    parent_dir = os.path.dirname(_dir)
+    parent_dir = os.path.dirname(_args.dir)
 
     # The main logic will go here after the sanity checks.
-    check_and_create_install_folder(parent_dir, _dir)
+    check_and_create_install_folder(parent_dir, _args.dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update):
         if brew_install_tensorflow_deps(_args.verbosity):
-            install_python_dependencies(_dir, _args.runpod)
+            install_python_dependencies(_args.dir, _args.runpod)
             setup_file_links(site_packages_dir, _args.runpod)
             configure_accelerate(args.interactive)
             launch_kohya_gui(args)
+
+
+def get_logs_dir(_args):
+    if getattr(_args, "log-dir"):
+        _logs_dir = getattr(_args, "log-dir")
+    else:
+        logs_base = os.path.join(os.path.expanduser("~"), ".kohya_ss")
+        _logs_dir = os.path.join(logs_base, "logs")
+
+    os.makedirs(_logs_dir, exist_ok=True)
+    return _logs_dir
 
 
 class CustomFormatter(logging.Formatter):
@@ -1304,18 +1302,15 @@ class CustomFormatter(logging.Formatter):
             return f"{record.levelname}: {record.getMessage()}"
 
     @staticmethod
-    def generate_log_filename():
+    def generate_log_filename(_logs_dir):
         now = datetime.now()
         current_time_str = now.strftime("%Y-%m-%dT%H%M%S")  # ISO 8601 format without timezone information
-
-        logs_dir = 'logs'
-        os.makedirs(logs_dir, exist_ok=True)
 
         counter = 0
         while True:
             counter_suffix = f"{counter}" if counter > 0 else ""
             log_filename = f"install_log_{current_time_str}{counter_suffix}.log"
-            log_filepath = os.path.join(logs_dir, log_filename)
+            log_filepath = os.path.join(_logs_dir, log_filename)
 
             if not os.path.exists(log_filepath):
                 break
@@ -1333,7 +1328,7 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Set logging level based on the verbosity count
-    print(f"Verbosity: {args.verbosity}")
+    # print(f"Verbosity: {args.verbosity}")
     if args.verbosity == 0:
         log_level = logging.ERROR
     elif args.verbosity == 1:
@@ -1343,16 +1338,17 @@ if __name__ == "__main__":
     elif args.verbosity >= 3:
         log_level = logging.DEBUG
 
-    print(f"Log level: {log_level}")
     # Configure logging
     # noinspection SpellCheckingInspection
-    log_file = CustomFormatter.generate_log_filename()
+    setattr(args, "log-dir", os.path.abspath(get_logs_dir(args)))
+    log_file = CustomFormatter.generate_log_filename(getattr(args, "log-dir"))
     handler = logging.StreamHandler()
     handler.setFormatter(CustomFormatter())
 
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
                         handlers=[logging.StreamHandler(),
                                   logging.FileHandler(log_file, mode='w')])
+    logging.getLogger().setLevel(log_level)
 
     # Replace 'root' with an empty string in the logger name
     for handler in logging.getLogger().handlers:
