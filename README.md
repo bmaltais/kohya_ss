@@ -127,6 +127,23 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 25 Apr. 2023, 2023/04/25
+
+- Please do not update for a while if you cannot revert the repository to the previous version when something goes wrong, because the model saving part has been changed.
+- Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
+  - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
+  - If you specify the `--save_state` option, the state will also be saved at the same time. You can specify the number of steps to keep the state with the `--save_last_n_steps_state` option (the same value as `--save_last_n_steps` is used if omitted).
+  - You can use the epoch-based model saving and state saving options together.
+  
+- モデル保存部分を変更していますので、何か不具合が起きた時にリポジトリを前のバージョンに戻せない場合には、しばらく更新を控えてください。
+- 各学習スクリプトに`--save_every_n_steps`オプションを追加しました。指定ステップごとにモデルを保存します。
+  - `--save_last_n_steps`オプションに数値を指定すると、そのステップ数のモデルのみを保存します（古いモデルは削除されます）。
+  - `--save_state`オプションを指定するとstateも同時に保存します。`--save_last_n_steps_state`オプションでstateを残すステップ数を指定できます（省略時は`--save_last_n_steps`と同じ値が使われます）。
+  - エポックごとのモデル保存、state保存のオプションと共存できます。
+
+
+
+
 Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
 最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
 
