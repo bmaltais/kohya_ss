@@ -4,7 +4,7 @@ setup_arguments:
     value: master
   - name: Dir
     description: The full path you want kohya_ss installed to.
-    value: ~/kohya_ss
+    value: _CURRENT_SCRIPT_DIR_
   - name: GitRepo
     description: You can optionally provide a git repo to check out. Useful for custom forks.
     value: https://github.com/bmaltais/kohya_ss.git
