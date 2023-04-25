@@ -2,6 +2,7 @@
 # v2: add open and save folder icons
 # v3: Add new Utilities tab for Dreambooth folder preparation
 # v3.1: Adding captionning of images to utilities
+import logging
 
 import gradio as gr
 import json
@@ -878,7 +879,7 @@ def UI(**kwargs):
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            logging.debug('Load CSS...')
             css += file.read() + '\n'
 
     interface = gr.Blocks(css=css)

@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-import tempfile
 
 import gradio as gr
 import os
@@ -31,10 +30,10 @@ def UI(**kwargs):
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            logging.debug('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css, title='Kohya_ss GUI', theme=gr.themes.Default())
+    interface = gr.Blocks(css=css, title='Kohya_ss GUI')
 
     with interface:
         with gr.Tab('Dreambooth'):
@@ -73,7 +72,6 @@ def UI(**kwargs):
     inbrowser = kwargs.get('inbrowser', False)
     share = kwargs.get('share', False)
     server_name = kwargs.get('listen')
-    original_script_dir = kwargs.get('original_script_dir')
 
     launch_kwargs['server_name'] = server_name
     if username and password:
@@ -84,8 +82,6 @@ def UI(**kwargs):
         launch_kwargs['inbrowser'] = inbrowser
     if share:
         launch_kwargs['share'] = share
-    if original_script_dir:
-        launch_kwargs['original_script_dir'] = original_script_dir
     interface.launch(**launch_kwargs)
 
 
@@ -114,9 +110,9 @@ class CountOccurrencesAction(argparse.Action):
 
 
 def get_logs_dir(_args):
-    if getattr(_args, "log-dir"):
-        os.path.expanduser(getattr(_args, "log-dir"))
-        _logs_dir = os.path.abspath(getattr(_args, "log-dir"))
+    if _args.log_dir:
+        os.path.expanduser(_args.log_dir)
+        _logs_dir = os.path.abspath(_args.log_dir)
     else:
         logs_base = os.path.join(os.path.expanduser("~"), ".kohya_ss")
         _logs_dir = os.path.join(logs_base, "logs")
@@ -143,7 +139,7 @@ class CustomFormatter(logging.Formatter):
         counter = 0
         while True:
             counter_suffix = f"{counter}" if counter > 0 else ""
-            log_filename = f"install_log_{current_time_str}{counter_suffix}.log"
+            log_filename = f"kohya_ss_log_{current_time_str}{counter_suffix}.log"
             log_filepath = os.path.join(_logs_dir, log_filename)
 
             if not os.path.exists(log_filepath):
@@ -212,7 +208,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v', '--verbosity',
         default=0,
-        type=int,
+        type=str,
         help='Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).',
         action=CountOccurrencesAction
     )
@@ -235,8 +231,8 @@ if __name__ == '__main__':
 
     # Configure logging
     # noinspection SpellCheckingInspection
-    setattr(args, "log-dir", os.path.abspath(get_logs_dir(args)))
-    log_file = CustomFormatter.generate_log_filename(getattr(args, "log-dir"))
+    args.log_dir = os.path.abspath(get_logs_dir(args))
+    log_file = CustomFormatter.generate_log_filename(args.log_dir)
     handler = logging.StreamHandler()
     handler.setFormatter(CustomFormatter())
 
@@ -249,6 +245,8 @@ if __name__ == '__main__':
     for handler in logging.getLogger().handlers:
         handler.setFormatter(CustomFormatter())
 
+    logging.critical(f"Logs will be stored in: {args.log_dir}")
+    
     # Check if python3 or python3.10 binary exists
     python_bin = find_python_binary()
     if not python_bin:
@@ -261,7 +259,6 @@ if __name__ == '__main__':
         logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
         sys.exit(1)
 
-    logging.debug("")
     if args.verbosity >= 3:
         # Get system information
         system = platform.system()
