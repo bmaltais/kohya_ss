@@ -6,7 +6,6 @@ import importlib
 import mimetypes
 import os
 import pkgutil
-import warnings
 from contextlib import redirect_stderr
 from datetime import datetime
 from getpass import getpass
@@ -97,17 +96,12 @@ def load_config(_config_file=None):
 
         if sys.platform == "win32":
             config_locations.extend([
-                os.path.join(os.environ.get("APPDATA", ""), "kohya_ss", "config_files", "installation",
-                             "install_config.yml"),
-                os.path.join(os.environ.get("LOCALAPPDATA", ""), "kohya_ss", "install_config.yml"),
-                os.path.join(os.environ.get("USERPROFILE", ""), "kohya_ss", "install_config.yml")
+                os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml")
             ])
 
         config_locations.extend([
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
             os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files",
-                         "installation", "install_config.yml"),
         ])
 
         logging.debug(f"Searching for configuration files in these locations: {config_locations}")
@@ -150,7 +144,8 @@ def normalize_paths(_args, default_args):
         if is_path and isinstance(default_value, str):
             path_value = getattr(_args, arg_name, None)
             if path_value and isinstance(path_value, str):
-                setattr(_args, arg_name, os.path.abspath(path_value))
+                expanded_path_value = os.path.expanduser(path_value)
+                setattr(_args, arg_name, os.path.abspath(expanded_path_value))
 
 
 # This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
@@ -202,10 +197,10 @@ def parse_args(_config_data):
         {"short": "-b", "long": "--branch", "default": "master", "type": str,
          "help": "Select which branch of kohya to check out on new installs."},
 
-        {"short": "-d", "long": "--dir", "default": os.path.expanduser("~/kohya_ss"), "type": str,
+        {"short": "-d", "long": "--dir", "default": os.path.dirname(os.path.realpath(__file__)), "type": str,
          "help": "The full path you want kohya_ss installed to.", "is_path": True},
 
-        {"short": "-f", "long": "--file", "default": "config_files/installation/install_config.yml", "type": str,
+        {"short": "-f", "long": "--file", "default": "install_config.yml", "type": str,
          "help": "Configuration file with installation options.", "is_path": True},
 
         {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str,
@@ -225,6 +220,9 @@ def parse_args(_config_data):
 
         {"short": "-r", "long": "--runpod", "default": False, "type": bool,
          "help": "Forces a runpod installation. Useful if detection fails for any reason."},
+
+        {"long": "--setup-only", "default": False, "type": bool,
+         "help": "Do not launch GUi. Only conduct setup operations."},
 
         {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
          "help": "Skip the 10Gb minimum storage space check."},
@@ -302,7 +300,7 @@ def parse_args(_config_data):
                                     help=help_text)
         else:
             if short_opt:
-                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type,
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2: ], default=default_value, type=arg_type,
                                     help=help_text)
             else:
                 parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
@@ -313,7 +311,13 @@ def parse_args(_config_data):
 
     # Normalize paths to ensure absolute paths
     normalize_paths(_args, default_args)
-    logging.debug(f"Args: {_args}")
+
+    # Replace the placeholder with the script directory
+    for arg, value in vars(_args).items():
+        if arg == 'dir' and '_CURRENT_SCRIPT_DIR_' in value:
+            script_directory = os.path.dirname(os.path.realpath(__file__))
+            setattr(_args, arg, script_directory)
+    print(f"Args: {_args}")
     return _args
 
 
@@ -1233,8 +1237,9 @@ def launch_kohya_gui(_args):
     if os.path.exists(kohya_gui_file):
         cmd = [
             venv_python_bin, os.path.join(kohya_gui_file),
-            "--listen", "127.0.0.1",
-            "--server_port", "7861",
+            "--listen", _args.listen,
+            "--server_port", _args.server_port,
+            "--verbosity", _args.verbosity
         ]
 
         if _args.username:
@@ -1277,7 +1282,11 @@ def main(_args=None):
             install_python_dependencies(_args.dir, _args.runpod)
             setup_file_links(site_packages_dir, _args.runpod)
             configure_accelerate(args.interactive)
-            launch_kohya_gui(args)
+            if not getattr(args, 'install-only'):
+                launch_kohya_gui(args)
+            else:
+                logging.info(f"Installation to {_args.dir} is complete.")
+                exit(0)
 
 
 def get_logs_dir(_args):
@@ -1416,8 +1425,11 @@ if __name__ == "__main__":
             site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
                                              "site-packages")
 
-    if getattr(args, 'no-setup'):
+    if getattr(args, 'no-setup') and not getattr(args, 'setup-only'):
         launch_kohya_gui(args)
         exit(0)
+    elif getattr(args, 'no-setup') and getattr(args, 'setup-only'):
+        "Setup Only and No Setup options are mutually exclusive."
+        exit(1)
     else:
         main(args)
