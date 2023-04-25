@@ -1,79 +1,102 @@
 <#
 .SYNOPSIS
-  Kohya_SS Installation Script for Windows PowerShell and PowerShell 7+.
+    Kohya_SS Installation Script for Windows PowerShell and PowerShell 7+.
 
 .DESCRIPTION
-  This script automates the installation of Kohya_SS on Windows, macOS, Ubuntu, and RedHat Linux systems. This is the
-  install bootstrap file ensuring Python 3.10 and Python 3.10 TK is installed and available.
+    This script automates the installation of Kohya_SS on Windows, macOS, Ubuntu, and RedHat Linux systems. This is the
+    install bootstrap file ensuring Python 3.10 and Python 3.10 TK is installed and available.
 
 .EXAMPLE
-  # Specifies custom branch, install directory, and git repo
-  .\setup.ps1 -Branch 'dev' -Dir 'C:\workspace\kohya_ss' -GitRepo 'https://mycustom.repo.tld/custom_fork.git'
+    # Specifies custom branch, install directory, and git repo
+    .\setup.ps1 -Branch 'dev' -Dir 'C:\workspace\kohya_ss' -GitRepo 'https://mycustom.repo.tld/custom_fork.git'
 
 .EXAMPLE
-  # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
-  .\setup.ps1 -Verbose -SkipSpaceCheck -Runpod
+    # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
+    .\setup.ps1 -Verbose -SkipSpaceCheck -Runpod
 
 .PARAMETER Branch
-  Select which branch of kohya to check out on new installs.
+    Select which branch of kohya to check out on new installs.
 
 .PARAMETER Dir
-  The full path you want kohya_ss installed to.
+    The full path you want kohya_ss installed to.
 
 .PARAMETER NoSetup
-Skip all setup steps and only validate python requirements then launch GUI.
+    Skip all setup steps and only validate python requirements then launch GUI.
 
 .PARAMETER File
-  The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
+    The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
 
 .PARAMETER GitRepo
-  You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+    You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
 
 .PARAMETER Interactive
-  Interactively configure accelerate instead of using default config file.
+    Interactively configure accelerate instead of using default config file.
 
 .PARAMETER LogDir
-  Specifies the directory where log files will be stored.
+    Specifies the directory where log files will be stored.
 
 .PARAMETER NoGitUpdate
-  Do not update kohya_ss repo. No git pull or clone operations.
+    Do not update kohya_ss repo. No git pull or clone operations.
 
 .PARAMETER Public
-  Expose public URL in runpod mode. Won't have an effect in other modes.
+    Expose public URL in runpod mode. Won't have an effect in other modes.
 
 .PARAMETER Runpod
-  Forces a runpod installation. Useful if detection fails for any reason.
+    Forces a runpod installation. Useful if detection fails for any reason.
 
 .PARAMETER SetupOnly
-  Do not launch GUI. Only conduct setup operations.
+    Do not launch GUI. Only conduct setup operations.
 
 .PARAMETER SkipSpaceCheck
-  Skip the 10Gb minimum storage space check.
+    Skip the 10Gb minimum storage space check.
 
 .PARAMETER Update
-  Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
+    Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
 
 .PARAMETER Verbosity
-  Increase verbosity levels up to 3.
+    Increase verbosity levels up to 3.
 
-.PARAMETER LISTEN
-  The IP address the GUI should listen on.
+.PARAMETER Listen
+    The IP address the GUI should listen on.
 
-.PARAMETER USERNAME
-  The username for the GUI.
+.PARAMETER Username
+    The username for the GUI.
 
-.PARAMETER PASSWORD
-  The password for the GUI.
+.PARAMETER Password
+    The password for the GUI.
 
-.PARAMETER SERVER_PORT
-  The port number the GUI server should use.
+.PARAMETER ServerPort
+    The port number the GUI server should use.
 
-.PARAMETER INBROWSER
-  Open the GUI in the default web browser.
+.PARAMETER InBrowser
+    Open the GUI in the default web browser.
 
-.PARAMETER SHARE
-  Share the GUI with other users on the network.
+.PARAMETER Share
+    Share the GUI with other users on the network.
 #>
+
+[CmdletBinding()]
+param (
+    [string]$Branch = "master",
+    [string]$Dir = "",
+    [string]$GitRepo = "https://github.com/bmaltais/kohya_ss.git",
+    [switch]$Interactive,
+    [string]$LogDir = "",
+    [switch]$NoSetup,
+    [switch]$Public,
+    [switch]$Runpod,
+    [switch]$SetupOnly,
+    [switch]$SkipSpaceCheck,
+    [switch]$Update,
+    [int]$Verbosity = 0,
+    [string]$LISTEN = "127.0.0.1",
+    [string]$USERNAME = "",
+    [string]$PASSWORD = "",
+    [int]$SERVER_PORT = 7861,
+    [switch]$INBROWSER,
+    [switch]$SHARE
+)
+
 
 
 <#
@@ -109,12 +132,23 @@ Skip all setup steps and only validate python requirements then launch GUI.
    System.Collections.Hashtable
    Outputs a hashtable containing the merged parameter values.
 #>
-
-
 function Get-Parameters {
     param (
         [string]$File = ""
     )
+
+    # Helper function to convert relative paths to absolute
+    function Normalize-PathValue {
+        param (
+            [Parameter(Mandatory = $true)]
+            [string]$PathValue
+        )
+
+        if (Test-Path $PathValue) {
+            return (Resolve-Path -Path $PathValue).Path
+        }
+        return $PathValue
+    }
 
     # Check for the existence of the powershell-yaml module and install it if necessary
     if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
@@ -149,7 +183,7 @@ function Get-Parameters {
             foreach ($section in $yamlContent.Keys) {
                 foreach ($key in $yamlContent[$section].Keys) {
                     if ($yamlContent[$section][$key].ContainsKey('value')) {
-                        $Config["${section}_${key}"] = $yamlContent[$section][$key]['value']
+                        $Config["${section}_${key}"] = Normalize-PathValue -PathValue $yamlContent[$section][$key]['value']
                     }
                 }
             }
@@ -159,40 +193,42 @@ function Get-Parameters {
 
     # Define the default values
     $Defaults = @{
-        'setup_branch'       = 'master'
-        'setup_dir'          = "$env:USERPROFILE\.kohya_ss"
-        'setup_gitRepo'      = 'https://github.com/bmaltais/kohya_ss.git'
-        'setup_interactive'  = $false
-        'setup_logDir'       = "$env:USERPROFILE\.kohya_ss\logs"
-        'setup_noSetup'      = $false
-        'setup_public'       = $false
-        'setup_runpod'       = $false
-        'setup_setupOnly'    = $false
-        'setup_spaceCheck'   = $false
-        'setup_verbosity'    = 0
-        'setup_update'       = $false
-        'listen'             = '127.0.0.1'
-        'username'           = ''
-        'password'           = ''
-        'server_port'        = 7861
-        'inbrowser'          = $true
-        'share'              = $false
+        'Branch'         = 'master'
+        'Dir'            = "$env:USERPROFILE\.kohya_ss"
+        'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
+        'Interactive'    = $false
+        'LogDir'         = "$env:USERPROFILE\.kohya_ss\logs"
+        'NoSetup'        = $false
+        'Public'         = $false
+        'Runpod'         = $false
+        'SetupOnly'      = $false
+        'SkipSpaceCheck' = $false
+        'Verbosity'      = 0
+        'Update'         = $false
+        'LISTEN'         = '127.0.0.1'
+        'USERNAME'       = ''
+        'PASSWORD'       = ''
+        'SERVER_PORT'    = 7861
+        'INBROWSER'      = $true
+        'SHARE'          = $false
     }
 
 
     # Iterate through the default values and set them if not defined in the config file
     foreach ($key in $Defaults.Keys) {
         if (-not $Config.ContainsKey($key)) {
-            $Config[$key] = $Defaults[$key]
+            $Config[$key] = Normalize-PathValue -PathValue $Defaults[$key]
         }
     }
 
-    # Merge CLI arguments with the configuration
-    $cliArgs = $MyInvocation.BoundParameters.GetEnumerator()
-    foreach ($arg in $cliArgs) {
-        $key = "setup_$($arg.Key.ToLower())"
-        if ($Config.ContainsKey($key)) {
-            $Config[$key] = $arg.Value
+    # Update the parameter values if they are still set to their default values
+    foreach ($key in $Defaults.Keys) {
+        $paramKey = $key.Replace('setup_', '')
+        $paramValue = Get-Variable -Name $paramKey -ValueOnly
+        if ($paramValue -eq $Defaults[$key]) {
+            if ($Config.ContainsKey($key)) {
+                Set-Variable -Name $paramKey -Value $Config[$key]
+            }
         }
     }
 
@@ -476,6 +512,95 @@ function Get-OsInfo {
     return [PSCustomObject]$os
 }
 
+
+<#
+.SYNOPSIS
+   Checks if Python 3.10 is installed on the system.
+
+.DESCRIPTION
+   Verifies if Python 3.10 is installed by checking its version.
+   Returns a boolean value based on the presence of Python 3.10.
+
+.EXAMPLE
+   $isPython310Installed = Test-Python310Installed
+
+.OUTPUTS
+   System.Boolean
+   True if Python 3.10 is installed, otherwise False.
+#>
+function Test-Python310Installed {
+    try {
+        $pythonVersion = (python --version) -replace '^Python\s', ''
+        return $pythonVersion.StartsWith('3.10')
+    }
+    catch {
+        return $false
+    }
+}
+
+<#
+.SYNOPSIS
+   Retrieves the path to the Python 3.10 executable.
+
+.DESCRIPTION
+   Searches for Python 3.10 executable in the system and returns its path.
+   It handles different platforms and common edge cases such as Homebrew on macOS and FreeBSD.
+
+.EXAMPLE
+   $pythonPath = Get-PythonExePath
+
+.OUTPUTS
+   System.String
+   The path to the Python 3.10 executable or $null if not found.
+#>
+function Get-PythonExePath {
+    $pythonCandidates = @("python3.10", "python3", "python")
+
+    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
+        $pythonCandidates += @("python3.10.exe", "python3.exe", "python.exe")
+    }
+
+    $foundPythonPath = $null
+
+    foreach ($candidate in $pythonCandidates) {
+        try {
+            $pythonPath = (Get-Command $candidate -ErrorAction SilentlyContinue).Source
+            if ($null -ne $pythonPath) {
+                $pythonVersion = & $pythonPath --version 2>&1
+                if ($pythonVersion -match "^Python 3\.10") {
+                    $foundPythonPath = $pythonPath
+                    break
+                }
+            }
+        }
+        catch {
+            continue
+        }
+    }
+
+    if ($null -eq $foundPythonPath) {
+        $osInfo = Get-OsInfo
+
+        # macOS with Homebrew
+        if ($osInfo.family -eq "Darwin") {
+            $brewPythonPath = "/usr/local/opt/python@3.10/bin/python3.10"
+            if (Test-Path $brewPythonPath) {
+                $foundPythonPath = $brewPythonPath
+            }
+        }
+
+        # FreeBSD
+        if ($osInfo.family -eq "FreeBSD") {
+            $freebsdPythonPath = "/usr/local/bin/python3.10"
+            if (Test-Path $freebsdPythonPath) {
+                $foundPythonPath = $freebsdPythonPath
+            }
+        }
+    }
+
+    return $foundPythonPath
+}
+
 <#
 .SYNOPSIS
    Installs Python 3.10 using the specified installer.
@@ -494,16 +619,6 @@ function Install-Python310 {
     param (
         [switch]$Interactive
     )
-
-    function Test-Python310Installed {
-        try {
-            $pythonVersion = (python --version) -replace '^Python\s', ''
-            return $pythonVersion.StartsWith('3.10')
-        }
-        catch {
-            return $false
-        }
-    }
 
     function Install-Python310Windows {
         $packageManagerFound = $false
@@ -1086,7 +1201,7 @@ function Main {
 
             $installArgs = @()
             foreach ($key in $Params.Keys) {
-                $argName = "--$(($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower())"
+                $argName = ($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower()
                 $installArgs += $argName, $Params[$key]
             }
 
