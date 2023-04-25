@@ -221,7 +221,7 @@ def parse_args(_config_data):
         {"short": "-r", "long": "--runpod", "default": False, "type": bool,
          "help": "Forces a runpod installation. Useful if detection fails for any reason."},
 
-        {"long": "--setup-only", "default": False, "type": bool,
+        {"short": None, "long": "--setup-only", "default": False, "type": bool,
          "help": "Do not launch GUi. Only conduct setup operations."},
 
         {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
@@ -234,7 +234,7 @@ def parse_args(_config_data):
          "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
          "action": CountOccurrencesAction},
 
-        {"short": "", "long": "--listen", "default": "127.0.0.1", "type": str,
+        {"short": None, "long": "--listen", "default": "127.0.0.1", "type": str,
          "help": "IP to listen on for connections to Gradio."},
 
         {"short": "", "long": "--username", "default": "", "type": str, "help": "Username for authentication."},
@@ -296,11 +296,11 @@ def parse_args(_config_data):
                 parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value,
                                     help=help_text)
             else:
-                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=action, default=default_value,
                                     help=help_text)
         else:
             if short_opt:
-                parser.add_argument(short_opt, long_opt, dest=long_opt[2: ], default=default_value, type=arg_type,
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type,
                                     help=help_text)
             else:
                 parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
@@ -317,7 +317,7 @@ def parse_args(_config_data):
         if arg == 'dir' and '_CURRENT_SCRIPT_DIR_' in value:
             script_directory = os.path.dirname(os.path.realpath(__file__))
             setattr(_args, arg, script_directory)
-    print(f"Args: {_args}")
+    # print(f"Args: {_args}")
     return _args
 
 
@@ -1238,8 +1238,8 @@ def launch_kohya_gui(_args):
         cmd = [
             venv_python_bin, os.path.join(kohya_gui_file),
             "--listen", _args.listen,
-            "--server_port", _args.server_port,
-            "--verbosity", _args.verbosity
+            "--server_port", str(_args.server_port),
+            "--verbosity", str(_args.verbosity)
         ]
 
         if _args.username:
@@ -1282,10 +1282,10 @@ def main(_args=None):
             install_python_dependencies(_args.dir, _args.runpod)
             setup_file_links(site_packages_dir, _args.runpod)
             configure_accelerate(args.interactive)
-            if not getattr(args, 'install-only'):
+            if not getattr(args, 'setup_only'):
                 launch_kohya_gui(args)
             else:
-                logging.info(f"Installation to {_args.dir} is complete.")
+                logging.critical(f"Installation to {_args.dir} is complete.")
                 exit(0)
 
 
@@ -1425,10 +1425,10 @@ if __name__ == "__main__":
             site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
                                              "site-packages")
 
-    if getattr(args, 'no-setup') and not getattr(args, 'setup-only'):
+    if getattr(args, 'no-setup') and not getattr(args, 'setup_only'):
         launch_kohya_gui(args)
         exit(0)
-    elif getattr(args, 'no-setup') and getattr(args, 'setup-only'):
+    elif getattr(args, 'no-setup') and getattr(args, 'setup_only'):
         "Setup Only and No Setup options are mutually exclusive."
         exit(1)
     else:
