@@ -348,17 +348,6 @@ def get_default_dir(runpod, script_dir):
     return default_dir
 
 
-def get_venv_directory():
-    # Get the current environment path
-    env_path = sys.prefix
-
-    # Get the site-packages directory
-    _site_packages_dir = site.getsitepackages()[0]
-
-    # Return the environment path and site-packages path
-    return env_path, _site_packages_dir
-
-
 def check_and_create_install_folder(parent_dir, _dir):
     if os.access(parent_dir, os.W_OK) and not os.path.isdir(_dir):
         logging.info(f"Creating install folder {_dir}.")
@@ -689,8 +678,14 @@ def update_kohya_ss(_dir, git_repo, branch, update):
             env = os.environ.copy()
             env["GIT_SSH_COMMAND"] = f"ssh -i {private_key_path} -o StrictHostKeyChecking=no -F /dev/null"
             git_credentials = {'env': env}
+        elif os.path.isdir(_git_repo):
+            # For local folder paths, normalize to an absolute path
+            local_repo_path = os.path.abspath(_git_repo)
+            git_credentials = {'url': local_repo_path}
         else:
-            raise ValueError("Invalid Git URL scheme. Only 'https' and 'ssh' are supported.")
+            raise ValueError(
+                "Invalid Git URL scheme or local folder path. Only 'https', 'ssh', and local folder paths are "
+                "supported.")
 
         _error = None
 
@@ -725,8 +720,23 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                     logging.debug("git clone operation entered.")
 
                     progress_printer = GitProgressPrinter("clone", _git_repo, _dir)
-                    git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1,
-                                        progress=progress_printer, **git_credentials)
+                    if os.path.isdir(_git_repo):
+                        _git_repo = os.path.abspath(_git_repo)
+                        git_credentials = {'url': _git_repo}
+
+                    if 'url' in git_credentials:
+                        # If the local folder path is present in git_credentials, use it as the source URL
+                        git.Repo.clone_from(git_credentials['url'], _dir, branch=_branch, depth=1,
+                                            progress=progress_printer)
+                    elif 'env' in git_credentials:
+                        # If the 'env' key is present, pass it as a keyword argument
+                        git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
+                                            env=git_credentials['env'])
+                    else:
+                        # For HTTPS credentials, pass the username and password as keyword arguments
+                        git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
+                                            username=git_credentials['username'],
+                                            password=git_credentials['password'])
 
                     if venv_folder_present and tmp_venv_path is not None:
                         shutil.move(tmp_venv_path, os.path.join(_dir, "venv"))
@@ -1398,7 +1408,7 @@ if __name__ == "__main__":
 
     # Create and activate virtual environment if not in container environment
     if not in_container():
-        logging.info("Switching to virtual Python environment.")
+        logging.critical("Switching to virtual Python environment.")
         venv_path = os.path.join(args.dir, "venv")
         subprocess.run([python_bin, "-m", "venv", venv_path])
 
