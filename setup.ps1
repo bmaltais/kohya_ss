@@ -44,13 +44,16 @@ Skip all setup steps and only validate python requirements then launch GUI.
 .PARAMETER Runpod
   Forces a runpod installation. Useful if detection fails for any reason.
 
+.PARAMETER SetupOnly
+  Do not launch GUI. Only conduct setup operations.
+
 .PARAMETER SkipSpaceCheck
   Skip the 10Gb minimum storage space check.
 
 .PARAMETER Update
   Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
 
-.PARAMETER Verbose
+.PARAMETER Verbosity
   Increase verbosity levels up to 3.
 
 .PARAMETER LISTEN
@@ -164,6 +167,7 @@ function Get-Parameters {
         'setup_noSetup'      = $false
         'setup_public'       = $false
         'setup_runpod'       = $false
+        'setup_setupOnly'    = $false
         'setup_spaceCheck'   = $false
         'setup_verbosity'    = 0
         'setup_update'       = $false

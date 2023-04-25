@@ -100,8 +100,8 @@ def load_config(_config_file=None):
             ])
 
         config_locations.extend([
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
             os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
         ])
 
         logging.debug(f"Searching for configuration files in these locations: {config_locations}")
@@ -222,7 +222,7 @@ def parse_args(_config_data):
          "help": "Forces a runpod installation. Useful if detection fails for any reason."},
 
         {"short": None, "long": "--setup-only", "default": False, "type": bool,
-         "help": "Do not launch GUi. Only conduct setup operations."},
+         "help": "Do not launch GUI. Only conduct setup operations."},
 
         {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
          "help": "Skip the 10Gb minimum storage space check."},

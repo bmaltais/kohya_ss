@@ -27,6 +27,7 @@ Options:
   -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  --setup-only                  Do not launch GUI. Only conduct setup operations.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
   -v                            Increase verbosity levels up to 3. (e.g., -vvv)
@@ -87,6 +88,7 @@ while getopts ":vb:d:f:g:il:nprsux-:" opt; do
   n | no-setup) CLI_ARGUMENTS["NoSetup"]="true" ;;
   p | public) CLI_ARGUMENTS["Public"]="true" ;;
   r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
+  setup-only) CLI_ARGUMENTS["SetupOnly"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
   u | update) CLI_ARGUMENTS["Update"]="true" ;;
   v) ((CLI_ARGUMENTS["Verbosity"] = CLI_ARGUMENTS["Verbosity"] + 1)) ;;
@@ -184,6 +186,7 @@ config_LogDir="${config_LogDir:-$DIR/logs}"
 config_Public="${config_Public:-false}"
 config_NoSetup="${config_NoSetup:-false}"
 config_Runpod="${config_Runpod:-false}"
+config_SetupOnly="${config_SetupOnly:-false}"
 config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
 config_Update="${config_Update:-false}"
 config_Verbosity="${config_Verbosity:-0}"
@@ -209,6 +212,7 @@ LOG_DIR="$config_LogDir"
 NO_SETUP="$config_NoSetup"
 PUBLIC="$config_Public"
 RUNPOD="$config_Runpod"
+SETUP_ONLY="$config_SetupOnly"
 SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
 UPDATE="$config_Update"
 VERBOSITY="$config_Verbosity"
@@ -754,6 +758,7 @@ run_launcher() {
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
     $([ "$PUBLIC" = "true" ] && echo "--public") \
     $([ "$RUNPOD" = "true" ] && echo "--runpod") \
+    $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
     $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
     $([ "$UPDATE" = "true" ] && echo "--update") \
     --listen="$GUI_LISTEN" \
