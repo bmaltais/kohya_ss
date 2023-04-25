@@ -3,11 +3,16 @@
 import logging
 import platform
 import re
+import shutil
+import subprocess
+import sys
 from datetime import datetime
+import tempfile
 
 import gradio as gr
 import os
 import argparse
+
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
@@ -68,6 +73,7 @@ def UI(**kwargs):
     inbrowser = kwargs.get('inbrowser', False)
     share = kwargs.get('share', False)
     server_name = kwargs.get('listen')
+    original_script_dir = kwargs.get('original_script_dir')
 
     launch_kwargs['server_name'] = server_name
     if username and password:
@@ -78,6 +84,8 @@ def UI(**kwargs):
         launch_kwargs['inbrowser'] = inbrowser
     if share:
         launch_kwargs['share'] = share
+    if original_script_dir:
+        launch_kwargs['original_script_dir'] = original_script_dir
     interface.launch(**launch_kwargs)
 
 
@@ -143,6 +151,29 @@ class CustomFormatter(logging.Formatter):
             counter += 1
 
         return log_filepath
+
+
+def find_python_binary():
+    possible_binaries = ["python3.10", "python310", "python3", "python"]
+
+    if sys.platform == 'win32':
+        possible_binaries = [binary + ".exe" for binary in possible_binaries] + possible_binaries
+
+    for binary in possible_binaries:
+        if shutil.which(binary):
+            try:
+                version_output = subprocess.check_output([binary, "--version"], stderr=subprocess.STDOUT).decode(
+                    "utf-8")
+                version_parts = version_output.strip().split(" ")[1].split(".")
+                major, minor = int(version_parts[0]), int(version_parts[1])
+
+                if major == 3 and minor >= 10:
+                    return binary
+
+            except (subprocess.CalledProcessError, IndexError, ValueError):
+                continue
+
+    return None
 
 
 if __name__ == '__main__':
@@ -217,6 +248,18 @@ if __name__ == '__main__':
     # Replace 'root' with an empty string in the logger name
     for handler in logging.getLogger().handlers:
         handler.setFormatter(CustomFormatter())
+
+    # Check if python3 or python3.10 binary exists
+    python_bin = find_python_binary()
+    if not python_bin:
+        logging.error("Valid python3 or python3.10 binary not found.")
+        logging.error("Cannot proceed with the python steps.")
+        exit(1)
+
+    if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
+        logging.info("Error: This script requires Python 3.10.")
+        logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
+        sys.exit(1)
 
     logging.debug("")
     if args.verbosity >= 3:
