@@ -1197,8 +1197,12 @@ def install_python_dependencies(_dir, runpod):
 
 
 def configure_accelerate(interactive):
-    source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
-                                                 "accelerate", "default_config.yaml")
+    if os_info.family != "macOS":
+        source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
+                                                     "accelerate", "default_config.yaml")
+    else:
+        source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
+                                                     "accelerate", "macos_config.yaml")
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
     if interactive:
