@@ -68,11 +68,13 @@ These dependencies are taken care of via `setup.sh` or `setup.ps1` in the instal
 
 No additional steps should be needed unless the scripts inform you otherwise. However, for reference:
 
-- [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
+- [Python 3.10 for Windows](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
   - Make sure to tick the box to add Python to the 'PATH' environment variable
-- [Git](https://git-scm.com/download/win)
+- [Git for Windows](https://git-scm.com/download/win)
 - [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
+On Linux you may need to use your package manager to install these. On macOS we suggest you use [brew](https://brew.sh/).
+The VS redist component is not needed for non-Windows operating systems.
 ### Containers
 Notably, the setup scripts will not use a Python virtual environment if it detects a container environment and will opt to use the system-installed Python.
 
