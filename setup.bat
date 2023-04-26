@@ -18,6 +18,7 @@ set Interactive=0
 set NoSetup=0
 set Public=0
 set Runpod=0
+set SetupOnly=0
 set SkipSpaceCheck=0
 set Update=0
 set Verbose=0
@@ -52,6 +53,7 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="NoSetup" set NoSetup=%%b
         if "%%a"=="Public" set Public=%%b
         if "%%a"=="Runpod" set Runpod=%%b
+        if "%%a"=="SetupOnly" set SetupOnly=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
         if "%%a"=="Update" set Update=%%b
         if "%%a"=="Verbose" set Verbose=%%b
@@ -69,12 +71,13 @@ rem Parse command line arguments and override loaded config file values
 if "%~1"=="" goto arg_end
 if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
 if /i "%~1"=="--dir" (shift & set Dir=%1) & shift & goto arg_loop
-if /i "%~1"=="--gitrepo" (shift & set GitRepo=%1) & shift & goto arg_loop
+if /i "%~1"=="--git-repo" (shift & set GitRepo=%1) & shift & goto arg_loop
 if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
-if /i "%~1"=="--nosetup" (set NoSetup=1) & shift & goto arg_loop
+if /i "%~1"=="--no-setup" (set NoSetup=1) & shift & goto arg_loop
 if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
 if /i "%~1"=="--runpod" (set Runpod=1) & shift & goto arg_loop
-if /i "%~1"=="--skipspacecheck" (set SkipSpaceCheck=1) & shift & goto arg_loop
+if /i "%~1"=="--setup-only" (set SetupOnly=1) & shift & goto arg_loop
+if /i "%~1"=="--skip-space-check" (set SkipSpaceCheck=1) & shift & goto arg_loop
 if /i "%~1"=="--update" (set Update=1) & shift & goto arg_loop
 if /i "%~1"=="--verbose" (set /A Verbose=Verbose+1) & shift & goto arg_loop
 if /i "%~1"=="--listen" (shift & set LISTEN=%1) & shift & goto arg_loop
@@ -91,15 +94,8 @@ goto arg_loop
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 set Args=-b "%Branch%" -d "%Dir%" -f "%ConfigFile%" -g "%GitRepo%" ^
           -i:%Interactive% -n:%NoSetup% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
-          --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
+          --setup-only "%SetupOnly%" --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
           --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE%
-
-rem Create venv if it doesn't exist
-if not exist "%Dir%\venv" (
-    python -m venv "%Dir%\venv"
-) else (
-    echo venv folder already exists, skipping creation...
-)
 
 copy /y "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
 copy /y "%Dir%\bitsandbytes_windows\cextension.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cextension.py"
