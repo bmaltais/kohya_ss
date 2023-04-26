@@ -26,10 +26,11 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 ## Links to how-to-use documents
 
-All documents are in Japanese currently.
+Most of the documents are written in Japanese.
 
-* [Training guide - common](./train_README-ja.md) : data preparation, options etc...
-    * [Dataset config](./config_README-ja.md)
+* [Training guide - common](./train_README-ja.md) : data preparation, options etc... 
+  * [Chinese version](./train_README-zh.md)
+* [Dataset config](./config_README-ja.md) 
 * [DreamBooth training guide](./train_db_README-ja.md)
 * [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
 * [training LoRA](./train_network_README-ja.md)
@@ -126,6 +127,13 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 [BLIP](https://github.com/salesforce/BLIP): BSD-3-Clause
 
 ## Change History
+
+### 26 Apr. 2023, 2023/04/26
+
+- Added Chinese translation of training guide. [PR #445](https://github.com/kohya-ss/sd-scripts/pull/445) Thanks to tomj2ee!
+- `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
+- 学習に関するドキュメントの中国語版が追加されました。 [PR #445](https://github.com/kohya-ss/sd-scripts/pull/445) tomj2ee氏に感謝します。
+- `tag_images_by_wd14_tagger.py`の引数を外部から取得できるようになりました。 [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) mio2333氏に感謝します。
 
 ### 25 Apr. 2023, 2023/04/25
 
