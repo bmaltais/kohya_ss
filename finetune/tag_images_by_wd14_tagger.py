@@ -224,7 +224,7 @@ def main(args):
     print("done!")
 
 
-if __name__ == "__main__":
+def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("train_data_dir", type=str, help="directory for train images / 学習画像データのディレクトリ")
     parser.add_argument(
@@ -284,6 +284,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--frequency_tags", action="store_true", help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
 
+    return parser
+
+if __name__ == "__main__":
+    parser = setup_parser()
+    
     args = parser.parse_args()
 
     # スペルミスしていたオプションを復元する
