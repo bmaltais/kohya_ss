@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import atexit
 import errno
 import logging
 import importlib
@@ -12,7 +13,6 @@ from getpass import getpass
 import platform
 import re
 import shutil
-import site
 import subprocess
 import sys
 import stat
@@ -54,7 +54,7 @@ def check_and_import(module_name, package_name=None, imports=None):
     try:
         module = importlib.import_module(module_name)
     except ImportError:
-        logging.debug(f"Installing {package_name}...")
+        print(f"Installing {package_name}...")
         install_package(package_name)
         module = importlib.import_module(module_name)
 
@@ -104,7 +104,7 @@ def load_config(_config_file=None):
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
         ])
 
-        logging.debug(f"Searching for configuration files in these locations: {config_locations}")
+        # print(f"Searching for configuration files in these locations: {config_locations}")
 
         for location in config_locations:
             if os.path.isfile(os.path.abspath(location)):
@@ -115,10 +115,10 @@ def load_config(_config_file=None):
         try:
             with open(_config_file, 'r') as f:
                 _config_data = yaml.safe_load(f)
-                logging.debug(f"Loaded config data: {_config_data}")
+                # print(f"Loaded config data: {_config_data}")
                 return _config_data
         except FileNotFoundError:
-            logging.debug(f"Config file not found: {_config_file}")
+            # print(f"Config file not found: {_config_file}")
             return None
     else:
         return None
@@ -130,7 +130,7 @@ def parse_file_arg():
                         help="Path to the configuration file.")
     _args, _ = parser.parse_known_args()
     if _args.config_file is not None:
-        logging.debug(f"Configuration file specified by command line: {os.path.abspath(_args.config_file)}")
+        # print(f"Configuration file specified by command line: {os.path.abspath(_args.config_file)}")
         return os.path.abspath(_args.config_file)
     else:
         return None
@@ -250,7 +250,6 @@ def parse_args(_config_data):
     ]
 
     # Update the default arguments with values from the config file
-    logging.debug(f"Config Data: {_config_data}")
     if _config_data:
         if "setup_arguments" in _config_data:
             for arg in _config_data["setup_arguments"]:
@@ -270,7 +269,6 @@ def parse_args(_config_data):
                     if f'--{name.lower()}' == default_arg["long"]:
                         default_arg["default"] = value
                         default_arg["help"] = description
-    logging.debug(f"Updated default_args: {default_args}")
 
     # Add arguments to the parser with updated default values
     for arg in default_args:
@@ -317,7 +315,6 @@ def parse_args(_config_data):
         if arg == 'dir' and '_CURRENT_SCRIPT_DIR_' in value:
             script_directory = os.path.dirname(os.path.realpath(__file__))
             setattr(_args, arg, script_directory)
-    # print(f"Args: {_args}")
     return _args
 
 
@@ -1283,7 +1280,7 @@ def main(_args=None):
         logging.info(
             "Error: gitRepo, Branch, and Dir must have a value. Please provide values in the config file or through "
             "command line arguments.")
-        sys.exit(1)
+        exit(1)
 
     # Define the directories relative to the installation directory needed for install and launch
     parent_dir = os.path.dirname(_args.dir)
@@ -1332,7 +1329,7 @@ class CustomFormatter(logging.Formatter):
         counter = 0
         while True:
             counter_suffix = f"{counter}" if counter > 0 else ""
-            log_filename = f"kohya_ss_log_{current_time_str}{counter_suffix}.log"
+            log_filename = f"launcher_{current_time_str}{counter_suffix}_{logging.getLevelName(log_level).lower()}.log"
             log_filepath = os.path.join(_logs_dir, log_filename)
 
             if not os.path.exists(log_filepath):
@@ -1343,110 +1340,115 @@ class CustomFormatter(logging.Formatter):
 
 
 if __name__ == "__main__":
-    config_file = parse_file_arg()
-    config_data = load_config(config_file)
-    args = parse_args(config_data)
+    try:
+        config_file = parse_file_arg()
+        config_data = load_config(config_file)
+        args = parse_args(config_data)
 
-    # Initialize log_level with a default value
-    log_level = logging.ERROR
-
-    # Set logging level based on the verbosity count
-    # print(f"Verbosity: {args.verbosity}")
-    if args.verbosity == 0:
+        # Initialize log_level with a default value
         log_level = logging.ERROR
-    elif args.verbosity == 1:
-        log_level = logging.WARNING
-    elif args.verbosity == 2:
-        log_level = logging.INFO
-    elif args.verbosity >= 3:
-        log_level = logging.DEBUG
 
-    # Configure logging
-    # noinspection SpellCheckingInspection
-    setattr(args, "log-dir", os.path.abspath(get_logs_dir(args)))
-    log_file = CustomFormatter.generate_log_filename(getattr(args, "log-dir"))
-    handler = logging.StreamHandler()
-    handler.setFormatter(CustomFormatter())
+        # Set logging level based on the verbosity count
+        # print(f"Verbosity: {args.verbosity}")
+        if args.verbosity == 0:
+            log_level = logging.ERROR
+        elif args.verbosity == 1:
+            log_level = logging.WARNING
+        elif args.verbosity == 2:
+            log_level = logging.INFO
+        elif args.verbosity >= 3:
+            log_level = logging.DEBUG
 
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
-                        handlers=[logging.StreamHandler(),
-                                  logging.FileHandler(log_file, mode='w')])
-    logging.getLogger().setLevel(log_level)
-
-    # Replace 'root' with an empty string in the logger name
-    for handler in logging.getLogger().handlers:
+        # Configure logging
+        # noinspection SpellCheckingInspection
+        setattr(args, "log-dir", os.path.abspath(get_logs_dir(args)))
+        log_file = CustomFormatter.generate_log_filename(getattr(args, "log-dir"))
+        handler = logging.StreamHandler()
         handler.setFormatter(CustomFormatter())
 
-    # Use logging in the script like so (in order of log levels).
-    # logging.critical("This will always display.")
-    # logging.error("This is an error message.")
-    # logging.warning("This is a warning message.")
-    # logging.info("This is an info message.")
-    # logging.debug("This is a debug message.")
+        logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
+                            handlers=[logging.StreamHandler(),
+                                      logging.FileHandler(log_file, mode='w')])
+        logging.getLogger().setLevel(log_level)
 
-    log_dir = getattr(args, "log-dir")
-    logging.critical(f"Logs will be stored in: {log_dir}")
+        # Replace 'root' with an empty string in the logger name
+        for handler in logging.getLogger().handlers:
+            handler.setFormatter(CustomFormatter())
 
-    os_info = get_os_info()
+        # Use logging in the script like so (in order of log levels).
+        # logging.critical("This will always display.")
+        # logging.error("This is an error message.")
+        # logging.warning("This is a warning message.")
+        # logging.info("This is an info message.")
+        # logging.debug("This is a debug message.")
 
-    # Store the original sys.executable value
-    original_sys_executable = sys.executable
+        log_dir = getattr(args, "log-dir")
+        logging.critical(f"Logs will be stored in: {log_dir}")
 
-    # Print all arguments and their values in verbose 3 mode
-    if args.verbosity >= 3:
-        for k, v in args.__dict__.items():
-            logging.debug(f"{k}: {v}")
+        os_info = get_os_info()
 
-    # Following check disabled as PyCharm can't detect it's being used in a subprocess
-    # noinspection PyUnusedLocal
-    venv_python_bin = None
+        # Store the original sys.executable value
+        original_sys_executable = sys.executable
 
-    # Check if python3 or python3.10 binary exists
-    python_bin = find_python_binary()
-    if not python_bin:
-        logging.error("Valid python3 or python3.10 binary not found.")
-        logging.error("Cannot proceed with the python steps.")
-        exit(1)
+        # Print all arguments and their values in verbose 3 mode
+        if args.verbosity >= 3:
+            for k, v in args.__dict__.items():
+                logging.debug(f"{k}: {v}")
 
-    if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
-        logging.info("Error: This script requires Python 3.10.")
-        logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
-        sys.exit(1)
+        # Following check disabled as PyCharm can't detect it's being used in a subprocess
+        # noinspection PyUnusedLocal
+        venv_python_bin = None
 
-    # Create and activate virtual environment if not in container environment
-    if not in_container():
-        logging.critical("Switching to virtual Python environment.")
-        venv_path = os.path.join(args.dir, "venv")
-        subprocess.run([python_bin, "-m", "venv", venv_path])
+        # Check if python3 or python3.10 binary exists
+        python_bin = find_python_binary()
+        if not python_bin:
+            logging.error("Valid python3 or python3.10 binary not found.")
+            logging.error("Cannot proceed with the python steps.")
+            exit(1)
 
-        # Check the virtual environment for permissions issues
-        check_permissions(args.dir)
+        if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
+            logging.info("Error: This script requires Python 3.10.")
+            logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
+            sys.exit(1)
 
-        # Activate the virtual environment
-        venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
-        venv_python_bin = os.path.join(venv_bin_dir, python_bin)
-        sys.executable = os.path.join(venv_python_bin)
-        logging.debug(f"Python sys.executable: {sys.executable}")
-        logging.debug(f"venv_path: {venv_path}")
-        logging.debug(f"venv_bin_dir: {venv_bin_dir}")
-        logging.debug(f"python_bin: {python_bin}")
-        logging.debug(f"venv_python_bin: {venv_python_bin}")
-        site_packages_dir = os.path.join(venv_path, "Lib", "site-packages")
-    else:
-        logging.info("In container, skipping virtual environment.")
-        venv_python_bin = python_bin
-        python_executable_dir = os.path.dirname(python_bin)
-        if os.name == "Windows":
-            site_packages_dir = os.path.join(python_executable_dir, "Lib", "site-packages")
+        # Create and activate virtual environment if not in container environment
+        if not in_container():
+            logging.critical("Switching to virtual Python environment.")
+            venv_path = os.path.join(args.dir, "venv")
+            subprocess.run([python_bin, "-m", "venv", venv_path])
+
+            # Check the virtual environment for permissions issues
+            check_permissions(args.dir)
+
+            # Activate the virtual environment
+            venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
+            venv_python_bin = os.path.join(venv_bin_dir, python_bin)
+            sys.executable = os.path.join(venv_python_bin)
+            logging.debug(f"Python sys.executable: {sys.executable}")
+            logging.debug(f"venv_path: {venv_path}")
+            logging.debug(f"venv_bin_dir: {venv_bin_dir}")
+            logging.debug(f"python_bin: {python_bin}")
+            logging.debug(f"venv_python_bin: {venv_python_bin}")
+            site_packages_dir = os.path.join(venv_path, "Lib", "site-packages")
         else:
-            site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
-                                             "site-packages")
+            logging.info("In container, skipping virtual environment.")
+            venv_python_bin = python_bin
+            python_executable_dir = os.path.dirname(python_bin)
+            if os.name == "Windows":
+                site_packages_dir = os.path.join(python_executable_dir, "Lib", "site-packages")
+            else:
+                site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
+                                                 "site-packages")
 
-    if getattr(args, 'no-setup') and not getattr(args, 'setup_only'):
-        launch_kohya_gui(args)
-        exit(0)
-    elif getattr(args, 'no-setup') and getattr(args, 'setup_only'):
-        "Setup Only and No Setup options are mutually exclusive."
-        exit(1)
-    else:
-        main(args)
+        if getattr(args, 'no-setup') and not getattr(args, 'setup_only'):
+            launch_kohya_gui(args)
+            exit(0)
+        elif getattr(args, 'no-setup') and getattr(args, 'setup_only'):
+            "Setup Only and No Setup options are mutually exclusive."
+            exit(1)
+        else:
+            main(args)
+
+    except KeyboardInterrupt:
+        logging.debug("Interrupted by CTRL+C")
+        sys.exit(1)
