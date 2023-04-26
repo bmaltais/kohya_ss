@@ -139,7 +139,8 @@ class CustomFormatter(logging.Formatter):
         counter = 0
         while True:
             counter_suffix = f"{counter}" if counter > 0 else ""
-            log_filename = f"kohya_ss_log_{current_time_str}{counter_suffix}.log"
+            log_filename = f"kohya_ss_log_{current_time_str}{counter_suffix}_" \
+                           f"{logging.getLevelName(log_level).lower()}.log"
             log_filepath = os.path.join(_logs_dir, log_filename)
 
             if not os.path.exists(log_filepath):
