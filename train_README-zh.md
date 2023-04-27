@@ -3,7 +3,7 @@ __由于文档正在更新中，描述可能有错误。__
 # 关于本学习文档，通用描述
 本库支持模型微调(fine tuning)、DreamBooth、训练LoRA和文本反转(Textual Inversion)（包括[XTI:P+](https://github.com/kohya-ss/sd-scripts/pull/327)
 ）
-本文档将说明它们共同的学习数据准备方法和选项等。
+本文档将说明它们通用的学习数据准备方法和选项等。
 
 # 概要
 
