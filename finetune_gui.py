@@ -107,7 +107,11 @@ def save_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,weighted_captions,
+    min_snr_gamma,
+    weighted_captions,
+    save_every_n_steps,
+    save_last_n_steps,
+    save_last_n_steps_state,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -222,7 +226,11 @@ def open_configuration(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,weighted_captions,
+    min_snr_gamma,
+    weighted_captions,
+    save_every_n_steps,
+    save_last_n_steps,
+    save_last_n_steps_state,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -319,13 +327,20 @@ def train_model(
     sample_prompts,
     additional_parameters,
     vae_batch_size,
-    min_snr_gamma,weighted_captions,
+    min_snr_gamma,
+    weighted_captions,
+    save_every_n_steps,
+    save_last_n_steps,
+    save_last_n_steps_state,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
-    
+
     if optimizer == 'Adafactor' and lr_warmup != '0':
-        msgbox("Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.", title="Warning")
+        msgbox(
+            "Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+            title='Warning',
+        )
         lr_warmup = '0'
 
     # create caption json file
@@ -487,6 +502,9 @@ def train_model(
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
         min_snr_gamma=min_snr_gamma,
+        save_every_n_steps=save_every_n_steps,
+        save_last_n_steps=save_last_n_steps,
+        save_last_n_steps_state=save_last_n_steps_state,
     )
 
     run_cmd += run_cmd_sample(
@@ -709,6 +727,9 @@ def finetune_tab():
                 additional_parameters,
                 vae_batch_size,
                 min_snr_gamma,
+                save_every_n_steps,
+                save_last_n_steps,
+                save_last_n_steps_state,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -806,6 +827,9 @@ def finetune_tab():
         vae_batch_size,
         min_snr_gamma,
         weighted_captions,
+        save_every_n_steps,
+        save_last_n_steps,
+        save_last_n_steps_state,
     ]
 
     button_run.click(train_model, inputs=settings_list)

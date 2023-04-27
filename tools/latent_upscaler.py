@@ -243,7 +243,13 @@ def create_upscaler(**kwargs):
     model = Upscaler()
 
     print(f"Loading weights from {weights}...")
-    model.load_state_dict(torch.load(weights, map_location=torch.device("cpu")))
+    if os.path.splitext(weights)[1] == ".safetensors":
+        from safetensors.torch import load_file
+
+        sd = load_file(weights)
+    else:
+        sd = torch.load(weights, map_location=torch.device("cpu"))
+    model.load_state_dict(sd)
     return model
 
 

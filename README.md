@@ -305,6 +305,15 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/25 (v21.5.7)
+  - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
+  - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
+    - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
+    - If you specify the `--save_state` option, the state will also be saved at the same time. You can specify the number of steps to keep the state with the `--save_last_n_steps_state` option (the same value as `--save_last_n_steps` is used if omitted).
+    - You can use the epoch-based model saving and state saving options together.
+    - Not tested in multi-GPU environment. Please report any bugs.
+  - `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
+  - Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
 * 2023/04/24 (v21.5.6)
     - Fix triton error
     - Fix issue with merge lora path with spaces
@@ -337,13 +346,3 @@ This will store a backup file with your current locally installed pip packages a
     - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
     - Update gui.bat and gui.ps1 based on: https://github.com/bmaltais/kohya_ss/issues/188
     - Update `setup.bat` to install torch 2.0.0 instead of 1.2.1. If you want to upgrade from 1.2.1 to 2.0.0 run setup.bat again, select 1 to uninstall the previous torch modules, then select 2 for torch 2.0.0
-
-* 2023/04/09 (v21.5.2)
-
-    - Added support for training with weighted captions. Thanks to AI-Casanova for the great contribution! 
-    - Please refer to the PR for details: [PR #336](https://github.com/kohya-ss/sd-scripts/pull/336)
-    - Specify the `--weighted_captions` option. It is available for all training scripts except Textual Inversion and XTI.
-    - This option is also applicable to token strings of the DreamBooth method.
-    - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
-    - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
-    - Run gui.sh from any place
