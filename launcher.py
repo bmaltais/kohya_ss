@@ -1409,7 +1409,12 @@ if __name__ == "__main__":
         # logging.debug("This is a debug message.")
 
         log_dir = getattr(args, "log-dir")
-        logging.critical(f"Logs will be stored in: {log_dir}")
+        logging.critical(f"Logs will be stored in: {log_dir} and {args.setup_only}")
+
+        if getattr(args, 'no-setup') is True and args.setup_only:
+            logging.critical("Setup Only and No Setup options are mutually exclusive.")
+            logging.critical("Please run with only one of those options or none of them.")
+            exit(1)
 
         os_info = get_os_info()
 
@@ -1469,9 +1474,6 @@ if __name__ == "__main__":
         if getattr(args, 'no-setup') and not getattr(args, 'setup_only'):
             launch_kohya_gui(args)
             exit(0)
-        elif getattr(args, 'no-setup') and getattr(args, 'setup_only'):
-            "Setup Only and No Setup options are mutually exclusive."
-            exit(1)
         else:
             main(args)
 
