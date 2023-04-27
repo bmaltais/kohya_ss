@@ -174,24 +174,6 @@ class CountOccurrencesAction(argparse.Action):
 
 # noinspection SpellCheckingInspection
 def parse_args(_config_data):
-    parser = argparse.ArgumentParser(
-        description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
-                    "application.",
-        epilog="""Examples:
-    Switch to the dev branch:
-    python launcher.py --branch dev
-
-    Point to a custom installation directory
-    python launcher.py --dir /path/to/kohya_ss
-    
-    Update to the latest stable mainline installation
-    python launcher.py --dir /path/to/kohya_ss --update
-
-    Bypass all environment checks except Python dependency validation and launch the GUI:
-    python launcher.py --exclude-setup""",
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-
     # Define the default arguments first. The spacing is purely for readability.
     default_args = [
         {"short": "-b", "long": "--branch", "default": "master", "type": str,
@@ -248,6 +230,44 @@ def parse_args(_config_data):
 
         {"short": "", "long": "--share", "default": False, "type": bool, "help": "Share the gradio UI."},
     ]
+
+    def generate_usage(_default_args):
+        """
+        This function generates nicer usage string for the command line arguments in the form of [ -s | --long VAR ].
+        :param _default_args: List of default argument dictionaries
+        :return: Usage string
+        """
+        usage = "usage: launcher.py "
+        for _arg in _default_args:
+            _arg_type = _arg.get("type", str)
+            _arg_type = _arg_type.__name__.upper()  # Get the name of the type and convert to upper case
+            _short_opt = _arg["short"]
+            _long_opt = _arg["long"]
+            if _short_opt:
+                usage += f'[{_short_opt} | {_long_opt} {_arg_type if _arg_type != "BOOL" else ""}] '
+            else:
+                usage += f'[{_long_opt} {_arg_type if _arg_type != "BOOL" else ""}] '
+        return usage
+
+    # usage is generated dynamically here
+    parser = argparse.ArgumentParser(
+        description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
+                    "application.",
+        usage=generate_usage(default_args),
+        epilog="""Examples:
+    Switch to the dev branch:
+    python launcher.py --branch dev
+
+    Point to a custom installation directory
+    python launcher.py --dir /path/to/kohya_ss
+
+    Update to the latest stable mainline installation
+    python launcher.py --dir /path/to/kohya_ss --update
+
+    Bypass all environment checks except Python dependency validation and launch the GUI:
+    python launcher.py --exclude-setup""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
     # Update the default arguments with values from the config file
     if _config_data:
@@ -1194,12 +1214,13 @@ def install_python_dependencies(_dir, runpod):
 
 
 def configure_accelerate(interactive):
-    if os_info.family != "macOS":
-        source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
-                                                     "accelerate", "default_config.yaml")
-    else:
+    if os_info.family == "macOS" and platform.machine() == "arm64":
         source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
                                                      "accelerate", "macos_config.yaml")
+    else:
+        source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
+                                                     "accelerate", "default_config.yaml")
+
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
     if interactive:

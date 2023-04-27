@@ -77,9 +77,10 @@
 
 [CmdletBinding()]
 param (
-    [string]$Branch = "master",
+    [string]$File = "",
+    [string]$Branch = "",
     [string]$Dir = "",
-    [string]$GitRepo = "https://github.com/bmaltais/kohya_ss.git",
+    [string]$GitRepo = "",
     [switch]$Interactive,
     [string]$LogDir = "",
     [switch]$NoSetup,
@@ -87,12 +88,12 @@ param (
     [switch]$Runpod,
     [switch]$SetupOnly,
     [switch]$SkipSpaceCheck,
+    [int]$Verbosity = -1,
     [switch]$Update,
-    [int]$Verbosity = 0,
-    [string]$LISTEN = "127.0.0.1",
+    [string]$LISTEN = "",
     [string]$USERNAME = "",
     [string]$PASSWORD = "",
-    [int]$SERVER_PORT = 7861,
+    [int]$SERVER_PORT,
     [switch]$INBROWSER,
     [switch]$SHARE
 )
@@ -134,21 +135,29 @@ param (
 #>
 function Get-Parameters {
     param (
-        [string]$File = ""
+        [Parameter(Mandatory = $true)]
+        [hashtable]$BoundParameters
     )
 
     # Helper function to convert relative paths to absolute
-    function Normalize-PathValue {
+    function Convert-RelativePathsToAbsolute {
         param (
             [Parameter(Mandatory = $true)]
-            [string]$PathValue
+            [hashtable]$Params
         )
-
-        if (Test-Path $PathValue) {
-            return (Resolve-Path -Path $PathValue).Path
+    
+        $AbsolutePathParams = @('Dir', 'LogDir')
+        $Result = $Params.Clone()
+    
+        foreach ($key in $AbsolutePathParams) {
+            if ($Params.ContainsKey($key) -and -not [string]::IsNullOrEmpty($Params[$key]) -and (Test-Path $Params[$key])) {
+                $Result[$key] = (Resolve-Path $Params[$key]).Path
+            }
         }
-        return $PathValue
+    
+        return $Result
     }
+    
 
     # Check for the existence of the powershell-yaml module and install it if necessary
     if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
@@ -175,22 +184,6 @@ function Get-Parameters {
         )
     }
 
-    # Load the configuration file from the first existing location
-    $Config = @{}
-    foreach ($location in $configFileLocations) {
-        if (Test-Path -Path $location) {
-            $yamlContent = Get-Content -Path $location | ConvertFrom-Yaml
-            foreach ($section in $yamlContent.Keys) {
-                foreach ($key in $yamlContent[$section].Keys) {
-                    if ($yamlContent[$section][$key].ContainsKey('value')) {
-                        $Config["${section}_${key}"] = Normalize-PathValue -PathValue $yamlContent[$section][$key]['value']
-                    }
-                }
-            }
-            break
-        }
-    }
-
     # Define the default values
     $Defaults = @{
         'Branch'         = 'master'
@@ -203,37 +196,59 @@ function Get-Parameters {
         'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
-        'Verbosity'      = 0
+        'Verbosity'      = -1
         'Update'         = $false
         'LISTEN'         = '127.0.0.1'
         'USERNAME'       = ''
         'PASSWORD'       = ''
         'SERVER_PORT'    = 7861
-        'INBROWSER'      = $true
+        'INBROWSER'      = $false
         'SHARE'          = $false
     }
 
+    # Load the configuration file from the first existing location
+    $Config = @{}
+    foreach ($location in $configFileLocations) {
+        if (Test-Path $location) {
+            $Config = (Get-Content $location | Out-String | ConvertFrom-Yaml)
+            break
+        }
+    }
 
     # Iterate through the default values and set them if not defined in the config file
     foreach ($key in $Defaults.Keys) {
         if (-not $Config.ContainsKey($key)) {
-            $Config[$key] = Normalize-PathValue -PathValue $Defaults[$key]
+            $Config[$key] = $Defaults[$key]
         }
     }
 
-    # Update the parameter values if they are still set to their default values
+    # Update the config with the command-line arguments
     foreach ($key in $Defaults.Keys) {
-        $paramKey = $key.Replace('setup_', '')
-        $paramValue = Get-Variable -Name $paramKey -ValueOnly
-        if ($paramValue -eq $Defaults[$key]) {
-            if ($Config.ContainsKey($key)) {
-                Set-Variable -Name $paramKey -Value $Config[$key]
+        if ($BoundParameters.ContainsKey($key)) {
+            if ($key -eq 'Verbosity' -and $BoundParameters['Verbosity'] -eq -1) {
+                continue
+            }
+            if ($BoundParameters[$key] -is [switch]) {
+                $Config[$key] = $BoundParameters[$key].IsPresent
+            }
+            else {
+                $Config[$key] = $BoundParameters[$key]
             }
         }
     }
+    
 
+    $Config = Convert-RelativePathsToAbsolute -Params $Config
+
+    # Output the final configuration
+    Write-Host "Config:"
+    foreach ($key in $Config.Keys) {
+        Write-Host "${key}: $($Config.$key)"
+    }
+    
     return $Config
 }
+
 
 <#
 .SYNOPSIS
@@ -273,7 +288,7 @@ function Test-Value {
     )
 
     foreach ($key in $RequiredKeys) {
-        if ($null -eq $Params[$key]) {
+        if ($null -eq $Params.$key) {
             return $false
         }
     }
@@ -338,6 +353,11 @@ Runs the "apt install -y python3.10-tk" command with elevated privileges, using 
 This function should work on Windows, Linux, macOS, and BSD systems.
 #>
 function Get-ElevationCommand {
+    param (
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$args
+    )
+
     if ($IsWindows) {
         # On Windows, use the Start-Process cmdlet to run the command as administrator
         if ((Test-IsAdmin) -eq $true) {
@@ -361,7 +381,7 @@ function Get-ElevationCommand {
                 # Check if sudo is installed
                 if (Get-Command sudo -ErrorAction SilentlyContinue) {
                     # Use sudo to run the command as root
-                    return "sudo -S $(get-command $args[0]).source $($args[1..$($args.count)] -join ' ')"
+                    return "sudo -S $($args[0]) $($args[1..$($args.count)] -join ' ')"
                 }
                 else {
                     # Fall back to su to run the command as root
@@ -800,75 +820,75 @@ function Install-Python3Tk {
     )
 
     $os = Get-OsInfo
-    $elevate = Get-ElevationCommand
+    $osFamily = $os.family.ToLower()
+    write-host $osFamily
 
     if ($PSVersionTable.Platform -eq 'Unix') {
         # Linux / macOS installation
-        switch ($os.family) {
-            "Ubuntu" {
-                # Ubuntu installation
+
+        if ($osFamily -match "ubuntu") {
+            # Ubuntu installation
+            try {
+                Invoke-Expression (Get-ElevationCommand "apt" "update")
+                Invoke-Expression (Get-ElevationCommand "apt" "install" "-y" "python3.10-tk")
+            }
+            catch {
+                Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+            }
+        }
+        elseif ($osFamily -match "debian") {
+            # Debian installation
+            try {
+                Invoke-Expression (Get-ElevationCommand "apt-get" "update")
+                Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "python3.10-tk")
+            }
+            catch {
+                Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
+            }
+        }
+        elseif ($osFamily -match "redhat") {
+            # Red Hat installation
+            try {
+                Invoke-Expression (Get-ElevationCommand "dnf" "install" "-y" "python3.10-tkinter")
+            }
+            catch {
+                Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
+            }
+        }
+        elseif ($osFamily -match "arch") {
+            # Arch installation
+            try {
+                Invoke-Expression (Get-ElevationCommand "pacman" "-S" "--noconfirm" "tk")
+            }
+            catch {
+                Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
+            }
+        }
+        elseif ($osFamily -match "opensuse") {
+            # openSUSE installation
+            try {
+                Invoke-Expression (Get-ElevationCommand "zypper" "install" "-y" "python3.10-tk")
+            }
+            catch {
+                Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
+            }
+        }
+        elseif ($osFamily -match "macos") {
+            if (Test-Path "/usr/local/bin/brew") {
                 try {
-                    & $elevate apt update
-                    & $elevate apt install -y python3.10-tk
+                    # macOS installation using Homebrew
+                    Invoke-Expression "brew install python-tk@3.10"
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+                    Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
                 }
             }
-            "Debian" {
-                # Debian installation
-                try {
-                    & $elevate apt-get update
-                    & $elevate apt-get install -y python3.10-tk
-                }
-                catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
-                }
+            else {
+                Write-Host "Unsupported Unix platform or package manager not found."
             }
-            "RedHat" {
-                # Red Hat installation
-                try {
-                    & $elevate dnf install -y python3.10-tkinter
-                }
-                catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
-                }
-            }
-            "Arch" {
-                # Arch installation
-                try {
-                    & $elevate pacman -S --noconfirm tk
-                }
-                catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
-                }
-            }
-            "openSUSE" {
-                # openSUSE installation
-                try {
-                    & $elevate zypper install -y python3.10-tk
-                }
-                catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
-                }
-            }
-            "macOS" {
-                if (Test-Path "/usr/local/bin/brew") {
-                    try {
-                        # macOS installation using Homebrew
-                        Invoke-Expression "brew install python-tk@3.10"
-                    }
-                    catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
-                    }
-                }
-                else {
-                    Write-Host "Unsupported Unix platform or package manager not found."
-                }
-            }
-            default {
-                Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
-            }
+        }
+        else {
+            Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
         }
     }
     else {
@@ -1173,7 +1193,7 @@ function Main {
     )
 
     begin {
-        if (-not $Params['setup_excludeSetup']) {
+        if (-not $Parameters.excludeSetup) {
             $requiredKeys = @("Dir", "Branch", "GitRepo")
             if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
                 Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
@@ -1183,9 +1203,9 @@ function Main {
     }
 
     process {
-        if (-not $Params['setup_excludeSetup']) {
+        if (-not $Parameters.excludeSetup) {
             if (-not (Test-Python310Installed)) {
-                Install-Python310 -Interactive:$Params['setup_interactive']
+                Install-Python310 -Interactive:$Params.interactive
             }
             
             $installScope = Update-InstallScope($Interactive)
@@ -1195,19 +1215,72 @@ function Main {
 
     end {
         $pyExe = Get-PythonExePath
-
+    
         if ($null -ne $pyExe) {
             $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
 
-            $installArgs = @()
-            foreach ($key in $Params.Keys) {
-                $argName = ($key.ToLowerInvariant() -replace '[A-Z]', '-$0').ToLower()
-                $installArgs += $argName, $Params[$key]
+            Write-Host "Params: $($Parameters | Out-String)"
+
+            $installArgs = New-Object System.Collections.ArrayList
+            foreach ($key in $Parameters.Keys) {
+                $argName = $key
+
+                # Handle PascalCase keys
+                if ($argName -cmatch '[a-z][A-Z]') {
+                    $argName = -join ($argName.ToCharArray() | ForEach-Object {
+                            if (($_ -ge 'A'[0]) -and ($_ -le 'Z'[0])) {
+                                "-$($_.ToString().ToLower())"
+                            }
+                            else {
+                                $_.ToString().ToLower()
+                            }
+                        })
+                }
+                else {
+                    # Handle uppercase keys
+                    $argName = $argName.ToLower()
+                }
+
+                # Replace underscore with hyphen and prepend with --
+                $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
+
+                Write-Host "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+
+                if ($Parameters[$key] -isnot [string]) {
+                    # Only add the argument if it is true
+                    if ($Parameters[$key] -eq $true) {
+                        $installArgs.Add($argName) | Out-Null
+                        Write-Host "Boolean argument: $argName"
+                    }
+                    elseif ($key -eq "verbosity") {
+                        # Handle verbosity separately, as -vvvv or --verbosity 4
+                        $verbosity = $Parameters[$key]
+                        if ($verbosity -gt 0) {
+                            # produces "-vvvv" for verbosity 4 or "--verbosity 4"
+                            # Uncomment the line that suits your requirement
+                            # $verbosityArg = "-" + ("v" * $verbosity)
+                            $verbosityArg = "--verbosity"
+                            $verbosityValue = [int]$verbosity
+                            $installArgs.Add($verbosityArg) | Out-Null
+                            $installArgs.Add($verbosityValue) | Out-Null
+                        }
+                    }
+                }
+
+                elseif (![string]::IsNullOrEmpty($Parameters[$key])) {
+                    $installArgs.Add($argName) | Out-Null
+                    $installArgs.Add($Parameters[$key]) | Out-Null
+                }
             }
 
+
             # Call launcher.py with the appropriate parameters
-            & $pyExe -u "$launcher" $installArgs
+            $command = "$pyExe -u $launcher $($installArgs -join ' ')"
+            Write-Host "Running command: $command"
+            & $pyExe -u "$launcher" $($installArgs.ToArray())
         }
+
+
         else {
             Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
             exit 1
@@ -1225,6 +1298,5 @@ function Main {
 #    b) Installation Directory
 #    c) The folder this script is run from
 # 3) Default values built into the scripts if none specified by user and there is no config file.
-$Params = Get-Parameters
-Main -Parameters $Params
-
+$Parameters = Get-Parameters -BoundParameters $PSBoundParameters
+Main -Parameters $Parameters
