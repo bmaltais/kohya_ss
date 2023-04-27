@@ -103,85 +103,6 @@ $pythonPath = $null
 
 <#
 .SYNOPSIS
-   Writes a debug message to the console if the verbosity level is 3 or higher.
-
-.DESCRIPTION
-   The function takes a message string as input and writes it to the console 
-   as a debug message only if the global verbosity level is set to 3 or higher.
-
-.PARAMETER message
-   The debug message to be written to the console.
-
-.EXAMPLE
-   Write-LogDebug "This is a debug message."
-#>
-function Write-LogDebug($message) {
-    if ($verbosity -ge 3) {
-        Write-Debug $message
-    }
-}
-
-<#
-.SYNOPSIS
-   Writes a verbose message to the console if the verbosity level is 2 or higher.
-
-.DESCRIPTION
-   The function takes a message string as input and writes it to the console 
-   as a verbose message only if the global verbosity level is set to 2 or higher.
-
-.PARAMETER message
-   The verbose message to be written to the console.
-
-.EXAMPLE
-   Write-LogVerbose "This is a verbose message."
-#>
-function Write-LogVerbose($message) {
-    if ($verbosity -ge 2) {
-        Write-Verbose $message
-    }
-}
-
-<#
-.SYNOPSIS
-   Writes an informational message to the console if the verbosity level is 1 or higher.
-
-.DESCRIPTION
-   The function takes a message string as input and writes it to the console 
-   as an informational message only if the global verbosity level is set to 1 or higher.
-
-.PARAMETER message
-   The informational message to be written to the console.
-
-.EXAMPLE
-   Write-LogInformation "This is an informational message."
-#>
-function Write-LogInformation($message) {
-    if ($verbosity -ge 1) {
-        Write-Information $message
-    }
-}
-
-<#
-.SYNOPSIS
-   Writes a critical message to the console. This message will always be displayed regardless of the verbosity level.
-
-.DESCRIPTION
-   The function takes a message string as input and always writes it to the console 
-   as a critical message.
-
-.PARAMETER message
-   The critical message to be written to the console.
-
-.EXAMPLE
-   Write-LogCritical "This is a critical message."
-#>
-function Write-LogCritical($message) {
-    # Always write critical messages
-    Write-Host $message
-}
-
-<#
-.SYNOPSIS
    Handles the loading of parameter values with a specific order of precedence.
 
 .DESCRIPTION
@@ -231,39 +152,41 @@ function Get-Parameters {
         foreach ($key in $Params.Keys) {
             $value = $Params[$key]
             if (-not [string]::IsNullOrEmpty($value)) {
-                # Check if value doesn't start with a known scheme and contains a path separator
-                if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
-                    # Convert relative paths to absolute and normalize
-                    $FullPath = Join-Path (Get-Location) $value
+                if (!(Test-Path -PathType Leaf $value) -and !(Test-Path -PathType Container $value)) {
+                    # Check if value doesn't start with a known scheme and contains a path separator
+                    if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
+                        # Convert relative paths to absolute and normalize
+                        $FullPath = Join-Path (Get-Location) $value
     
-                    if ($PSVersionTable.PSVersion.Major -lt 6) {
-                        # Use Resolve-Path for PowerShell 5.1 and older
-                        if (!(Test-Path $FullPath)) {
-                            # If path does not exist, create a temporary one, resolve it, and then remove it
-                            $ParentDir = Split-Path $FullPath -Parent
-                            $TestPath = Join-Path $ParentDir "testwrite.tmp"
-                            try {
-                                $null = New-Item -Path $TestPath -ItemType File -ErrorAction Stop
-                                Remove-Item -Path $TestPath -ErrorAction Stop
-                            }
-                            catch {
-                                throw "The script does not have write permissions to create a file in the directory: $ParentDir"
-                            }
+                        if ($PSVersionTable.PSVersion.Major -lt 6) {
+                            # Use Resolve-Path for PowerShell 5.1 and older
+                            if (!(Test-Path $FullPath)) {
+                                # If path does not exist, create a temporary one, resolve it, and then remove it
+                                $ParentDir = Split-Path $FullPath -Parent
+                                $TestPath = Join-Path $ParentDir "testwrite.tmp"
+                                try {
+                                    $null = New-Item -Path $TestPath -ItemType File -ErrorAction Stop
+                                    Remove-Item -Path $TestPath -ErrorAction Stop
+                                }
+                                catch {
+                                    throw "The script does not have write permissions to create a file in the directory: $ParentDir"
+                                }
     
-                            $null = New-Item -Path $FullPath -ItemType Directory -Force
-                            $AbsolutePath = (Resolve-Path $FullPath).Path
-                            Remove-Item -Path $FullPath -Force
+                                $null = New-Item -Path $FullPath -ItemType Directory -Force
+                                $AbsolutePath = (Resolve-Path $FullPath).Path
+                                Remove-Item -Path $FullPath -Force
+                            }
+                            else {
+                                $AbsolutePath = (Resolve-Path $FullPath).Path
+                            }
                         }
                         else {
-                            $AbsolutePath = (Resolve-Path $FullPath).Path
+                            # Use System.IO.Path.GetFullPath for PowerShell 6 and later
+                            $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
                         }
-                    }
-                    else {
-                        # Use System.IO.Path.GetFullPath for PowerShell 6 and later
-                        $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
-                    }
     
-                    $Result[$key] = $AbsolutePath
+                        $Result[$key] = $AbsolutePath
+                    }
                 }
             }
         }
@@ -300,7 +223,7 @@ function Get-Parameters {
     # Define the default values
     $Defaults = @{
         'Branch'         = 'master'
-        'Dir'            = "$env:USERPROFILE\.kohya_ss"
+        'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Interactive'    = $false
         'LogDir'         = "$env:USERPROFILE\.kohya_ss\logs"
@@ -1392,15 +1315,16 @@ function Main {
         $pyExe = Get-PythonExePath
     
         if ($null -ne $pyExe) {
-            $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
-
-            # Check if launcher.py exists in the specified directory or in the script directory
-            if (!(Test-Path -Path $launcher)) {
+            # Check for launcher.py at the target installation folder if specified via CLI, if not try to test target directory anyway no matter how it was defined, then fall back to current script directory.
+            if (![string]::IsNullOrEmpty($Dir) -and (Test-Path -Path (Join-Path -Path $Dir -ChildPath "launcher.py"))) {
+                $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
+            }
+            elseif (Test-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "launcher.py")) {
                 $launcher = Join-Path -Path $PSScriptRoot -ChildPath "launcher.py"
-                if (!(Test-Path -Path $launcher)) {
-                    Write-Host "Error: launcher.py not found. Please ensure the file exists in the script directory or the specified directory."
-                    exit 1
-                }
+            }
+            else {
+                Write-Host "Error: launcher.py not found in provided directory or script directory."
+                exit 1
             }
 
             Write-Host "Params: $($Parameters | Out-String)"
