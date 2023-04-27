@@ -374,7 +374,7 @@ def train(args):
         accelerator.init_trackers("textual_inversion")
 
     for epoch in range(num_train_epochs):
-        print(f"epoch {epoch+1}/{num_train_epochs}")
+        print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         text_encoder.train()
@@ -493,7 +493,7 @@ def train(args):
             def save_func():
                 ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, epoch + 1) + "." + args.save_model_as
                 ckpt_file = os.path.join(args.output_dir, ckpt_name)
-                print(f"saving checkpoint: {ckpt_file}")
+                print(f"\nsaving checkpoint: {ckpt_file}")
                 save_weights(ckpt_file, updated_embs, save_dtype)
                 if args.huggingface_repo_id is not None:
                     huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)

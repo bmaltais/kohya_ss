@@ -1416,7 +1416,7 @@ def debug_dataset(train_dataset, show_input_ids=False):
 
     epoch = 1
     while True:
-        print(f"epoch: {epoch}")
+        print(f"\nepoch: {epoch}")
 
         steps = (epoch - 1) * len(train_dataset) + 1
         indices = list(range(len(train_dataset)))
@@ -2903,7 +2903,7 @@ def save_sd_model_on_epoch_end(
 
         def save_sd():
             ckpt_file = os.path.join(args.output_dir, ckpt_name)
-            print(f"saving checkpoint: {ckpt_file}")
+            print(f"\nsaving checkpoint: {ckpt_file}")
             model_util.save_stable_diffusion_checkpoint(
                 args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
             )

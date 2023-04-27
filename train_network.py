@@ -669,7 +669,7 @@ def train(args):
                 ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, epoch + 1) + "." + args.save_model_as
                 ckpt_file = os.path.join(args.output_dir, ckpt_name)
                 metadata["ss_training_finished_at"] = str(time.time())
-                print(f"saving checkpoint: {ckpt_file}")
+                print(f"\nsaving checkpoint: {ckpt_file}")
                 unwrap_model(network).save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
                 if args.huggingface_repo_id is not None:
                     huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
