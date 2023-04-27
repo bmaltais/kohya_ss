@@ -536,7 +536,7 @@ def train(args):
         ckpt_name = model_name + "." + args.save_model_as
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
-        print(f"save trained model to {ckpt_file}")
+        print(f"\nsave trained model to {ckpt_file}")
         save_weights(ckpt_file, updated_embs, save_dtype)
         if args.huggingface_repo_id is not None:
             huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
