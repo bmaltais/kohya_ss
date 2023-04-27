@@ -98,7 +98,87 @@ param (
     [switch]$SHARE
 )
 
+# Define global Python path to use in various functions
+$pythonPath = $null
 
+<#
+.SYNOPSIS
+   Writes a debug message to the console if the verbosity level is 3 or higher.
+
+.DESCRIPTION
+   The function takes a message string as input and writes it to the console 
+   as a debug message only if the global verbosity level is set to 3 or higher.
+
+.PARAMETER message
+   The debug message to be written to the console.
+
+.EXAMPLE
+   Write-LogDebug "This is a debug message."
+#>
+function Write-LogDebug($message) {
+    if ($verbosity -ge 3) {
+        Write-Debug $message
+    }
+}
+
+<#
+.SYNOPSIS
+   Writes a verbose message to the console if the verbosity level is 2 or higher.
+
+.DESCRIPTION
+   The function takes a message string as input and writes it to the console 
+   as a verbose message only if the global verbosity level is set to 2 or higher.
+
+.PARAMETER message
+   The verbose message to be written to the console.
+
+.EXAMPLE
+   Write-LogVerbose "This is a verbose message."
+#>
+function Write-LogVerbose($message) {
+    if ($verbosity -ge 2) {
+        Write-Verbose $message
+    }
+}
+
+<#
+.SYNOPSIS
+   Writes an informational message to the console if the verbosity level is 1 or higher.
+
+.DESCRIPTION
+   The function takes a message string as input and writes it to the console 
+   as an informational message only if the global verbosity level is set to 1 or higher.
+
+.PARAMETER message
+   The informational message to be written to the console.
+
+.EXAMPLE
+   Write-LogInformation "This is an informational message."
+#>
+function Write-LogInformation($message) {
+    if ($verbosity -ge 1) {
+        Write-Information $message
+    }
+}
+
+<#
+.SYNOPSIS
+   Writes a critical message to the console. This message will always be displayed regardless of the verbosity level.
+
+.DESCRIPTION
+   The function takes a message string as input and always writes it to the console 
+   as a critical message.
+
+.PARAMETER message
+   The critical message to be written to the console.
+
+.EXAMPLE
+   Write-LogCritical "This is a critical message."
+#>
+function Write-LogCritical($message) {
+    # Always write critical messages
+    Write-Host $message
+}
 
 <#
 .SYNOPSIS
@@ -146,18 +226,51 @@ function Get-Parameters {
             [hashtable]$Params
         )
     
-        $AbsolutePathParams = @('Dir', 'LogDir')
         $Result = $Params.Clone()
     
-        foreach ($key in $AbsolutePathParams) {
-            if ($Params.ContainsKey($key) -and -not [string]::IsNullOrEmpty($Params[$key]) -and (Test-Path $Params[$key])) {
-                $Result[$key] = (Resolve-Path $Params[$key]).Path
+        foreach ($key in $Params.Keys) {
+            $value = $Params[$key]
+            if (-not [string]::IsNullOrEmpty($value)) {
+                # Check if value doesn't start with a known scheme and contains a path separator
+                if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
+                    # Convert relative paths to absolute and normalize
+                    $FullPath = Join-Path (Get-Location) $value
+    
+                    if ($PSVersionTable.PSVersion.Major -lt 6) {
+                        # Use Resolve-Path for PowerShell 5.1 and older
+                        if (!(Test-Path $FullPath)) {
+                            # If path does not exist, create a temporary one, resolve it, and then remove it
+                            $ParentDir = Split-Path $FullPath -Parent
+                            $TestPath = Join-Path $ParentDir "testwrite.tmp"
+                            try {
+                                $null = New-Item -Path $TestPath -ItemType File -ErrorAction Stop
+                                Remove-Item -Path $TestPath -ErrorAction Stop
+                            }
+                            catch {
+                                throw "The script does not have write permissions to create a file in the directory: $ParentDir"
+                            }
+    
+                            $null = New-Item -Path $FullPath -ItemType Directory -Force
+                            $AbsolutePath = (Resolve-Path $FullPath).Path
+                            Remove-Item -Path $FullPath -Force
+                        }
+                        else {
+                            $AbsolutePath = (Resolve-Path $FullPath).Path
+                        }
+                    }
+                    else {
+                        # Use System.IO.Path.GetFullPath for PowerShell 6 and later
+                        $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
+                    }
+    
+                    $Result[$key] = $AbsolutePath
+                }
             }
         }
     
         return $Result
     }
-    
+
 
     # Check for the existence of the powershell-yaml module and install it if necessary
     if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
@@ -549,13 +662,57 @@ function Get-OsInfo {
    True if Python 3.10 is installed, otherwise False.
 #>
 function Test-Python310Installed {
-    try {
-        $pythonVersion = (python --version) -replace '^Python\s', ''
-        return $pythonVersion.StartsWith('3.10')
+    $pythonBinaries = @("python", "python3", "python3.10")
+
+    if ($IsWindows) {
+        # Add windows-specific paths
+        $paths = @("${Env:ProgramFiles}\Python310", "${Env:ProgramFiles(x86)}\Python310")
+        # Add .exe extension for Windows
+        $pythonBinaries = $pythonBinaries | ForEach-Object { "$_.exe" }
     }
-    catch {
-        return $false
+    else {
+        # Unix-like system paths
+        $paths = @("/usr/bin", "/usr/local/bin", "${Env:HOME}/.local/bin")
     }
+
+    foreach ($path in $paths) {
+        foreach ($binary in $pythonBinaries) {
+            $global:pythonPath = Join-Path -Path $path -ChildPath $binary
+            if (Test-Path -Path $global:pythonPath ) {
+                try {
+                    $pythonVersion = & $global:pythonPath  --version 2>&1 | Out-String -Stream -ErrorAction Stop
+                    $pythonVersion = $pythonVersion -replace '^Python\s', ''
+                    if ($pythonVersion.StartsWith('3.10')) {
+                        return $true
+                    }
+                }
+                catch {
+                    switch ($_.Exception.GetType().Name) {
+                        'Win32Exception' {
+                            Write-Error "Python executable found at $global:pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
+                            return $false
+                        }
+                        'RuntimeException' {
+                            if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
+                                Write-Error "Python executable not found at $global:pythonPath ."
+                                return $false
+                            }
+                            else {
+                                Write-Error "An unknown error occurred when trying to run Python at ${global:pythonPath }: $($_.Exception.Message)"
+                                return $false
+                            }
+                        }
+                        default {
+                            Write-Error "An unknown error occurred when trying to check Python version at ${global:pythonPath }: $($_.Exception.Message)"
+                            return $false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return $false
 }
 
 <#
@@ -825,70 +982,88 @@ function Install-Python3Tk {
 
     if ($PSVersionTable.Platform -eq 'Unix') {
         # Linux / macOS installation
-
-        if ($osFamily -match "ubuntu") {
-            # Ubuntu installation
-            try {
-                Invoke-Expression (Get-ElevationCommand "apt" "update")
-                Invoke-Expression (Get-ElevationCommand "apt" "install" "-y" "python3.10-tk")
-            }
-            catch {
-                Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+    
+        # Pre-check: Try to import Tkinter in Python 3.10
+        $isTkinterInstalled = $false
+        try {
+            $tkinterCheckOutput = & $global:pythonPath -c "import tkinter" 2>&1
+            if (-not $tkinterCheckOutput) {
+                $isTkinterInstalled = $true
             }
         }
-        elseif ($osFamily -match "debian") {
-            # Debian installation
-            try {
-                Invoke-Expression (Get-ElevationCommand "apt-get" "update")
-                Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "python3.10-tk")
-            }
-            catch {
-                Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
-            }
+        catch {
+            Write-Error "Tkinter not found. Attempting to install."
         }
-        elseif ($osFamily -match "redhat") {
-            # Red Hat installation
-            try {
-                Invoke-Expression (Get-ElevationCommand "dnf" "install" "-y" "python3.10-tkinter")
-            }
-            catch {
-                Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
-            }
-        }
-        elseif ($osFamily -match "arch") {
-            # Arch installation
-            try {
-                Invoke-Expression (Get-ElevationCommand "pacman" "-S" "--noconfirm" "tk")
-            }
-            catch {
-                Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
-            }
-        }
-        elseif ($osFamily -match "opensuse") {
-            # openSUSE installation
-            try {
-                Invoke-Expression (Get-ElevationCommand "zypper" "install" "-y" "python3.10-tk")
-            }
-            catch {
-                Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
-            }
-        }
-        elseif ($osFamily -match "macos") {
-            if (Test-Path "/usr/local/bin/brew") {
+    
+        # Only try to install Tkinter if it is not already installed
+        if (-not $isTkinterInstalled) {
+            if ($osFamily -match "ubuntu") {
+                # Ubuntu installation
                 try {
-                    # macOS installation using Homebrew
-                    Invoke-Expression "brew install python-tk@3.10"
+                    Invoke-Expression (Get-ElevationCommand "apt" "update")
+                    Invoke-Expression (Get-ElevationCommand "apt" "install" "-y" "python3.10-tk")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+                }
+            }
+            elseif ($osFamily -match "debian") {
+                # Debian installation
+                try {
+                    Invoke-Expression (Get-ElevationCommand "apt-get" "update")
+                    Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "python3.10-tk")
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
+                }
+            }
+            elseif ($osFamily -match "redhat") {
+                # Red Hat installation
+                try {
+                    Invoke-Expression (Get-ElevationCommand "dnf" "install" "-y" "python3.10-tkinter")
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
+                }
+            }
+            elseif ($osFamily -match "arch") {
+                # Arch installation
+                try {
+                    Invoke-Expression (Get-ElevationCommand "pacman" "-S" "--noconfirm" "tk")
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
+                }
+            }
+            elseif ($osFamily -match "opensuse") {
+                # openSUSE installation
+                try {
+                    Invoke-Expression (Get-ElevationCommand "zypper" "install" "-y" "python3.10-tk")
+                }
+                catch {
+                    Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
+                }
+            }
+            elseif ($osFamily -match "macos") {
+                if (Test-Path "/usr/local/bin/brew") {
+                    try {
+                        # macOS installation using Homebrew
+                        Invoke-Expression "brew install python-tk@3.10"
+                    }
+                    catch {
+                        Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
+                    }
+                }
+                else {
+                    Write-Host "Unsupported Unix platform or package manager not found."
                 }
             }
             else {
-                Write-Host "Unsupported Unix platform or package manager not found."
+                Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
             }
         }
         else {
-            Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
+            Write-Host "Tkinter for Python 3.10 is already installed on this system."
         }
     }
     else {
@@ -1193,7 +1368,7 @@ function Main {
     )
 
     begin {
-        if (-not $Parameters.excludeSetup) {
+        if (-not $Parameters.NoSetup) {
             $requiredKeys = @("Dir", "Branch", "GitRepo")
             if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
                 Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
@@ -1203,7 +1378,7 @@ function Main {
     }
 
     process {
-        if (-not $Parameters.excludeSetup) {
+        if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
                 Install-Python310 -Interactive:$Params.interactive
             }
@@ -1218,6 +1393,15 @@ function Main {
     
         if ($null -ne $pyExe) {
             $launcher = Join-Path -Path $Dir -ChildPath "launcher.py"
+
+            # Check if launcher.py exists in the specified directory or in the script directory
+            if (!(Test-Path -Path $launcher)) {
+                $launcher = Join-Path -Path $PSScriptRoot -ChildPath "launcher.py"
+                if (!(Test-Path -Path $launcher)) {
+                    Write-Host "Error: launcher.py not found. Please ensure the file exists in the script directory or the specified directory."
+                    exit 1
+                }
+            }
 
             Write-Host "Params: $($Parameters | Out-String)"
 
