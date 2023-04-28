@@ -194,7 +194,6 @@ function Get-Parameters {
         return $Result
     }
 
-
     # Check for the existence of the powershell-yaml module and install it if necessary
     if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
         Install-Module -Name 'powershell-yaml' -Scope CurrentUser -Force
@@ -231,7 +230,7 @@ function Get-Parameters {
         'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
-        'Verbosity'      = -1
+        'Verbosity'      = 0
         'Update'         = $false
         'Listen'         = '127.0.0.1'
         'Username'       = ''
@@ -241,63 +240,88 @@ function Get-Parameters {
         'Share'          = $false
     }
 
-    # Load the configuration file from all existing locations, overriding previously set values
+    # Initialize the $Config hashtable with the default values
     $Config = $Defaults.Clone()
+
+    # Load configuration files
     foreach ($location in $configFileLocations) {
+        Write-Debug "Config file location: $location"
         if (Test-Path $location) {
             $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
             foreach ($section in $FileConfig.Keys) {
                 foreach ($item in $FileConfig[$section]) {
                     $lowerKey = $item.name.ToLower()
                     if ($Config.ContainsKey($lowerKey)) {
-                        $Config[$lowerKey] = $item.value
+                        # Check if the value from the config file is an empty string
+                        if ($item.value -eq '') {
+                            # If so, continue to the next iteration of the loop without changing $Config
+                            continue
+                        }
+                        # Only assign the value from the config file if the corresponding $Config value is the default value
+                        if ($Config[$lowerKey] -eq $Defaults[$lowerKey]) {
+                            $Config[$lowerKey] = $item.value
+                        }
                     }
                 }
             }
         }
     }
 
-    # Update the config with the command-line arguments
-    foreach ($key in $Defaults.Keys) {
-        $paramValue = Get-Variable -Name $key -ValueOnly -ErrorAction SilentlyContinue
-        if ($null -ne $paramValue) {
-            if ($key -eq 'Verbosity' -and $paramValue -eq -1) {
-                continue
-            }
-            if ($paramValue -is [switch]) {
-                $Config[$key] = $paramValue.IsPresent
-            }
-            else {
-                $Config[$key] = $paramValue
-            }
-        }
-    }
-
-
-    # Update the $Config with the $Parameters values
+    # Override config with the $Parameters values
     foreach ($key in $Parameters.Keys) {
         $lowerKey = $key.ToLower()
-        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+        if ($Config.ContainsKey($lowerKey)) {
             $Config[$lowerKey] = $Parameters[$key]
         }
     }
 
     foreach ($key in $Parameters.kohya_gui_arguments.Keys) {
         $lowerKey = $key.ToLower()
-        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+        if ($Config.ContainsKey($lowerKey)) {
             $Config[$lowerKey] = $Parameters.kohya_gui_arguments[$key]
         }
     }
 
     foreach ($key in $Parameters.setup_arguments.Keys) {
         $lowerKey = $key.ToLower()
-        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+        if ($Config.ContainsKey($lowerKey)) {
             $Config[$lowerKey] = $Parameters.setup_arguments[$key]
         }
     }
 
+    # Override config with command-line arguments last
+    Write-Debug "PSBoundParameters:"
+    foreach ($key in $PSBoundParameters.BoundParameters.Keys) {
+        Write-Debug "${key}: $($PSBoundParameters.BoundParameters[$key])"
+    }
+    foreach ($key in $PSBoundParameters.BoundParameters.Keys) {
+        $lowerKey = $key.ToLower()
+        if ($Config.ContainsKey($lowerKey)) {
+            # Check if the value from the command line is an empty string
+            if ($PSBoundParameters.BoundParameters[$key] -eq '') {
+                # If so, continue to the next iteration of the loop without changing $Config
+                continue
+            }
+            $Config[$lowerKey] = $PSBoundParameters.BoundParameters[$key]
+        }
+        else {
+            Write-Debug "Key '${lowerKey}' not found in Config"
+        }
+    }
+
+    Write-Debug "Config after PSBoundParameters override:"
+    foreach ($key in $Config.Keys) {
+        Write-Debug "${key}: $($Config.$key)"
+    }
+
+    Write-Debug "Config after PSBoundParameters override:"
+    foreach ($key in $Config.Keys) {
+        Write-Debug "${key}: $($Config.$key)"
+    }
+
     $Config = Convert-RelativePathsToAbsolute -Params $Config
-    if ($Config["Dir"] = "_CURRENT_SCRIPT_DIR_") {
+
+    if ($Config["Dir"] -eq "_CURRENT_SCRIPT_DIR_") {
         $Config["Dir"] = "$PSScriptRoot"
     }
 
@@ -308,8 +332,6 @@ function Get-Parameters {
     }
 
     return $Config
-
-
 }
 
 
@@ -628,6 +650,7 @@ function Test-Python310Installed {
     foreach ($path in $paths) {
         foreach ($binary in $pythonBinaries) {
             $global:pythonPath = Join-Path -Path $path -ChildPath $binary
+            Write-Debug "We are testing this python path: {$global:pythonPath}"
             if (Test-Path -Path $global:pythonPath ) {
                 try {
                     $pythonVersion = & $global:pythonPath  --version 2>&1 | Out-String -Stream -ErrorAction Stop
@@ -928,7 +951,7 @@ function Install-Python3Tk {
 
     $os = Get-OsInfo
     $osFamily = $os.family.ToLower()
-    write-host $osFamily
+    Write-Debug "Detected OS Family: {$osFamily}"
 
     if ($PSVersionTable.Platform -eq 'Unix') {
         # Linux / macOS installation
@@ -942,7 +965,7 @@ function Install-Python3Tk {
             }
         }
         catch {
-            Write-Error "Tkinter not found. Attempting to install."
+            Write-Host "Tkinter not found. Attempting to install."
         }
     
         # Only try to install Tkinter if it is not already installed
@@ -1013,7 +1036,7 @@ function Install-Python3Tk {
             }
         }
         else {
-            Write-Error "Tkinter for Python 3.10 is already installed on this system."
+            Write-Host "Tkinter for Python 3.10 is already installed on this system."
         }
     }
     else {
@@ -1052,6 +1075,47 @@ function Install-Python3Tk {
     }
 }
 
+function Test-GitInstalled {
+    # Define common git install locations
+    $commonGitLocations = @(
+        "/usr/local/git/bin",
+        "/usr/bin",
+        "/usr/local/bin",
+        "/usr/sbin",
+        "/sbin",
+        "/bin",
+        "/usr/local",
+        "/opt/X11/bin",
+        "/opt/local/bin",
+        "C:\Program Files\Git\bin",
+        "C:\Program Files (x86)\Git\bin"
+    )
+
+    try {
+        # Check if git command is available in PATH
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            git --version
+            return $true
+        }
+        else {
+            # If git not found in PATH, check common install locations
+            foreach ($location in $commonGitLocations) {
+                if (Test-Path "$location/git") {
+                    & "$location/git" --version
+                    Write-Host "Git already installed."
+                    return $true
+                }
+            }
+        }
+    }
+    catch {
+        Write-Warning "Failed to execute git --version. Error: $_"
+    }
+
+    Write-Warning "Git not found."
+    return $false
+}
+
 <#
 .SYNOPSIS
    Installs Git using the specified installer.
@@ -1069,53 +1133,39 @@ function Install-Python3Tk {
 function Install-Git {
     param (
         [switch]$Interactive
-    )
-
-    function Test-GitInstalled {
-        try {
-            git --version
-            return $true
-        }
-        catch {
-            return $false
-        }
-    }
+    )    
 
     function Install-GitWindows {
         $packageManagerFound = $false
-        $errorMsg = "Package manager detected, but install failed. Not attempting directly install to avoid conflicts. Please install Git manually from https://git-scm.com/download/win and re-run the script."
 
         if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
             try {
-                scoop install git
+                Invoke-Expression (Get-ElevationCommand "scoop" "install" "git")
                 $packageManagerFound = $true
             }
             catch {
-                $packageManagerFound = $false
-                Write-Error $errorMsg -ForegroundColor Red
+                Write-Error "Error: Failed to install Git using Scoop. $_"
             }
         }
         if (-not $packageManagerFound -and (Get-Command "choco" -ErrorAction SilentlyContinue)) {
             try {
-                choco install git
+                Invoke-Expression (Get-ElevationCommand "choco" "install" "git")
                 $packageManagerFound = $true
             }
             catch {
-                $packageManagerFound = $false
-                Write-Error $errorMsg -ForegroundColor Red
+                Write-Error "Error: Failed to install Git using Chocolatey. $_"
             }
         }
         if (-not $packageManagerFound -and (Get-Command "winget" -ErrorAction SilentlyContinue)) {
             try {
-                winget install --id Git.Git
+                Invoke-Expression (Get-ElevationCommand "winget" "install" "--id" "Git.Git")
                 $packageManagerFound = $true
             }
             catch {
-                $packageManagerFound = $false
-                Write-Error $errorMsg -ForegroundColor Red
+                Write-Error "Error: Failed to install Git using Winget. $_"
             }
         }
-
+        
         if (-not $packageManagerFound) {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
@@ -1153,68 +1203,65 @@ function Install-Git {
 
     function Install-GitMac {
         if (Get-Command "brew" -ErrorAction SilentlyContinue) {
-            brew install git
+            try {
+                Invoke-Expression "brew install git"
+            }
+            catch {
+                Write-Error "Error: Failed to install Git on macOS using Homebrew. $_"
+            }
         }
         else {
-            Write-Error "Please install Homebrew first to continue with Git installation."
-            Write-Error "You can find that here: https://brew.sh"
+            Write-Error "Please install Homebrew first to continue with Git installation. You can find that here: https://brew.sh"
             exit 1
         }
     }
 
     function Install-GitLinux {
-        $elevate = ""
-        if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
-            $elevate = "sudo"
-        }
-        $os = Get-OsInfo
-
-        switch ($os.family) {
-            "Ubuntu" {
-                if (& $elevate apt update) {
-                    if (!(& $elevate apt-get install -y git)) {
-                        Write-Error "Error: Failed to install Git via apt. Installation of Git aborted."
-                    }
-                }
-                else {
-                    Write-Error "Error: Failed to update package list. Installation of Git aborted."
-                }
+        $osFamily = Get-OsFamily
+        if ($osFamily -match "debian" -or $osFamily -match "ubuntu") {
+            try {
+                Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "git")
             }
-            "Debian" {
-                if (& $elevate apt update) {
-                    if (!(& $elevate apt-get install -y git)) {
-                        Write-Error "Error: Failed to install Git via apt. Installation of Git aborted."
-                    }
-                }
-                else {
-                    Write-Error "Error: Failed to update package list. Installation of Git aborted."
-                }
-            }
-            "RedHat" {
-                if (!(& $elevate dnf install -y git)) {
-                    Write-Error "Error: Failed to install Git via dnf. Installation of Git aborted."
-                }
-            }
-            "Arch" {
-                if (!(& $elevate pacman -Sy --noconfirm git)) {
-                    Write-Error "Error: Failed to install Git via pacman. Installation of Git aborted."
-                }
-            }
-            "openSUSE" {
-                if (!(& $elevate zypper install -y git)) {
-                    Write-Error "Error: Failed to install Git via zypper. Installation of Git aborted."
-                }
-            }
-            default {
-                Write-Error "Unsupported Linux distribution. Please install Git manually."
-                exit 1
+            catch {
+                Write-Error "Error: Failed to install Git on $osFamily. $_"
             }
         }
-    }
-
-    if (Test-GitInstalled) {
-        Write-Host "Git is already installed."
-        return
+        elseif ($osFamily -match "redhat") {
+            try {
+                Invoke-Expression (Get-ElevationCommand "dnf" "install" "-y" "git")
+            }
+            catch {
+                Write-Error "Error: Failed to install Git on RedHat. $_"
+            }
+        }
+        elseif ($osFamily -match "arch") {
+            try {
+                Invoke-Expression (Get-ElevationCommand "pacman" "-Sy" "--noconfirm" "git")
+            }
+            catch {
+                Write-Error "Error: Failed to install Git on Arch Linux. $_"
+            }
+        }
+        elseif ($osFamily -match "opensuse") {
+            try {
+                Invoke-Expression (Get-ElevationCommand "zypper" "install" "-y" "git")
+            }
+            catch {
+                Write-Error "Error: Failed to install Git on openSUSE. $_"
+            }
+        }
+        elseif ($osFamily -match "freebsd") {
+            try {
+                Invoke-Expression (Get-ElevationCommand "pkg" "install" "-y" "git")
+            }
+            catch {
+                Write-Error "Error: Failed to install Git on FreeBSD. $_"
+            }
+        }
+        else {
+            Write-Error "Unsupported Linux/Unix distribution. Please install Git manually."
+            exit 1
+        }
     }
 
     $osPlatform = ""
@@ -1238,7 +1285,7 @@ function Install-Git {
     elseif ($osPlatform -like "*Mac*") {
         Install-GitMac
     }
-    elseif ($osPlatform -like "*Linux*") {
+    elseif ($osPlatform -like "*Linux*" -or $osPlatform -like "*BSD*") {
         Install-GitLinux
     }
     else {
@@ -1332,9 +1379,19 @@ function Main {
             if (-not (Test-Python310Installed)) {
                 Install-Python310 -Interactive:$Params.interactive
             }
+            else {
+                Write-Host "Python 3.10 is already installed."
+            }
             
             $installScope = Update-InstallScope($Interactive)
             Install-Python3Tk $installScope
+
+            if (-not (Test-GitInstalled)) {
+                Install-Git
+            }
+            else {
+                Write-Host "Git already installed."
+            }
         }
     }
 
@@ -1379,7 +1436,13 @@ function Main {
                 # Replace underscore with hyphen and prepend with --
                 $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
 
-                Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+                if ($Parameters[$key] -ne $null) {
+                    Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+                }
+                else {
+                    Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: Null"
+                }
+
 
                 if ($Parameters[$key] -is [int]) {
                     # Handle integer parameters
