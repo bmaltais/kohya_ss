@@ -1409,7 +1409,7 @@ if __name__ == "__main__":
         # logging.debug("This is a debug message.")
 
         log_dir = getattr(args, "log-dir")
-        logging.critical(f"Logs will be stored in: {log_dir} and {args.setup_only}")
+        logging.critical(f"Logs will be stored in: {log_dir}")
 
         if getattr(args, 'no-setup') is True and args.setup_only:
             logging.critical("Setup Only and No Setup options are mutually exclusive.")
