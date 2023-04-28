@@ -203,18 +203,18 @@ function Get-Parameters {
     # Define possible configuration file locations
     $configFileLocations = if ($IsWindows) {
         @(
-            $File,
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
+            (Join-Path -Path "$PSScriptRoot\config_files\installation" -ChildPath "install_config.yml")
             (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
-            (Join-Path -Path "$PSScriptRoot/config_files/installation" -ChildPath "install_config.yml")
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
+            $File
         )
     }
     else {
         @(
-            $File,
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
-            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss/install_config.yml"),
             (Join-Path -Path "$PSScriptRoot/config_files/installation" -ChildPath "install_config.yml")
+            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss/install_config.yml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
+            $File
         )
     }
 
@@ -224,7 +224,7 @@ function Get-Parameters {
         'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Interactive'    = $false
-        'LogDir'         = "$env:USERPROFILE\.kohya_ss\logs"
+        'LogDir'         = if ([Environment]::OSVersion.Platform -eq 'Win32NT') { "$env:USERPROFILE\.kohya_ss\logs" } else { "$env:HOME/.kohya_ss/logs" }
         'NoSetup'        = $false
         'Public'         = $false
         'Runpod'         = $false
@@ -247,6 +247,7 @@ function Get-Parameters {
     foreach ($location in $configFileLocations) {
         Write-Debug "Config file location: $location"
         if (Test-Path $location) {
+            Write-Debug "Found configuration file at: $location"
             $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
             foreach ($section in $FileConfig.Keys) {
                 foreach ($item in $FileConfig[$section]) {
