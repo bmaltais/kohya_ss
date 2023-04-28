@@ -34,7 +34,7 @@ Options:
   --listen=IP                   IP to listen on for connections to Gradio.
   --username=USERNAME           Username for authentication.
   --password=PASSWORD           Password for authentication.
-  --server-port=PORT            Port to run the server listener on.
+  --server-port=PORT            The port number the GUI server should use.
   --inbrowser                   Open in browser.
   --share                       Share your installation.
 EOF
@@ -72,10 +72,10 @@ declare -A CLI_ARGUMENTS
 
 while getopts ":vb:d:f:g:il:nprsux-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
-  if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
-    opt="${OPTARG%%=*}"     # extract long option name
-    OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
-    OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
+  if [ "$opt" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    opt="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#"$opt"}" # extract long option argument (maybe empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case $opt in
   b | branch) CLI_ARGUMENTS["Branch"]="$OPTARG" ;;
@@ -146,7 +146,7 @@ Error: Invalid configuration file format.
 Expected format example:
 setup_arguments:
   - name: Branch
-    description: Select which branch of kohya to check out on new installs.
+    description: Select which branch of kohya to check out on new installations.
     value: master
 
 kohya_gui_arguments:
@@ -223,7 +223,7 @@ GUI_INBROWSER="$config_Inbrowser"
 GUI_SHARE="$config_Share"
 
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 $VERBOSITY
+  seq 3 "$VERBOSITY"
 ); do
   (("$v" <= "$VERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
 done
@@ -250,7 +250,7 @@ PUBLIC: $PUBLIC
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
 UPDATE: $UPDATE
-Skip Setup: $NOSETUP
+Skip Setup: $NO_SETUP
 VERBOSITY: $VERBOSITY
 Script directory is ${SCRIPT_DIR}." >&5
 

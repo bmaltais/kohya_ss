@@ -1075,6 +1075,28 @@ function Install-Python3Tk {
     }
 }
 
+<#
+.SYNOPSIS
+    Checks whether Git is installed and accessible from the command line.
+
+.DESCRIPTION
+    Test-GitInstalled checks whether Git is installed on the system by first attempting to call
+    `git --version` from the command line. If this call fails, the function then checks a list of
+    common locations where Git might be installed. If Git is found, the function returns $true and
+    displays the Git version. If Git is not found or an error occurs, the function returns $false and
+    displays a warning message.
+
+.EXAMPLE
+    if (Test-GitInstalled) {
+        Write-Host "Git is installed."
+    }
+    else {
+        Write-Host "Git is not installed."
+    }
+
+    This example checks whether Git is installed on the system. If Git is installed, it displays a
+    message indicating so. Otherwise, it displays a message stating that Git is not installed.
+#>
 function Test-GitInstalled {
     # Define common git install locations
     $commonGitLocations = @(
