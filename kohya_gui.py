@@ -7,10 +7,57 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-
-import gradio as gr
 import os
 import argparse
+
+
+# noinspection SpellCheckingInspection
+def in_container():
+    cgroup_path = "/proc/1/cgroup"
+
+    if not os.path.isfile(cgroup_path):
+        return False
+
+    with open(cgroup_path, "r") as cgroup_file:
+        content = cgroup_file.read()
+
+    container_indicators = [
+        r':cpuset:/(docker|kubepods)',
+        r':/docker/',
+        r':cpuset:/docker/buildkit',
+        r':/system.slice/docker-',
+        r':/system.slice/containerd-',
+        r':/system.slice/rkt-',
+        r':/system.slice/run-',
+        r':/system.slice/pod-',
+    ]
+
+    if any(re.search(pattern, content) for pattern in container_indicators) or os.path.exists('/.dockerenv'):
+        return True
+
+    return False
+
+
+# Create and activate virtual environment if not in container environment
+if not in_container():
+    if 'VIRTUAL_ENV' not in os.environ:
+        print("Switching to virtual Python environment.")
+        venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
+        if sys.platform.startswith('win'):
+            activate_script = os.path.join(venv_path, "Scripts", "activate.bat")
+            command = 'call "{}"'.format(activate_script)
+        else:
+            activate_script = os.path.join(venv_path, "bin", "activate")
+            command = '. "{}"'.format(activate_script)
+
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError:
+            print("Could not activate virtual environment. Please check your path to the venv.")
+            sys.exit(1)
+
+import gradio as gr
+import yaml
 
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
@@ -83,6 +130,217 @@ def UI(**kwargs):
     if share:
         launch_kwargs['share'] = share
     interface.launch(**launch_kwargs)
+
+
+def find_config_file(config_file_locations):
+    for location in config_file_locations:
+        abs_location = os.path.abspath(location)
+        if os.path.isfile(abs_location):
+            return abs_location
+    return None
+
+
+def load_config(_config_file=None):
+    # Define config file locations
+    if sys.platform == "win32":
+        config_file_locations = [
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
+                         "install_config.yml"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml")
+        ]
+    else:
+        config_file_locations = [
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
+                         "install_config.yml"),
+            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
+        ]
+
+    # Load and merge default config files
+    _config_data = {}
+    for location in config_file_locations:
+        try:
+            with open(location, 'r') as f:
+                file_config_data = yaml.safe_load(f)
+                if file_config_data:
+                    _config_data = {**file_config_data, **_config_data}
+        except FileNotFoundError:
+            pass
+
+    # Load and merge user-specified config file
+    if _config_file is not None:
+        try:
+            with open(_config_file, 'r') as f:
+                file_config_data = yaml.safe_load(f)
+                if file_config_data:
+                    _config_data = {**file_config_data, **_config_data}
+        except FileNotFoundError:
+            pass
+
+    return _config_data if _config_data else None
+
+
+def parse_file_arg():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-f", "--file", dest="config_file", default=None,
+                        help="Path to the configuration file.")
+    _args, _ = parser.parse_known_args()
+    if _args.config_file is not None:
+        # print(f"Configuration file specified by command line: {os.path.abspath(_args.config_file)}")
+        return os.path.abspath(_args.config_file)
+    else:
+        return None
+
+
+def normalize_paths(_args, default_args):
+    for arg in default_args:
+        arg_name = arg["long"][2:].replace("-", "_")
+        default_value = arg["default"]
+        is_path = arg.get("is_path", False)
+        if is_path and isinstance(default_value, str):
+            path_value = getattr(_args, arg_name, None)
+            if path_value and isinstance(path_value, str):
+                expanded_path_value = os.path.expanduser(path_value)
+                setattr(_args, arg_name, os.path.abspath(expanded_path_value))
+
+
+def parse_args(_config_data):
+    # Define the default arguments first. The spacing is purely for readability.
+    default_args = [
+        {"short": "-f", "long": "--file", "default": "install_config.yml", "type": str,
+         "help": "Configuration file with installation options.", "is_path": True},
+
+        {"short": "-l", "long": "--log-dir", "default": None, "type": str,
+         "help": "Override the default log directory.", "is_path": True},
+
+        {"short": "-p", "long": "--public", "default": False, "type": bool,
+         "help": "Expose public URL in runpod mode. Won't have an effect in other modes."},
+
+        {"short": "-v", "long": "--verbosity", "default": '0', "type": str,
+         "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
+         "action": CountOccurrencesAction},
+
+        {"short": None, "long": "--listen", "default": "127.0.0.1", "type": str,
+         "help": "IP to listen on for connections to Gradio."},
+
+        {"short": "", "long": "--username", "default": "", "type": str, "help": "Username for authentication."},
+
+        {"short": "", "long": "--password", "default": "", "type": str, "help": "Password for authentication."},
+
+        {"short": "", "long": "--server-port", "default": 0, "type": str,
+         "help": "The port number the GUI server should use."},
+
+        {"short": "", "long": "--inbrowser", "default": False, "type": bool, "help": "Open in browser."},
+
+        {"short": "", "long": "--share", "default": False, "type": bool, "help": "Share the gradio UI."},
+    ]
+
+    def generate_usage(_default_args):
+        """
+        This function generates nicer usage string for the command line arguments in the form of [ -s | --long VAR ].
+        :param _default_args: List of default argument dictionaries
+        :return: Usage string
+        """
+        usage = "usage: launcher.py "
+        for _arg in _default_args:
+            _arg_type = _arg.get("type", str)
+            _arg_type = _arg_type.__name__.upper()  # Get the name of the type and convert to upper case
+            _short_opt = _arg["short"]
+            _long_opt = _arg["long"]
+            if _short_opt:
+                usage += f'[{_short_opt} | {_long_opt} {_arg_type if _arg_type != "BOOL" else ""}] '
+            else:
+                usage += f'[{_long_opt} {_arg_type if _arg_type != "BOOL" else ""}] '
+        return usage
+
+    # usage is generated dynamically here
+    parser = argparse.ArgumentParser(
+        description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
+                    "application.",
+        usage=generate_usage(default_args),
+        epilog="""Examples:
+    Switch to the dev branch:
+    python launcher.py --branch dev
+
+    Point to a custom installation directory
+    python launcher.py --dir /path/to/kohya_ss
+
+    Update to the latest stable mainline installation
+    python launcher.py --dir /path/to/kohya_ss --update
+
+    Bypass all environment checks except Python dependency validation and launch the GUI:
+    python launcher.py --exclude-setup""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    # Update the default arguments with values from the config file
+    if _config_data:
+        if "setup_arguments" in _config_data:
+            for arg in _config_data["setup_arguments"]:
+                name = arg["name"]
+                value = arg["value"]
+                description = arg["description"]
+                for default_arg in default_args:
+                    if f'--{name.lower()}' == default_arg["long"]:
+                        default_arg["default"] = value
+                        default_arg["help"] = description
+        if "kohya_gui_arguments" in _config_data:
+            for arg in _config_data["kohya_gui_arguments"]:
+                name = arg["name"]
+                value = arg["value"]
+                description = arg["description"]
+                for default_arg in default_args:
+                    if f'--{name.lower()}' == default_arg["long"]:
+                        default_arg["default"] = value
+                        default_arg["help"] = description
+
+    # Add arguments to the parser with updated default values
+    for arg in default_args:
+        short_opt = arg["short"]
+        long_opt = arg["long"]
+        default_value = arg["default"]
+        arg_type = arg.get("type", str)
+        help_text = arg.get("help", None)
+        custom_action = arg.get("action", None)
+
+        if custom_action:
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=None, action=custom_action, nargs='?',
+                                    default=default_value,
+                                    type=str, help=help_text)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=custom_action, nargs='?',
+                                    default=default_value, type=str, help=help_text)
+
+        elif isinstance(default_value, bool):
+            action = 'store_true' if default_value is False else 'store_false'
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], action=action, default=default_value,
+                                    help=help_text)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), action=action, default=default_value,
+                                    help=help_text)
+        else:
+            if short_opt:
+                parser.add_argument(short_opt, long_opt, dest=long_opt[2:], default=default_value, type=arg_type,
+                                    help=help_text)
+            else:
+                parser.add_argument(long_opt, dest=long_opt[2:].replace("-", "_"), default=default_value, type=arg_type,
+                                    help=help_text)
+
+    _args = parser.parse_args()
+    _args.verbosity = int(_args.verbosity)
+
+    # Normalize paths to ensure absolute paths
+    normalize_paths(_args, default_args)
+
+    # Replace the placeholder with the script directory
+    for arg, value in vars(_args).items():
+        if arg == 'dir' and '_CURRENT_SCRIPT_DIR_' in value:
+            script_directory = os.path.dirname(os.path.realpath(__file__))
+            setattr(_args, arg, script_directory)
+    return _args
 
 
 # This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
@@ -179,46 +437,9 @@ def find_python_binary():
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--listen',
-        type=str,
-        default='127.0.0.1',
-        help='IP to listen on for connections to Gradio',
-    )
-    parser.add_argument(
-        '-l', '--log-dir',
-        default=None,
-        type=str,
-        help='Override the default log directory.',
-    )
-    parser.add_argument(
-        '--username', type=str, default='', help='Username for authentication'
-    )
-    parser.add_argument(
-        '--password', type=str, default='', help='Password for authentication'
-    )
-    parser.add_argument(
-        '--server-port',
-        type=int,
-        default=0,
-        help='Port to run the server listener on',
-    )
-    parser.add_argument(
-        '--inbrowser', action='store_true', help='Open in browser'
-    )
-    parser.add_argument(
-        '--share', action='store_true', help='Share the gradio UI'
-    )
-    parser.add_argument(
-        '-v', '--verbosity',
-        default=0,
-        type=str,
-        help='Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).',
-        action=CountOccurrencesAction
-    )
-
-    args = parser.parse_args()
+    config_file = parse_file_arg()
+    config_data = load_config(config_file)
+    args = parse_args(config_data)
 
     # Initialize log_level with a default value
     log_level = logging.ERROR

@@ -94,22 +94,22 @@ def load_config(_config_file=None):
     # Define config file locations
     if sys.platform == "win32":
         config_file_locations = [
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml"),
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
-                         "install_config.yml")
+                         "install_config.yml"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml")
         ]
     else:
         config_file_locations = [
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
-            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
-                         "install_config.yml")
+                         "install_config.yml"),
+            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
         ]
 
     # Load and merge default config files
     _config_data = {}
-    for location in reversed(config_file_locations):
+    for location in config_file_locations:
         try:
             with open(location, 'r') as f:
                 file_config_data = yaml.safe_load(f)
