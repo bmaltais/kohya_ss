@@ -24,7 +24,7 @@
     Skip all setup steps and only validate python requirements then launch GUI.
 
 .PARAMETER File
-    The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
+    The full path to a custom configuration file.
 
 .PARAMETER GitRepo
     You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.

@@ -212,7 +212,7 @@ This command does the following:
 
 ```bash
 -File <String>
-    The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
+    The full path to a custom configuration file.
 
 -Branch <String>
     Select which branch of kohya to check out on new installs.
@@ -276,7 +276,7 @@ This command does the following:
 ```bash
 --branch           : Specify the Git branch to use. Default is 'master'.
 --dir              : Specify the working directory. Default is the directory of the script.
---file             : Specify the file to be processed.
+--file             : Specify the configuration file to be processed.
 --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
 --help             : Display this help.
 --interactive      : Run in interactive mode.

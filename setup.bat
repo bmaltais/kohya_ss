@@ -100,7 +100,7 @@ echo.
 echo OPTIONS:
 echo --branch           : Specify the Git branch to use. Default is 'master'.
 echo --dir              : Specify the working directory. Default is the directory of the script.
-echo --file             : Specify the file to be processed.
+echo --file             : Specify the configuration file to be processed.
 echo --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
 echo --help             : Display this help.
 echo --interactive      : Run in interactive mode.
