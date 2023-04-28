@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import atexit
 import errno
 import logging
 import importlib
@@ -28,6 +27,7 @@ def install_package(package_name):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
 
 
+# noinspection GrazieInspection
 def check_and_import(module_name, package_name=None, imports=None):
     """
     Check if a module is installed, and if not, install it and then import it.
@@ -231,7 +231,7 @@ def parse_args(_config_data):
         {"short": "", "long": "--password", "default": "", "type": str, "help": "Password for authentication."},
 
         {"short": "", "long": "--server-port", "default": 0, "type": str,
-         "help": "Port to run the server listener on."},
+         "help": "The port number the GUI server should use."},
 
         {"short": "", "long": "--inbrowser", "default": False, "type": bool, "help": "Open in browser."},
 
@@ -644,7 +644,7 @@ class GitProgressPrinter(git.remote.RemoteProgress):
         self.total = total
         self.received_objects = 0
 
-    def update(self, op_code, cur_count, max_count=None, message=''):
+    def update(self, cur_count, max_count=None):
         if self.total is None and max_count:
             self.total = max_count
             logging.critical(
@@ -659,21 +659,6 @@ def update_kohya_ss(_dir, git_repo, branch, update):
     logging.debug(f"Update: {update}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
     logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
-
-    def move_venv_to_temp(_dir):
-        _venv_path = os.path.join(_dir, "venv")
-        _temp_dir = tempfile.TemporaryDirectory()
-        if os.path.exists(_venv_path):
-            shutil.move(_venv_path, _temp_dir.name)
-            logging.debug(f"Moved venv folder to temporary location: {_temp_dir.name}")
-        return _temp_dir
-
-    def move_venv_back_to_dir(_temp_dir, _dir):
-        venv_temp_path = os.path.join(_temp_dir.name, "venv")
-        venv_original_path = os.path.join(_dir, "venv")
-        if os.path.exists(venv_temp_path):
-            shutil.move(venv_temp_path, venv_original_path)
-            logging.debug(f"Moved venv folder back to the original location: {venv_original_path}")
 
     def has_uncommitted_changes(local_git_repo):
         try:
@@ -1275,17 +1260,29 @@ def launch_kohya_gui(_args):
 
     if os.path.exists(kohya_gui_file):
         cmd = [
-            venv_python_bin, os.path.join(kohya_gui_file),
-            "--listen", _args.listen,
-            "--server_port", str(_args.server_port),
-            "--verbosity", str(_args.verbosity)
+            venv_python_bin, os.path.join(kohya_gui_file)
         ]
+
+        if _args.listen:
+            cmd.extend(["--listen", _args.listen])
+
+        if str(_args.server_port) is not None and str(_args.server_port) != "":
+            cmd.extend(["--server-port", str(_args.server_port)])
+
+        if _args.verbosity > 0:
+            cmd.extend(["--verbosity", _args.verbosity])
 
         if _args.username:
             cmd.extend(["--username", _args.username])
 
         if _args.password:
             cmd.extend(["--password", _args.password])
+
+        if _args.inbrowser:
+            cmd.extend(["--inbrowser"])
+
+        if _args.share:
+            cmd.extend(["--share"])
 
         try:
             logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")
@@ -1295,7 +1292,7 @@ def launch_kohya_gui(_args):
             subprocess.run(cmd, check=True)
             pass
         except KeyboardInterrupt:
-            with open(os.devnull, 'w') as nullfile, redirect_stderr(nullfile):
+            with open(os.devnull, 'w') as null_file, redirect_stderr(null_file):
                 logging.info("Process terminated by the user. Exiting...")
                 sys.exit(0)
     else:

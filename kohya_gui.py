@@ -199,7 +199,7 @@ if __name__ == '__main__':
         '--password', type=str, default='', help='Password for authentication'
     )
     parser.add_argument(
-        '--server_port',
+        '--server-port',
         type=int,
         default=0,
         help='Port to run the server listener on',
@@ -251,7 +251,7 @@ if __name__ == '__main__':
         handler.setFormatter(CustomFormatter())
 
     logging.critical(f"Logs will be stored in: {args.log_dir}")
-    
+
     # Check if python3 or python3.10 binary exists
     python_bin = find_python_binary()
     if not python_bin:
