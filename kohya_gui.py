@@ -9,67 +9,19 @@ import sys
 from datetime import datetime
 import os
 import argparse
-
-
-# noinspection SpellCheckingInspection
-def in_container():
-    cgroup_path = "/proc/1/cgroup"
-
-    if not os.path.isfile(cgroup_path):
-        return False
-
-    with open(cgroup_path, "r") as cgroup_file:
-        content = cgroup_file.read()
-
-    container_indicators = [
-        r':cpuset:/(docker|kubepods)',
-        r':/docker/',
-        r':cpuset:/docker/buildkit',
-        r':/system.slice/docker-',
-        r':/system.slice/containerd-',
-        r':/system.slice/rkt-',
-        r':/system.slice/run-',
-        r':/system.slice/pod-',
-    ]
-
-    if any(re.search(pattern, content) for pattern in container_indicators) or os.path.exists('/.dockerenv'):
-        return True
-
-    return False
-
-
-# Create and activate virtual environment if not in container environment
-if not in_container():
-    if 'VIRTUAL_ENV' not in os.environ:
-        print("Switching to virtual Python environment.")
-        venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
-        if sys.platform.startswith('win'):
-            activate_script = os.path.join(venv_path, "Scripts", "activate.bat")
-            command = 'call "{}"'.format(activate_script)
-        else:
-            activate_script = os.path.join(venv_path, "bin", "activate")
-            command = '. "{}"'.format(activate_script)
-
-        try:
-            subprocess.check_call(command, shell=True)
-        except subprocess.CalledProcessError:
-            print("Could not activate virtual environment. Please check your path to the venv.")
-            sys.exit(1)
-
-import gradio as gr
-import yaml
-
-from dreambooth_gui import dreambooth_tab
-from finetune_gui import finetune_tab
-from textual_inversion_gui import ti_tab
-from library.utilities import utilities_tab
-from library.extract_lora_gui import gradio_extract_lora_tab
-from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
-from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
-from library.merge_lycoris_gui import gradio_merge_lycoris_tab
 from lora_gui import lora_tab
+from library.merge_lycoris_gui import gradio_merge_lycoris_tab
+from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
+from library.resize_lora_gui import gradio_resize_lora_tab
+from library.merge_lora_gui import gradio_merge_lora_tab
+from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
+from library.extract_lora_gui import gradio_extract_lora_tab
+from library.utilities import utilities_tab
+from textual_inversion_gui import ti_tab
+from finetune_gui import finetune_tab
+from dreambooth_gui import dreambooth_tab
+import yaml
+import gradio as gr
 
 
 def UI(**kwargs):
@@ -146,15 +98,19 @@ def load_config(_config_file=None):
         config_file_locations = [
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
                          "install_config.yml"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml"),
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml")
+            os.path.join(os.environ.get("USERPROFILE", ""),
+                         ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(
+                os.path.realpath(__file__)), "install_config.yml")
         ]
     else:
         config_file_locations = [
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
                          "install_config.yml"),
-            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
+            os.path.join(os.environ.get("HOME", ""),
+                         ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(
+                os.path.realpath(__file__)), "install_config.yml"),
         ]
 
     # Load and merge default config files
@@ -224,16 +180,20 @@ def parse_args(_config_data):
         {"short": None, "long": "--listen", "default": "127.0.0.1", "type": str,
          "help": "IP to listen on for connections to Gradio."},
 
-        {"short": "", "long": "--username", "default": "", "type": str, "help": "Username for authentication."},
+        {"short": "", "long": "--username", "default": "",
+         "type": str, "help": "Username for authentication."},
 
-        {"short": "", "long": "--password", "default": "", "type": str, "help": "Password for authentication."},
+        {"short": "", "long": "--password", "default": "",
+         "type": str, "help": "Password for authentication."},
 
         {"short": "", "long": "--server-port", "default": 0, "type": int,
          "help": "The port number the GUI server should use."},
 
-        {"short": "", "long": "--inbrowser", "default": False, "type": bool, "help": "Open in browser."},
+        {"short": "", "long": "--inbrowser", "default": False,
+         "type": bool, "help": "Open in browser."},
 
-        {"short": "", "long": "--share", "default": False, "type": bool, "help": "Share the gradio UI."},
+        {"short": "", "long": "--share", "default": False,
+         "type": bool, "help": "Share the gradio UI."},
     ]
 
     def generate_usage(_default_args):
@@ -245,7 +205,8 @@ def parse_args(_config_data):
         usage = "usage: launcher.py "
         for _arg in _default_args:
             _arg_type = _arg.get("type", str)
-            _arg_type = _arg_type.__name__.upper()  # Get the name of the type and convert to upper case
+            # Get the name of the type and convert to upper case
+            _arg_type = _arg_type.__name__.upper()
             _short_opt = _arg["short"]
             _long_opt = _arg["long"]
             if _short_opt:
@@ -416,7 +377,8 @@ def find_python_binary():
     possible_binaries = ["python3.10", "python310", "python3", "python"]
 
     if sys.platform == 'win32':
-        possible_binaries = [binary + ".exe" for binary in possible_binaries] + possible_binaries
+        possible_binaries = [
+                                binary + ".exe" for binary in possible_binaries] + possible_binaries
 
     for binary in possible_binaries:
         if shutil.which(binary):
@@ -482,7 +444,8 @@ if __name__ == '__main__':
 
     if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
         logging.info("Error: This script requires Python 3.10.")
-        logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
+        logging.debug(
+            f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
         sys.exit(1)
 
     if args.verbosity >= 3:
