@@ -4,7 +4,7 @@
 
 [cloneofsimo先生的代码仓库](https://github.com/cloneofsimo/lora) 我们非常感謝您提供的参考。非常感謝。
 
-通常情況下，LoRA只適用於Linear和Kernel大小為1x1的Conv2d，但也可以將其擴展到Kernel大小為3x3的Conv2d。
+通常情況下，LoRA只适用于Linear和Kernel大小为1x1的Conv2d，但也可以將其擴展到Kernel大小为3x3的Conv2d。
 
 Conv2d 3x3的扩展最初是由 [cloneofsimo先生的代码仓库](https://github.com/cloneofsimo/lora) 
 而KohakuBlueleaf先生在[LoCon](https://github.com/KohakuBlueleaf/LoCon)中揭示了其有效性。我们深深地感谢KohakuBlueleaf先生。
