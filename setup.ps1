@@ -90,12 +90,12 @@ param (
     [switch]$SkipSpaceCheck,
     [int]$Verbosity = -1,
     [switch]$Update,
-    [string]$LISTEN = "",
-    [string]$USERNAME = "",
-    [string]$PASSWORD = "",
-    [int]$SERVER_PORT,
-    [switch]$INBROWSER,
-    [switch]$SHARE
+    [string]$Listen = "",
+    [string]$Username = "",
+    [string]$Password = "",
+    [int]$ServerPort,
+    [switch]$Inbrowser,
+    [switch]$Share
 )
 
 # Define global Python path to use in various functions
@@ -205,18 +205,17 @@ function Get-Parameters {
     $configFileLocations = if ($IsWindows) {
         @(
             $File,
-            (Join-Path -Path $env:APPDATA -ChildPath "kohya_ss\config_files\installation\install_config.yml"),
-            (Join-Path -Path $env:LOCALAPPDATA -ChildPath "kohya_ss\install_config.yml"),
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
             (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml")
+            (Join-Path -Path "$PSScriptRoot/config_files/installation" -ChildPath "install_config.yml")
         )
     }
     else {
         @(
             $File,
-            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss\install_config.yml"),
-            (Join-Path -Path "$env:USERPROFILE\kohya_ss" -ChildPath "install_config.yml"),
-            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml")
+            (Join-Path -Path $PSScriptRoot -ChildPath "install_config.yml"),
+            (Join-Path -Path $env:HOME -ChildPath ".kohya_ss/install_config.yml"),
+            (Join-Path -Path "$PSScriptRoot/config_files/installation" -ChildPath "install_config.yml")
         )
     }
 
@@ -234,55 +233,83 @@ function Get-Parameters {
         'SkipSpaceCheck' = $false
         'Verbosity'      = -1
         'Update'         = $false
-        'LISTEN'         = '127.0.0.1'
-        'USERNAME'       = ''
-        'PASSWORD'       = ''
-        'SERVER_PORT'    = 7861
-        'INBROWSER'      = $false
-        'SHARE'          = $false
+        'Listen'         = '127.0.0.1'
+        'Username'       = ''
+        'Password'       = ''
+        'ServerPort'     = 7861
+        'Inbrowser'      = $false
+        'Share'          = $false
     }
 
-    # Load the configuration file from the first existing location
-    $Config = @{}
+    # Load the configuration file from all existing locations, overriding previously set values
+    $Config = $Defaults.Clone()
     foreach ($location in $configFileLocations) {
         if (Test-Path $location) {
-            $Config = (Get-Content $location | Out-String | ConvertFrom-Yaml)
-            break
-        }
-    }
-
-    # Iterate through the default values and set them if not defined in the config file
-    foreach ($key in $Defaults.Keys) {
-        if (-not $Config.ContainsKey($key)) {
-            $Config[$key] = $Defaults[$key]
+            $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
+            foreach ($section in $FileConfig.Keys) {
+                foreach ($item in $FileConfig[$section]) {
+                    $lowerKey = $item.name.ToLower()
+                    if ($Config.ContainsKey($lowerKey)) {
+                        $Config[$lowerKey] = $item.value
+                    }
+                }
+            }
         }
     }
 
     # Update the config with the command-line arguments
     foreach ($key in $Defaults.Keys) {
-        if ($BoundParameters.ContainsKey($key)) {
-            if ($key -eq 'Verbosity' -and $BoundParameters['Verbosity'] -eq -1) {
+        $paramValue = Get-Variable -Name $key -ValueOnly -ErrorAction SilentlyContinue
+        if ($null -ne $paramValue) {
+            if ($key -eq 'Verbosity' -and $paramValue -eq -1) {
                 continue
             }
-            if ($BoundParameters[$key] -is [switch]) {
-                $Config[$key] = $BoundParameters[$key].IsPresent
+            if ($paramValue -is [switch]) {
+                $Config[$key] = $paramValue.IsPresent
             }
             else {
-                $Config[$key] = $BoundParameters[$key]
+                $Config[$key] = $paramValue
             }
         }
     }
-    
+
+
+    # Update the $Config with the $Parameters values
+    foreach ($key in $Parameters.Keys) {
+        $lowerKey = $key.ToLower()
+        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+            $Config[$lowerKey] = $Parameters[$key]
+        }
+    }
+
+    foreach ($key in $Parameters.kohya_gui_arguments.Keys) {
+        $lowerKey = $key.ToLower()
+        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+            $Config[$lowerKey] = $Parameters.kohya_gui_arguments[$key]
+        }
+    }
+
+    foreach ($key in $Parameters.setup_arguments.Keys) {
+        $lowerKey = $key.ToLower()
+        if ($Config.ContainsKey($lowerKey) -and $null -eq $Config[$lowerKey]) {
+            $Config[$lowerKey] = $Parameters.setup_arguments[$key]
+        }
+    }
 
     $Config = Convert-RelativePathsToAbsolute -Params $Config
+    if ($Config["Dir"] = "_CURRENT_SCRIPT_DIR_") {
+        $Config["Dir"] = "$PSScriptRoot"
+    }
 
     # Output the final configuration
-    Write-Host "Config:"
+    Write-Debug "Config:"
     foreach ($key in $Config.Keys) {
-        Write-Host "${key}: $($Config.$key)"
+        Write-Debug "${key}: $($Config.$key)"
     }
-    
+
     return $Config
+
+
 }
 
 
@@ -754,7 +781,7 @@ function Install-Python310 {
                         Invoke-WebRequest -Uri $pythonUrl -OutFile $installerPath
                     }
                     catch {
-                        Write-Host "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
+                        Write-Error "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
                         exit 1
                     }
                 }
@@ -797,40 +824,40 @@ function Install-Python310 {
                 "Ubuntu" {
                     if (& $elevate apt-get update) {
                         if (!(& $elevate apt-get install -y python3.10)) {
-                            Write-Host "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                            Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
                         }
                     }
                     else {
-                        Write-Host "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                        Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
                     }
                 }
                 "Debian" {
                     if (& $elevate apt-get update) {
                         if (!(& $elevate apt-get install -y python3.10)) {
-                            Write-Host "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                            Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
                         }
                     }
                     else {
-                        Write-Host "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                        Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
                     }
                 }
                 "RedHat" {
                     if (!(& $elevate dnf install -y python3.10)) {
-                        Write-Host "Error: Failed to install python via dnf. Installation of Python 3.10 aborted."
+                        Write-Error "Error: Failed to install python via dnf. Installation of Python 3.10 aborted."
                     }
                 }
                 "Arch" {
                     if (!(& $elevate pacman -Sy --noconfirm python3.10)) {
-                        Write-Host "Error: Failed to install python via pacman. Installation of Python 3.10 aborted."
+                        Write-Error "Error: Failed to install python via pacman. Installation of Python 3.10 aborted."
                     }
                 }
                 "openSUSE" {
                     if (!(& $elevate zypper install -y python3.10)) {
-                        Write-Host "Error: Failed to install python via zypper. Installation of Python 3.10 aborted."
+                        Write-Error "Error: Failed to install python via zypper. Installation of Python 3.10 aborted."
                     }
                 }
                 default {
-                    Write-Host "Unsupported Linux distribution. Please install Python 3.10 manually."
+                    Write-Error "Unsupported Linux distribution. Please install Python 3.10 manually."
                     exit 1
                 }
             }
@@ -853,7 +880,7 @@ function Install-Python310 {
             $osPlatform = (uname -s).ToString()
         }
         else {
-            Write-Host "Unsupported operating system. Please install Python 3.10 manually."
+            Write-Error "Unsupported operating system. Please install Python 3.10 manually."
             exit 1
         }
 
@@ -868,7 +895,7 @@ function Install-Python310 {
             Install-Python310Linux
         }
         else {
-            Write-Host "Unsupported operating system. Please install Python 3.10 manually."
+            Write-Error "Unsupported operating system. Please install Python 3.10 manually."
             exit 1
         }
 
@@ -876,7 +903,7 @@ function Install-Python310 {
             Write-Host "Python 3.10 installed successfully."
         }
         else {
-            Write-Host 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
+            Write-Error 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
             exit 1
         }
     }
@@ -927,7 +954,7 @@ function Install-Python3Tk {
                     Invoke-Expression (Get-ElevationCommand "apt" "install" "-y" "python3.10-tk")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk on Ubuntu. $_"
                 }
             }
             elseif ($osFamily -match "debian") {
@@ -937,7 +964,7 @@ function Install-Python3Tk {
                     Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "python3.10-tk")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Debian. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk on Debian. $_"
                 }
             }
             elseif ($osFamily -match "redhat") {
@@ -946,7 +973,7 @@ function Install-Python3Tk {
                     Invoke-Expression (Get-ElevationCommand "dnf" "install" "-y" "python3.10-tkinter")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk on Red Hat. $_"
                 }
             }
             elseif ($osFamily -match "arch") {
@@ -955,7 +982,7 @@ function Install-Python3Tk {
                     Invoke-Expression (Get-ElevationCommand "pacman" "-S" "--noconfirm" "tk")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on Arch. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk on Arch. $_"
                 }
             }
             elseif ($osFamily -match "opensuse") {
@@ -964,7 +991,7 @@ function Install-Python3Tk {
                     Invoke-Expression (Get-ElevationCommand "zypper" "install" "-y" "python3.10-tk")
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk on openSUSE. $_"
                 }
             }
             elseif ($osFamily -match "macos") {
@@ -974,19 +1001,19 @@ function Install-Python3Tk {
                         Invoke-Expression "brew install python-tk@3.10"
                     }
                     catch {
-                        Write-Host "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
+                        Write-Error "Error: Failed to install Python 3.10 Tk on macOS using Homebrew. $_"
                     }
                 }
                 else {
-                    Write-Host "Unsupported Unix platform or package manager not found."
+                    Write-Error "Unsupported Unix platform or package manager not found."
                 }
             }
             else {
-                Write-Host "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
+                Write-Error "Unsupported Linux distribution. Please install Python 3.10 Tk manually."
             }
         }
         else {
-            Write-Host "Tkinter for Python 3.10 is already installed on this system."
+            Write-Error "Tkinter for Python 3.10 is already installed on this system."
         }
     }
     else {
@@ -1005,18 +1032,18 @@ function Install-Python3Tk {
                     Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
                 }
             }
             else {
                 if (Test-IsAdmin) {
-                    Write-Host "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
+                    Write-Warning "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
                 }
                 try {
                     Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
                 }
                 catch {
-                    Write-Host "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
+                    Write-Error "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
                 }
             }
 
@@ -1065,7 +1092,7 @@ function Install-Git {
             }
             catch {
                 $packageManagerFound = $false
-                Write-Host $errorMsg -ForegroundColor Red
+                Write-Error $errorMsg -ForegroundColor Red
             }
         }
         if (-not $packageManagerFound -and (Get-Command "choco" -ErrorAction SilentlyContinue)) {
@@ -1075,7 +1102,7 @@ function Install-Git {
             }
             catch {
                 $packageManagerFound = $false
-                Write-Host $errorMsg -ForegroundColor Red
+                Write-Error $errorMsg -ForegroundColor Red
             }
         }
         if (-not $packageManagerFound -and (Get-Command "winget" -ErrorAction SilentlyContinue)) {
@@ -1085,7 +1112,7 @@ function Install-Git {
             }
             catch {
                 $packageManagerFound = $false
-                Write-Host $errorMsg -ForegroundColor Red
+                Write-Error $errorMsg -ForegroundColor Red
             }
         }
 
@@ -1103,7 +1130,7 @@ function Install-Git {
                         Invoke-WebRequest -Uri $gitUrl -OutFile $installerPath
                     }
                     catch {
-                        Write-Host "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
+                        Write-Error "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
                         exit 1
                     }
                 }
@@ -1129,8 +1156,8 @@ function Install-Git {
             brew install git
         }
         else {
-            Write-Host "Please install Homebrew first to continue with Git installation."
-            Write-Host "You can find that here: https://brew.sh"
+            Write-Error "Please install Homebrew first to continue with Git installation."
+            Write-Error "You can find that here: https://brew.sh"
             exit 1
         }
     }
@@ -1146,40 +1173,40 @@ function Install-Git {
             "Ubuntu" {
                 if (& $elevate apt update) {
                     if (!(& $elevate apt-get install -y git)) {
-                        Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
+                        Write-Error "Error: Failed to install Git via apt. Installation of Git aborted."
                     }
                 }
                 else {
-                    Write-Host "Error: Failed to update package list. Installation of Git aborted."
+                    Write-Error "Error: Failed to update package list. Installation of Git aborted."
                 }
             }
             "Debian" {
                 if (& $elevate apt update) {
                     if (!(& $elevate apt-get install -y git)) {
-                        Write-Host "Error: Failed to install Git via apt. Installation of Git aborted."
+                        Write-Error "Error: Failed to install Git via apt. Installation of Git aborted."
                     }
                 }
                 else {
-                    Write-Host "Error: Failed to update package list. Installation of Git aborted."
+                    Write-Error "Error: Failed to update package list. Installation of Git aborted."
                 }
             }
             "RedHat" {
                 if (!(& $elevate dnf install -y git)) {
-                    Write-Host "Error: Failed to install Git via dnf. Installation of Git aborted."
+                    Write-Error "Error: Failed to install Git via dnf. Installation of Git aborted."
                 }
             }
             "Arch" {
                 if (!(& $elevate pacman -Sy --noconfirm git)) {
-                    Write-Host "Error: Failed to install Git via pacman. Installation of Git aborted."
+                    Write-Error "Error: Failed to install Git via pacman. Installation of Git aborted."
                 }
             }
             "openSUSE" {
                 if (!(& $elevate zypper install -y git)) {
-                    Write-Host "Error: Failed to install Git via zypper. Installation of Git aborted."
+                    Write-Error "Error: Failed to install Git via zypper. Installation of Git aborted."
                 }
             }
             default {
-                Write-Host "Unsupported Linux distribution. Please install Git manually."
+                Write-Error "Unsupported Linux distribution. Please install Git manually."
                 exit 1
             }
         }
@@ -1201,7 +1228,7 @@ function Install-Git {
         $osPlatform = (uname -s).ToString()
     }
     else {
-        Write-Host "Unsupported operating system. Please install Git manually."
+        Write-Error "Unsupported operating system. Please install Git manually."
         exit 1
     }
 
@@ -1215,7 +1242,7 @@ function Install-Git {
         Install-GitLinux
     }
     else {
-        Write-Host "Unsupported operating system. Please install Git manually."
+        Write-Error "Unsupported operating system. Please install Git manually."
         exit 1
     }
 
@@ -1223,7 +1250,7 @@ function Install-Git {
         Write-Host "Git installed successfully."
     }
     else {
-        Write-Host 'Failed to install. Please ensure Git is installed and available in $PATH.'
+        Write-Error 'Failed to install. Please ensure Git is installed and available in $PATH.'
         exit 1
     }
 }
@@ -1248,7 +1275,7 @@ function Install-VCRedistWindows {
     }
 
     if (-not (Test-IsAdmin)) {
-        Write-Host "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
+        Write-Error "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
         exit 1
     }
 
@@ -1262,7 +1289,7 @@ function Install-VCRedistWindows {
             Invoke-WebRequest -Uri $vcRedistUrl -OutFile $installerPath
         }
         catch {
-            Write-Host "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+            Write-Error "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
             exit 1
         }
     }
@@ -1294,7 +1321,7 @@ function Main {
         if (-not $Parameters.NoSetup) {
             $requiredKeys = @("Dir", "Branch", "GitRepo")
             if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
-                Write-Host "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
+                Write-Error "Error: Some required parameters are missing. Please provide values in the config file or through command line arguments."
                 exit 1
             }
         }
@@ -1323,11 +1350,11 @@ function Main {
                 $launcher = Join-Path -Path $PSScriptRoot -ChildPath "launcher.py"
             }
             else {
-                Write-Host "Error: launcher.py not found in provided directory or script directory."
+                Write-Error "Error: launcher.py not found in provided directory or script directory."
                 exit 1
             }
 
-            Write-Host "Params: $($Parameters | Out-String)"
+            Write-Debug "Params: $($Parameters | Out-String)"
 
             $installArgs = New-Object System.Collections.ArrayList
             foreach ($key in $Parameters.Keys) {
@@ -1352,29 +1379,34 @@ function Main {
                 # Replace underscore with hyphen and prepend with --
                 $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
 
-                Write-Host "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+                Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
 
-                if ($Parameters[$key] -isnot [string]) {
-                    # Only add the argument if it is true
+                if ($Parameters[$key] -is [int]) {
+                    # Handle integer parameters
+                    $installArgs.Add($argName) | Out-Null
+                    $installArgs.Add($Parameters[$key]) | Out-Null
+                }
+                elseif ($Parameters[$key] -is [bool] -or $Parameters[$key] -is [switch]) {
+                    # Handle boolean and switch parameters
                     if ($Parameters[$key] -eq $true) {
                         $installArgs.Add($argName) | Out-Null
-                        Write-Host "Boolean argument: $argName"
-                    }
-                    elseif ($key -eq "verbosity") {
-                        # Handle verbosity separately, as -vvvv or --verbosity 4
-                        $verbosity = $Parameters[$key]
-                        if ($verbosity -gt 0) {
-                            # produces "-vvvv" for verbosity 4 or "--verbosity 4"
-                            # Uncomment the line that suits your requirement
-                            # $verbosityArg = "-" + ("v" * $verbosity)
-                            $verbosityArg = "--verbosity"
-                            $verbosityValue = [int]$verbosity
-                            $installArgs.Add($verbosityArg) | Out-Null
-                            $installArgs.Add($verbosityValue) | Out-Null
-                        }
+                        Write-Debug "Boolean argument: $argName"
                     }
                 }
-
+                elseif ($key -eq "verbosity") {
+                    # Handle verbosity separately, as -vvvv or --verbosity 4
+                    $verbosity = $Parameters[$key]
+                    if ($verbosity -gt 0) {
+                        # produces "-vvvv" for verbosity 4 or "--verbosity 4"
+                        # Below is the -vvvv version
+                        # $verbosityArg = "-" + ("v" * $verbosity)
+                        # Below is the --verbosity [int] version
+                        $verbosityArg = "--verbosity"
+                        $verbosityValue = [int]$verbosity
+                        $installArgs.Add($verbosityArg) | Out-Null
+                        $installArgs.Add($verbosityValue) | Out-Null
+                    }
+                }
                 elseif (![string]::IsNullOrEmpty($Parameters[$key])) {
                     $installArgs.Add($argName) | Out-Null
                     $installArgs.Add($Parameters[$key]) | Out-Null
@@ -1384,13 +1416,13 @@ function Main {
 
             # Call launcher.py with the appropriate parameters
             $command = "$pyExe -u $launcher $($installArgs -join ' ')"
-            Write-Host "Running command: $command"
+            Write-Debug "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
         }
 
 
         else {
-            Write-Host "Error: Python 3.10 executable not found. Installation cannot proceed."
+            Write-Error "Error: Python 3.10 executable not found. Installation cannot proceed."
             exit 1
         }
     }
