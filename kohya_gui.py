@@ -228,7 +228,7 @@ def parse_args(_config_data):
 
         {"short": "", "long": "--password", "default": "", "type": str, "help": "Password for authentication."},
 
-        {"short": "", "long": "--server-port", "default": 0, "type": str,
+        {"short": "", "long": "--server-port", "default": 0, "type": int,
          "help": "The port number the GUI server should use."},
 
         {"short": "", "long": "--inbrowser", "default": False, "type": bool, "help": "Open in browser."},
@@ -368,9 +368,9 @@ class CountOccurrencesAction(argparse.Action):
 
 
 def get_logs_dir(_args):
-    if _args.log_dir:
-        os.path.expanduser(_args.log_dir)
-        _logs_dir = os.path.abspath(_args.log_dir)
+    if getattr(_args, "log-dir"):
+        os.path.expanduser(getattr(_args, "log-dir"))
+        _logs_dir = os.path.abspath(getattr(_args, "log-dir"))
     else:
         logs_base = os.path.join(os.path.expanduser("~"), ".kohya_ss")
         _logs_dir = os.path.join(logs_base, "logs")
