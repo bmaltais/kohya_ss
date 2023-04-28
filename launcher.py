@@ -1270,7 +1270,7 @@ def launch_kohya_gui(_args):
             cmd.extend(["--server-port", str(_args.server_port)])
 
         if _args.verbosity > 0:
-            cmd.extend(["--verbosity", _args.verbosity])
+            cmd.extend(["--verbosity", str(_args.verbosity)])
 
         if _args.username:
             cmd.extend(["--username", _args.username])

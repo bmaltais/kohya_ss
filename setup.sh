@@ -112,62 +112,46 @@ shift $((OPTIND - 1))
 parse_and_validate_yaml() {
   local yaml_file="$1"
   local prefix="$2"
-  local line key value state section valid_yaml
+  local line key value state section
 
   state="none"
   section="none"
-  valid_yaml=true
 
   while IFS= read -r line; do
+    # echo "$line"
     if [[ "$line" =~ ^[[:space:]]*(setup_arguments|kohya_gui_arguments):[[:space:]]*$ ]]; then
       section="${BASH_REMATCH[1]}"
-    elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
-      key="${BASH_REMATCH[1]}"
-      state="searching_default"
-    elif [[ "$state" == "searching_default" ]] && [[ "$line" =~ ^[[:space:]]*value:[[:space:]]*(.+)$ ]]; then
-      value="${BASH_REMATCH[1]}"
       state="none"
+      echo "Section: $section"
+    elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      state="searching_value"
+      # echo "Key: $key"
+    elif [[ "$state" == "searching_value" ]] && [[ "$line" =~ ^[[:space:]]*value:[[:space:]]*([^[:space:]].*[^[:space:]])?[[:space:]]*$ ]]; then
+      value="${BASH_REMATCH[1]}"
+      # echo "Found value for $key: $value"
       if [[ "$section" == "setup_arguments" ]]; then
         eval "${prefix}_${key}=\"$value\""
       elif [[ "$section" == "kohya_gui_arguments" ]]; then
         eval "${prefix}_${key}=\"$value\""
       fi
-    elif [[ "$line" =~ ^[[:space:]]*description:[[:space:]]*(.+)$ ]]; then
       state="none"
-    else
-      valid_yaml=false
-      break
     fi
   done <"$yaml_file"
-
-  if [ "$valid_yaml" = false ]; then
-    cat <<-EOF
-Error: Invalid configuration file format.
-Expected format example:
-setup_arguments:
-  - name: Branch
-    description: Select which branch of kohya to check out on new installations.
-    value: master
-
-kohya_gui_arguments:
-  - name: Listen
-    description: IP to listen on for connections to Gradio.
-    value: 127.0.0.1
-EOF
-    exit 1
-  fi
 }
 
 configFileLocations=(
-  "$SCRIPT_DIR/install_config.yml"
-  "$HOME/.kohya_ss/install_config.yml"
   "$SCRIPT_DIR/config_files/installation/install_config.yml"
+  "$HOME/.kohya_ss/install_config.yml"
+  "$SCRIPT_DIR/install_config.yml"
 )
 
 # Load and merge default config files
 for location in "${configFileLocations[@]}"; do
+  # echo "Parsing $location"
   if [ -f "$location" ]; then
     parse_and_validate_yaml "$location" "config"
+    # echo "Parsed $location"
   fi
 done
 
@@ -176,12 +160,12 @@ if [ -n "$USER_CONFIG_FILE" ] && [ -f "$USER_CONFIG_FILE" ]; then
   parse_and_validate_yaml "$USER_CONFIG_FILE" "config"
 fi
 
-# Set default values
+# Set default values only if they haven't been set by the config files
 config_Branch="${config_Branch:-master}"
-config_Dir="${config_Dir:-$HOME/.kohya_ss}"
+config_Dir="${config_Dir:-$SCRIPT_DIR}"
 config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_Interactive="${config_Interactive:-false}"
-config_LogDir="${config_LogDir:-$DIR/logs}"
+config_LogDir="${config_LogDir:-$HOME/.kohya_ss/logs}"
 config_Public="${config_Public:-false}"
 config_NoSetup="${config_NoSetup:-false}"
 config_Runpod="${config_Runpod:-false}"
@@ -192,7 +176,7 @@ config_Verbosity="${config_Verbosity:-0}"
 config_Listen="${config_Listen:-127.0.0.1}"
 config_Username="${config_Username:-}"
 config_Password="${config_Password:-}"
-config_ServerPort="${config_ServerPort:-8080}"
+config_ServerPort="${config_ServerPort:-7861}"
 config_Inbrowser="${config_Inbrowser:-false}"
 config_Share="${config_Share:-false}"
 
@@ -223,7 +207,7 @@ GUI_INBROWSER="$config_Inbrowser"
 GUI_SHARE="$config_Share"
 
 for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 "$VERBOSITY"
+  seq 3 $VERBOSITY
 ); do
   (("$v" <= "$VERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
 done
@@ -238,6 +222,10 @@ done
 # printf "%s\n" "This message is seen at verbosity level 1 and above." >&3
 # printf "%s\n" "This message is seen at verbosity level 2 and above." >&4
 # printf "%s\n" "This message is seen at verbosity level 3 and above." >&5
+
+if [ "$DIR" = "_CURRENT_SCRIPT_DIR_" ]; then
+  DIR="$SCRIPT_DIR"
+fi
 
 # Debug variable dump at max verbosity
 echo "BRANCH: $BRANCH
