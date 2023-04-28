@@ -207,7 +207,71 @@ This command does the following:
 
 ##### Command Line Arguments
 
-The following command-line arguments are supported by setup.ps1, setup.sh, and launcher.py:
+<details>
+<summary>setup.ps1</summary>
+
+```bash
+-File <String>
+    The full path to the configuration file. If not provided, the script looks for an 'install_config.yaml' file in the script's directory.
+
+-Branch <String>
+    Select which branch of kohya to check out on new installs.
+
+-Dir <String>
+    The full path you want kohya_ss installed to.
+
+-GitRepo <String>
+    You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+
+-Interactive [<SwitchParameter>]
+    Interactively configure accelerate instead of using default config file.
+
+-LogDir <String>
+    Specifies the directory where log files will be stored.
+
+-NoSetup [<SwitchParameter>]
+    Skip all setup steps and only validate python requirements then launch GUI.
+
+-Public [<SwitchParameter>]
+    Expose public URL in runpod mode. Won't have an effect in other modes.
+
+-Runpod [<SwitchParameter>]
+    Forces a runpod installation. Useful if detection fails for any reason.
+
+-SetupOnly [<SwitchParameter>]
+    Do not launch GUI. Only conduct setup operations.
+
+-SkipSpaceCheck [<SwitchParameter>]
+    Skip the 10Gb minimum storage space check.
+
+-Verbosity <Int32>
+    Increase verbosity levels up to 3.
+
+-Update [<SwitchParameter>]
+    Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
+
+-Listen <String>
+    The IP address the GUI should listen on.
+
+-Username <String>
+    The username for the GUI.
+
+-Password <String>
+    The password for the GUI.
+
+-ServerPort <Int32>
+    The port number the GUI server should use.
+
+-Inbrowser [<SwitchParameter>]
+    Open the GUI in the default web browser.
+
+-Share [<SwitchParameter>]
+    Share the GUI with other users on the network.
+```
+ </details>
+
+<details>
+<summary>setup.sh and launcher.py</summary>
 
 ```bash
 -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
@@ -216,23 +280,35 @@ The following command-line arguments are supported by setup.ps1, setup.sh, and l
 -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
 -h, --help                    Show this screen.
 -i, --interactive             Interactively configure accelerate instead of using default config file.
--n, --no-git-update           Do not update kohya_ss repo. No git pull or clone operations.
+-l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
+-n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
 -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
 -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+--setup-only                  Do not launch GUI. Only conduct setup operations.
 -s, --skip-space-check        Skip the 10Gb minimum storage space check.
--x, --exclude-setup           Exclude the setup process (only validate Python requirements and launch GUI).
--v, --verbose                 Increase verbosity levels up to 3.
+-u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
+-v                            Increase verbosity levels up to 3. (e.g., -vvv)
+--listen                      The IP address to listen on (default: 127.0.0.1).
+--username                    The username for the GUI (default: empty string).
+--password                    The password for the GUI (default: empty string).
+--server_port                 The server port for the GUI (default: 8080).
+--inbrowser                   Launch the GUI in the default web browser (default: false).
+--share                       Share the GUI over the network (default: false).
 ```
+ </details>
 
-GUI Arguments
-The following command-line arguments are passed through from setup.ps1 or setup.sh to launcher.py and then to kohya_gui.py. 
+<details>
+<summary>kohya_gui.py</summary>
+These options are passed through to kohya_gui.py. Kohya_gui.py will also accept them directly.
 Use them in the same manner is the above arguments:
 
 ```bash
+-f FILE, --file=FILE          Load a custom configuration file.
+-l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
 --listen or -l: The IP address to listen on (default: 127.0.0.1).
 --username or -u: The username for the GUI (default: empty string).
 --password or -p: The password for the GUI (default: empty string).
---server_port or -s: The server port for the GUI (default: 8080).
+--server_port or -s: The server port for the GUI (default: 7861).
 --inbrowser or -i: Launch the GUI in the default web browser (default: false).
 --share or -r: Share the GUI over the network (default: false).
 ```
@@ -243,19 +319,18 @@ Use them in the same manner is the above arguments:
 <summary>Configuration File</summary>
 
 ##### Configuration File
-The setup scripts look for a configuration file called install_config.yaml in various locations to determine the command-line arguments for the installation process. The order in which the scripts search for this file is as follows:
 
-The path specified by a variable in the script itself (if any).
-For Windows users: the kohya_ss folder within your AppData or LocalAppData directories.
-For non-Windows users: a hidden folder named .kohya_ss in your home directory.
-The installation directory you've chosen for kohya_ss.
-The kohya_ss folder within your user profile directory.
-The same directory as the setup script.
-The setup scripts will use the first install_config.yaml file they find in this order. This allows you to place your configuration file in a location that suits your needs, making it easy for you to customize the installation process. If you're not familiar with some of these locations, don't worry—simply placing the configuration file in the same directory as the setup script is a straightforward and effective option.
+You may now specify configuration files to load values from. An example configuration file is placed at $installation/config_files/installation/install_config.yml.
+The scripts will load values in the following priority order:
+1. Command Line Arguments
+2. Configuration File specified via command line with --file
+3. $HOME/.kohya_ss/install_config.yml
+4. $ScriptDirectory/install_config.yml
+5. $ScriptDirectory/config_files/installation/install_config.yml
+6. Default values hard-coded in script
 
-You may also specify a custom location for the configuration file via `-f` or `--file`.
-
-An example config file is available in the config_file/installation/install_config.yml file.
+Therefore, values that are placed in $HOME/.kohya_ss/install_config.yml will override values found in $ScriptDirectory/config_files/installation/install_config.yml.
+This allows you to have user-level definitions, project-level definitions, and run-time definitions.
 
 
 </details>
