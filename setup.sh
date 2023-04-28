@@ -159,22 +159,21 @@ EOF
 }
 
 configFileLocations=(
-  "$USER_CONFIG_FILE"
-  "$HOME/.kohya_ss/install_config.yaml"
-  "$SCRIPT_DIR/config_files/installation/install_config.yaml"
+  "$SCRIPT_DIR/install_config.yml"
+  "$HOME/.kohya_ss/install_config.yml"
+  "$SCRIPT_DIR/config_files/installation/install_config.yml"
 )
 
-configFile=""
-
+# Load and merge default config files
 for location in "${configFileLocations[@]}"; do
   if [ -f "$location" ]; then
-    configFile="$location"
-    break
+    parse_and_validate_yaml "$location" "config"
   fi
 done
 
-if [ -n "$configFile" ]; then
-  parse_and_validate_yaml "$configFile" "config"
+# Load and merge user-specified config file
+if [ -n "$USER_CONFIG_FILE" ] && [ -f "$USER_CONFIG_FILE" ]; then
+  parse_and_validate_yaml "$USER_CONFIG_FILE" "config"
 fi
 
 # Set default values

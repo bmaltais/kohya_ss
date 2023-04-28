@@ -91,37 +91,44 @@ def find_config_file(config_file_locations):
 
 
 def load_config(_config_file=None):
-    if _config_file is None:
-        config_locations = []
-
-        if sys.platform == "win32":
-            config_locations.extend([
-                os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml")
-            ])
-
-        config_locations.extend([
-            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+    # Define config file locations
+    if sys.platform == "win32":
+        config_file_locations = [
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
-        ])
+            os.path.join(os.environ.get("USERPROFILE", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
+                         "install_config.yml")
+        ]
+    else:
+        config_file_locations = [
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_config.yml"),
+            os.path.join(os.environ.get("HOME", ""), ".kohya_ss", "install_config.yml"),
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "config_files", "installation",
+                         "install_config.yml")
+        ]
 
-        # print(f"Searching for configuration files in these locations: {config_locations}")
+    # Load and merge default config files
+    _config_data = {}
+    for location in reversed(config_file_locations):
+        try:
+            with open(location, 'r') as f:
+                file_config_data = yaml.safe_load(f)
+                if file_config_data:
+                    _config_data = {**file_config_data, **_config_data}
+        except FileNotFoundError:
+            pass
 
-        for location in config_locations:
-            if os.path.isfile(os.path.abspath(location)):
-                _config_file = location
-                break
-
+    # Load and merge user-specified config file
     if _config_file is not None:
         try:
             with open(_config_file, 'r') as f:
-                _config_data = yaml.safe_load(f)
-                # print(f"Loaded config data: {_config_data}")
-                return _config_data
+                file_config_data = yaml.safe_load(f)
+                if file_config_data:
+                    _config_data = {**file_config_data, **_config_data}
         except FileNotFoundError:
-            # print(f"Config file not found: {_config_file}")
-            return None
-    else:
-        return None
+            pass
+
+    return _config_data if _config_data else None
 
 
 def parse_file_arg():
