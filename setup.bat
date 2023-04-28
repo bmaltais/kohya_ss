@@ -74,6 +74,7 @@ if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
 if /i "%~1"=="--dir" (shift & set Dir=%1) & shift & goto arg_loop
 if /i "%~1"=="--file" (shift & set File=%1) & shift & goto arg_loop
 if /i "%~1"=="--git-repo" (shift & set GitRepo=%1) & shift & goto arg_loop
+if /i "%~1"=="--help" goto print_help
 if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
 if /i "%~1"=="--no-setup" (set NoSetup=1) & shift & goto arg_loop
 if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
@@ -92,6 +93,31 @@ shift
 goto arg_loop
 
 :arg_end
+
+:print_help
+echo Usage: my_script.bat [OPTIONS]
+echo.
+echo OPTIONS:
+echo --branch           : Specify the Git branch to use. Default is 'master'.
+echo --dir              : Specify the working directory. Default is the directory of the script.
+echo --file             : Specify the file to be processed.
+echo --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
+echo --help             : Display this help.
+echo --interactive      : Run in interactive mode.
+echo --no-setup         : Skip the setup process.
+echo --public           : Run in public mode.
+echo --runpod           : Run in Runpod mode.
+echo --setup-only       : Only run the setup process, do not launch the application.
+echo --skip-space-check : Skip the disk space check.
+echo --update           : Run the update process.
+echo --verbose          : Increase the verbosity level.
+echo --listen           : Specify the GUI listen address. Default is '127.0.0.1'.
+echo --username         : Specify the GUI username.
+echo --password         : Specify the GUI password.
+echo --server-port      : Specify the GUI server port. Default is 7861.
+echo --inbrowser        : Open the GUI in the browser.
+echo --share            : Enable GUI sharing.
+goto :eof
 
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 set Args=-b "%Branch%" -d "%Dir%" -f "%File%" -g "%GitRepo%" ^

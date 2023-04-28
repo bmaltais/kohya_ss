@@ -271,6 +271,32 @@ This command does the following:
  </details>
 
 <details>
+<summary>setup.bat</summary>
+
+```bash
+--branch           : Specify the Git branch to use. Default is 'master'.
+--dir              : Specify the working directory. Default is the directory of the script.
+--file             : Specify the file to be processed.
+--git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
+--help             : Display this help.
+--interactive      : Run in interactive mode.
+--no-setup         : Skip the setup process.
+--public           : Run in public mode.
+--runpod           : Run in Runpod mode.
+--setup-only       : Only run the setup process, do not launch the application.
+--skip-space-check : Skip the disk space check.
+--update           : Run the update process.
+--verbose          : Increase the verbosity level.
+--listen           : Specify the GUI listen address. Default is '127.0.0.1'.
+--username         : Specify the GUI username.
+--password         : Specify the GUI password.
+--server-port      : Specify the GUI server port. Default is 7861.
+--inbrowser        : Open the GUI in the browser.
+--share            : Enable GUI sharing.
+```
+ </details>
+
+<details>
 <summary>setup.sh and launcher.py</summary>
 
 ```bash
