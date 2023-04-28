@@ -13,6 +13,7 @@ if not "%py_ver%"=="%py_ver_req%" (
 rem Define the default values
 set Branch=master
 set Dir=%~dp0
+set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
 set NoSetup=0
@@ -34,7 +35,6 @@ set ConfigFile=
 for %%F in (
     "%CD%\install_config.yml"
     "%USERPROFILE%\.kohya_ss\install_config.yml"
-    "%USERPROFILE%\kohya_ss\install_config.yml"
     "%~dp0\install_config.yml"
 ) do (
     if exist "%%F" (
@@ -48,6 +48,7 @@ if not "%ConfigFile%"=="" (
     for /f "tokens=1,2 delims=: " %%a in (%ConfigFile%) do (
         if "%%a"=="Branch" set Branch=%%b
         if "%%a"=="Dir" set Dir=%%b
+        if "%%a"=="File" set File=%%b
         if "%%a"=="GitRepo" set GitRepo=%%b
         if "%%a"=="Interactive" set Interactive=%%b
         if "%%a"=="NoSetup" set NoSetup=%%b
@@ -71,6 +72,7 @@ rem Parse command line arguments and override loaded config file values
 if "%~1"=="" goto arg_end
 if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
 if /i "%~1"=="--dir" (shift & set Dir=%1) & shift & goto arg_loop
+if /i "%~1"=="--file" (shift & set File=%1) & shift & goto arg_loop
 if /i "%~1"=="--git-repo" (shift & set GitRepo=%1) & shift & goto arg_loop
 if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
 if /i "%~1"=="--no-setup" (set NoSetup=1) & shift & goto arg_loop
@@ -92,7 +94,7 @@ goto arg_loop
 :arg_end
 
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
-set Args=-b "%Branch%" -d "%Dir%" -f "%ConfigFile%" -g "%GitRepo%" ^
+set Args=-b "%Branch%" -d "%Dir%" -f "%File%" -g "%GitRepo%" ^
           -i:%Interactive% -n:%NoSetup% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
           --setup-only "%SetupOnly%" --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
           --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE%
