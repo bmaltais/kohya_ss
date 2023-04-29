@@ -1072,8 +1072,8 @@ def check_permissions(_dir):
                     folder_name, file_name = os.path.split(file_path)
 
                     if "bin" not in folder_name and "python" not in file_name:
-                        logging.error(f"Unable to fix permissions for file: {file_path}")
-                        logging.error(f"Error: {str(e)}")
+                        logging.debug(f"Unable to fix permissions for file: {file_path}")
+                        logging.debug(f"Error: {str(e)}")
                         return False
     return True
 
