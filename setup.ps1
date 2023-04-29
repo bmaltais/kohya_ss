@@ -205,7 +205,7 @@ function Get-Parameters {
     Import-Module 'powershell-yaml'
 
     # Define possible configuration file locations
-    $configFileLocations = if ($global:os.family -eq "Windows") {
+    $configFileLocations = if ($os.family -eq "Windows") {
         @(
             (Join-Path -Path "$PSScriptRoot\config_files\installation" -ChildPath "install_config.yml")
             (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
@@ -449,7 +449,7 @@ function Get-ElevationCommand {
         [string[]]$args
     )
 
-    if ($global:os.family -eq "Windows") {
+    if ($os.family -eq "Windows") {
         # On Windows, use the Start-Process cmdlet to run the command as administrator
         if ((Test-IsAdmin) -eq $true) {
             return ""
@@ -641,9 +641,8 @@ function Get-OsInfo {
 #>
 function Test-Python310Installed {
     $pythonBinaries = @("python", "python3", "python3.10")
-    $os = Get-OsInfo
 
-    if ($global:os.family -eq "Windows") {
+    if ($os.family -eq "Windows") {
         # Add windows-specific paths
         $paths = @("${Env:ProgramFiles}\Python310", "${Env:ProgramFiles(x86)}\Python310")
         # Add .exe extension for Windows
@@ -800,7 +799,7 @@ function Install-Python310 {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
 
-                $downloadsFolder = [Environment]::GetFolderPath('Downloads') 
+                $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
                 if (!(Test-Path -Path $downloadsFolder)) {
                     New-Item -ItemType directory -Path $downloadsFolder
                 }
@@ -850,7 +849,7 @@ function Install-Python310 {
             }
             $os = Get-OsInfo
 
-            switch ($global:os.family) {
+            switch ($os.family) {
                 "Ubuntu" {
                     if (& $elevate apt-get update) {
                         if (!(& $elevate apt-get install -y python3.10)) {
@@ -956,7 +955,7 @@ function Install-Python3Tk {
         [string]$installScope = 'user'
     )
 
-    $osFamily = $global:os.family.ToLower()
+    $osFamily = $os.family.ToLower()
     Write-Debug "Detected OS Family: {$osFamily}"
 
     if ($PSVersionTable.Platform -eq 'Unix') {
@@ -1048,9 +1047,9 @@ function Install-Python3Tk {
     else {
         # Windows installation
        
-        $downloadsFolder = [Environment]::GetFolderPath('Downloads')
-        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $global:pythonInstallerFile
-        Invoke-WebRequest -Uri $global:pythonInstallerUrl -OutFile $installerPath
+        $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
+        Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
 
         $installScope = Update-InstallScope($Interactive)
 
@@ -1075,7 +1074,9 @@ function Install-Python3Tk {
                 }
             }
 
-            Remove-Item $installerPath -ErrorAction SilentlyContinue
+            if (Test-Item $installerPath) {
+                Remove-Item $installerPath -ErrorAction SilentlyContinue
+            }
         }
     }
 }
@@ -1355,7 +1356,7 @@ function Install-VCRedistWindows {
 
     $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
     $vcRedistInstallerName = "vc_redist.x64.exe"
-    $downloadsFolder = "$env:USERPROFILE\Downloads"
+    $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
     $installerPath = Join-Path -Path $downloadsFolder -ChildPath $vcRedistInstallerName
 
     if (-not (Test-Path $installerPath)) {
@@ -1520,10 +1521,11 @@ function Main {
 
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
+write-host $os.family
 
 if ($os.family -eq "Windows") {
-    $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
-    $pythonInstallerFile = "python-3.10.0-amd64.exe"
+    $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
+    $pythonInstallerFile = Split-Path -Leaf $pythonInstallerUrl
 }
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
