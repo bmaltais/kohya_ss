@@ -1,15 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Check for Python 3.10
-for /f "tokens=* USEBACKQ" %%F in (`python --version 2^>^&1`) do (set "py_ver=%%F")
-set "py_ver_req=Python 3.10"
-if not "%py_ver%"=="%py_ver_req%" (
-    echo Error: Python 3.10 is required, but '%py_ver%' is installed.
-    echo Please download and install Python 3.10 from https://www.python.org/downloads/
-    exit /b 1
-)
-
 rem Define the default values
 set Branch=master
 set Dir=%~dp0
