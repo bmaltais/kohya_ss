@@ -215,7 +215,7 @@ def debug_system_info():
             output = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.vendor']).decode().strip()
             if output:
                 _system_info['CPU Manufacturer'] = output
-            else: 
+            else:
                 output = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.brand_string']).decode().strip()
                 _system_info['CPU Manufacturer'] = output if output else "Unknown"
         else:
@@ -647,7 +647,7 @@ if __name__ == '__main__':
             system_info['Virtual Environment']
         )
     else:
-        _, _, vram_warning = check_gpu_vram()
+        _, _, vram_warning = check_gpu_vram(platform.system())
         if vram_warning:
             logging.critical("We detected less than 8Gb of VRAM. You may see performance issues.")
 
