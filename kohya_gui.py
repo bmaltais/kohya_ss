@@ -113,22 +113,69 @@ def get_cpu_manufacturer():
         return "Could not obtain CPU manufacturer."
 
 
-def check_gpu_vram():
-    try:
-        output = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.total', '--format=csv'])
-        output = output.decode('utf-8').strip().split('\n')[1:]
-        gpu_info = [line.split(', ') for line in output]
-        gpu_vram = gpu_info[0][1].replace(' MiB', '')
-        if int(gpu_vram) < 8000:
-            logging.critical('\033[33mWarning: GPU VRAM is less than 8GB and will likely result in proper '
-                             'operations.\033[0m')
-        return gpu_vram
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return "Unknown"
+def check_gpu_vram(os_type):
+    nvidia_smi = shutil.which("nvidia-smi")
+
+    if os_type == "Windows" and nvidia_smi is not None:
+        try:
+            output = subprocess.check_output([nvidia_smi, '--query-gpu=memory.total,name', '--format=csv'])
+            output = output.decode('utf-8').strip().split('\n')[1:]
+            gpu_info = [line.split(', ') for line in output]
+            gpu_vram, gpu_name = gpu_info[0]
+            gpu_vram = gpu_vram.replace(' MiB', '')
+            return gpu_vram, gpu_name, int(gpu_vram) < 8000
+        except (subprocess.CalledProcessError, IndexError):
+            return "N/A", "N/A", False
+
+    elif os_type == "Linux":
+        try:
+            # Get GPU info
+            output = subprocess.check_output(['lspci', '-v']).decode().strip()
+            gpu_info = re.search(r'VGA compatible controller: (.*) \(rev', output).group(1)
+
+            # Get VRAM
+            if "NVIDIA" in gpu_info and nvidia_smi is not None:
+                output = subprocess.check_output(
+                    [nvidia_smi, '--query-gpu=memory.total', '--format=csv,noheader,nounits']).decode().strip()
+                gpu_vram = output
+            else:
+                gpu_vram = re.search(r'Memory at [a-f0-9]{8} ([a-f0-9]{8})', output)
+                if gpu_vram is not None:
+                    gpu_vram = int(gpu_vram.group(1), 16) // 1024 // 1024
+                else:
+                    output = subprocess.check_output(['glxinfo', '-B']).decode().strip()
+                    gpu_vram = re.search(r'Video memory: (\d+)', output)
+                    if gpu_vram is not None:
+                        gpu_vram = gpu_vram.group(1)
+                    else:
+                        gpu_vram = "N/A"
+
+            return gpu_vram, gpu_info, False if gpu_vram == "N/A" else int(gpu_vram) < 8000
+        except (subprocess.CalledProcessError, IndexError):
+            return "N/A", "N/A", False
+
+    elif os_type == "Darwin":
+        try:
+            # Get GPU info
+            output = subprocess.check_output(['system_profiler', 'SPDisplaysDataType']).decode().strip()
+            gpu_info = re.search('Chipset Model: (.*)', output).group(1).strip()
+
+            # Get VRAM
+            output = subprocess.check_output(['system_profiler', 'SPDisplaysDataType']).decode().strip()
+            gpu_vram = re.search(r'VRAM \(Total\): (\d+)', output).group(1).strip()
+
+            return gpu_vram, gpu_info, int(gpu_vram) < 8000
+        except (subprocess.CalledProcessError, IndexError):
+            return "N/A", "N/A", False
+
+    else:
+        return "N/A", "N/A", False
 
 
 # noinspection PyDictCreation
 def debug_system_info():
+    os_type = platform.system()
+
     # Get OS, CPU and GPU information
     _system_info = {}
 
@@ -141,20 +188,36 @@ def debug_system_info():
     _system_info['Python Version'] = platform.python_version()
     _system_info['Python Implementation'] = platform.python_implementation()
     _system_info['Python Compiler'] = platform.python_compiler()
-    _system_info['GPU VRAM'] = check_gpu_vram()
+    _system_info['GPU VRAM'], _system_info['GPU'], gpu_vram_warning = check_gpu_vram(os_type)
+
+    if gpu_vram_warning:
+        logging.critical("\nIf you have less than 8Gb of VRAM, you may see performance issues.\n")
 
     # Get CPU manufacturer
     try:
-        if _system_info['OS'] == "Windows":
+        if os_type == "Windows":
             output = subprocess.check_output(['wmic', 'cpu', 'get', 'Manufacturer'],
                                              stderr=subprocess.STDOUT).decode().strip()
             _system_info['CPU Manufacturer'] = output.split('\n')[1].strip()
-        elif _system_info['OS'] == "Linux":
+        elif os_type == "Linux":
             output = subprocess.check_output(['lscpu']).decode().strip()
-            _system_info['CPU Manufacturer'] = re.search('Vendor ID:(.*)', output).group(1).strip()
-        elif _system_info['OS'] == "Darwin":
+            cpu_info = re.search('Vendor ID:(.*)', output)
+            if cpu_info is not None:
+                _system_info['CPU Manufacturer'] = cpu_info.group(1).strip()
+            else:  # Try another way to get the CPU info
+                output = subprocess.check_output(['cat', '/proc/cpuinfo']).decode().strip()
+                cpu_info = re.search('vendor_id\\s+: (.*)', output)
+                if cpu_info is not None:
+                    _system_info['CPU Manufacturer'] = cpu_info.group(1).strip()
+                else:
+                    _system_info['CPU Manufacturer'] = "Unknown"
+        elif os_type == "Darwin":
             output = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.vendor']).decode().strip()
-            _system_info['CPU Manufacturer'] = output
+            if output:
+                _system_info['CPU Manufacturer'] = output
+            else: 
+                output = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.brand_string']).decode().strip()
+                _system_info['CPU Manufacturer'] = output if output else "Unknown"
         else:
             _system_info['CPU Manufacturer'] = "Unknown"
     except Exception as e:
@@ -163,9 +226,14 @@ def debug_system_info():
     # Get GPU information
     try:
         if _system_info['OS'] == "Windows":
-            output = subprocess.check_output(['wmic', 'path', 'win32_VideoController', 'get', 'name'],
-                                             stderr=subprocess.STDOUT).decode().strip()
-            _system_info['GPU'] = output.split('\n')[1].strip()
+            try:
+                output = subprocess.check_output(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'],
+                                                 stderr=subprocess.STDOUT).decode().strip()
+                _system_info['GPU'] = output
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                output = subprocess.check_output(['wmic', 'path', 'win32_VideoController', 'get', 'name'],
+                                                 stderr=subprocess.STDOUT).decode().strip()
+                _system_info['GPU'] = output.split('\n')[1].strip()
         elif _system_info['OS'] == "Linux":
             output = subprocess.check_output(['lspci']).decode().strip()
             for line in output.split('\n'):
@@ -185,7 +253,6 @@ def debug_system_info():
     _system_info['Virtual Environment'] = hasattr(sys, 'real_prefix') or \
                                           (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
     return _system_info
-
 
 
 def find_config_file(config_file_locations):
@@ -580,7 +647,9 @@ if __name__ == '__main__':
             system_info['Virtual Environment']
         )
     else:
-        check_gpu_vram()
+        _, _, vram_warning = check_gpu_vram()
+        if vram_warning:
+            logging.critical("We detected less than 8Gb of VRAM. You may see performance issues.")
 
     UI(
         username=args.username,
