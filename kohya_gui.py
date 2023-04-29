@@ -437,8 +437,7 @@ def get_logs_dir(_args):
         os.path.expanduser(getattr(_args, "log-dir"))
         _logs_dir = os.path.abspath(getattr(_args, "log-dir"))
     else:
-        logs_base = os.path.join(os.path.expanduser("~"), ".kohya_ss")
-        _logs_dir = os.path.join(logs_base, "logs")
+        _logs_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "logs")
 
     os.makedirs(_logs_dir, exist_ok=True)
     return _logs_dir

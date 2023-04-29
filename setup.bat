@@ -7,8 +7,10 @@ set Dir=%~dp0
 set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
+set LogDir=
 set NoSetup=0
 set Public=0
+set Repair=0
 set Runpod=0
 set SetupOnly=0
 set SkipSpaceCheck=0
@@ -42,8 +44,10 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="File" set File=%%b
         if "%%a"=="GitRepo" set GitRepo=%%b
         if "%%a"=="Interactive" set Interactive=%%b
+        if "%%a"=="LogDir" set LogDir=%%b
         if "%%a"=="NoSetup" set NoSetup=%%b
         if "%%a"=="Public" set Public=%%b
+        if "%%a"=="Repair" set Runpod=%%b
         if "%%a"=="Runpod" set Runpod=%%b
         if "%%a"=="SetupOnly" set SetupOnly=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
@@ -67,8 +71,10 @@ if /i "%~1"=="--file" (shift & set File=%1) & shift & goto arg_loop
 if /i "%~1"=="--git-repo" (shift & set GitRepo=%1) & shift & goto arg_loop
 if /i "%~1"=="--help" goto print_help
 if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
+if /i "%~1"=="--log-dir" (shift & set LogDir=%1) & shift & goto arg_loop
 if /i "%~1"=="--no-setup" (set NoSetup=1) & shift & goto arg_loop
 if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
+if /i "%~1"=="--repair" (set Repair=1) & shift & goto arg_loop
 if /i "%~1"=="--runpod" (set Runpod=1) & shift & goto arg_loop
 if /i "%~1"=="--setup-only" (set SetupOnly=1) & shift & goto arg_loop
 if /i "%~1"=="--skip-space-check" (set SkipSpaceCheck=1) & shift & goto arg_loop
@@ -95,8 +101,10 @@ echo --file             : Specify the configuration file to be processed.
 echo --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
 echo --help             : Display this help.
 echo --interactive      : Run in interactive mode.
+echo --log-dir          : Set the custom log directory for kohya_ss.
 echo --no-setup         : Skip the setup process.
 echo --public           : Run in public mode.
+echo --repair           : This runs the installation repair operations. These could take a few minutes to run.
 echo --runpod           : Run in Runpod mode.
 echo --setup-only       : Only run the setup process, do not launch the application.
 echo --skip-space-check : Skip the disk space check.
@@ -112,9 +120,9 @@ goto :eof
 
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 set Args=-b "%Branch%" -d "%Dir%" -f "%File%" -g "%GitRepo%" ^
-          -i:%Interactive% -n:%NoSetup% -p:%Public% -r:%Runpod% -s:%SkipSpaceCheck% -v %Verbose% ^
-          --setup-only "%SetupOnly%" --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
-          --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE%
+          -i:%Interactive% -n:%NoSetup% -p:%Public% --repair:%Repair% --runpod:%Runpod% -s:%SkipSpaceCheck% ^
+          -v %Verbose% --setup-only "%SetupOnly%" --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
+          --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE% --log-dir:%LogDir%
 
 copy /y "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
 copy /y "%Dir%\bitsandbytes_windows\cextension.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cextension.py"

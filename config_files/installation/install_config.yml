@@ -14,8 +14,14 @@ setup_arguments:
   - name: LogDir
     description: Override the default log directory.
     value: ''
+  - name: NoSetup
+    description: Skip all setup steps and only validate python requirements then launch GUI.
+    value: false
   - name: Public
     description: Expose public URL in runpod mode. Won't have an effect in other modes.
+    value: false
+  - name: Repair
+    description: This runs the installation repair operations. These could take a few minutes to run.
     value: false
   - name: Runpod
     description: Forces a runpod installation. Useful if detection fails for any reason.
@@ -29,26 +35,23 @@ setup_arguments:
   - name: Verbosity
     description: Increase verbosity levels up to 3.
     value: 0
-  - name: NoSetup
-    description: Skip all setup steps and only validate python requirements then launch GUI.
-    value: false
 
 kohya_gui_arguments:
+  - name: Inbrowser
+    description: Open in browser.
+    value: false
   - name: Listen
     description: IP to listen on for connections to Gradio.
     value: 127.0.0.1
-  - name: Username
-    description: Username for authentication.
-    value: ''
   - name: Password
     description: Password for authentication.
     value: ''
   - name: ServerPort
     description: Port to run the server listener on.
     value: 7861
-  - name: Inbrowser
-    description: Open in browser.
-    value: false
   - name: Share
     description: Share the gradio UI.
     value: false
+  - name: Username
+    description: Username for authentication.
+    value:
