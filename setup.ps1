@@ -251,26 +251,28 @@ function Get-Parameters {
     # Load configuration files
     foreach ($location in $configFileLocations) {
         Write-Debug "Config file location: $location"
-        if (Test-Path $location) {
-            Write-Debug "Found configuration file at: $location"
-            $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
-            foreach ($section in $FileConfig.Keys) {
-                foreach ($item in $FileConfig[$section]) {
-                    $lowerKey = $item.name.ToLower()
-                    if ($Config.ContainsKey($lowerKey)) {
-                        # Check if the value from the config file is an empty string
-                        if ($item.value -eq '') {
-                            # If so, continue to the next iteration of the loop without changing $Config
-                            continue
-                        }
-                        # Only assign the value from the config file if the corresponding $Config value is the default value
-                        if ($Config[$lowerKey] -eq $Defaults[$lowerKey]) {
-                            $Config[$lowerKey] = $item.value
+        if (![string]::IsNullOrEmpty($location)) {
+            if (Test-Path $location) {
+                Write-Debug "Found configuration file at: $location"
+                $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
+                foreach ($section in $FileConfig.Keys) {
+                    foreach ($item in $FileConfig[$section]) {
+                        $lowerKey = $item.name.ToLower()
+                        if ($Config.ContainsKey($lowerKey)) {
+                            # Check if the value from the config file is an empty string
+                            if ($item.value -eq '') {
+                                # If so, continue to the next iteration of the loop without changing $Config
+                                continue
+                            }
+                            # Only assign the value from the config file if the corresponding $Config value is the default value
+                            if ($Config[$lowerKey] -eq $Defaults[$lowerKey]) {
+                                $Config[$lowerKey] = $item.value
+                            }
                         }
                     }
                 }
             }
-        }
+        }        
     }
 
     # Override config with the $Parameters values
@@ -1424,6 +1426,8 @@ function Main {
     }
 
     end {
+        # Update Path just in case Python was installed during this PowerShell session.
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         $pyExe = Get-PythonExePath
     
         if ($null -ne $pyExe) {
