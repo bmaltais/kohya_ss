@@ -401,7 +401,7 @@ function Test-Value {
    This function should work on Windows, Linux, macOS, and BSD systems.
 #>
 function Test-IsAdmin {
-    if ($PSVersionTable.Platform -eq 'Win32NT') {
+    if ($os.family -eq "Windows") {
         # Windows-specific code
         $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
@@ -712,7 +712,7 @@ function Test-Python310Installed {
 function Get-PythonExePath {
     $pythonCandidates = @("python3.10", "python3", "python")
 
-    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
+    if ($os.family -eq "Windows") {
         $pythonCandidates += @("python3.10.exe", "python3.exe", "python.exe")
     }
 
@@ -1074,7 +1074,7 @@ function Install-Python3Tk {
                 }
             }
 
-            if (Test-Item $installerPath) {
+            if (Test-Path $installerPath) {
                 Remove-Item $installerPath -ErrorAction SilentlyContinue
             }
         }
@@ -1510,8 +1510,6 @@ function Main {
             Write-Debug "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
         }
-
-
         else {
             Write-Error "Error: Python 3.10 executable not found. Installation cannot proceed."
             exit 1
