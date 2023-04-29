@@ -234,7 +234,7 @@ def train(args):
 
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset_group,
-        batch_size=1,
+        batch_size=args.train_batch_size,
         shuffle=True,
         collate_fn=collater,
         num_workers=n_workers,
@@ -317,7 +317,7 @@ def train(args):
     train_util.resume_from_local_or_hf_if_specified(accelerator, args)
 
     # epoch数を計算する
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) * args.train_batch_size / args.gradient_accumulation_steps)
     num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
     if (args.save_n_epoch_ratio is not None) and (args.save_n_epoch_ratio > 0):
         args.save_every_n_epochs = math.floor(num_train_epochs / args.save_n_epoch_ratio) or 1
