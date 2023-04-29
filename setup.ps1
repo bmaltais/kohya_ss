@@ -642,59 +642,49 @@ function Get-OsInfo {
    True if Python 3.10 is installed, otherwise False.
 #>
 function Test-Python310Installed {
-    $pythonBinaries = @("python", "python3", "python3.10")
+    try {
+        $pythonPath = Get-PythonExePath
+        if ($null -eq $pythonPath) {
+            Write-Error "Python executable not found."
+            return $false
+        }
 
-    if ($os.family -eq "Windows") {
-        # Add windows-specific paths
-        $paths = @("${Env:ProgramFiles}\Python310", "${Env:ProgramFiles(x86)}\Python310")
-        # Add .exe extension for Windows
-        $pythonBinaries = $pythonBinaries | ForEach-Object { "$_.exe" }
-    }
-    else {
-        # Unix-like system paths
-        $paths = @("/usr/bin", "/usr/local/bin", "${Env:HOME}/.local/bin")
-    }
+        Write-Debug "We are testing this python path: {$pythonPath}"
+        $pythonVersion = & $pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
+        $pythonVersion = $pythonVersion -replace '^Python\s', ''
 
-    foreach ($path in $paths) {
-        foreach ($binary in $pythonBinaries) {
-            $global:pythonPath = Join-Path -Path $path -ChildPath $binary
-            Write-Debug "We are testing this python path: {$global:pythonPath}"
-            if (Test-Path -Path $global:pythonPath ) {
-                try {
-                    $pythonVersion = & $global:pythonPath  --version 2>&1 | Out-String -Stream -ErrorAction Stop
-                    $pythonVersion = $pythonVersion -replace '^Python\s', ''
-                    if ($pythonVersion.StartsWith('3.10')) {
-                        return $true
-                    }
+        if ($pythonVersion.StartsWith('3.10')) {
+            return $true
+        }
+        else {
+            Write-Error "Python version at $pythonPath is not 3.10, it's $pythonVersion."
+            return $false
+        }
+    }
+    catch {
+        switch ($_.Exception.GetType().Name) {
+            'Win32Exception' {
+                Write-Error "Python executable found at $pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
+                return $false
+            }
+            'RuntimeException' {
+                if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
+                    Write-Error "Python executable not found at $pythonPath ."
+                    return $false
                 }
-                catch {
-                    switch ($_.Exception.GetType().Name) {
-                        'Win32Exception' {
-                            Write-Error "Python executable found at $global:pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
-                            return $false
-                        }
-                        'RuntimeException' {
-                            if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                                Write-Error "Python executable not found at $global:pythonPath ."
-                                return $false
-                            }
-                            else {
-                                Write-Error "An unknown error occurred when trying to run Python at ${global:pythonPath }: $($_.Exception.Message)"
-                                return $false
-                            }
-                        }
-                        default {
-                            Write-Error "An unknown error occurred when trying to check Python version at ${global:pythonPath }: $($_.Exception.Message)"
-                            return $false
-                        }
-                    }
+                else {
+                    Write-Error "An unknown error occurred when trying to run Python at ${pythonPath}: $($_.Exception.Message)"
+                    return $false
                 }
+            }
+            default {
+                Write-Error "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
+                return $false
             }
         }
     }
-
-    return $false
 }
+
 
 <#
 .SYNOPSIS
@@ -737,10 +727,8 @@ function Get-PythonExePath {
     }
 
     if ($null -eq $foundPythonPath) {
-        $osInfo = Get-OsInfo
-
         # macOS with Homebrew
-        if ($osInfo.family -eq "Darwin") {
+        if ($os.family -eq "Darwin") {
             $brewPythonPath = "/usr/local/opt/python@3.10/bin/python3.10"
             if (Test-Path $brewPythonPath) {
                 $foundPythonPath = $brewPythonPath
@@ -748,7 +736,7 @@ function Get-PythonExePath {
         }
 
         # FreeBSD
-        if ($osInfo.family -eq "FreeBSD") {
+        if ($os.family -eq "FreeBSD") {
             $freebsdPythonPath = "/usr/local/bin/python3.10"
             if (Test-Path $freebsdPythonPath) {
                 $foundPythonPath = $freebsdPythonPath
@@ -849,7 +837,6 @@ function Install-Python310 {
             if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
                 $elevate = "sudo"
             }
-            $os = Get-OsInfo
 
             switch ($os.family) {
                 "Ubuntu" {
@@ -958,7 +945,6 @@ function Install-Python3Tk {
     )
 
     $osFamily = $os.family.ToLower()
-    Write-Debug "Detected OS Family: {$osFamily}"
 
     if ($PSVersionTable.Platform -eq 'Unix') {
         # Linux / macOS installation
@@ -1408,6 +1394,8 @@ function Main {
         if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
                 Install-Python310 -Interactive:$Params.interactive
+                # Update Path just in case Python was installed during this PowerShell session.
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
             }
             else {
                 Write-Host "Python 3.10 is already installed."
@@ -1415,6 +1403,8 @@ function Main {
             
             $installScope = Update-InstallScope($Interactive)
             Install-Python3Tk $installScope
+            # Update Path just in case Python was installed during this PowerShell session.
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
             if (-not (Test-GitInstalled)) {
                 Install-Git
@@ -1427,7 +1417,7 @@ function Main {
 
     end {
         # Update Path just in case Python was installed during this PowerShell session.
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
         $pyExe = Get-PythonExePath
     
         if ($null -ne $pyExe) {
@@ -1523,7 +1513,7 @@ function Main {
 
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
-write-host $os.family
+Write-Debug "Detected OS Family: {$os.family}."
 
 if ($os.family -eq "Windows") {
     $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
