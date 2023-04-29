@@ -1842,8 +1842,11 @@ def replace_unet_cross_attn_to_xformers():
         out = self.to_out[0](out)
         out = self.to_out[1](out)
         return out
-
-    diffusers.models.attention.CrossAttention.forward = forward_xformers
+    # support for pyTorch 2.0
+    if torch.__version__ >= "2.0":
+        diffusers.models.attention._use_memory_efficient_attention_xformers = True
+    else:
+        diffusers.models.attention.CrossAttention.forward = forward_xformers
 
 
 # endregion
@@ -2744,6 +2747,7 @@ def prepare_accelerator(args: argparse.Namespace):
         mixed_precision=args.mixed_precision,
         log_with=log_with,
         logging_dir=logging_dir,
+        split_batches=True,
     )
 
     # accelerateの互換性問題を解決する

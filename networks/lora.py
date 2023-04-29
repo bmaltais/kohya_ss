@@ -668,6 +668,7 @@ class LoRANetwork(torch.nn.Module):
             prefix = LoRANetwork.LORA_PREFIX_UNET if is_unet else LoRANetwork.LORA_PREFIX_TEXT_ENCODER
             loras = []
             skipped = []
+            lora_names = []
             for name, module in root_module.named_modules():
                 if module.__class__.__name__ in target_replace_modules:
                     for child_name, child_module in module.named_modules():
@@ -678,6 +679,7 @@ class LoRANetwork(torch.nn.Module):
                         if is_linear or is_conv2d:
                             lora_name = prefix + "." + name + "." + child_name
                             lora_name = lora_name.replace(".", "_")
+                            if is_unet and lora_name in lora_names: continue
 
                             dim = None
                             alpha = None
@@ -708,6 +710,7 @@ class LoRANetwork(torch.nn.Module):
 
                             lora = module_class(lora_name, child_module, self.multiplier, dim, alpha)
                             loras.append(lora)
+                            lora_names.append(lora_name)
             return loras, skipped
 
         self.text_encoder_loras, skipped_te = create_modules(False, text_encoder, LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE)
@@ -737,7 +740,7 @@ class LoRANetwork(torch.nn.Module):
         # assertion
         names = set()
         for lora in self.text_encoder_loras + self.unet_loras:
-            assert lora.lora_name not in names, f"duplicated lora name: {lora.lora_name}"
+            assert lora.lora_name not in names, f"duplicated lora name: {lora.lora_name} \n{names}"
             names.add(lora.lora_name)
 
     def set_multiplier(self, multiplier):
