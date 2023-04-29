@@ -699,6 +699,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 "Invalid Git URL scheme or local folder path. Only 'https', 'ssh', and local folder paths are "
                 "supported.")
 
+        _success = False
         _error = None
 
         try:
