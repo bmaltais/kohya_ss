@@ -41,6 +41,9 @@
 .PARAMETER Public
     Expose public URL in runpod mode. Won't have an effect in other modes.
 
+.PARAMETER Repair
+    This runs the installation repair operations. These could take a few minutes to run.
+
 .PARAMETER Runpod
     Forces a runpod installation. Useful if detection fails for any reason.
 
@@ -85,6 +88,7 @@ param (
     [string]$LogDir = "",
     [switch]$NoSetup,
     [switch]$Public,
+    [switch]$Repair,
     [switch]$Runpod,
     [switch]$SetupOnly,
     [switch]$SkipSpaceCheck,
@@ -221,12 +225,13 @@ function Get-Parameters {
     # Define the default values
     $Defaults = @{
         'Branch'         = 'master'
-        'Dir'            = "$PSScriptRoot"
+        'Dir'            = $PSScriptRoot
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Interactive'    = $false
-        'LogDir'         = if ([Environment]::OSVersion.Platform -eq 'Win32NT') { "$env:USERPROFILE\.kohya_ss\logs" } else { "$env:HOME/.kohya_ss/logs" }
+        'LogDir'         = ''
         'NoSetup'        = $false
         'Public'         = $false
+        'Repair'         = $false
         'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
@@ -1459,7 +1464,7 @@ function Main {
                 # Replace underscore with hyphen and prepend with --
                 $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
 
-                if ($Parameters[$key] -ne $null) {
+                if ($null -ne $Parameters[$key]) {
                     Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
                 }
                 else {

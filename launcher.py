@@ -207,7 +207,10 @@ def parse_args(_config_data):
         {"short": "-p", "long": "--public", "default": False, "type": bool,
          "help": "Expose public URL in runpod mode. Won't have an effect in other modes."},
 
-        {"short": "-r", "long": "--runpod", "default": False, "type": bool,
+        {"short": "-r", "long": "--repair", "default": False, "type": bool,
+         "help": "This runs the installation repair operations. These could take a few minutes to run."},
+
+        {"short": "", "long": "--runpod", "default": False, "type": bool,
          "help": "Forces a runpod installation. Useful if detection fails for any reason."},
 
         {"short": None, "long": "--setup-only", "default": False, "type": bool,
@@ -1101,108 +1104,134 @@ def find_python_binary():
     return None
 
 
-def install_python_dependencies(_dir, runpod):
-    # Update pip
-    logging.info("Checking for pip updates before Python operations.")
+def install_python_dependencies(_dir, runpod, update=False, repair=False, _log_dir=None):
+    # Name of the flag file
+    flag_file = os.path.join(_log_dir, "status", ".pip_operations_done")
 
-    if args.verbosity >= 2:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
-    else:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
-                        "--no-warn-script-location", "pip"], stderr=subprocess.DEVNULL)
+    logging.debug(f"Pip update flag: {update}")
+    logging.debug(f"Pip repair flag: {repair}")
 
-    # Install python dependencies
-    logging.critical("Installing python dependencies. This could take a long time as it downloads some large files.")
+    # Check for the existence of the flag file
+    if os.path.exists(flag_file) and not (update or repair):
+        logging.critical("--update or --repair not specified. Skipping pip installations and repairs.")
+        return
 
-    # Set the paths for the built-in requirements and temporary requirements files
-    requirements_path = os.path.join(_dir, "requirements.txt")
-    logging.debug(f"Found requirements.txt at: {requirements_path}")
-    if os.path.exists(requirements_path):
-        temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="w+")
-        try:
-            found_comment = False
-            with open(requirements_path, "r") as original_file:
-                for line in original_file:
-                    # Skip comments and empty lines
-                    if line.strip().startswith("#") or not line.strip():
-                        continue
+    try:
+        # Update pip
+        logging.info("Checking for pip updates before Python operations.")
 
-                    logging.debug(f"Processing line: {line.strip()}")
-                    if found_comment:
-                        line = line.replace(".", _dir)
-                        logging.debug(f"Replaced . with: {line}")
-                        found_comment = False
-                    elif re.search(r"#.*kohya_ss.*library", line):
-                        logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
-                        found_comment = True
-                        continue
-                    else:
-                        logging.debug(f"Processing line without any conditions: {line.strip()}")
-
-                    logging.debug(f"Installing: {line.strip()}")
-                    temp_requirements.write(line)
-
-                # Append the appropriate packages based on the conditionals
-                if runpod:
-                    temp_requirements.write("tensorrt\n")
-
-                if os_info.family == "macOS":
-                    if platform.machine() == "arm64":
-                        temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
-                        temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
-                    elif platform.machine() == "x86_64":
-                        temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
-                elif os_info.family == "Windows":
-                    torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-                    torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-                    if not (torch_installed and torchvision_installed):
-                        logging.info("Installing torch and torchvision packages")
-                        if args.verbosity < 3:
-                            subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                                            "--extra-index-url", "https://download.pytorch.org/whl/cu116", "--quiet"])
-                        else:
-                            subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                                            "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
-
-                if os_info.family == "macOS":
-                    macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
-                    if os.path.exists(macos_requirements_path):
-                        with open(macos_requirements_path, "r") as macos_req_file:
-                            for line in macos_req_file:
-                                # Skip comments and empty lines
-                                if line.strip().startswith("#") or not line.strip():
-                                    continue
-
-                                logging.debug(f"Appending macOS requirement: {line.strip()}")
-                                temp_requirements.write(line)
-
-        finally:
-            temp_requirements.flush()
-            temp_requirements.close()
-
-        logging.debug("requirements.txt successfully processed and merged.")
-        if args.verbosity >= 3:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
-                            "-r", temp_requirements.name])
+        if args.verbosity >= 2:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
         else:
-            logging.critical("Please be patient. It takes time for the requirements to be collected before showing "
-                             "Python package validation and installation progress.")
-            # Count the number of packages in the temporary requirements file
-            with open(temp_requirements.name, "r") as f:
-                num_packages = sum(1 for line in f if line.strip())
+            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                            "--no-warn-script-location", "pip"], stderr=subprocess.DEVNULL)
 
-            with open(temp_requirements.name, "r") as f:
-                for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
-                    package = line.strip()
-                    if package:
-                        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
-                                        "--quiet", "--use-pep517", "--no-warn-script-location", package],
-                                       stderr=subprocess.DEVNULL)
+        # Install python dependencies
+        logging.critical(
+            "Installing python dependencies. This could take a long time as it downloads some large files.")
 
-        # Delete the temporary requirements file
-        logging.debug(f"Removing {temp_requirements.name}")
-        if os.path.exists(temp_requirements.name):
-            os.remove(temp_requirements.name)
+        # Set the paths for the built-in requirements and temporary requirements files
+        requirements_path = os.path.join(_dir, "requirements.txt")
+        logging.debug(f"Found requirements.txt at: {requirements_path}")
+        if os.path.exists(requirements_path):
+            temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="w+")
+            try:
+                found_comment = False
+                with open(requirements_path, "r") as original_file:
+                    for line in original_file:
+                        # Skip comments and empty lines
+                        if line.strip().startswith("#") or not line.strip():
+                            continue
+
+                        logging.debug(f"Processing line: {line.strip()}")
+                        if found_comment:
+                            line = line.replace(".", _dir)
+                            logging.debug(f"Replaced . with: {line}")
+                            found_comment = False
+                        elif re.search(r"#.*kohya_ss.*library", line):
+                            logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
+                            found_comment = True
+                            continue
+                        else:
+                            logging.debug(f"Processing line without any conditions: {line.strip()}")
+
+                        logging.debug(f"Installing: {line.strip()}")
+                        temp_requirements.write(line)
+
+                    # Append the appropriate packages based on the conditionals
+                    if runpod:
+                        temp_requirements.write("tensorrt\n")
+
+                    if os_info.family == "macOS":
+                        if platform.machine() == "arm64":
+                            temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
+                            temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
+                        elif platform.machine() == "x86_64":
+                            temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+                    elif os_info.family == "Windows":
+                        torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+                        torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+                        if not (torch_installed and torchvision_installed):
+                            logging.info("Installing torch and torchvision packages")
+                            if args.verbosity < 3:
+                                subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+                                                "--extra-index-url", "https://download.pytorch.org/whl/cu116",
+                                                "--quiet"])
+                            else:
+                                subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
+                                                "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
+
+                    if os_info.family == "macOS":
+                        macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
+                        if os.path.exists(macos_requirements_path):
+                            with open(macos_requirements_path, "r") as macos_req_file:
+                                for line in macos_req_file:
+                                    # Skip comments and empty lines
+                                    if line.strip().startswith("#") or not line.strip():
+                                        continue
+
+                                    logging.debug(f"Appending macOS requirement: {line.strip()}")
+                                    temp_requirements.write(line)
+
+            finally:
+                temp_requirements.flush()
+                temp_requirements.close()
+
+            logging.debug("requirements.txt successfully processed and merged.")
+            if args.verbosity >= 3:
+                subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
+                                "-r", temp_requirements.name])
+            else:
+                logging.critical("Please be patient. It takes time for the requirements to be collected before showing "
+                                 "Python package validation and installation progress.")
+                # Count the number of packages in the temporary requirements file
+                with open(temp_requirements.name, "r") as f:
+                    num_packages = sum(1 for line in f if line.strip())
+
+                with open(temp_requirements.name, "r") as f:
+                    for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
+                        package = line.strip()
+                        if package:
+                            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
+                                            "--quiet", "--use-pep517", "--no-warn-script-location", package],
+                                           stderr=subprocess.DEVNULL)
+
+            # Delete the temporary requirements file
+            logging.debug(f"Removing {temp_requirements.name}")
+            if os.path.exists(temp_requirements.name):
+                os.remove(temp_requirements.name)
+
+        os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
+        with open(flag_file, 'w') as f:
+            f.write('Pip operations done on: ' + str(datetime.now()))
+
+        logging.info("Pip operations completed successfully.")
+
+    except Exception as e:
+        # Handle exceptions appropriately
+        logging.error("An error occurred during pip operations: %s", str(e))
+        # You may choose to re-raise the exception if the error is critical
+        # raise
 
 
 def configure_accelerate(interactive):
@@ -1315,7 +1344,7 @@ def main(_args=None):
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update):
         if brew_install_tensorflow_deps(_args.verbosity):
-            install_python_dependencies(_args.dir, _args.runpod)
+            install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair, getattr(_args, "log-dir"))
             setup_file_links(site_packages_dir, _args.runpod)
             configure_accelerate(args.interactive)
             if not getattr(args, 'setup_only'):
@@ -1327,10 +1356,10 @@ def main(_args=None):
 
 def get_logs_dir(_args):
     if getattr(_args, "log-dir"):
-        _logs_dir = getattr(_args, "log-dir")
+        os.path.expanduser(getattr(_args, "log-dir"))
+        _logs_dir = os.path.abspath(getattr(_args, "log-dir"))
     else:
-        logs_base = os.path.join(os.path.expanduser("~"), ".kohya_ss")
-        _logs_dir = os.path.join(logs_base, "logs")
+        _logs_dir = os.path.join(_args.dir, "logs")
 
     os.makedirs(_logs_dir, exist_ok=True)
     return _logs_dir

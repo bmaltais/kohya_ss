@@ -26,7 +26,8 @@ Options:
   -l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
   -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
-  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
+  --runpod                      Forces a runpod installation. Useful if detection fails for any reason.
   --setup-only                  Do not launch GUI. Only conduct setup operations.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
@@ -87,7 +88,8 @@ while getopts ":vb:d:f:g:il:nprsux-:" opt; do
   l | log-dir) CLI_ARGUMENTS["LogDir"]="$OPTARG" ;;
   n | no-setup) CLI_ARGUMENTS["NoSetup"]="true" ;;
   p | public) CLI_ARGUMENTS["Public"]="true" ;;
-  r | runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
+  r | repair) CLI_ARGUMENTS["Repair"]="true" ;;
+  runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
   setup-only) CLI_ARGUMENTS["SetupOnly"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
   u | update) CLI_ARGUMENTS["Update"]="true" ;;
@@ -165,9 +167,10 @@ config_Branch="${config_Branch:-master}"
 config_Dir="${config_Dir:-$SCRIPT_DIR}"
 config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_Interactive="${config_Interactive:-false}"
-config_LogDir="${config_LogDir:-$HOME/.kohya_ss/logs}"
+config_LogDir="${config_LogDir:-$config_Dir/logs}"
 config_Public="${config_Public:-false}"
 config_NoSetup="${config_NoSetup:-false}"
+config_Repair="${config_Repair:-false}"
 config_Runpod="${config_Runpod:-false}"
 config_SetupOnly="${config_SetupOnly:-false}"
 config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
@@ -194,6 +197,7 @@ INTERACTIVE="$config_Interactive"
 LOG_DIR="$config_LogDir"
 NO_SETUP="$config_NoSetup"
 PUBLIC="$config_Public"
+REPAIR="$config_Repair"
 RUNPOD="$config_Runpod"
 SETUP_ONLY="$config_SetupOnly"
 SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
@@ -235,6 +239,7 @@ Config file location: $USER_CONFIG_FILE
 INTERACTIVE: $INTERACTIVE
 LOG_DIR: $LOG_DIR
 PUBLIC: $PUBLIC
+REPAIR: $REPAIR
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
 UPDATE: $UPDATE
@@ -744,6 +749,7 @@ run_launcher() {
     --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
     $([ "$PUBLIC" = "true" ] && echo "--public") \
+    $([ "$REPAIR" = "true" ] && echo "--repair") \
     $([ "$RUNPOD" = "true" ] && echo "--runpod") \
     $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
     $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
