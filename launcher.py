@@ -756,6 +756,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
 
                     _success = True
                     return _success, _error
+                elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 1):
+                    logging.critical("We have detected a current non-git installation, but --update flag not used. "
+                                     "Skipping git clone operation.")
 
         except git.GitCommandError as _e:
             logging.warning(f"Git command error: {_e}")
@@ -887,7 +890,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
             logging.info("Sorry, we only support zip file updates for master branch on "
                          "github.com/bmaltais/kohya_ss")
             success = False
-
+        elif len(os.listdir(_dir)) > 1:
+            logging.critical("Non-git installation detected, but --update flag not used. Skipping release zip file "
+                             "download attempt.")
         else:
             logging.error("We could not download the latest release via git or zip file.")
             success = False
