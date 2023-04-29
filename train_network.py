@@ -325,6 +325,7 @@ def train(args):
     # 学習する
     # TODO: find a way to handle total batch size when there are multiple datasets
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
+    args.max_train_steps = num_train_epochs * len(train_dataloader)
 
     if is_main_process:
         print("running training / 学習開始")
