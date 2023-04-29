@@ -205,7 +205,7 @@ function Get-Parameters {
     Import-Module 'powershell-yaml'
 
     # Define possible configuration file locations
-    $configFileLocations = if ($IsWindows) {
+    $configFileLocations = if ($global:os.family -eq "Windows") {
         @(
             (Join-Path -Path "$PSScriptRoot\config_files\installation" -ChildPath "install_config.yml")
             (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
@@ -449,7 +449,7 @@ function Get-ElevationCommand {
         [string[]]$args
     )
 
-    if ($IsWindows) {
+    if ($global:os.family -eq "Windows") {
         # On Windows, use the Start-Process cmdlet to run the command as administrator
         if ((Test-IsAdmin) -eq $true) {
             return ""
@@ -641,8 +641,9 @@ function Get-OsInfo {
 #>
 function Test-Python310Installed {
     $pythonBinaries = @("python", "python3", "python3.10")
+    $os = Get-OsInfo
 
-    if ($IsWindows) {
+    if ($global:os.family -eq "Windows") {
         # Add windows-specific paths
         $paths = @("${Env:ProgramFiles}\Python310", "${Env:ProgramFiles(x86)}\Python310")
         # Add .exe extension for Windows
@@ -799,15 +800,15 @@ function Install-Python310 {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
 
-                $pythonUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
-                $pythonInstallerName = "python-3.10.0-amd64.exe"
-                $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
-                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerName
-
+                $downloadsFolder = [Environment]::GetFolderPath('Downloads') 
+                if (!(Test-Path -Path $downloadsFolder)) {
+                    New-Item -ItemType directory -Path $downloadsFolder
+                }
+                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $global:pythonInstallerFile
+        
                 if (-not (Test-Path $installerPath)) {
                     try {
-                        $pythonUrl = "https://www.python.org/ftp/python/3.10.0/$pythonInstallerName"
-                        Invoke-WebRequest -Uri $pythonUrl -OutFile $installerPath
+                        Invoke-WebRequest -Uri $global:pythonInstallerUrl -OutFile $installerPath
                     }
                     catch {
                         Write-Error "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
@@ -849,7 +850,7 @@ function Install-Python310 {
             }
             $os = Get-OsInfo
 
-            switch ($os.family) {
+            switch ($global:os.family) {
                 "Ubuntu" {
                     if (& $elevate apt-get update) {
                         if (!(& $elevate apt-get install -y python3.10)) {
@@ -955,8 +956,7 @@ function Install-Python3Tk {
         [string]$installScope = 'user'
     )
 
-    $os = Get-OsInfo
-    $osFamily = $os.family.ToLower()
+    $osFamily = $global:os.family.ToLower()
     Write-Debug "Detected OS Family: {$osFamily}"
 
     if ($PSVersionTable.Platform -eq 'Unix') {
@@ -1047,11 +1047,10 @@ function Install-Python3Tk {
     }
     else {
         # Windows installation
-        $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
-        $pythonInstallerFile = "python-3.10.0-amd64.exe"
-        $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
-        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
-        Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
+       
+        $downloadsFolder = [Environment]::GetFolderPath('Downloads')
+        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $global:pythonInstallerFile
+        Invoke-WebRequest -Uri $global:pythonInstallerUrl -OutFile $installerPath
 
         $installScope = Update-InstallScope($Interactive)
 
@@ -1076,7 +1075,7 @@ function Install-Python3Tk {
                 }
             }
 
-            Remove-Item $installerPath
+            Remove-Item $installerPath -ErrorAction SilentlyContinue
         }
     }
 }
@@ -1517,6 +1516,14 @@ function Main {
             exit 1
         }
     }
+}
+
+# Set a global OS detection for usage in functions
+$os = Get-OsInfo
+
+if ($os.family -eq "Windows") {
+    $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+    $pythonInstallerFile = "python-3.10.0-amd64.exe"
 }
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
