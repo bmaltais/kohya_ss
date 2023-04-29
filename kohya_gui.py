@@ -84,6 +84,110 @@ def UI(**kwargs):
     interface.launch(**launch_kwargs)
 
 
+def run_command(command):
+    try:
+        return subprocess.check_output(command, shell=True).decode('utf-8').strip()
+    except subprocess.CalledProcessError:
+        return "Command failed, possibly due to lack of administrative privileges."
+    except FileNotFoundError:
+        return "Command not found."
+    except Exception as e:
+        return f"Command failed due to an unknown error: {str(e)}"
+
+
+def is_tool(name):
+    """Check whether `name` is on PATH and marked as executable."""
+    from shutil import which
+    return which(name) is not None
+
+
+def get_cpu_manufacturer():
+    cpu_info = platform.processor().lower()
+    if 'intel' in cpu_info:
+        return 'Intel'
+    elif 'amd' in cpu_info:
+        return 'AMD'
+    elif 'arm' in cpu_info:
+        return 'ARM'
+    else:
+        return "Could not obtain CPU manufacturer."
+
+
+def check_gpu_vram():
+    try:
+        output = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.total', '--format=csv'])
+        output = output.decode('utf-8').strip().split('\n')[1:]
+        gpu_info = [line.split(', ') for line in output]
+        gpu_vram = gpu_info[0][1].replace(' MiB', '')
+        if int(gpu_vram) < 8000:
+            logging.critical('\033[33mWarning: GPU VRAM is less than 8GB and will likely result in proper '
+                             'operations.\033[0m')
+        return gpu_vram
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return "Unknown"
+
+
+# noinspection PyDictCreation
+def debug_system_info():
+    # Get OS, CPU and GPU information
+    _system_info = {}
+
+    # Get System and Python information
+    _system_info['OS'] = platform.system()
+    _system_info['Release'] = platform.release()
+    _system_info['Version'] = platform.version()
+    _system_info['Processor'] = platform.processor()
+    _system_info['CPU Arch'] = platform.machine()
+    _system_info['Python Version'] = platform.python_version()
+    _system_info['Python Implementation'] = platform.python_implementation()
+    _system_info['Python Compiler'] = platform.python_compiler()
+    _system_info['GPU VRAM'] = check_gpu_vram()
+
+    # Get CPU manufacturer
+    try:
+        if _system_info['OS'] == "Windows":
+            output = subprocess.check_output(['wmic', 'cpu', 'get', 'Manufacturer'],
+                                             stderr=subprocess.STDOUT).decode().strip()
+            _system_info['CPU Manufacturer'] = output.split('\n')[1].strip()
+        elif _system_info['OS'] == "Linux":
+            output = subprocess.check_output(['lscpu']).decode().strip()
+            _system_info['CPU Manufacturer'] = re.search('Vendor ID:(.*)', output).group(1).strip()
+        elif _system_info['OS'] == "Darwin":
+            output = subprocess.check_output(['sysctl', '-n', 'machdep.cpu.vendor']).decode().strip()
+            _system_info['CPU Manufacturer'] = output
+        else:
+            _system_info['CPU Manufacturer'] = "Unknown"
+    except Exception as e:
+        _system_info['CPU Manufacturer'] = "Could not get system information: " + str(e)
+
+    # Get GPU information
+    try:
+        if _system_info['OS'] == "Windows":
+            output = subprocess.check_output(['wmic', 'path', 'win32_VideoController', 'get', 'name'],
+                                             stderr=subprocess.STDOUT).decode().strip()
+            _system_info['GPU'] = output.split('\n')[1].strip()
+        elif _system_info['OS'] == "Linux":
+            output = subprocess.check_output(['lspci']).decode().strip()
+            for line in output.split('\n'):
+                if 'VGA compatible controller' in line:
+                    _system_info['GPU'] = line.split(':')[2].strip().split('[')[0].strip()
+                    break
+        elif _system_info['OS'] == "Darwin":
+            output = subprocess.check_output(['system_profiler', 'SPDisplaysDataType'],
+                                             stderr=subprocess.STDOUT).decode().strip()
+            _system_info['GPU'] = re.search('Chipset Model:(.*)', output).group(1).strip()
+        else:
+            _system_info['GPU'] = "Unknown"
+    except Exception as e:
+        _system_info['GPU'] = "Could not get information: " + str(e)
+
+    # Check for virtual environment
+    _system_info['Virtual Environment'] = hasattr(sys, 'real_prefix') or \
+                                          (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    return _system_info
+
+
+
 def find_config_file(config_file_locations):
     for location in config_file_locations:
         abs_location = os.path.abspath(location)
@@ -450,21 +554,34 @@ if __name__ == '__main__':
 
     if args.verbosity >= 3:
         # Get system information
-        system = platform.system()
-        release = platform.release()
-        version = platform.version()
-        machine = platform.machine()
-        processor = platform.processor()
+        system_info = debug_system_info()
 
-        # Get Python information
-        python_version = platform.python_version()
-        python_implementation = platform.python_implementation()
-        python_compiler = platform.python_compiler()
-
-        logging.debug(f"System Information:\nSystem: {system}\nRelease: {release}\nVersion: {version}\n"
-                      f"Machine: {machine}\nProcessor: {processor}")
-        logging.debug(f"Python Information:\nVersion: {python_version}\nImplementation: "
-                      f"{python_implementation}\nCompiler: {python_compiler}")
+        logging.debug(
+            "\nOS: '%s'"
+            "\nCPU Arch: '%s'"
+            "\nCPU Manufacturer: '%s'"
+            "\nGPU: '%s'"
+            "\nGPU VRAM: '%s'"
+            "\nRelease: '%s'"
+            "\nVersion: '%s'"
+            "\nPython Version: '%s'"
+            "\nPython Implementation: '%s'"
+            "\nPython Compiler: '%s'"
+            "\nVirtual Environment: '%s'",
+            system_info['OS'],
+            system_info['CPU Arch'],
+            system_info['CPU Manufacturer'],
+            system_info['GPU'],
+            system_info['GPU VRAM'],
+            system_info['Release'],
+            system_info['Version'],
+            system_info['Python Version'],
+            system_info['Python Implementation'],
+            system_info['Python Compiler'],
+            system_info['Virtual Environment']
+        )
+    else:
+        check_gpu_vram()
 
     UI(
         username=args.username,
