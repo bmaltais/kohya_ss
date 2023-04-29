@@ -234,7 +234,7 @@ def train(args):
 
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset_group,
-        batch_size=args.train_batch_size,
+        batch_size=accelerator.num_processes,
         shuffle=True,
         collate_fn=collater,
         num_workers=n_workers,
