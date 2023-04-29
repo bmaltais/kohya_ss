@@ -1032,40 +1032,45 @@ function Install-Python3Tk {
             Write-Host "Tkinter for Python 3.10 is already installed on this system."
         }
     }
-    else {
+    else { 
         # Windows installation
-       
-        $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-        $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
-        Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
+        if (! (Test-Python310Installed)) {
+            $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+            $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
+            Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
 
-        $installScope = Update-InstallScope($Interactive)
+            $installScope = Update-InstallScope($Interactive)
 
-        if ($installScope -eq 'allusers') {
-            if (Test-IsAdmin) {
-                try {
-                    Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
-                }
-                catch {
-                    Write-Error "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
-                }
-            }
-            else {
+            if ($installScope -eq 'allusers') {
                 if (Test-IsAdmin) {
-                    Write-Warning "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
+                    try {
+                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
+                    }
+                    catch {
+                        Write-Error "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
+                    }
                 }
-                try {
-                    Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                else {
+                    if (Test-IsAdmin) {
+                        Write-Warning "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
+                    }
+                    try {
+                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                    }
+                    catch {
+                        Write-Error "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
+                    }
                 }
-                catch {
-                    Write-Error "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
-                }
-            }
 
-            if (Test-Path $installerPath) {
-                Remove-Item $installerPath -ErrorAction SilentlyContinue
+                if (Test-Path $installerPath) {
+                    Remove-Item $installerPath -ErrorAction SilentlyContinue
+                }
             }
         }
+        else {
+            Write-Host "Tkinter for Python 3.10 is already installed on this system."
+        }
+        
     }
 }
 
