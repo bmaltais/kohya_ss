@@ -11,3 +11,4 @@ gui-user.bat
 gui-user.ps1
 .vscode
 wandb
+setup.log

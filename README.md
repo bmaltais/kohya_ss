@@ -314,6 +314,7 @@ This will store a backup file with your current locally installed pip packages a
     - Not tested in multi-GPU environment. Please report any bugs.
   - `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
   - Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
+  - Fix issue with using earlier version than python 3.10 in Linux. Thanks @Whyjsee
 * 2023/04/24 (v21.5.6)
     - Fix triton error
     - Fix issue with merge lora path with spaces

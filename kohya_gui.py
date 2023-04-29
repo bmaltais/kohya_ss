@@ -85,7 +85,7 @@ def UI(**kwargs):
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            log.info('Load CSS...')
             css += file.read() + '\n'
 
     interface = gr.Blocks(

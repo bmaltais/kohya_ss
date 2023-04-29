@@ -4,7 +4,8 @@
 # v3.1: Adding captionning of images to utilities
 
 import gradio as gr
-import easygui
+import logging
+import time
 import json
 import math
 import os
@@ -51,7 +52,63 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
+log = logging.getLogger('sd')
 
+# setup console and file logging
+# def setup_logging(clean=False):
+#     try:
+#         if clean and os.path.isfile('setup.log'):
+#             os.remove('setup.log')
+#         time.sleep(0.1)   # prevent race condition
+#     except:
+#         pass
+#     logging.basicConfig(
+#         level=logging.DEBUG,
+#         format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s',
+#         filename='setup.log',
+#         filemode='a',
+#         encoding='utf-8',
+#         force=True,
+#     )
+#     from rich.theme import Theme
+#     from rich.logging import RichHandler
+#     from rich.console import Console
+#     from rich.pretty import install as pretty_install
+#     from rich.traceback import install as traceback_install
+
+#     console = Console(
+#         log_time=True,
+#         log_time_format='%H:%M:%S-%f',
+#         theme=Theme(
+#             {
+#                 'traceback.border': 'black',
+#                 'traceback.border.syntax_error': 'black',
+#                 'inspect.value.border': 'black',
+#             }
+#         ),
+#     )
+#     pretty_install(console=console)
+#     traceback_install(
+#         console=console,
+#         extra_lines=1,
+#         width=console.width,
+#         word_wrap=False,
+#         indent_guides=False,
+#         suppress=[],
+#     )
+#     rh = RichHandler(
+#         show_time=True,
+#         omit_repeated_times=False,
+#         show_level=True,
+#         show_path=False,
+#         markup=False,
+#         rich_tracebacks=True,
+#         log_time_format='%H:%M:%S-%f',
+#         level=logging.DEBUG if args.debug else logging.INFO,
+#         console=console,
+#     )
+#     rh.set_name(logging.DEBUG if args.debug else logging.INFO)
+#     log.addHandler(rh)
 
 def save_configuration(
     save_as,
@@ -148,14 +205,14 @@ def save_configuration(
     save_as_bool = True if save_as.get('label') == 'True' else False
 
     if save_as_bool:
-        print('Save as...')
+        log.info('Save as...')
         file_path = get_saveasfile_path(file_path)
     else:
-        print('Save...')
+        log.info('Save...')
         if file_path == None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
-    # print(file_path)
+    # log.info(file_path)
 
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -286,7 +343,7 @@ def open_configuration(
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            print('Loading config...')
+            log.info('Loading config...')
 
             # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
@@ -396,6 +453,7 @@ def train_model(
     save_last_n_steps_state,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
+    log.info(f'Start training LoRA {LoRA_type} ...')
 
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -482,19 +540,19 @@ def train_model(
                 ]
             )
 
-            print(f'Folder {folder}: {num_images} images found')
+            log.info(f'Folder {folder}: {num_images} images found')
 
             # Calculate the total number of steps for this folder
             steps = repeats * num_images
 
-            # Print the result
-            print(f'Folder {folder}: {steps} steps')
+            # log.info the result
+            log.info(f'Folder {folder}: {steps} steps')
 
             total_steps += steps
 
         except ValueError:
             # Handle the case where the folder name does not contain an underscore
-            print(
+            log.info(
                 f"Error: '{folder}' does not contain an underscore, skipping..."
             )
 
@@ -507,7 +565,7 @@ def train_model(
             # * int(reg_factor)
         )
     )
-    print(f'max_train_steps = {max_train_steps}')
+    log.info(f'max_train_steps = {max_train_steps}')
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -516,10 +574,10 @@ def train_model(
         stop_text_encoder_training = math.ceil(
             float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
         )
-    print(f'stop_text_encoder_training = {stop_text_encoder_training}')
+    log.info(f'stop_text_encoder_training = {stop_text_encoder_training}')
 
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    print(f'lr_warmup_steps = {lr_warmup_steps}')
+    log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
 
@@ -557,7 +615,7 @@ def train_model(
         try:
             import lycoris
         except ModuleNotFoundError:
-            print(
+            log.info(
                 "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
             )
             return
@@ -567,7 +625,7 @@ def train_model(
         try:
             import lycoris
         except ModuleNotFoundError:
-            print(
+            log.info(
                 "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
             )
             return
@@ -738,12 +796,12 @@ def train_model(
     #     run_cmd += f' --conv_alphas="{conv_alphas}"'
 
     if print_only_bool:
-        print(
+        log.info(
             '\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n'
         )
-        print('\033[96m' + run_cmd + '\033[0m\n')
+        log.info('\033[96m' + run_cmd + '\033[0m\n')
     else:
-        print(run_cmd)
+        log.info(run_cmd)
         # Run the command
         if os.name == 'posix':
             os.system(run_cmd)
@@ -973,7 +1031,7 @@ def lora_tab(
         # Show of hide LoCon conv settings depending on LoRA type selection
         def update_LoRA_settings(LoRA_type):
             # Print a message when LoRA type is changed
-            print('LoRA type changed...')
+            log.info('LoRA type changed...')
 
             # Determine if LoCon_row should be visible based on LoRA_type
             LoCon_row = LoRA_type in {
@@ -1317,7 +1375,7 @@ def UI(**kwargs):
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            log.info('Load CSS...')
             css += file.read() + '\n'
 
     interface = gr.Blocks(css=css)
@@ -1352,7 +1410,7 @@ def UI(**kwargs):
         launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
     if kwargs.get('listen', True):
         launch_kwargs['server_name'] = '0.0.0.0'
-    print(launch_kwargs)
+    log.info(launch_kwargs)
     interface.launch(**launch_kwargs)
 
 

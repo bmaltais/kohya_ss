@@ -3,7 +3,7 @@
 $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 
 # Debug info about system
-python.exe .\tools\debug_info.py
+# python.exe .\tools\debug_info.py
 
 # Validate the requirements and store the exit code
 python.exe .\tools\validate_requirements.py
@@ -16,6 +16,6 @@ if ($LASTEXITCODE -eq 0) {
         $argsFromFile = Get-Content .\gui_parameters.txt -Encoding UTF8 | Where-Object { $_ -notmatch "^#" } | Foreach-Object { $_ -split " " }
     }
     $args_combo = $argsFromFile + $args
-    Write-Host "The arguments passed to this script were: $args_combo"
+    # Write-Host "The arguments passed to this script were: $args_combo"
     python.exe kohya_gui.py $args_combo
 }
