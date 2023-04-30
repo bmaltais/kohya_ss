@@ -965,6 +965,10 @@ function Install-Python310 {
         exit 1
     }
 
+    # We are updating the environment and python path after installation to ensure it is picked up by the environment every time.
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $script:pythonPath = Get-PythonExePath
+
     if (Test-Python310Installed) {
         Write-Host "Python 3.10 installed successfully."
     }
@@ -1117,7 +1121,10 @@ function Install-Python3Tk {
         else {
             Write-Host "Tkinter for Python 3.10 is already installed on this system."
         }
-        
+
+        # We are updating the environment and python path after installation to ensure it is picked up by the environment every time.
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        $script:pythonPath = Get-PythonExePath      
     }
 }
 
@@ -1226,6 +1233,105 @@ function Get-GitHashFromWeb {
     return $hash
 }
 
+function Get-GitExePath {
+    if ($os.family -eq "Windows") {
+        # Try to get the Git path from the registry if Git is installed natively on Windows
+        $registryPath = "HKLM:\SOFTWARE\GitForWindows"
+        $gitPath = Get-ItemPropertyValue -Path $registryPath -Name InstallPath -ErrorAction SilentlyContinue
+
+        # Try to find Git installation path using Winget
+        if (-not $gitPath -and (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+            $wingetResults = winget search git
+            $gitResult = $wingetResults | Where-Object { $_.Name -match 'git for windows' } | Select-Object -First 1
+            if ($gitResult) {
+                $gitPath = $gitResult.InstalledLocation
+            }
+        }
+
+        # Try to find Git installation path using Scoop
+        if (-not $gitPath -and (Get-Command scoop.exe -ErrorAction SilentlyContinue)) {
+            $scoopResults = scoop search git
+            $gitResult = $scoopResults | Where-Object { $_.Name -match 'git' } | Select-Object -First 1
+            if ($gitResult) {
+                $gitPath = Join-Path -Path $env:USERPROFILE -ChildPath ('scoop\apps\' + $gitResult.Name + '\' + $gitResult.Version + '\bin')
+            }
+        }
+
+        # Try to find Git installation path using Chocolatey
+        if (-not $gitPath -and (Get-Command choco.exe -ErrorAction SilentlyContinue)) {
+            $chocoResults = choco search git
+            $gitResult = $chocoResults | Where-Object { $_.Name -match 'git' } | Select-Object -First 1
+            if ($gitResult) {
+                $gitPath = Join-Path -Path $env:ProgramFiles -ChildPath ('Git\bin')
+            }
+        }
+
+        # If Git is not installed using any known package manager, fall back to the hard-coded paths
+        if (-not $gitPath) {
+            $gitPath = Join-Path -Path $env:ProgramFiles -ChildPath 'Git\bin'
+            if (-not (Test-Path $gitPath)) {
+                $gitPath = Join-Path -Path $env:ProgramFiles(x86) -ChildPath 'Git\bin'
+            }
+        }
+    }
+    elseif ($os.family -eq "Darwin") {
+        # Try to find Git installation path using Homebrew
+        if (Get-Command brew -ErrorAction SilentlyContinue) {
+            $brewResults = brew list --cask --versions git
+            if ($brewResults) {
+                $brewResult = $brewResults | Select-Object -First 1
+                $gitPath = Join-Path -Path '/usr/local/Caskroom/git' -ChildPath $brewResult
+            }
+        }
+
+        # If Git is not installed using Homebrew, fall back to the default path
+        if (-not $gitPath) {
+            $gitPath = '/usr/bin'
+        }
+    }
+    elseif ($os.family -eq "Linux" -or $os.family -eq "FreeBSD") {
+        # Try to find Git installation path using the package manager
+        if (Get-Command apt-get -ErrorAction SilentlyContinue) {
+            $dpkgResults = dpkg -l git
+            if ($dpkgResults -match '^ii') {
+                $gitPath = Join-Path -Path "/usr/bin" -ChildPath "git"
+            }
+        }
+        elseif (Get-Command pacman -ErrorAction SilentlyContinue) {
+            $pacmanResults = pacman -Ql git | Where-Object { $_ -match '/bin/git$' }
+            if ($pacmanResults) {
+                $gitPath = Split-Path -Parent $pacmanResults
+            }
+        }
+        elseif (Get-Command dnf -ErrorAction SilentlyContinue) {
+            $rpmResults = rpm -qa git
+            if ($rpmResults) {
+                $gitPath = Join-Path -Path "/usr/bin" -ChildPath "git"
+            }
+        }
+        
+        # If Git is not installed using the package manager, fall back to the hard-coded path
+        if (-not $gitPath) {
+            $gitPath = "/usr/bin/git"
+        }
+        
+        # Test if Git executable exists in the resolved path
+        if (-not (Test-Path $gitPath)) {
+            Write-Error "Git executable not found at path '$gitPath'. Installation may be incomplete or corrupted."
+        }
+        else {
+            $env:Path = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ":" + [System.Environment]::GetEnvironmentVariable("PATH", "User") + ":$gitPath"
+            $script:gitPath = $gitPath
+        }
+        
+        if (Test-Path $gitPath) {
+            return $gitPath
+        }
+        
+        Write-Error "Could not find Git executable."
+    }
+}        
+
 <#
 .SYNOPSIS
    Installs Git using the specified installer.
@@ -1309,6 +1415,9 @@ function Install-Git {
                 if (Test-Path $script:gitInstallerPath) {
                     Remove-Item $script:gitInstallerPath
                 }
+                # Update the environment and Git path after installation to ensure it is picked up by the environment every time
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+                $script:gitPath = Get-GitExePath
             }
             else {
                 # We default to installing at a user level if admin is not detected.
@@ -1498,8 +1607,6 @@ function Main {
         if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
                 Install-Python310 -Interactive:$Params.interactive
-                # Update Path just in case Python was installed during this PowerShell session.
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
             }
             else {
                 Write-Host "Python 3.10 is already installed."
@@ -1507,8 +1614,6 @@ function Main {
             
             $installScope = Update-InstallScope($Interactive)
             Install-Python3Tk $installScope
-            # Update Path just in case Python was installed during this PowerShell session.
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
             if (-not (Test-GitInstalled)) {
                 Install-Git
@@ -1621,6 +1726,7 @@ function Main {
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath
+$script:gitPath = Get-GitExePath
 
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
