@@ -179,7 +179,7 @@ config_Verbosity="${config_Verbosity:-0}"
 config_Listen="${config_Listen:-127.0.0.1}"
 config_Username="${config_Username:-}"
 config_Password="${config_Password:-}"
-config_ServerPort="${config_ServerPort:-7861}"
+config_ServerPort="${config_ServerPort:-0}"
 config_Inbrowser="${config_Inbrowser:-false}"
 config_Share="${config_Share:-false}"
 

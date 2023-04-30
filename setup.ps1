@@ -240,7 +240,7 @@ function Get-Parameters {
         'Listen'         = '127.0.0.1'
         'Username'       = ''
         'Password'       = ''
-        'ServerPort'     = 7861
+        'ServerPort'     = 0
         'Inbrowser'      = $false
         'Share'          = $false
     }

@@ -152,7 +152,9 @@ def normalize_paths(_args, default_args):
             path_value = getattr(_args, arg_name, None)
             if path_value and isinstance(path_value, str):
                 expanded_path_value = os.path.expanduser(path_value)
-                setattr(_args, arg_name, os.path.abspath(expanded_path_value))
+                if not os.path.isabs(expanded_path_value):
+                    expanded_path_value = os.path.abspath(expanded_path_value)
+                setattr(_args, arg_name, expanded_path_value)
 
 
 # This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
@@ -1251,18 +1253,31 @@ def configure_accelerate(interactive):
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
     if interactive:
-        os.system("accelerate config")
+        try:
+            subprocess.check_call(["accelerate", "config"])
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Accelerate config failed with error code {e.returncode}")
     else:
         target_config_location = None
 
-        if env_var_exists("HF_HOME"):
-            target_config_location = Path(os.environ["HF_HOME"], "accelerate", "default_config.yaml")
-        elif env_var_exists("XDG_CACHE_HOME"):
-            target_config_location = Path(os.environ["XDG_CACHE_HOME"], "huggingface",
-                                          "accelerate", "default_config.yaml")
-        elif env_var_exists("HOME"):
-            target_config_location = Path(os.environ["HOME"], ".cache", "huggingface",
-                                          "accelerate", "default_config.yaml")
+        if os_info.family == "Windows":
+            if env_var_exists("HF_HOME"):
+                target_config_location = Path(os.environ["HF_HOME"], "accelerate", "default_config.yaml")
+            elif env_var_exists("LOCALAPPDATA"):
+                target_config_location = Path(os.environ["LOCALAPPDATA"], "huggingface",
+                                              "accelerate", "default_config.yaml")
+            elif env_var_exists("USERPROFILE"):
+                target_config_location = Path(os.environ["USERPROFILE"], ".cache", "huggingface",
+                                              "accelerate", "default_config.yaml")
+        else:
+            if env_var_exists("HF_HOME"):
+                target_config_location = Path(os.environ["HF_HOME"], "accelerate", "default_config.yaml")
+            elif env_var_exists("XDG_CACHE_HOME"):
+                target_config_location = Path(os.environ["XDG_CACHE_HOME"], "huggingface",
+                                              "accelerate", "default_config.yaml")
+            elif env_var_exists("HOME"):
+                target_config_location = Path(os.environ["HOME"], ".cache", "huggingface",
+                                              "accelerate", "default_config.yaml")
 
         if target_config_location:
             if not target_config_location.is_file():
@@ -1272,7 +1287,10 @@ def configure_accelerate(interactive):
                 logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
-            os.system("accelerate config")
+            try:
+                subprocess.check_call(["accelerate", "config"])
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Accelerate config failed with error code {e.returncode}")
 
 
 def launch_kohya_gui(_args):
@@ -1362,8 +1380,7 @@ def main(_args=None):
 
 def get_logs_dir(_args):
     if getattr(_args, "log-dir"):
-        os.path.expanduser(getattr(_args, "log-dir"))
-        _logs_dir = os.path.abspath(getattr(_args, "log-dir"))
+        _logs_dir = os.path.abspath(os.path.expanduser(getattr(_args, "log-dir")))
     else:
         _logs_dir = os.path.join(_args.dir, "logs")
 
@@ -1504,7 +1521,7 @@ if __name__ == "__main__":
             logging.info("In container, skipping virtual environment.")
             venv_python_bin = python_bin
             python_executable_dir = os.path.dirname(python_bin)
-            if os.name == "Windows":
+            if os_info.family == "Windows":
                 site_packages_dir = os.path.join(python_executable_dir, "Lib", "site-packages")
             else:
                 site_packages_dir = os.path.join(python_executable_dir, "..", "lib", "python" + sys.version[:3],
