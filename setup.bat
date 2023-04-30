@@ -21,8 +21,7 @@ echo [2] - No (recommanded for most)
 set /p uninstall_choice="Enter your choice (1 or 2): "
 
 if %uninstall_choice%==1 (
-    pip uninstall -y xformers
-    pip uninstall -y torch torchvision
+    pip uninstall -y xformers torch torchvision triton
 )
 
 echo Please choose the version of torch you want to install:
