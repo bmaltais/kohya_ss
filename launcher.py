@@ -539,7 +539,9 @@ def in_container():
 
 
 class GitAuthenticationError(Exception):
-    pass
+    def __init__(self):
+        logging.critical(f"Authentication error in git.")
+        super().__init__(f"Authentication error in git.")
 
 
 class UpdateSkippedException(Exception):
@@ -547,7 +549,9 @@ class UpdateSkippedException(Exception):
 
 
 class UncommittedChangesException(Exception):
-    pass
+    def __init__(self, local_git_repo):
+        logging.critical(f"Uncommitted changes in {local_git_repo}")
+        super().__init__(f"Uncommitted changes in {local_git_repo}")
 
 
 def is_git_installed():
@@ -723,7 +727,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 local_git_repo = git.Repo(_dir)
 
                 if has_uncommitted_changes(local_git_repo):
-                    raise UncommittedChangesException()
+                    raise UncommittedChangesException(local_git_repo)
 
                 logging.debug("git pull operation entered.")
 
