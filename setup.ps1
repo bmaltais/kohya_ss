@@ -846,17 +846,25 @@ function Install-Python310 {
                 }
 
                 if ($installScope -eq "user") {
-                    Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -PassThru
                 }
                 else {
-                    Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
+                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -PassThru
                 }
-
-                Remove-Item $pythonInstallerPath
+                
+                $proc.WaitForExit()
+                if (Test-Path $pythonInstallerPath ) { 
+                    Remove-Item $pythonInstallerPath 
+                }
+                
             }
             else {
                 # We default to installing at a user level if admin is not detected.
-                Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -PassThru
+                $proc.WaitForExit()
+                if (Test-Path $pythonInstallerPath ) { 
+                    Remove-Item $pythonInstallerPath 
+                }
             }
         }
     }
@@ -1075,16 +1083,15 @@ function Install-Python3Tk {
     else { 
         # Windows installation
         if (! (Test-Python310Installed)) {
-            $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-            $installerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:pythonInstallerFile
-            Invoke-WebRequest -Uri $script:pythonInstallerUrl -OutFile $installerPath
+            Invoke-WebRequest -Uri $script:pythonInstallerUrl -OutFile $script:pythonInstallerPath
 
             $installScope = Update-InstallScope($Interactive)
 
             if ($installScope -eq 'allusers') {
                 if (Test-IsAdmin) {
                     try {
-                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -Wait
+                        $proc = Start-Process -FilePath $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1" -PassThru
+                        $proc.WaitForExit()
                     }
                     catch {
                         Write-Error "Error: Failed to install Python 3.10 Tk for all users on Windows. $_"
@@ -1095,15 +1102,16 @@ function Install-Python3Tk {
                         Write-Warning "Warning: Running as administrator, but 'user' scope is selected. Proceeding with user-scope installation."
                     }
                     try {
-                        Start-Process -FilePath $installerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -Wait
+                        $proc = Start-Process -FilePath $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1" -PassThru
+                        $proc.WaitForExit()
                     }
                     catch {
                         Write-Error "Error: Failed to install Python 3.10 Tk for current user on Windows. $_"
                     }
                 }
 
-                if (Test-Path $installerPath) {
-                    Remove-Item $installerPath -ErrorAction SilentlyContinue
+                if (Test-Path $script:pythonInstallerPath) {
+                    Remove-Item $script:pythonInstallerPath -ErrorAction SilentlyContinue
                 }
             }
         }
@@ -1284,7 +1292,7 @@ function Install-Git {
                 }
 
                 # Compute the SHA-256 hash of the downloaded file
-                $downloadedGitSha256 = Get-FileHash -Algorithm SHA256 -Path $installerPath | ForEach-Object Hash
+                $downloadedGitSha256 = Get-FileHash -Algorithm SHA256 -Path $script:gitInstallerPath | ForEach-Object Hash
 
                 # Check if the computed SHA-256 hash matches the expected SHA-256 hash
                 if ($downloadedGitSha256 -ne $script:gitSha256) {
@@ -1293,17 +1301,23 @@ function Install-Git {
                 }
 
                 if ($installScope -eq "user") {
-                    Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
+                    $proc = Start-Process $script:gitInstallerPath-ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 }
                 else {
-                    Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
+                    $proc = Start-Process $script:gitInstallerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 }
-
-                Remove-Item $installerPath
+                $proc.WaitForExit()
+                if (Test-Path $script:gitInstallerPath) {
+                    Remove-Item $script:gitInstallerPath
+                }
             }
             else {
                 # We default to installing at a user level if admin is not detected.
-                Start-Process $installerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -Wait
+                $proc = Start-Process $script:gitInstallerPath-ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
+                $proc.WaitForExit()
+                if (Test-Path $script:gitInstallerPath) {
+                    Remove-Item $script:gitInstallerPath
+                }
             }
         }
     }
