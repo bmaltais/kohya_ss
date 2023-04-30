@@ -799,23 +799,23 @@ function Install-Python310 {
                 $downloadedPythonMd5 = Get-FileHash -Algorithm MD5 -Path $installerPath | ForEach-Object Hash
 
                 # Check if the computed MD5 hash matches the expected MD5 hash
-                if ($downloadedPythonMd5 -ne $pythonMd5) {
+                if ($downloadedPythonMd5 -ne $script:pythonMd5) {
                     Write-Error "MD5 hash mismatch for Python 3.10. The downloaded file may be corrupt or tampered with."
                     exit 1
                 }
 
                 if ($installScope -eq "user") {
-                    Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                    Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
                 }
                 else {
-                    Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
+                    Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
                 }
 
                 Remove-Item $pythonInstallerPath
             }
             else {
                 # We default to installing at a user level if admin is not detected.
-                Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
             }
         }
     }
@@ -1034,9 +1034,9 @@ function Install-Python3Tk {
     else { 
         # Windows installation
         if (! (Test-Python310Installed)) {
-            $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-            $installerPath = Join-Path -Path $downloadsFolder -ChildPath $pythonInstallerFile
-            Invoke-WebRequest -Uri $pythonInstallerUrl -OutFile $installerPath
+            $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+            $installerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:pythonInstallerFile
+            Invoke-WebRequest -Uri $script:pythonInstallerUrl -OutFile $installerPath
 
             $installScope = Update-InstallScope($Interactive)
 
@@ -1190,9 +1190,9 @@ function Install-Git {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
 
-                if (-not (Test-Path $gitInstallerPath)) {
+                if (-not (Test-Path $script:gitInstallerPath)) {
                     try {
-                        Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstallerPath
+                        Invoke-WebRequest -Uri $script:gitUrl -OutFile $script:gitInstallerPath
                     }
                     catch {
                         Write-Error "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
@@ -1204,7 +1204,7 @@ function Install-Git {
                 $downloadedGitSha256 = Get-FileHash -Algorithm SHA256 -Path $installerPath | ForEach-Object Hash
 
                 # Check if the computed SHA-256 hash matches the expected SHA-256 hash
-                if ($downloadedGitSha256 -ne $gitSha256) {
+                if ($downloadedGitSha256 -ne $script:gitSha256) {
                     Write-Error "SHA-256 hash mismatch for git. The downloaded file may be corrupt or tampered with."
                     exit 1
                 }
@@ -1352,8 +1352,8 @@ function Install-VCRedistWindows {
 
     $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
     $vcRedistInstallerName = "vc_redist.x64.exe"
-    $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-    $installerPath = Join-Path -Path $downloadsFolder -ChildPath $vcRedistInstallerName
+    $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+    $installerPath = Join-Path -Path $script:downloadsFolder -ChildPath $vcRedistInstallerName
 
     if (-not (Test-Path $installerPath)) {
         try {
@@ -1529,18 +1529,18 @@ Write-Debug "Detected OS Family: {$os.family}."
 
 # Define versions globally for easy modification
 if ($os.family -eq "Windows") {
-    $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+    $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
     # Python URL and file hash
-    $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
-    $pythonInstallerFile = Split-Path -Leaf $pythonInstallerUrl
-    $pythonInstallerPath = Join-Path -Path $downloadsFolder -ChildPath pythonInstallerFile
-    $pythonMd5 = "a55e9c1e6421c84a4bd8b4be41492f51"
+    $script:pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
+    $script:pythonInstallerFile = Split-Path -Leaf $script:pythonInstallerUrl
+    $script:pythonInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:pythonInstallerFile
+    $script:pythonMd5 = "a55e9c1e6421c84a4bd8b4be41492f51"
 
     # Git URL and file hash
-    $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
-    $gitSha256 = "d2f0fbf9d84622b2aa4aed401daf6dedb8ac89bb388af02078ba375496a873dc"
-    $gitInstallerFile = Split-Path -Leaf $gitUrl
-    $gitInstallerPath = Join-Path -Path $downloadsFolder -ChildPath $gitInstallerFile
+    $script:gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
+    $script:gitSha256 = "d2f0fbf9d84622b2aa4aed401daf6dedb8ac89bb388af02078ba375496a873dc"
+    $script:gitInstallerFile = Split-Path -Leaf $gitUrl
+    $script:gitInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:gitInstallerFile
 }
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
