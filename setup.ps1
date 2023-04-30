@@ -1191,8 +1191,8 @@ function Install-Git {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
 
-                $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.35.1.windows.1/Git-2.35.1-64-bit.exe"
-                $gitInstallerName = "Git-2.35.1-64-bit.exe"
+                $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
+                $gitInstallerName = Split-Path -Leaf $gitUrl
                 $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
                 $installerPath = Join-Path -Path $downloadsFolder -ChildPath $gitInstallerName
 
