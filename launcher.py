@@ -1241,7 +1241,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                             logging.info("Installing torch and torchvision packages")
                             if interactive:
                                 while True:
-                                    choice = input("Choose Torch version: (1) Stable, (2) Experimental: ")
+                                    choice = input("Choose Torch version: (1) V1, (2) V2: ")
                                     if choice == '1':
                                         _TORCH_VERSION = TORCH_VERSION_1
                                         _TORCHVISION_VERSION = TORCHVISION_VERSION_1
@@ -1253,11 +1253,12 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                         _TORCH_INDEX_URL = TORCH_INDEX_URL_2
                                         break
                                     else:
-                                        print("Invalid choice. Please enter 1 for Stable or 2 for Experimental.")
+                                        print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
                             else:
                                 _TORCH_VERSION = TORCH_VERSION_1
                                 _TORCHVISION_VERSION = TORCHVISION_VERSION_1
                                 _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                                choice = '1'
 
                             if args.verbosity < 3:
                                 subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
