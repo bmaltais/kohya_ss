@@ -480,13 +480,18 @@ def setup_file_links(_site_packages_dir, runpod, _dir):
             for file in os.listdir(bitsandbytes_source):
                 if file.endswith(".dll"):
                     shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
+                    logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
+                                  f"to {os.path.join(bitsandbytes_dest, file)}")
 
             # Copy cextension.py
             shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
                         os.path.join(bitsandbytes_dest, "cextension.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
 
             # Copy main.py
             shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
+                          f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
 
     if runpod and in_container:
         # Symlink paths
