@@ -48,7 +48,7 @@ kohya_gui_arguments:
     value: ''
   - name: ServerPort
     description: Port to run the server listener on.
-    value: 7861
+    value: 0
   - name: Share
     description: Share the gradio UI.
     value: false
