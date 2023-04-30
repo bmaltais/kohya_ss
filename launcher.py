@@ -738,10 +738,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 return _success, _error
 
             elif not git_folder_present:
-
-                if len(os.listdir(_dir)) in (0, 1) and (not git_folder_present or venv_folder_present):
+                if len(os.listdir(_dir)) in (0, 1, 2) or \
+                        (len(os.listdir(_dir)) == 2 and 'venv' in os.listdir(_dir) and 'logs' in os.listdir(_dir)):
                     tmp_venv_path = None
-
                     if venv_folder_present:
                         tmp_venv_path = os.path.join(tempfile.mkdtemp(), "venv")
                         shutil.move(os.path.join(_dir, "venv"), tmp_venv_path)
@@ -834,8 +833,9 @@ def update_kohya_ss(_dir, git_repo, branch, update):
         # and the Git repository URL starts with "https://github.com/bmaltais/kohya_ss" or the update flag is specified.
         # If all conditions are met, we try to download the latest tag as a zip for installation.
         # We only overwrite the files we download. Otherwise, skip the installation.
-        if (update or len(os.listdir(_dir)) == 0 or (
-                len(os.listdir(_dir)) == 1 and os.path.exists(os.path.join(_dir, "venv")))) and \
+        if (update or len(os.listdir(_dir)) == 0 or
+            (len(os.listdir(_dir)) in [1, 2] and os.path.exists(os.path.join(_dir, "venv")) and os.path.exists(
+                os.path.join(_dir, "logs")))) and \
                 (not branch or branch == "master") and (
                 not git_repo or git_repo.startswith("https://github.com/bmaltais/kohya_ss")):
 
