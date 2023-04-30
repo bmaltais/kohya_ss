@@ -674,7 +674,7 @@ class GitProgressPrinter(git.remote.RemoteProgress):
             print(f"Received {self.received_objects}/{self.total} objects", end='\r')
 
 
-def update_kohya_ss(_dir, git_repo, branch, update):
+def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
     logging.debug(f"Update: {update}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
     logging.debug(f".git detected: {'.git' in os.listdir(_dir)}")
@@ -835,6 +835,10 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                         break
                     elif error_type == "uncommitted_changes":
                         # If there are uncommitted changes, break the loop and proceed with the fallback method
+                        if update or repair:
+                            logging.critical("Uncommitted_changes detected in the repo. Skipping repo update.")
+                            success = True
+                            return success
                         success = False
                         return success
                     elif error_type == "authentication_error":
@@ -1474,7 +1478,7 @@ def main(_args=None):
     # The main logic will go here after the sanity checks.
     check_and_create_install_folder(parent_dir, _args.dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
-    if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update):
+    if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
         if brew_install_tensorflow_deps(_args.verbosity):
             install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
