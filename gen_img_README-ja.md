@@ -287,7 +287,7 @@ img2img時にコマンドラインオプションの`--W`と`--H`で生成画像
 
 AUTOMATIC1111氏のWeb UIにある機能の類似機能です（独自実装のためもしかしたらいろいろ異なるかもしれません）。最初に小さめの画像を生成し、その画像を元にimg2imgすることで、画像全体の破綻を防ぎつつ大きな解像度の画像を生成します。
 
-2nd stageのstep数は`--steps` と`--strength`オプションの値から計算されます（`steps*strentgh`）。
+2nd stageのstep数は`--steps` と`--strength`オプションの値から計算されます（`steps*strength`）。
 
 img2imgと併用できません。
 
@@ -370,7 +370,7 @@ LoRAを指定すると、`--network_weights`で指定した複数のLoRAがそ�
 
 ## CLIP Guided Stable Diffusion
 
-DiffusersのCommunity Exaplesの[こちらのcustom pipeline](https://github.com/huggingface/diffusers/blob/main/examples/community/README.md#clip-guided-stable-diffusion)からソースをコピー、変更したものです。
+DiffusersのCommunity Examplesの[こちらのcustom pipeline](https://github.com/huggingface/diffusers/blob/main/examples/community/README.md#clip-guided-stable-diffusion)からソースをコピー、変更したものです。
 
 通常のプロンプトによる生成指定に加えて、追加でより大規模のCLIPでプロンプトのテキストの特徴量を取得し、生成中の画像の特徴量がそのテキストの特徴量に近づくよう、生成される画像をコントロールします（私のざっくりとした理解です）。大きめのCLIPを使いますのでVRAM使用量はかなり増加し（VRAM 8GBでは512*512でも厳しいかもしれません）、生成時間も掛かります。
 
