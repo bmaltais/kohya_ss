@@ -102,9 +102,6 @@ param (
     [switch]$Share
 )
 
-# Define global Python path to use in various functions
-$pythonPath = $null
-
 <#
 .SYNOPSIS
    Handles the loading of parameter values with a specific order of precedence.
@@ -788,142 +785,144 @@ function Install-Python310 {
         if (-not $packageManagerFound) {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
-
-                $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-                if (!(Test-Path -Path $downloadsFolder)) {
-                    New-Item -ItemType directory -Path $downloadsFolder
-                }
-                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $global:pythonInstallerFile
         
-                if (-not (Test-Path $installerPath)) {
+                if (-not (Test-Path $pythonInstallerPath)) {
                     try {
-                        Invoke-WebRequest -Uri $global:pythonInstallerUrl -OutFile $installerPath
+                        Invoke-WebRequest -Uri pythonInstallerUrl -OutFile $pythonInstallerPath
                     }
                     catch {
                         Write-Error "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
                         exit 1
                     }
                 }
+                # Compute the MD5 hash of the downloaded file
+                $downloadedPythonMd5 = Get-FileHash -Algorithm MD5 -Path $installerPath | ForEach-Object Hash
+
+                # Check if the computed MD5 hash matches the expected MD5 hash
+                if ($downloadedPythonMd5 -ne $pythonMd5) {
+                    Write-Error "MD5 hash mismatch for Python 3.10. The downloaded file may be corrupt or tampered with."
+                    exit 1
+                }
 
                 if ($installScope -eq "user") {
-                    Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                    Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
                 }
                 else {
-                    Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
+                    Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -Wait
                 }
 
-                Remove-Item $installerPath
+                Remove-Item $pythonInstallerPath
             }
             else {
                 # We default to installing at a user level if admin is not detected.
-                Start-Process $installerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
+                Start-Process $pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -Wait
             }
         }
+    }
+    
+    function Install-Python310Mac {
+        if (Get-Command "brew" -ErrorAction SilentlyContinue) {
+            brew install python@3.10
+            brew link --overwrite --force python@3.10
+        }
+        else {
+            Write-Host "Please install Homebrew first to continue with Python 3.10 installation."
+            Write-Host "You can find that here: https://brew.sh"
+            exit 1
+        }
+    }
 
-        function Install-Python310Mac {
-            if (Get-Command "brew" -ErrorAction SilentlyContinue) {
-                brew install python@3.10
-                brew link --overwrite --force python@3.10
+    function Install-Python310Linux {
+        $elevate = ""
+        if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
+            $elevate = "sudo"
+        }
+
+        switch ($os.family) {
+            "Ubuntu" {
+                if (& $elevate apt-get update) {
+                    if (!(& $elevate apt-get install -y python3.10)) {
+                        Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                    }
+                }
+                else {
+                    Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                }
             }
-            else {
-                Write-Host "Please install Homebrew first to continue with Python 3.10 installation."
-                Write-Host "You can find that here: https://brew.sh"
+            "Debian" {
+                if (& $elevate apt-get update) {
+                    if (!(& $elevate apt-get install -y python3.10)) {
+                        Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
+                    }
+                }
+                else {
+                    Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
+                }
+            }
+            "RedHat" {
+                if (!(& $elevate dnf install -y python3.10)) {
+                    Write-Error "Error: Failed to install python via dnf. Installation of Python 3.10 aborted."
+                }
+            }
+            "Arch" {
+                if (!(& $elevate pacman -Sy --noconfirm python3.10)) {
+                    Write-Error "Error: Failed to install python via pacman. Installation of Python 3.10 aborted."
+                }
+            }
+            "openSUSE" {
+                if (!(& $elevate zypper install -y python3.10)) {
+                    Write-Error "Error: Failed to install python via zypper. Installation of Python 3.10 aborted."
+                }
+            }
+            default {
+                Write-Error "Unsupported Linux distribution. Please install Python 3.10 manually."
                 exit 1
             }
         }
-
-        function Install-Python310Linux {
-            $elevate = ""
-            if (-not ($env:USER -eq "root" -or (id -u) -eq 0 -or $env:EUID -eq 0)) {
-                $elevate = "sudo"
-            }
-
-            switch ($os.family) {
-                "Ubuntu" {
-                    if (& $elevate apt-get update) {
-                        if (!(& $elevate apt-get install -y python3.10)) {
-                            Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
-                        }
-                    }
-                    else {
-                        Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
-                    }
-                }
-                "Debian" {
-                    if (& $elevate apt-get update) {
-                        if (!(& $elevate apt-get install -y python3.10)) {
-                            Write-Error "Error: Failed to install python via apt. Installation of Python 3.10 aborted."
-                        }
-                    }
-                    else {
-                        Write-Error "Error: Failed to update package list. Installation of Python 3.10 aborted."
-                    }
-                }
-                "RedHat" {
-                    if (!(& $elevate dnf install -y python3.10)) {
-                        Write-Error "Error: Failed to install python via dnf. Installation of Python 3.10 aborted."
-                    }
-                }
-                "Arch" {
-                    if (!(& $elevate pacman -Sy --noconfirm python3.10)) {
-                        Write-Error "Error: Failed to install python via pacman. Installation of Python 3.10 aborted."
-                    }
-                }
-                "openSUSE" {
-                    if (!(& $elevate zypper install -y python3.10)) {
-                        Write-Error "Error: Failed to install python via zypper. Installation of Python 3.10 aborted."
-                    }
-                }
-                default {
-                    Write-Error "Unsupported Linux distribution. Please install Python 3.10 manually."
-                    exit 1
-                }
-            }
-        }
+    }
 
 
-        if (Test-Python310Installed) {
-            Write-Host "Python 3.10 is already installed."
-            return
-        }
+    if (Test-Python310Installed) {
+        Write-Host "Python 3.10 is already installed."
+        return
+    }
 
-        $osPlatform = ""
-        if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
-            $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
-        }
-        elseif ($PSVersionTable.Platform -eq 'Unix') {
-            $osPlatform = (uname -s).ToString()
-        }
-        elseif ($PSVersionTable.Platform -eq 'MacOS') {
-            $osPlatform = (uname -s).ToString()
-        }
-        else {
-            Write-Error "Unsupported operating system. Please install Python 3.10 manually."
-            exit 1
-        }
+    $osPlatform = ""
+    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
+        $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+    }
+    elseif ($PSVersionTable.Platform -eq 'Unix') {
+        $osPlatform = (uname -s).ToString()
+    }
+    elseif ($PSVersionTable.Platform -eq 'MacOS') {
+        $osPlatform = (uname -s).ToString()
+    }
+    else {
+        Write-Error "Unsupported operating system. Please install Python 3.10 manually."
+        exit 1
+    }
 
 
-        if ($osPlatform -like "*Windows*") {
-            Install-Python310Windows
-        }
-        elseif ($osPlatform -like "*Mac*") {
-            Install-Python310Mac
-        }
-        elseif ($osPlatform -like "*Linux*") {
-            Install-Python310Linux
-        }
-        else {
-            Write-Error "Unsupported operating system. Please install Python 3.10 manually."
-            exit 1
-        }
+    if ($osPlatform -like "*Windows*") {
+        Install-Python310Windows
+    }
+    elseif ($osPlatform -like "*Mac*") {
+        Install-Python310Mac
+    }
+    elseif ($osPlatform -like "*Linux*") {
+        Install-Python310Linux
+    }
+    else {
+        Write-Error "Unsupported operating system. Please install Python 3.10 manually."
+        exit 1
+    }
 
-        if (Test-Python310Installed) {
-            Write-Host "Python 3.10 installed successfully."
-        }
-        else {
-            Write-Error 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
-            exit 1
-        }
+    if (Test-Python310Installed) {
+        Write-Host "Python 3.10 installed successfully."
+    }
+    else {
+        Write-Error 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
+        exit 1
     }
 }
 
@@ -952,7 +951,7 @@ function Install-Python3Tk {
         # Pre-check: Try to import Tkinter in Python 3.10
         $isTkinterInstalled = $false
         try {
-            $tkinterCheckOutput = & $global:pythonPath -c "import tkinter" 2>&1
+            $tkinterCheckOutput = & pythonPath -c "import tkinter" 2>&1
             if (-not $tkinterCheckOutput) {
                 $isTkinterInstalled = $true
             }
@@ -1191,19 +1190,23 @@ function Install-Git {
             if (Test-IsAdmin) {
                 $installScope = Update-InstallScope($Interactive)
 
-                $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
-                $gitInstallerName = Split-Path -Leaf $gitUrl
-                $downloadsFolder = [Environment]::GetFolderPath('MyDocuments') + "\Downloads"
-                $installerPath = Join-Path -Path $downloadsFolder -ChildPath $gitInstallerName
-
-                if (-not (Test-Path $installerPath)) {
+                if (-not (Test-Path $gitInstallerPath)) {
                     try {
-                        Invoke-WebRequest -Uri $gitUrl -OutFile $installerPath
+                        Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstallerPath
                     }
                     catch {
                         Write-Error "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
                         exit 1
                     }
+                }
+
+                # Compute the SHA-256 hash of the downloaded file
+                $downloadedGitSha256 = Get-FileHash -Algorithm SHA256 -Path $installerPath | ForEach-Object Hash
+
+                # Check if the computed SHA-256 hash matches the expected SHA-256 hash
+                if ($downloadedGitSha256 -ne $gitSha256) {
+                    Write-Error "SHA-256 hash mismatch for git. The downloaded file may be corrupt or tampered with."
+                    exit 1
                 }
 
                 if ($installScope -eq "user") {
@@ -1516,13 +1519,28 @@ function Main {
     }
 }
 
+# Define global Python path to use in various functions
+$pythonPath = $null
+
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
 Write-Debug "Detected OS Family: {$os.family}."
 
+
+# Define versions globally for easy modification
 if ($os.family -eq "Windows") {
+    $downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+    # Python URL and file hash
     $pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
     $pythonInstallerFile = Split-Path -Leaf $pythonInstallerUrl
+    $pythonInstallerPath = Join-Path -Path $downloadsFolder -ChildPath pythonInstallerFile
+    $pythonMd5 = "a55e9c1e6421c84a4bd8b4be41492f51"
+
+    # Git URL and file hash
+    $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
+    $gitSha256 = "d2f0fbf9d84622b2aa4aed401daf6dedb8ac89bb388af02078ba375496a873dc"
+    $gitInstallerFile = Split-Path -Leaf $gitUrl
+    $gitInstallerPath = Join-Path -Path $downloadsFolder -ChildPath $gitInstallerFile
 }
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
