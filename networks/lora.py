@@ -679,7 +679,6 @@ class LoRANetwork(torch.nn.Module):
                         if is_linear or is_conv2d:
                             lora_name = prefix + "." + name + "." + child_name
                             lora_name = lora_name.replace(".", "_")
-                            if is_unet and lora_name in lora_names: continue
 
                             dim = None
                             alpha = None
