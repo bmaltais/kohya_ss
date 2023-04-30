@@ -457,9 +457,9 @@ def create_symlinks(symlink, target_file):
 
 
 # noinspection SpellCheckingInspection
-def setup_file_links(_site_packages_dir, runpod):
+def setup_file_links(_site_packages_dir, runpod, _dir):
     if os_info.family == "Windows":
-        bitsandbytes_source = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitsandbytes_windows")
+        bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
         bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
         bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
 
@@ -1491,7 +1491,7 @@ def main(_args=None):
         if brew_install_tensorflow_deps(_args.verbosity):
             install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
-            setup_file_links(site_packages_dir, _args.runpod)
+            setup_file_links(site_packages_dir, _args.runpod, _args.dir)
             configure_accelerate(_args.interactive)
             if not getattr(_args, 'setup_only'):
                 launch_kohya_gui(_args)
