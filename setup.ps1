@@ -647,14 +647,14 @@ function Test-Python310Installed {
         }
 
         Write-Debug "We are testing this python path: {$pythonPath}"
-        $pythonVersion = & $pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
-        $pythonVersion = $pythonVersion -replace '^Python\s', ''
+        $script:pythonVersion = & $pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
+        $script:pythonVersion = $script:pythonVersion -replace '^Python\s', ''
 
-        if ($pythonVersion.StartsWith('3.10')) {
+        if ($script:pythonVersion.StartsWith('3.10')) {
             return $true
         }
         else {
-            Write-Error "Python version at $pythonPath is not 3.10, it's $pythonVersion."
+            Write-Error "Python version at $pythonPath is not 3.10, it's $script:pythonVersion."
             return $false
         }
     }
@@ -711,8 +711,8 @@ function Get-PythonExePath {
         try {
             $pythonPath = (Get-Command $candidate -ErrorAction SilentlyContinue).Source
             if ($null -ne $pythonPath) {
-                $pythonVersion = & $pythonPath --version 2>&1
-                if ($pythonVersion -match "^Python 3\.10") {
+                $script:pythonVersion = & $pythonPath --version 2>&1
+                if ($script:pythonVersion -match "^Python 3\.10") {
                     $foundPythonPath = $pythonPath
                     break
                 }
@@ -1625,7 +1625,7 @@ if ($os.family -eq "Windows") {
 
     $script:pythonInstallerUrl = "https://www.python.org/ftp/python/${script:pythonVersion}/python-${script:pythonVersion}-amd64.exe"
     # Derive the release page URL from the installer URL
-    $script:pythonReleasePageUrl = $script:pythonInstallerUrl -replace '/ftp/', '/downloads/release/' -replace '/python-[0-9\.]+-amd64.exe', '/'
+    $script:pythonReleasePageUrl = "https://www.python.org/downloads/release/python-$($script:pythonVersion -replace '\.','')/"
 
     #Grab the Python raw installer file name and path
     $script:pythonInstallerFile = Split-Path -Leaf $script:pythonInstallerUrl
