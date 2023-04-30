@@ -640,33 +640,32 @@ function Get-OsInfo {
 #>
 function Test-Python310Installed {
     try {
-        $pythonPath = Get-PythonExePath
-        if ($null -eq $pythonPath) {
+        if ($null -eq $script:pythonPath) {
             Write-Error "Python executable not found."
             return $false
         }
 
-        Write-Debug "We are testing this python path: {$pythonPath}"
-        $script:pythonVersion = & $pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
+        Write-Debug "We are testing this python path: {$script:pythonPath}"
+        $script:pythonVersion = & $script:pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
         $script:pythonVersion = $script:pythonVersion -replace '^Python\s', ''
 
         if ($script:pythonVersion.StartsWith('3.10')) {
             return $true
         }
         else {
-            Write-Error "Python version at $pythonPath is not 3.10, it's $script:pythonVersion."
+            Write-Error "Python version at $script:pythonPath is not 3.10, it's $script:pythonVersion."
             return $false
         }
     }
     catch {
         switch ($_.Exception.GetType().Name) {
             'Win32Exception' {
-                Write-Error "Python executable found at $pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
+                Write-Error "Python executable found at $script:pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
                 return $false
             }
             'RuntimeException' {
                 if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                    Write-Error "Python executable not found at $pythonPath ."
+                    Write-Error "Python executable not found at $script:pythonPath ."
                     return $false
                 }
                 else {
@@ -692,7 +691,7 @@ function Test-Python310Installed {
    It handles different platforms and common edge cases such as Homebrew on macOS and FreeBSD.
 
 .EXAMPLE
-   $pythonPath = Get-PythonExePath
+   $script:pythonPath = Get-PythonExePath
 
 .OUTPUTS
    System.String
@@ -709,11 +708,11 @@ function Get-PythonExePath {
 
     foreach ($candidate in $pythonCandidates) {
         try {
-            $pythonPath = (Get-Command $candidate -ErrorAction SilentlyContinue).Source
-            if ($null -ne $pythonPath) {
-                $script:pythonVersion = & $pythonPath --version 2>&1
+            $script:pythonPath = (Get-Command $candidate -ErrorAction SilentlyContinue).Source
+            if ($null -ne $script:pythonPath) {
+                $script:pythonVersion = & $script:pythonPath --version 2>&1
                 if ($script:pythonVersion -match "^Python 3\.10") {
-                    $foundPythonPath = $pythonPath
+                    $foundPythonPath = $script:pythonPath
                     break
                 }
             }
@@ -1621,7 +1620,7 @@ function Main {
 # ---------------------------------------------------------
 
 # Define global Python path to use in various functions
-$pythonPath = $null
+$script:pythonPath = Get-PythonExePath
 
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
