@@ -772,7 +772,7 @@ def update_kohya_ss(_dir, git_repo, branch, update):
 
                     _success = True
                     return _success, _error
-                elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 1):
+                elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 2):
                     logging.critical("We have detected a current non-git installation, but --update flag not used. "
                                      "Skipping git clone operation.")
 
