@@ -744,6 +744,46 @@ function Get-PythonExePath {
     return $foundPythonPath
 }
 
+
+<#
+.SYNOPSIS
+Retrieves the MD5 hash of Python 3.10 Windows installer (64-bit) from the official Python download page.
+
+.DESCRIPTION
+This function sends a web request to the Python 3.10 release page and extracts the MD5 hash of the Windows installer (64-bit). The MD5 hash is used to verify the integrity of the downloaded file.
+
+.PARAMETER pythonReleasePageUrl
+Specifies the URL of the Python 3.10 release page. The default is derived from the pythonInstallerUrl script variable.
+
+.PARAMETER pythonInstallerUrl
+Specifies the URL of the Python 3.10 Windows installer (64-bit). The default is the pythonInstallerUrl script variable.
+
+.EXAMPLE
+$pythonHash = Get-Python310Md5HashFromWeb
+
+Returns the MD5 hash of the Python 3.10 Windows installer (64-bit).
+
+.INPUTS
+None. You cannot pipe input to this function.
+
+.OUTPUTS
+System.String. This function returns the MD5 hash of the Python 3.10 Windows installer (64-bit).
+
+.NOTES
+If the function fails to obtain the MD5 hash, it writes an error message and exits with a non-zero status.
+#>
+function Get-Python310Md5HashFromWeb {
+    $webContent = Invoke-WebRequest -Uri $script:pythonReleasePageUrl
+    $regexPattern = '<td><a href="' + [regex]::Escape($script:pythonInstallerUrl) + '">Windows installer \(64-bit\)</a></td>\s*<td>Windows</td>\s*<td>Recommended</td>\s*<td>([a-f0-9]{32})</td>'
+    if ($webContent -match $regexPattern) {
+        return $matches[1]
+    }
+    else {
+        Write-Error "Failed to obtain MD5 hash for Python 3.10 from the download page."
+        exit 1
+    }
+}
+
 <#
 .SYNOPSIS
    Installs Python 3.10 using the specified installer.
@@ -795,6 +835,7 @@ function Install-Python310 {
                         exit 1
                     }
                 }
+
                 # Compute the MD5 hash of the downloaded file
                 $downloadedPythonMd5 = Get-FileHash -Algorithm MD5 -Path $installerPath | ForEach-Object Hash
 
@@ -1134,6 +1175,48 @@ function Test-GitInstalled {
 
     Write-Warning "Git not found."
     return $false
+}
+
+<#
+.SYNOPSIS
+   Fetches the SHA-256 hash of the specified Git for Windows installer from the GitHub releases page.
+
+.DESCRIPTION
+   The Get-GitHashFromWeb function uses the script-level gitVersion variable to fetch the HTML content 
+   of the Git for Windows release page for that version. It then uses a regex pattern to find and return 
+   the SHA-256 hash of the Git installer file for the specified version.
+
+.PARAMETER gitVersion
+   The version number of Git for Windows whose SHA-256 hash should be fetched.
+   This is a script-level variable and should be set before calling this function.
+
+.OUTPUTS
+   String. Returns the SHA-256 hash of the Git installer file for the specified version.
+
+.EXAMPLE
+   $script:gitVersion = "2.40.1"
+   $script:gitSha256 = Get-GitHashFromWeb
+   This example fetches the SHA-256 hash of the Git for Windows v2.40.1 installer file.
+
+.NOTES
+   This function requires the Invoke-WebRequest cmdlet, which may not be available on all systems.
+#>
+function Get-GitHashFromWeb {
+    # Derive the release page URL from the git version
+    $gitReleasePageUrl = "https://github.com/git-for-windows/git/releases/tag/v${script:gitVersion}.windows.1"
+
+    # Fetch the HTML content of the release page
+    $releasesPage = Invoke-WebRequest -Uri $gitReleasePageUrl
+    $html = $releasesPage.Content
+
+    # Define the regex pattern
+    $filename = "Git-${script:gitVersion}-64-bit.exe"
+    $pattern = "(?<=<td>${filename}</td>\r\n<td>)[a-fA-F0-9]{64}(?=</td>)"
+
+    # Apply the regex pattern to the HTML content
+    $hash = [regex]::Match($html, $pattern).Value
+
+    return $hash
 }
 
 <#
@@ -1519,6 +1602,10 @@ function Main {
     }
 }
 
+# ---------------------------------------------------------
+# The main execution block of the code starts here
+# ---------------------------------------------------------
+
 # Define global Python path to use in various functions
 $pythonPath = $null
 
@@ -1529,16 +1616,27 @@ Write-Debug "Detected OS Family: {$os.family}."
 
 # Define versions globally for easy modification
 if ($os.family -eq "Windows") {
+    # Software Versions
+    $script:pythonVersion = "3.10.11"
+    $script:gitVersion = "2.40.1"
+
+    # Set the downloads folder for storing pre-req installation files
     $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-    # Python URL and file hash
-    $script:pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
+
+    $script:pythonInstallerUrl = "https://www.python.org/ftp/python/${script:pythonVersion}/python-${script:pythonVersion}-amd64.exe"
+    # Derive the release page URL from the installer URL
+    $script:pythonReleasePageUrl = $script:pythonInstallerUrl -replace '/ftp/', '/downloads/release/' -replace '/python-[0-9\.]+-amd64.exe', '/'
+
+    #Grab the Python raw installer file name and path
     $script:pythonInstallerFile = Split-Path -Leaf $script:pythonInstallerUrl
     $script:pythonInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:pythonInstallerFile
-    $script:pythonMd5 = "a55e9c1e6421c84a4bd8b4be41492f51"
 
-    # Git URL and file hash
-    $script:gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.40.1.windows.1/Git-2.40.1-64-bit.exe"
-    $script:gitSha256 = "d2f0fbf9d84622b2aa4aed401daf6dedb8ac89bb388af02078ba375496a873dc"
+    # Get the MD5 sum from the website for a given version
+    $script:pythonMd5 = Get-Python310Md5HashFromWeb
+
+    # Git URL and Hash
+    $script:gitUrl = "https://github.com/git-for-windows/git/releases/download/v${script:gitVersion}.windows.1/Git-${script:gitVersion}-64-bit.exe"
+    $script:gitSha256 = Get-GitHashFromWeb
     $script:gitInstallerFile = Split-Path -Leaf $gitUrl
     $script:gitInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:gitInstallerFile
 }
