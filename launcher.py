@@ -1252,15 +1252,24 @@ def configure_accelerate(interactive):
 
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
+    accelerate_path = Path(sys.executable).parent / "accelerate"
+
     if interactive:
         try:
-            subprocess.check_call(["accelerate", "config"])
+            if accelerate_path.exists():
+                subprocess.check_call([str(accelerate_path), "config"])
+            else:
+                logging.error("Accelerate command not found.")
         except subprocess.CalledProcessError as e:
             logging.error(f"Accelerate config failed with error code {e.returncode}")
     else:
         target_config_location = None
 
         if os_info.family == "Windows":
+            logging.debug(
+                f"Environment variables: HF_HOME: {os.environ.get('HF_HOME')}, "
+                f"LOCALAPPDATA: {os.environ.get('LOCALAPPDATA')}, "
+                f"USERPROFILE: {os.environ.get('USERPROFILE')}")
             if env_var_exists("HF_HOME"):
                 target_config_location = Path(os.environ["HF_HOME"], "accelerate", "default_config.yaml")
             elif env_var_exists("LOCALAPPDATA"):
@@ -1279,6 +1288,8 @@ def configure_accelerate(interactive):
                 target_config_location = Path(os.environ["HOME"], ".cache", "huggingface",
                                               "accelerate", "default_config.yaml")
 
+        logging.debug(f"Target config location: {target_config_location}")
+
         if target_config_location:
             if not target_config_location.is_file():
                 target_config_location.parent.mkdir(parents=True, exist_ok=True)
@@ -1287,8 +1298,14 @@ def configure_accelerate(interactive):
                 logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
+            python_path = sys.executable
+            accelerate_path = Path(python_path).parent / "accelerate"
+
             try:
-                subprocess.check_call(["accelerate", "config"])
+                if accelerate_path.exists():
+                    subprocess.check_call([str(accelerate_path), "config"])
+                else:
+                    logging.error("Accelerate command not found.")
             except subprocess.CalledProcessError as e:
                 logging.error(f"Accelerate config failed with error code {e.returncode}")
 
