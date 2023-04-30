@@ -836,6 +836,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                     elif error_type == "uncommitted_changes":
                         # If there are uncommitted changes, break the loop and proceed with the fallback method
                         if update or repair:
+                            # If we are in update or repair mode, we should continue. We might still be able to rescue
+                            # the installation if it was pip or another downstream component that broke.
                             logging.critical("Uncommitted_changes detected in the repo. Skipping repo update.")
                             success = True
                             return success
