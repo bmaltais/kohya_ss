@@ -1182,12 +1182,13 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, _log_d
                         if not (torch_installed and torchvision_installed):
                             logging.info("Installing torch and torchvision packages")
                             if args.verbosity < 3:
-                                subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                                                "--extra-index-url", "https://download.pytorch.org/whl/cu116",
-                                                "--quiet"])
+                                subprocess.run([sys.executable, "-m", "pip", "install", "torch==1.12.1+cu116",
+                                                "torchvision==0.13.1+cu116", "--extra-index-url",
+                                                "https://download.pytorch.org/whl/cu116", "--quiet"])
                             else:
-                                subprocess.run(["pip", "install", "torch==1.12.1+cu116", "torchvision==0.13.1+cu116",
-                                                "--extra-index-url", "https://download.pytorch.org/whl/cu116"])
+                                subprocess.run([sys.executable, "-m", "pip", "install", "torch==1.12.1+cu116",
+                                                "torchvision==0.13.1+cu116", "--extra-index-url",
+                                                "https://download.pytorch.org/whl/cu116"])
 
                     if os_info.family == "macOS":
                         macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
