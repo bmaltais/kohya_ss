@@ -1378,29 +1378,36 @@ function Install-Git {
 
         if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
             try {
-                Invoke-Expression (Get-ElevationCommand "scoop" "install" "git")
+                scoop install git
                 $packageManagerFound = $true
             }
             catch {
                 Write-Error "Error: Failed to install Git using Scoop. $_"
             }
         }
+    
         if (-not $packageManagerFound -and (Get-Command "choco" -ErrorAction SilentlyContinue)) {
             try {
-                Invoke-Expression (Get-ElevationCommand "choco" "install" "git")
+                choco install git
                 $packageManagerFound = $true
             }
             catch {
                 Write-Error "Error: Failed to install Git using Chocolatey. $_"
             }
         }
+    
         if (-not $packageManagerFound -and (Get-Command "winget" -ErrorAction SilentlyContinue)) {
             try {
-                Invoke-Expression (Get-ElevationCommand "winget" "install" "--id" "Git.Git")
+                winget install --id Git.Git
                 $packageManagerFound = $true
             }
             catch {
                 Write-Error "Error: Failed to install Git using Winget. $_"
+            }
+            if ($packageManagerFound) {
+                # Update the environment and Git path after installation to ensure it is picked up by the environment every time
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+                $script:gitPath = Get-GitExePath
             }
         }
         
@@ -1428,10 +1435,10 @@ function Install-Git {
                 }
 
                 if ($installScope -eq "user") {
-                    $proc = Start-Process $script:gitInstallerPath -ArgumentList @("/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh") -PassThru
+                    $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 }
                 else {
-                    $proc = Start-Process $script:gitInstallerPath -ArgumentList @("/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh") -PassThru
+                    $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 }
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
@@ -1443,7 +1450,7 @@ function Install-Git {
             }
             else {
                 # We default to installing at a user level if admin is not detected.
-                $proc = Start-Process $script:gitInstallerPath-ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
+                $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
                     Remove-Item $script:gitInstallerPath
