@@ -1560,23 +1560,68 @@ function Install-Git {
     }
 }
 
+<#
+.SYNOPSIS
+Checks if a specific version of the Microsoft Visual C++ Redistributable is installed on the system.
+
+.DESCRIPTION
+The Test-VCRedistInstalled function checks if the specified version of Microsoft Visual C++ Redistributable is installed. 
+The function uses the Windows Registry to determine the installed software. If running with administrator privileges, it checks software installed for all users.
+Otherwise, it checks software installed for the current user only. If the specified version is installed, the function outputs a message indicating this and returns $true.
+Otherwise, it outputs a message indicating that the version is not installed and returns $false.
+
+.PARAMETER version
+A string specifying the version of the Microsoft Visual C++ Redistributable to check for. The version should be specified in the form used in the Windows Registry (e.g., "2015-2019").
+
+.EXAMPLE
+Test-VCRedistInstalled -version "2015-2019"
+
+This example checks if the Microsoft Visual C++ 2015-2019 Redistributable is installed.
+
+.INPUTS
+System.String. You can pipe a string that specifies the version to Test-VCRedistInstalled.
+
+.OUTPUTS
+System.Boolean. This cmdlet returns a boolean value indicating whether the specified version of the Microsoft Visual C++ Redistributable is installed.
+
+.NOTES
+The function checks the software installed for all users if it is run with administrator privileges. 
+Otherwise, it checks the software installed for the current user only.
+#>
 function Test-VCRedistInstalled {
     param(
         [string]$version
     )
+
+    if (Test-IsAdmin) {
+        $keys = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
+        Get-ItemProperty |
+        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
+        Select-Object -Property DisplayName, Publisher, InstallDate
     
-    $keys = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
-    Get-ItemProperty |
-    Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
-    Select-Object -Property DisplayName, Publisher, InstallDate
-    
-    if ($keys) {
-        Write-Output "Visual C++ $version Redistributable is already installed."
-        return $true
+        if ($keys) {
+            Write-Output "Visual C++ $version Redistributable is already installed."
+            return $true
+        }
+        else {
+            Write-Output "Visual C++ $version Redistributable is not installed."
+            return $false
+        }
     }
     else {
-        Write-Output "Visual C++ $version Redistributable is not installed."
-        return $false
+        $keys = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+        Get-ItemProperty |
+        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
+        Select-Object -Property DisplayName, Publisher, InstallDate
+    
+        if ($keys) {
+            Write-Output "Visual C++ $version Redistributable is already installed for the current user."
+            return $true
+        }
+        else {
+            Write-Output "Visual C++ $version Redistributable is not installed for the current user."
+            return $false
+        }
     }
 }
 
