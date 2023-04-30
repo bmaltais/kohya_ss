@@ -119,14 +119,39 @@ echo --share            : Enable GUI sharing.
 goto :eof
 
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
-set Args=-b "%Branch%" -d "%Dir%" -f "%File%" -g "%GitRepo%" ^
-          -i:%Interactive% -n:%NoSetup% -p:%Public% --repair:%Repair% --runpod:%Runpod% -s:%SkipSpaceCheck% ^
-          -v %Verbose% --setup-only "%SetupOnly%" --listen "%LISTEN%" --username "%USERNAME%" --password "%PASSWORD%" ^
-          --server-port %SERVER_PORT% --inbrowser:%INBROWSER% --share:%SHARE% --log-dir:%LogDir%
+:: Prepare Args
+set Args=
+if not "%Branch%"=="" set Args=%Args% -b "%Branch%"
+if not "%Dir%"=="" set Args=%Args% -d "%Dir%"
+if not "%File%"=="" set Args=%Args% -f "%File%"
+if not "%GitRepo%"=="" set Args=%Args% -g "%GitRepo%"
+if %Interactive% EQU 1 set Args=%Args% -i
+if %NoSetup% EQU 1 set Args=%Args% -n
+if %Public% EQU 1 set Args=%Args% -p
+if %Repair% EQU 1 set Args=%Args% --repair
+if %Runpod% EQU 1 set Args=%Args% --runpod
+if %SkipSpaceCheck% EQU 1 set Args=%Args% -s
+if not "%Verbose%"=="" set Args=%Args% -v %Verbose%
+if %SetupOnly% EQU 1 set Args=%Args% --setup-only
+if not "%LISTEN%"=="" set Args=%Args% --listen "%LISTEN%"
+if not "%USERNAME%"=="" set Args=%Args% --username "%USERNAME%"
+if not "%PASSWORD%"=="" set Args=%Args% --password "%PASSWORD%"
+if not "%SERVER_PORT%"=="" set Args=%Args% --server-port %SERVER_PORT%
+if %INBROWSER% EQU 1 set Args=%Args% --inbrowser
+if %SHARE% EQU 1 set Args=%Args% --share
+if not "%LogDir%"=="" set Args=%Args% --log-dir:%LogDir%
 
 copy /y "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
 copy /y "%Dir%\bitsandbytes_windows\cextension.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cextension.py"
 copy /y "%Dir%\bitsandbytes_windows\main.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py"
 
 rem Call launcher.py with the provided arguments
-python "%Dir%\launcher.py" %Args%
+:: Execute launcher.py with the provided arguments
+python "%Dir%\launcher.py" %Args% || (
+  echo.
+  echo Python script encountered an error.
+  echo Press Enter to continue...
+  pause >nul
+)
+
+:end
