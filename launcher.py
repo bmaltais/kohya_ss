@@ -81,6 +81,16 @@ TENSORFLOW_VERSION = "2.12.0"
 TENSORFLOW_MACOS_VERSION = "2.12.0"
 TENSORFLOW_METAL_VERSION = "0.8.0"
 
+TORCH_VERSION_1 = "1.12.1+cu116"
+TORCHVISION_VERSION_1 = "0.13.1+cu116"
+TORCH_INDEX_URL_1 = "https://download.pytorch.org/whl/cu116"
+
+TORCH_VERSION_2 = "2.0.0+cu118"
+TORCHVISION_VERSION_2 = "0.15.1+cu118"
+TORCH_INDEX_URL_2 = "https://download.pytorch.org/whl/cu118"
+TRITON_URL = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl"
+XFORMERS_VERSION = "0.0.17"
+
 
 def find_config_file(config_file_locations):
     for location in config_file_locations:
@@ -1112,7 +1122,7 @@ def find_python_binary():
     return None
 
 
-def install_python_dependencies(_dir, runpod, update=False, repair=False, _log_dir=None):
+def install_python_dependencies(_dir, runpod, update=False, repair=False, interactive=False, _log_dir=None):
     # Name of the flag file
     flag_file = os.path.join(_log_dir, "status", ".pip_operations_done")
 
@@ -1170,6 +1180,21 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, _log_d
                     if runpod:
                         temp_requirements.write("tensorrt\n")
 
+                    if repair:
+                        logging.info("Uninstalling xformers, torch, torchvision, and triton packages.")
+
+                        packages = ["xformers", "torch", "torchvision", "triton"]
+                        for package in packages:
+                            try:
+                                if args.verbosity < 3:
+                                    subprocess.run([sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
+                                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                else:
+                                    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", package])
+                            except subprocess.CalledProcessError as e:
+                                if args.verbosity > 3:
+                                    logging.debug(f"Failed to uninstall {package}. Error code {e.returncode}")
+
                     if os_info.family == "macOS":
                         if platform.machine() == "arm64":
                             temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
@@ -1179,16 +1204,49 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, _log_d
                     elif os_info.family == "Windows":
                         torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
                         torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-                        if not (torch_installed and torchvision_installed):
+
+                        # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
+                        if not (torch_installed or torchvision_installed) or (update or repair):
                             logging.info("Installing torch and torchvision packages")
-                            if args.verbosity < 3:
-                                subprocess.run([sys.executable, "-m", "pip", "install", "torch==1.12.1+cu116",
-                                                "torchvision==0.13.1+cu116", "--extra-index-url",
-                                                "https://download.pytorch.org/whl/cu116", "--quiet"])
+                            if interactive:
+                                while True:
+                                    choice = input("Choose Torch version: (1) Stable, (2) Experimental: ")
+                                    if choice == '1':
+                                        _TORCH_VERSION = TORCH_VERSION_1
+                                        _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                                        _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                                        break
+                                    elif choice == '2':
+                                        _TORCH_VERSION = TORCH_VERSION_2
+                                        _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+                                        _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                                        break
+                                    else:
+                                        print("Invalid choice. Please enter 1 for Stable or 2 for Experimental.")
                             else:
-                                subprocess.run([sys.executable, "-m", "pip", "install", "torch==1.12.1+cu116",
-                                                "torchvision==0.13.1+cu116", "--extra-index-url",
-                                                "https://download.pytorch.org/whl/cu116"])
+                                _TORCH_VERSION = TORCH_VERSION_1
+                                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+
+                            if args.verbosity < 3:
+                                subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                                                f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
+                                                f"{_TORCH_INDEX_URL}", "--quiet"])
+                                if choice == '2':
+                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL}", "--quiet"])
+                                    subprocess.run(
+                                        [sys.executable, "-m", "pip", "install", "--upgrade",
+                                         f"xformers=={XFORMERS_VERSION}",
+                                         "--quiet"])
+                            else:
+                                subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                                                f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
+                                                f"{_TORCH_INDEX_URL}"])
+                                if choice == '2':
+                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL}"])
+                                    subprocess.run(
+                                        [sys.executable, "-m", "pip", "install", "--upgrade",
+                                         f"xformers=={XFORMERS_VERSION}"])
 
                     if os_info.family == "macOS":
                         macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
@@ -1386,11 +1444,12 @@ def main(_args=None):
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update):
         if brew_install_tensorflow_deps(_args.verbosity):
-            install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair, getattr(_args, "log-dir"))
+            install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair,
+                                        _args.interactive, getattr(_args, "log-dir"))
             setup_file_links(site_packages_dir, _args.runpod)
-            configure_accelerate(args.interactive)
-            if not getattr(args, 'setup_only'):
-                launch_kohya_gui(args)
+            configure_accelerate(_args.interactive)
+            if not getattr(_args, 'setup_only'):
+                launch_kohya_gui(_args)
             else:
                 logging.critical(f"Installation to {_args.dir} is complete.")
                 exit(0)
