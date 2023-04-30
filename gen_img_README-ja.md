@@ -269,6 +269,8 @@ img2img時にコマンドラインオプションの`--W`と`--H`で生成画像
 
 マスク画像はグレースケール画像で、白の部分がinpaintingされます。境界をグラデーションしておくとなんとなく滑らかになりますのでお勧めです。
 
+![image](https://user-images.githubusercontent.com/52813779/235343795-9eaa6d98-02ff-4f32-b089-80d1fc482453.png)
+
 # その他の機能
 
 ## Textual Inversion
@@ -427,6 +429,8 @@ python gen_img_diffusers.py --ckpt wd-v1-3-full-pruned-half.ckpt
 ```
 
 `--vgg16_guidance_layerPで特徴量取得に使用するVGG16のレイヤー番号を指定できます（デフォルトは20でconv4-2のReLUです）。上の層ほど画風を表現し、下の層ほどコンテンツを表現するといわれています。
+
+![image](https://user-images.githubusercontent.com/52813779/235343813-3c1f0d7a-4fb3-4274-98e4-b92d76b551df.png)
 
 # その他のオプション
 
