@@ -77,19 +77,25 @@ tqdm_module = check_and_import("tqdm", "tqdm")
 tqdm_progress = tqdm_module.tqdm
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
+# These are used to control the Tensorflow versions for macOS.
+# macOS x86_64
 TENSORFLOW_VERSION = "2.12.0"
+
+# macOS Apple Silicon
 TENSORFLOW_MACOS_VERSION = "2.12.0"
 TENSORFLOW_METAL_VERSION = "0.8.0"
 
+# These are used to control Torch V1 version and source
 TORCH_VERSION_1 = "1.12.1+cu116"
 TORCHVISION_VERSION_1 = "0.13.1+cu116"
 TORCH_INDEX_URL_1 = "https://download.pytorch.org/whl/cu116"
 
+# These are used to control Torch V2 + dependencies versions and sources
 TORCH_VERSION_2 = "2.0.0+cu118"
 TORCHVISION_VERSION_2 = "0.15.1+cu118"
 TORCH_INDEX_URL_2 = "https://download.pytorch.org/whl/cu118"
-TRITON_URL = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl"
-XFORMERS_VERSION = "0.0.17"
+TRITON_URL_2 = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl"
+XFORMERS_VERSION_2 = "0.0.17"
 
 
 def find_config_file(config_file_locations):
@@ -1271,20 +1277,21 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                                 f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
                                                 f"{_TORCH_INDEX_URL}", "--quiet"])
                                 if choice == '2':
-                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL}", "--quiet"])
+                                    subprocess.run([sys.executable, "-m", "pip", "install",
+                                                    f"{TRITON_URL_2}", "--quiet"])
                                     subprocess.run(
                                         [sys.executable, "-m", "pip", "install", "--upgrade",
-                                         f"xformers=={XFORMERS_VERSION}",
+                                         f"xformers=={XFORMERS_VERSION_2}",
                                          "--quiet"])
                             else:
                                 subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                                                 f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
                                                 f"{_TORCH_INDEX_URL}"])
                                 if choice == '2':
-                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL}"])
+                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"])
                                     subprocess.run(
                                         [sys.executable, "-m", "pip", "install", "--upgrade",
-                                         f"xformers=={XFORMERS_VERSION}"])
+                                         f"xformers=={XFORMERS_VERSION_2}"])
 
                     if os_info.family == "macOS":
                         macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
