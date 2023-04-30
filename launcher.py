@@ -741,39 +741,66 @@ def update_kohya_ss(_dir, git_repo, branch, update):
                 if len(os.listdir(_dir)) in (0, 1, 2) or \
                         (len(os.listdir(_dir)) == 2 and 'venv' in os.listdir(_dir) and 'logs' in os.listdir(_dir)):
                     tmp_venv_path = None
+                    tmp_logs_path = None
                     if venv_folder_present:
                         tmp_venv_path = os.path.join(tempfile.mkdtemp(), "venv")
-                        shutil.move(os.path.join(_dir, "venv"), tmp_venv_path)
+                        try:
+                            shutil.move(os.path.join(_dir, "venv"), tmp_venv_path)
+                        except Exception as _e:
+                            logging.error(f"Failed to move venv folder: {_e}")
+                            return False, str(_e)
 
-                    logging.debug("git clone operation entered.")
+                    logs_folder_present = os.path.exists(os.path.join(_dir, "logs"))
+                    if logs_folder_present:
+                        tmp_logs_path = os.path.join(tempfile.mkdtemp(), "logs")
+                        try:
+                            shutil.move(os.path.join(_dir, "logs"), tmp_logs_path)
+                        except Exception as _e:
+                            logging.error(f"Failed to move logs folder: {_e}")
+                            return False, str(_e)
 
-                    progress_printer = GitProgressPrinter("clone", _git_repo, _dir)
-                    if os.path.isdir(_git_repo):
-                        _git_repo = os.path.abspath(_git_repo)
-                        git_credentials = {'url': _git_repo}
+                    try:
+                        logging.debug("git clone operation entered.")
+                        progress_printer = GitProgressPrinter("clone", _git_repo, _dir)
 
-                    if 'url' in git_credentials:
-                        # If the local folder path is present in git_credentials, use it as the source URL
-                        git.Repo.clone_from(git_credentials['url'], _dir, branch=_branch, depth=1,
-                                            progress=progress_printer)
-                    elif 'env' in git_credentials:
-                        # If the 'env' key is present, pass it as a keyword argument
-                        git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
-                                            env=git_credentials['env'])
-                    else:
-                        # For HTTPS credentials, pass the username and password as keyword arguments
-                        git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
-                                            username=git_credentials['username'],
-                                            password=git_credentials['password'])
+                        if os.path.isdir(_git_repo):
+                            _git_repo = os.path.abspath(_git_repo)
+                            git_credentials = {'url': _git_repo}
+
+                        if 'url' in git_credentials:
+                            git.Repo.clone_from(git_credentials['url'], _dir, branch=_branch, depth=1,
+                                                progress=progress_printer)
+                        elif 'env' in git_credentials:
+                            git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
+                                                env=git_credentials['env'])
+                        else:
+                            git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
+                                                username=git_credentials['username'],
+                                                password=git_credentials['password'])
+                    except git.GitCommandError as _e:
+                        logging.error(f"Git clone operation failed: {_e}")
+                        return False, str(_e)
 
                     if venv_folder_present and tmp_venv_path is not None:
-                        shutil.move(tmp_venv_path, os.path.join(_dir, "venv"))
+                        try:
+                            shutil.move(tmp_venv_path, os.path.join(_dir, "venv"))
+                        except Exception as _e:
+                            logging.error(f"Failed to move venv folder back: {_e}")
+                            return False, str(_e)
+
+                    if logs_folder_present and tmp_logs_path is not None:
+                        try:
+                            shutil.move(tmp_logs_path, os.path.join(_dir, "logs"))
+                        except Exception as _e:
+                            logging.error(f"Failed to move logs folder back: {_e}")
+                            return False, str(_e)
 
                     _success = True
                     return _success, _error
                 elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 2):
                     logging.critical("We have detected a current non-git installation, but --update flag not used. "
                                      "Skipping git clone operation.")
+                    return False, "Non-git installation detected, update flag not used"
 
         except git.GitCommandError as _e:
             logging.warning(f"Git command error: {_e}")
