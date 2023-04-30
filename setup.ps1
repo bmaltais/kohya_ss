@@ -845,16 +845,18 @@ function Install-Python310 {
                 }
 
                 if ($installScope -eq "user") {
-                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -PassThru
+                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait -PassThru
                 }
                 else {
-                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=1" -PassThru
+                    $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait -PassThru
                 }
                 
                 $proc.WaitForExit()
+                
                 if (Test-Path $pythonInstallerPath ) { 
                     Remove-Item $pythonInstallerPath 
                 }
+                
                 
             }
             else {
@@ -1233,6 +1235,26 @@ function Get-GitHashFromWeb {
     return $hash
 }
 
+<#
+.SYNOPSIS
+   Finds the path of the Git executable in the system.
+
+.DESCRIPTION
+   The Get-GitExePath function attempts to locate the Git executable in the system. It first tries to find
+   it in the system's registry (for Windows) or using package managers like Homebrew (for macOS) or 
+   apt-get, pacman and dnf (for Linux and FreeBSD). If these methods fail, it falls back to default hard-coded paths.
+
+.OUTPUTS
+   String. Returns the path of the Git executable if found.
+
+.EXAMPLE
+   $gitExePath = Get-GitExePath
+   This example retrieves the path of the Git executable in the system.
+
+.NOTES
+   This function relies on multiple system-specific commands and may not work on all systems.
+   It also attempts to modify the $env:Path environment variable if the Git executable is found.
+#>
 function Get-GitExePath {
     if ($os.family -eq "Windows") {
         # Try to get the Git path from the registry if Git is installed natively on Windows
