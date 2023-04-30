@@ -141,10 +141,6 @@ if %INBROWSER% EQU 1 set Args=%Args% --inbrowser
 if %SHARE% EQU 1 set Args=%Args% --share
 if not "%LogDir%"=="" set Args=%Args% --log-dir:%LogDir%
 
-copy /y "%Dir%\bitsandbytes_windows\*.dll" "%Dir%\venv\Lib\site-packages\bitsandbytes\"
-copy /y "%Dir%\bitsandbytes_windows\cextension.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cextension.py"
-copy /y "%Dir%\bitsandbytes_windows\main.py" "%Dir%\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py"
-
 rem Call launcher.py with the provided arguments
 :: Execute launcher.py with the provided arguments
 python "%Dir%\launcher.py" %Args% || (
