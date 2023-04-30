@@ -641,7 +641,7 @@ function Get-OsInfo {
 function Test-Python310Installed {
     try {
         if ($null -eq $script:pythonPath) {
-            Write-Error "Python executable not found."
+            Write-Debug "Python executable not found."
             return $false
         }
 
@@ -665,7 +665,7 @@ function Test-Python310Installed {
             }
             'RuntimeException' {
                 if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                    Write-Error "Python executable not found at $script:pythonPath ."
+                    Write-Debug "Python executable not found at $script:pythonPath ."
                     return $false
                 }
                 else {
@@ -674,7 +674,7 @@ function Test-Python310Installed {
                 }
             }
             default {
-                Write-Error "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
+                Write-Debug "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
                 return $false
             }
         }
@@ -822,27 +822,26 @@ function Install-Python310 {
         }
 
         if (-not $packageManagerFound) {
-            if (Test-IsAdmin) {
-                $installScope = Update-InstallScope($Interactive)
-        
-                if (-not (Test-Path $pythonInstallerPath)) {
-                    try {
-                        Invoke-WebRequest -Uri pythonInstallerUrl -OutFile $pythonInstallerPath
-                    }
-                    catch {
-                        Write-Error "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
-                        exit 1
-                    }
+            if (-not (Test-Path $script:pythonInstallerPath)) {
+                try {
+                    Invoke-WebRequest -Uri $script:pythonInstallerUrl -OutFile $script:pythonInstallerPath
                 }
-
-                # Compute the MD5 hash of the downloaded file
-                $downloadedPythonMd5 = Get-FileHash -Algorithm MD5 -Path $installerPath | ForEach-Object Hash
-
-                # Check if the computed MD5 hash matches the expected MD5 hash
-                if ($downloadedPythonMd5 -ne $script:pythonMd5) {
-                    Write-Error "MD5 hash mismatch for Python 3.10. The downloaded file may be corrupt or tampered with."
+                catch {
+                    Write-Error "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
                     exit 1
                 }
+            }
+
+            # Compute the MD5 hash of the downloaded file
+            $downloadedPythonMd5 = Get-FileHash -Algorithm MD5 -Path $script:pythonInstallerPath | ForEach-Object Hash
+
+            # Check if the computed MD5 hash matches the expected MD5 hash
+            if ($downloadedPythonMd5 -ne $script:pythonMd5) {
+                Write-Error "MD5 hash mismatch for Python 3.10. The downloaded file may be corrupt or tampered with."
+                exit 1
+            }
+            if (Test-IsAdmin) {
+                $installScope = Update-InstallScope($Interactive)
 
                 if ($installScope -eq "user") {
                     $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait -PassThru
@@ -853,18 +852,19 @@ function Install-Python310 {
                 
                 $proc.WaitForExit()
                 
-                if (Test-Path $pythonInstallerPath ) { 
-                    Remove-Item $pythonInstallerPath 
+                if (Test-Path $script:pythonInstallerPath ) { 
+                    Remove-Item $script:pythonInstallerPath 
                 }
                 
                 
             }
             else {
+                Write-Debug "Path: ${script:pythonInstallerPath}"
                 # We default to installing at a user level if admin is not detected.
-                $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/passive InstallAllUsers=0" -PassThru
+                $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait -PassThru
                 $proc.WaitForExit()
-                if (Test-Path $pythonInstallerPath ) { 
-                    Remove-Item $pythonInstallerPath 
+                if (Test-Path $script:pythonInstallerPath ) { 
+                    Remove-Item $script:pythonInstallerPath 
                 }
             }
         }
@@ -1428,10 +1428,10 @@ function Install-Git {
                 }
 
                 if ($installScope -eq "user") {
-                    $proc = Start-Process $script:gitInstallerPath-ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
+                    $proc = Start-Process $script:gitInstallerPath -ArgumentList @("/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh") -PassThru
                 }
                 else {
-                    $proc = Start-Process $script:gitInstallerPath -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
+                    $proc = Start-Process $script:gitInstallerPath -ArgumentList @("/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh") -PassThru
                 }
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
@@ -1553,6 +1553,27 @@ function Install-Git {
     }
 }
 
+function Test-VCRedistInstalled {
+    param(
+        [string]$version
+    )
+    
+    $keys = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
+    Get-ItemProperty |
+    Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
+    Select-Object -Property DisplayName, Publisher, InstallDate
+    
+    if ($keys) {
+        Write-Output "Visual C++ $version Redistributable is already installed."
+        return $true
+    }
+    else {
+        Write-Output "Visual C++ $version Redistributable is not installed."
+        return $false
+    }
+}
+
+
 <#
 .SYNOPSIS
     Installs the Visual Studio redistributables on Windows systems.
@@ -1577,14 +1598,9 @@ function Install-VCRedistWindows {
         exit 1
     }
 
-    $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-    $vcRedistInstallerName = "vc_redist.x64.exe"
-    $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
-    $installerPath = Join-Path -Path $script:downloadsFolder -ChildPath $vcRedistInstallerName
-
-    if (-not (Test-Path $installerPath)) {
+    if (-not (Test-Path $script:vcInstallerPath)) {
         try {
-            Invoke-WebRequest -Uri $vcRedistUrl -OutFile $installerPath
+            Invoke-WebRequest -Uri $script:vcRedistUrl -OutFile $script:vcInstallerPath
         }
         catch {
             Write-Error "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
@@ -1592,8 +1608,34 @@ function Install-VCRedistWindows {
         }
     }
 
-    Start-Process -FilePath $installerPath -ArgumentList "/install", "/quiet", "/norestart" -Wait
-    Remove-Item -Path $installerPath -Force
+    if (! (Check-VCRedistInstalled -version "2017")) {
+        try {
+            $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru
+            $proc.WaitForExit()
+            
+            if ($proc.ExitCode -ne 0) {
+                Write-Error "The installation process ended with exit code $($proc.ExitCode)."
+                exit 1
+            }
+        }
+        catch {
+            Write-Error "Failed to start the installation process. $_"
+            exit 1
+        }
+        
+        try {
+            if (Test-Path -Path $script:vcInstallerPath) {
+                Remove-Item -Path $script:vcInstallerPath -Force
+            }
+        }
+        catch {
+            Write-Error "Failed to remove the installer file. $_"
+            exit 1
+        }
+    }
+    else {
+        Write-Debug "VC Redist already installed, not installing again."
+    }
 }
 
 
@@ -1628,16 +1670,26 @@ function Main {
     process {
         if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
+                Write-Host "Installing Python 3.10. This could take a few minutes."
                 Install-Python310 -Interactive:$Params.interactive
             }
             else {
                 Write-Host "Python 3.10 is already installed."
             }
             
-            $installScope = Update-InstallScope($Interactive)
-            Install-Python3Tk $installScope
+            if ($os.family -eq "Windows") {
+                if (-not (Test-Python310Installed)) {
+                    Write-Host "Installing Python 3.10 Tk. This could take a few minutes."
+                    $installScope = Update-InstallScope($Interactive)
+                    Install-Python3Tk $installScope
+                }
+            }
+            else {
+                Install-Python3Tk
+            }
 
             if (-not (Test-GitInstalled)) {
+                Write-Host "Installing git. This could take a few minutes."
                 Install-Git
             }
             else {
@@ -1760,6 +1812,7 @@ if ($os.family -eq "Windows") {
     # Software Versions
     $script:pythonVersion = "3.10.11"
     $script:gitVersion = "2.40.1"
+    $script:vcRedistVersion = "17"
 
     # Set the downloads folder for storing pre-req installation files
     $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
@@ -1778,8 +1831,13 @@ if ($os.family -eq "Windows") {
     # Git URL and Hash
     $script:gitUrl = "https://github.com/git-for-windows/git/releases/download/v${script:gitVersion}.windows.1/Git-${script:gitVersion}-64-bit.exe"
     $script:gitSha256 = Get-GitHashFromWeb
-    $script:gitInstallerFile = Split-Path -Leaf $gitUrl
+    $script:gitInstallerFile = Split-Path -Leaf $script:gitUrl
     $script:gitInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:gitInstallerFile
+
+    # VC Redist URL and hash
+    $script:vcRedistUrl = "https://aka.ms/vs/$($script:vcRedistVersion)/release/$($script:vcRedistInstallerName)"
+    $script:vcRedistInstallerName = Split-Path -Leaf $script:vcRedistUrl
+    $script:vcInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:vcRedistInstallerName
 }
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
