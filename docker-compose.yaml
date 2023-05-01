@@ -17,7 +17,6 @@ services:
       - /tmp      
     volumes:
       - ./dataset:/dataset
-      - ./.cache/cache.json:/app/cache.json
       - ./.cache/user:/home/appuser/.cache
       - ./.cache/triton:/home/appuser/.triton    
       - ./.cache/__pycache__:/app/__pycache__
