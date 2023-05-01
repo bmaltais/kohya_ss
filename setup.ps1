@@ -1598,7 +1598,7 @@ function Test-VCRedistInstalled {
         Get-ItemProperty |
         Select-Object -Property DisplayName
     
-        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" }
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
     
         if ($null -ne $matchingSoftware) {
             Write-Debug "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -1615,7 +1615,7 @@ function Test-VCRedistInstalled {
         Get-ItemProperty |
         Select-Object -Property DisplayName
     
-        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" }
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
     
         if ($null -ne $matchingSoftware) {
             Write-Debug "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -1627,7 +1627,6 @@ function Test-VCRedistInstalled {
             return $false
         }
     }
-    
 }
 
 <#
