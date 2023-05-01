@@ -9,7 +9,6 @@ easygui==0.98.3
 einops==0.6.0
 ftfy==6.1.1
 gradio==3.27.0; sys_platform != 'darwin'
-# gradio==3.19.1; sys_platform != 'darwin'
 gradio==3.23.0; sys_platform == 'darwin'
 lion-pytorch==0.0.6
 opencv-python==4.7.0.68
@@ -21,6 +20,7 @@ tk==0.1.0
 toml==0.10.2
 transformers==4.26.0
 voluptuous==0.13.1
+wandb==0.15.0
 # for BLIP captioning
 fairscale==0.4.13
 requests==2.28.2

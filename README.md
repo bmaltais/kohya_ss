@@ -2,14 +2,13 @@
 
 This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
-If you run on Linux and would like to use the GUI, there is now a port of it as a docker container. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
-
 ### Table of Contents
 
 - [Tutorials](#tutorials)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
+    - [Docker](#docker)
     - [Linux/macOS](#linux-and-macos)
       - [Default Install Locations](#install-location)
     - [Windows](#windows)
@@ -41,6 +40,10 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 [![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
 
+Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
+
+[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
+
 ## Required Dependencies
 
 - Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
@@ -57,10 +60,33 @@ These dependencies are taken care of via `setup.sh` in the installation section.
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
+### Docker
+Docker is supported on Windows and Linux distributions. However this method currently only supports Nvidia GPUs. 
+Run the following commands in your OS shell after installing [git](https://git-scm.com/download/) and [docker](https://www.docker.com/products/docker-desktop/):
+```bash
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+docker compose up --build
+```
+
+This will take a while (up to 20 minutes) on the first run.
+
+The following limitations apply:
+* All training data must be added to the `dataset` subdirectory, the docker container cannot access any other files
+* The file picker does not work
+  * Cannot select folders, folder path must be set manually like e.g. /dataset/my_lora/img
+  * Cannot select config file, it must be loaded via path instead like e.g. /dataset/my_config.json  
+* Dialogs do not work
+  * Make sure your file names are unique as this happens when asking if an existing file should be overridden
+* No auto-update support. Must run update scripts outside docker manually and then rebuild with `docker compose build`.
+
+
+If you run on Linux, there is an alternative docker container port with less limitations. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
+
 ### Linux and macOS
 In the terminal, run
 
-```
+```bash
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 # May need to chmod +x ./setup.sh if you're on a machine with stricter security.
@@ -305,6 +331,26 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/05/01 (v21.5.7)
+  - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
+  - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
+    - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
+    - If you specify the `--save_state` option, the state will also be saved at the same time. You can specify the number of steps to keep the state with the `--save_last_n_steps_state` option (the same value as `--save_last_n_steps` is used if omitted).
+    - You can use the epoch-based model saving and state saving options together.
+    - Not tested in multi-GPU environment. Please report any bugs.
+  - `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
+  - Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
+  - Fix triton error
+  - Fix issue with merge lora path with spaces
+  - Added support for logging to wandb. Please refer to PR #428. Thank you p1atdev!
+    - wandb installation is required. Please install it with pip install wandb. Login to wandb with wandb login command, or set --wandb_api_key option for automatic login.
+    - Please let me know if you find any bugs as the test is not complete.
+  - You can automatically login to wandb by setting the --wandb_api_key option. Please be careful with the handling of API Key. PR #435 Thank you Linaqruf!
+  - Improved the behavior of --debug_dataset on non-Windows environments. PR #429 Thank you tsukimiya!
+  - Fixed --face_crop_aug option not working in Fine tuning method.
+  - Prepared code to use any upscaler in gen_img_diffusers.py.
+  - Fixed to log to TensorBoard when --logging_dir is specified and --log_with is not specified.
+  - Add new docker image solution.. Thanks to @Trojaner 
 * 2023/04/22 (v21.5.5)
     - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
     - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
@@ -326,13 +372,3 @@ This will store a backup file with your current locally installed pip packages a
     - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
     - Update gui.bat and gui.ps1 based on: https://github.com/bmaltais/kohya_ss/issues/188
     - Update `setup.bat` to install torch 2.0.0 instead of 1.2.1. If you want to upgrade from 1.2.1 to 2.0.0 run setup.bat again, select 1 to uninstall the previous torch modules, then select 2 for torch 2.0.0
-
-* 2023/04/09 (v21.5.2)
-
-    - Added support for training with weighted captions. Thanks to AI-Casanova for the great contribution! 
-    - Please refer to the PR for details: [PR #336](https://github.com/kohya-ss/sd-scripts/pull/336)
-    - Specify the `--weighted_captions` option. It is available for all training scripts except Textual Inversion and XTI.
-    - This option is also applicable to token strings of the DreamBooth method.
-    - The syntax for weighted captions is almost the same as the Web UI, and you can use things like `(abc)`, `[abc]`, and `(abc:1.23)`. Nesting is also possible.
-    - If you include a comma in the parentheses, the parentheses will not be properly matched in the prompt shuffle/dropout, so do not include a comma in the parentheses.
-    - Run gui.sh from any place

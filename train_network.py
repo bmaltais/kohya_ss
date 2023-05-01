@@ -538,7 +538,7 @@ def train(args):
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
     if accelerator.is_main_process:
-        accelerator.init_trackers("network_train")
+        accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name)
 
     loss_list = []
     loss_total = 0.0
@@ -549,6 +549,27 @@ def train(args):
     # else:
     #     on_step_start = lambda *args, **kwargs: None
 
+    # function for saving/removing
+    def save_model(ckpt_name, unwrapped_nw, steps, epoch_no, force_sync_upload=False):
+        os.makedirs(args.output_dir, exist_ok=True)
+        ckpt_file = os.path.join(args.output_dir, ckpt_name)
+
+        print(f"saving checkpoint: {ckpt_file}")
+        metadata["ss_training_finished_at"] = str(time.time())
+        metadata["ss_steps"] = str(steps)
+        metadata["ss_epoch"] = str(epoch_no)
+
+        unwrapped_nw.save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
+
+    def remove_model(old_ckpt_name):
+        old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
+        if os.path.exists(old_ckpt_file):
+            print(f"removing old checkpoint: {old_ckpt_file}")
+            os.remove(old_ckpt_file)
+
+    # training loop
     for epoch in range(num_train_epochs):
         if is_main_process:
             print(f"epoch {epoch+1}/{num_train_epochs}")
@@ -638,6 +659,21 @@ def train(args):
                     accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet
                 )
 
+                # 指定ステップごとにモデルを保存
+                if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
+                    accelerator.wait_for_everyone()
+                    if accelerator.is_main_process:
+                        ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
+                        save_model(ckpt_name, unwrap_model(network), global_step, epoch)
+
+                        if args.save_state:
+                            train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
+
+                        remove_step_no = train_util.get_remove_step_no(args, global_step)
+                        if remove_step_no is not None:
+                            remove_ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, remove_step_no)
+                            remove_model(remove_ckpt_name)
+
             current_loss = loss.detach().item()
             if epoch == 0:
                 loss_list.append(current_loss)
@@ -662,35 +698,26 @@ def train(args):
 
         accelerator.wait_for_everyone()
 
+        # 指定エポックごとにモデルを保存
         if args.save_every_n_epochs is not None:
-            model_name = train_util.DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
+            saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
+            if is_main_process and saving:
+                ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
+                save_model(ckpt_name, unwrap_model(network), global_step, epoch + 1)
 
-            def save_func():
-                ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, epoch + 1) + "." + args.save_model_as
-                ckpt_file = os.path.join(args.output_dir, ckpt_name)
-                metadata["ss_training_finished_at"] = str(time.time())
-                print(f"saving checkpoint: {ckpt_file}")
-                unwrap_model(network).save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
-                if args.huggingface_repo_id is not None:
-                    huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
+                remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
+                if remove_epoch_no is not None:
+                    remove_ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, remove_epoch_no)
+                    remove_model(remove_ckpt_name)
 
-            def remove_old_func(old_epoch_no):
-                old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
-                old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
-                if os.path.exists(old_ckpt_file):
-                    print(f"removing old checkpoint: {old_ckpt_file}")
-                    os.remove(old_ckpt_file)
-
-            if is_main_process:
-                saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
-                if saving and args.save_state:
-                    train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
+                if args.save_state:
+                    train_util.save_and_remove_state_on_epoch_end(args, accelerator, epoch + 1)
 
         train_util.sample_images(accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
         # end of epoch
 
-    metadata["ss_epoch"] = str(num_train_epochs)
+    # metadata["ss_epoch"] = str(num_train_epochs)
     metadata["ss_training_finished_at"] = str(time.time())
 
     if is_main_process:
@@ -698,22 +725,15 @@ def train(args):
 
     accelerator.end_training()
 
-    if args.save_state:
+    if is_main_process and args.save_state:
         train_util.save_state_on_train_end(args, accelerator)
 
     del accelerator  # この後メモリを使うのでこれは消す
 
     if is_main_process:
-        os.makedirs(args.output_dir, exist_ok=True)
-
-        model_name = train_util.DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-        ckpt_name = model_name + "." + args.save_model_as
-        ckpt_file = os.path.join(args.output_dir, ckpt_name)
-
-        print(f"save trained model to {ckpt_file}")
-        network.save_weights(ckpt_file, save_dtype, minimum_metadata if args.no_metadata else metadata)
-        if args.huggingface_repo_id is not None:
-            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
+        ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+        save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
+        
         print("model saved.")
 
 

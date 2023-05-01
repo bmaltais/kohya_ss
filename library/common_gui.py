@@ -804,6 +804,16 @@ def gradio_advanced_training():
             placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
         )
     with gr.Row():
+        save_every_n_steps = gr.Number(
+            label='Save every N steps', value=0, precision=0, info='(Optional) The model is saved every specified steps'
+        )
+        save_last_n_steps = gr.Number(
+            label='Save last N steps', value=0, precision=0, info='(Optional) Save only the specified number of models (old models will be deleted)'
+        )
+        save_last_n_steps_state = gr.Number(
+            label='Save last N steps', value=0, precision=0, info='(Optional) Save only the specified number of states (old models will be deleted)'
+        )
+    with gr.Row():
         keep_tokens = gr.Slider(
             label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
         )
@@ -917,6 +927,9 @@ def gradio_advanced_training():
         additional_parameters,
         vae_batch_size,
         min_snr_gamma,
+        save_every_n_steps,
+        save_last_n_steps,
+        save_last_n_steps_state,
     )
 
 
@@ -951,6 +964,15 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
+        else '',
+        f' --save_every_n_steps="{int(kwargs.get("save_every_n_steps", 0))}"'
+        if int(kwargs.get('save_every_n_steps')) > 0
+        else '',
+        f' --save_last_n_steps="{int(kwargs.get("save_last_n_steps", 0))}"'
+        if int(kwargs.get('save_last_n_steps')) > 0
+        else '',
+        f' --save_last_n_steps_state="{int(kwargs.get("save_last_n_steps_state", 0))}"'
+        if int(kwargs.get('save_last_n_steps_state')) > 0
         else '',
         f' --min_snr_gamma={int(kwargs.get("min_snr_gamma", 0))}'
         if int(kwargs.get('min_snr_gamma', 0)) >= 1

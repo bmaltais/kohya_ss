@@ -371,8 +371,25 @@ def train(args):
     )
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("textual_inversion")
+        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
 
+    # function for saving/removing
+    def save_model(ckpt_name, embs, steps, epoch_no, force_sync_upload=False):
+        os.makedirs(args.output_dir, exist_ok=True)
+        ckpt_file = os.path.join(args.output_dir, ckpt_name)
+
+        print(f"saving checkpoint: {ckpt_file}")
+        save_weights(ckpt_file, embs, save_dtype)
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
+
+    def remove_model(old_ckpt_name):
+        old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
+        if os.path.exists(old_ckpt_file):
+            print(f"removing old checkpoint: {old_ckpt_file}")
+            os.remove(old_ckpt_file)
+
+    # training loop
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
@@ -462,6 +479,23 @@ def train(args):
                 #     accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
                 # )
 
+                # 指定ステップごとにモデルを保存
+                if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
+                    accelerator.wait_for_everyone()
+                    if accelerator.is_main_process:
+                        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
+
+                        ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
+                        save_model(ckpt_name, updated_embs, global_step, epoch)
+
+                        if args.save_state:
+                            train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
+
+                        remove_step_no = train_util.get_remove_step_no(args, global_step)
+                        if remove_step_no is not None:
+                            remove_ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, remove_step_no)
+                            remove_model(remove_ckpt_name)
+
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
@@ -488,26 +522,18 @@ def train(args):
         updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
-            model_name = train_util.DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
+            saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
+            if accelerator.is_main_process and saving:
+                ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
+                save_model(ckpt_name, updated_embs, epoch + 1, global_step)
 
-            def save_func():
-                ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, epoch + 1) + "." + args.save_model_as
-                ckpt_file = os.path.join(args.output_dir, ckpt_name)
-                print(f"saving checkpoint: {ckpt_file}")
-                save_weights(ckpt_file, updated_embs, save_dtype)
-                if args.huggingface_repo_id is not None:
-                    huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
+                remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
+                if remove_epoch_no is not None:
+                    remove_ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, remove_epoch_no)
+                    remove_model(remove_ckpt_name)
 
-            def remove_old_func(old_epoch_no):
-                old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
-                old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
-                if os.path.exists(old_ckpt_file):
-                    print(f"removing old checkpoint: {old_ckpt_file}")
-                    os.remove(old_ckpt_file)
-
-            saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
-            if saving and args.save_state:
-                train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
+                if args.save_state:
+                    train_util.save_and_remove_state_on_epoch_end(args, accelerator, epoch + 1)
 
         # TODO: fix sample_images
         # train_util.sample_images(
@@ -522,7 +548,7 @@ def train(args):
 
     accelerator.end_training()
 
-    if args.save_state:
+    if args.save_state and is_main_process:
         train_util.save_state_on_train_end(args, accelerator)
 
     updated_embs = text_encoder.get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
@@ -530,16 +556,9 @@ def train(args):
     del accelerator  # この後メモリを使うのでこれは消す
 
     if is_main_process:
-        os.makedirs(args.output_dir, exist_ok=True)
+        ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+        save_model(ckpt_name, updated_embs, global_step, num_train_epochs, force_sync_upload=True)
 
-        model_name = train_util.DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-        ckpt_name = model_name + "." + args.save_model_as
-        ckpt_file = os.path.join(args.output_dir, ckpt_name)
-
-        print(f"save trained model to {ckpt_file}")
-        save_weights(ckpt_file, updated_embs, save_dtype)
-        if args.huggingface_repo_id is not None:
-            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
         print("model saved.")
 
 

@@ -25,7 +25,7 @@ def merge_lycoris(
     print('Merge model...')
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","merge_lycoris.py")}"'
-    run_cmd += f' {base_model}'
+    run_cmd += f' "{base_model}"'
     run_cmd += f' "{lycoris_model}"'
     run_cmd += f' "{output_name}"'
     run_cmd += f' --weight {weight}'

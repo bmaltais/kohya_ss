@@ -13,6 +13,72 @@ from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
 from library.merge_lycoris_gui import gradio_merge_lycoris_tab
 from lora_gui import lora_tab
 
+import os
+import sys
+import json
+import time
+import shutil
+import logging
+import subprocess
+
+log = logging.getLogger('sd')
+
+# setup console and file logging
+def setup_logging(clean=False):
+    try:
+        if clean and os.path.isfile('setup.log'):
+            os.remove('setup.log')
+        time.sleep(0.1)   # prevent race condition
+    except:
+        pass
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s',
+        filename='setup.log',
+        filemode='a',
+        encoding='utf-8',
+        force=True,
+    )
+    from rich.theme import Theme
+    from rich.logging import RichHandler
+    from rich.console import Console
+    from rich.pretty import install as pretty_install
+    from rich.traceback import install as traceback_install
+
+    console = Console(
+        log_time=True,
+        log_time_format='%H:%M:%S-%f',
+        theme=Theme(
+            {
+                'traceback.border': 'black',
+                'traceback.border.syntax_error': 'black',
+                'inspect.value.border': 'black',
+            }
+        ),
+    )
+    pretty_install(console=console)
+    traceback_install(
+        console=console,
+        extra_lines=1,
+        width=console.width,
+        word_wrap=False,
+        indent_guides=False,
+        suppress=[],
+    )
+    rh = RichHandler(
+        show_time=True,
+        omit_repeated_times=False,
+        show_level=True,
+        show_path=False,
+        markup=False,
+        rich_tracebacks=True,
+        log_time_format='%H:%M:%S-%f',
+        level=logging.DEBUG if args.debug else logging.INFO,
+        console=console,
+    )
+    rh.set_name(logging.DEBUG if args.debug else logging.INFO)
+    log.addHandler(rh)
+
 
 def UI(**kwargs):
     css = ''
@@ -22,7 +88,9 @@ def UI(**kwargs):
             print('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css, title='Kohya_ss GUI', theme=gr.themes.Default())
+    interface = gr.Blocks(
+        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+    )
 
     with interface:
         with gr.Tab('Dreambooth'):

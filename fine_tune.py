@@ -260,7 +260,7 @@ def train(args):
     )
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("finetuning")
+        accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name)
 
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
@@ -275,7 +275,7 @@ def train(args):
             with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
-                        latents = batch["latents"].to(accelerator.device) # .to(dtype=weight_dtype)
+                        latents = batch["latents"].to(accelerator.device)  # .to(dtype=weight_dtype)
                     else:
                         # latentに変換
                         latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
@@ -285,18 +285,19 @@ def train(args):
                 with torch.set_grad_enabled(args.train_text_encoder):
                     # Get the text embedding for conditioning
                     if args.weighted_captions:
-                      encoder_hidden_states = get_weighted_text_embeddings(tokenizer,
-                        text_encoder,
-                        batch["captions"],
-                        accelerator.device,
-                        args.max_token_length // 75 if args.max_token_length else 1,
-                        clip_skip=args.clip_skip,
+                        encoder_hidden_states = get_weighted_text_embeddings(
+                            tokenizer,
+                            text_encoder,
+                            batch["captions"],
+                            accelerator.device,
+                            args.max_token_length // 75 if args.max_token_length else 1,
+                            clip_skip=args.clip_skip,
                         )
                     else:
-                      input_ids = batch["input_ids"].to(accelerator.device)
-                      encoder_hidden_states = train_util.get_hidden_states(
-                          args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
-                      )
+                        input_ids = batch["input_ids"].to(accelerator.device)
+                        encoder_hidden_states = train_util.get_hidden_states(
+                            args, input_ids, tokenizer, text_encoder, None if not args.full_fp16 else weight_dtype
+                        )
 
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents, device=latents.device)
@@ -351,6 +352,27 @@ def train(args):
                     accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet
                 )
 
+                # 指定ステップごとにモデルを保存
+                if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
+                    accelerator.wait_for_everyone()
+                    if accelerator.is_main_process:
+                        src_path = src_stable_diffusion_ckpt if save_stable_diffusion_format else src_diffusers_model_path
+                        train_util.save_sd_model_on_epoch_end_or_stepwise(
+                            args,
+                            False,
+                            accelerator,
+                            src_path,
+                            save_stable_diffusion_format,
+                            use_safetensors,
+                            save_dtype,
+                            epoch,
+                            num_train_epochs,
+                            global_step,
+                            unwrap_model(text_encoder),
+                            unwrap_model(unet),
+                            vae,
+                        )
+
             current_loss = loss.detach().item()  # 平均なのでbatch sizeは関係ないはず
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
@@ -376,21 +398,23 @@ def train(args):
         accelerator.wait_for_everyone()
 
         if args.save_every_n_epochs is not None:
-            src_path = src_stable_diffusion_ckpt if save_stable_diffusion_format else src_diffusers_model_path
-            train_util.save_sd_model_on_epoch_end(
-                args,
-                accelerator,
-                src_path,
-                save_stable_diffusion_format,
-                use_safetensors,
-                save_dtype,
-                epoch,
-                num_train_epochs,
-                global_step,
-                unwrap_model(text_encoder),
-                unwrap_model(unet),
-                vae,
-            )
+            if accelerator.is_main_process:
+                src_path = src_stable_diffusion_ckpt if save_stable_diffusion_format else src_diffusers_model_path
+                train_util.save_sd_model_on_epoch_end_or_stepwise(
+                    args,
+                    True,
+                    accelerator,
+                    src_path,
+                    save_stable_diffusion_format,
+                    use_safetensors,
+                    save_dtype,
+                    epoch,
+                    num_train_epochs,
+                    global_step,
+                    unwrap_model(text_encoder),
+                    unwrap_model(unet),
+                    vae,
+                )
 
         train_util.sample_images(accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
@@ -401,7 +425,7 @@ def train(args):
 
     accelerator.end_training()
 
-    if args.save_state:
+    if args.save_state and is_main_process:
         train_util.save_state_on_train_end(args, accelerator)
 
     del accelerator  # この後メモリを使うのでこれは消す

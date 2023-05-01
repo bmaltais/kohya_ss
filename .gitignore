@@ -9,3 +9,6 @@ wd14_tagger_model
 locon
 gui-user.bat
 gui-user.ps1
+.vscode
+wandb
+logs
