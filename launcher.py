@@ -880,7 +880,7 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
         if (update or len(os.listdir(_dir)) == 0 or
             (len(os.listdir(_dir)) in [1, 2] and os.path.exists(os.path.join(_dir, "venv")) and os.path.exists(
                 os.path.join(_dir, "logs")))) and \
-                (not branch or branch == "master") and (
+                (not branch or branch != "master") and (
                 not git_repo or git_repo.startswith("https://github.com/bmaltais/kohya_ss")):
 
             # Download the latest release as a zip file from the default repository
@@ -946,13 +946,14 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
             except Exception as e:
                 logging.warning(f"Failed to download the latest release: {e}")
 
-        elif update is True and not git_repo.startswith("https://github.com/bmaltais/kohya_ss"):
+        elif not git_repo.startswith("https://github.com/bmaltais/kohya_ss") or branch != "master":
             logging.info("Sorry, we only support zip file updates for master branch on "
-                         "github.com/bmaltais/kohya_ss")
+                         "https://github.com/bmaltais/kohya_ss")
             success = False
         elif len(os.listdir(_dir)) > 1:
             logging.critical("Non-git installation detected, but --update flag not used. Skipping release zip file "
                              "download attempt.")
+            success = True
         else:
             logging.error("We could not download the latest release via git or zip file.")
             success = False
@@ -1509,7 +1510,7 @@ def get_logs_dir(_args):
     if getattr(_args, "log-dir"):
         _logs_dir = os.path.abspath(os.path.expanduser(getattr(_args, "log-dir")))
     else:
-        _logs_dir = os.path.join(_args.dir, "logs")
+        _logs_dir = os.path.abspath(os.path.join(_args.dir, "logs"))
 
     os.makedirs(_logs_dir, exist_ok=True)
     return _logs_dir
