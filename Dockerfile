@@ -27,6 +27,7 @@ RUN . ./venv/bin/activate && \
 USER appuser
 COPY --chown=appuser . .
 
+# https://github.com/kohya-ss/sd-scripts/issues/405#issuecomment-1509851709
 RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' train_network.py && \
     sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' library/train_util.py
 
