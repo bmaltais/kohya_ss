@@ -1292,7 +1292,7 @@ function Get-GitExePath {
         if (-not $gitPath) {
             $gitPath = Join-Path -Path $env:ProgramFiles -ChildPath 'Git\bin'
             if (-not (Test-Path $gitPath)) {
-                $gitPath = Join-Path -Path $env:ProgramFiles(x86) -ChildPath 'Git\bin'
+                $gitPath = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Git\bin'
             }
         }
     }
@@ -1640,8 +1640,7 @@ function Test-VCRedistInstalled {
     Install-VCRedistWindows -Interactive $true
 #>
 function Install-VCRedistWindows {
-    $os = Get-OsInfo
-    if ($os.Name -ne "Windows") {
+    if ($os.family -ne "Windows") {
         return
     }
 
@@ -1652,6 +1651,7 @@ function Install-VCRedistWindows {
 
     if (-not (Test-Path $script:vcInstallerPath)) {
         try {
+            Write-Debug "Attempting to download: ${script:vcRedistUrl} to ${script:vcInstallerPath}"
             Invoke-WebRequest -Uri $script:vcRedistUrl -OutFile $script:vcInstallerPath
         }
         catch {
@@ -1660,33 +1660,28 @@ function Install-VCRedistWindows {
         }
     }
 
-    if (! (Check-VCRedistInstalled -version "2017")) {
-        try {
-            $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru
-            $proc.WaitForExit()
+    try {
+        $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru
+        $proc.WaitForExit()
             
-            if ($proc.ExitCode -ne 0) {
-                Write-Error "The installation process ended with exit code $($proc.ExitCode)."
-                exit 1
-            }
-        }
-        catch {
-            Write-Error "Failed to start the installation process. $_"
-            exit 1
-        }
-        
-        try {
-            if (Test-Path -Path $script:vcInstallerPath) {
-                Remove-Item -Path $script:vcInstallerPath -Force
-            }
-        }
-        catch {
-            Write-Error "Failed to remove the installer file. $_"
+        if ($proc.ExitCode -ne 0) {
+            Write-Error "The installation process ended with exit code $($proc.ExitCode)."
             exit 1
         }
     }
-    else {
-        Write-Debug "VC Redist already installed, not installing again."
+    catch {
+        Write-Error "Failed to start the installation process. $_"
+        exit 1
+    }
+        
+    try {
+        if (Test-Path -Path $script:vcInstallerPath) {
+            Remove-Item -Path $script:vcInstallerPath -Force
+        }
+    }
+    catch {
+        Write-Error "Failed to remove the installer file. $_"
+        exit 1
     }
 }
 
@@ -1746,6 +1741,14 @@ function Main {
             }
             else {
                 Write-Host "Git already installed."
+            }
+
+            Write-Debug "Checking for VC version: 20${script:vcRedistVersion}"
+            if (-not (Check-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
+                Install-VCRedistWindows
+            }
+            else {
+                Write-Host "VC Redist already installed."
             }
         }
     }
@@ -1849,6 +1852,10 @@ function Main {
 # ---------------------------------------------------------
 # The main execution block of the code starts here
 # ---------------------------------------------------------
+
+# Ensure script executes as normal while printing debug statements.
+# This only affects the PowerShell script. All other scripts abide by --verbosity [int].
+$DebugPreference = "Continue"
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath
