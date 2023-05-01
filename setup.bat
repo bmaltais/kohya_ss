@@ -15,13 +15,13 @@ set Runpod=0
 set SetupOnly=0
 set SkipSpaceCheck=0
 set Update=0
-set Verbose=0
-set GUI_LISTEN=127.0.0.1
-set GUI_USERNAME=
-set GUI_PASSWORD=
-set GUI_SERVER_PORT=0
-set GUI_INBROWSER=1
-set GUI_SHARE=0
+set Verbosity=0
+set LISTEN=127.0.0.1
+set USERNAME=
+set PASSWORD=
+set SERVER_PORT=0
+set INBROWSER=1
+set SHARE=0
 
 rem Load the configuration file from the first existing location
 set ConfigFile=
@@ -38,7 +38,7 @@ for %%F in (
 
 :load_config
 if not "%ConfigFile%"=="" (
-    for /f "tokens=1,2 delims=: " %%a in (%ConfigFile%) do (
+    for /f "usebackq tokens=1,2 delims=: " %%a in ("%ConfigFile%") do (
         if "%%a"=="Branch" set Branch=%%b
         if "%%a"=="Dir" set Dir=%%b
         if "%%a"=="File" set File=%%b
@@ -52,7 +52,7 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="SetupOnly" set SetupOnly=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
         if "%%a"=="Update" set Update=%%b
-        if "%%a"=="Verbose" set Verbose=%%b
+        if "%%a"=="Verbosity" set Verbosity=%%b
         if "%%a"=="Listen" set LISTEN=%%b
         if "%%a"=="Username" set USERNAME=%%b
         if "%%a"=="Password" set PASSWORD=%%b
@@ -64,32 +64,156 @@ if not "%ConfigFile%"=="" (
 
 rem Parse command line arguments and override loaded config file values
 :arg_loop
-if "%~1"=="" goto arg_end
-if /i "%~1"=="--branch" (shift & set Branch=%1) & shift & goto arg_loop
-if /i "%~1"=="--dir" (shift & set Dir=%1) & shift & goto arg_loop
-if /i "%~1"=="--file" (shift & set File=%1) & shift & goto arg_loop
-if /i "%~1"=="--git-repo" (shift & set GitRepo=%1) & shift & goto arg_loop
-if /i "%~1"=="--help" goto print_help
-if /i "%~1"=="--interactive" (set Interactive=1) & shift & goto arg_loop
-if /i "%~1"=="--log-dir" (shift & set LogDir=%1) & shift & goto arg_loop
-if /i "%~1"=="--no-setup" (set NoSetup=1) & shift & goto arg_loop
-if /i "%~1"=="--public" (set Public=1) & shift & goto arg_loop
-if /i "%~1"=="--repair" (set Repair=1) & shift & goto arg_loop
-if /i "%~1"=="--runpod" (set Runpod=1) & shift & goto arg_loop
-if /i "%~1"=="--setup-only" (set SetupOnly=1) & shift & goto arg_loop
-if /i "%~1"=="--skip-space-check" (set SkipSpaceCheck=1) & shift & goto arg_loop
-if /i "%~1"=="--update" (set Update=1) & shift & goto arg_loop
-if /i "%~1"=="--verbose" (set /A Verbose=Verbose+1) & shift & goto arg_loop
-if /i "%~1"=="--listen" (shift & set LISTEN=%1) & shift & goto arg_loop
-if /i "%~1"=="--username" (shift & set USERNAME=%1) & shift & goto arg_loop
-if /i "%~1"=="--password" (shift & set PASSWORD=%1) & shift & goto arg_loop
-if /i "%~1"=="--server-port" (shift & set SERVER_PORT=%1) & shift & goto arg_loop
-if /i "%~1"=="--inbrowser" (set INBROWSER=1) & shift & goto arg_loop
-if /i "%~1"=="--share" (set SHARE=1) & shift & goto arg_loop
+if "%~1" equ "" goto arg_end
+
+echo Parsing: %~1
+if /i "%~1"=="--branch" (
+    shift
+    if not "%~1"=="" (
+        set Branch=%1
+        echo Branch set to %Branch%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--dir" (
+    shift
+    if not "%~1"=="" (
+        set Dir=%1
+        echo Dir set to %Dir%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--file" (
+    shift
+    if not "%~1"=="" (
+        set File=%1
+        echo File set to %File%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--git-repo" (
+    shift
+    if not "%~1"=="" (
+        set GitRepo=%1
+        echo GitRepo set to %GitRepo%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--help" (
+    goto print_help
+)
+if /i "%~1"=="--interactive" (
+    set Interactive=1
+    echo Interactive set to %Interactive%
+    goto shift_and_continue
+)
+if /i "%~1"=="--log-dir" (
+    shift
+    if not "%~1"=="" (
+        set LogDir=%1
+        echo LogDir set to %LogDir%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--no-setup" (
+    set NoSetup=1
+    echo NoSetup set to %NoSetup%
+    goto shift_and_continue
+)
+if /i "%~1"=="--public" (
+    set Public=1
+    echo Public set to %Public%
+    goto shift_and_continue
+)
+if /i "%~1"=="--repair" (
+    set Repair=1
+    echo Repair set to %Repair%
+    goto shift_and_continue
+)
+if /i "%~1"=="--runpod" (
+    set Runpod=1
+    echo Runpod set to %Runpod%
+    goto shift_and_continue
+)
+if /i "%~1"=="--setup-only" (
+    set SetupOnly=1
+    echo SetupOnly set to %SetupOnly%
+    goto shift_and_continue
+)
+if /i "%~1"=="--skip-space-check" (
+    set SkipSpaceCheck=1
+    echo SkipSpaceCheck set to %SkipSpaceCheck%
+    goto shift_and_continue
+)
+if /i "%~1"=="--update" (
+    set Update=1
+    echo Update set to %Update%
+    goto shift_and_continue
+)
+if /i "%~1"=="--verbosity" (
+    set /a Verbosity+=1
+    echo Verbosity set to !Verbosity!
+    goto shift_and_continue
+)
+if /i "%~1"=="--listen" (
+    shift
+    if not "%~1"=="" (
+        set LISTEN=%1
+        echo LISTEN set to %LISTEN%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--username" (
+    shift
+    if not "%~1"=="" (
+        set USERNAME=%1
+        echo USERNAME set to %USERNAME%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--password" (
+    shift
+    if not "%~1"=="" (
+        set PASSWORD=%1
+        echo PASSWORD set to %PASSWORD%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--server-port" (
+    shift
+    if not "%~1"=="" (
+        set SERVER_PORT=%1
+        echo SERVER_PORT set to %SERVER_PORT%
+    )
+    goto shift_and_continue
+)
+if /i "%~1"=="--inbrowser" (
+    set INBROWSER=1
+    echo INBROWSER set to %INBROWSER%
+    goto shift_and_continue
+)
+if /i "%~1"=="--share" (
+    set SHARE=1
+    echo SHARE set to %SHARE%
+    goto shift_and_continue
+)
+
+:: Unrecognized argument.
+echo Error: Unrecognized argument "%~1"
+echo.
+call :print_help
+exit /b 1
+
+:shift_and_continue
 shift
 goto arg_loop
 
 :arg_end
+
+
+
+rem Bypass the print_help function and skip to executing launcher.py
+goto :run_command
 
 :print_help
 echo Usage: my_script.bat [OPTIONS]
@@ -109,7 +233,7 @@ echo --runpod           : Run in Runpod mode.
 echo --setup-only       : Only run the setup process, do not launch the application.
 echo --skip-space-check : Skip the disk space check.
 echo --update           : Run the update process.
-echo --verbose          : Increase the verbosity level.
+echo --verbosity        : Increase the verbosity level.
 echo --listen           : Specify the GUI listen address. Default is '127.0.0.1'.
 echo --username         : Specify the GUI username.
 echo --password         : Specify the GUI password.
@@ -118,6 +242,7 @@ echo --inbrowser        : Open the GUI in the browser.
 echo --share            : Enable GUI sharing.
 goto :eof
 
+:run_command
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 :: Prepare Args
 set Args=
@@ -131,7 +256,7 @@ if %Public% EQU 1 set Args=%Args% -p
 if %Repair% EQU 1 set Args=%Args% --repair
 if %Runpod% EQU 1 set Args=%Args% --runpod
 if %SkipSpaceCheck% EQU 1 set Args=%Args% -s
-if not "%Verbose%"=="" set Args=%Args% -v %Verbose%
+if not "%Verbosity%"=="" set Args=%Args% -v %Verbosity%
 if %SetupOnly% EQU 1 set Args=%Args% --setup-only
 if not "%LISTEN%"=="" set Args=%Args% --listen "%LISTEN%"
 if not "%USERNAME%"=="" set Args=%Args% --username "%USERNAME%"
@@ -143,7 +268,8 @@ if not "%LogDir%"=="" set Args=%Args% --log-dir:%LogDir%
 
 rem Call launcher.py with the provided arguments
 :: Execute launcher.py with the provided arguments
-python "%Dir%\launcher.py" %Args% || (
+echo python "%Dir%launcher.py" %Args%
+python "%Dir%launcher.py" %Args% || (
   echo.
   echo Python script encountered an error.
   echo Press Enter to continue...
