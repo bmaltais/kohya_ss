@@ -1,9 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
+set ScriptDir=%~dp0
+
 rem Define the default values
 set Branch=master
-set Dir=%~dp0
+set Dir=%ScriptDir%
 set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
@@ -20,7 +22,7 @@ set LISTEN=127.0.0.1
 set USERNAME=
 set PASSWORD=
 set SERVER_PORT=0
-set INBROWSER=1
+set INBROWSER=0
 set SHARE=0
 
 rem Load the configuration file from the first existing location
@@ -64,138 +66,169 @@ if not "%ConfigFile%"=="" (
 
 rem Parse command line arguments and override loaded config file values
 :arg_loop
-if "%~1" equ "" goto arg_end
+if "%~1"=="" goto arg_end
 
 echo Parsing: %~1
-if /i "%~1"=="--branch" (
-    shift
-    if not "%~1"=="" (
-        set Branch=%1
-        echo Branch set to %Branch%
+set "arg=%~1"
+if /i "%arg%"=="--branch" (
+    if not "%~2"=="" (
+        set Branch=%~2
+        echo Branch set to !Branch!
+        shift
     )
-    goto shift_and_continue
-)
-if /i "%~1"=="--dir" (
     shift
-    if not "%~1"=="" (
-        set Dir=%1
-        echo Dir set to %Dir%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--file" (
+if /i "%arg%"=="--dir" (
+    if not "%~2"=="" (
+        set "Dir=%~2"
+        echo Dir set to !Dir!
+        shift
+    )
     shift
-    if not "%~1"=="" (
-        set File=%1
-        echo File set to %File%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--git-repo" (
+if /i "%arg%"=="--file" (
+    if not "%~2"=="" (
+        set File=%~2
+        echo File set to !File!
     shift
-    if not "%~1"=="" (
-        set GitRepo=%1
-        echo GitRepo set to %GitRepo%
     )
-    goto shift_and_continue
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--help" (
+if /i "%arg%"=="--git-repo" (
+    if not "%~2"=="" (
+        set GitRepo=%~2
+        echo GitRepo set to !GitRepo!
+        shift
+    )
+    shift
+    goto arg_loop
+)
+if /i "%arg%"=="--help" (
     goto print_help
 )
-if /i "%~1"=="--interactive" (
+if /i "%arg%"=="--interactive" (
     set Interactive=1
-    echo Interactive set to %Interactive%
-    goto shift_and_continue
-)
-if /i "%~1"=="--log-dir" (
+    echo Interactive set to !Interactive!
     shift
-    if not "%~1"=="" (
-        set LogDir=%1
-        echo LogDir set to %LogDir%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--no-setup" (
+if /i "%arg%"=="--log-dir" (
+    if not "%~2"=="" (
+        set LogDir=%~2
+        echo LogDir set to !LogDir!
+        shift
+    ) 
+    shift
+    goto arg_loop
+)
+if /i "%arg%"=="--no-setup" (
     set NoSetup=1
-    echo NoSetup set to %NoSetup%
-    goto shift_and_continue
+    echo NoSetup set to !NoSetup!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--public" (
+if /i "%arg%"=="--public" (
     set Public=1
-    echo Public set to %Public%
-    goto shift_and_continue
+    echo Public set to !Public!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--repair" (
+if /i "%arg%"=="--repair" (
     set Repair=1
-    echo Repair set to %Repair%
-    goto shift_and_continue
+    echo Repair set to !Repair!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--runpod" (
+if /i "%arg%"=="--runpod" (
     set Runpod=1
-    echo Runpod set to %Runpod%
-    goto shift_and_continue
+    echo Runpod set to !Runpod!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--setup-only" (
+if /i "%arg%"=="--setup-only" (
     set SetupOnly=1
-    echo SetupOnly set to %SetupOnly%
-    goto shift_and_continue
+    echo SetupOnly set to !SetupOnly!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--skip-space-check" (
+if /i "%arg%"=="--skip-space-check" (
     set SkipSpaceCheck=1
-    echo SkipSpaceCheck set to %SkipSpaceCheck%
-    goto shift_and_continue
+    echo SkipSpaceCheck set to !SkipSpaceCheck!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--update" (
+if /i "%arg%"=="--update" (
     set Update=1
-    echo Update set to %Update%
-    goto shift_and_continue
-)
-if /i "%~1"=="--verbosity" (
-    set /a Verbosity+=1
-    echo Verbosity set to !Verbosity!
-    goto shift_and_continue
-)
-if /i "%~1"=="--listen" (
+    echo Update set to !Update!
     shift
-    if not "%~1"=="" (
-        set LISTEN=%1
-        echo LISTEN set to %LISTEN%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--username" (
+if /i "%arg%"=="--verbosity" (
+    if not "%~2"=="" (
+        set /a Verbosity=%~2 2>nul
+        if errorlevel 1 (
+            echo Error: Verbosity must be a number.
+            exit /b 1
+        ) else (
+            echo Verbosity set to !Verbosity!
+        )
+        shift
+    )
     shift
-    if not "%~1"=="" (
-        set USERNAME=%1
-        echo USERNAME set to %USERNAME%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--password" (
+if /i "%arg%"=="--listen" (
+    if not "%~2"=="" (
+        set LISTEN=%~2
+        echo LISTEN set to !LISTEN!
+        shift
+    )
     shift
-    if not "%~1"=="" (
-        set PASSWORD=%1
-        echo PASSWORD set to %PASSWORD%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--server-port" (
+if /i "%arg%"=="--username" (
+    if not "%~2"=="" (
+        set USERNAME=%~2
+        echo USERNAME set to !USERNAME!
+        shift
+    )
     shift
-    if not "%~1"=="" (
-        set SERVER_PORT=%1
-        echo SERVER_PORT set to %SERVER_PORT%
-    )
-    goto shift_and_continue
+    goto arg_loop
 )
-if /i "%~1"=="--inbrowser" (
+if /i "%arg%"=="--password" (
+    if not "%~2"=="" (
+        set PASSWORD=%~2
+        echo PASSWORD set to !PASSWORD!
+        shift
+    )
+    
+    shift
+    goto arg_loop
+)
+if /i "%arg%"=="--server-port" (
+    if not "%~2"=="" (
+        set SERVER_PORT=%~2
+        echo SERVER_PORT set to !SERVER_PORT!
+        shift
+    )
+    
+    shift
+    goto arg_loop
+)
+if /i "%arg%"=="--inbrowser" (
     set INBROWSER=1
-    echo INBROWSER set to %INBROWSER%
-    goto shift_and_continue
+    echo INBROWSER set to !INBROWSER!
+    shift
+    goto arg_loop
 )
-if /i "%~1"=="--share" (
+if /i "%arg%"=="--share" (
     set SHARE=1
-    echo SHARE set to %SHARE%
-    goto shift_and_continue
+    echo SHARE set to !SHARE!
+    shift
+    goto arg_loop
 )
 
 :: Unrecognized argument.
@@ -204,13 +237,7 @@ echo.
 call :print_help
 exit /b 1
 
-:shift_and_continue
-shift
-goto arg_loop
-
 :arg_end
-
-
 
 rem Bypass the print_help function and skip to executing launcher.py
 goto :run_command
@@ -246,30 +273,54 @@ goto :eof
 rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
 :: Prepare Args
 set Args=
-if not "%Branch%"=="" set Args=%Args% -b "%Branch%"
-if not "%Dir%"=="" set Args=%Args% -d "%Dir%"
-if not "%File%"=="" set Args=%Args% -f "%File%"
-if not "%GitRepo%"=="" set Args=%Args% -g "%GitRepo%"
+if not "%Branch%"=="" set Args=%Args% -b %Branch%
+if not "%Dir%"=="" (
+    set "Dir=%Dir:\=/%"
+    if "%Dir:~0,1%"=="." (
+        set "Dir=%ScriptDir%\%Dir%"
+    )
+    set Args=%Args% -d %Dir%
+)
+if not "%File%"=="" (
+    set "File=%File:\=/%"
+    set Args=%Args% -f %File%
+)
+if not "%GitRepo%"=="" (
+    rem Check if GitRepo starts with http, https, or ssh
+    echo.%GitRepo%|findstr /B /I "http:// https:// ssh://" >nul 2>&1
+    if errorlevel 1 (
+        rem It's a local path, so replace backslashes with forward slashes
+        set "GitRepo=%GitRepo:\=/%"
+    )
+    set Args=%Args% -g %GitRepo%
+)
+if not "%LogDir%"=="" (
+    set "LogDir=%LogDir:\=/%"
+    set Args=%Args% -l %LogDir%
+)
 if %Interactive% EQU 1 set Args=%Args% -i
 if %NoSetup% EQU 1 set Args=%Args% -n
 if %Public% EQU 1 set Args=%Args% -p
 if %Repair% EQU 1 set Args=%Args% --repair
 if %Runpod% EQU 1 set Args=%Args% --runpod
 if %SkipSpaceCheck% EQU 1 set Args=%Args% -s
-if not "%Verbosity%"=="" set Args=%Args% -v %Verbosity%
+if not %Verbosity% EQU 0 set Args=%Args% --verbosity %Verbosity%
 if %SetupOnly% EQU 1 set Args=%Args% --setup-only
-if not "%LISTEN%"=="" set Args=%Args% --listen "%LISTEN%"
+if not "%LISTEN%"=="" set Args=%Args% --listen %LISTEN%
 if not "%USERNAME%"=="" set Args=%Args% --username "%USERNAME%"
 if not "%PASSWORD%"=="" set Args=%Args% --password "%PASSWORD%"
-if not "%SERVER_PORT%"=="" set Args=%Args% --server-port %SERVER_PORT%
+if not "%SERVER_PORT%"=="" (
+    if not "%SERVER_PORT%"=="0" (
+        set Args=%Args% --server-port %SERVER_PORT%
+    )
+)
 if %INBROWSER% EQU 1 set Args=%Args% --inbrowser
 if %SHARE% EQU 1 set Args=%Args% --share
-if not "%LogDir%"=="" set Args=%Args% --log-dir:%LogDir%
 
 rem Call launcher.py with the provided arguments
 :: Execute launcher.py with the provided arguments
-echo python "%Dir%launcher.py" %Args%
-python "%Dir%launcher.py" %Args% || (
+echo python " %ScriptDir%launcher.py" %Args%
+python %ScriptDir%launcher.py %Args% || (
   echo.
   echo Python script encountered an error.
   echo Press Enter to continue...
