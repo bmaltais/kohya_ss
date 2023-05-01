@@ -1599,7 +1599,7 @@ function Test-VCRedistInstalled {
         Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
         Select-Object -Property DisplayName, Publisher, InstallDate
     
-        if ($keys) {
+        if ($keys.Count -gt 0) {
             Write-Debug "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed."
             return $true
@@ -1615,7 +1615,7 @@ function Test-VCRedistInstalled {
         Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
         Select-Object -Property DisplayName, Publisher, InstallDate
     
-        if ($keys) {
+        if ($keys.Count -gt 0) {
             Write-Debug "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed for the current user."
             return $true
