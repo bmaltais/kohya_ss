@@ -234,6 +234,9 @@ This command does the following:
 
 -Public [<SwitchParameter>]
     Expose public URL in runpod mode. Won't have an effect in other modes.
+    
+.PARAMETER Repair
+    This runs the installation repair operations. These could take a few minutes to run.
 
 -Runpod [<SwitchParameter>]
     Forces a runpod installation. Useful if detection fails for any reason.
@@ -273,7 +276,7 @@ This command does the following:
 <details>
 <summary>setup.bat</summary>
 
-```bash
+```commandline
 --branch           : Specify the Git branch to use. Default is 'master'.
 --dir              : Specify the working directory. Default is the directory of the script.
 --file             : Specify the configuration file to be processed.
@@ -282,6 +285,7 @@ This command does the following:
 --interactive      : Run in interactive mode.
 --no-setup         : Skip the setup process.
 --public           : Run in public mode.
+ --repair          : This runs the installation repair operations. These could take a few minutes to run.
 --runpod           : Run in Runpod mode.
 --setup-only       : Only run the setup process, do not launch the application.
 --skip-space-check : Skip the disk space check.
@@ -309,7 +313,8 @@ This command does the following:
 -l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
 -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
 -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
--r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+-r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
+--runpod                      Forces a runpod installation. Useful if detection fails for any reason.
 --setup-only                  Do not launch GUI. Only conduct setup operations.
 -s, --skip-space-check        Skip the 10Gb minimum storage space check.
 -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
