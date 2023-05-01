@@ -21,7 +21,7 @@ RUN . ./venv/bin/activate && \
 
 # Upgrade to Torch 2.0
 RUN . ./venv/bin/activate && \
-    python3 -m pip install --use-pep517 --no-deps -U triton torch>=2.0.0+cu121 xformers \
+    python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers \
 	                       --extra-index-url https://download.pytorch.org/whl/cu121
 
 USER appuser
@@ -29,4 +29,4 @@ COPY --chown=appuser . .
 
 STOPSIGNAL SIGINT
 ENV LD_PRELOAD=libtcmalloc.so
-CMD . ./venv/bin/activate && ./gui.sh --listen 0.0.0.0 --server_port 7860
+CMD . ./venv/bin/activate && python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
