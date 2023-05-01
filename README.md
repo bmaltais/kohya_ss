@@ -10,6 +10,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
+    - [Docker](#docker)
     - [Linux/macOS](#linux-and-macos)
       - [Default Install Locations](#install-location)
     - [Windows](#windows)
@@ -58,7 +59,7 @@ These dependencies are taken care of via `setup.sh` in the installation section.
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
 ### Docker
-Docker is supported on Windows, Linux and macOS distributions. However this method currently only supports Nvidia GPUs. 
+Docker is supported on Windows and Linux distributions. However this method currently only supports Nvidia GPUs. 
 Run the following commands in your OS shell after installing [git](https://git-scm.com/download/) and [docker](https://www.docker.com/products/docker-desktop/):
 ```bash
 git clone https://github.com/bmaltais/kohya_ss.git
