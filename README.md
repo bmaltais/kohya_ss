@@ -2,8 +2,6 @@
 
 This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
-If you run on Linux and would like to use the GUI, there is now a port of it as a docker container. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
-
 ### Table of Contents
 
 - [Tutorials](#tutorials)
@@ -77,6 +75,9 @@ The following limitations apply:
 * Dialogs do not work
   * Make sure your file names are unique as this happens when asking if an existing file should be overridden
 * No auto-update support. Must run update scripts outside docker manually and then rebuild with `docker compose build`.
+
+
+If you run on Linux, there is an alternative docker container port with less limitations. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
 ### Linux and macOS
 In the terminal, run
