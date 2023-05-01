@@ -331,7 +331,7 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/04/25 (v21.5.7)
+* 2023/05/01 (v21.5.7)
   - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
   - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
     - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
@@ -340,17 +340,17 @@ This will store a backup file with your current locally installed pip packages a
     - Not tested in multi-GPU environment. Please report any bugs.
   - `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
   - Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
-* 2023/04/24 (v21.5.6)
-    - Fix triton error
-    - Fix issue with merge lora path with spaces
-    - Added support for logging to wandb. Please refer to PR #428. Thank you p1atdev!
-      - wandb installation is required. Please install it with pip install wandb. Login to wandb with wandb login command, or set --wandb_api_key option for automatic login.
-      - Please let me know if you find any bugs as the test is not complete.
-    - You can automatically login to wandb by setting the --wandb_api_key option. Please be careful with the handling of API Key. PR #435 Thank you Linaqruf!
-    - Improved the behavior of --debug_dataset on non-Windows environments. PR #429 Thank you tsukimiya!
-    - Fixed --face_crop_aug option not working in Fine tuning method.
-    - Prepared code to use any upscaler in gen_img_diffusers.py.
-    - Fixed to log to TensorBoard when --logging_dir is specified and --log_with is not specified.
+  - Fix triton error
+  - Fix issue with merge lora path with spaces
+  - Added support for logging to wandb. Please refer to PR #428. Thank you p1atdev!
+    - wandb installation is required. Please install it with pip install wandb. Login to wandb with wandb login command, or set --wandb_api_key option for automatic login.
+    - Please let me know if you find any bugs as the test is not complete.
+  - You can automatically login to wandb by setting the --wandb_api_key option. Please be careful with the handling of API Key. PR #435 Thank you Linaqruf!
+  - Improved the behavior of --debug_dataset on non-Windows environments. PR #429 Thank you tsukimiya!
+  - Fixed --face_crop_aug option not working in Fine tuning method.
+  - Prepared code to use any upscaler in gen_img_diffusers.py.
+  - Fixed to log to TensorBoard when --logging_dir is specified and --log_with is not specified.
+  - Add new docker image solution.. Thanks to @Trojaner 
 * 2023/04/22 (v21.5.5)
     - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
     - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
