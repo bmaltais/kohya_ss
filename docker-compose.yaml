@@ -19,9 +19,9 @@ services:
       - ./dataset:/dataset
       - ./.cache/user:/home/appuser/.cache
       - ./.cache/triton:/home/appuser/.triton    
-      - ./.cache/__pycache__:/app/__pycache__
+      - ./.cache/config:/app/appuser/.config
       - ./.cache/nv:/home/appuser/.nv 
-      - ./.cache/keras:/home/appuser/.keras       
+      - ./.cache/keras:/home/appuser/.keras      
     deploy:
       resources:
         reservations:
