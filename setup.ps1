@@ -1596,10 +1596,11 @@ function Test-VCRedistInstalled {
     if (Test-IsAdmin) {
         $keys = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
         Get-ItemProperty |
-        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
+        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
         Select-Object -Property DisplayName, Publisher, InstallDate
     
         if ($keys) {
+            Write-Debug "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed."
             return $true
         }
@@ -1611,10 +1612,11 @@ function Test-VCRedistInstalled {
     else {
         $keys = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
         Get-ItemProperty |
-        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" } |
+        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
         Select-Object -Property DisplayName, Publisher, InstallDate
     
         if ($keys) {
+            Write-Debug "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed for the current user."
             return $true
         }
@@ -1624,7 +1626,6 @@ function Test-VCRedistInstalled {
         }
     }
 }
-
 
 <#
 .SYNOPSIS
@@ -1744,7 +1745,7 @@ function Main {
             }
 
             Write-Debug "Checking for VC version: 20${script:vcRedistVersion}"
-            if (-not (Check-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
+            if (-not (Test-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
                 Install-VCRedistWindows
             }
             else {
