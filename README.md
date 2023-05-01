@@ -2,14 +2,13 @@
 
 This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
-If you run on Linux and would like to use the GUI, there is now a port of it as a docker container. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
-
 ### Table of Contents
 
 - [Tutorials](#tutorials)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
+    - [Docker](#docker)
     - [Linux/macOS](#linux-and-macos)
       - [Default Install Locations](#install-location)
     - [Windows](#windows)
@@ -61,10 +60,33 @@ These dependencies are taken care of via `setup.sh` in the installation section.
 ### Runpod
 Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
 
+### Docker
+Docker is supported on Windows and Linux distributions. However this method currently only supports Nvidia GPUs. 
+Run the following commands in your OS shell after installing [git](https://git-scm.com/download/) and [docker](https://www.docker.com/products/docker-desktop/):
+```bash
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+docker compose up --build
+```
+
+This will take a while (up to 20 minutes) on the first run.
+
+The following limitations apply:
+* All training data must be added to the `dataset` subdirectory, the docker container cannot access any other files
+* The file picker does not work
+  * Cannot select folders, folder path must be set manually like e.g. /dataset/my_lora/img
+  * Cannot select config file, it must be loaded via path instead like e.g. /dataset/my_config.json  
+* Dialogs do not work
+  * Make sure your file names are unique as this happens when asking if an existing file should be overridden
+* No auto-update support. Must run update scripts outside docker manually and then rebuild with `docker compose build`.
+
+
+If you run on Linux, there is an alternative docker container port with less limitations. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
+
 ### Linux and macOS
 In the terminal, run
 
-```
+```bash
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 # May need to chmod +x ./setup.sh if you're on a machine with stricter security.
