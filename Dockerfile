@@ -24,10 +24,14 @@ RUN . ./venv/bin/activate && \
     python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers \
 	                       --extra-index-url https://download.pytorch.org/whl/cu121
 
+# Fix missing libnvinfer7
+USER root
+RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
+    ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
+
 USER appuser
 COPY --chown=appuser . .
 
-# https://github.com/kohya-ss/sd-scripts/issues/405#issuecomment-1509851709
 RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' train_network.py && \
     sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' library/train_util.py
 

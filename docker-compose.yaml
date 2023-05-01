@@ -7,7 +7,6 @@ services:
       context: .
     ports:
       - 127.0.0.1:7860:7860
-    stdin_open: true
     tty: true
     ipc: host
     environment:
