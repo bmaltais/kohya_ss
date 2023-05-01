@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  kohya-ss-gui:
+    container_name: kohya-ss-gui
+    image: kohya-ss-gui:latest
+    build:
+      context: .
+    ports:
+      - 127.0.0.1:7860:7860
+    stdin_open: true
+    tty: true
+    ipc: host
+    environment:
+      CLI_ARGS: ""
+      SAFETENSORS_FAST_GPU: 1
+    tmpfs:
+      - /tmp      
+    volumes:
+      - ./dataset:/dataset
+      - ./.cache/cache.json:/app/cache.json
+      - ./.cache/user:/home/appuser/.cache
+      - ./.cache/triton:/home/appuser/.triton    
+      - ./.cache/__pycache__:/app/__pycache__
+      - ./.cache/nv:/home/appuser/.nv 
+      - ./.cache/keras:/home/appuser/.keras       
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
