@@ -1594,12 +1594,13 @@ function Test-VCRedistInstalled {
     )
 
     if (Test-IsAdmin) {
-        $keys = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
+        $installedSoftware = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
         Get-ItemProperty |
-        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
-        Select-Object -Property DisplayName, Publisher, InstallDate
+        Select-Object -Property DisplayName
     
-        if ($keys.Count -gt 0) {
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" }
+    
+        if ($null -ne $matchingSoftware) {
             Write-Debug "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed."
             return $true
@@ -1610,12 +1611,13 @@ function Test-VCRedistInstalled {
         }
     }
     else {
-        $keys = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+        $installedSoftware = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
         Get-ItemProperty |
-        Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" } |
-        Select-Object -Property DisplayName, Publisher, InstallDate
+        Select-Object -Property DisplayName
     
-        if ($keys.Count -gt 0) {
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -like "*$version*" }
+    
+        if ($null -ne $matchingSoftware) {
             Write-Debug "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed for the current user."
             return $true
@@ -1625,6 +1627,7 @@ function Test-VCRedistInstalled {
             return $false
         }
     }
+    
 }
 
 <#
