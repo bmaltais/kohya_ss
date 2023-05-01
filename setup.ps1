@@ -1005,7 +1005,7 @@ function Install-Python3Tk {
         # Pre-check: Try to import Tkinter in Python 3.10
         $isTkinterInstalled = $false
         try {
-            $tkinterCheckOutput = & pythonPath -c "import tkinter" 2>&1
+            $tkinterCheckOutput = & $script:pythonPath -c "import tkinter" 2>&1
             if (-not $tkinterCheckOutput) {
                 $isTkinterInstalled = $true
             }
