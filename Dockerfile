@@ -27,6 +27,9 @@ RUN . ./venv/bin/activate && \
 USER appuser
 COPY --chown=appuser . .
 
+RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' train_network.py && \
+    sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' library/train_util.py
+
 STOPSIGNAL SIGINT
 ENV LD_PRELOAD=libtcmalloc.so
 CMD . ./venv/bin/activate && python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
