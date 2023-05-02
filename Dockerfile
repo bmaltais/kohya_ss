@@ -13,12 +13,7 @@ RUN add-apt-repository ppa:deadsnakes/ppa && \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 3 && \
 	update-alternatives --config python3
 
-RUN ln -s /usr/local/lib/python3.8/dist-packages /usr/local/lib/python3.10/dist-packages
-
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
-
-RUN useradd -m -s /bin/bash appuser
-USER appuser
 
 WORKDIR /app
 RUN python3 -m pip install wheel
@@ -32,6 +27,7 @@ USER root
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
     ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
 
+RUN useradd -m -s /bin/bash appuser
 USER appuser
 COPY --chown=appuser . .
 
