@@ -13,22 +13,18 @@ RUN add-apt-repository ppa:deadsnakes/ppa && \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 3 && \
 	update-alternatives --config python3
 
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 RUN python3 -m pip install -e /opt/pytorch/pytorch
 
 RUN useradd -m -s /bin/bash appuser
 USER appuser
 
 WORKDIR /app
-
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 RUN python3 -m pip install wheel
 
 # Install requirements
 COPY requirements.txt setup.py .
 RUN python3 -m pip install --use-pep517 -U -r requirements.txt
-
-# Upgrade to Torch 2.0
-RUN python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch xformers==0.0.17 accelerate
 
 # Fix missing libnvinfer7
 USER root
