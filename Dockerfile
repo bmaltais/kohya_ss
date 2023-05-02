@@ -18,6 +18,7 @@ USER appuser
 
 WORKDIR /app
 
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 RUN python3 -m pip install wheel
 
 # Install requirements
@@ -36,6 +37,7 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libn
 USER appuser
 COPY --chown=appuser . .
 
+# https://github.com/kohya-ss/sd-scripts/issues/405#issuecomment-1509851709
 RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' train_network.py && \
     sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' library/train_util.py
 
