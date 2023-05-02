@@ -5,8 +5,8 @@ ENV TZ=Europe/London
 RUN apt update && apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt update && \
-    apt-get install -y git curl python3-tk libgl1 libglib2.0-0 libgoogle-perftools-dev \
-	                   python3.10 python3-html5lib python3-apt python3-pip python3.10-distutils && \
+    apt-get install -y git curl libgl1 libglib2.0-0 libgoogle-perftools-dev \
+	                   python3.10 python3.10-tk python3-html5lib python3-apt python3-pip python3.10-distutils && \
 	rm -rf /var/lib/apt/lists/*
 
 # Set python 3.10 as default
