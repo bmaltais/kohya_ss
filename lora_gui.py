@@ -74,7 +74,7 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -206,7 +206,7 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -329,7 +329,7 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -646,7 +646,7 @@ def train_model(
             run_cmd += f' --unet_lr={unet_lr}'
             run_cmd += f' --network_train_unet_only'
     else:
-        if float(text_encoder_lr) == 0:
+        if float(learning_rate) == 0:
             msgbox('Please input learning rate values.')
             return
 
@@ -677,6 +677,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -906,7 +907,7 @@ def lora_tab(
             num_cpu_threads_per_process,
             seed,
             caption_extension,
-            cache_latents,
+            cache_latents,cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(
@@ -1197,7 +1198,7 @@ def lora_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latents,
+        cache_latents,cache_latents_to_disk,
         caption_extension,
         enable_bucket,
         gradient_checkpointing,

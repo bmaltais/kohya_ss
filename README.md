@@ -331,6 +331,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/?? (v21.5.8)
+  - Add `Cachelatents to disk` option to the gui.
 * 2023/05/01 (v21.5.7)
   - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
   - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.

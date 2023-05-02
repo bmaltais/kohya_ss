@@ -90,6 +90,7 @@ def save_configuration(
     color_aug,
     model_list,
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -209,6 +210,7 @@ def open_configuration(
     color_aug,
     model_list,
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -310,6 +312,7 @@ def train_model(
     color_aug,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -472,6 +475,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -688,6 +692,7 @@ def finetune_tab():
             seed,
             caption_extension,
             cache_latents,
+            cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(learning_rate_value='1e-5')
@@ -808,6 +813,7 @@ def finetune_tab():
         color_aug,
         model_list,
         cache_latents,
+        cache_latents_to_disk,
         use_latent_files,
         keep_tokens,
         persistent_data_loader_workers,

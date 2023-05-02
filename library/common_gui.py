@@ -696,7 +696,8 @@ def gradio_training(
             value=2,
         )
         seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234')
-        cache_latents = gr.Checkbox(label='Cache latent', value=True)
+        cache_latents = gr.Checkbox(label='Cache latents', value=True)
+        cache_latents_to_disk = gr.Checkbox(label='Cache latents to disk', value=False)
     with gr.Row():
         learning_rate = gr.Textbox(
             label='Learning rate', value=learning_rate_value
@@ -749,6 +750,7 @@ def gradio_training(
         seed,
         caption_extension,
         cache_latents,
+        cache_latents_to_disk,
         optimizer,
         optimizer_args,
     )
@@ -787,6 +789,7 @@ def run_cmd_training(**kwargs):
         if kwargs.get('caption_extension')
         else '',
         ' --cache_latents' if kwargs.get('cache_latents') else '',
+        ' --cache_latents_to_disk' if kwargs.get('cache_latents_to_disk') else '',
         # ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
         f' --optimizer_type="{kwargs.get("optimizer", "AdamW")}"',
         f' --optimizer_args {kwargs.get("optimizer_args", "")}'
