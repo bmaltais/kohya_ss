@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# noinspection DuplicatedCode
 
 import logging
 import platform
