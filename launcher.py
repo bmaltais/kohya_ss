@@ -1489,6 +1489,7 @@ def configure_accelerate(interactive):
 
     if interactive:
         try:
+            logging.critical("Manually configure accelerate: ")
             subprocess.check_call(["accelerate", "config"])
         except FileNotFoundError:
             logging.error(
@@ -1533,6 +1534,7 @@ def configure_accelerate(interactive):
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
 
             try:
+                logging.critical("Manually configure accelerate: ")
                 subprocess.check_call(["accelerate", "config"])
             except FileNotFoundError:
                 logging.error(
