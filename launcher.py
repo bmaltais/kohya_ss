@@ -1443,6 +1443,15 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                             "--quiet", "--use-pep517", "--no-warn-script-location", package],
                                            stderr=subprocess.DEVNULL)
 
+            # Get the scripts directory based on the operating system
+            if os_info.family == "Windows":
+                scripts_dir = os.path.join(Path(sys.executable).parent, 'Scripts')
+            else:
+                scripts_dir = os.path.join(Path(sys.executable).parent, 'bin')
+
+            # Add the scripts directory to the PATH
+            os.environ['PATH'] = scripts_dir + os.pathsep + os.environ['PATH']
+
             # Delete the temporary requirements file
             logging.debug(f"Removing {temp_requirements.name}")
             if os.path.exists(temp_requirements.name):
