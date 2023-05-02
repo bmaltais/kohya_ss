@@ -26,7 +26,7 @@ COPY requirements.txt setup.py .
 RUN python3 -m pip install --use-pep517 -U -r requirements.txt
 
 # Upgrade to Torch 2.0
-RUN python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers==0.0.17 \
+RUN python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers==0.0.17 accelerate \
 	                       --extra-index-url https://download.pytorch.org/whl/cu121
 
 # Fix missing libnvinfer7
@@ -43,4 +43,5 @@ RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/
 
 STOPSIGNAL SIGINT
 ENV LD_PRELOAD=libtcmalloc.so
+ENV PATH="$PATH:/home/appuser/.local/bin"
 CMD python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
