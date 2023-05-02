@@ -26,7 +26,7 @@ from library.config_util import (
 )
 import library.huggingface_util as huggingface_util
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings
+from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings, pyramid_noise_like
 
 
 # TODO 他のスクリプトと共通化する
@@ -366,6 +366,8 @@ def train(args):
         "ss_seed": args.seed,
         "ss_lowram": args.lowram,
         "ss_noise_offset": args.noise_offset,
+        "ss_multires_noise_iterations": args.multires_noise_iterations,
+        "ss_multires_noise_discount": args.multires_noise_discount,
         "ss_training_comment": args.training_comment,  # will not be updated after training
         "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
         "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else ""),
@@ -612,6 +614,8 @@ def train(args):
                 if args.noise_offset:
                     # https://www.crosslabs.org//blog/diffusion-with-offset-noise
                     noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
