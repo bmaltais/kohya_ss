@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
+
 import argparse
 import errno
-import logging
 import importlib
+import logging
 import mimetypes
+import multiprocessing
 import os
 import pkgutil
-from contextlib import redirect_stderr
-from datetime import datetime
-from getpass import getpass
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
-import stat
 import tempfile
 import time
 import zipfile
+from contextlib import redirect_stderr
+from datetime import datetime
+from getpass import getpass
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -98,6 +100,7 @@ TRITON_URL_2 = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/tr
 XFORMERS_VERSION_2 = "0.0.17"
 
 
+# noinspection DuplicatedCode
 def find_config_file(config_file_locations):
     for location in config_file_locations:
         abs_location = os.path.abspath(location)
@@ -106,6 +109,7 @@ def find_config_file(config_file_locations):
     return None
 
 
+# noinspection DuplicatedCode
 def load_config(_config_file=None):
     # Define config file locations
     if sys.platform == "win32":
@@ -147,6 +151,7 @@ def load_config(_config_file=None):
     return _config_data if _config_data else None
 
 
+# noinspection DuplicatedCode
 def parse_file_arg():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-f", "--file", dest="config_file", default=None,
@@ -175,6 +180,7 @@ def normalize_paths(_args, default_args):
 
 # This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
 # verbosity and Unix style (-vvv).
+# noinspection DuplicatedCode
 class CountOccurrencesAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         # If value is a string, check if it's a single integer
@@ -259,6 +265,7 @@ def parse_args(_config_data):
         {"short": "", "long": "--share", "default": False, "type": bool, "help": "Share the gradio UI."},
     ]
 
+    # noinspection DuplicatedCode
     def generate_usage(_default_args):
         """
         This function generates nicer usage string for the command line arguments in the form of [ -s | --long VAR ].
@@ -467,13 +474,13 @@ def setup_file_links(_site_packages_dir, runpod, _dir):
             # Create destination directories if they don't exist
             try:
                 os.makedirs(bitsandbytes_dest, exist_ok=True)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
                     raise
             try:
                 os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
                     raise
 
             # Copy .dll files
@@ -599,13 +606,13 @@ def run_git_command(repo, _args, username=None, password=None):
             logging.error(f"Git command failed.")
             return None, "Git command failed."
 
-    except git.GitCommandError as e:
-        logging.error(f"Git command failed with error code {e.status}: {e.stderr.strip()}")
-        return None, e.stderr.strip()
+    except git.GitCommandError as _e:
+        logging.error(f"Git command failed with error code {_e.status}: {_e.stderr.strip()}")
+        return None, _e.stderr.strip()
 
-    except Exception as e:
-        logging.error(f"Unexpected error occurred during git operations: {str(e)}")
-        return None, str(e)
+    except Exception as _e:
+        logging.error(f"Unexpected error occurred during git operations: {str(_e)}")
+        return None, str(_e)
 
 
 def get_latest_tag(git_repo):
@@ -674,7 +681,8 @@ class GitProgressPrinter(git.remote.RemoteProgress):
         self.total = total
         self.received_objects = 0
 
-    def update(self, cur_count, max_count=None):
+    # noinspection PyUnusedLocal
+    def update(self, op_code, cur_count, max_count=None, message="", binary=False):
         if self.total is None and max_count:
             self.total = max_count
             logging.critical(
@@ -693,8 +701,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
     def has_uncommitted_changes(local_git_repo):
         try:
             git_status_output = local_git_repo.git.status("--porcelain")
-        except git.GitCommandError as _e:
-            logging.error(f"Error while checking for uncommitted changes: {_e}")
+        except git.GitCommandError as e_:
+            logging.error(f"Error while checking for uncommitted changes: {e_}")
             git_status_output = None
 
         if git_status_output is not None and git_status_output.strip():
@@ -734,7 +742,7 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                 logging.info(f"A git repo was detected at {_dir}, but update was not enabled. "
                              f"Skipping updating folder contents.")
                 raise UpdateSkippedException()
-            elif git_folder_present and _update:
+            elif git_folder_present and (_update or repair):
                 local_git_repo = git.Repo(_dir)
 
                 if has_uncommitted_changes(local_git_repo):
@@ -757,18 +765,30 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                         tmp_venv_path = os.path.join(tempfile.mkdtemp(), "venv")
                         try:
                             shutil.move(os.path.join(_dir, "venv"), tmp_venv_path)
-                        except Exception as _e:
-                            logging.error(f"Failed to move venv folder: {_e}")
-                            return False, str(_e)
+                        except Exception as e_:
+                            logging.error(f"Failed to move venv folder: {e_}")
+                            return False, str(e_)
 
                     logs_folder_present = os.path.exists(os.path.join(_dir, "logs"))
-                    if logs_folder_present:
+                    # Find the log FileHandler
+                    logger = logging.getLogger()
+                    file_handler = None
+                    for _handler in logger.handlers:
+                        if isinstance(_handler, logging.FileHandler):
+                            file_handler = _handler
+                            break
+
+                    if logs_folder_present and file_handler is not None:
                         tmp_logs_path = os.path.join(tempfile.mkdtemp(), "logs")
                         try:
+                            # Close the current log file handler and remove it from the logger
+                            logging.debug("Closing log file handler and moving it to {tmp_logs_path}.")
+                            file_handler.close()
+                            logger.removeHandler(file_handler)
                             shutil.move(os.path.join(_dir, "logs"), tmp_logs_path)
-                        except Exception as _e:
-                            logging.error(f"Failed to move logs folder: {_e}")
-                            return False, str(_e)
+                        except Exception as e_:
+                            logging.error(f"Failed to move logs folder: {e_}")
+                            return False, str(e_)
 
                     try:
                         logging.debug("git clone operation entered.")
@@ -788,35 +808,46 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                             git.Repo.clone_from(_git_repo, _dir, branch=_branch, depth=1, progress=progress_printer,
                                                 username=git_credentials['username'],
                                                 password=git_credentials['password'])
-                    except git.GitCommandError as _e:
-                        logging.error(f"Git clone operation failed: {_e}")
-                        return False, str(_e)
+                    except git.GitCommandError as e_:
+                        logging.error(f"Git clone operation failed: {e_}")
+                        return False, str(e_)
 
                     if venv_folder_present and tmp_venv_path is not None:
                         try:
                             shutil.move(tmp_venv_path, os.path.join(_dir, "venv"))
-                        except Exception as _e:
-                            logging.error(f"Failed to move venv folder back: {_e}")
-                            return False, str(_e)
+                        except Exception as e_:
+                            logging.error(f"Failed to move venv folder back: {e_}")
+                            return False, str(e_)
 
                     if logs_folder_present and tmp_logs_path is not None:
                         try:
                             shutil.move(tmp_logs_path, os.path.join(_dir, "logs"))
-                        except Exception as _e:
-                            logging.error(f"Failed to move logs folder back: {_e}")
-                            return False, str(_e)
+
+                            # After moving the log folder back to its original position
+                            # Repoen the log file and file handler to resume original log
+                            file_handler = logging.FileHandler(log_file, mode='a')
+                            file_handler.setFormatter(CustomFormatter())
+                            logger.addHandler(file_handler)
+                            logging.debug(
+                                "Reopened log file handler and moved it back to {os.path.join(_dir, 'logs')}.")
+                        except Exception as e_:
+                            logging.error(f"Failed to move logs folder back: {e_}")
+                            return False, str(e_)
 
                     _success = True
                     return _success, _error
-                elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 2):
+                elif (not git_folder_present or venv_folder_present) and (len(os.listdir(_dir)) > 2) and (not update):
                     logging.critical("We have detected a current non-git installation, but --update flag not used. "
                                      "Skipping git clone operation.")
                     return False, "Non-git installation detected, update flag not used"
+                else:
+                    return False, "Detected non-git installation and the folder has data. Skipping git operations to " \
+                                  "avoid data corruption."
 
-        except git.GitCommandError as _e:
-            logging.warning(f"Git command error: {_e}")
+        except git.GitCommandError as e_:
+            logging.warning(f"Git command error: {e_}")
             _success = False
-            if "Authentication failed" in str(_e):
+            if "Authentication failed" in str(e_):
                 _error = "authentication_error"
             else:
                 _error = "unknown_error"
@@ -869,8 +900,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                         break
         else:
             raise Exception("Git not installed.")
-    except Exception as e:
-        logging.warning(f"Failed to clone or update the repository using git: {e}")
+    except Exception as _e:
+        logging.warning(f"Failed to clone or update the repository using git: {_e}")
 
     if not success:
         # Check if the directory is empty or contains only a "venv" folder, the branch is "master",
@@ -943,8 +974,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                 logging.debug(f"Removed temporary zip file: {temp_zip.name}")
                 success = True
 
-            except Exception as e:
-                logging.warning(f"Failed to download the latest release: {e}")
+            except Exception as _e:
+                logging.warning(f"Failed to download the latest release: {_e}")
 
         elif not git_repo.startswith("https://github.com/bmaltais/kohya_ss") or branch != "master":
             logging.info("Sorry, we only support zip file updates for master branch on "
@@ -987,8 +1018,8 @@ class OSInfo:
                     version_match = re.search(r"<string>([\d.]+)</string>", content)
                     if version_match:
                         self.version = version_match.group(1)
-            except Exception as e:
-                logging.error(f"Error reading /System/Library/CoreServices/SystemVersion.plist: {e}")
+            except Exception as _e:
+                logging.error(f"Error reading /System/Library/CoreServices/SystemVersion.plist: {_e}")
 
         elif system == "Linux":
             if os.path.exists("/etc/os-release"):
@@ -998,8 +1029,8 @@ class OSInfo:
                         self.name = re.search(r'ID="?([^"\n]+)', content).group(1)
                         self.family = re.search(r'ID_LIKE="?([^"\n]+)', content).group(1)
                         self.version = re.search(r'VERSION="?([^"\n]+)', content).group(1)
-                except Exception as e:
-                    logging.error(f"Error reading /etc/os-release: {e}")
+                except Exception as _e:
+                    logging.error(f"Error reading /etc/os-release: {_e}")
 
             elif os.path.exists("/etc/redhat-release"):
                 try:
@@ -1010,8 +1041,8 @@ class OSInfo:
                             self.name = match.group(1)
                             self.family = "RedHat"
                             self.version = match.group(2)
-                except Exception as e:
-                    logging.error(f"Error reading /etc/redhat-release: {e}")
+                except Exception as _e:
+                    logging.error(f"Error reading /etc/redhat-release: {_e}")
 
             if self.name == "Unknown":
                 try:
@@ -1037,8 +1068,8 @@ class OSInfo:
                     else:
                         self.name = "Generic Linux"
                         self.family = "Generic Linux"
-                except Exception as e:
-                    logging.error(f"Error executing uname command: {e}")
+                except Exception as _e:
+                    logging.error(f"Error executing uname command: {_e}")
                     self.name = "Generic Linux"
                     self.family = "Generic Linux"
             return {
@@ -1054,14 +1085,14 @@ class OSInfo:
             # Try the `uname -r` command first to get FreeBSD version number
             try:
                 self.version = subprocess.getoutput("uname -r")
-            except Exception as e:
-                logging.warning(f"Error executing uname command: {e}")
+            except Exception as _e:
+                logging.warning(f"Error executing uname command: {_e}")
 
                 # If `uname -r` fails, try using platform.release()
                 try:
                     self.version = platform.release()
-                except Exception as e:
-                    logging.error(f"Error using platform.release(): {e}")
+                except Exception as _e:
+                    logging.error(f"Error using platform.release(): {_e}")
                     self.version = "Unknown"
 
 
@@ -1099,9 +1130,9 @@ def brew_install_tensorflow_deps(verbosity=1):
                 logging.debug(result.stdout.decode('utf-8'))
             logging.info("Homebrew packages installed successfully.")
             return True
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as _e:
             if verbosity >= 1:
-                logging.error(e.stderr.decode('utf-8'))
+                logging.error(_e.stderr.decode('utf-8'))
             return False
 
 
@@ -1138,16 +1169,17 @@ def check_permissions(_dir):
                 try:
                     os.chmod(file_path, current_permissions | missing_permissions)
                     logging.debug(f"Fixed permissions for file: {file_path}")
-                except PermissionError as e:
+                except PermissionError as _e:
                     folder_name, file_name = os.path.split(file_path)
 
                     if "bin" not in folder_name and "python" not in file_name:
                         logging.debug(f"Unable to fix permissions for file: {file_path}")
-                        logging.debug(f"Error: {str(e)}")
+                        logging.debug(f"Error: {str(_e)}")
                         return False
     return True
 
 
+# noinspection DuplicatedCode
 def find_python_binary():
     possible_binaries = ["python3.10", "python310", "python3", "python"]
 
@@ -1171,7 +1203,40 @@ def find_python_binary():
     return None
 
 
+def spinning_cursor():
+    while True:
+        for cursor in '|/-\\':
+            yield cursor
+
+
+def spinner_task(stop_event):
+    cursor = spinning_cursor()
+    while not stop_event.is_set():
+        sys.stdout.write(next(cursor))
+        sys.stdout.flush()
+        time.sleep(0.1)
+        sys.stdout.write('\b')
+        sys.stdout.flush()
+
+
 def install_python_dependencies(_dir, runpod, update=False, repair=False, interactive=False, _log_dir=None):
+    def safe_subprocess_run(_command, stop_flag):
+        with subprocess.Popen(_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
+                              universal_newlines=True) as p:
+            for _line in p.stdout:
+                if stop_flag.is_set():
+                    p.terminate()
+                    break
+                if args.verbosity >= 3:
+                    logging.debug(_line.strip())
+
+            # Wait for process to terminate to get the returncode
+            time.sleep(0.5)
+            p.wait()
+            if p.returncode != 0:
+                logging.error(f"Command '{' '.join(_command)}' returned non-zero exit status {p.returncode}")
+                raise subprocess.CalledProcessError(p.returncode, _command)
+
     # Name of the flag file
     flag_file = os.path.join(_log_dir, "status", ".pip_operations_done")
 
@@ -1194,8 +1259,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                             "--no-warn-script-location", "pip"], stderr=subprocess.DEVNULL)
 
         # Install python dependencies
-        logging.critical(
-            "Installing python dependencies. This could take a long time as it downloads some large files.")
+        logging.critical("Beginning kohya_ss dependencies installation.")
 
         # Set the paths for the built-in requirements and temporary requirements files
         requirements_path = os.path.join(_dir, "requirements.txt")
@@ -1230,19 +1294,25 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                         temp_requirements.write("tensorrt\n")
 
                     if repair:
-                        logging.info("Uninstalling xformers, torch, torchvision, and triton packages.")
-
                         packages = ["xformers", "torch", "torchvision", "triton"]
-                        for package in packages:
-                            try:
-                                if args.verbosity < 3:
-                                    subprocess.run([sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
-                                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                else:
-                                    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", package])
-                            except subprocess.CalledProcessError as e:
-                                if args.verbosity > 3:
-                                    logging.debug(f"Failed to uninstall {package}. Error code {e.returncode}")
+                        installed_packages = [pkg for pkg in packages if
+                                              pkg.lower() in [pkg.name.lower() for pkg in pkgutil.iter_modules()]]
+                        logging.debug(f"Looking for {', '.join(packages)} packages.")
+                        logging.debug(f"Uninstalling {', '.join(installed_packages)} packages.")
+                        if len(installed_packages) > 0:
+                            logging.info(f"Uninstalling {', '.join(installed_packages)} packages.")
+                            for package in tqdm_progress(packages, total=len(installed_packages),
+                                                         desc="Uninstalling packages", unit="package"):
+                                try:
+                                    if args.verbosity < 3:
+                                        subprocess.run(
+                                            [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    else:
+                                        subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", package])
+                                except subprocess.CalledProcessError as _e:
+                                    if args.verbosity > 3:
+                                        logging.debug(f"Failed to uninstall {package}. Error code {_e.returncode}")
 
                     if os_info.family == "macOS":
                         if platform.machine() == "arm64":
@@ -1251,12 +1321,14 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                         elif platform.machine() == "x86_64":
                             temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
                     elif os_info.family == "Windows":
+                        logging.debug("Looking for pre-existing torch packages.")
                         torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
                         torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
+                        if torch_installed or torchvision_installed:
+                            logging.debug("Pre-existing torch package(s) found!")
 
                         # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
                         if not (torch_installed or torchvision_installed) or (update or repair):
-                            logging.info("Installing torch and torchvision packages")
                             if interactive:
                                 while True:
                                     choice = input("Choose Torch version: (1) V1, (2) V2: ")
@@ -1278,17 +1350,54 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                 _TORCH_INDEX_URL = TORCH_INDEX_URL_1
                                 choice = '1'
 
+                            install_commands = [
+                                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                            ]
+
+                            if choice == '2':
+                                install_commands.extend([
+                                    [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"],
+                                    [sys.executable, "-m", "pip", "install", "--upgrade",
+                                     f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
+                                ])
+
+                            if choice == '1':
+                                logging.critical(
+                                    "Installing torch and related packages. These download large models. Please have "
+                                    "patience.")
+                            else:
+                                logging.critical(
+                                    "Installing torch v2 and related packages. These download large models that can "
+                                    "take up to an hour to download. Please have patience.")
+
                             if args.verbosity < 3:
-                                subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                                f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
-                                                f"{_TORCH_INDEX_URL}", "--quiet"])
-                                if choice == '2':
-                                    subprocess.run([sys.executable, "-m", "pip", "install",
-                                                    f"{TRITON_URL_2}", "--quiet"])
-                                    subprocess.run(
-                                        [sys.executable, "-m", "pip", "install", "--upgrade",
-                                         f"xformers=={XFORMERS_VERSION_2}",
-                                         "--quiet"])
+                                try:
+                                    stop_event = multiprocessing.Event()
+                                    for idx, command in enumerate(install_commands):
+                                        msg = f"Installing package {idx + 1}/{len(install_commands)}..."
+                                        print(msg, end="")
+                                        sys.stdout.flush()
+                                        # Restart and recreate a new spinner process for each package installation
+                                        stop_event.clear()
+                                        spinner_process = multiprocessing.Process(target=spinner_task,
+                                                                                  args=(stop_event,))
+                                        spinner_process.start()
+
+                                        # Run the command that needs to have the spinner
+                                        safe_subprocess_run(command, stop_flag=stop_event)
+
+                                        # Stop the spinner on the way out
+                                        stop_event.set()
+                                        spinner_process.join()
+                                        print("\b Done")
+                                except KeyboardInterrupt:
+                                    stop_event.set()
+                                    spinner_process.join()
+                                    print("\nInstallation was interrupted by user.")
+                                    exit(130)
                             else:
                                 subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                                                 f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
@@ -1345,9 +1454,9 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
 
         logging.info("Pip operations completed successfully.")
 
-    except Exception as e:
+    except Exception as _e:
         # Handle exceptions appropriately
-        logging.error("An error occurred during pip operations: %s", str(e))
+        logging.error("An error occurred during pip operations: %s", str(_e))
         # You may choose to re-raise the exception if the error is critical
         # raise
 
@@ -1362,7 +1471,10 @@ def configure_accelerate(interactive):
 
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
-    accelerate_path = Path(sys.executable).parent / "accelerate"
+    if os_info.family == "Windows":
+        accelerate_path = Path(sys.executable).parent / "accelerate.exe"
+    else:
+        accelerate_path = Path(sys.executable).parent / "accelerate"
 
     if interactive:
         try:
@@ -1370,8 +1482,8 @@ def configure_accelerate(interactive):
                 subprocess.check_call([str(accelerate_path), "config"])
             else:
                 logging.error("Accelerate command not found.")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Accelerate config failed with error code {e.returncode}")
+        except subprocess.CalledProcessError as _e:
+            logging.error(f"Accelerate config failed with error code {_e.returncode}")
     else:
         target_config_location = None
 
@@ -1408,16 +1520,19 @@ def configure_accelerate(interactive):
                 logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
-            python_path = sys.executable
-            accelerate_path = Path(python_path).parent / "accelerate"
+
+            if os_info.family == "Windows":
+                accelerate_path = Path(sys.executable).parent / "accelerate.exe"
+            else:
+                accelerate_path = Path(sys.executable).parent / "accelerate"
 
             try:
                 if accelerate_path.exists():
                     subprocess.check_call([str(accelerate_path), "config"])
                 else:
                     logging.error("Accelerate command not found.")
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Accelerate config failed with error code {e.returncode}")
+            except subprocess.CalledProcessError as _e:
+                logging.error(f"Accelerate config failed with error code {_e.returncode}")
 
 
 def launch_kohya_gui(_args):
@@ -1474,7 +1589,6 @@ def launch_kohya_gui(_args):
         except KeyboardInterrupt:
             with open(os.devnull, 'w') as null_file, redirect_stderr(null_file):
                 logging.info("Process terminated by the user. Exiting...")
-                sys.exit(0)
     else:
         logging.critical("kohya_gui.py not found. Can't run the software.")
         exit(1)
@@ -1516,6 +1630,7 @@ def get_logs_dir(_args):
     return _logs_dir
 
 
+# noinspection DuplicatedCode
 class CustomFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(fmt='%(levelname)s: %(message)s')
@@ -1551,6 +1666,7 @@ class CustomFormatter(logging.Formatter):
 
 if __name__ == "__main__":
     try:
+        # noinspection DuplicatedCode
         config_file = parse_file_arg()
         config_data = load_config(config_file)
         args = parse_args(config_data)
@@ -1576,9 +1692,10 @@ if __name__ == "__main__":
         handler = logging.StreamHandler()
         handler.setFormatter(CustomFormatter())
 
+        log_file_handler = logging.FileHandler(log_file, mode='w')
         logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
                             handlers=[logging.StreamHandler(),
-                                      logging.FileHandler(log_file, mode='w')])
+                                      log_file_handler])
         logging.getLogger().setLevel(log_level)
 
         # Replace 'root' with an empty string in the logger name
@@ -1615,6 +1732,7 @@ if __name__ == "__main__":
         venv_python_bin = None
 
         # Check if python3 or python3.10 binary exists
+        # noinspection DuplicatedCode
         python_bin = find_python_binary()
         if not python_bin:
             logging.error("Valid python3 or python3.10 binary not found.")
@@ -1660,7 +1778,9 @@ if __name__ == "__main__":
             exit(0)
         else:
             main(args)
-
     except KeyboardInterrupt:
-        logging.debug("Interrupted by CTRL+C")
-        sys.exit(1)
+        logging.error("User interrupted process. Exiting!")
+        exit(130)
+    except Exception as e:
+        logging.error("Launcher.py had to exit due to an error during the main installation.")
+        logging.error(str(e))
