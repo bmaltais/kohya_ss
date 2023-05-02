@@ -25,6 +25,7 @@ import yaml
 import gradio as gr
 
 
+# noinspection PyPep8Naming
 def UI(**kwargs):
     css = ''
 
@@ -251,11 +252,12 @@ def debug_system_info():
         _system_info['GPU'] = "Could not get information: " + str(e)
 
     # Check for virtual environment
-    _system_info['Virtual Environment'] = hasattr(sys, 'real_prefix') or \
-                                          (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    _system_info['Virtual Environment'] = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and
+                                                                          sys.base_prefix != sys.prefix)
     return _system_info
 
 
+# noinspection DuplicatedCode
 def find_config_file(config_file_locations):
     for location in config_file_locations:
         abs_location = os.path.abspath(location)
@@ -368,6 +370,7 @@ def parse_args(_config_data):
          "type": bool, "help": "Share the gradio UI."},
     ]
 
+    # noinspection DuplicatedCode
     def generate_usage(_default_args):
         """
         This function generates nicer usage string for the command line arguments in the form of [ -s | --long VAR ].
@@ -478,6 +481,7 @@ def parse_args(_config_data):
 
 # This custom action was added so that the v option could be used Windows-style with integers (-v 3) setting the
 # verbosity and Unix style (-vvv).
+# noinspection DuplicatedCode
 class CountOccurrencesAction(argparse.Action):
     def __call__(self, _parser, namespace, values, option_string=None):
         # If value is a string, check if it's a single integer
@@ -509,6 +513,24 @@ def get_logs_dir(_args):
 
     os.makedirs(_logs_dir, exist_ok=True)
     return _logs_dir
+
+
+# noinspection DuplicatedCode
+def write_to_log(message, _log_file=None):
+    if _log_file is None:
+        # Get the log file from the existing logging handlers
+        for _handler in logging.getLogger().handlers:
+            if isinstance(_handler, logging.FileHandler):
+                _log_file = _handler.baseFilename
+                # Ensure the handler has flushed all its output before we write to the file directly
+                _handler.flush()
+                break
+        else:
+            raise ValueError("No log file found in the logging handlers.")
+
+    formatted_message = "LOG: " + message
+    with open(_log_file, 'a') as f:
+        f.write(formatted_message + '\n')
 
 
 class CustomFormatter(logging.Formatter):
@@ -544,6 +566,7 @@ class CustomFormatter(logging.Formatter):
         return log_filepath
 
 
+# noinspection DuplicatedCode
 def find_python_binary():
     possible_binaries = ["python3.10", "python310", "python3", "python"]
 
@@ -570,6 +593,7 @@ def find_python_binary():
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
+    # noinspection DuplicatedCode
     config_file = parse_file_arg()
     config_data = load_config(config_file)
     args = parse_args(config_data)
@@ -607,6 +631,7 @@ if __name__ == '__main__':
     logging.critical(f"Logs will be stored in: {args.log_dir}")
 
     # Check if python3 or python3.10 binary exists
+    # noinspection DuplicatedCode
     python_bin = find_python_binary()
     if not python_bin:
         logging.error("Valid python3 or python3.10 binary not found.")

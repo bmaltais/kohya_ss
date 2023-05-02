@@ -11,7 +11,6 @@ import pkgutil
 import platform
 import re
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
@@ -941,6 +940,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                         progress_bar.update(len(chunk))  # Update the progress bar
                     temp_zip.close()
                     logging.debug(f"Zip file downloaded to: {temp_zip.name}")
+                    if args.versbosity < 3:
+                        write_to_log(f"Zip file downloaded to: {temp_zip.name}")
                     progress_bar.close()
 
                     # Extract the zip file to a temporary directory
@@ -948,6 +949,8 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                         with tempfile.TemporaryDirectory() as temp_dir:
                             zip_ref.extractall(temp_dir)
                             logging.debug(f"Zip file extracted to: {temp_dir}")
+                            if args.versbosity < 3:
+                                write_to_log(f"Zip file extracted to: {temp_dir}")
 
                             # Get the actual extracted folder name
                             extracted_folder = os.path.join(temp_dir, os.listdir(temp_dir)[0])
@@ -1157,7 +1160,6 @@ def check_permissions(_dir):
                 continue
 
             current_permissions = file_stat.st_mode
-            current_permissions_str = stat.filemode(current_permissions)
 
             mime_type, _ = mimetypes.guess_type(file_path)
             if mime_type == 'application/x-executable' or mime_type == 'application/octet-stream':
@@ -1277,23 +1279,25 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                 found_comment = False
                 with open(requirements_path, "r") as original_file:
                     for line in original_file:
-                        # Skip comments and empty lines
-                        if line.strip().startswith("#") or not line.strip():
-                            continue
-
                         logging.debug(f"Processing line: {line.strip()}")
                         if found_comment:
                             line = line.replace(".", _dir)
-                            logging.debug(f"Replaced . with: {line}")
+                            logging.debug(f"Replaced . with: Kohya_SS library path.")
                             found_comment = False
-                        elif re.search(r"#.*kohya_ss.*library", line):
+                        elif re.search(r"#.*kohya_ss.*library.*", line):
                             logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
                             found_comment = True
-                            continue
                         else:
                             logging.debug(f"Processing line without any conditions: {line.strip()}")
 
-                        logging.debug(f"Installing: {line.strip()}")
+                        # Skip comments and empty lines
+                        if (line.strip().startswith("#") or not line.strip()) or found_comment:
+                            continue
+
+                        if not found_comment:
+                            logging.debug(f"Installing: {line.strip()}")
+                        else:
+                            logging.debug(f"Installing: Kohya_SS library.")
                         temp_requirements.write(line)
 
                     # Append the appropriate packages based on the conditionals
@@ -1308,18 +1312,34 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                         logging.debug(f"Uninstalling {', '.join(installed_packages)} packages.")
                         if len(installed_packages) > 0:
                             logging.info(f"Uninstalling {', '.join(installed_packages)} packages.")
-                            for package in tqdm_progress(packages, total=len(installed_packages),
-                                                         desc="Uninstalling packages", unit="package"):
-                                try:
-                                    if args.verbosity < 3:
-                                        subprocess.run(
-                                            [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
-                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                    else:
-                                        subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", package])
-                                except subprocess.CalledProcessError as _e:
-                                    if args.verbosity > 3:
-                                        logging.debug(f"Failed to uninstall {package}. Error code {_e.returncode}")
+                            if args.verbosity < 3:
+                                bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
+                                with tqdm_progress(total=len(installed_packages), desc="Uninstalling packages",
+                                                   unit="package", unit_scale=False, dynamic_ncols=True,
+                                                   bar_format=bar_format, mininterval=0, miniters=0) as progress_bar:
+                                    for idx, package in enumerate(installed_packages):
+                                        package_name = installed_packages[idx]
+                                        progress_bar.set_description(f"Uninstalling {package_name}")
+                                        try:
+                                            subprocess.run(
+                                                [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
+                                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                            write_to_log(f"Uninstalling {package_name}.")
+                                        except subprocess.CalledProcessError as _e:
+                                            if args.verbosity > 3:
+                                                logging.debug(
+                                                    f"Failed to uninstall {package}. Error code {_e.returncode}")
+                                        finally:
+                                            progress_bar.update(1)
+                            else:
+                                for package in installed_packages:
+                                    result = subprocess.run(
+                                        [sys.executable, "-m", "pip", "uninstall", "-y", package],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                    )
+                                    output = result.stdout.decode() + result.stderr.decode()
+                                    logging.debug(output)
 
                     if os_info.family == "macOS":
                         if platform.machine() == "arm64":
@@ -1384,7 +1404,22 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                 try:
                                     stop_event = multiprocessing.Event()
                                     for idx, command in enumerate(install_commands):
-                                        msg = f"Installing package {idx + 1}/{len(install_commands)}..."
+                                        try:
+                                            # Find the index of "install" in the command and assume the package name
+                                            # is the next argument
+                                            install_index = command.index("install")
+                                            package_name = command[install_index + 1]
+                                            if package_name.startswith(f"{TRITON_URL_2}"):
+                                                package_name = "Triton"
+                                            if package_name == "--upgrade":
+                                                package_name = command[install_index + 2]
+
+                                            # Remove version specifier if present
+                                            package_name = package_name.split('==')[0]
+                                        except ValueError:
+                                            package_name = "unknown package"
+
+                                        msg = f"Installing {package_name} ({idx + 1}/{len(install_commands)})..."
                                         print(msg, end="")
                                         sys.stdout.flush()
                                         # Restart and recreate a new spinner process for each package installation
@@ -1406,14 +1441,35 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                     print("\nInstallation was interrupted by user.")
                                     exit(130)
                             else:
-                                subprocess.run([sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                                f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
-                                                f"{_TORCH_INDEX_URL}"])
+                                result = subprocess.run(
+                                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                                     f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
+                                     f"{_TORCH_INDEX_URL}"], stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, )
+                                output = result.stdout.decode() + result.stderr.decode()
+                                logging.debug(output)
+
                                 if choice == '2':
-                                    subprocess.run([sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"])
-                                    subprocess.run(
+                                    result = subprocess.run(
+                                        [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, )
+                                    # Get the output and errors from the process in real-time
+                                    for line in result.stdout.decode().splitlines():
+                                        logging.debug(line)
+                                    for line in result.stderr.decode().splitlines():
+                                        logging.debug(line)
+
+                                    result = subprocess.run(
                                         [sys.executable, "-m", "pip", "install", "--upgrade",
-                                         f"xformers=={XFORMERS_VERSION_2}"])
+                                         f"xformers=={XFORMERS_VERSION_2}"],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, )
+                                    # Get the output and errors from the process in real-time
+                                    for line in result.stdout.decode().splitlines():
+                                        logging.debug(line)
+                                    for line in result.stderr.decode().splitlines():
+                                        logging.debug(line)
 
                     if os_info.family == "macOS":
                         macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
@@ -1433,22 +1489,49 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
 
             logging.debug("requirements.txt successfully processed and merged.")
             if args.verbosity >= 3:
-                subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
-                                "-r", temp_requirements.name])
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
+                     "-r", temp_requirements.name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                output = result.stdout.decode() + result.stderr.decode()
+                logging.debug(output)
             else:
-                logging.critical("Please be patient. It takes time for the requirements to be collected before showing "
-                                 "Python package validation and installation progress.")
-                # Count the number of packages in the temporary requirements file
-                with open(temp_requirements.name, "r") as f:
-                    num_packages = sum(1 for line in f if line.strip())
+                logging.critical("Please be patient. It may take time for the requirements to be "
+                                 "collected before showing progress.")
+
+                bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
 
                 with open(temp_requirements.name, "r") as f:
-                    for line in tqdm_progress(f, total=num_packages, desc="Installing packages", unit="package"):
-                        package = line.strip()
-                        if package:
-                            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
-                                            "--quiet", "--use-pep517", "--no-warn-script-location", package],
-                                           stderr=subprocess.DEVNULL)
+                    num_packages = sum(1 for line in f if line.strip())
+                    with tqdm_progress(total=num_packages, desc="Installing packages",
+                                       unit="package", unit_scale=False, dynamic_ncols=True,
+                                       bar_format=bar_format, mininterval=0, miniters=0) as progress_bar:
+                        f.seek(0)
+                        for package in f:
+                            package_name = package.strip().split('==')[0]
+                            progress_bar.set_description(f"Installing {package_name}")
+                            try:
+                                if args.verbosity < 3:
+                                    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
+                                                    "--quiet", "--use-pep517", "--no-warn-script-location", package],
+                                                   stderr=subprocess.DEVNULL)
+                                    write_to_log(f"Installing {package_name}.")
+                                else:
+                                    result = subprocess.run(
+                                        [sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
+                                         "--no-warn-script-location", package],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                    )
+                                    output = result.stdout.decode() + result.stderr.decode()
+                                    logging.debug(output)
+                            except subprocess.CalledProcessError as _e:
+                                if args.verbosity > 3:
+                                    logging.debug(f"Failed to install {package}. Error code {_e.returncode}")
+                            finally:
+                                progress_bar.update(1)
 
             # Get the scripts directory based on the operating system
             if os_info.family == "Windows":
@@ -1639,6 +1722,24 @@ def get_logs_dir(_args):
 
 
 # noinspection DuplicatedCode
+def write_to_log(message, _log_file=None):
+    if _log_file is None:
+        # Get the log file from the existing logging handlers
+        for _handler in logging.getLogger().handlers:
+            if isinstance(_handler, logging.FileHandler):
+                _log_file = _handler.baseFilename
+                # Ensure the handler has flushed all its output before we write to the file directly
+                _handler.flush()
+                break
+        else:
+            raise ValueError("No log file found in the logging handlers.")
+
+    formatted_message = "LOG: " + message
+    with open(_log_file, 'a') as f:
+        f.write(formatted_message + '\n')
+
+
+# noinspection DuplicatedCode
 class CustomFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(fmt='%(levelname)s: %(message)s')
@@ -1700,25 +1801,28 @@ if __name__ == "__main__":
         handler = logging.StreamHandler()
         handler.setFormatter(CustomFormatter())
 
-        log_file_handler = logging.FileHandler(log_file, mode='w')
+        log_file_handler = logging.FileHandler(log_file, mode='a')
         logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
                             handlers=[logging.StreamHandler(),
                                       log_file_handler])
+
         logging.getLogger().setLevel(log_level)
 
         # Replace 'root' with an empty string in the logger name
         for handler in logging.getLogger().handlers:
             handler.setFormatter(CustomFormatter())
 
+        # We print the log location to inform users, but avoid leaking their personal info in logs
+        log_dir = getattr(args, "log-dir")
+        print(f"Logs will be stored in: {log_dir}")
+
         # Use logging in the script like so (in order of log levels).
+        # write_to_log("This goes to log file, but does not display in terminal.")
         # logging.critical("This will always display.")
         # logging.error("This is an error message.")
         # logging.warning("This is a warning message.")
         # logging.info("This is an info message.")
         # logging.debug("This is a debug message.")
-
-        log_dir = getattr(args, "log-dir")
-        logging.critical(f"Logs will be stored in: {log_dir}")
 
         if getattr(args, 'no-setup') is True and args.setup_only:
             logging.critical("Setup Only and No Setup options are mutually exclusive.")
