@@ -1138,7 +1138,6 @@ def brew_install_tensorflow_deps(verbosity=1):
 
 def check_permissions(_dir):
     venv_directory = os.path.join(_dir, "venv")
-    extensions_to_check = (".py", ".exe", ".elf")
 
     for root, dirs, files in os.walk(venv_directory):
         # Skip site-packages directory
@@ -1150,17 +1149,21 @@ def check_permissions(_dir):
 
         for file in files:
             file_path = os.path.join(root, file)
-            current_permissions = os.stat(file_path).st_mode
+
+            try:
+                file_stat = os.stat(file_path)
+            except PermissionError:
+                logging.debug(f"Unable to get permissions for file: {file_path}")
+                continue
+
+            current_permissions = file_stat.st_mode
+            current_permissions_str = stat.filemode(current_permissions)
 
             mime_type, _ = mimetypes.guess_type(file_path)
-            if mime_type == 'application/x-executable' or file.endswith(extensions_to_check):
-                required_permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | \
-                                       stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | \
-                                       stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH
+            if mime_type == 'application/x-executable' or mime_type == 'application/octet-stream':
+                required_permissions = 0o755
             else:
-                required_permissions = stat.S_IRUSR | stat.S_IWUSR | \
-                                       stat.S_IRGRP | stat.S_IWGRP | \
-                                       stat.S_IROTH | stat.S_IWOTH
+                required_permissions = 0o644
 
             missing_permissions = required_permissions & ~current_permissions
             if missing_permissions:
@@ -1174,8 +1177,11 @@ def check_permissions(_dir):
 
                     if "bin" not in folder_name and "python" not in file_name:
                         logging.debug(f"Unable to fix permissions for file: {file_path}")
-                        logging.debug(f"Error: {str(_e)}")
-                        return False
+                    pass
+                except Exception as _e:
+                    logging.debug(f"{str(_e)}")
+                    pass
+
     return True
 
 
@@ -1195,6 +1201,7 @@ def find_python_binary():
                 major, minor = int(version_parts[0]), int(version_parts[1])
 
                 if major == 3 and minor >= 10:
+                    logging.debug(f"Python binary found: {binary}")
                     return binary
 
             except (subprocess.CalledProcessError, IndexError, ValueError):
@@ -1480,17 +1487,12 @@ def configure_accelerate(interactive):
 
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
-    if os_info.family == "Windows":
-        accelerate_path = Path(sys.executable).parent / "accelerate.exe"
-    else:
-        accelerate_path = Path(sys.executable).parent / "accelerate"
-
     if interactive:
         try:
-            if accelerate_path.exists():
-                subprocess.check_call([str(accelerate_path), "config"])
-            else:
-                logging.error("Accelerate command not found.")
+            subprocess.check_call(["accelerate", "config"])
+        except FileNotFoundError:
+            logging.error(
+                "The 'accelerate' command was not found. Please ensure it is installed and available in your PATH.")
         except subprocess.CalledProcessError as _e:
             logging.error(f"Accelerate config failed with error code {_e.returncode}")
     else:
@@ -1530,16 +1532,11 @@ def configure_accelerate(interactive):
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
 
-            if os_info.family == "Windows":
-                accelerate_path = Path(sys.executable).parent / "accelerate.exe"
-            else:
-                accelerate_path = Path(sys.executable).parent / "accelerate"
-
             try:
-                if accelerate_path.exists():
-                    subprocess.check_call([str(accelerate_path), "config"])
-                else:
-                    logging.error("Accelerate command not found.")
+                subprocess.check_call(["accelerate", "config"])
+            except FileNotFoundError:
+                logging.error(
+                    "The 'accelerate' command was not found. Please ensure it is installed and available in your PATH.")
             except subprocess.CalledProcessError as _e:
                 logging.error(f"Accelerate config failed with error code {_e.returncode}")
 
@@ -1760,10 +1757,11 @@ if __name__ == "__main__":
             subprocess.run([python_bin, "-m", "venv", venv_path])
 
             # Check the virtual environment for permissions issues
-            check_permissions(args.dir)
+            check_permissions(venv_path)
 
             # Activate the virtual environment
             venv_bin_dir = os.path.join(venv_path, "bin") if os.name != "nt" else os.path.join(venv_path, "Scripts")
+            os.environ['PATH'] = venv_bin_dir + os.pathsep + os.environ['PATH']
             venv_python_bin = os.path.join(venv_bin_dir, python_bin)
             sys.executable = os.path.join(venv_python_bin)
             logging.debug(f"Python sys.executable: {sys.executable}")
