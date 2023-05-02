@@ -70,8 +70,13 @@ def update_my_data(my_data):
 
     # Update model_list to custom if empty or pretrained_model_name_or_path is not a preset model
     model_list = my_data.get('model_list', [])
-    pretrained_model_name_or_path = my_data.get('pretrained_model_name_or_path', '')
-    if not model_list or pretrained_model_name_or_path not in ALL_PRESET_MODELS:
+    pretrained_model_name_or_path = my_data.get(
+        'pretrained_model_name_or_path', ''
+    )
+    if (
+        not model_list
+        or pretrained_model_name_or_path not in ALL_PRESET_MODELS
+    ):
         my_data['model_list'] = 'custom'
 
     # Convert epoch and save_every_n_epochs values to int if they are strings
@@ -88,12 +93,9 @@ def update_my_data(my_data):
 
     # Update model save choices due to changes for LoRA and TI training
     if (
-        (my_data.get('LoRA_type') or my_data.get('num_vectors_per_token'))
-        and my_data.get('save_model_as') not in ['safetensors', 'ckpt']
-    ):
-        message = (
-            'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
-        )
+        my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
+    ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
+        message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
         if my_data.get('LoRA_type'):
             print(message.format('LoRA'))
         if my_data.get('num_vectors_per_token'):
@@ -121,7 +123,10 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
+    if (
+        not any(var in os.environ for var in ENV_EXCLUSION)
+        and sys.platform != 'darwin'
+    ):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -156,7 +161,10 @@ def get_file_path(
 
 
 def get_any_file_path(file_path=''):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
+    if (
+        not any(var in os.environ for var in ENV_EXCLUSION)
+        and sys.platform != 'darwin'
+    ):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -198,7 +206,10 @@ def remove_doublequote(file_path):
 
 
 def get_folder_path(folder_path=''):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
+    if (
+        not any(var in os.environ for var in ENV_EXCLUSION)
+        and sys.platform != 'darwin'
+    ):
         current_folder_path = folder_path
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
@@ -218,7 +229,10 @@ def get_folder_path(folder_path=''):
 def get_saveasfile_path(
     file_path='', defaultextension='.json', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
+    if (
+        not any(var in os.environ for var in ENV_EXCLUSION)
+        and sys.platform != 'darwin'
+    ):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -254,7 +268,10 @@ def get_saveasfile_path(
 def get_saveasfilename_path(
     file_path='', extensions='*', extension_name='Config files'
 ):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != 'darwin':
+    if (
+        not any(var in os.environ for var in ENV_EXCLUSION)
+        and sys.platform != 'darwin'
+    ):
         current_file_path = file_path
         # print(f'current file path: {current_file_path}')
 
@@ -264,7 +281,10 @@ def get_saveasfilename_path(
         root.wm_attributes('-topmost', 1)
         root.withdraw()
         save_file_path = filedialog.asksaveasfilename(
-            filetypes=((f'{extension_name}', f'{extensions}'), ('All files', '*')),
+            filetypes=(
+                (f'{extension_name}', f'{extensions}'),
+                ('All files', '*'),
+            ),
             defaultextension=extensions,
             initialdir=initial_dir,
             initialfile=initial_file,
@@ -538,13 +558,15 @@ def get_pretrained_model_name_or_path_file(
     set_model_list(model_list, pretrained_model_name_or_path)
 
 
-def gradio_source_model(save_model_as_choices = [
-                    'same as source model',
-                    'ckpt',
-                    'diffusers',
-                    'diffusers_safetensors',
-                    'safetensors',
-                ]):
+def gradio_source_model(
+    save_model_as_choices=[
+        'same as source model',
+        'ckpt',
+        'diffusers',
+        'diffusers_safetensors',
+        'safetensors',
+    ]
+):
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
@@ -697,7 +719,9 @@ def gradio_training(
         )
         seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234')
         cache_latents = gr.Checkbox(label='Cache latents', value=True)
-        cache_latents_to_disk = gr.Checkbox(label='Cache latents to disk', value=False)
+        cache_latents_to_disk = gr.Checkbox(
+            label='Cache latents to disk', value=False
+        )
     with gr.Row():
         learning_rate = gr.Textbox(
             label='Learning rate', value=learning_rate_value
@@ -789,7 +813,9 @@ def run_cmd_training(**kwargs):
         if kwargs.get('caption_extension')
         else '',
         ' --cache_latents' if kwargs.get('cache_latents') else '',
-        ' --cache_latents_to_disk' if kwargs.get('cache_latents_to_disk') else '',
+        ' --cache_latents_to_disk'
+        if kwargs.get('cache_latents_to_disk')
+        else '',
         # ' --use_lion_optimizer' if kwargs.get('optimizer') == 'Lion' else '',
         f' --optimizer_type="{kwargs.get("optimizer", "AdamW")}"',
         f' --optimizer_args {kwargs.get("optimizer_args", "")}'
@@ -808,13 +834,22 @@ def gradio_advanced_training():
         )
     with gr.Row():
         save_every_n_steps = gr.Number(
-            label='Save every N steps', value=0, precision=0, info='(Optional) The model is saved every specified steps'
+            label='Save every N steps',
+            value=0,
+            precision=0,
+            info='(Optional) The model is saved every specified steps',
         )
         save_last_n_steps = gr.Number(
-            label='Save last N steps', value=0, precision=0, info='(Optional) Save only the specified number of models (old models will be deleted)'
+            label='Save last N steps',
+            value=0,
+            precision=0,
+            info='(Optional) Save only the specified number of models (old models will be deleted)',
         )
         save_last_n_steps_state = gr.Number(
-            label='Save last N steps', value=0, precision=0, info='(Optional) Save only the specified number of states (old models will be deleted)'
+            label='Save last N steps',
+            value=0,
+            precision=0,
+            info='(Optional) Save only the specified number of states (old models will be deleted)',
         )
     with gr.Row():
         keep_tokens = gr.Slider(
@@ -854,7 +889,9 @@ def gradio_advanced_training():
         xformers = gr.Checkbox(label='Use xformers', value=True)
         color_aug = gr.Checkbox(label='Color augmentation', value=False)
         flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-        min_snr_gamma = gr.Slider(label='Min SNR gamma', value = 0, minimum=0, maximum=20, step=1)
+        min_snr_gamma = gr.Slider(
+            label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1
+        )
     with gr.Row():
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True
@@ -877,11 +914,7 @@ def gradio_advanced_training():
             label='Rate of caption dropout', value=0, minimum=0, maximum=1
         )
         vae_batch_size = gr.Slider(
-            label='VAE batch size',
-            minimum=0,
-            maximum=32,
-            value=0,
-            step=1
+            label='VAE batch size', minimum=0, maximum=32, value=0, step=1
         )
     with gr.Row():
         save_state = gr.Checkbox(label='Save training state', value=False)
@@ -902,7 +935,7 @@ def gradio_advanced_training():
         max_data_loader_n_workers = gr.Textbox(
             label='Max num workers for DataLoader',
             placeholder='(Optional) Override number of epoch. Default: 8',
-            value="0",
+            value='0',
         )
     return (
         # use_8bit_adam,
@@ -985,7 +1018,8 @@ def run_cmd_advanced_training(**kwargs):
         ' --color_aug' if kwargs.get('color_aug') else '',
         ' --flip_aug' if kwargs.get('flip_aug') else '',
         ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
-        ' --gradient_checkpointing' if kwargs.get('gradient_checkpointing')
+        ' --gradient_checkpointing'
+        if kwargs.get('gradient_checkpointing')
         else '',
         ' --full_fp16' if kwargs.get('full_fp16') else '',
         ' --xformers' if kwargs.get('xformers') else '',

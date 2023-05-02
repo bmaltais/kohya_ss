@@ -172,7 +172,7 @@ def gradio_extract_lora_tab():
                 dim,
                 v2,
                 conv_dim,
-                device
+                device,
             ],
             show_progress=False,
         )
