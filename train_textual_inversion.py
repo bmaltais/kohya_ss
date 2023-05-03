@@ -98,7 +98,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # Convert the init_word to token_id
     if args.init_word is not None:
@@ -279,6 +279,9 @@ def train(args):
     text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         text_encoder, optimizer, train_dataloader, lr_scheduler
     )
+
+    # transform DDP after prepare
+    text_encoder, unet, _ = train_util.transform_DDP(text_encoder, unet)
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
