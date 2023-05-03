@@ -20,7 +20,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight
+from library.custom_train_functions import apply_snr_weight, pyramid_noise_like
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
 imagenet_templates_small = [
@@ -104,7 +104,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # Convert the init_word to token_id
     if args.init_word is not None:
@@ -314,6 +314,9 @@ def train(args):
         text_encoder, optimizer, train_dataloader, lr_scheduler
     )
 
+    # transform DDP after prepare
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
+
     index_no_updates = torch.arange(len(tokenizer)) < token_ids_XTI[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
     orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
@@ -425,6 +428,8 @@ def train(args):
                 if args.noise_offset:
                     # https://www.crosslabs.org//blog/diffusion-with-offset-noise
                     noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)

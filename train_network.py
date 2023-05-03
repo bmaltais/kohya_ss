@@ -1,4 +1,3 @@
-from torch.nn.parallel import DistributedDataParallel as DDP
 import importlib
 import argparse
 import gc
@@ -26,7 +25,7 @@ from library.config_util import (
 )
 import library.huggingface_util as huggingface_util
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings
+from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings, pyramid_noise_like
 
 
 # TODO 他のスクリプトと共通化する
@@ -144,24 +143,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    for pi in range(accelerator.state.num_processes):
-        # TODO: modify other training scripts as well
-        if pi == accelerator.state.local_process_index:
-            print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
-
-            text_encoder, vae, unet, _ = train_util.load_target_model(
-                args, weight_dtype, accelerator.device if args.lowram else "cpu"
-            )
-
-            # work on low-ram device
-            if args.lowram:
-                text_encoder.to(accelerator.device)
-                unet.to(accelerator.device)
-                vae.to(accelerator.device)
-
-            gc.collect()
-            torch.cuda.empty_cache()
-        accelerator.wait_for_everyone()
+    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
@@ -279,6 +261,9 @@ def train(args):
     else:
         network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(network, optimizer, train_dataloader, lr_scheduler)
 
+    # transform DDP after prepare (train_network here only)
+    text_encoder, unet, network = train_util.transform_if_model_is_DDP(text_encoder, unet, network)
+
     unet.requires_grad_(False)
     unet.to(accelerator.device, dtype=weight_dtype)
     text_encoder.requires_grad_(False)
@@ -288,20 +273,11 @@ def train(args):
         text_encoder.train()
 
         # set top parameter requires_grad = True for gradient checkpointing works
-        if type(text_encoder) == DDP:
-            text_encoder.module.text_model.embeddings.requires_grad_(True)
-        else:
-            text_encoder.text_model.embeddings.requires_grad_(True)
+        text_encoder.text_model.embeddings.requires_grad_(True)
     else:
         unet.eval()
         text_encoder.eval()
-
-    # support DistributedDataParallel
-    if type(text_encoder) == DDP:
-        text_encoder = text_encoder.module
-        unet = unet.module
-        network = network.module
-
+        
     network.prepare_grad_etc(text_encoder, unet)
 
     if not cache_latents:
@@ -366,6 +342,8 @@ def train(args):
         "ss_seed": args.seed,
         "ss_lowram": args.lowram,
         "ss_noise_offset": args.noise_offset,
+        "ss_multires_noise_iterations": args.multires_noise_iterations,
+        "ss_multires_noise_discount": args.multires_noise_discount,
         "ss_training_comment": args.training_comment,  # will not be updated after training
         "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
         "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else ""),
@@ -612,6 +590,8 @@ def train(args):
                 if args.noise_offset:
                     # https://www.crosslabs.org//blog/diffusion-with-offset-noise
                     noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)

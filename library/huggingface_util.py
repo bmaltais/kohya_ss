@@ -1,9 +1,8 @@
-from typing import *
+from typing import Union, BinaryIO
 from huggingface_hub import HfApi
 from pathlib import Path
 import argparse
 import os
-
 from library.utils import fire_in_thread
 
 

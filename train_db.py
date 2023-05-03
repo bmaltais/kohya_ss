@@ -23,7 +23,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings
+from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings, pyramid_noise_like
 
 
 def train(args):
@@ -92,7 +92,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, load_stable_diffusion_format = train_util.load_target_model(args, weight_dtype)
+    text_encoder, vae, unet, load_stable_diffusion_format = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # verify load/save model formats
     if load_stable_diffusion_format:
@@ -196,6 +196,9 @@ def train(args):
     else:
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
 
+    # transform DDP after prepare
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
+
     if not train_text_encoder:
         text_encoder.to(accelerator.device, dtype=weight_dtype)  # to avoid 'cpu' vs 'cuda' error
 
@@ -270,6 +273,8 @@ def train(args):
                 if args.noise_offset:
                     # https://www.crosslabs.org//blog/diffusion-with-offset-noise
                     noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Get the text embedding for conditioning
                 with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):
@@ -297,7 +302,8 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+                with accelerator.autocast():
+                    noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training
