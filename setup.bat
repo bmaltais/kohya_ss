@@ -9,7 +9,7 @@ set Dir=%ScriptDir%
 set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Interactive=0
-set LogDir=
+set LogDir=%ScriptDir%logs
 set NoSetup=0
 set Public=0
 set Repair=0
@@ -66,7 +66,9 @@ if not "%ConfigFile%"=="" (
 
 rem Parse command line arguments and override loaded config file values
 :arg_loop
-if "%~1"=="" goto arg_end
+if "%~1"=="" (
+    goto :arg_end
+)
 
 echo Parsing: %~1
 set "arg=%~1"
@@ -231,7 +233,7 @@ if /i "%arg%"=="--share" (
     goto arg_loop
 )
 
-:: Unrecognized argument.
+rem Unrecognized argument.
 echo Error: Unrecognized argument "%~1"
 echo.
 call :print_help
@@ -239,8 +241,9 @@ exit /b 1
 
 :arg_end
 
-rem Bypass the print_help function and skip to executing launcher.py
-goto :run_command
+rem Bypass the print_help function and prepare arguments for
+rem PowerShell and Python scripts and then run setup
+goto :preparePowerShellArgs
 
 :print_help
 echo Usage: my_script.bat [OPTIONS]
@@ -269,21 +272,46 @@ echo --inbrowser        : Open the GUI in the browser.
 echo --share            : Enable GUI sharing.
 goto :eof
 
-:run_command
-rem we set an Args variable, so we can pass that to the launcher at the end and pass through values
-:: Prepare Args
-set Args=
-if not "%Branch%"=="" set Args=%Args% -b %Branch%
+:preparePowerShellArgs
+rem Function to prepare arguments for PowerShell script
+set "PSArgs="
+if not "%Branch%"=="" set "PSArgs=%PSArgs% -Branch "%Branch%""
+if not "%Dir%"=="" set "PSArgs=%PSArgs% -Dir "%Dir%""
+if not "%File%"=="" set "PSArgs=%PSArgs% -File "%File%""
+if not "%GitRepo%"=="" set "PSArgs=%PSArgs% -GitRepo "%GitRepo%""
+if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir "%LogDir%""
+if %Interactive% EQU 1 set "PSArgs=%PSArgs% -Interactive"
+if %NoSetup% EQU 1 set "PSArgs=%PSArgs% -NoSetup"
+if %Public% EQU 1 set "PSArgs=%PSArgs% -Public"
+if %Repair% EQU 1 set "PSArgs=%PSArgs% -Repair"
+if %Runpod% EQU 1 set "PSArgs=%PSArgs% -Runpod"
+if %SetupOnly% EQU 1 set "PSArgs=%PSArgs% -SetupOnly"
+if %SkipSpaceCheck% EQU 1 set "PSArgs=%PSArgs% -SkipSpaceCheck"
+if not %Verbosity% EQU -1 set "PSArgs=%PSArgs% -Verbosity %Verbosity%"
+if not "%LISTEN%"=="" set "PSArgs=%PSArgs% -Listen %LISTEN%"
+if not "%USERNAME%"=="" set "PSArgs=%PSArgs% -Username "%USERNAME%""
+if not "%PASSWORD%"=="" set "PSArgs=%PSArgs% -Password "%PASSWORD%""
+if defined SERVER_PORT (
+  if not %SERVER_PORT%==0 set "PSArgs=%PSArgs% -ServerPort %SERVER_PORT%"
+)
+if %INBROWSER% EQU 1 set "PSArgs=%PSArgs% -Inbrowser"
+if %SHARE% EQU 1 set "PSArgs=%PSArgs% -Share"
+goto :run_setup
+
+:preparePythonArgs
+rem Function to prepare arguments for Python script
+set PyArgs=
+if not "%Branch%"=="" set PyArgs=%PyArgs% -b "%Branch%"
 if not "%Dir%"=="" (
     set "Dir=%Dir:\=/%"
     if "%Dir:~0,1%"=="." (
         set "Dir=%ScriptDir%\%Dir%"
     )
-    set Args=%Args% -d %Dir%
+    set PyArgs=%PyArgs% -d "%Dir%"
 )
 if not "%File%"=="" (
     set "File=%File:\=/%"
-    set Args=%Args% -f %File%
+    set PyArgs=%PyArgs% -f "%File%"
 )
 if not "%GitRepo%"=="" (
     rem Check if GitRepo starts with http, https, or ssh
@@ -292,39 +320,70 @@ if not "%GitRepo%"=="" (
         rem It's a local path, so replace backslashes with forward slashes
         set "GitRepo=%GitRepo:\=/%"
     )
-    set Args=%Args% -g %GitRepo%
+    set PyArgs=%PyArgs% -g "%GitRepo%"
 )
 if not "%LogDir%"=="" (
     set "LogDir=%LogDir:\=/%"
-    set Args=%Args% -l %LogDir%
+    set PyArgs=%PyArgs% -l "%LogDir%"
 )
-if %Interactive% EQU 1 set Args=%Args% -i
-if %NoSetup% EQU 1 set Args=%Args% -n
-if %Public% EQU 1 set Args=%Args% -p
-if %Repair% EQU 1 set Args=%Args% --repair
-if %Runpod% EQU 1 set Args=%Args% --runpod
-if %SkipSpaceCheck% EQU 1 set Args=%Args% -s
-if not %Verbosity% EQU 0 set Args=%Args% --verbosity %Verbosity%
-if %SetupOnly% EQU 1 set Args=%Args% --setup-only
-if not "%LISTEN%"=="" set Args=%Args% --listen %LISTEN%
-if not "%USERNAME%"=="" set Args=%Args% --username "%USERNAME%"
-if not "%PASSWORD%"=="" set Args=%Args% --password "%PASSWORD%"
+if %Interactive% EQU 1 set PyArgs=%PyArgs% -i
+if %NoSetup% EQU 1 set PyArgs=%PyArgs% -n
+if %Public% EQU 1 set PyArgs=%PyArgs% -p
+if %Repair% EQU 1 set PyArgs=%PyArgs% --repair
+if %Runpod% EQU 1 set PyArgs=%PyArgs% --runpod
+if %SkipSpaceCheck% EQU 1 set PyArgs=%PyArgs% -s
+if not %Verbosity% EQU 0 set PyArgs=%PyArgs% --verbosity %Verbosity%
+if %SetupOnly% EQU 1 set PyArgs=%PyArgs% --setup-only
+if not "%LISTEN%"=="" set PyArgs=%PyArgs% --listen "%LISTEN%"
+if not "%USERNAME%"=="" set PyArgs=%PyArgs% --username "%USERNAME%"
+if not "%PASSWORD%"=="" set PyArgs=%PyArgs% --password "%PASSWORD%"
 if not "%SERVER_PORT%"=="" (
     if not "%SERVER_PORT%"=="0" (
-        set Args=%Args% --server-port %SERVER_PORT%
+        set PyArgs=%PyArgs% --server-port %SERVER_PORT%
     )
 )
-if %INBROWSER% EQU 1 set Args=%Args% --inbrowser
-if %SHARE% EQU 1 set Args=%Args% --share
+if %INBROWSER% EQU 1 set PyArgs=%PyArgs% --inbrowser
+if %SHARE% EQU 1 set PyArgs=%PyArgs% --share
+goto :execute_python
 
-rem Call launcher.py with the provided arguments
-:: Execute launcher.py with the provided arguments
-echo python " %ScriptDir%launcher.py" %Args%
-python %ScriptDir%launcher.py %Args% || (
-  echo.
-  echo Python script encountered an error.
-  echo Press Enter to continue...
-  pause >nul
+:run_setup
+rem Check if setup.ps1 exists
+if not exist "%ScriptDir%setup.ps1" (
+    echo "%ScriptDir%setup.ps1" not found. Falling back to Python script.
+    call :run_python
+    goto :eof
 )
 
-:end
+rem Try to run the PowerShell script
+echo Trying to run the PowerShell script.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ScriptDir%setup.ps1" %PSArgs%
+if errorlevel 1 (
+    echo PowerShell script failed or was blocked. Falling back to Python script.
+    call :run_python
+)
+echo "PowerShell exited successfully."
+goto :eof
+
+:run_python
+rem Check for valid Python executable
+for %%a in (python.exe python310.exe python3.exe) do (
+    set "py_exe=%%a"
+    !py_exe! --version >nul 2>&1 && (
+        echo Found !py_exe! executable. Trying to run the Python script.
+        goto :preparePythonArgs
+    )
+)
+
+rem If no valid Python executable found, print error and exit
+echo Could not run "%ScriptDir%launcher.py" - a valid Python executable was not found.
+exit /b 1
+
+:execute_python
+rem Run the Python script
+!py_exe! "%ScriptDir%launcher.py" %PyArgs%
+if errorlevel 1 (
+    echo Python script failed. Please check your Python installation and try again.
+    exit /b 1
+)
+echo Python script completed successfully.
+goto :eof
