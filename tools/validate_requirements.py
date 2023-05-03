@@ -2,6 +2,9 @@ import os
 import sys
 import pkg_resources
 import argparse
+from packaging.requirements import Requirement
+from packaging.markers import default_environment
+import re
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Validate that requirements are satisfied.")
@@ -17,27 +20,37 @@ with open(args.requirements) as f:
 # Check each requirement against the installed packages
 missing_requirements = []
 wrong_version_requirements = []
+
+url_requirement_pattern = re.compile(r"(?P<url>https?://.+);?\s?(?P<marker>.+)?")
+
 for requirement in requirements:
     requirement = requirement.strip()
     if requirement == ".":
         # Skip the current requirement if it is a dot (.)
         continue
+    
+    url_match = url_requirement_pattern.match(requirement)
+    if url_match:
+        if url_match.group("marker"):
+            marker = url_match.group("marker")
+            parsed_marker = Marker(marker)
+            if not parsed_marker.evaluate(default_environment()):
+                continue
+        requirement = url_match.group("url")
+
     try:
-        pkg_resources.require(requirement)
+        parsed_req = Requirement(requirement)
+        
+        # Check if the requirement has an environment marker and if it evaluates to False
+        if parsed_req.marker and not parsed_req.marker.evaluate(default_environment()):
+            continue
+        
+        pkg_resources.require(str(parsed_req))
+    except ValueError:
+        # This block will handle URL-based requirements
+        pass
     except pkg_resources.DistributionNotFound:
-        # Check if the requirement contains a VCS URL
-        if "@" in requirement:
-            # If it does, split the requirement into two parts: the package name and the VCS URL
-            package_name, vcs_url = requirement.split("@", 1)
-            # Use pip to install the package from the VCS URL
-            os.system(f"pip install -e {vcs_url}")
-            # Try to require the package again
-            try:
-                pkg_resources.require(package_name)
-            except pkg_resources.DistributionNotFound:
-                missing_requirements.append(requirement)
-        else:
-            missing_requirements.append(requirement)
+        missing_requirements.append(requirement)
     except pkg_resources.VersionConflict as e:
         wrong_version_requirements.append((requirement, str(e.req), e.dist.version))
 

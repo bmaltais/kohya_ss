@@ -750,6 +750,7 @@ def gradio_training(
                 'Adafactor',
                 'DAdaptation',
                 'Lion',
+                'Lion8bit',
                 'SGDNesterov',
                 'SGDNesterov8bit',
             ],
