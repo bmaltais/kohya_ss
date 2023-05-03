@@ -2125,7 +2125,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--multires_noise_iterations",
         type=int,
         default=None,
-        help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）"
+        help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
     )
     parser.add_argument(
         "--multires_noise_discount",
@@ -2203,6 +2203,11 @@ def verify_training_args(args: argparse.Namespace):
         args.cache_latents = True
         print(
             "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
+        )
+
+    if args.noise_offset is not None and args.multires_noise_iterations is not None:
+        raise ValueError(
+            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にすることはできません"
         )
 
 
