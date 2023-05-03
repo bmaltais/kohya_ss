@@ -17,11 +17,11 @@ RUN python3 -m venv ./venv && . ./venv/bin/activate && \
 # Install requirements
 COPY requirements.txt setup.py .
 RUN . ./venv/bin/activate && \
-    python3 -m pip install --use-pep517 -U -r requirements.txt
+    python3 -m pip install --no-cache-dir --use-pep517 -U -r requirements.txt
 
 # Upgrade to Torch 2.0
 RUN . ./venv/bin/activate && \
-    python3 -m pip install --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers==0.0.17 \
+    python3 -m pip install --no-cache-dir --use-pep517 --no-deps -U triton==2.0.0 torch>=2.0.0+cu121 xformers==0.0.17 \
 	                       --extra-index-url https://download.pytorch.org/whl/cu121
 
 # Fix missing libnvinfer7
