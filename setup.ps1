@@ -153,45 +153,22 @@ function Get-Parameters {
         foreach ($key in $Params.Keys) {
             $value = $Params[$key]
             if (-not [string]::IsNullOrEmpty($value)) {
-                if (!(Test-Path -PathType Leaf $value) -and !(Test-Path -PathType Container $value)) {
-                    # Check if value doesn't start with a known scheme and contains a path separator
-                    if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
-                        # Convert relative paths to absolute and normalize
-                        $FullPath = Join-Path (Get-Location) $value
-    
-                        if ($PSVersionTable.PSVersion.Major -lt 6) {
-                            # Use Resolve-Path for PowerShell 5.1 and older
-                            if (!(Test-Path $FullPath)) {
-                                # If path does not exist, create a temporary one, resolve it, and then remove it
-                                $ParentDir = Split-Path $FullPath -Parent
-                                $TestPath = Join-Path $ParentDir "testwrite.tmp"
-                                try {
-                                    $null = New-Item -Path $TestPath -ItemType File -ErrorAction Stop
-                                    Remove-Item -Path $TestPath -ErrorAction Stop
-                                }
-                                catch {
-                                    throw "The script does not have write permissions to create a file in the directory: $ParentDir"
-                                }
-    
-                                $null = New-Item -Path $FullPath -ItemType Directory -Force
-                                $AbsolutePath = (Resolve-Path $FullPath).Path
-                                Remove-Item -Path $FullPath -Force
-                            }
-                            else {
-                                $AbsolutePath = (Resolve-Path $FullPath).Path
-                            }
-                        }
-                        else {
-                            # Use System.IO.Path.GetFullPath for PowerShell 6 and later
-                            $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
-                        }
-    
-                        $Result[$key] = $AbsolutePath
-                    }
+                # Check if value doesn't start with a known scheme and contains a path separator
+                if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
+                    # Convert relative paths to absolute and normalize
+                    $FullPath = Join-Path (Get-Location) $value
+                    # Add debug output
+                    Write-Debug "Value: $value"
+                    Write-Debug "Full Path: $FullPath"
+                    # Use System.IO.Path.GetFullPath to convert relative path to absolute
+                    $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
+                    # Add debug output before setting $Result[$key]
+                    Write-Debug "Absolute Path: $AbsolutePath"
+                    $Result[$key] = $AbsolutePath
                 }
             }
         }
-    
+
         return $Result
     }
 
@@ -222,10 +199,10 @@ function Get-Parameters {
     # Define the default values
     $Defaults = @{
         'Branch'         = 'master'
-        'Dir'            = $PSScriptRoot
+        'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Interactive'    = $false
-        'LogDir'         = ''
+        'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
         'Public'         = $false
         'Repair'         = $false
@@ -294,51 +271,189 @@ function Get-Parameters {
         }
     }
 
+    # Uncomment the debug lines below to check parameter values before processing CLI values.
+    # Write-Debug "PSBoundParameters:"
+    # foreach ($key in $PSBoundParameters.Keys) {
+    #     Write-Debug "${key}: $($PSBoundParameters[$key])"
+    # }
+
     # Override config with command-line arguments last
-    Write-Debug "PSBoundParameters:"
-    foreach ($key in $PSBoundParameters.BoundParameters.Keys) {
-        Write-Debug "${key}: $($PSBoundParameters.BoundParameters[$key])"
-    }
-    foreach ($key in $PSBoundParameters.BoundParameters.Keys) {
+    foreach ($key in $BoundParameters.Keys) {
         $lowerKey = $key.ToLower()
         if ($Config.ContainsKey($lowerKey)) {
-            # Check if the value from the command line is an empty string
-            if ($PSBoundParameters.BoundParameters[$key] -eq '') {
-                # If so, continue to the next iteration of the loop without changing $Config
-                continue
-            }
-            $Config[$lowerKey] = $PSBoundParameters.BoundParameters[$key]
+            $Config[$lowerKey] = $BoundParameters[$key]
         }
         else {
-            Write-Debug "Key '${lowerKey}' not found in Config"
+            Write-Debug "Key '$key' not found in Config"
         }
     }
 
-    Write-Debug "Config after PSBoundParameters override:"
-    foreach ($key in $Config.Keys) {
-        Write-Debug "${key}: $($Config.$key)"
-    }
+    # Uncomment the debug lines below to check parameter values after processing CLI values.
+    # Write-Debug "Config after PSBoundParameters override:"
+    # foreach ($key in $Config.Keys) {
+    #     Write-Debug "${key}: $($Config.$key)"
+    # }
 
-    Write-Debug "Config after PSBoundParameters override:"
-    foreach ($key in $Config.Keys) {
-        Write-Debug "${key}: $($Config.$key)"
-    }
-
-    $Config = Convert-RelativePathsToAbsolute -Params $Config
-
+    # If the default string is detected. change it to current script directory
     if ($Config["Dir"] -eq "_CURRENT_SCRIPT_DIR_") {
         $Config["Dir"] = "$PSScriptRoot"
     }
 
-    # Output the final configuration
-    Write-Debug "Config:"
-    foreach ($key in $Config.Keys) {
-        Write-Debug "${key}: $($Config.$key)"
+    # If LogDir is not specified, use Dir/logs
+    if ([string]::IsNullOrEmpty($Config["LogDir"])) {
+        $Config["LogDir"] = Join-Path $Config["Dir"] "logs"
     }
+
+    Write-Debug "LogDir: ${Config["LogDir"]}"
+
+    $Config = Convert-RelativePathsToAbsolute -Params $Config
+
+    # Debug output for the final configuration
+    # Write-Debug "Config:"
+    # foreach ($key in $Config.Keys) {
+    #     Write-Debug "${key}: $($Config.$key)"
+    # }
 
     return $Config
 }
 
+<#
+.SYNOPSIS
+    Sets up the logging environment.
+
+.DESCRIPTION
+    The Set-Logging function prepares the logging environment.
+    It sets the current date, time, log level name, log file name, and creates the log directory if it doesn't exist.
+
+.EXAMPLE
+    Set-Logging
+#>
+function Set-Logging {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$LogDir
+    )
+
+    # Get current date and time
+    $currentDate = Get-Date -Format "yyyy-MM-dd"
+    $currentTime = Get-Date -Format "HHmm"
+
+    # Set log level name based on verbosity
+    $script:logLevelName = switch ($script:Verbosity) {
+        0 { "error" }
+        1 { "warning" }
+        2 { "info" }
+        3 { "debug" }
+        default { "unknown" }
+    }
+
+    # Define log filename
+    $script:logFilename = "launcher_$($currentTime)_$($script:logLevelName).log"
+
+    # Create log directory if it doesn't exist
+    $LogDir = "$LogDir/$currentDate"
+    if (!(Test-Path -Path $script:logDir)) {
+        New-Item -ItemType Directory -Force -Path $LogDir > $null -ErrorAction 'SilentlyContinue'
+    }
+
+    # Define log file path
+    $script:logFile = "$LogDir/$script:logFilename"
+}
+
+<#
+.SYNOPSIS
+    Logs a debug message.
+
+.DESCRIPTION
+    The Write-DebugLog function logs a debug message to the console and the log file if the verbosity level is 3 or higher.
+
+.PARAMETER message
+    The debug message to log.
+
+.EXAMPLE
+    Write-DebugLog "This is a debug message."
+#>
+function Write-DebugLog($message) {
+    if ($script:Verbosity -ge 3) {
+        Write-Output "DEBUG: $message" | Tee-Object -FilePath $script:logFile -Append
+    }
+}
+
+<#
+.SYNOPSIS
+    Logs an informational message.
+
+.DESCRIPTION
+    The Write-InfoLog function logs an informational message to the console and the log file if the verbosity level is 2 or higher.
+
+.PARAMETER message
+    The informational message to log.
+
+.EXAMPLE
+    Write-InfoLog "This is an informational message."
+#>
+function Write-InfoLog($message) {
+    if ($script:Verbosity -ge 2) {
+        Write-Output "INFO: $message" | Tee-Object -FilePath $script:logFile -Append
+    }
+}
+
+<#
+.SYNOPSIS
+Logs a warning message.
+
+.DESCRIPTION
+The Write-WarnLog function logs a warning message to the console and the log file if the verbosity level is 1 or higher.
+
+.PARAMETER message
+The warning message to log.
+
+.EXAMPLE
+Write-WarnLog "This is a warning message."
+#>
+function Write-WarningLog($message) {
+    if ($script:Verbosity -ge 1) {
+        Write-Output "WARNING: $message" | Tee-Object -FilePath $script:logFile -Append
+    }
+}
+
+<#
+.SYNOPSIS
+    Logs an error message.
+
+.DESCRIPTION
+    The Write-ErrorLog function logs an error message to the console and the log file if the verbosity level is 0 or higher.
+
+.PARAMETER message
+    The error message to log.
+
+.EXAMPLE
+    Write-ErrorLog "This is an error message."
+#>
+function Write-ErrorLog($message) {
+    if ($script:Verbosity -ge 0) {
+        Write-Output "ERROR: $message" | Tee-Object -FilePath $script:logFile -Append
+    }
+}
+
+<#
+.SYNOPSIS
+    Logs a critical error message.
+
+.DESCRIPTION
+    The Write-CriticalLog function logs a critical error message to the console and the log file regardless of the verbosity level.
+
+.PARAMETER message
+    The critical error message to log.
+
+.EXAMPLE
+    Write-CriticalLog "This is a critical error message."
+#>
+function Write-CriticalLog($message) {
+    if ($script:Verbosity -ge 0) {
+        Write-Output "CRITICAL: $message" | Tee-Object -FilePath $script:logFile -Append
+    }
+}
 
 <#
 .SYNOPSIS
@@ -366,9 +481,9 @@ function Get-Parameters {
     $requiredKeys = @('key1', 'key2', 'key3')
     $result = Test-Value -Params $params -RequiredKeys $requiredKeys
     if ($result) {
-        Write-Host "All required keys are present."
+        Write-CriticalLog "All required keys are present."
     } else {
-        Write-Host "Some required keys are missing."
+        Write-CriticalLog "Some required keys are missing."
     }
 #>
 function Test-Value {
@@ -548,9 +663,9 @@ function Update-InstallScope {
 
 .EXAMPLE
     $os = Get-OsInfo
-    Write-Host "Operating System: $($os.name)"
-    Write-Host "OS Family: $($os.family)"
-    Write-Host "OS Version: $($os.version)"
+    Write-CriticalLog "Operating System: $($os.name)"
+    Write-CriticalLog "OS Family: $($os.family)"
+    Write-CriticalLog "OS Version: $($os.version)"
 #>
 function Get-OsInfo {
     $os = @{
@@ -641,11 +756,11 @@ function Get-OsInfo {
 function Test-Python310Installed {
     try {
         if ($null -eq $script:pythonPath) {
-            Write-Debug "Python executable not found."
+            Write-DebugLog "Python executable not found."
             return $false
         }
 
-        Write-Debug "We are testing this python path: {$script:pythonPath}"
+        Write-DebugLog "We are testing this python path: {$script:pythonPath}"
         $script:pythonVersion = & $script:pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
         $script:pythonVersion = $script:pythonVersion -replace '^Python\s', ''
 
@@ -665,7 +780,7 @@ function Test-Python310Installed {
             }
             'RuntimeException' {
                 if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                    Write-Debug "Python executable not found at $script:pythonPath ."
+                    Write-DebugLog "Python executable not found at $script:pythonPath ."
                     return $false
                 }
                 else {
@@ -674,7 +789,7 @@ function Test-Python310Installed {
                 }
             }
             default {
-                Write-Debug "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
+                Write-DebugLog "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
                 return $false
             }
         }
@@ -859,7 +974,7 @@ function Install-Python310 {
                 
             }
             else {
-                Write-Debug "Path: ${script:pythonInstallerPath}"
+                Write-DebugLog "Path: ${script:pythonInstallerPath}"
                 # We default to installing at a user level if admin is not detected.
                 $proc = Start-Process $script:pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait -PassThru
                 $proc.WaitForExit()
@@ -876,8 +991,8 @@ function Install-Python310 {
             brew link --overwrite --force python@3.10
         }
         else {
-            Write-Host "Please install Homebrew first to continue with Python 3.10 installation."
-            Write-Host "You can find that here: https://brew.sh"
+            Write-CriticalLog "Please install Homebrew first to continue with Python 3.10 installation."
+            Write-CriticalLog "You can find that here: https://brew.sh"
             exit 1
         }
     }
@@ -933,7 +1048,7 @@ function Install-Python310 {
 
 
     if (Test-Python310Installed) {
-        Write-Host "Python 3.10 is already installed."
+        Write-CriticalLog "Python 3.10 is already installed."
         return
     }
 
@@ -972,7 +1087,7 @@ function Install-Python310 {
     $script:pythonPath = Get-PythonExePath
 
     if (Test-Python310Installed) {
-        Write-Host "Python 3.10 installed successfully."
+        Write-CriticalLog "Python 3.10 installed successfully."
     }
     else {
         Write-Error 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
@@ -1011,7 +1126,7 @@ function Install-Python3Tk {
             }
         }
         catch {
-            Write-Host "Tkinter not found. Attempting to install."
+            Write-CriticalLog "Tkinter not found. Attempting to install."
         }
     
         # Only try to install Tkinter if it is not already installed
@@ -1082,7 +1197,7 @@ function Install-Python3Tk {
             }
         }
         else {
-            Write-Host "Tkinter for Python 3.10 is already installed on this system."
+            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system."
         }
     }
     else { 
@@ -1121,7 +1236,7 @@ function Install-Python3Tk {
             }
         }
         else {
-            Write-Host "Tkinter for Python 3.10 is already installed on this system."
+            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system."
         }
 
         # We are updating the environment and python path after installation to ensure it is picked up by the environment every time.
@@ -1143,10 +1258,10 @@ function Install-Python3Tk {
 
 .EXAMPLE
     if (Test-GitInstalled) {
-        Write-Host "Git is installed."
+        Write-CriticalLog "Git is installed."
     }
     else {
-        Write-Host "Git is not installed."
+        Write-CriticalLog "Git is not installed."
     }
 
     This example checks whether Git is installed on the system. If Git is installed, it displays a
@@ -1179,7 +1294,7 @@ function Test-GitInstalled {
             foreach ($location in $commonGitLocations) {
                 if (Test-Path "$location/git") {
                     & "$location/git" --version
-                    Write-Host "Git already installed."
+                    Write-CriticalLog "Git already installed."
                     return $true
                 }
             }
@@ -1552,7 +1667,7 @@ function Install-Git {
     }
 
     if (Test-GitInstalled) {
-        Write-Host "Git installed successfully."
+        Write-CriticalLog "Git installed successfully."
     }
     else {
         Write-Error 'Failed to install. Please ensure Git is installed and available in $PATH.'
@@ -1601,7 +1716,7 @@ function Test-VCRedistInstalled {
         $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
     
         if ($null -ne $matchingSoftware) {
-            Write-Debug "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+            Write-DebugLog "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed."
             return $true
         }
@@ -1618,7 +1733,7 @@ function Test-VCRedistInstalled {
         $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
     
         if ($null -ne $matchingSoftware) {
-            Write-Debug "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+            Write-DebugLog "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
             Write-Output "Visual C++ $version Redistributable is already installed for the current user."
             return $true
         }
@@ -1654,7 +1769,7 @@ function Install-VCRedistWindows {
 
     if (-not (Test-Path $script:vcInstallerPath)) {
         try {
-            Write-Debug "Attempting to download: ${script:vcRedistUrl} to ${script:vcInstallerPath}"
+            Write-DebugLog "Attempting to download: ${script:vcRedistUrl} to ${script:vcInstallerPath}"
             Invoke-WebRequest -Uri $script:vcRedistUrl -OutFile $script:vcInstallerPath
         }
         catch {
@@ -1720,16 +1835,16 @@ function Main {
     process {
         if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
-                Write-Host "Installing Python 3.10. This could take a few minutes."
+                Write-CriticalLog "Installing Python 3.10. This could take a few minutes."
                 Install-Python310 -Interactive:$Params.interactive
             }
             else {
-                Write-Host "Python 3.10 is already installed."
+                Write-CriticalLog "Python 3.10 is already installed."
             }
             
             if ($os.family -eq "Windows") {
                 if (-not (Test-Python310Installed)) {
-                    Write-Host "Installing Python 3.10 Tk. This could take a few minutes."
+                    Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes."
                     $installScope = Update-InstallScope($Interactive)
                     Install-Python3Tk $installScope
                 }
@@ -1739,19 +1854,21 @@ function Main {
             }
 
             if (-not (Test-GitInstalled)) {
-                Write-Host "Installing git. This could take a few minutes."
+                Write-CriticalLog "Installing git. This could take a few minutes."
                 Install-Git
             }
             else {
-                Write-Host "Git already installed."
+                Write-CriticalLog "Git already installed."
             }
 
-            Write-Debug "Checking for VC version: 20${script:vcRedistVersion}"
-            if (-not (Test-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
-                Install-VCRedistWindows
-            }
-            else {
-                Write-Host "VC Redist already installed."
+            if ($os.family -eq "Windows") {
+                Write-DebugLog "Checking for VC version: 20${script:vcRedistVersion}"
+                if (-not (Test-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
+                    Install-VCRedistWindows
+                }
+                else {
+                    Write-CriticalLog "VC Redist already installed."
+                }
             }
         }
     }
@@ -1774,7 +1891,7 @@ function Main {
                 exit 1
             }
 
-            Write-Debug "Params: $($Parameters | Out-String)"
+            Write-DebugLog "Params: $($Parameters | Out-String)"
 
             $installArgs = New-Object System.Collections.ArrayList
             foreach ($key in $Parameters.Keys) {
@@ -1800,10 +1917,10 @@ function Main {
                 $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
 
                 if ($null -ne $Parameters[$key]) {
-                    Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+                    Write-DebugLog "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
                 }
                 else {
-                    Write-Debug "Checking parameter: $key, value: $($Parameters[$key]), type: Null"
+                    Write-DebugLog "Checking parameter: $key, value: $($Parameters[$key]), type: Null"
                 }
 
 
@@ -1816,7 +1933,7 @@ function Main {
                     # Handle boolean and switch parameters
                     if ($Parameters[$key] -eq $true) {
                         $installArgs.Add($argName) | Out-Null
-                        Write-Debug "Boolean argument: $argName"
+                        Write-DebugLog "Boolean argument: $argName"
                     }
                 }
                 elseif ($key -eq "verbosity") {
@@ -1841,8 +1958,10 @@ function Main {
 
 
             # Call launcher.py with the appropriate parameters
-            $command = "$pyExe -u $launcher $($installArgs -join ' ')"
-            Write-Debug "Running command: $command"
+            $launcherFileName = Split-Path $launcher -Leaf
+            Write-CriticalLog "Switching to ${launcherFileName}."
+            $command = "$pyExe -u $launcher $"
+            Write-DebugLog "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
         }
         else {
@@ -1857,8 +1976,21 @@ function Main {
 # ---------------------------------------------------------
 
 # Ensure script executes as normal while printing debug statements.
-# This only affects the PowerShell script. All other scripts abide by --verbosity [int].
-$DebugPreference = "Continue"
+# This only affects the PowerShell script parameter setup as that happens before logging setup.
+# $DebugPreference = "Continue"
+
+# Call the Get-Parameters function to process the arguments in the intended fashion
+# Parameter value assignments should be as follows:
+# 1) Command line arguments (user overrides)
+# 2) Configuration file (install_config.yml). Default locations:
+#    a) OS-specific standard folders
+#       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
+#       Non-Windows: $env:HOME/kohya_ss/
+#    b) Installation Directory
+#    c) The folder this script is run from
+# 3) Default values built into the scripts if none specified by user and there is no config file.
+$Parameters = Get-Parameters $PSBoundParameters
+Set-Logging -LogDir $Parameters["LogDir"]
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath
@@ -1866,18 +1998,18 @@ $script:gitPath = Get-GitExePath
 
 # Set a global OS detection for usage in functions
 $os = Get-OsInfo
-Write-Debug "Detected OS Family: {$os.family}."
-
+Write-DebugLog "Detected OS Family: {$os.family}."
 
 # Define versions globally for easy modification
-if ($os.family -eq "Windows") {
-    # Software Versions
-    $script:pythonVersion = "3.10.11"
-    $script:gitVersion = "2.40.1"
-    $script:vcRedistVersion = "17"
+# Software Versions
+$script:pythonVersion = "3.10.11"
+$script:gitVersion = "2.40.1"
+$script:vcRedistVersion = "17"
 
-    # Set the downloads folder for storing pre-req installation files
+# Set the downloads folder for storing pre-req installation files
+if ($os.family -eq "Windows") {
     $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
+
 
     $script:pythonInstallerUrl = "https://www.python.org/ftp/python/${script:pythonVersion}/python-${script:pythonVersion}-amd64.exe"
     # Derive the release page URL from the installer URL
@@ -1902,15 +2034,6 @@ if ($os.family -eq "Windows") {
     $script:vcInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:vcRedistInstallerName
 }
 
-# Call the Get-Parameters function to process the arguments in the intended fashion
-# Parameter value assignments should be as follows:
-# 1) Command line arguments (user overrides)
-# 2) Configuration file (install_config.yml). Default locations:
-#    a) OS-specific standard folders
-#       Windows: $env:APPDATA, "kohya_ss\install_config.yaml"
-#       Non-Windows: $env:HOME/kohya_ss/
-#    b) Installation Directory
-#    c) The folder this script is run from
-# 3) Default values built into the scripts if none specified by user and there is no config file.
-$Parameters = Get-Parameters -BoundParameters $PSBoundParameters
+# Main entry point to the script
+Write-CriticalLog "Beginning main function."
 Main -Parameters $Parameters

@@ -13,7 +13,7 @@ setup_arguments:
     value: false
   - name: LogDir
     description: Override the default log directory.
-    value: ''
+    value:
   - name: NoSetup
     description: Skip all setup steps and only validate python requirements then launch GUI.
     value: false
@@ -45,7 +45,7 @@ kohya_gui_arguments:
     value: 127.0.0.1
   - name: Password
     description: Password for authentication.
-    value: ''
+    value:
   - name: ServerPort
     description: Port to run the server listener on.
     value: 0

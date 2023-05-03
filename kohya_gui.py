@@ -547,21 +547,14 @@ class CustomFormatter(logging.Formatter):
     def generate_log_filename(_logs_dir):
         now = datetime.now()
         current_date_str = now.strftime("%Y-%m-%d")  # Just the date part
-        current_time_str = now.strftime("%H%M%S")  # Time in 24-hour format
+        current_time_str = now.strftime("%H%M")  # Time in 24-hour format
 
         # Create a subdirectory for the current date
         date_subdir = os.path.join(_logs_dir, current_date_str)
         os.makedirs(date_subdir, exist_ok=True)
 
-        counter = 0
-        while True:
-            counter_suffix = f"_{counter}" if counter > 0 else ""
-            log_filename = f"kohya_ss_{current_time_str}{counter_suffix}_{logging.getLevelName(log_level).lower()}.log"
-            log_filepath = os.path.join(date_subdir, log_filename)
-
-            if not os.path.exists(log_filepath):
-                break
-            counter += 1
+        log_filename = f"kohya_ss_{current_time_str}_{logging.getLevelName(log_level).lower()}.log"
+        log_filepath = os.path.join(date_subdir, log_filename)
 
         return log_filepath
 

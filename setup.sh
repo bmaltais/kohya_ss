@@ -44,8 +44,12 @@ EOF
 # This gets the directory the script is run from so pathing can work relative to the script where needed.
 SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 
-# The highest verbosity level. This really starts counting from 3 as 1,2 are reserved by system.
-MAXVERBOSITY=6
+get_abs_filename() {
+  # $1 : relative filename
+  if [ -d "$(dirname "$1")" ]; then
+    echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+  fi
+}
 
 # This code handles the loading of parameter values in the following order of precedence:
 # 1. Command-line arguments provided by the user
@@ -79,27 +83,27 @@ while getopts ":vb:d:f:g:il:nprsux-:" opt; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) CLI_ARGUMENTS["Branch"]="$OPTARG" ;;
-  d | dir) CLI_ARGUMENTS["Dir"]="$OPTARG" ;;
+  b | branch) CLI_ARGUMENTS["branch"]="$OPTARG" ;;
+  d | dir) CLI_ARGUMENTS["dir"]="$OPTARG" ;;
   f | file) USER_CONFIG_FILE="$OPTARG" ;;
-  g | git-repo) CLI_ARGUMENTS["GitRepo"]="$OPTARG" ;;
+  g | git-repo) CLI_ARGUMENTS["gitRepo"]="$OPTARG" ;;
   h | help) display_help && exit 0 ;;
-  i | interactive) CLI_ARGUMENTS["Interactive"]="true" ;;
-  l | log-dir) CLI_ARGUMENTS["LogDir"]="$OPTARG" ;;
-  n | no-setup) CLI_ARGUMENTS["NoSetup"]="true" ;;
-  p | public) CLI_ARGUMENTS["Public"]="true" ;;
-  r | repair) CLI_ARGUMENTS["Repair"]="true" ;;
-  runpod) CLI_ARGUMENTS["Runpod"]="true" ;;
-  setup-only) CLI_ARGUMENTS["SetupOnly"]="true" ;;
-  s | skip-space-check) CLI_ARGUMENTS["SkipSpaceCheck"]="true" ;;
-  u | update) CLI_ARGUMENTS["Update"]="true" ;;
-  v) ((CLI_ARGUMENTS["Verbosity"] = CLI_ARGUMENTS["Verbosity"] + 1)) ;;
-  listen) CLI_ARGUMENTS["GuiListen"]="$OPTARG" ;;
-  username) CLI_ARGUMENTS["GuiUsername"]="$OPTARG" ;;
-  password) CLI_ARGUMENTS["GuiPassword"]="$OPTARG" ;;
-  server-port) CLI_ARGUMENTS["GuiServerPort"]="$OPTARG" ;;
-  inbrowser) CLI_ARGUMENTS["GuiInbrowser"]="true" ;;
-  share) CLI_ARGUMENTS["GuiShare"]="true" ;;
+  i | interactive) CLI_ARGUMENTS["interactive"]="true" ;;
+  l | log-dir) CLI_ARGUMENTS["logDir"]="$OPTARG" ;;
+  n | no-setup) CLI_ARGUMENTS["noSetup"]="true" ;;
+  p | public) CLI_ARGUMENTS["public"]="true" ;;
+  r | repair) CLI_ARGUMENTS["repair"]="true" ;;
+  runpod) CLI_ARGUMENTS["runpod"]="true" ;;
+  setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
+  s | skip-space-check) CLI_ARGUMENTS["skipSpaceCheck"]="true" ;;
+  u | update) CLI_ARGUMENTS["update"]="true" ;;
+  v) ((CLI_ARGUMENTS["verbosity"] = CLI_ARGUMENTS["verbosity"] + 1)) ;;
+  listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
+  username) CLI_ARGUMENTS["username"]="$OPTARG" ;;
+  password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
+  server-port) CLI_ARGUMENTS["serverPort"]="$OPTARG" ;;
+  inbrowser) CLI_ARGUMENTS["inbrowser"]="true" ;;
+  share) CLI_ARGUMENTS["share"]="true" ;;
   *) display_help && exit 0 ;;
   esac
 done
@@ -124,7 +128,7 @@ parse_and_validate_yaml() {
     if [[ "$line" =~ ^[[:space:]]*(setup_arguments|kohya_gui_arguments):[[:space:]]*$ ]]; then
       section="${BASH_REMATCH[1]}"
       state="none"
-      echo "Section: $section"
+      # echo "Section: $section"
     elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
       key="${BASH_REMATCH[1]}"
       state="searching_value"
@@ -163,76 +167,121 @@ if [ -n "$USER_CONFIG_FILE" ] && [ -f "$USER_CONFIG_FILE" ]; then
 fi
 
 # Set default values only if they haven't been set by the config files
-config_Branch="${config_Branch:-master}"
-config_Dir="${config_Dir:-$SCRIPT_DIR}"
-config_GitRepo="${config_GitRepo:-https://github.com/bmaltais/kohya_ss.git}"
-config_Interactive="${config_Interactive:-false}"
-config_LogDir="${config_LogDir:-$config_Dir/logs}"
-config_Public="${config_Public:-false}"
-config_NoSetup="${config_NoSetup:-false}"
-config_Repair="${config_Repair:-false}"
-config_Runpod="${config_Runpod:-false}"
-config_SetupOnly="${config_SetupOnly:-false}"
-config_SkipSpaceCheck="${config_SkipSpaceCheck:-false}"
-config_Update="${config_Update:-false}"
-config_Verbosity="${config_Verbosity:-0}"
-config_Listen="${config_Listen:-127.0.0.1}"
-config_Username="${config_Username:-}"
-config_Password="${config_Password:-}"
-config_ServerPort="${config_ServerPort:-0}"
-config_Inbrowser="${config_Inbrowser:-false}"
-config_Share="${config_Share:-false}"
+config_branch="${config_branch:-master}"
+config_dir="${config_dir:-$SCRIPT_DIR}"
+config_gitRepo="${config_gitRepo:-https://github.com/bmaltais/kohya_ss.git}"
+config_interactive="${config_interactive:-false}"
+config_public="${config_public:-false}"
+config_noSetup="${config_noSetup:-false}"
+config_repair="${config_repair:-false}"
+config_runpod="${config_runpod:-false}"
+config_setupOnly="${config_setupOnly:-false}"
+config_skipSpaceCheck="${config_skipSpaceCheck:-false}"
+config_update="${config_update:-false}"
+config_verbosity="${config_verbosity:-0}"
+config_listen="${config_listen:-127.0.0.1}"
+config_username="${config_username:-}"
+config_password="${config_password:-}"
+config_serverPort="${config_serverPort:-0}"
+config_inbrowser="${config_inbrowser:-false}"
+config_share="${config_share:-false}"
 
 # Override config values with CLI arguments
 for key in "${!CLI_ARGUMENTS[@]}"; do
   configVar="config_$key"
-  eval "$configVar=${CLI_ARGUMENTS[$key]}"
+  # echo "Processing CLI argument $key with value ${CLI_ARGUMENTS[$key]}"
+  if [[ -n ${CLI_ARGUMENTS[$key]} ]]; then # Check if the CLI argument is not empty
+    if [[ "$key" == "dir" ]]; then         # If the argument is the directory, convert to an absolute path
+      # echo "CLI_ARGUMENTS dir: ${CLI_ARGUMENTS[$key]}"
+      # echo "get_abs_filename: $(get_abs_filename "${CLI_ARGUMENTS[$key]}")"
+      eval "$configVar=$(get_abs_filename "${CLI_ARGUMENTS[$key]}")"
+    else
+      eval "$configVar=${CLI_ARGUMENTS[$key]}"
+    fi
+  fi
 done
 
-# Use the variables from the configuration file as default values
-BRANCH="$config_Branch"
-DIR="$config_Dir"
-GIT_REPO="$config_GitRepo"
-INTERACTIVE="$config_Interactive"
-LOG_DIR="$config_LogDir"
-NO_SETUP="$config_NoSetup"
-PUBLIC="$config_Public"
-REPAIR="$config_Repair"
-RUNPOD="$config_Runpod"
-SETUP_ONLY="$config_SetupOnly"
-SKIP_SPACE_CHECK="$config_SkipSpaceCheck"
-UPDATE="$config_Update"
-VERBOSITY="$config_Verbosity"
-GUI_LISTEN="$config_Listen"
-GUI_USERNAME="$config_Username"
-GUI_PASSWORD="$config_Password"
-GUI_SERVER_PORT="$config_ServerPort"
-GUI_INBROWSER="$config_Inbrowser"
-GUI_SHARE="$config_Share"
-
-for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 $VERBOSITY
-); do
-  (("$v" <= "$VERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
-done
-
-for v in $( #From the verbosity level one higher than requested, through the maximum;
-  seq $((VERBOSITY + 1)) $MAXVERBOSITY
-); do
-  (("$v" > "2")) && eval exec "$v>/dev/null" #Redirect these to bitbucket, provided that they don't match stdout and stderr.
-done
-
-# Example of how to use the verbosity levels.
-# printf "%s\n" "This message is seen at verbosity level 1 and above." >&3
-# printf "%s\n" "This message is seen at verbosity level 2 and above." >&4
-# printf "%s\n" "This message is seen at verbosity level 3 and above." >&5
-
-if [ "$DIR" = "_CURRENT_SCRIPT_DIR_" ]; then
-  DIR="$SCRIPT_DIR"
+# After CLI arguments have been processed, check if config_dir is _CURRENT_SCRIPT_DIR_
+if [ "$config_dir" == "_CURRENT_SCRIPT_DIR_" ]; then
+  config_dir="$SCRIPT_DIR"
 fi
 
+# After that, set dependent config values
+config_logDir="${config_logDir:-$config_dir/logs}"
+
+# Use the variables from the configuration file as default values
+BRANCH="$config_branch"
+DIR="$config_dir"
+GIT_REPO="$config_gitRepo"
+INTERACTIVE="$config_interactive"
+LOG_DIR="$config_logDir"
+NO_SETUP="$config_noSetup"
+PUBLIC="$config_public"
+REPAIR="$config_repair"
+RUNPOD="$config_runpod"
+SETUP_ONLY="$config_setupOnly"
+SKIP_SPACE_CHECK="$config_skipSpaceCheck"
+UPDATE="$config_update"
+VERBOSITY="$config_verbosity"
+GUI_LISTEN="$config_listen"
+GUI_USERNAME="$config_username"
+GUI_PASSWORD="$config_password"
+GUI_SERVER_PORT="$config_serverPort"
+GUI_INBROWSER="$config_inbrowser"
+GUI_SHARE="$config_share"
+
+# We set up logging here to match the format we are using downstream in the Python scripts
+CURRENT_DATE=$(date +%Y-%m-%d)
+CURRENT_TIME=$(date +%H%M)
+LOG_LEVEL_NAME=$(case $VERBOSITY in
+  0) echo "error" ;;
+  1) echo "warning" ;;
+  2) echo "info" ;;
+  3) echo "debug" ;;
+  *) echo "unknown" ;;
+  esac)
+LOG_FILENAME="launcher_${CURRENT_TIME}_${LOG_LEVEL_NAME}.log"
+
+if [ ! -d "$LOG_DIR/$CURRENT_DATE/" ]; then
+  mkdir -p "$LOG_DIR/$CURRENT_DATE/"
+fi
+
+LOG_FILE="$LOG_DIR/$CURRENT_DATE/$LOG_FILENAME"
+
+log_debug() {
+  if ((VERBOSITY >= 3)); then
+    printf "DEBUG: %s\n" "$1" | tee -a "$LOG_FILE"
+  fi
+}
+
+log_info() {
+  if ((VERBOSITY >= 2)); then
+    printf "INFO: %s\n" "$1" | tee -a "$LOG_FILE"
+  fi
+}
+
+log_warn() {
+  if ((VERBOSITY >= 1)); then
+    printf "WARNING: %s\n" "$1" | tee -a "$LOG_FILE"
+  fi
+}
+
+log_error() {
+  if ((VERBOSITY >= 0)); then
+    printf "ERROR: %s\n" "$1" | tee -a "$LOG_FILE"
+  fi
+}
+
+log_critical() {
+  if ((VERBOSITY >= 0)); then
+    printf "CRITICAL: %s\n" "$1" | tee -a "$LOG_FILE"
+  fi
+}
+
+log_debug "$0 launching."
+
 # Debug variable dump at max verbosity
-echo "BRANCH: $BRANCH
+log_debug "BRANCH: $BRANCH
 DIR: $DIR
 GIT_REPO: $GIT_REPO
 Config file location: $USER_CONFIG_FILE
@@ -245,7 +294,7 @@ SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
 UPDATE: $UPDATE
 Skip Setup: $NO_SETUP
 VERBOSITY: $VERBOSITY
-Script directory is ${SCRIPT_DIR}." >&5
+Script directory is ${SCRIPT_DIR}."
 
 # Shared functions
 get_os_info() {
@@ -739,6 +788,9 @@ run_launcher() {
     echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
     exit 1
   fi
+
+  # Print a literal string to give us some space before executing launcher.py
+  log_critical $'Launcher.py is now executing.\n\n'
 
   # shellcheck disable=SC2046
   "$PYTHON_EXEC" launcher.py \
