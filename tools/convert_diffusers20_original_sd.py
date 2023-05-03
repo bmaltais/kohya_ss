@@ -34,7 +34,7 @@ def convert(args):
 
     if is_load_ckpt:
         v2_model = args.v2
-        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(v2_model, args.model_to_load)
+        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(v2_model, args.model_to_load, unet_use_linear_projection_in_v2=args.unet_use_linear_projection)
     else:
         pipe = StableDiffusionPipeline.from_pretrained(
             args.model_to_load, torch_dtype=load_dtype, tokenizer=None, safety_checker=None
@@ -75,6 +75,9 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--v2", action="store_true", help="load v2.0 model (v1 or v2 is required to load checkpoint) / 2.0のモデルを読み込む"
+    )
+    parser.add_argument(
+        "--unet_use_linear_projection", action="store_true", help="When saving v2 model as Diffusers, set U-Net config to `use_linear_projection=true` (to match stabilityai's model) / Diffusers形式でv2モデルを保存するときにU-Netの設定を`use_linear_projection=true`にする（stabilityaiのモデルと合わせる）"
     )
     parser.add_argument(
         "--fp16",
