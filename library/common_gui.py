@@ -903,10 +903,16 @@ def gradio_advanced_training():
         random_crop = gr.Checkbox(
             label='Random crop instead of center crop', value=False
         )
+    with gr.Row():
         noise_offset = gr.Textbox(
             label='Noise offset (0 - 1)', placeholder='(Oprional) eg: 0.1'
         )
-
+        multires_noise_iterations = gr.Slider(
+            label='Multires noise iterations', value=0, minimum=0, maximum=64, step=1, info='enable multires noise (recommended values are 6-10)'
+        )
+        multires_noise_discount = gr.Slider(
+            label='Multires noise discount', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3'
+        )
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
             label='Dropout caption every n epochs', value=0
@@ -961,6 +967,8 @@ def gradio_advanced_training():
         caption_dropout_every_n_epochs,
         caption_dropout_rate,
         noise_offset,
+        multires_noise_iterations,
+        multires_noise_discount,
         additional_parameters,
         vae_batch_size,
         min_snr_gamma,
@@ -1030,6 +1038,15 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
         ' --random_crop' if kwargs.get('random_crop') else '',
+        
+        f' --multires_noise_iterations="{int(kwargs.get("multires_noise_iterations", 0))}"'
+        if kwargs.get('multires_noise_iterations', 0) > 0
+        else '',
+        
+        f' --multires_noise_discount="{float(kwargs.get("multires_noise_discount", 0.0))}"'
+        if kwargs.get('multires_noise_discount', 0) > 0
+        else '',
+        
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if not kwargs.get('noise_offset', '') == ''
         else '',
