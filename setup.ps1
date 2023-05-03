@@ -159,6 +159,11 @@ function Get-Parameters {
                     $FullPath = Join-Path (Get-Location) $value
                     # Add debug output
                     Write-Debug "Value: $value"
+
+                    if ([System.IO.Path]::GetFullPath($value) -eq $value) {
+                        continue
+                    }
+
                     Write-Debug "Full Path: $FullPath"
                     # Use System.IO.Path.GetFullPath to convert relative path to absolute
                     $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
@@ -173,10 +178,15 @@ function Get-Parameters {
     }
 
     # Check for the existence of the powershell-yaml module and install it if necessary
-    if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
-        Install-Module -Name 'powershell-yaml' -Scope CurrentUser -Force
+    try {
+        if (-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
+            Install-Module -Name 'powershell-yaml' -Scope CurrentUser -Force
+        }
+        Import-Module 'powershell-yaml'
+    } catch {
+        Write-Host "Failed to import module powershell-yaml, exiting to avoid corrupted configuration values."
+        exit 1
     }
-    Import-Module 'powershell-yaml'
 
     # Define possible configuration file locations
     $configFileLocations = if ($os.family -eq "Windows") {
@@ -252,7 +262,7 @@ function Get-Parameters {
     # Override config with the $Parameters values
     foreach ($key in $Parameters.Keys) {
         $lowerKey = $key.ToLower()
-        if ($Config.ContainsKey($lowerKey)) {
+        if ($Config.ContainsKey($lowerKey) -and ($Parameters[$key] -ne "")) {
             $Config[$lowerKey] = $Parameters[$key]
         }
     }
@@ -260,14 +270,18 @@ function Get-Parameters {
     foreach ($key in $Parameters.kohya_gui_arguments.Keys) {
         $lowerKey = $key.ToLower()
         if ($Config.ContainsKey($lowerKey)) {
-            $Config[$lowerKey] = $Parameters.kohya_gui_arguments[$key]
+            if ($null -ne $Parameters.kohya_gui_arguments[$key] -and $Parameters.kohya_gui_arguments[$key] -ne "") {
+                $Config[$lowerKey] = $Parameters.kohya_gui_arguments[$key]
+            }
         }
     }
 
     foreach ($key in $Parameters.setup_arguments.Keys) {
         $lowerKey = $key.ToLower()
         if ($Config.ContainsKey($lowerKey)) {
-            $Config[$lowerKey] = $Parameters.setup_arguments[$key]
+            if ($null -ne $Parameters.setup_arguments[$key] -and $Parameters.setup_arguments[$key] -ne "") {
+                $Config[$lowerKey] = $Parameters.setup_arguments[$key]
+            }
         }
     }
 
@@ -352,7 +366,7 @@ function Set-Logging {
 
     # Create log directory if it doesn't exist
     $LogDir = "$LogDir/$currentDate"
-    if (!(Test-Path -Path $script:logDir)) {
+    if (!(Test-Path -Path $LogDir)) {
         New-Item -ItemType Directory -Force -Path $LogDir > $null -ErrorAction 'SilentlyContinue'
     }
 
@@ -1989,16 +2003,17 @@ function Main {
 #    b) Installation Directory
 #    c) The folder this script is run from
 # 3) Default values built into the scripts if none specified by user and there is no config file.
+
+# Set a global OS detection for usage in functions
+$os = Get-OsInfo
+Write-DebugLog "Detected OS Family: {$os.family}."
+
 $Parameters = Get-Parameters $PSBoundParameters
 Set-Logging -LogDir $Parameters["LogDir"]
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath
 $script:gitPath = Get-GitExePath
-
-# Set a global OS detection for usage in functions
-$os = Get-OsInfo
-Write-DebugLog "Detected OS Family: {$os.family}."
 
 # Define versions globally for easy modification
 # Software Versions
