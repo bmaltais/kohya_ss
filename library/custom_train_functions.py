@@ -1,5 +1,6 @@
 import torch
 import argparse
+import random
 import re
 from typing import List, Optional, Union
 
@@ -342,3 +343,15 @@ def get_weighted_text_embeddings(
     text_embeddings = text_embeddings * (previous_mean / current_mean).unsqueeze(-1).unsqueeze(-1)
 
     return text_embeddings
+
+
+# https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2
+def pyramid_noise_like(noise, device, iterations=6, discount=0.3):
+    b, c, w, h = noise.shape
+    u = torch.nn.Upsample(size=(w, h), mode='bilinear').to(device)
+    for i in range(iterations):
+        r = random.random()*2+2 # Rather than always going 2x, 
+        w, h = max(1, int(w/(r**i))), max(1, int(h/(r**i)))
+        noise += u(torch.randn(b, c, w, h).to(device)) * discount**i
+        if w==1 or h==1: break # Lowest resolution is 1x1
+    return noise/noise.std() # Scaled back to roughly unit variance
