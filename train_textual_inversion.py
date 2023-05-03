@@ -281,7 +281,7 @@ def train(args):
     )
 
     # transform DDP after prepare
-    text_encoder, unet, _ = train_util.transform_DDP(text_encoder, unet)
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))

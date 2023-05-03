@@ -197,7 +197,7 @@ def train(args):
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
 
     # transform DDP after prepare
-    text_encoder, unet, _ = train_util.transform_DDP(text_encoder, unet)
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
 
     if not train_text_encoder:
         text_encoder.to(accelerator.device, dtype=weight_dtype)  # to avoid 'cpu' vs 'cuda' error

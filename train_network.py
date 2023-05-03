@@ -262,7 +262,7 @@ def train(args):
         network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(network, optimizer, train_dataloader, lr_scheduler)
 
     # transform DDP after prepare (train_network here only)
-    text_encoder, unet, network = train_util.transform_DDP(text_encoder, unet, network)
+    text_encoder, unet, network = train_util.transform_if_model_is_DDP(text_encoder, unet, network)
 
     unet.requires_grad_(False)
     unet.to(accelerator.device, dtype=weight_dtype)

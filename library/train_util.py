@@ -2897,9 +2897,9 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu"):
     return text_encoder, vae, unet, load_stable_diffusion_format
 
 
-def transform_DDP(text_encoder, unet, network=None):
+def transform_if_model_is_DDP(text_encoder, unet, network=None):
     # Transform text_encoder, unet and network from DistributedDataParallel
-    return (encoder.module if type(encoder) == DDP else encoder for encoder in [text_encoder, unet, network])
+    return (model.module if type(model) == DDP else model for model in [text_encoder, unet, network] if model is not None)
 
 
 def load_target_model(args, weight_dtype, accelerator):
@@ -2922,7 +2922,7 @@ def load_target_model(args, weight_dtype, accelerator):
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
 
-    text_encoder, unet, _ = transform_DDP(text_encoder, unet, network=None)
+    text_encoder, unet = transform_if_model_is_DDP(text_encoder, unet)
 
     return text_encoder, vae, unet, load_stable_diffusion_format
 
