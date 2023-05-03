@@ -1157,6 +1157,7 @@ def clean_old_artifacts(_site_packages_dir):
 
         # Remove directories if they exist
         if os.path.exists(bitsandbytes_site_packages_dir):
+            logging.debug(f"Removing folder {bitsandbytes_site_packages_dir}")
             shutil.rmtree(bitsandbytes_site_packages_dir)
 
 
