@@ -20,7 +20,7 @@ RUN python3 -m pip install wheel
 
 # Install requirements
 COPY requirements.txt setup.py .
-RUN python3 -m pip install --use-pep517 -U -r requirements.txt
+RUN python3 -m pip install --no-cache-dir --use-pep517 -U -r requirements.txt
 
 # Fix missing libnvinfer7
 USER root
