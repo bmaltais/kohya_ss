@@ -2125,13 +2125,13 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--multires_noise_iterations",
         type=int,
         default=None,
-        help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended)"
+        help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）"
     )
     parser.add_argument(
         "--multires_noise_discount",
         type=float,
         default=0.3,
-        help="set discount value for multires noise (has no effect without --multires_noise_iterations)"
+        help="set discount value for multires noise (has no effect without --multires_noise_iterations) / Multires noiseのdiscount値を設定する（--multires_noise_iterations指定時のみ有効）",
     )
     parser.add_argument(
         "--lowram",
