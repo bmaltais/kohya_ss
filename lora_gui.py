@@ -938,15 +938,15 @@ def lora_tab(
         )
 
         with gr.Row():
-            text_encoder_lr = gr.Textbox(
+            text_encoder_lr = gr.Number(
                 label='Text Encoder learning rate',
                 value='5e-5',
-                placeholder='Optional',
+                info='Optional',
             )
-            unet_lr = gr.Textbox(
+            unet_lr = gr.Number(
                 label='Unet learning rate',
                 value='0.0001',
-                placeholder='Optional',
+                info='Optional',
             )
             network_dim = gr.Slider(
                 minimum=1,

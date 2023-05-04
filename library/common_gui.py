@@ -79,16 +79,16 @@ def update_my_data(my_data):
     ):
         my_data['model_list'] = 'custom'
 
-    # Convert epoch and save_every_n_epochs values to int if they are strings
-    for key in ['epoch', 'save_every_n_epochs']:
+    # Convert values to int if they are strings
+    for key in ['epoch', 'save_every_n_epochs', 'lr_warmup']:
         value = my_data.get(key, -1)
         if isinstance(value, str) and value.isdigit():
             my_data[key] = int(value)
         elif not value:
             my_data[key] = -1
             
-    # Convert noise_offset values to float if they are strings
-    for key in ['noise_offset']:
+    # Convert values to float if they are strings
+    for key in ['noise_offset', 'learning_rate', 'text_encoder_lr', 'unet_lr']:
         value = my_data.get(key, -1)
         if isinstance(value, str) and value.isdigit:
             my_data[key] = float(value)
@@ -731,7 +731,7 @@ def gradio_training(
             label='Cache latents to disk', value=False
         )
     with gr.Row():
-        learning_rate = gr.Textbox(
+        learning_rate = gr.Number(
             label='Learning rate', value=learning_rate_value
         )
         lr_scheduler = gr.Dropdown(
@@ -747,8 +747,8 @@ def gradio_training(
             ],
             value=lr_scheduler_value,
         )
-        lr_warmup = gr.Textbox(
-            label='LR warmup (% of steps)', value=lr_warmup_value
+        lr_warmup = gr.Slider(
+            label='LR warmup (% of steps)', value=lr_warmup_value, minimum=0, maximum=100, step=1,
         )
         optimizer = gr.Dropdown(
             label='Optimizer',
