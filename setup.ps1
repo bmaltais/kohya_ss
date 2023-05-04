@@ -159,12 +159,29 @@ function Get-Parameters {
                 if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
                     # Convert relative paths to absolute and normalize
                     $FullPath = Join-Path (Get-Location) $value
-                    # Add debug output
-                    Write-Debug "Value: $value"
 
-                    if ([System.IO.Path]::GetFullPath($value) -eq $value) {
-                        continue
+                    try {
+                        $resolvedPath = [System.IO.Path]::GetFullPath($value)
+                    
+                        if ($resolvedPath -eq $value) {
+                            continue
+                        }
+                        else {
+                            throw "Invalid path: $value"
+                        }
                     }
+                    catch [System.ArgumentException] {
+                        Write-Host "Sorry, the path contains illegal characters:`n'$value'`n " -ForegroundColor Red
+                        exit 1
+                    }
+                    catch [System.IO.PathTooLongException] {
+                        Write-Host "Sorry, the path is too long:`n'$value'`n" -ForegroundColor Red
+                        exit 1
+                    }
+                    catch {
+                        Write-Host "Sorry, there was an error processing the path:`n'$value'." -ForegroundColor Red
+                        exit 1
+                    }                    
 
                     Write-Debug "Full Path: $FullPath"
                     # Use System.IO.Path.GetFullPath to convert relative path to absolute
@@ -1820,6 +1837,64 @@ function Install-VCRedistWindows {
     }
 }
 
+<#
+.SYNOPSIS
+    Retrieves the built-in parameters of the current PowerShell executable.
+
+.DESCRIPTION
+    This function identifies the appropriate PowerShell executable based on the
+    platform and version of PowerShell, then parses the built-in parameters from
+    the executable's help output.
+
+.OUTPUTS
+    [string[]] An array of built-in parameter names.
+
+.EXAMPLE
+    $builtInParams = Get-BuiltInParameters
+    Returns an array of built-in parameter names for the current PowerShell executable.
+#>
+function Get-BuiltInParameters {
+    if ($IsWindows) {
+        if ($PSVersionTable.PSVersion.Major -ge 6) {
+            $powershellExeName = 'pwsh.exe'
+        }
+        else {
+            $powershellExeName = 'powershell.exe'
+        }
+    }
+    else {
+        $powershellExeName = 'pwsh'
+    }
+    $powershellExe = (Get-Command $powershellExeName).Path    
+    
+    $exeHelp = & $powershellExe -help | Out-String
+    $regex = [regex]'-\w+'
+    $builtInParams = $regex.Matches($exeHelp) | ForEach-Object { $_.Value.TrimStart('-') }
+    return $builtInParams
+}
+
+<#
+.SYNOPSIS
+    Tests the provided parameters for validity and reports any invalid options.
+
+.DESCRIPTION
+    This function checks the provided command string against a list of valid parameters.
+    It separates valid and invalid options, and reports any invalid options found.
+    If any invalid options are found, it exits the script with an error code.
+
+.PARAMETER Dir
+    The directory containing the target script for the Get-Help cmdlet.
+
+.PARAMETER CommandString
+    The command string to test for valid parameters.
+
+.PARAMETER ValidParams
+    A string array of valid parameter names.
+
+.EXAMPLE
+    Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
+    Tests the provided command string for valid parameters and reports any invalid options found.
+#>
 function Test-Parameters {
     param(
         [Parameter(Mandatory = $true)]
@@ -1835,11 +1910,17 @@ function Test-Parameters {
     # Find the target script for the Get-Help cmdlet
     $file = $(Split-Path -Leaf $PSCommandPath)
     $Script = Join-Path $Dir $file
- 
+
+    # List of built-in parameters to exclude
+    $builtInParams = Get-BuiltInParameters
+
     $allOptions = @($CommandString -split ' ' | Where-Object { $_ -match '^-' })
 
     # Separate valid and invalid options
-    $invalidOptions = @($allOptions | Where-Object { $validParams -notcontains $_.substring(1) })
+    $invalidOptions = @($allOptions | Where-Object {
+            $optionName = $_.substring(1)
+            $validParams -notcontains $optionName -and $builtInParams -notcontains $optionName
+        })
 
     # Check if there are any invalid options
     if ($invalidOptions) {
@@ -2049,7 +2130,16 @@ $Parameters = Get-Parameters $PSBoundParameters
 Set-Logging -LogDir $Parameters["LogDir"]
 
 # Check for illegal or malformed parameters
-$commandLine = $MyInvocation.Line
+if ($MyInvocation.Line) {
+    $commandLine = $MyInvocation.Line
+}
+else {
+    $commandLine = [Environment]::CommandLine
+}
+
+# Debug the command line call
+Write-Debug $commandLine
+
 $validParams = $PSBoundParameters.Keys
 Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
 
