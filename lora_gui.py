@@ -427,6 +427,17 @@ def train_model(
     if int(bucket_reso_steps) < 1:
         msgbox('Bucket resolution steps need to be greater than 0')
         return
+    
+    if noise_offset == '':
+        noise_offset = 0
+        
+    if float(noise_offset) > 1 or float(noise_offset) < 0:
+        msgbox('Noise offset need to be a value between 0 and 1')
+        return
+    
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -452,12 +463,6 @@ def train_model(
         text_encoder_lr = 0
     if unet_lr == '':
         unet_lr = 0
-
-    # if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-    #     msgbox(
-    #         'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
-    #     )
-    #     return
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -504,13 +509,21 @@ def train_model(
                 f"Error: '{folder}' does not contain an underscore, skipping..."
             )
 
+    if reg_data_dir == '':
+        reg_factor = 1
+    else:
+        print(
+            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        )
+        reg_factor = 2
+
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
             float(total_steps)
             / int(train_batch_size)
             * int(epoch)
-            # * int(reg_factor)
+            * int(reg_factor)
         )
     )
     print(f'max_train_steps = {max_train_steps}')

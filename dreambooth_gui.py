@@ -361,6 +361,10 @@ def train_model(
             title='Warning',
         )
         lr_warmup = '0'
+        
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        return
 
     # Get a list of all subfolders in train_data_dir, excluding hidden folders
     subfolders = [

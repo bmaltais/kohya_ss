@@ -86,6 +86,14 @@ def update_my_data(my_data):
             my_data[key] = int(value)
         elif not value:
             my_data[key] = -1
+            
+    # Convert noise_offset values to float if they are strings
+    for key in ['noise_offset']:
+        value = my_data.get(key, -1)
+        if isinstance(value, str) and value.isdigit:
+            my_data[key] = float(value)
+        elif not value:
+            my_data[key] = -1
 
     # Update LoRA_type if it is set to LoCon
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
@@ -904,8 +912,8 @@ def gradio_advanced_training():
             label='Random crop instead of center crop', value=False
         )
     with gr.Row():
-        noise_offset = gr.Textbox(
-            label='Noise offset (0 - 1)', placeholder='(Oprional) eg: 0.1'
+        noise_offset = gr.Slider(
+            label='Noise offset', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.05 - 0.15'
         )
         multires_noise_iterations = gr.Slider(
             label='Multires noise iterations', value=0, minimum=0, maximum=64, step=1, info='enable multires noise (recommended values are 6-10)'
@@ -1052,5 +1060,6 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         f' {kwargs.get("additional_parameters", "")}',
     ]
+    
     run_cmd = ''.join(options)
     return run_cmd

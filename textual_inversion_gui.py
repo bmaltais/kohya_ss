@@ -377,6 +377,10 @@ def train_model(
 
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
+        
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
         msgbox(
