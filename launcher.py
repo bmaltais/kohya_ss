@@ -1865,3 +1865,4 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error("Launcher.py had to exit due to an error during the main installation.")
         logging.error(str(e))
+        exit(1)
