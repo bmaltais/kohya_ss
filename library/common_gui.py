@@ -310,11 +310,11 @@ def add_pre_postfix(
         caption_file_path = os.path.join(folder, caption_file_name)
 
         if not os.path.exists(caption_file_path):
-            with open(caption_file_path, 'w') as f:
+            with open(caption_file_path, 'w', encoding="utf8") as f:
                 separator = ' ' if prefix and postfix else ''
                 f.write(f'{prefix}{separator}{postfix}')
         else:
-            with open(caption_file_path, 'r+') as f:
+            with open(caption_file_path, 'r+', encoding="utf8") as f:
                 content = f.read()
                 content = content.rstrip()
                 f.seek(0, 0)
