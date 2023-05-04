@@ -8,11 +8,11 @@
 
 .EXAMPLE
     # Specifies custom branch, install directory, and git repo
-    .\setup.ps1 -Branch 'dev' -Dir 'C:\workspace\kohya_ss' -GitRepo 'https://mycustom.repo.tld/custom_fork.git'
+    .\setup.ps1 -Branch dev -Dir C:\workspace\kohya_ss -GitRepo https://mycustom.repo.tld/custom_fork.git
 
 .EXAMPLE
     # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
-    .\setup.ps1 -Verbose -SkipSpaceCheck -Runpod
+    .\setup.ps1 -Verbosity 3 -SkipSpaceCheck -Runpod
 
 .PARAMETER Branch
     Select which branch of kohya to check out on new installs.
@@ -80,26 +80,28 @@
 
 [CmdletBinding()]
 param (
-    [string]$File = "",
-    [string]$Branch = "",
-    [string]$Dir = "",
-    [string]$GitRepo = "",
+    [string]$File,
+    [string]$Branch,
+    [string]$Dir,
+    [string]$GitRepo,
     [switch]$Interactive,
-    [string]$LogDir = "",
+    [string]$LogDir,
     [switch]$NoSetup,
     [switch]$Public,
     [switch]$Repair,
     [switch]$Runpod,
     [switch]$SetupOnly,
     [switch]$SkipSpaceCheck,
-    [int]$Verbosity = -1,
+    [int]$Verbosity,
     [switch]$Update,
-    [string]$Listen = "",
-    [string]$Username = "",
-    [string]$Password = "",
+    [string]$Listen,
+    [string]$Username,
+    [string]$Password,
     [int]$ServerPort,
     [switch]$Inbrowser,
-    [switch]$Share
+    [switch]$Share,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$unboundArgs
 )
 
 <#
@@ -183,7 +185,8 @@ function Get-Parameters {
             Install-Module -Name 'powershell-yaml' -Scope CurrentUser -Force
         }
         Import-Module 'powershell-yaml'
-    } catch {
+    }
+    catch {
         Write-Host "Failed to import module powershell-yaml, exiting to avoid corrupted configuration values."
         exit 1
     }
@@ -1817,7 +1820,40 @@ function Install-VCRedistWindows {
     }
 }
 
+function Test-Parameters {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Dir,
 
+        [Parameter(Mandatory = $true)]
+        [string]$CommandString,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ValidParams
+    )
+
+    # Find the target script for the Get-Help cmdlet
+    $file = $(Split-Path -Leaf $PSCommandPath)
+    $Script = Join-Path $Dir $file
+ 
+    $allOptions = @($CommandString -split ' ' | Where-Object { $_ -match '^-' })
+
+    # Separate valid and invalid options
+    $invalidOptions = @($allOptions | Where-Object { $validParams -notcontains $_.substring(1) })
+
+    # Check if there are any invalid options
+    if ($invalidOptions) {
+        if (Test-Path $Script) {
+            Get-Help $Script -Parameter * | Select-Object Name, @{Name = 'Description'; Expression = { $_.Description.Text } } | Where-Object { $_.Name -ne 'unboundArgs' } | Format-List
+        }
+        else {
+            Write-CriticalLog "You can run Get-Help ./setup.ps1 -Full to see all valid parameters."
+        }
+
+        Write-CriticalLog "Illegal options: $($invalidOptions -join ', ').`nPlease see above for all valid options using only a single - to invoke each one."
+        exit 1
+    }
+}
 
 <#
 .SYNOPSIS
@@ -1837,6 +1873,7 @@ function Main {
     )
 
     begin {
+        # Then check to make sure we have the required arguments for minimal setup
         if (-not $Parameters.NoSetup) {
             $requiredKeys = @("Dir", "Branch", "GitRepo")
             if (-not (Test-Value -Params $Parameters -RequiredKeys $requiredKeys)) {
@@ -2010,6 +2047,11 @@ Write-DebugLog "Detected OS Family: {$os.family}."
 
 $Parameters = Get-Parameters $PSBoundParameters
 Set-Logging -LogDir $Parameters["LogDir"]
+
+# Check for illegal or malformed parameters
+$commandLine = $MyInvocation.Line
+$validParams = $PSBoundParameters.Keys
+Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath
