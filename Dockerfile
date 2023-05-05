@@ -18,19 +18,19 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 WORKDIR /app
 RUN python3 -m pip install wheel
 
-# Install torch for cu121 (only available as nightly as of writing)
-## RUN python3 -m pip install --no-cache-dir --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+# Todo: Install torch 2.1.0 for cu121 support (only available as nightly as of writing)
+## RUN python3 -m pip install --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
 
-# Install xformers nightly
-## RUN python3 -m pip install --no-cache-dir -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+# Todo: Install xformers nightly for Torch 2.1.0 support
+## RUN python3 -m pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
 
 # Install requirements
 COPY requirements.txt setup.py ./
-RUN python3 -m pip install -U --no-cache-dir --use-pep517 -r requirements.txt xformers --extra-index-url https://download.pytorch.org/whl/cu118
+RUN python3 -m pip install --use-pep517 -r requirements.txt xformers
 
 # Replace pillow with pillow-simd
 RUN python3 -m pip uninstall -y pillow && \
-    CC="cc -mavx2" python3 -m pip install --no-cache-dir -U --force-reinstall pillow-simd
+    CC="cc -mavx2" python3 -m pip install -U --force-reinstall pillow-simd
 
 # Fix missing libnvinfer7
 USER root
