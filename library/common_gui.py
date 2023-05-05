@@ -956,13 +956,13 @@ def gradio_advanced_training():
         wandb_api_key = gr.Textbox(
             label='WANDB API Key',
             value='',
-            placeholder='(Optional)'
-            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login'
+            placeholder='(Optional)',
+            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login',
         )
         use_wandb = gr.Checkbox(
             label='WANDB Logging',
             value=False,
-            info='If unchecked, tensorboard will be used as the default for logging.'
+            info='If unchecked, tensorboard will be used as the default for logging.',
         )
     return (
         # use_8bit_adam,
