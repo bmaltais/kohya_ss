@@ -952,6 +952,17 @@ def gradio_advanced_training():
             placeholder='(Optional) Override number of epoch. Default: 8',
             value='0',
         )
+    with gr.Row():
+        wandb_api_key = gr.Textbox(
+            label='(Optional) WANDB API Key',
+            value='',
+            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login'
+        )
+        use_wandb = gr.Checkbox(
+            label='(Optional) WANDB Logging',
+            value=False,
+            info='If disabled, tensorboard will be used as the default for logging.'
+        )
     return (
         # use_8bit_adam,
         xformers,
@@ -983,6 +994,8 @@ def gradio_advanced_training():
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        wandb_api_key,
+        use_wandb,
     )
 
 
@@ -1058,7 +1071,16 @@ def run_cmd_advanced_training(**kwargs):
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if not kwargs.get('noise_offset', '') == ''
         else '',
+        
         f' {kwargs.get("additional_parameters", "")}',
+        
+        f' --log_with wandb'
+        if not kwargs.get('use_wandb', False)
+        else '',
+        
+        f' --wandb_api_key="{kwargs.get("wandb_api_key")}"'
+        if not kwargs.get('wandb_api_key') == ''
+        else '',
     ]
     
     run_cmd = ''.join(options)
