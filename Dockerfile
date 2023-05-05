@@ -22,7 +22,7 @@ RUN python3 -m pip install wheel
 RUN python3 -m pip install --no-cache-dir --use-pep517 -U torch>=2.1.0 ninja --extra-index-url https://download.pytorch.org/whl/nightly/cu121
 
 # Install xformers nightly
-RUN python3 -m pip pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+RUN python3 -m pip install --no-cache-dir -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
 
 # Install requirements
 COPY requirements.txt setup.py ./
@@ -30,7 +30,7 @@ RUN python3 -m pip install --no-cache-dir --use-pep517 -U -r requirements.txt
 
 # Replace pillow with pillow-simd
 RUN python3 -m pip uninstall -y pillow && \
-    CC="cc -mavx2" python3 -m pip install -U --force-reinstall pillow-simd
+    CC="cc -mavx2" python3 -m pip install --no-cache-dir -U --force-reinstall pillow-simd
 
 # Fix missing libnvinfer7
 USER root
