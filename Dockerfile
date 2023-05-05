@@ -19,14 +19,14 @@ WORKDIR /app
 RUN python3 -m pip install wheel
 
 # Install torch for cu121 (only available as nightly as of writing)
-RUN python3 -m pip install --no-cache-dir --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+## RUN python3 -m pip install --no-cache-dir --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
 
 # Install xformers nightly
-RUN python3 -m pip install --no-cache-dir -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+## RUN python3 -m pip install --no-cache-dir -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
 
 # Install requirements
 COPY requirements.txt setup.py ./
-RUN python3 -m pip install --no-cache-dir --use-pep517 -r requirements.txt --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+RUN python3 -m pip install --no-cache-dir --use-pep517 -r requirements.txt xformers
 
 # Replace pillow with pillow-simd
 RUN python3 -m pip uninstall -y pillow && \
