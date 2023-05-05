@@ -40,7 +40,3 @@ lycoris_lora==0.1.4
 
 # The local kohya_ss library built via setup.py. This value gets replaced by launcher.py to an absolute value.
 .
-
-# The git requirements
-xformers @ https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl; sys_platform == 'win32'
-xformers @ https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl; sys_platform == 'linux'

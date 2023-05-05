@@ -89,6 +89,7 @@ TENSORFLOW_METAL_VERSION = "0.8.0"
 TORCH_VERSION_1 = "1.12.1+cu116"
 TORCHVISION_VERSION_1 = "0.13.1+cu116"
 TORCH_INDEX_URL_1 = "https://download.pytorch.org/whl/cu116"
+XFORMERS_VERSION_1 = "0.0.14"
 
 # These are used to control Torch V2 + dependencies versions and sources
 TORCH_VERSION_2 = "2.0.0+cu118"
@@ -1351,19 +1352,34 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                 _TORCH_INDEX_URL = TORCH_INDEX_URL_1
                                 choice = '1'
 
+                            if os_info.family == "Windows":
+                                xformers_sys = "win_amd64"
+                            if os_info.family != "Windows":
+                                xformers_sys = "linux_x86_64"
+
+                            xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
+                                             f"/download/f/xformers-{XFORMERS_VERSION_1}." \
+                                             f"dev0-cp310-cp310-{xformers_sys}.whl"
+
                             install_commands = [
                                 [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                                  "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
                                 [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
                                  "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                                [sys.executable, "-m", "pip", "install", "--upgrade",
+                                 f"{xformers_url_1}", "--quiet"]
                             ]
 
                             if choice == '2':
-                                install_commands.extend([
+                                install_commands = [
+                                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                                    [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
                                     [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"],
                                     [sys.executable, "-m", "pip", "install", "--upgrade",
                                      f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
-                                ])
+                                ]
 
                             if choice == '1':
                                 logging.critical(
