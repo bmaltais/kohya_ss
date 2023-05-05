@@ -191,6 +191,11 @@ function Get-Parameters {
             if (-not [string]::IsNullOrEmpty($value)) {
                 # Check if value doesn't start with a known scheme and contains a path separator
                 if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
+                    # Expand tilde to the user's home directory if present
+                    if ($value.StartsWith('~')) {
+                        $value = $value.Replace('~', $HOME)
+                    }
+                    
                     # Convert relative paths to absolute and normalize
                     if ($value -ne [System.IO.Path]::GetFullPath($value)) {
                         try {
@@ -221,8 +226,6 @@ function Get-Parameters {
     
         return $Result
     }
-    
-    
 
     # Check for the existence of the powershell-yaml module and install it if necessary
     try {
