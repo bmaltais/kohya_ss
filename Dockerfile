@@ -19,7 +19,10 @@ WORKDIR /app
 RUN python3 -m pip install wheel
 
 # Install torch for cu121 (only available as nightly as of writing)
-RUN python3 -m pip install --no-cache-dir --use-pep517 -U torch>=2.1.0 xformers>=0.0.19 --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+RUN python3 -m pip install --no-cache-dir --use-pep517 -U torch>=2.1.0 ninja --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+
+# Install xformers nightly
+RUN python3 -m pip pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
 
 # Install requirements
 COPY requirements.txt setup.py .
