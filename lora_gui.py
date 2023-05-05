@@ -141,8 +141,8 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb_checkbox,
-    wandb_api_key_textbox,
+    use_wandb,
+    wandb_api_key,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -277,8 +277,8 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb_checkbox,
-    wandb_api_key_textbox,
+    use_wandb,
+    wandb_api_key,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -404,8 +404,8 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb_checkbox,
-    wandb_api_key_textbox,
+    use_wandb,
+    wandb_api_key,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
 
@@ -738,8 +738,8 @@ def train_model(
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        use_wandb_checkbox=use_wandb_checkbox,
-        wandb_api_key_textbox=wandb_api_key_textbox,
+        use_wandb=use_wandb,
+        wandb_api_key=wandb_api_key,
     )
 
     run_cmd += run_cmd_sample(
@@ -1156,8 +1156,8 @@ def lora_tab(
                 save_every_n_steps,
                 save_last_n_steps,
                 save_last_n_steps_state,
-                use_wandb_checkbox,
-                wandb_api_key_textbox,
+                use_wandb,
+                wandb_api_key,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -1298,8 +1298,8 @@ def lora_tab(
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
-        use_wandb_checkbox,
-        wandb_api_key_textbox,
+        use_wandb,
+        wandb_api_key,
     ]
 
     button_open_config.click(

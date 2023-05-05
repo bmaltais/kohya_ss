@@ -1005,50 +1005,69 @@ def run_cmd_advanced_training(**kwargs):
         f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
         if kwargs.get('max_train_epochs')
         else '',
+        
         f' --max_data_loader_n_workers="{kwargs.get("max_data_loader_n_workers", "")}"'
         if kwargs.get('max_data_loader_n_workers')
         else '',
+        
         f' --max_token_length={kwargs.get("max_token_length", "")}'
         if int(kwargs.get('max_token_length', 75)) > 75
         else '',
+        
         f' --clip_skip={kwargs.get("clip_skip", "")}'
         if int(kwargs.get('clip_skip', 1)) > 1
         else '',
+        
         f' --resume="{kwargs.get("resume", "")}"'
         if kwargs.get('resume')
         else '',
+        
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
+        
         f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
+        
         f' --caption_dropout_rate="{float(kwargs.get("caption_dropout_rate", 0))}"'
         if float(kwargs.get('caption_dropout_rate', 0)) > 0
         else '',
+        
         f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
         if int(kwargs.get('vae_batch_size', 0)) > 0
         else '',
+        
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
         else '',
+        
         f' --save_every_n_steps="{int(kwargs.get("save_every_n_steps", 0))}"'
         if int(kwargs.get('save_every_n_steps')) > 0
         else '',
+        
         f' --save_last_n_steps="{int(kwargs.get("save_last_n_steps", 0))}"'
         if int(kwargs.get('save_last_n_steps')) > 0
         else '',
+        
         f' --save_last_n_steps_state="{int(kwargs.get("save_last_n_steps_state", 0))}"'
         if int(kwargs.get('save_last_n_steps_state')) > 0
         else '',
+        
         f' --min_snr_gamma={int(kwargs.get("min_snr_gamma", 0))}'
         if int(kwargs.get('min_snr_gamma', 0)) >= 1
         else '',
+        
         ' --save_state' if kwargs.get('save_state') else '',
+        
         ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
+        
         ' --color_aug' if kwargs.get('color_aug') else '',
+        
         ' --flip_aug' if kwargs.get('flip_aug') else '',
+        
         ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
+        
         ' --gradient_checkpointing'
         if kwargs.get('gradient_checkpointing')
         else '',
@@ -1070,17 +1089,16 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
-        if not kwargs.get('noise_offset', '') == ''
+        if kwargs.get('noise_offset') > 0
         else '',
         
         f' {kwargs.get("additional_parameters", "")}',
         
-        f' --log_with wandb'
-        if not kwargs.get('use_wandb', False)
-        else '',
         
-        f' --wandb_api_key="{kwargs.get("wandb_api_key")}"'
-        if not kwargs.get('wandb_api_key') == ''
+        ' --log_with wandb' if kwargs.get('use_wandb') else '',
+        
+        f' --wandb_api_key="{kwargs.get("wandb_api_key", "")}"'
+        if kwargs.get('wandb_api_key')
         else '',
     ]
     
