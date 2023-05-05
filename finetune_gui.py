@@ -115,6 +115,8 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -237,6 +239,8 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -341,6 +345,8 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
@@ -521,6 +527,8 @@ def train_model(
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
+        use_wandb_checkbox=use_wandb_checkbox,
+        wandb_api_key_textbox=wandb_api_key_textbox,
     )
 
     run_cmd += run_cmd_sample(
@@ -749,6 +757,8 @@ def finetune_tab():
                 save_every_n_steps,
                 save_last_n_steps,
                 save_last_n_steps_state,
+                use_wandb_checkbox,
+                wandb_api_key_textbox,
             ) = gradio_advanced_training()
             color_aug.change(
                 color_aug_changed,
@@ -852,6 +862,8 @@ def finetune_tab():
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        use_wandb_checkbox,
+        wandb_api_key_textbox,
     ]
 
     button_run.click(train_model, inputs=settings_list)
