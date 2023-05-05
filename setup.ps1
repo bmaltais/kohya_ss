@@ -53,6 +53,9 @@
 .PARAMETER SkipSpaceCheck
     Skip the 10Gb minimum storage space check.
 
+.PARAMETER TorchVersion
+    Configure the major version of Torch.
+
 .PARAMETER Update
     Update kohya_ss with specified branch, repo, or latest kohya_ss if git's unavailable.
 
@@ -92,6 +95,7 @@ param (
     [switch]$Runpod,
     [switch]$SetupOnly,
     [switch]$SkipSpaceCheck,
+    [int]$TorchVersion,
     [int]$Verbosity,
     [switch]$Update,
     [string]$Listen,
@@ -270,6 +274,7 @@ function Get-Parameters {
         'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
+        'TorchVersion'  = 1
         'Verbosity'      = 0
         'Update'         = $false
         'Listen'         = '127.0.0.1'
@@ -2218,6 +2223,14 @@ if ([string]::IsNullOrWhiteSpace($ValidParams) -or $null -eq $ValidParams) {
 }
 else {
     Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
+}
+
+# If all switches came back valid, validate acceptable Torch versions launcher.py will accept
+$validTorchVersions = @(1, 2)
+
+if (-not ($validTorchVersions -contains $TorchVersion)) {
+    Write-Error "Invalid value for -TorchVersion: $TorchVersion. Valid values are $($validTorchVersions -join ', ')."
+    exit 1
 }
 
 # Define global Python path to use in various functions

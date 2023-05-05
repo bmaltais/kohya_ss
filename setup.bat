@@ -3,6 +3,9 @@ setlocal enabledelayedexpansion
 
 set ScriptDir=%~dp0
 
+rem Set the valid possible values for Torch versions here:
+set "validTorchVersions=1 2"
+
 rem Define the default values
 set Branch=master
 set Dir=%ScriptDir%
@@ -16,6 +19,7 @@ set Repair=0
 set Runpod=0
 set SetupOnly=0
 set SkipSpaceCheck=0
+set TorchVersion=0
 set Update=0
 set Verbosity=0
 set LISTEN=127.0.0.1
@@ -53,6 +57,7 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="Runpod" set Runpod=%%b
         if "%%a"=="SetupOnly" set SetupOnly=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
+        if "%%a"=="TorchVersion" set TorchVersion=%%b
         if "%%a"=="Update" set Update=%%b
         if "%%a"=="Verbosity" set Verbosity=%%b
         if "%%a"=="Listen" set LISTEN=%%b
@@ -159,6 +164,30 @@ if /i "%arg%"=="--setup-only" (
 if /i "%arg%"=="--skip-space-check" (
     set SkipSpaceCheck=1
     rem echo SkipSpaceCheck set to !SkipSpaceCheck!
+    shift
+    goto arg_loop
+)
+if /i "%arg%"=="--torch-version" (
+    if not "%~2"=="" (
+        set /a TorchVersion=%~2 2>nul
+        if errorlevel 1 (
+            echo Error: TorchVersion must be a number.
+            exit /b 1
+        ) else (
+            echo Torch Version set to !TorchVersion!
+        )
+        set "validVersion=0"
+        for %%v in (%validTorchVersions%) do (
+            if !TorchVersion! == %%v (
+                set "validVersion=1"
+            )
+        )
+        if !validVersion! == 0 (
+            echo Error: Invalid value for --torch-version: !TorchVersion!. Valid values are %validTorchVersions%.
+            exit /b 1
+        )
+        shift
+    )
     shift
     goto arg_loop
 )
@@ -287,7 +316,8 @@ if %Repair% EQU 1 set "PSArgs=%PSArgs% -Repair"
 if %Runpod% EQU 1 set "PSArgs=%PSArgs% -Runpod"
 if %SetupOnly% EQU 1 set "PSArgs=%PSArgs% -SetupOnly"
 if %SkipSpaceCheck% EQU 1 set "PSArgs=%PSArgs% -SkipSpaceCheck"
-if not %Verbosity% EQU -1 set "PSArgs=%PSArgs% -Verbosity %Verbosity%"
+if not %TorchVersion% EQU 0 set "PSArgs=%PSArgs% -TorchVersion %TorchVersion%"
+if not %Verbosity% EQU 0 set "PSArgs=%PSArgs% -Verbosity %Verbosity%"
 if not "%LISTEN%"=="" set "PSArgs=%PSArgs% -Listen %LISTEN%"
 if not "%USERNAME%"=="" set "PSArgs=%PSArgs% -Username %USERNAME%"
 if not "%PASSWORD%"=="" set "PSArgs=%PSArgs% -Password %PASSWORD%"
@@ -314,6 +344,7 @@ if %Repair% EQU 1 set "PythonArgs=%PythonArgs% -r"
 if %Runpod% EQU 1 set "PythonArgs=%PythonArgs% --runpod"
 if %SetupOnly% EQU 1 set "PythonArgs=%PythonArgs% --setup-only"
 if %SkipSpaceCheck% EQU 1 set "PythonArgs=%PythonArgs% --skip-space-check"
+if not %TorchVersion% EQU 0 set "PythonArgs=%PythonArgs% --torch-version %TorchVersion%"
 if not %Verbosity% EQU -1 set "PythonArgs=%PythonArgs% --verbosity %Verbosity%"
 if not "%LISTEN%"=="" set "PythonArgs=%PythonArgs% --listen %LISTEN%"
 if not "%USERNAME%"=="" set "PythonArgs=%PythonArgs% --username %USERNAME%"
