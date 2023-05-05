@@ -100,6 +100,8 @@ param (
     [int]$ServerPort,
     [switch]$Inbrowser,
     [switch]$Share,
+    [Parameter(Mandatory = $false)]
+    [string]$BatchArgs = "",
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$unboundArgs
 )
@@ -140,8 +142,40 @@ param (
 function Get-Parameters {
     param (
         [Parameter(Mandatory = $true)]
-        [hashtable]$BoundParameters
+        [hashtable]$BoundParameters,
+        [Parameter(Mandatory = $false)]
+        [string]$BatchArgs = ""
     )
+
+    # Helper function to parse batch arguments and return a hashtable
+    function Get-BatchArgs {
+        param (
+            [Parameter(Mandatory = $true)]
+            [string]$Args
+        )
+    
+        $Result = @{}
+        $splitArgs = $Args -split '\s+'
+    
+        for ($i = 0; $i -lt $splitArgs.Length; $i++) {
+            if ($splitArgs[$i] -match '^-(\w+)') {
+                $key = $Matches[1]
+                $value = $null
+                
+                if ($i + 1 -lt $splitArgs.Length -and -not ($splitArgs[$i + 1] -match '^-(\w+)')) {
+                    $value = $splitArgs[$i + 1]
+                    $i++
+                }
+                else {
+                    $value = $true
+                }
+                
+                $Result[$key] = $value
+            }
+        }
+    
+        return $Result
+    }
 
     # Helper function to convert relative paths to absolute
     function Convert-RelativePathsToAbsolute {
@@ -310,6 +344,16 @@ function Get-Parameters {
     # foreach ($key in $PSBoundParameters.Keys) {
     #     Write-Debug "${key}: $($PSBoundParameters[$key])"
     # }
+
+    # If batch arguments are provided, parse and update BoundParameters
+    if (![string]::IsNullOrEmpty($BatchArgs)) {
+        $ParsedBatchArgs = Get-BatchArgs -Args $BatchArgs
+        $BoundParameters = $BoundParameters + $ParsedBatchArgs
+        if ($BoundParameters.ContainsKey("BatchArgs")) {
+            $BoundParameters.Remove('BatchArgs')
+        }
+    }
+    
 
     # Override config with command-line arguments last
     foreach ($key in $BoundParameters.Keys) {
@@ -1079,7 +1123,6 @@ function Install-Python310 {
             }
         }
     }
-
 
     if (Test-Python310Installed) {
         Write-CriticalLog "Python 3.10 is already installed."
@@ -1854,7 +1897,7 @@ function Install-VCRedistWindows {
     Returns an array of built-in parameter names for the current PowerShell executable.
 #>
 function Get-BuiltInParameters {
-    if ($IsWindows) {
+    if ($os.family -eq "Windows") {
         if ($PSVersionTable.PSVersion.Major -ge 6) {
             $powershellExeName = 'pwsh.exe'
         }
@@ -1904,7 +1947,7 @@ function Test-Parameters {
         [string]$CommandString,
 
         [Parameter(Mandatory = $true)]
-        [string]$ValidParams
+        [string[]]$ValidParams
     )
 
     # Find the target script for the Get-Help cmdlet
@@ -1912,26 +1955,52 @@ function Test-Parameters {
     $Script = Join-Path $Dir $file
 
     # List of built-in parameters to exclude
-    $builtInParams = Get-BuiltInParameters
+    if ($os.family -eq "Windows") {
+        if ($PSVersionTable.PSVersion.Major -lt 6) {
+            $builtInParams = [System.Management.Automation.Cmdlet].GetMethod('get_CommonParameters').Invoke($null, @())
 
-    $allOptions = @($CommandString -split ' ' | Where-Object { $_ -match '^-' })
+        }
+        else {
+            $builtInParams = [System.Management.Automation.ParameterMetadata]::CommonParameters.Keys
+        }
+    }
+    else {
+        $builtInParams = [System.Management.Automation.ParameterMetadata]::CommonParameters.Keys
+    }
+
+    $globalBuiltInParams = $(Get-BuiltInParameters) | ForEach-Object { "-$_" }
+    $allOptions = @($CommandString -split ' ' | Where-Object { $_ -match '^-' -and $_ -notmatch '^-BatchArgs$|^-unboundArgs$' })
+
+    Write-Debug "ValidParams: $($ValidParams -join ', ')"
+    Write-Debug "Built-in Params: $($builtInParams -join ', ')"
+    Write-Debug "Built-in Global Params: $($globalBuiltInParams -join ', ')"
+    Write-Debug "AllOptions: $($allOptions -join ', ')"
 
     # Separate valid and invalid options
     $invalidOptions = @($allOptions | Where-Object {
-            $optionName = $_.substring(1)
-            $validParams -notcontains $optionName -and $builtInParams -notcontains $optionName
+            $optionName = $_.Trim()
+            if ($validParams -notcontains $optionName -and $builtInParams -notcontains $optionName -and $globalBuiltInParams -notcontains $optionName) {
+                Write-Host "Invalid option found: $optionName"
+                $true
+            }
+            else {
+                $false
+            }
         })
 
     # Check if there are any invalid options
     if ($invalidOptions) {
         if (Test-Path $Script) {
-            Get-Help $Script -Parameter * | Select-Object Name, @{Name = 'Description'; Expression = { $_.Description.Text } } | Where-Object { $_.Name -ne 'unboundArgs' } | Format-List
+            Get-Help $Script -Parameter * | 
+            Select-Object Name, @{Name = 'Description'; Expression = { $_.Description.Text } } | 
+            Where-Object { $_.Name -ne 'unboundArgs' -and $_.Name -ne 'BatchArgs' } | 
+            Sort-Object Name | Format-List
         }
         else {
             Write-CriticalLog "You can run Get-Help ./setup.ps1 -Full to see all valid parameters."
         }
 
-        Write-CriticalLog "Illegal options: $($invalidOptions -join ', ').`nPlease see above for all valid options using only a single - to invoke each one."
+        Write-CriticalLog "Illegal option(s): $($invalidOptions -join ', ').`nPlease see above for all valid options using only a single - to invoke each one."
         exit 1
     }
 }
@@ -2023,8 +2092,6 @@ function Main {
                 exit 1
             }
 
-            Write-DebugLog "Params: $($Parameters | Out-String)"
-
             $installArgs = New-Object System.Collections.ArrayList
             foreach ($key in $Parameters.Keys) {
                 $argName = $key
@@ -2054,7 +2121,6 @@ function Main {
                 else {
                     Write-DebugLog "Checking parameter: $key, value: $($Parameters[$key]), type: Null"
                 }
-
 
                 if ($Parameters[$key] -is [int]) {
                     # Handle integer parameters
@@ -2087,7 +2153,6 @@ function Main {
                     $installArgs.Add($Parameters[$key]) | Out-Null
                 }
             }
-
 
             # Call launcher.py with the appropriate parameters
             $launcherFileName = Split-Path $launcher -Leaf
@@ -2126,7 +2191,8 @@ function Main {
 $os = Get-OsInfo
 Write-DebugLog "Detected OS Family: {$os.family}."
 
-$Parameters = Get-Parameters $PSBoundParameters
+# Format parameters and setup logging
+$Parameters = Get-Parameters -BoundParameters $PSBoundParameters -BatchArgs $BatchArgs
 Set-Logging -LogDir $Parameters["LogDir"]
 
 # Check for illegal or malformed parameters
@@ -2139,9 +2205,21 @@ else {
 
 # Debug the command line call
 Write-Debug $commandLine
+Write-Debug $PSBoundParameters.Keys
 
-$validParams = $PSBoundParameters.Keys
-Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
+# These lines dynamically grab parameter names from the script and filters out our "hidden" arguments.
+$parsedScript = [System.Management.Automation.Language.Parser]::ParseFile($PSCommandPath, [ref]$null, [ref]$null)
+$paramBlock = $parsedScript.Find({ $args[0] -is [System.Management.Automation.Language.ParamBlockAst] }, $false)
+$parameterNames = $paramBlock.Parameters.Name.VariablePath.UserPath | Where-Object { $_ -ne 'unboundArgs' -and $_ -ne 'BatchArgs' }
+$validParams = $parameterNames | ForEach-Object { "-$_" }
+
+if ([string]::IsNullOrWhiteSpace($ValidParams) -or $null -eq $ValidParams) {
+    Write-Error "Error: Could not parse arguments."
+    exit 1
+}
+else {
+    Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
+}
 
 # Define global Python path to use in various functions
 $script:pythonPath = Get-PythonExePath

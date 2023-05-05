@@ -70,12 +70,12 @@ if "%~1"=="" (
     goto :arg_end
 )
 
-echo Parsing: %~1
+rem echo Parsing: %~1
 set "arg=%~1"
 if /i "%arg%"=="--branch" (
     if not "%~2"=="" (
         set Branch=%~2
-        echo Branch set to !Branch!
+        rem echo Branch set to !Branch!
         shift
     )
     shift
@@ -84,7 +84,7 @@ if /i "%arg%"=="--branch" (
 if /i "%arg%"=="--dir" (
     if not "%~2"=="" (
         set "Dir=%~2"
-        echo Dir set to !Dir!
+        rem echo Dir set to !Dir!
         shift
     )
     shift
@@ -93,7 +93,7 @@ if /i "%arg%"=="--dir" (
 if /i "%arg%"=="--file" (
     if not "%~2"=="" (
         set File=%~2
-        echo File set to !File!
+        rem echo File set to !File!
     shift
     )
     shift
@@ -102,7 +102,7 @@ if /i "%arg%"=="--file" (
 if /i "%arg%"=="--git-repo" (
     if not "%~2"=="" (
         set GitRepo=%~2
-        echo GitRepo set to !GitRepo!
+        rem echo GitRepo set to !GitRepo!
         shift
     )
     shift
@@ -113,14 +113,14 @@ if /i "%arg%"=="--help" (
 )
 if /i "%arg%"=="--interactive" (
     set Interactive=1
-    echo Interactive set to !Interactive!
+    rem echo Interactive set to !Interactive!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--log-dir" (
     if not "%~2"=="" (
         set LogDir=%~2
-        echo LogDir set to !LogDir!
+        rem echo LogDir set to !LogDir!
         shift
     ) 
     shift
@@ -128,43 +128,43 @@ if /i "%arg%"=="--log-dir" (
 )
 if /i "%arg%"=="--no-setup" (
     set NoSetup=1
-    echo NoSetup set to !NoSetup!
+    rem echo NoSetup set to !NoSetup!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--public" (
     set Public=1
-    echo Public set to !Public!
+    rem echo Public set to !Public!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--repair" (
     set Repair=1
-    echo Repair set to !Repair!
+    rem echo Repair set to !Repair!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--runpod" (
     set Runpod=1
-    echo Runpod set to !Runpod!
+    rem echo Runpod set to !Runpod!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--setup-only" (
     set SetupOnly=1
-    echo SetupOnly set to !SetupOnly!
+    rem echo SetupOnly set to !SetupOnly!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--skip-space-check" (
     set SkipSpaceCheck=1
-    echo SkipSpaceCheck set to !SkipSpaceCheck!
+    rem echo SkipSpaceCheck set to !SkipSpaceCheck!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--update" (
     set Update=1
-    echo Update set to !Update!
+    rem echo Update set to !Update!
     shift
     goto arg_loop
 )
@@ -185,7 +185,7 @@ if /i "%arg%"=="--verbosity" (
 if /i "%arg%"=="--listen" (
     if not "%~2"=="" (
         set LISTEN=%~2
-        echo LISTEN set to !LISTEN!
+        rem echo LISTEN set to !LISTEN!
         shift
     )
     shift
@@ -194,7 +194,7 @@ if /i "%arg%"=="--listen" (
 if /i "%arg%"=="--username" (
     if not "%~2"=="" (
         set USERNAME=%~2
-        echo USERNAME set to !USERNAME!
+        rem echo USERNAME set to !USERNAME!
         shift
     )
     shift
@@ -203,7 +203,7 @@ if /i "%arg%"=="--username" (
 if /i "%arg%"=="--password" (
     if not "%~2"=="" (
         set PASSWORD=%~2
-        echo PASSWORD set to !PASSWORD!
+        rem echo PASSWORD set to !PASSWORD!
         shift
     )
     
@@ -213,7 +213,7 @@ if /i "%arg%"=="--password" (
 if /i "%arg%"=="--server-port" (
     if not "%~2"=="" (
         set SERVER_PORT=%~2
-        echo SERVER_PORT set to !SERVER_PORT!
+        rem echo SERVER_PORT set to !SERVER_PORT!
         shift
     )
     
@@ -222,13 +222,13 @@ if /i "%arg%"=="--server-port" (
 )
 if /i "%arg%"=="--inbrowser" (
     set INBROWSER=1
-    echo INBROWSER set to !INBROWSER!
+    rem echo INBROWSER set to !INBROWSER!
     shift
     goto arg_loop
 )
 if /i "%arg%"=="--share" (
     set SHARE=1
-    echo SHARE set to !SHARE!
+    rem echo SHARE set to !SHARE!
     shift
     goto arg_loop
 )
@@ -274,12 +274,12 @@ goto :eof
 
 :preparePowerShellArgs
 rem Function to prepare arguments for PowerShell script
-set "PSArgs="
-if not "%Branch%"=="" set "PSArgs=%PSArgs% -Branch "%Branch%""
-if not "%Dir%"=="" set "PSArgs=%PSArgs% -Dir "%Dir%""
-if not "%File%"=="" set "PSArgs=%PSArgs% -File "%File%""
-if not "%GitRepo%"=="" set "PSArgs=%PSArgs% -GitRepo "%GitRepo%""
-if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir "%LogDir%""
+set PSArgs=
+if not "%Branch%"=="" set "PSArgs=%PSArgs% -Branch %Branch%"
+if not "%Dir%"=="" set "PSArgs=%PSArgs% -Dir %Dir%"
+if not "%File%"=="" set "PSArgs=%PSArgs% -File %File%"
+if not "%GitRepo%"=="" set PSArgs=%PSArgs% -GitRepo %GitRepo%
+if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir %LogDir%"
 if %Interactive% EQU 1 set "PSArgs=%PSArgs% -Interactive"
 if %NoSetup% EQU 1 set "PSArgs=%PSArgs% -NoSetup"
 if %Public% EQU 1 set "PSArgs=%PSArgs% -Public"
@@ -289,8 +289,8 @@ if %SetupOnly% EQU 1 set "PSArgs=%PSArgs% -SetupOnly"
 if %SkipSpaceCheck% EQU 1 set "PSArgs=%PSArgs% -SkipSpaceCheck"
 if not %Verbosity% EQU -1 set "PSArgs=%PSArgs% -Verbosity %Verbosity%"
 if not "%LISTEN%"=="" set "PSArgs=%PSArgs% -Listen %LISTEN%"
-if not "%USERNAME%"=="" set "PSArgs=%PSArgs% -Username "%USERNAME%""
-if not "%PASSWORD%"=="" set "PSArgs=%PSArgs% -Password "%PASSWORD%""
+if not "%USERNAME%"=="" set "PSArgs=%PSArgs% -Username %USERNAME%"
+if not "%PASSWORD%"=="" set "PSArgs=%PSArgs% -Password %PASSWORD%"
 if defined SERVER_PORT (
   if not %SERVER_PORT%==0 set "PSArgs=%PSArgs% -ServerPort %SERVER_PORT%"
 )
@@ -298,52 +298,31 @@ if %INBROWSER% EQU 1 set "PSArgs=%PSArgs% -Inbrowser"
 if %SHARE% EQU 1 set "PSArgs=%PSArgs% -Share"
 goto :run_setup
 
+
 :preparePythonArgs
 rem Function to prepare arguments for Python script
-set PyArgs=
-if not "%Branch%"=="" set PyArgs=%PyArgs% -b "%Branch%"
-if not "%Dir%"=="" (
-    set "Dir=%Dir:\=/%"
-    if "%Dir:~0,1%"=="." (
-        set "Dir=%ScriptDir%\%Dir%"
-    )
-    set PyArgs=%PyArgs% -d "%Dir%"
+set PythonArgs=
+if not "%Branch%"=="" set "PythonArgs=%PythonArgs% --branch %Branch%"
+if not "%Dir%"=="" set "PythonArgs=%PythonArgs% --dir %Dir%"
+if not "%File%"=="" set "PythonArgs=%PythonArgs% --file %File%"
+if not "%GitRepo%"=="" set PythonArgs=%PythonArgs% --git-repo %GitRepo%
+if not "%LogDir%"=="" set "PythonArgs=%PythonArgs% --log-dir %LogDir%"
+if %Interactive% EQU 1 set "PythonArgs=%PythonArgs% -i"
+if %NoSetup% EQU 1 set "PythonArgs=%PythonArgs% -n"
+if %Public% EQU 1 set "PythonArgs=%PythonArgs% --public"
+if %Repair% EQU 1 set "PythonArgs=%PythonArgs% -r"
+if %Runpod% EQU 1 set "PythonArgs=%PythonArgs% --runpod"
+if %SetupOnly% EQU 1 set "PythonArgs=%PythonArgs% --setup-only"
+if %SkipSpaceCheck% EQU 1 set "PythonArgs=%PythonArgs% --skip-space-check"
+if not %Verbosity% EQU -1 set "PythonArgs=%PythonArgs% --verbosity %Verbosity%"
+if not "%LISTEN%"=="" set "PythonArgs=%PythonArgs% --listen %LISTEN%"
+if not "%USERNAME%"=="" set "PythonArgs=%PythonArgs% --username %USERNAME%"
+if not "%PASSWORD%"=="" set "PythonArgs=%PythonArgs% --password %PASSWORD%"
+if defined SERVER_PORT (
+  if not %SERVER_PORT%==0 set "PythonArgs=%PythonArgs% --server-port %SERVER_PORT%"
 )
-if not "%File%"=="" (
-    set "File=%File:\=/%"
-    set PyArgs=%PyArgs% -f "%File%"
-)
-if not "%GitRepo%"=="" (
-    rem Check if GitRepo starts with http, https, or ssh
-    echo.%GitRepo%|findstr /B /I "http:// https:// ssh://" >nul 2>&1
-    if errorlevel 1 (
-        rem It's a local path, so replace backslashes with forward slashes
-        set "GitRepo=%GitRepo:\=/%"
-    )
-    set PyArgs=%PyArgs% -g "%GitRepo%"
-)
-if not "%LogDir%"=="" (
-    set "LogDir=%LogDir:\=/%"
-    set PyArgs=%PyArgs% -l "%LogDir%"
-)
-if %Interactive% EQU 1 set PyArgs=%PyArgs% -i
-if %NoSetup% EQU 1 set PyArgs=%PyArgs% -n
-if %Public% EQU 1 set PyArgs=%PyArgs% -p
-if %Repair% EQU 1 set PyArgs=%PyArgs% --repair
-if %Runpod% EQU 1 set PyArgs=%PyArgs% --runpod
-if %SkipSpaceCheck% EQU 1 set PyArgs=%PyArgs% -s
-if not %Verbosity% EQU 0 set PyArgs=%PyArgs% --verbosity %Verbosity%
-if %SetupOnly% EQU 1 set PyArgs=%PyArgs% --setup-only
-if not "%LISTEN%"=="" set PyArgs=%PyArgs% --listen "%LISTEN%"
-if not "%USERNAME%"=="" set PyArgs=%PyArgs% --username "%USERNAME%"
-if not "%PASSWORD%"=="" set PyArgs=%PyArgs% --password "%PASSWORD%"
-if not "%SERVER_PORT%"=="" (
-    if not "%SERVER_PORT%"=="0" (
-        set PyArgs=%PyArgs% --server-port %SERVER_PORT%
-    )
-)
-if %INBROWSER% EQU 1 set PyArgs=%PyArgs% --inbrowser
-if %SHARE% EQU 1 set PyArgs=%PyArgs% --share
+if %INBROWSER% EQU 1 set "PythonArgs=%PythonArgs% --inbrowser"
+if %SHARE% EQU 1 set "PythonArgs=%PythonArgs% --share"
 goto :execute_python
 
 :run_setup
@@ -354,14 +333,30 @@ if not exist "%ScriptDir%setup.ps1" (
     goto :eof
 )
 
+rem Initialize variables to track the success of the PowerShell and Python scripts
+set "PowerShell_Success=0"
+set "Python_Success=0"
+
 rem Try to run the PowerShell script
-echo Trying to run the PowerShell script.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ScriptDir%setup.ps1" %PSArgs%
-if errorlevel 1 (
+set "PSScript=%ScriptDir%setup.ps1"
+echo Launching %PSScript%.
+
+powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File "%PSScript%" -BatchArgs "%PSArgs%"
+if not errorlevel 1 (
+    echo "PowerShell exited successfully."
+    set "PowerShell_Success=1"
+) else (
     echo PowerShell script failed or was blocked. Falling back to Python script.
-    call :run_python
+    goto run_python
 )
-echo "PowerShell exited successfully."
+
+:check_results
+if %PowerShell_Success% EQU 0 if %Python_Success% EQU 0 (
+    echo "Both PowerShell and Python scripts failed."
+) else (
+    echo Python script failed. Please check your Python installation and try again.
+)
+
 goto :eof
 
 :run_python
@@ -374,16 +369,12 @@ for %%a in (python.exe python310.exe python3.exe) do (
     )
 )
 
-rem If no valid Python executable found, print error and exit
-echo Could not run "%ScriptDir%launcher.py" - a valid Python executable was not found.
-exit /b 1
-
 :execute_python
 rem Run the Python script
-!py_exe! "%ScriptDir%launcher.py" %PyArgs%
-if errorlevel 1 (
-    echo Python script failed. Please check your Python installation and try again.
-    exit /b 1
+!py_exe! "%ScriptDir%launcher.py" %PythonArgs%
+if not errorlevel 1 (
+    echo Python script completed successfully.
+    set "Python_Success=1"
 )
-echo Python script completed successfully.
-goto :eof
+
+goto check_results
