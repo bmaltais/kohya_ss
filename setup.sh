@@ -30,6 +30,7 @@ Options:
   --runpod                      Forces a runpod installation. Useful if detection fails for any reason.
   --setup-only                  Do not launch GUI. Only conduct setup operations.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+  -t, --torch-version           Configure the major version of Torch.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
   -v                            Increase verbosity levels up to 3. (e.g., -vvv)
   --listen=IP                   IP to listen on for connections to Gradio.
@@ -75,7 +76,7 @@ get_abs_filename() {
 USER_CONFIG_FILE=""
 declare -A CLI_ARGUMENTS
 
-while getopts ":vb:d:f:g:il:nprsux-:" opt; do
+while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then   # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"       # extract long option name
@@ -96,6 +97,7 @@ while getopts ":vb:d:f:g:il:nprsux-:" opt; do
   runpod) CLI_ARGUMENTS["runpod"]="true" ;;
   setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["skipSpaceCheck"]="true" ;;
+  t | torch-version) CLI_ARGUMENTS["torchVersion"]="true" ;;
   u | update) CLI_ARGUMENTS["update"]="true" ;;
   v) ((CLI_ARGUMENTS["verbosity"] = CLI_ARGUMENTS["verbosity"] + 1)) ;;
   listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
@@ -177,6 +179,7 @@ config_repair="${config_repair:-false}"
 config_runpod="${config_runpod:-false}"
 config_setupOnly="${config_setupOnly:-false}"
 config_skipSpaceCheck="${config_skipSpaceCheck:-false}"
+config_torchVersion="${config_torchVersion:-1}"
 config_update="${config_update:-false}"
 config_verbosity="${config_verbosity:-0}"
 config_listen="${config_listen:-127.0.0.1}"
@@ -221,6 +224,7 @@ REPAIR="$config_repair"
 RUNPOD="$config_runpod"
 SETUP_ONLY="$config_setupOnly"
 SKIP_SPACE_CHECK="$config_skipSpaceCheck"
+TORCH_VERSION="$config_torchVersion"
 UPDATE="$config_update"
 VERBOSITY="$config_verbosity"
 GUI_LISTEN="$config_listen"
@@ -291,6 +295,7 @@ PUBLIC: $PUBLIC
 REPAIR: $REPAIR
 RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
+TORCH_VERSION: $TORCH_VERSION
 UPDATE: $UPDATE
 Skip Setup: $NO_SETUP
 VERBOSITY: $VERBOSITY

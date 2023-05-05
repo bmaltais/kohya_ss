@@ -202,6 +202,13 @@ class CountOccurrencesAction(argparse.Action):
             exit(1)
 
 
+class CheckTorchVersionAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if int(values) not in [1, 2]:
+            parser.error(f'\nInvalid value for --torch-version: {values}. Valid values are 1 or 2.')
+        setattr(namespace, self.dest, values)
+
+
 # noinspection SpellCheckingInspection
 def parse_args(_config_data):
     # Define the default arguments first. The spacing is purely for readability.
@@ -241,6 +248,9 @@ def parse_args(_config_data):
 
         {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
          "help": "Skip the 10Gb minimum storage space check."},
+
+        {"short": "-t", "long": "--torch-version", "default": 1, "type": int,
+         "help": "Configure the major version of Torch.", "action": CheckTorchVersionAction},
 
         {"short": "-u", "long": "--update", "default": False, "type": bool,
          "help": "Update kohya_ss with specified branch, repo, or latest stable if git's unavailable."},
@@ -1203,7 +1213,8 @@ def spinner_task(stop_event):
         sys.stdout.flush()
 
 
-def install_python_dependencies(_dir, runpod, update=False, repair=False, interactive=False, _log_dir=None):
+def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
+                                interactive=False, _log_dir=None):
     def safe_subprocess_run(_command, stop_flag):
         with subprocess.Popen(_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
                               universal_newlines=True) as p:
@@ -1214,7 +1225,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                 if args.verbosity >= 3:
                     logging.debug(_line.strip())
 
-            # Wait for process to terminate to get the returncode
+            # Wait for process to terminate to get the return code
             time.sleep(0.5)
             p.wait()
             if p.returncode != 0:
@@ -1333,13 +1344,13 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                         if not (torch_installed or torchvision_installed) or (update or repair):
                             if interactive:
                                 while True:
-                                    choice = input("Choose Torch version: (1) V1, (2) V2: ")
-                                    if choice == '1':
+                                    torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
+                                    if torch_version == 1:
                                         _TORCH_VERSION = TORCH_VERSION_1
                                         _TORCHVISION_VERSION = TORCHVISION_VERSION_1
                                         _TORCH_INDEX_URL = TORCH_INDEX_URL_1
                                         break
-                                    elif choice == '2':
+                                    elif torch_version == 2:
                                         _TORCH_VERSION = TORCH_VERSION_2
                                         _TORCHVISION_VERSION = TORCHVISION_VERSION_2
                                         _TORCH_INDEX_URL = TORCH_INDEX_URL_2
@@ -1350,7 +1361,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                 _TORCH_VERSION = TORCH_VERSION_1
                                 _TORCHVISION_VERSION = TORCHVISION_VERSION_1
                                 _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-                                choice = '1'
+                                torch_version = 1
 
                             if os_info.family == "Windows":
                                 xformers_sys = "win_amd64"
@@ -1370,7 +1381,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                  f"{xformers_url_1}", "--quiet"]
                             ]
 
-                            if choice == '2':
+                            if torch_version == 2:
                                 install_commands = [
                                     [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                                      "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
@@ -1381,7 +1392,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                      f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
                                 ]
 
-                            if choice == '1':
+                            if torch_version == 1:
                                 logging.critical(
                                     "Installing torch and related packages. These download large models. Please have "
                                     "patience.")
@@ -1439,7 +1450,7 @@ def install_python_dependencies(_dir, runpod, update=False, repair=False, intera
                                 output = result.stdout.decode() + result.stderr.decode()
                                 logging.debug(output)
 
-                                if choice == '2':
+                                if torch_version == '2':
                                     result = subprocess.run(
                                         [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
                                         stdout=subprocess.PIPE,
@@ -1691,7 +1702,7 @@ def main(_args=None):
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
         clean_old_artifacts(site_packages_dir)
         if brew_install_tensorflow_deps(_args.verbosity):
-            install_python_dependencies(_args.dir, _args.runpod, _args.update, _args.repair,
+            install_python_dependencies(_args.dir, _args.runpod, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
             prepare_environment_files_and_folders(site_packages_dir, _args.runpod, _args.dir)
             configure_accelerate(_args.interactive)

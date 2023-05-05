@@ -29,6 +29,9 @@ setup_arguments:
   - name: SkipSpaceCheck
     description: Skip the 10Gb minimum storage space check.
     value: false
+  - name: TorchVersion
+    description: Configure the major version of Torch.
+    value: 1
   - name: Update
     description: Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
     value: false
