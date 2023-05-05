@@ -26,7 +26,7 @@ RUN python3 -m pip install wheel
 
 # Install requirements
 COPY requirements.txt setup.py ./
-RUN python3 -m pip install --no-cache-dir --use-pep517 -r requirements.txt xformers
+RUN python3 -m pip install -U --no-cache-dir --use-pep517 -r requirements.txt xformers --extra-index-url https://download.pytorch.org/whl/cu118
 
 # Replace pillow with pillow-simd
 RUN python3 -m pip uninstall -y pillow && \
