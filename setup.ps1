@@ -193,16 +193,9 @@ function Get-Parameters {
                 if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
                     # Convert relative paths to absolute and normalize
                     $FullPath = Join-Path (Get-Location) $value
-
+    
                     try {
-                        $resolvedPath = [System.IO.Path]::GetFullPath($value)
-                    
-                        if ($resolvedPath -eq $value) {
-                            continue
-                        }
-                        else {
-                            throw "Invalid path: $value"
-                        }
+                        $resolvedPath = [System.IO.Path]::GetFullPath($FullPath)
                     }
                     catch [System.ArgumentException] {
                         Write-Host "Sorry, the path contains illegal characters:`n'$value'`n " -ForegroundColor Red
@@ -215,20 +208,22 @@ function Get-Parameters {
                     catch {
                         Write-Host "Sorry, there was an error processing the path:`n'$value'." -ForegroundColor Red
                         exit 1
-                    }                    
-
+                    }
+    
                     Write-Debug "Full Path: $FullPath"
                     # Use System.IO.Path.GetFullPath to convert relative path to absolute
-                    $AbsolutePath = [System.IO.Path]::GetFullPath($FullPath)
+                    $AbsolutePath = $resolvedPath
                     # Add debug output before setting $Result[$key]
                     Write-Debug "Absolute Path: $AbsolutePath"
                     $Result[$key] = $AbsolutePath
                 }
             }
         }
-
+    
         return $Result
     }
+    
+    
 
     # Check for the existence of the powershell-yaml module and install it if necessary
     try {
@@ -353,7 +348,6 @@ function Get-Parameters {
             $BoundParameters.Remove('BatchArgs')
         }
     }
-    
 
     # Override config with command-line arguments last
     foreach ($key in $BoundParameters.Keys) {
@@ -1908,9 +1902,10 @@ function Get-BuiltInParameters {
     else {
         $powershellExeName = 'pwsh'
     }
-    $powershellExe = (Get-Command $powershellExeName).Path    
     
-    $exeHelp = & $powershellExe -help | Out-String
+    $powershellExe = (Get-Command $powershellExeName).Path
+
+    $exeHelp = & $powershellExe -h | Out-String
     $regex = [regex]'-\w+'
     $builtInParams = $regex.Matches($exeHelp) | ForEach-Object { $_.Value.TrimStart('-') }
     return $builtInParams
@@ -1958,18 +1953,20 @@ function Test-Parameters {
     if ($os.family -eq "Windows") {
         if ($PSVersionTable.PSVersion.Major -lt 6) {
             $builtInParams = [System.Management.Automation.Cmdlet].GetMethod('get_CommonParameters').Invoke($null, @())
-
         }
         else {
-            $builtInParams = [System.Management.Automation.ParameterMetadata]::CommonParameters.Keys
+            $builtInParams = [System.Management.Automation.Internal.CommonParameters].GetProperties().Name
         }
     }
     else {
-        $builtInParams = [System.Management.Automation.ParameterMetadata]::CommonParameters.Keys
+        $builtInParams = [System.Management.Automation.Internal.CommonParameters].GetProperties().Name
     }
+    
+    # Add a dash in front of each parameter name
+    $builtInParams = $builtInParams | ForEach-Object { "-$_" }
 
     $globalBuiltInParams = $(Get-BuiltInParameters) | ForEach-Object { "-$_" }
-    $allOptions = @($CommandString -split ' ' | Where-Object { $_ -match '^-' -and $_ -notmatch '^-BatchArgs$|^-unboundArgs$' })
+    $allOptions = @($CommandString -split '\s|=+' | Where-Object { $_ -match '^-' -and $_ -notmatch '^-BatchArgs$|^-unboundArgs$' })
 
     Write-Debug "ValidParams: $($ValidParams -join ', ')"
     Write-Debug "Built-in Params: $($builtInParams -join ', ')"
@@ -2156,7 +2153,7 @@ function Main {
 
             # Call launcher.py with the appropriate parameters
             $launcherFileName = Split-Path $launcher -Leaf
-            Write-CriticalLog "Switching to ${launcherFileName}."
+            Write-CriticalLog "Switching to ${launcherFileName}.`n`n"
             $command = "$pyExe -u $launcher $"
             Write-DebugLog "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
