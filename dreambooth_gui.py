@@ -647,7 +647,7 @@ def dreambooth_tab(
             output_dir_input_folder.click(get_folder_path, outputs=output_dir)
             logging_dir = gr.Textbox(
                 label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                placeholder='enable logging and output TensorBoard log to this folder',
             )
             logging_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small'
