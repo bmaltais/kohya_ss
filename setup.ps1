@@ -112,36 +112,35 @@ param (
 
 <#
 .SYNOPSIS
-   Handles the loading of parameter values with a specific order of precedence.
+    Get-Parameters is a PowerShell function that retrieves and processes input parameters from various sources.
 
 .DESCRIPTION
-   This function handles the loading of parameter values in the following order of precedence:
-   1. Command-line arguments provided by the user
-   2. Values defined in a configuration file
-   3. Default values specified in the function
+    Get-Parameters retrieves parameters from configuration files, passed-in parameters, and batch arguments.
+    It processes and prioritizes these sources, handling any inconsistencies and ensuring that the final
+    configuration is accurate and up-to-date. It also converts relative paths to absolute paths and
+    ensures that required modules are imported.
 
-   First, the function checks for the presence of a configuration file in the specified locations.
-   If found, the configuration file's values are loaded into a hashtable.
-   Then, default values are added to the hashtable for any parameters not defined in the configuration file.
-   Finally, any command-line arguments provided by the user are merged into the hashtable,
-   overriding the corresponding values from the configuration file or the function's default values.
-   If neither a configuration file nor a command-line argument is provided for a parameter,
-   the function will fallback to the hard-coded default values.
+.PARAMETER BoundParameters
+    A hashtable containing the parameters passed to the script.
 
-   To access arguments from the hashtable, use the following syntax:
-   $Config['parameter_name']
+.PARAMETER BatchArgs
+    A string containing batch arguments. This parameter is used when the arguments are received from a batch
+    file as a single array. Get-BatchArgs is a helper function to parse the batch arguments and return a
+    hashtable.
 
-   For example:
-   $Config['setup_branch']
-   $Config['setup_dir']
-   $Config['gui_listen']
+.EXAMPLE
+    $Parameters = Get-Parameters -BoundParameters $PSBoundParameters -BatchArgs $BatchArgs
+    This example demonstrates how to call Get-Parameters with the necessary parameters.
 
-.PARAMETER File
-   An optional parameter to specify the path to a configuration file.
+    To get specific values you would call:
+    $Parameters['ValueName'] 
 
-.OUTPUTS
-   System.Collections.Hashtable
-   Outputs a hashtable containing the merged parameter values.
+    To get the option passed in as -Dir:
+    $Parameters['Dir']
+
+.NOTES
+    Get-Parameters relies on several helper functions to handle specific tasks, such as Get-BatchArgs
+    to parse batch arguments, and Convert-RelativePathsToAbsolute to convert relative paths to absolute paths.
 #>
 function Get-Parameters {
     param (
@@ -274,7 +273,7 @@ function Get-Parameters {
         'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
-        'TorchVersion'  = 1
+        'TorchVersion'   = 1
         'Verbosity'      = 0
         'Update'         = $false
         'Listen'         = '127.0.0.1'
@@ -1920,25 +1919,29 @@ function Get-BuiltInParameters {
 
 <#
 .SYNOPSIS
-    Tests the provided parameters for validity and reports any invalid options.
+    Test-Parameters is a PowerShell function that validates input parameters.
 
 .DESCRIPTION
-    This function checks the provided command string against a list of valid parameters.
-    It separates valid and invalid options, and reports any invalid options found.
-    If any invalid options are found, it exits the script with an error code.
+    Test-Parameters checks if the provided parameters are valid and allowed. If invalid parameters are found,
+    it outputs an error message and displays the list of valid parameters. It also considers built-in
+    PowerShell parameters to avoid false positives.
 
 .PARAMETER Dir
-    The directory containing the target script for the Get-Help cmdlet.
+    The directory path containing the target script file for the Get-Help cmdlet.
 
 .PARAMETER CommandString
-    The command string to test for valid parameters.
+    A string containing the command-line arguments to be tested.
 
 .PARAMETER ValidParams
-    A string array of valid parameter names.
+    A string array containing the valid parameter names allowed for the script.
 
 .EXAMPLE
-    Test-Parameters -Dir $Parameters["Dir"] -CommandString $commandLine -ValidParams $validParams
-    Tests the provided command string for valid parameters and reports any invalid options found.
+    Test-Parameters -Dir $PSScriptRoot -CommandString $MyInvocation.UnboundArguments -ValidParams $validParams
+    This example demonstrates how to call Test-Parameters with the necessary parameters.
+
+.NOTES
+    Test-Parameters uses built-in parameters lists specific to the PowerShell version and operating system
+    to ensure accurate validation.
 #>
 function Test-Parameters {
     param(

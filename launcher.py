@@ -202,10 +202,14 @@ class CountOccurrencesAction(argparse.Action):
             exit(1)
 
 
+# This custom action checks if the provided --torch-version value is valid.
+# Valid versions are listed in valid_torch_versions.
 class CheckTorchVersionAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if int(values) not in [1, 2]:
-            parser.error(f'\nInvalid value for --torch-version: {values}. Valid values are 1 or 2.')
+        valid_torch_versions = [1, 2]
+        if int(values) not in valid_torch_versions:
+            parser.error(f'\nInvalid value for --torch-version: {values}. '
+                         f'Valid values are {", ".join(map(str, valid_torch_versions))}.')
         setattr(namespace, self.dest, values)
 
 
@@ -798,7 +802,7 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                             shutil.move(tmp_logs_path, os.path.join(_dir, "logs"))
 
                             # After moving the log folder back to its original position
-                            # Repoen the log file and file handler to resume original log
+                            # Reopen the log file and file handler to resume original log
                             file_handler = logging.FileHandler(log_file, mode='a')
                             file_handler.setFormatter(CustomFormatter())
                             logger.addHandler(file_handler)
@@ -1344,16 +1348,18 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                         if not (torch_installed or torchvision_installed) or (update or repair):
                             if interactive:
                                 while True:
-                                    torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
+                                    input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
                                     if torch_version == 1:
                                         _TORCH_VERSION = TORCH_VERSION_1
                                         _TORCHVISION_VERSION = TORCHVISION_VERSION_1
                                         _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                                        torch_version = int(input_torch_version)
                                         break
                                     elif torch_version == 2:
                                         _TORCH_VERSION = TORCH_VERSION_2
                                         _TORCHVISION_VERSION = TORCHVISION_VERSION_2
                                         _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                                        torch_version = int(input_torch_version)
                                         break
                                     else:
                                         print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
