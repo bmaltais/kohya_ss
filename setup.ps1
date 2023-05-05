@@ -216,12 +216,12 @@ function Get-Parameters {
                             Write-Host "Sorry, there was an error processing the path:`n'$value'." -ForegroundColor Red
                             exit 1
                         }
-                        # Add debug output before setting $Result[$key]
+                        # Add debug output before setting $Result.$key
                         Write-Debug "Absolute Path: $resolvedPath"
-                        $Result[$key] = $resolvedPath
+                        $Result.$key = $resolvedPath
                     }
                     else {
-                        $Result[$key] = $value
+                        $Result.$key = $value
                     }
                 }
             }
@@ -292,7 +292,7 @@ function Get-Parameters {
         Write-Debug "Config file location: $location"
         if (![string]::IsNullOrEmpty($location)) {
             if (Test-Path $location) {
-                Write-Debug "Found configuration file at: $location"
+                Write-Debug "Found configuration file at: ${location}"
                 $FileConfig = (Get-Content $location | Out-String | ConvertFrom-Yaml)
                 foreach ($section in $FileConfig.Keys) {
                     foreach ($item in $FileConfig[$section]) {
@@ -362,7 +362,9 @@ function Get-Parameters {
             $Config[$lowerKey] = $BoundParameters[$key]
         }
         else {
-            Write-Debug "Key '$key' not found in Config"
+            if ($key -ne "Debug") {
+                Write-Debug "Key '$key' not found in Config"
+            }
         }
     }
 
@@ -382,15 +384,14 @@ function Get-Parameters {
         $Config["LogDir"] = Join-Path $Config["Dir"] "logs"
     }
 
-    Write-Debug "LogDir: ${Config["LogDir"]}"
-
     $Config = Convert-RelativePathsToAbsolute -Params $Config
+    Write-Debug "LogDir: ${Config.LogDir}"
 
     # Debug output for the final configuration
-    # Write-Debug "Config:"
-    # foreach ($key in $Config.Keys) {
-    #     Write-Debug "${key}: $($Config.$key)"
-    # }
+    Write-Debug "Config: $($Config.LogDir)"
+    foreach ($key in $Config.Keys) {
+        Write-Debug "${key}: $($Config.$key)"
+    }
 
     return $Config
 }
@@ -417,7 +418,7 @@ function Set-Logging {
     $currentTime = Get-Date -Format "HHmm"
 
     # Set log level name based on verbosity
-    $script:logLevelName = switch ($script:Verbosity) {
+    $script:logLevelName = switch ($script:Parameters.Verbosity) {
         0 { "error" }
         1 { "warning" }
         2 { "info" }
@@ -451,9 +452,15 @@ function Set-Logging {
 .EXAMPLE
     Write-DebugLog "This is a debug message."
 #>
-function Write-DebugLog($message) {
-    if ($script:Verbosity -ge 3) {
-        Write-Output "DEBUG: $message" | Tee-Object -FilePath $script:logFile -Append
+function Write-DebugLog {
+    param (
+        [string]$message,
+        [System.ConsoleColor]$ForegroundColor = 'DarkGreen'
+    )
+    
+    if ($script:Parameters.Verbosity -ge 3) {
+        Write-Host "DEBUG: $message" -ForegroundColor $ForegroundColor
+        Add-Content -Path $script:logFile -Value "DEBUG: $message"
     }
 }
 
@@ -470,9 +477,15 @@ function Write-DebugLog($message) {
 .EXAMPLE
     Write-InfoLog "This is an informational message."
 #>
-function Write-InfoLog($message) {
-    if ($script:Verbosity -ge 2) {
-        Write-Output "INFO: $message" | Tee-Object -FilePath $script:logFile -Append
+function Write-InfoLog {
+    param (
+        [string]$message,
+        [System.ConsoleColor]$ForegroundColor = 'Blue'
+    )
+    
+    if ($script:Parameters.Verbosity -ge 2) {
+        Write-Host "INFO: $message" -ForegroundColor $ForegroundColor
+        Add-Content -Path $script:logFile -Value "INFO: $message"
     }
 }
 
@@ -489,9 +502,15 @@ The warning message to log.
 .EXAMPLE
 Write-WarnLog "This is a warning message."
 #>
-function Write-WarningLog($message) {
-    if ($script:Verbosity -ge 1) {
-        Write-Output "WARNING: $message" | Tee-Object -FilePath $script:logFile -Append
+function Write-WarnLog {
+    param (
+        [string]$message,
+        [System.ConsoleColor]$ForegroundColor = 'Yellow'
+    )
+
+    if ($script:Parameters.Verbosity -ge 1) {
+        Write-Host "WARN: $message" -ForegroundColor $ForegroundColor
+        Add-Content -Path $script:logFile -Value "WARN: $message"
     }
 }
 
@@ -508,9 +527,15 @@ function Write-WarningLog($message) {
 .EXAMPLE
     Write-ErrorLog "This is an error message."
 #>
-function Write-ErrorLog($message) {
-    if ($script:Verbosity -ge 0) {
-        Write-Output "ERROR: $message" | Tee-Object -FilePath $script:logFile -Append
+function Write-ErrorLog {
+    param (
+        [string]$message,
+        [System.ConsoleColor]$ForegroundColor = 'Red'
+    )
+    
+    if ($script:Parameters.Verbosity -ge 0) {
+        Write-Host "ERROR: $message" -ForegroundColor $ForegroundColor
+        Add-Content -Path $script:logFile -Value "ERROR: $message"
     }
 }
 
@@ -527,9 +552,23 @@ function Write-ErrorLog($message) {
 .EXAMPLE
     Write-CriticalLog "This is a critical error message."
 #>
-function Write-CriticalLog($message) {
-    if ($script:Verbosity -ge 0) {
-        Write-Output "CRITICAL: $message" | Tee-Object -FilePath $script:logFile -Append
+function Write-CriticalLog {
+    param (
+        [Parameter(Mandatory = $false, Position = 0)]
+        [string]$message,
+        [Parameter(Mandatory = $false)]
+        [System.ConsoleColor]$ForegroundColor = 'White',
+        [Parameter(Mandatory = $false)]
+        [switch]$NoHeader
+    )
+
+    if (-not $NoHeader) {
+        $message = "CRITICAL: $message"
+    }
+    
+    if ($script:Parameters.Verbosity -ge 0) {
+        Write-Host "$message" -ForegroundColor $ForegroundColor
+        Add-Content -Path $script:logFile -Value "$message"
     }
 }
 
@@ -1125,7 +1164,7 @@ function Install-Python310 {
     }
 
     if (Test-Python310Installed) {
-        Write-CriticalLog "Python 3.10 is already installed."
+        Write-CriticalLog "Python 3.10 is already installed." -NoHeader
         return
     }
 
@@ -1164,7 +1203,7 @@ function Install-Python310 {
     $script:pythonPath = Get-PythonExePath
 
     if (Test-Python310Installed) {
-        Write-CriticalLog "Python 3.10 installed successfully."
+        Write-CriticalLog "Python 3.10 installed successfully." -NoHeader
     }
     else {
         Write-Error 'Failed to install. Please ensure Python 3.10 is installed and available in $PATH.'
@@ -1274,7 +1313,7 @@ function Install-Python3Tk {
             }
         }
         else {
-            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system."
+            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system." -NoHeader
         }
     }
     else { 
@@ -1313,7 +1352,7 @@ function Install-Python3Tk {
             }
         }
         else {
-            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system."
+            Write-CriticalLog "Tkinter for Python 3.10 is already installed on this system." -NoHeader
         }
 
         # We are updating the environment and python path after installation to ensure it is picked up by the environment every time.
@@ -1371,7 +1410,7 @@ function Test-GitInstalled {
             foreach ($location in $commonGitLocations) {
                 if (Test-Path "$location/git") {
                     & "$location/git" --version
-                    Write-CriticalLog "Git already installed."
+                    Write-CriticalLog "Git already installed." -NoHeader
                     return $true
                 }
             }
@@ -1744,10 +1783,10 @@ function Install-Git {
     }
 
     if (Test-GitInstalled) {
-        Write-CriticalLog "Git installed successfully."
+        Write-CriticalLog "Git installed successfully." -NoHeader
     }
     else {
-        Write-Error 'Failed to install. Please ensure Git is installed and available in $PATH.'
+        Write-ErrorLog 'Failed to install. Please ensure Git is installed and available in $PATH.'
         exit 1
     }
 }
@@ -1762,7 +1801,7 @@ The function uses the Windows Registry to determine the installed software. If r
 Otherwise, it checks software installed for the current user only. If the specified version is installed, the function outputs a message indicating this and returns $true.
 Otherwise, it outputs a message indicating that the version is not installed and returns $false.
 
-.PARAMETER version
+.PARAMETER Version
 A string specifying the version of the Microsoft Visual C++ Redistributable to check for. The version should be specified in the form used in the Windows Registry (e.g., "2015-2019").
 
 .EXAMPLE
@@ -1782,44 +1821,45 @@ Otherwise, it checks the software installed for the current user only.
 #>
 function Test-VCRedistInstalled {
     param(
-        [string]$version
+        [string]$Version
     )
 
-    if (Test-IsAdmin) {
-        $installedSoftware = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
+    $registryKeys = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
+
+    $found = $false
+
+    foreach ($key in $registryKeys) {
+        $installedSoftware = Get-ChildItem $key |
         Get-ItemProperty |
         Select-Object -Property DisplayName
-    
-        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
-    
-        if ($null -ne $matchingSoftware) {
-            Write-DebugLog "Keys found in HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
-            Write-Output "Visual C++ $version Redistributable is already installed."
-            return $true
+
+        # If this test is failing, it is best to debug it by listing all of the software installed via the below 2 Debug lines
+        # This is commented out by default to avoid leaking users' personal information.
+        # Write-DebugLog "Installed software in ${key}: $($installedSoftware.DisplayName)"
+
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+.*$Version.*Redistributable" }
+        # Write-DebugLog "Matching software in ${key}: $($matchingSoftware.DisplayName)"
+
+        if ($matchingSoftware) {
+            $found = $true
+            break
         }
-        else {
-            Write-Output "Visual C++ $version Redistributable is not installed."
-            return $false
-        }
+    }
+
+    if ($found) {
+        Write-DebugLog "Visual C++ $Version Redistributable is already installed."
     }
     else {
-        $installedSoftware = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
-        Get-ItemProperty |
-        Select-Object -Property DisplayName
-    
-        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $version Redistributable" -and $_.DisplayName -match ".*$version.*" }
-    
-        if ($null -ne $matchingSoftware) {
-            Write-DebugLog "Keys found in HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
-            Write-Output "Visual C++ $version Redistributable is already installed for the current user."
-            return $true
-        }
-        else {
-            Write-Output "Visual C++ $version Redistributable is not installed for the current user."
-            return $false
-        }
+        Write-DebugLog "Visual C++ $Version Redistributable is not installed."
     }
+
+    return $found
 }
+
 
 <#
 .SYNOPSIS
@@ -1839,28 +1879,66 @@ function Install-VCRedistWindows {
         return
     }
 
-    if (-not (Test-IsAdmin)) {
-        Write-Error "Admin privileges are required to install Visual Studio redistributables. Please run this script as an administrator."
-        exit 1
+    function Get-VCRedist {
+        if (-not (Test-Path $script:vcInstallerPath)) {
+            try {
+                # This is useful for debugging the VC exe download, but commenting by default out to avoid leaking users' personal information
+                # Write-DebugLog "Attempting to download: ${script:vcRedistUrl} to ${script:vcInstallerPath}"
+                Invoke-WebRequest -Uri $script:vcRedistUrl -OutFile $script:vcInstallerPath
+            }
+            catch {
+                Write-Error "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+                exit 1
+            }
+        }
     }
 
-    if (-not (Test-Path $script:vcInstallerPath)) {
+    if (-not (Test-IsAdmin)) {
+        Write-Warning "Admin privileges are required to install Visual Studio redistributables. The script will attempt to run the installer with elevated privileges."
+        Start-Sleep -Seconds 5
+
         try {
-            Write-DebugLog "Attempting to download: ${script:vcRedistUrl} to ${script:vcInstallerPath}"
-            Invoke-WebRequest -Uri $script:vcRedistUrl -OutFile $script:vcInstallerPath
+            Get-VCRedist
+            $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList `/install` `/quiet` `/norestart` '-Verb RunAs' -PassThru -Wait -NoNewWindow
+            $proc.WaitForExit()
+            $exitCode = $proc.ExitCode
+
+            if ($exitCode -eq 3010) {
+                # Exit code 3010 means a reboot is required, so handle this case separately
+                Write-CriticalLog "VC Redistributable installation requires a reboot." -ForegroundColor Yellow
+                Write-CriticalLog "Exiting script to avoid any issues. Please reboot the computer and run this setup again." -ForegroundColor Red
+                exit 0
+            }
+            elseif ($exitCode -ne 0) {
+                # Any other non-zero exit code indicates an error
+                Write-ErrorLog "VC Redistributable installation failed with exit code $($proc.ExitCode)."
+                exit 1
+            }
         }
         catch {
-            Write-Error "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+            Write-ErrorLog "Failed to start the installation process with admin privileges. $_"
             exit 1
         }
+
+        return
     }
 
+    Get-VCRedist
+
     try {
-        $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru
+        $proc = Start-Process -FilePath $script:vcInstallerPath -ArgumentList `/install` `/quiet` `/norestart` -PassThru -Wait -NoNewWindow
         $proc.WaitForExit()
-            
-        if ($proc.ExitCode -ne 0) {
-            Write-Error "The installation process ended with exit code $($proc.ExitCode)."
+        $exitCode = $proc.ExitCode
+
+        if ($exitCode -eq 3010) {
+            # Exit code 3010 means a reboot is required, so handle this case separately
+            Write-CriticalLog "VC Redistributable installation requires a reboot." -ForegroundColor Yellow
+            Write-CriticalLog "Exiting script to avoid any issues. Please reboot the computer and run this setup again." -ForegroundColor Red
+            exit 0
+        }
+        elseif ($exitCode -ne 0) {
+            # Any other non-zero exit code indicates an error
+            Write-ErrorLog "VC Redistributable installation failed with exit code $($proc.ExitCode)."
             exit 1
         }
     }
@@ -1868,7 +1946,7 @@ function Install-VCRedistWindows {
         Write-Error "Failed to start the installation process. $_"
         exit 1
     }
-        
+
     try {
         if (Test-Path -Path $script:vcInstallerPath) {
             Remove-Item -Path $script:vcInstallerPath -Force
@@ -1978,10 +2056,10 @@ function Test-Parameters {
     $globalBuiltInParams = $(Get-BuiltInParameters) | ForEach-Object { "-$_" }
     $allOptions = @($CommandString -split '\s|=+' | Where-Object { $_ -match '^-' -and $_ -notmatch '^-BatchArgs$|^-unboundArgs$' })
 
-    Write-Debug "ValidParams: $($ValidParams -join ', ')"
-    Write-Debug "Built-in Params: $($builtInParams -join ', ')"
-    Write-Debug "Built-in Global Params: $($globalBuiltInParams -join ', ')"
-    Write-Debug "AllOptions: $($allOptions -join ', ')"
+    Write-Debug "`nValidParams: $($ValidParams -join ', ')"
+    Write-Debug "`nBuilt-in Params: $($builtInParams -join ', ')"
+    Write-Debug "`nBuilt-in Global Params: $($globalBuiltInParams -join ', ')"
+    Write-Debug "`nAll found Args: $($allOptions -join ', ')"
 
     # Separate valid and invalid options
     $invalidOptions = @($allOptions | Where-Object {
@@ -2004,10 +2082,10 @@ function Test-Parameters {
             Sort-Object Name | Format-List
         }
         else {
-            Write-CriticalLog "You can run Get-Help ./setup.ps1 -Full to see all valid parameters."
+            Write-CriticalLog "You can run Get-Help ./setup.ps1 -Full to see all valid parameters." -NoHeader
         }
 
-        Write-CriticalLog "Illegal option(s): $($invalidOptions -join ', ').`nPlease see above for all valid options using only a single - to invoke each one."
+        Write-CriticalLog "Illegal option(s): $($invalidOptions -join ', ').`nPlease see above for all valid options using only a single - to invoke each one." -ForegroundColor Red
         exit 1
     }
 }
@@ -2043,16 +2121,16 @@ function Main {
     process {
         if (-not $Parameters.NoSetup) {
             if (-not (Test-Python310Installed)) {
-                Write-CriticalLog "Installing Python 3.10. This could take a few minutes."
+                Write-CriticalLog "Installing Python 3.10. This could take a few minutes." -NoHeader
                 Install-Python310 -Interactive:$Params.interactive
             }
             else {
-                Write-CriticalLog "Python 3.10 is already installed."
+                Write-CriticalLog "Python 3.10 is already installed." -NoHeader
             }
             
             if ($os.family -eq "Windows") {
                 if (-not (Test-Python310Installed)) {
-                    Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes."
+                    Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes." -NoHeader
                     $installScope = Update-InstallScope($Interactive)
                     Install-Python3Tk $installScope
                 }
@@ -2062,20 +2140,20 @@ function Main {
             }
 
             if (-not (Test-GitInstalled)) {
-                Write-CriticalLog "Installing git. This could take a few minutes."
+                Write-CriticalLog "Installing git. This could take a few minutes." -NoHeader
                 Install-Git
             }
             else {
-                Write-CriticalLog "Git already installed."
+                Write-CriticalLog "Git already installed." -NoHeader
             }
 
             if ($os.family -eq "Windows") {
                 Write-DebugLog "Checking for VC version: 20${script:vcRedistVersion}"
-                if (-not (Test-VCRedistInstalled -version "20${script:vcRedistVersion}")) {
+                if (-not (Test-VCRedistInstalled -Version "20${script:vcRedistVersion}")) {
                     Install-VCRedistWindows
                 }
                 else {
-                    Write-CriticalLog "VC Redist already installed."
+                    Write-CriticalLog "VC Redist already installed." -NoHeader
                 }
             }
         }
@@ -2122,11 +2200,11 @@ function Main {
                 # Replace underscore with hyphen and prepend with --
                 $argName = "--" + ($argName.Replace("_", "-").TrimStart('-'))
 
-                if ($null -ne $Parameters[$key]) {
-                    Write-DebugLog "Checking parameter: $key, value: $($Parameters[$key]), type: $($Parameters[$key].GetType().Name)"
+                if ($null -ne $Parameters.$key) {
+                    Write-DebugLog "Checking parameter: $key, value: $($Parameters.$key), type: $($Parameters.$key.GetType().Name)"
                 }
                 else {
-                    Write-DebugLog "Checking parameter: $key, value: $($Parameters[$key]), type: Null"
+                    Write-DebugLog "Checking parameter: $key, value: $($Parameters.$key), type: Null"
                 }
 
                 if ($Parameters[$key] -is [int]) {
@@ -2134,7 +2212,7 @@ function Main {
                     $installArgs.Add($argName) | Out-Null
                     $installArgs.Add($Parameters[$key]) | Out-Null
                 }
-                elseif ($Parameters[$key] -is [bool] -or $Parameters[$key] -is [switch]) {
+                elseif ($Parameters.$key -is [bool] -or $Parameters.$key -is [switch]) {
                     # Handle boolean and switch parameters
                     if ($Parameters[$key] -eq $true) {
                         $installArgs.Add($argName) | Out-Null
@@ -2143,7 +2221,7 @@ function Main {
                 }
                 elseif ($key -eq "verbosity") {
                     # Handle verbosity separately, as -vvvv or --verbosity 4
-                    $verbosity = $Parameters[$key]
+                    $verbosity = $Parameters.$key
                     if ($verbosity -gt 0) {
                         # produces "-vvvv" for verbosity 4 or "--verbosity 4"
                         # Below is the -vvvv version
@@ -2155,16 +2233,16 @@ function Main {
                         $installArgs.Add($verbosityValue) | Out-Null
                     }
                 }
-                elseif (![string]::IsNullOrEmpty($Parameters[$key])) {
+                elseif (![string]::IsNullOrEmpty($Parameters.$key)) {
                     $installArgs.Add($argName) | Out-Null
-                    $installArgs.Add($Parameters[$key]) | Out-Null
+                    $installArgs.Add($Parameters.$key) | Out-Null
                 }
             }
 
             # Call launcher.py with the appropriate parameters
             $launcherFileName = Split-Path $launcher -Leaf
-            Write-CriticalLog "Switching to ${launcherFileName}.`n`n"
-            $command = "$pyExe -u $launcher $"
+            Write-CriticalLog "Switching to ${launcherFileName}.`n`n" -NoHeader
+            $command = "$pyExe -u $launcher $installArgs"
             Write-DebugLog "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
         }
@@ -2181,7 +2259,12 @@ function Main {
 
 # Ensure script executes as normal while printing debug statements.
 # This only affects the PowerShell script parameter setup as that happens before logging setup.
-# $DebugPreference = "Continue"
+if ($PSBoundParameters.ContainsKey("Debug")) {
+    $DebugPreference = "Continue"
+}
+else {
+    $DebugPreference = "SilentlyContinue"
+}
 
 # Call the Get-Parameters function to process the arguments in the intended fashion
 # Parameter value assignments should be as follows:
@@ -2199,8 +2282,13 @@ $os = Get-OsInfo
 Write-DebugLog "Detected OS Family: {$os.family}."
 
 # Format parameters and setup logging
-$Parameters = Get-Parameters -BoundParameters $PSBoundParameters -BatchArgs $BatchArgs
-Set-Logging -LogDir $Parameters["LogDir"]
+$script:Parameters = Get-Parameters -BoundParameters $PSBoundParameters -BatchArgs $BatchArgs
+Set-Logging -LogDir $script:Parameters.LogDir
+
+# If the -Debug switch is used we want to make sure our custom logging happens too.
+if ($PSBoundParameters.ContainsKey("Debug")) {
+    $script:Parameters.Verbosity = 3
+}
 
 # Check for illegal or malformed parameters
 if ($MyInvocation.Line) {
@@ -2211,8 +2299,8 @@ else {
 }
 
 # Debug the command line call
-Write-Debug $commandLine
-Write-Debug $PSBoundParameters.Keys
+Write-Debug "Raw command line call: $commandLine"
+Write-Debug "Arguments found: $($PSBoundParameters.Keys)"
 
 # These lines dynamically grab parameter names from the script and filters out our "hidden" arguments.
 $parsedScript = [System.Management.Automation.Language.Parser]::ParseFile($PSCommandPath, [ref]$null, [ref]$null)
@@ -2231,8 +2319,8 @@ else {
 # If all switches came back valid, validate acceptable Torch versions launcher.py will accept
 $validTorchVersions = @(1, 2)
 
-if (-not ($validTorchVersions -contains $TorchVersion)) {
-    Write-Error "Invalid value for -TorchVersion: $TorchVersion. Valid values are $($validTorchVersions -join ', ')."
+if (-not ($validTorchVersions -contains $Parameters.TorchVersion)) {
+    Write-CriticalLog "Invalid value for -TorchVersion: $($Parameters.TorchVersion). Valid values are $($validTorchVersions -join ', ')." -ForegroundColor Red
     exit 1
 }
 
@@ -2269,11 +2357,12 @@ if ($os.family -eq "Windows") {
     $script:gitInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:gitInstallerFile
 
     # VC Redist URL and hash
+    $script:vcRedistInstallerName = "vc_redist.x64.exe"
     $script:vcRedistUrl = "https://aka.ms/vs/$($script:vcRedistVersion)/release/$($script:vcRedistInstallerName)"
-    $script:vcRedistInstallerName = Split-Path -Leaf $script:vcRedistUrl
     $script:vcInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:vcRedistInstallerName
+    Write-DebugLog "VC Installer path: $script:vcInstallerPath"
 }
 
 # Main entry point to the script
-Write-CriticalLog "Beginning main function."
-Main -Parameters $Parameters
+Write-CriticalLog "Beginning main function." -NoHeader
+Main -Parameters $script:Parameters
