@@ -115,6 +115,8 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -237,6 +239,8 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -341,6 +345,8 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
         return
@@ -441,6 +447,10 @@ def train_model(
         run_cmd += ' --train_text_encoder'
     if weighted_captions:
         run_cmd += ' --weighted_captions'
+    if not wandb_api_key_textbox == '':
+        run_cmd += f' --wandb_api_key {wandb_api_key_textbox}'
+    if use_wandb_checkbox:
+        run_cmd += ' --log_with wandb'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -690,6 +700,17 @@ def finetune_tab():
                 weighted_captions = gr.Checkbox(
                     label='Weighted captions', value=False
                 )
+            with gr.Row():
+                wandb_api_key_textbox = gr.Textbox(
+                    label='(Optional) WANDB API Key',
+                    value='',
+                    info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login'
+                )
+                use_wandb_checkbox = gr.Checkbox(
+                    label='(Optional) WANDB Logging',
+                    value=False,
+                    info='If disabled, tensorboard will be used as the default for logging.'
+                )
     with gr.Tab('Training parameters'):
         (
             learning_rate,
@@ -852,6 +873,8 @@ def finetune_tab():
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        use_wandb_checkbox,
+        wandb_api_key_textbox,
     ]
 
     button_run.click(train_model, inputs=settings_list)
