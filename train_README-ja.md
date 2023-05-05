@@ -563,6 +563,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - 過去のバージョンの--use_8bit_adam指定時と同じ
     - Lion : https://github.com/lucidrains/lion-pytorch
     - 過去のバージョンの--use_lion_optimizer指定時と同じ
+    - Lion8bit : 引数は同上
     - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
     - SGDNesterov8bit : 引数は同上
     - DAdaptation : https://github.com/facebookresearch/dadaptation

@@ -67,7 +67,7 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -108,6 +108,8 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -185,7 +187,7 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -226,6 +228,8 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -285,7 +289,7 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -326,6 +330,8 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -370,6 +376,10 @@ def train_model(
         os.makedirs(output_dir)
 
     if check_if_model_exist(output_name, output_dir, save_model_as):
+        return
+        
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
@@ -507,6 +517,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -534,6 +545,8 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        multires_noise_iterations=multires_noise_iterations,
+        multires_noise_discount=multires_noise_discount,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
         min_snr_gamma=min_snr_gamma,
@@ -736,7 +749,7 @@ def ti_tab(
             num_cpu_threads_per_process,
             seed,
             caption_extension,
-            cache_latents,
+            cache_latents,cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(
@@ -803,6 +816,8 @@ def ti_tab(
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
                 noise_offset,
+                multires_noise_iterations,
+                multires_noise_discount,
                 additional_parameters,
                 vae_batch_size,
                 min_snr_gamma,
@@ -869,7 +884,7 @@ def ti_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latents,
+        cache_latents,cache_latents_to_disk,
         caption_extension,
         enable_bucket,
         gradient_checkpointing,
@@ -910,6 +925,8 @@ def ti_tab(
         optimizer,
         optimizer_args,
         noise_offset,
+        multires_noise_iterations,
+        multires_noise_discount,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,

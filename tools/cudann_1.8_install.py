@@ -83,8 +83,6 @@ check_versions()
 # Check for "different" B&B Files and copy only if necessary
 if os.name == "nt":
     python = sys.executable
-    bnb_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\bitsandbytes_windows")
-    bnb_dest = os.path.join(sysconfig.get_paths()["purelib"], "bitsandbytes")
     cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows")
     cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
     

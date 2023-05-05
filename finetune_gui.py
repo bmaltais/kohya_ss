@@ -90,6 +90,7 @@ def save_configuration(
     color_aug,
     model_list,
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -101,6 +102,8 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -209,6 +212,7 @@ def open_configuration(
     color_aug,
     model_list,
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -220,6 +224,8 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -310,6 +316,7 @@ def train_model(
     color_aug,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     cache_latents,
+    cache_latents_to_disk,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -321,6 +328,8 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -334,6 +343,10 @@ def train_model(
     save_last_n_steps_state,
 ):
     if check_if_model_exist(output_name, output_dir, save_model_as):
+        return
+        
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
@@ -472,6 +485,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -499,6 +513,8 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        multires_noise_iterations=multires_noise_iterations,
+        multires_noise_discount=multires_noise_discount,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
         min_snr_gamma=min_snr_gamma,
@@ -688,6 +704,7 @@ def finetune_tab():
             seed,
             caption_extension,
             cache_latents,
+            cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(learning_rate_value='1e-5')
@@ -724,6 +741,8 @@ def finetune_tab():
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
                 noise_offset,
+                multires_noise_iterations,
+                multires_noise_discount,
                 additional_parameters,
                 vae_batch_size,
                 min_snr_gamma,
@@ -808,6 +827,7 @@ def finetune_tab():
         color_aug,
         model_list,
         cache_latents,
+        cache_latents_to_disk,
         use_latent_files,
         keep_tokens,
         persistent_data_loader_workers,
@@ -819,6 +839,8 @@ def finetune_tab():
         optimizer,
         optimizer_args,
         noise_offset,
+        multires_noise_iterations,
+        multires_noise_discount,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,

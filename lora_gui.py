@@ -74,7 +74,7 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -116,6 +116,8 @@ def save_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -206,7 +208,7 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -248,6 +250,8 @@ def open_configuration(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -329,7 +333,7 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,
+    cache_latents,cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -371,6 +375,8 @@ def train_model(
     optimizer,
     optimizer_args,
     noise_offset,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -421,6 +427,17 @@ def train_model(
     if int(bucket_reso_steps) < 1:
         msgbox('Bucket resolution steps need to be greater than 0')
         return
+    
+    if noise_offset == '':
+        noise_offset = 0
+        
+    if float(noise_offset) > 1 or float(noise_offset) < 0:
+        msgbox('Noise offset need to be a value between 0 and 1')
+        return
+    
+    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
+        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -446,12 +463,6 @@ def train_model(
         text_encoder_lr = 0
     if unet_lr == '':
         unet_lr = 0
-
-    # if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-    #     msgbox(
-    #         'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
-    #     )
-    #     return
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -498,13 +509,21 @@ def train_model(
                 f"Error: '{folder}' does not contain an underscore, skipping..."
             )
 
+    if reg_data_dir == '':
+        reg_factor = 1
+    else:
+        print(
+            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        )
+        reg_factor = 2
+
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
             float(total_steps)
             / int(train_batch_size)
             * int(epoch)
-            # * int(reg_factor)
+            * int(reg_factor)
         )
     )
     print(f'max_train_steps = {max_train_steps}')
@@ -646,7 +665,7 @@ def train_model(
             run_cmd += f' --unet_lr={unet_lr}'
             run_cmd += f' --network_train_unet_only'
     else:
-        if float(text_encoder_lr) == 0:
+        if float(learning_rate) == 0:
             msgbox('Please input learning rate values.')
             return
 
@@ -677,6 +696,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -704,6 +724,8 @@ def train_model(
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset=noise_offset,
+        multires_noise_iterations=multires_noise_iterations,
+        multires_noise_discount=multires_noise_discount,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
         min_snr_gamma=min_snr_gamma,
@@ -906,7 +928,7 @@ def lora_tab(
             num_cpu_threads_per_process,
             seed,
             caption_extension,
-            cache_latents,
+            cache_latents,cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(
@@ -916,15 +938,15 @@ def lora_tab(
         )
 
         with gr.Row():
-            text_encoder_lr = gr.Textbox(
+            text_encoder_lr = gr.Number(
                 label='Text Encoder learning rate',
                 value='5e-5',
-                placeholder='Optional',
+                info='Optional',
             )
-            unet_lr = gr.Textbox(
+            unet_lr = gr.Number(
                 label='Unet learning rate',
                 value='0.0001',
-                placeholder='Optional',
+                info='Optional',
             )
             network_dim = gr.Slider(
                 minimum=1,
@@ -1118,6 +1140,8 @@ def lora_tab(
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
                 noise_offset,
+                multires_noise_iterations,
+                multires_noise_discount,
                 additional_parameters,
                 vae_batch_size,
                 min_snr_gamma,
@@ -1197,7 +1221,7 @@ def lora_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latents,
+        cache_latents,cache_latents_to_disk,
         caption_extension,
         enable_bucket,
         gradient_checkpointing,
@@ -1239,6 +1263,8 @@ def lora_tab(
         optimizer,
         optimizer_args,
         noise_offset,
+        multires_noise_iterations,
+        multires_noise_discount,
         LoRA_type,
         conv_dim,
         conv_alpha,
