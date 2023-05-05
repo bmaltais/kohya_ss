@@ -192,30 +192,29 @@ function Get-Parameters {
                 # Check if value doesn't start with a known scheme and contains a path separator
                 if (($value -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*://') -and ($value -match '[/\\]')) {
                     # Convert relative paths to absolute and normalize
-                    $FullPath = Join-Path (Get-Location) $value
-    
-                    try {
-                        $resolvedPath = [System.IO.Path]::GetFullPath($FullPath)
+                    if ($value -ne [System.IO.Path]::GetFullPath($value)) {
+                        try {
+                            $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot $value))
+                        }
+                        catch [System.ArgumentException] {
+                            Write-Host "Sorry, the path contains illegal characters:`n'$value'`n " -ForegroundColor Red
+                            exit 1
+                        }
+                        catch [System.IO.PathTooLongException] {
+                            Write-Host "Sorry, the path is too long:`n'$value'`n" -ForegroundColor Red
+                            exit 1
+                        }
+                        catch {
+                            Write-Host "Sorry, there was an error processing the path:`n'$value'." -ForegroundColor Red
+                            exit 1
+                        }
+                        # Add debug output before setting $Result[$key]
+                        Write-Debug "Absolute Path: $resolvedPath"
+                        $Result[$key] = $resolvedPath
                     }
-                    catch [System.ArgumentException] {
-                        Write-Host "Sorry, the path contains illegal characters:`n'$value'`n " -ForegroundColor Red
-                        exit 1
+                    else {
+                        $Result[$key] = $value
                     }
-                    catch [System.IO.PathTooLongException] {
-                        Write-Host "Sorry, the path is too long:`n'$value'`n" -ForegroundColor Red
-                        exit 1
-                    }
-                    catch {
-                        Write-Host "Sorry, there was an error processing the path:`n'$value'." -ForegroundColor Red
-                        exit 1
-                    }
-    
-                    Write-Debug "Full Path: $FullPath"
-                    # Use System.IO.Path.GetFullPath to convert relative path to absolute
-                    $AbsolutePath = $resolvedPath
-                    # Add debug output before setting $Result[$key]
-                    Write-Debug "Absolute Path: $AbsolutePath"
-                    $Result[$key] = $AbsolutePath
                 }
             }
         }
