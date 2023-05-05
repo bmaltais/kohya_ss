@@ -331,7 +331,7 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/04/?? (v21.5.8)
+* 2023/04/05 (v21.5.8)
   - Add `Cache latents to disk` option to the gui.
   - When saving v2 models in Diffusers format in training scripts and conversion scripts, it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is `"use_linear_projection": false`, stabilityai is `true`). Please note that the weight shapes are different, so please be careful when using the weight files directly. We apologize for the inconvenience.
       - Since the U-Net model is created based on the configuration, it should not cause any problems in training or inference.
@@ -341,6 +341,7 @@ This will store a backup file with your current locally installed pip packages a
   - Multi-GPU training with DDP is supported in each training script. [PR #448](https://github.com/kohya-ss/sd-scripts/pull/448) Thanks to Isotr0py!
   - Multi resolution noise (pyramid noise) is supported in each training script. [PR #471](https://github.com/kohya-ss/sd-scripts/pull/471) Thanks to pamparamm!
     - See PR and this page [Multi-Resolution Noise for Diffusion Model Training](https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2) for details.
+  - Add --no-cache-dir to reduce image size @chiragjn
 * 2023/05/01 (v21.5.7)
   - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
   - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
