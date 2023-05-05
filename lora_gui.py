@@ -566,7 +566,8 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --logging_dir="{logging_dir}"'
+    if not logging_dir == '':
+        run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --network_alpha="{network_alpha}"'
     if not training_comment == '':
         run_cmd += f' --training_comment="{training_comment}"'
