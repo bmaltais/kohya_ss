@@ -120,6 +120,8 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -240,6 +242,8 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -342,6 +346,8 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb_checkbox,
+    wandb_api_key_textbox,
 ):
     if pretrained_model_name_or_path == '':
         msgbox('Source model information is missing')
@@ -471,6 +477,10 @@ def train_model(
         run_cmd += ' --enable_bucket'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
+    if not wandb_api_key_textbox == '':
+        run_cmd += f' --wandb_api_key {wandb_api_key_textbox}'
+    if use_wandb_checkbox:
+        run_cmd += ' --log_with wandb'
     run_cmd += (
         f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
     )
@@ -780,6 +790,17 @@ def ti_tab(
                     label='Gradient accumulate steps', value='1'
                 )
             with gr.Row():
+                wandb_api_key_textbox = gr.Textbox(
+                    label='(Optional) WANDB API Key',
+                    value='',
+                    info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login'
+                )
+                use_wandb_checkbox = gr.Checkbox(
+                    label='(Optional) WANDB Logging',
+                    value=False,
+                    info='If disabled, tensorboard will be used as the default for logging.'
+                )
+            with gr.Row():
                 prior_loss_weight = gr.Number(
                     label='Prior loss weight', value=1.0
                 )
@@ -937,6 +958,8 @@ def ti_tab(
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        use_wandb_checkbox,
+        wandb_api_key_textbox,
     ]
 
     button_open_config.click(
