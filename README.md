@@ -9,8 +9,8 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - [Tutorials](#tutorials)
 - [Required Dependencies](#required-prerequisites)
 - [Installation and Upgrading](#installation-and-upgrading)
-  - [Containers](#containers)
   - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
+  - [Containers](#containers)
     - [Configuration](#configuration)
       - [Command Line Arguments](#command-line-arguments)
       - [Configuration File](#configuration-file)
@@ -53,13 +53,13 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 </details>
 
 ## Installation and Upgrading
+### Required Prerequisites
 
-<details>
-<summary><h3 id="required-prerequisites">Required Prerequisites</h3></summary>
+These dependencies are taken care of via `setup.ps1` or `setup.sh` for your respective operating system.
 
-These dependencies are taken care of via `setup.sh` or `setup.ps1` in the installation section. 
+**No additional steps should be needed unless the scripts inform you otherwise**. 
 
-No additional steps should be needed unless the scripts inform you otherwise. However, for reference:
+However, for reference:
 
 - [Python 3.10 for Windows](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) 
   - Make sure to tick the box to add Python to the 'PATH' environment variable
@@ -67,26 +67,7 @@ No additional steps should be needed unless the scripts inform you otherwise. Ho
 - [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
 On Linux you may need to use your package manager to install these. On macOS we suggest you use [brew](https://brew.sh/).
-The VS redist component is not needed for non-Windows operating systems.
-
-</details>
-
-<details>
-<summary><h3 id="containers">Containers</h3></summary>
-
-To build a container, ensure you have installed the pre-reqs and then you can put this in your build file or script:
-
-```bash
-launcher.py --setup-only
-```
-
-To run in a container put this as the entry point:
-
-```bash
-launcher.py --no-setup
-```
-
-</details>
+The VS Redistributable component is not needed for non-Windows operating systems.
 
 <br>
 
@@ -198,6 +179,23 @@ This command does the following:
 
 1. Retrieves the current execution policy for the current user.
 2. If the policy is set to Restricted or AllSigned, it changes the policy to RemoteSigned for the current user only, allowing local unsigned scripts to run. The -Force flag is used to bypass the confirmation prompt.
+
+</details>
+
+<details>
+<summary><h3 id="containers">Containers</h3></summary>
+
+To build a container, ensure you have installed the pre-reqs and then you can put this in your build file or script:
+
+```bash
+launcher.py --setup-only
+```
+
+To run in a container put this as the entry point:
+
+```bash
+launcher.py --no-setup
+```
 
 </details>
 
