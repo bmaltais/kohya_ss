@@ -94,7 +94,7 @@ def split(args):
         filename, ext = os.path.splitext(args.save_to)
         model_file_name = filename + f"-{new_rank:04d}{ext}"
 
-        print(f"saving model to: {model_file_name}")
+        print(f"\nsaving model to: {model_file_name}")
         save_to_file(model_file_name, state_dict, new_metadata)
 
 

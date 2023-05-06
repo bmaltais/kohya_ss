@@ -240,7 +240,7 @@ def train(args):
     loss_list = []
     loss_total = 0.0
     for epoch in range(num_train_epochs):
-        print(f"epoch {epoch+1}/{num_train_epochs}")
+        print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
