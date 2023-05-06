@@ -100,7 +100,7 @@ while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   t | torch-version) CLI_ARGUMENTS["torchVersion"]="true" ;;
   u | update) CLI_ARGUMENTS["update"]="true" ;;
   v) ((CLI_ARGUMENTS["verbosity"] = CLI_ARGUMENTS["verbosity"] + 1)) ;;
-  headless) CLI_ARGUMENTS["headless"]="$OPTARG" ;;
+  headless) CLI_ARGUMENTS["headless"]="true" ;;
   inbrowser) CLI_ARGUMENTS["inbrowser"]="true" ;;
   listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
   password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
