@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import errno
 import importlib
 import logging
 import mimetypes
@@ -73,7 +74,9 @@ base64 = check_and_import('base64')
 requests = check_and_import('requests')
 yaml = check_and_import('yaml', 'PyYAML')
 git = check_and_import("git", "gitpython", imports=[("Repo", None), ("GitCommandError", None)])
+# noinspection SpellCheckingInspection
 tqdm_module = check_and_import("tqdm", "tqdm")
+# noinspection SpellCheckingInspection
 tqdm_progress = tqdm_module.tqdm
 
 # Set the package versions at the beginning of the script to make them easy to modify as needed.
@@ -89,6 +92,7 @@ TENSORFLOW_METAL_VERSION = "0.8.0"
 TORCH_VERSION_1 = "1.12.1+cu116"
 TORCHVISION_VERSION_1 = "0.13.1+cu116"
 TORCH_INDEX_URL_1 = "https://download.pytorch.org/whl/cu116"
+# noinspection SpellCheckingInspection
 XFORMERS_VERSION_1 = "0.0.14"
 
 # These are used to control Torch V2 + dependencies versions and sources
@@ -96,6 +100,7 @@ TORCH_VERSION_2 = "2.0.0+cu118"
 TORCHVISION_VERSION_2 = "0.15.1+cu118"
 TORCH_INDEX_URL_2 = "https://download.pytorch.org/whl/cu118"
 TRITON_URL_2 = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl"
+# noinspection SpellCheckingInspection
 XFORMERS_VERSION_2 = "0.0.17"
 
 
@@ -108,7 +113,7 @@ def find_config_file(config_file_locations):
     return None
 
 
-# noinspection DuplicatedCode
+# noinspection DuplicatedCode,SpellCheckingInspection
 def load_config(_config_file=None):
     # Define config file locations
     if sys.platform == "win32":
@@ -210,7 +215,7 @@ class CheckTorchVersionAction(argparse.Action):
         if int(values) not in valid_torch_versions:
             parser.error(f'\nInvalid value for --torch-version: {values}. '
                          f'Valid values are {", ".join(map(str, valid_torch_versions))}.')
-        setattr(namespace, self.dest, values)
+        setattr(namespace, self.dest, int(values))
 
 
 # noinspection SpellCheckingInspection
@@ -393,6 +398,7 @@ def env_var_exists(var_name):
     return var_name in os.environ and os.environ[var_name] != ""
 
 
+# noinspection SpellCheckingInspection
 def get_default_dir(runpod, script_dir):
     os_type = platform.system()
     if os_type == "Linux":
@@ -674,6 +680,7 @@ class GitProgressPrinter(git.remote.RemoteProgress):
             print(f"Received {self.received_objects}/{self.total} objects", end='\r')
 
 
+# noinspection SpellCheckingInspection
 def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
     logging.debug(f"Update: {update}")
     logging.debug(f"Items detected in _dir: {os.listdir(_dir)}")
@@ -1169,7 +1176,8 @@ def check_permissions(_dir):
     return True
 
 
-def clean_old_artifacts(_site_packages_dir):
+# noinspection SpellCheckingInspection
+def clean_old_artifacts(_dir, _site_packages_dir):
     if os_info.family == "Windows":
         bitsandbytes_site_packages_dir = os.path.join(_site_packages_dir, "bitsandbytes")
 
@@ -1177,6 +1185,40 @@ def clean_old_artifacts(_site_packages_dir):
         if os.path.exists(bitsandbytes_site_packages_dir):
             logging.debug(f"Removing folder {bitsandbytes_site_packages_dir}")
             shutil.rmtree(bitsandbytes_site_packages_dir)
+
+        bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
+        bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
+        bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
+
+        if os.path.exists(bitsandbytes_source):
+            # Create destination directories if they don't exist
+            try:
+                os.makedirs(bitsandbytes_dest, exist_ok=True)
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
+                    raise
+            try:
+                os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
+                    raise
+
+            # Copy .dll files
+            for file in os.listdir(bitsandbytes_source):
+                if file.endswith(".dll"):
+                    shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
+                    logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
+                                  f"to {os.path.join(bitsandbytes_dest, file)}")
+
+            # Copy cextension.py
+            shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
+                        os.path.join(bitsandbytes_dest, "cextension.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
+
+            # Copy main.py
+            shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
+                          f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
 
 
 # noinspection DuplicatedCode
@@ -1299,13 +1341,14 @@ class PackageManager:
         return list(self._packages.keys())
 
 
+# noinspection SpellCheckingInspection
 def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
     # Initialize package manager class first to be used in many Python operations
     package_manager = PackageManager.from_installed_packages()
 
     # noinspection SpellCheckingInspection,DuplicatedCode
-    def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
+    def install_or_repair_torch(_update, _repair, _interactive):
         logging.debug("Looking for pre-existing torch packages.")
 
         # Showcase the new functionality:
@@ -1363,7 +1406,9 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
 
         # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
         if not (package_manager.contains('torch') or package_manager.contains('torchvision')) or \
-                (_update or _repair or _interactive):
+                (_update or _repair or _interactive) \
+                or (package_manager.get_version("torch") is not None
+                    and package_manager.get_version("torch")[0] != torch_version):
             if _interactive:
                 while True:
                     input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
@@ -1383,7 +1428,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                 _TORCH_VERSION = TORCH_VERSION_1
                 _TORCHVISION_VERSION = TORCHVISION_VERSION_1
                 _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-            if torch_version == "2":
+            if torch_version == 2:
                 _TORCH_VERSION = TORCH_VERSION_2
                 _TORCHVISION_VERSION = TORCHVISION_VERSION_2
                 _TORCH_INDEX_URL = TORCH_INDEX_URL_2
@@ -1411,7 +1456,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                  f"{xformers_url_1}", "--quiet"]
             ]
 
-            if _torch_version == 2:
+            if torch_version == 2:
                 install_commands = [
                     [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                      "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
@@ -1422,7 +1467,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                      f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
                 ]
 
-            if _torch_version == 1:
+            if torch_version == 1:
                 logging.critical(
                     "Installing torch and related packages. These download large models. Please have "
                     "patience.")
@@ -1446,14 +1491,25 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                             if _package_name == "--upgrade":
                                 _package_name = _command[install_index + 2]
 
-                            # Remove version specifier if present
-                            _package_name = _package_name.split('==')[0]
+                            # Extract version specifier if present
+                            if '==' in _package_name:
+                                _package_name, _package_version = _package_name.split('==')
+                            else:
+                                _package_version = None
+
                         except ValueError:
                             _package_name = "unknown package"
+                            _package_version = None
 
-                        msg = f"Installing {_package_name} ({idx + 1}/{len(install_commands)})..."
+                        if _package_version:
+                            msg = f"Installing {_package_name} ({_package_version}): ({idx + 1}/" \
+                                  f"{len(install_commands)})..."
+                        else:
+                            msg = f"Installing {_package_name}: ({idx + 1}/{len(install_commands)})..."
+
                         print(msg, end="")
                         sys.stdout.flush()
+
                         # Restart and recreate a new spinner process for each package installation
                         stop_event.clear()
                         spinner_process = multiprocessing.Process(target=spinner_task,
@@ -1462,7 +1518,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
 
                         # Run the command that needs to have the spinner
                         try:
-                            safe_subprocess_run(_command, stop_flag=stop_event)
+                            safe_subprocess_run(_command, stop_flag=stop_event, bufsize=-1)
                             version = package_manager.get_version(_package_name)
                             if version:
                                 package_manager.add_package(_package_name, version)
@@ -1497,7 +1553,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                      "--extra-index-url", f"{_TORCH_INDEX_URL}"],
                 ]
 
-                if _torch_version == '2':
+                if torch_version == '2':
                     commands.extend([
                         [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
                         [sys.executable, "-m", "pip", "install", "--upgrade",
@@ -1557,10 +1613,11 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
             try:
                 if args.verbosity >= 2:
                     safe_subprocess_run(
-                        [sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
+                        [sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"],
+                        bufsize=-1)
                 else:
                     safe_subprocess_run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
-                                         "--no-warn-script-location", "pip"])
+                                         "--no-warn-script-location", "pip"], bufsize=-1)
             except subprocess.CalledProcessError as _e:
                 logging.error(f"An error occurred during pip operations: {str(_e)}")
                 exit(1)
@@ -1609,7 +1666,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                             elif platform.machine() == "x86_64":
                                 temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
                         elif (os_info.family == "Windows") or platform.system() == "Linux":
-                            install_or_repair_torch(update, repair, interactive, torch_version)
+                            install_or_repair_torch(update, repair, interactive)
 
                         if os_info.family == "macOS":
                             macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
@@ -1659,7 +1716,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                 if args.verbosity < 3:
                                     command.append("--quiet")
                                     try:
-                                        safe_subprocess_run(command)
+                                        safe_subprocess_run(command, bufsize=-1)
                                         write_to_log(f"Installing {package_name}.")
                                     except subprocess.CalledProcessError as _e:
                                         logging.error(f"An error occurred during pip operations: {str(_e)}")
@@ -1702,9 +1759,10 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
     elif interactive or (not package_manager.contains("torch")) \
             or (package_manager.get_version("torch") is not None and
                 package_manager.get_version("torch")[0] != torch_version):
-        install_or_repair_torch(update, repair, interactive, torch_version)
+        install_or_repair_torch(update, repair, interactive)
 
 
+# noinspection SpellCheckingInspection
 def configure_accelerate(interactive):
     def configure_accelerate_manually(_interactive):
         if _interactive:
@@ -1769,6 +1827,7 @@ def configure_accelerate(interactive):
             configure_accelerate_manually(_interactive=True)
 
 
+# noinspection SpellCheckingInspection
 def launch_kohya_gui(_args):
     if not in_container():
         _venv_path = os.path.join(_args.dir, "venv")
@@ -1845,7 +1904,7 @@ def main(_args=None):
     check_and_create_install_folder(parent_dir, _args.dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
-        clean_old_artifacts(site_packages_dir)
+        clean_old_artifacts(_args.dir, site_packages_dir)
         if brew_install_tensorflow_deps(_args.verbosity):
             install_python_dependencies(_args.dir, _args.runpod, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
@@ -1886,7 +1945,7 @@ def write_to_log(message, _log_file=None):
         f.write(formatted_message + '\n')
 
 
-# noinspection DuplicatedCode
+# noinspection DuplicatedCode,SpellCheckingInspection
 class CustomFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(fmt='%(levelname)s: %(message)s')
@@ -1942,6 +2001,7 @@ if __name__ == "__main__":
         handler.setFormatter(CustomFormatter())
 
         log_file_handler = logging.FileHandler(log_file, mode='a')
+        # noinspection SpellCheckingInspection
         logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
                             handlers=[logging.StreamHandler(),
                                       log_file_handler])

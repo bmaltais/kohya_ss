@@ -23,9 +23,8 @@ voluptuous==0.13.1
 wandb==0.15.0
 
 # Bits and Bytes to speed up Windows Nvidia operations
-bitsandbytes @ https://github.com/bmaltais/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl; sys_platform == 'win32'
-# This next line is not an error but rather there to properly catch if the url based bitsandbytes was properly installed by the line above
-bitsandbytes==0.38.1; sys_platform == 'win32'
+bitsandbytes==0.35.0; sys_platform == 'win32'
+bitsandbytes==0.38.1; sys_platform == "linux"
 
 # For BLIP captioning
 fairscale==0.4.13
