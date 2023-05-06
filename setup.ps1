@@ -29,6 +29,9 @@
 .PARAMETER GitRepo
     You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
 
+.PARAMETER Headless
+    Headless mode will not display the native windowing toolkit. Useful for remote deployments.
+
 .PARAMETER Interactive
     Interactively configure accelerate instead of using default config file.
 
@@ -87,6 +90,7 @@ param (
     [string]$Branch,
     [string]$Dir,
     [string]$GitRepo,
+    [switch]$Headless,
     [switch]$Interactive,
     [string]$LogDir,
     [switch]$NoSetup,
@@ -265,6 +269,7 @@ function Get-Parameters {
         'Branch'         = 'master'
         'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
+        'Headless'       = $false
         'Interactive'    = $false
         'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
