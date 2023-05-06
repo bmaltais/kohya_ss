@@ -1222,11 +1222,11 @@ def spinner_task(stop_event):
 
 def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
-    def safe_subprocess_run(_command, stop_flag):
+    def safe_subprocess_run(_command, stop_flag=None):
         with subprocess.Popen(_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
                               universal_newlines=True) as p:
             for _line in p.stdout:
-                if stop_flag.is_set():
+                if stop_flag and stop_flag.is_set():
                     p.terminate()
                     break
                 if args.verbosity >= 3:
@@ -1254,11 +1254,16 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
         # Update pip
         logging.info("Checking for pip updates before Python operations.")
 
-        if args.verbosity >= 2:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
-        else:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
-                            "--no-warn-script-location", "pip"], stderr=subprocess.DEVNULL)
+        try:
+            if args.verbosity >= 2:
+                safe_subprocess_run(
+                    [sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
+            else:
+                safe_subprocess_run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                                     "--no-warn-script-location", "pip"])
+        except subprocess.CalledProcessError as _e:
+            logging.error(f"An error occurred during pip operations: {str(_e)}")
+            exit(1)
 
         # Install python dependencies
         logging.critical("Beginning kohya_ss dependencies installation.")
@@ -1340,7 +1345,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                             temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
                         elif platform.machine() == "x86_64":
                             temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
-                    elif os_info.family == "Windows":
+                    elif (os_info.family == "Windows") or platform.system() == "Linux":
                         logging.debug("Looking for pre-existing torch packages.")
                         torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
                         torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
@@ -1374,11 +1379,13 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
 
                             if os_info.family == "Windows":
                                 xformers_sys = "win_amd64"
-                            if os_info.family != "Windows":
+                                identifier = "f"
+                            if platform.system() == "Linux":
                                 xformers_sys = "linux_x86_64"
+                                identifier = "linux"
 
                             xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
-                                             f"/download/f/xformers-{XFORMERS_VERSION_1}." \
+                                             f"/download/{identifier}/xformers-{XFORMERS_VERSION_1}." \
                                              f"dev0-cp310-cp310-{xformers_sys}.whl"
 
                             install_commands = [
@@ -1439,7 +1446,20 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                         spinner_process.start()
 
                                         # Run the command that needs to have the spinner
-                                        safe_subprocess_run(command, stop_flag=stop_event)
+                                        try:
+                                            safe_subprocess_run(command, stop_flag=stop_event)
+                                        except subprocess.CalledProcessError as _e:
+                                            # Stop the spinner on the way out
+                                            stop_event.set()
+                                            spinner_process.join()
+
+                                            print(
+                                                f"\nError occurred during the installation of {package_name}. "
+                                                f"Exit code: {_e.returncode}")
+                                            logging.debug(
+                                                f"Error occurred during the installation of {package_name}. "
+                                                f"Exit code: {_e.returncode}")
+                                            exit(1)
 
                                         # Stop the spinner on the way out
                                         stop_event.set()
@@ -1451,35 +1471,46 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                     print("\nInstallation was interrupted by user.")
                                     exit(130)
                             else:
-                                result = subprocess.run(
+                                commands = [
                                     [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                     f"torchvision=={_TORCHVISION_VERSION}", "--extra-index-url",
-                                     f"{_TORCH_INDEX_URL}"], stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, )
-                                output = result.stdout.decode() + result.stderr.decode()
-                                logging.debug(output)
+                                     f"torchvision=={_TORCHVISION_VERSION}",
+                                     "--extra-index-url", f"{_TORCH_INDEX_URL}"],
+                                ]
 
                                 if torch_version == '2':
-                                    result = subprocess.run(
+                                    commands.extend([
                                         [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE, )
-                                    # Get the output and errors from the process in real-time
-                                    for line in result.stdout.decode().splitlines():
-                                        logging.debug(line)
-                                    for line in result.stderr.decode().splitlines():
-                                        logging.debug(line)
-
-                                    result = subprocess.run(
                                         [sys.executable, "-m", "pip", "install", "--upgrade",
                                          f"xformers=={XFORMERS_VERSION_2}"],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE, )
-                                    # Get the output and errors from the process in real-time
-                                    for line in result.stdout.decode().splitlines():
-                                        logging.debug(line)
-                                    for line in result.stderr.decode().splitlines():
-                                        logging.debug(line)
+                                    ])
+
+                                for idx, command in enumerate(commands):
+                                    package_name = "unknown package"
+                                    try:
+                                        # Find the index of "install" in the command and assume the package name
+                                        # is the next argument
+                                        install_index = command.index("install")
+                                        package_name = command[install_index + 1]
+                                        if package_name.startswith(f"{TRITON_URL_2}"):
+                                            package_name = "Triton"
+                                        if package_name == "--upgrade":
+                                            package_name = command[install_index + 2]
+
+                                        # Remove version specifier if present
+                                        package_name = package_name.split('==')[0]
+                                    except ValueError:
+                                        pass
+
+                                    try:
+                                        safe_subprocess_run(command)
+                                    except subprocess.CalledProcessError as _e:
+                                        print(
+                                            f"\nError occurred during the installation of {package_name}. "
+                                            f"Exit code: {_e.returncode}")
+                                        logging.debug(
+                                            f"Error occurred during the installation of {package_name}. "
+                                            f"Exit code: {_e.returncode}")
+                                        exit(1)
 
                     if os_info.family == "macOS":
                         macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
@@ -1522,26 +1553,27 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                         for package in f:
                             package_name = package.strip().split('==')[0]
                             progress_bar.set_description(f"Installing {package_name}")
-                            try:
-                                if args.verbosity < 3:
-                                    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade",
-                                                    "--quiet", "--use-pep517", "--no-warn-script-location", package],
-                                                   stderr=subprocess.DEVNULL)
+
+                            command = [sys.executable, "-m", "pip", "install", "--upgrade",
+                                       "--use-pep517", "--no-warn-script-location", package]
+
+                            if args.verbosity < 3:
+                                command.append("--quiet")
+                                try:
+                                    safe_subprocess_run(command)
                                     write_to_log(f"Installing {package_name}.")
-                                else:
-                                    result = subprocess.run(
-                                        [sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
-                                         "--no-warn-script-location", package],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                    )
-                                    output = result.stdout.decode() + result.stderr.decode()
+                                except subprocess.CalledProcessError as _e:
+                                    logging.error(f"An error occurred during pip operations: {str(_e)}")
+                                    exit(1)
+                            else:
+                                try:
+                                    safe_subprocess_run(command)
+                                except subprocess.CalledProcessError as _e:
+                                    output = _e.output
                                     logging.debug(output)
-                            except subprocess.CalledProcessError as _e:
-                                if args.verbosity > 3:
-                                    logging.debug(f"Failed to install {package}. Error code {_e.returncode}")
-                            finally:
-                                progress_bar.update(1)
+                                    logging.error(f"An error occurred during pip operations: {str(_e)}")
+                                    exit(1)
+                            progress_bar.update(1)
 
             # Get the scripts directory based on the operating system
             if os_info.family == "Windows":
