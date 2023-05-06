@@ -30,6 +30,7 @@ from library.tensorboard_gui import (
 )
 from library.utilities import utilities_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -351,18 +352,27 @@ def train_model(
     wandb_api_key,
 ):
     headless_bool = True if headless.get('label') == 'True' else False
-    
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
+
+    if check_if_model_exist(
+        output_name, output_dir, save_model_as, headless_bool
+    ):
         return
-        
-    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
-        output_message(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error', headless=headless_bool)
+
+    if float(noise_offset) > 0 and (
+        multires_noise_iterations > 0 or multires_noise_discount > 0
+    ):
+        output_message(
+            msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
+            title='Error',
+            headless=headless_bool,
+        )
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
         output_message(
             msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning', headless=headless_bool
+            title='Warning',
+            headless=headless_bool,
         )
         lr_warmup = '0'
 
@@ -595,7 +605,9 @@ def finetune_tab(headless=False):
                 placeholder='folder where the training configuration files will be saved',
             )
             train_dir_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             train_dir_folder.click(
                 get_folder_path,
@@ -608,7 +620,9 @@ def finetune_tab(headless=False):
                 placeholder='folder where the training images are located',
             )
             image_folder_input_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             image_folder_input_folder.click(
                 get_folder_path,
@@ -621,7 +635,9 @@ def finetune_tab(headless=False):
                 placeholder='folder where the model will be saved',
             )
             output_dir_input_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             output_dir_input_folder.click(
                 get_folder_path,
@@ -634,7 +650,9 @@ def finetune_tab(headless=False):
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
             logging_dir_input_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             logging_dir_input_folder.click(
                 get_folder_path,
@@ -904,7 +922,7 @@ def finetune_tab(headless=False):
 
 def UI(**kwargs):
     css = ''
-    
+
     headless = kwargs.get('headless', False)
     print(f'headless: {headless}')
 

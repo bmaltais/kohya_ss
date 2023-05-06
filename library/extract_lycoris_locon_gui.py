@@ -138,7 +138,9 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 interactive=True,
             )
             button_db_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_db_model_file.click(
                 get_file_path,
@@ -153,7 +155,9 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 interactive=True,
             )
             button_base_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_base_model_file.click(
                 get_file_path,
@@ -168,7 +172,9 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 interactive=True,
             )
             button_output_name = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_output_name.click(
                 get_saveasfilename_path,
@@ -217,7 +223,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.65,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the smaller the file. Recommended starting value: 0.65'
+                info='The higher the value, the smaller the file. Recommended starting value: 0.65',
             )
             conv_threshold = gr.Slider(
                 minimum=0,
@@ -226,7 +232,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.65,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the smaller the file. Recommended starting value: 0.65'
+                info='The higher the value, the smaller the file. Recommended starting value: 0.65',
             )
         with gr.Row(visible=False) as ratio:
             linear_ratio = gr.Slider(
@@ -236,7 +242,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.75,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the smaller the file. Recommended starting value: 0.75'
+                info='The higher the value, the smaller the file. Recommended starting value: 0.75',
             )
             conv_ratio = gr.Slider(
                 minimum=0,
@@ -245,7 +251,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.75,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the smaller the file. Recommended starting value: 0.75'
+                info='The higher the value, the smaller the file. Recommended starting value: 0.75',
             )
         with gr.Row(visible=False) as quantile:
             linear_quantile = gr.Slider(
@@ -255,7 +261,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.75,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the larger the file. Recommended starting value: 0.75'
+                info='The higher the value, the larger the file. Recommended starting value: 0.75',
             )
             conv_quantile = gr.Slider(
                 minimum=0,
@@ -264,7 +270,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=0.75,
                 step=0.01,
                 interactive=True,
-                info='The higher the value, the larger the file. Recommended starting value: 0.75'
+                info='The higher the value, the larger the file. Recommended starting value: 0.75',
             )
         with gr.Row():
             use_sparse_bias = gr.Checkbox(

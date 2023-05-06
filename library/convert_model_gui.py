@@ -68,12 +68,12 @@ def convert_model(
 
     if target_model_type == 'diffuser_safetensors':
         run_cmd += ' --use_safetensors'
-    
+
     # Fix for stabilityAI diffusers format. When saving v2 models in Diffusers format in training scripts and conversion scripts,
-    # it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is 
+    # it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is
     # "use_linear_projection": false, stabilityai is true). Please note that the weight shapes are different, so please be careful
     # when using the weight files directly.
-    
+
     if unet_use_linear_projection:
         run_cmd += ' --unet_use_linear_projection'
 
@@ -176,7 +176,9 @@ def gradio_convert_model_tab(headless=False):
                 interactive=True,
             )
             button_source_model_dir = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_source_model_dir.click(
                 get_folder_path,
@@ -185,7 +187,9 @@ def gradio_convert_model_tab(headless=False):
             )
 
             button_source_model_file = gr.Button(
-                document_symbol, elem_id='open_folder_small', visible=(not headless)
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_source_model_file.click(
                 get_file_path,
@@ -212,7 +216,9 @@ def gradio_convert_model_tab(headless=False):
                 interactive=True,
             )
             button_target_model_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_target_model_folder.click(
                 get_folder_path,
@@ -239,7 +245,11 @@ def gradio_convert_model_tab(headless=False):
                 choices=['unspecified', 'fp16', 'bf16', 'float'],
                 value='unspecified',
             )
-            unet_use_linear_projection = gr.Checkbox(label="UNet linear projection", value=False, info="Enable for Hugging Face's stabilityai models")
+            unet_use_linear_projection = gr.Checkbox(
+                label='UNet linear projection',
+                value=False,
+                info="Enable for Hugging Face's stabilityai models",
+            )
 
         convert_button = gr.Button('Convert model')
 

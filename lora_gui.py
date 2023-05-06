@@ -4,6 +4,7 @@
 # v3.1: Adding captionning of images to utilities
 
 import gradio as gr
+
 # import easygui
 import json
 import math
@@ -45,6 +46,7 @@ from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -75,7 +77,8 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,cache_latents_to_disk,
+    cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -211,7 +214,8 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,cache_latents_to_disk,
+    cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -318,7 +322,6 @@ def open_configuration(
     return tuple(values)
 
 
-
 def train_model(
     headless,
     print_only,
@@ -340,7 +343,8 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
-    cache_latents,cache_latents_to_disk,
+    cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -414,39 +418,62 @@ def train_model(
     headless_bool = True if headless.get('label') == 'True' else False
 
     if pretrained_model_name_or_path == '':
-        output_message(msg='Source model information is missing', headless=headless_bool)
+        output_message(
+            msg='Source model information is missing', headless=headless_bool
+        )
         return
 
     if train_data_dir == '':
-        output_message(msg='Image folder path is missing', headless=headless_bool)
+        output_message(
+            msg='Image folder path is missing', headless=headless_bool
+        )
         return
 
     if not os.path.exists(train_data_dir):
-        output_message(msg='Image folder does not exist', headless=headless_bool)
+        output_message(
+            msg='Image folder does not exist', headless=headless_bool
+        )
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            output_message(msg='Regularisation folder does not exist', headless=headless_bool)
+            output_message(
+                msg='Regularisation folder does not exist',
+                headless=headless_bool,
+            )
             return
 
     if output_dir == '':
-        output_message(msg='Output folder path is missing', headless=headless_bool)
+        output_message(
+            msg='Output folder path is missing', headless=headless_bool
+        )
         return
 
     if int(bucket_reso_steps) < 1:
-        output_message(msg='Bucket resolution steps need to be greater than 0', headless=headless_bool)
+        output_message(
+            msg='Bucket resolution steps need to be greater than 0',
+            headless=headless_bool,
+        )
         return
-    
+
     if noise_offset == '':
         noise_offset = 0
-        
+
     if float(noise_offset) > 1 or float(noise_offset) < 0:
-        output_message(msg='Noise offset need to be a value between 0 and 1', headless=headless_bool)
+        output_message(
+            msg='Noise offset need to be a value between 0 and 1',
+            headless=headless_bool,
+        )
         return
-    
-    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
-        output_message(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error', headless=headless_bool)
+
+    if float(noise_offset) > 0 and (
+        multires_noise_iterations > 0 or multires_noise_discount > 0
+    ):
+        output_message(
+            msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
+            title='Error',
+            headless=headless_bool,
+        )
         return
 
     if not os.path.exists(output_dir):
@@ -454,17 +481,21 @@ def train_model(
 
     if stop_text_encoder_training_pct > 0:
         output_message(
-            msg='Output "stop text encoder training" is not yet supported. Ignoring', headless=headless_bool
+            msg='Output "stop text encoder training" is not yet supported. Ignoring',
+            headless=headless_bool,
         )
         stop_text_encoder_training_pct = 0
 
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless=headless_bool):
+    if check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless_bool
+    ):
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
         output_message(
             msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning', headless=headless_bool
+            title='Warning',
+            headless=headless_bool,
         )
         lr_warmup = '0'
 
@@ -677,7 +708,10 @@ def train_model(
             run_cmd += f' --network_train_unet_only'
     else:
         if float(learning_rate) == 0:
-            output_message(msg='Please input learning rate values.', headless=headless_bool)
+            output_message(
+                msg='Please input learning rate values.',
+                headless=headless_bool,
+            )
             return
 
     run_cmd += f' --network_dim={network_dim}'
@@ -800,12 +834,12 @@ def lora_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
-    headless=False
+    headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    
+
     gr.Markdown(
         'Train a custom model using kohya train network LoRA python code...'
     )
@@ -827,7 +861,8 @@ def lora_tab(
         save_model_as_choices=[
             'ckpt',
             'safetensors',
-        ], headless=headless
+        ],
+        headless=headless,
     )
 
     with gr.Tab('Folders'):
@@ -836,7 +871,9 @@ def lora_tab(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+            train_data_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             train_data_dir_folder.click(
                 get_folder_path,
                 outputs=train_data_dir,
@@ -846,7 +883,9 @@ def lora_tab(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+            reg_data_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             reg_data_dir_folder.click(
                 get_folder_path,
                 outputs=reg_data_dir,
@@ -857,7 +896,9 @@ def lora_tab(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+            output_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             output_dir_folder.click(
                 get_folder_path,
                 outputs=output_dir,
@@ -867,7 +908,9 @@ def lora_tab(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+            logging_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             logging_dir_folder.click(
                 get_folder_path,
                 outputs=logging_dir,
@@ -924,7 +967,9 @@ def lora_tab(
                 placeholder='{Optional) Path to existing LoRA network weights to resume training',
             )
             lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small', visible=(not headless)
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             lora_network_weights_file.click(
                 get_any_file_path,
@@ -944,7 +989,8 @@ def lora_tab(
             num_cpu_threads_per_process,
             seed,
             caption_extension,
-            cache_latents,cache_latents_to_disk,
+            cache_latents,
+            cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(
@@ -1240,7 +1286,8 @@ def lora_tab(
         save_precision,
         seed,
         num_cpu_threads_per_process,
-        cache_latents,cache_latents_to_disk,
+        cache_latents,
+        cache_latents_to_disk,
         caption_extension,
         enable_bucket,
         gradient_checkpointing,
@@ -1361,7 +1408,7 @@ def lora_tab(
 
 def UI(**kwargs):
     css = ''
-    
+
     headless = kwargs.get('headless', False)
     print(f'headless: {headless}')
 
@@ -1389,7 +1436,7 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
-                headless=headless
+                headless=headless,
             )
 
     # Show the interface

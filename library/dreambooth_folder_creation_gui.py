@@ -114,7 +114,7 @@ def gradio_dreambooth_folder_creation_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
-    headless=False
+    headless=False,
 ):
     with gr.Tab('Dreambooth/LoRA Folder preparation'):
         gr.Markdown(

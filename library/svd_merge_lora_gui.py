@@ -85,7 +85,9 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_a_model_file.click(
                 get_file_path,
@@ -100,7 +102,9 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             button_lora_b_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_b_model_file.click(
                 get_file_path,
@@ -141,7 +145,9 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,

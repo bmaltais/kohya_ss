@@ -35,11 +35,15 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
 
-def check_if_model_exist(output_name, output_dir, save_model_as, headless=False):
+def check_if_model_exist(
+    output_name, output_dir, save_model_as, headless=False
+):
     if headless:
-        print('Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...')
+        print(
+            'Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...'
+        )
         return False
-    
+
     if save_model_as in ['diffusers', 'diffusers_safetendors']:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
@@ -66,11 +70,13 @@ def check_if_model_exist(output_name, output_dir, save_model_as, headless=False)
 
     return False
 
+
 def output_message(msg='', title='', headless=False):
     if headless:
         print(msg)
     else:
         msgbox(msg=msg, title=title)
+
 
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
@@ -95,7 +101,7 @@ def update_my_data(my_data):
             my_data[key] = int(value)
         elif not value:
             my_data[key] = -1
-            
+
     # Convert values to float if they are strings
     for key in ['noise_offset', 'learning_rate', 'text_encoder_lr', 'unet_lr']:
         value = my_data.get(key, -1)
@@ -347,11 +353,11 @@ def add_pre_postfix(
         caption_file_path = os.path.join(folder, caption_file_name)
 
         if not os.path.exists(caption_file_path):
-            with open(caption_file_path, 'w', encoding="utf8") as f:
+            with open(caption_file_path, 'w', encoding='utf8') as f:
                 separator = ' ' if prefix and postfix else ''
                 f.write(f'{prefix}{separator}{postfix}')
         else:
-            with open(caption_file_path, 'r+', encoding="utf8") as f:
+            with open(caption_file_path, 'r+', encoding='utf8') as f:
                 content = f.read()
                 content = content.rstrip()
                 f.seek(0, 0)
@@ -541,8 +547,12 @@ def set_model_list(
 def gradio_config(headless=False):
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder', visible=(not headless))
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder', visible=(not headless))
+            button_open_config = gr.Button(
+                'Open 📂', elem_id='open_folder', visible=(not headless)
+            )
+            button_save_config = gr.Button(
+                'Save 💾', elem_id='open_folder', visible=(not headless)
+            )
             button_save_as_config = gr.Button(
                 'Save as... 💾', elem_id='open_folder', visible=(not headless)
             )
@@ -583,7 +593,7 @@ def gradio_source_model(
         'diffusers_safetensors',
         'safetensors',
     ],
-    headless=False
+    headless=False,
 ):
     with gr.Tab('Source model'):
         # Define the input elements
@@ -594,7 +604,9 @@ def gradio_source_model(
                 value='runwayml/stable-diffusion-v1-5',
             )
             pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small', visible=(not headless)
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             pretrained_model_name_or_path_file.click(
                 get_any_file_path,
@@ -603,7 +615,9 @@ def gradio_source_model(
                 show_progress=False,
             )
             pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small', visible=(not headless)
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             pretrained_model_name_or_path_folder.click(
                 get_folder_path,
@@ -758,7 +772,11 @@ def gradio_training(
             value=lr_scheduler_value,
         )
         lr_warmup = gr.Slider(
-            label='LR warmup (% of steps)', value=lr_warmup_value, minimum=0, maximum=100, step=1,
+            label='LR warmup (% of steps)',
+            value=lr_warmup_value,
+            minimum=0,
+            maximum=100,
+            step=1,
         )
         optimizer = gr.Dropdown(
             label='Optimizer',
@@ -923,13 +941,28 @@ def gradio_advanced_training(headless=False):
         )
     with gr.Row():
         noise_offset = gr.Slider(
-            label='Noise offset', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.05 - 0.15'
+            label='Noise offset',
+            value=0,
+            minimum=0,
+            maximum=1,
+            step=0.01,
+            info='recommended values are 0.05 - 0.15',
         )
         multires_noise_iterations = gr.Slider(
-            label='Multires noise iterations', value=0, minimum=0, maximum=64, step=1, info='enable multires noise (recommended values are 6-10)'
+            label='Multires noise iterations',
+            value=0,
+            minimum=0,
+            maximum=64,
+            step=1,
+            info='enable multires noise (recommended values are 6-10)',
         )
         multires_noise_discount = gr.Slider(
-            label='Multires noise discount', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3'
+            label='Multires noise discount',
+            value=0,
+            minimum=0,
+            maximum=1,
+            step=0.01,
+            info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
         )
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
@@ -947,7 +980,9 @@ def gradio_advanced_training(headless=False):
             label='Resume from saved training state',
             placeholder='path to "last-state" state folder to resume from',
         )
-        resume_button = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+        resume_button = gr.Button(
+            '📂', elem_id='open_folder_small', visible=(not headless)
+        )
         resume_button.click(
             get_folder_path,
             outputs=resume,
@@ -1015,69 +1050,50 @@ def run_cmd_advanced_training(**kwargs):
         f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
         if kwargs.get('max_train_epochs')
         else '',
-        
         f' --max_data_loader_n_workers="{kwargs.get("max_data_loader_n_workers", "")}"'
         if kwargs.get('max_data_loader_n_workers')
         else '',
-        
         f' --max_token_length={kwargs.get("max_token_length", "")}'
         if int(kwargs.get('max_token_length', 75)) > 75
         else '',
-        
         f' --clip_skip={kwargs.get("clip_skip", "")}'
         if int(kwargs.get('clip_skip', 1)) > 1
         else '',
-        
         f' --resume="{kwargs.get("resume", "")}"'
         if kwargs.get('resume')
         else '',
-        
         f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
         if int(kwargs.get('keep_tokens', 0)) > 0
         else '',
-        
         f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
         if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
         else '',
-        
         f' --caption_dropout_rate="{float(kwargs.get("caption_dropout_rate", 0))}"'
         if float(kwargs.get('caption_dropout_rate', 0)) > 0
         else '',
-        
         f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
         if int(kwargs.get('vae_batch_size', 0)) > 0
         else '',
-        
         f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
         if int(kwargs.get('bucket_reso_steps', 64)) >= 1
         else '',
-        
         f' --save_every_n_steps="{int(kwargs.get("save_every_n_steps", 0))}"'
         if int(kwargs.get('save_every_n_steps')) > 0
         else '',
-        
         f' --save_last_n_steps="{int(kwargs.get("save_last_n_steps", 0))}"'
         if int(kwargs.get('save_last_n_steps')) > 0
         else '',
-        
         f' --save_last_n_steps_state="{int(kwargs.get("save_last_n_steps_state", 0))}"'
         if int(kwargs.get('save_last_n_steps_state')) > 0
         else '',
-        
         f' --min_snr_gamma={int(kwargs.get("min_snr_gamma", 0))}'
         if int(kwargs.get('min_snr_gamma', 0)) >= 1
         else '',
-        
         ' --save_state' if kwargs.get('save_state') else '',
-        
         ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
-        
         ' --color_aug' if kwargs.get('color_aug') else '',
-        
         ' --flip_aug' if kwargs.get('flip_aug') else '',
-        
         ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
-        
         ' --gradient_checkpointing'
         if kwargs.get('gradient_checkpointing')
         else '',
@@ -1089,28 +1105,21 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
         ' --random_crop' if kwargs.get('random_crop') else '',
-        
         f' --multires_noise_iterations="{int(kwargs.get("multires_noise_iterations", 0))}"'
         if kwargs.get('multires_noise_iterations', 0) > 0
         else '',
-        
         f' --multires_noise_discount="{float(kwargs.get("multires_noise_discount", 0.0))}"'
         if kwargs.get('multires_noise_discount', 0) > 0
         else '',
-        
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
         if kwargs.get('noise_offset') > 0
         else '',
-        
         f' {kwargs.get("additional_parameters", "")}',
-        
-        
         ' --log_with wandb' if kwargs.get('use_wandb') else '',
-        
         f' --wandb_api_key="{kwargs.get("wandb_api_key", "")}"'
         if kwargs.get('wandb_api_key')
         else '',
     ]
-    
+
     run_cmd = ''.join(options)
     return run_cmd

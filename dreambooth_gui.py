@@ -39,6 +39,7 @@ from library.dreambooth_folder_creation_gui import (
 )
 from library.utilities import utilities_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -340,39 +341,60 @@ def train_model(
     wandb_api_key,
 ):
     headless_bool = True if headless.get('label') == 'True' else False
-    
+
     if pretrained_model_name_or_path == '':
-        output_message(msg='Source model information is missing', headless=headless_bool)
+        output_message(
+            msg='Source model information is missing', headless=headless_bool
+        )
         return
 
     if train_data_dir == '':
-        output_message(msg='Image folder path is missing', headless=headless_bool)
+        output_message(
+            msg='Image folder path is missing', headless=headless_bool
+        )
         return
 
     if not os.path.exists(train_data_dir):
-        output_message(msg='Image folder does not exist', headless=headless_bool)
+        output_message(
+            msg='Image folder does not exist', headless=headless_bool
+        )
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            output_message(msg='Regularisation folder does not exist', headless=headless_bool)
+            output_message(
+                msg='Regularisation folder does not exist',
+                headless=headless_bool,
+            )
             return
 
     if output_dir == '':
-        output_message(msg='Output folder path is missing', headless=headless_bool)
+        output_message(
+            msg='Output folder path is missing', headless=headless_bool
+        )
         return
 
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless=headless_bool):
+    if check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless_bool
+    ):
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
-        output_message(msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning', headless=headless_bool
+        output_message(
+            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+            title='Warning',
+            headless=headless_bool,
         )
         lr_warmup = '0'
-        
-    if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
-        output_message(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error', headless=headless_bool)
+
+    if float(noise_offset) > 0 and (
+        multires_noise_iterations > 0 or multires_noise_discount > 0
+    ):
+        output_message(
+            msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
+            title='Error',
+            headless=headless_bool,
+        )
         return
 
     # Get a list of all subfolders in train_data_dir, excluding hidden folders
@@ -602,7 +624,7 @@ def dreambooth_tab(
     reg_data_dir=gr.Textbox(),
     output_dir=gr.Textbox(),
     logging_dir=gr.Textbox(),
-    headless=False
+    headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -753,7 +775,9 @@ def dreambooth_tab(
                     label='VAE',
                     placeholder='(Optiona) path to checkpoint of vae to replace for training',
                 )
-                vae_button = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+                vae_button = gr.Button(
+                    '📂', elem_id='open_folder_small', visible=(not headless)
+                )
                 vae_button.click(
                     get_any_file_path,
                     outputs=vae,
@@ -950,7 +974,7 @@ def dreambooth_tab(
 
 def UI(**kwargs):
     css = ''
-    
+
     headless = kwargs.get('headless', False)
     print(f'headless: {headless}')
 
@@ -978,7 +1002,7 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
-                headless=headless
+                headless=headless,
             )
 
     # Show the interface

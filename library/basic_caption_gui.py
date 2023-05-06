@@ -79,7 +79,9 @@ def gradio_basic_caption_gui_tab(headless=False):
                 placeholder='Directory containing the images to caption',
                 interactive=True,
             )
-            folder_button = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
+            folder_button = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             folder_button.click(
                 get_folder_path,
                 outputs=images_dir,

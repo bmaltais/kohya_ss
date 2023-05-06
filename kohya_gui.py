@@ -82,7 +82,7 @@ def setup_logging(clean=False):
 
 def UI(**kwargs):
     css = ''
-    
+
     headless = kwargs.get('headless', False)
     print(f'headless: {headless}')
 
@@ -116,7 +116,7 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
-                headless=headless
+                headless=headless,
             )
             gradio_extract_dylora_tab(headless=headless)
             gradio_extract_lora_tab(headless=headless)
