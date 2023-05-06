@@ -8,6 +8,7 @@
 
 # Ensure CRLF line endings for .bat files
 *.bat text eol=crlf
+*.cmd text eol=crlf
 
 # Set default line endings to LF
 * text eol=lf
