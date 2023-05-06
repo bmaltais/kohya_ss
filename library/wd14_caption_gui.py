@@ -5,24 +5,20 @@ from .common_gui import get_folder_path
 import os
 
 
-def replace_underscore_with_space(folder_path, file_extension):
-    for file_name in os.listdir(folder_path):
-        if file_name.endswith(file_extension):
-            file_path = os.path.join(folder_path, file_name)
-            with open(file_path, 'r') as file:
-                file_content = file.read()
-            new_file_content = file_content.replace('_', ' ')
-            with open(file_path, 'w') as file:
-                file.write(new_file_content)
-
 def caption_images(
-    train_data_dir, caption_extension, batch_size, thresh, replace_underscores
+    train_data_dir,
+    caption_extension,
+    batch_size,
+    general_threshold,
+    character_threshold,
+    replace_underscores,
+    model,
+    recursive,
+    max_data_loader_n_workers,
+    debug,
+    undesired_tags,
+    frequency_tags,
 ):
-    # Check for caption_text_input
-    # if caption_text_input == "":
-    #     msgbox("Caption text is missing...")
-    #     return
-
     # Check for images_dir_input
     if train_data_dir == '':
         msgbox('Image folder is missing...')
@@ -34,9 +30,26 @@ def caption_images(
 
     print(f'Captioning files in {train_data_dir}...')
     run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
-    run_cmd += f' --batch_size="{int(batch_size)}"'
-    run_cmd += f' --thresh="{thresh}"'
+    run_cmd += f' --batch_size={int(batch_size)}'
+    run_cmd += f' --general_threshold={general_threshold}'
+    run_cmd += f' --character_threshold={character_threshold}'
     run_cmd += f' --caption_extension="{caption_extension}"'
+    run_cmd += f' --model="{model}"'
+    run_cmd += (
+        f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
+    )
+
+    if recursive:
+        run_cmd += f' --recursive'
+    if debug:
+        run_cmd += f' --debug'
+    if replace_underscores:
+        run_cmd += f' --remove_underscore'
+    if frequency_tags:
+        run_cmd += f' --frequency_tags'
+
+    if not undesired_tags == '':
+        run_cmd += f' --undesired_tags="{undesired_tags}"'
     run_cmd += f' "{train_data_dir}"'
 
     print(run_cmd)
@@ -46,9 +59,6 @@ def caption_images(
         os.system(run_cmd)
     else:
         subprocess.run(run_cmd)
-        
-    if replace_underscores:
-        replace_underscore_with_space(train_data_dir, caption_extension)
 
     print('...captioning done')
 
@@ -58,11 +68,14 @@ def caption_images(
 ###
 
 
-def gradio_wd14_caption_gui_tab():
+def gradio_wd14_caption_gui_tab(headless=False):
     with gr.Tab('WD14 Captioning'):
         gr.Markdown(
             'This utility will use WD14 to caption files for each images in a folder.'
         )
+
+        # Input Settings
+        # with gr.Section('Input Settings'):
         with gr.Row():
             train_data_dir = gr.Textbox(
                 label='Image folder to caption',
@@ -70,7 +83,7 @@ def gradio_wd14_caption_gui_tab():
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,
@@ -84,16 +97,74 @@ def gradio_wd14_caption_gui_tab():
                 value='.txt',
                 interactive=True,
             )
-            thresh = gr.Number(value=0.35, label='Threshold')
 
-            batch_size = gr.Number(
-                value=1, label='Batch size', interactive=True
-            )
+        undesired_tags = gr.Textbox(
+            label='Undesired tags',
+            placeholder='(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`.',
+            interactive=True,
+        )
 
+        with gr.Row():
             replace_underscores = gr.Checkbox(
                 label='Replace underscores in filenames with spaces',
-                value=False,
+                value=True,
                 interactive=True,
+            )
+            recursive = gr.Checkbox(
+                label='Recursive',
+                value=False,
+                info='Tag subfolders images as well',
+            )
+
+            debug = gr.Checkbox(
+                label='Verbose logging',
+                value=True,
+                info='Debug while tagging, it will print your image file with general tags and character tags.',
+            )
+            frequency_tags = gr.Checkbox(
+                label='Show tags frequency',
+                value=True,
+                info='Show frequency of tags for images.',
+            )
+
+        # Model Settings
+        with gr.Row():
+            model = gr.Dropdown(
+                label='Model',
+                choices=[
+                    'SmilingWolf/wd-v1-4-convnext-tagger-v2',
+                    'SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
+                    'SmilingWolf/wd-v1-4-vit-tagger-v2',
+                    'SmilingWolf/wd-v1-4-swinv2-tagger-v2',
+                ],
+                value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
+            )
+
+            general_threshold = gr.Slider(
+                value=0.35,
+                label='General threshold',
+                info='Adjust `general_threshold` for pruning tags (less tags, less flexible)',
+                minimum=0,
+                maximum=1,
+                step=0.05,
+            )
+            character_threshold = gr.Slider(
+                value=0.35,
+                label='Character threshold',
+                info='useful if you want to train with characte',
+                minimum=0,
+                maximum=1,
+                step=0.05,
+            )
+
+        # Advanced Settings
+        with gr.Row():
+            batch_size = gr.Number(
+                value=8, label='Batch size', interactive=True
+            )
+
+            max_data_loader_n_workers = gr.Number(
+                value=2, label='Max dataloader workers', interactive=True
             )
 
         caption_button = gr.Button('Caption images')
@@ -104,8 +175,15 @@ def gradio_wd14_caption_gui_tab():
                 train_data_dir,
                 caption_extension,
                 batch_size,
-                thresh,
+                general_threshold,
+                character_threshold,
                 replace_underscores,
+                model,
+                recursive,
+                max_data_loader_n_workers,
+                debug,
+                undesired_tags,
+                frequency_tags,
             ],
             show_progress=False,
         )

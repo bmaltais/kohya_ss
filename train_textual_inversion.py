@@ -13,13 +13,14 @@ import diffusers
 from diffusers import DDPMScheduler
 
 import library.train_util as train_util
+import library.huggingface_util as huggingface_util
 import library.config_util as config_util
 from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight
+from library.custom_train_functions import apply_snr_weight, pyramid_noise_like
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -97,7 +98,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # Convert the init_word to token_id
     if args.init_word is not None:
@@ -184,10 +185,10 @@ def train(args):
     blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
     train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
 
-    current_epoch = Value('i',0)
-    current_step = Value('i',0)
+    current_epoch = Value("i", 0)
+    current_step = Value("i", 0)
     ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
-    collater = train_util.collater_class(current_epoch,current_step, ds_for_collater)
+    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
 
     # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
     if use_template:
@@ -232,11 +233,13 @@ def train(args):
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
-            train_dataset_group.cache_latents(vae, args.vae_batch_size)
+            train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
         vae.to("cpu")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         gc.collect()
+
+        accelerator.wait_for_everyone()
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -261,7 +264,9 @@ def train(args):
 
     # 学習ステップ数を計算する
     if args.max_train_epochs is not None:
-        args.max_train_steps = args.max_train_epochs * math.ceil(len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps)
+        args.max_train_steps = args.max_train_epochs * math.ceil(
+            len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
+        )
         print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
     # データセット側にも学習ステップを送信
@@ -274,6 +279,9 @@ def train(args):
     text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         text_encoder, optimizer, train_dataloader, lr_scheduler
     )
+
+    # transform DDP after prepare
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
@@ -304,9 +312,7 @@ def train(args):
         text_encoder.to(weight_dtype)
 
     # resumeする
-    if args.resume is not None:
-        print(f"resume training from state: {args.resume}")
-        accelerator.load_state(args.resume)
+    train_util.resume_from_local_or_hf_if_specified(accelerator, args)
 
     # epoch数を計算する
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
@@ -334,11 +340,28 @@ def train(args):
     )
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("textual_inversion")
+        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
 
+    # function for saving/removing
+    def save_model(ckpt_name, embs, steps, epoch_no, force_sync_upload=False):
+        os.makedirs(args.output_dir, exist_ok=True)
+        ckpt_file = os.path.join(args.output_dir, ckpt_name)
+
+        print(f"saving checkpoint: {ckpt_file}")
+        save_weights(ckpt_file, embs, save_dtype)
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
+
+    def remove_model(old_ckpt_name):
+        old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
+        if os.path.exists(old_ckpt_file):
+            print(f"removing old checkpoint: {old_ckpt_file}")
+            os.remove(old_ckpt_file)
+
+    # training loop
     for epoch in range(num_train_epochs):
         print(f"epoch {epoch+1}/{num_train_epochs}")
-        current_epoch.value = epoch+1
+        current_epoch.value = epoch + 1
 
         text_encoder.train()
 
@@ -358,7 +381,7 @@ def train(args):
 
                 # Get the text embedding for conditioning
                 input_ids = batch["input_ids"].to(accelerator.device)
-                # weight_dtype) use float instead of fp16/bf16 because text encoder is float
+                # use float instead of fp16/bf16 because text encoder is float
                 encoder_hidden_states = train_util.get_hidden_states(args, input_ids, tokenizer, text_encoder, torch.float)
 
                 # Sample noise that we'll add to the latents
@@ -366,6 +389,8 @@ def train(args):
                 if args.noise_offset:
                     # https://www.crosslabs.org//blog/diffusion-with-offset-noise
                     noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
@@ -376,7 +401,8 @@ def train(args):
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Predict the noise residual
-                noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+                with accelerator.autocast():
+                    noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
                 if args.v_parameterization:
                     # v-parameterization training
@@ -386,9 +412,9 @@ def train(args):
 
                 loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
                 loss = loss.mean([1, 2, 3])
-                
+
                 if args.min_snr_gamma:
-                  loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
@@ -419,6 +445,23 @@ def train(args):
                     accelerator, args, None, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
                 )
 
+                # 指定ステップごとにモデルを保存
+                if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
+                    accelerator.wait_for_everyone()
+                    if accelerator.is_main_process:
+                        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+
+                        ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
+                        save_model(ckpt_name, updated_embs, global_step, epoch)
+
+                        if args.save_state:
+                            train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
+
+                        remove_step_no = train_util.get_remove_step_no(args, global_step)
+                        if remove_step_no is not None:
+                            remove_ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, remove_step_no)
+                            remove_model(remove_ckpt_name)
+
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
@@ -445,24 +488,18 @@ def train(args):
         updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
-            model_name = train_util.DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
+            saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
+            if accelerator.is_main_process and saving:
+                ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
+                save_model(ckpt_name, updated_embs, epoch + 1, global_step)
 
-            def save_func():
-                ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, epoch + 1) + "." + args.save_model_as
-                ckpt_file = os.path.join(args.output_dir, ckpt_name)
-                print(f"saving checkpoint: {ckpt_file}")
-                save_weights(ckpt_file, updated_embs, save_dtype)
+                remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
+                if remove_epoch_no is not None:
+                    remove_ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, remove_epoch_no)
+                    remove_model(remove_ckpt_name)
 
-            def remove_old_func(old_epoch_no):
-                old_ckpt_name = train_util.EPOCH_FILE_NAME.format(model_name, old_epoch_no) + "." + args.save_model_as
-                old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
-                if os.path.exists(old_ckpt_file):
-                    print(f"removing old checkpoint: {old_ckpt_file}")
-                    os.remove(old_ckpt_file)
-
-            saving = train_util.save_on_epoch_end(args, save_func, remove_old_func, epoch + 1, num_train_epochs)
-            if saving and args.save_state:
-                train_util.save_state_on_epoch_end(args, accelerator, model_name, epoch + 1)
+                if args.save_state:
+                    train_util.save_and_remove_state_on_epoch_end(args, accelerator, epoch + 1)
 
         train_util.sample_images(
             accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet, prompt_replacement
@@ -476,7 +513,7 @@ def train(args):
 
     accelerator.end_training()
 
-    if args.save_state:
+    if args.save_state and is_main_process:
         train_util.save_state_on_train_end(args, accelerator)
 
     updated_embs = text_encoder.get_input_embeddings().weight[token_ids].data.detach().clone()
@@ -484,14 +521,9 @@ def train(args):
     del accelerator  # この後メモリを使うのでこれは消す
 
     if is_main_process:
-        os.makedirs(args.output_dir, exist_ok=True)
+        ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+        save_model(ckpt_name, updated_embs, global_step, num_train_epochs, force_sync_upload=True)
 
-        model_name = train_util.DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-        ckpt_name = model_name + "." + args.save_model_as
-        ckpt_file = os.path.join(args.output_dir, ckpt_name)
-
-        print(f"save trained model to {ckpt_file}")
-        save_weights(ckpt_file, updated_embs, save_dtype)
         print("model saved.")
 
 
@@ -546,7 +578,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_training_arguments(parser, True)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
-    custom_train_functions.add_custom_train_arguments(parser)
+    custom_train_functions.add_custom_train_arguments(parser, False)
 
     parser.add_argument(
         "--save_model_as",

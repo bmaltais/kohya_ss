@@ -2,6 +2,7 @@
 
 import argparse
 import ast
+import asyncio
 import importlib
 import json
 import pathlib
@@ -18,6 +19,7 @@ from typing import (
     Union,
 )
 from accelerate import Accelerator
+import gc
 import glob
 import math
 import os
@@ -29,6 +31,7 @@ import toml
 
 from tqdm import tqdm
 import torch
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torchvision import transforms
 from transformers import CLIPTokenizer
@@ -49,6 +52,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
 )
+from huggingface_hub import hf_hub_download
 import albumentations as albu
 import numpy as np
 from PIL import Image
@@ -58,6 +62,7 @@ from torch import einsum
 import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
+import library.huggingface_util as huggingface_util
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -70,6 +75,11 @@ EPOCH_DIFFUSERS_DIR_NAME = "{}-{:06d}"
 LAST_STATE_NAME = "{}-state"
 DEFAULT_EPOCH_NAME = "epoch"
 DEFAULT_LAST_OUTPUT_NAME = "last"
+
+DEFAULT_STEP_NAME = "at"
+STEP_STATE_NAME = "{}-step{:08d}-state"
+STEP_FILE_NAME = "{}-step{:08d}"
+STEP_DIFFUSERS_DIR_NAME = "{}-step{:08d}"
 
 # region dataset
 
@@ -487,7 +497,7 @@ class BaseDataset(torch.utils.data.Dataset):
         else:
             if subset.shuffle_caption or subset.token_warmup_step > 0 or subset.caption_tag_dropout_rate > 0:
                 tokens = [t.strip() for t in caption.strip().split(",")]
-                if subset.token_warmup_step < 1: # 初回に上書きする
+                if subset.token_warmup_step < 1:  # 初回に上書きする
                     subset.token_warmup_step = math.floor(subset.token_warmup_step * self.max_train_steps)
                 if subset.token_warmup_step and self.current_step < subset.token_warmup_step:
                     tokens_len = (
@@ -719,7 +729,7 @@ class BaseDataset(torch.utils.data.Dataset):
     def is_latent_cacheable(self):
         return all([not subset.color_aug and not subset.random_crop for subset in self.subsets])
 
-    def cache_latents(self, vae, vae_batch_size=1):
+    def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
         # ちょっと速くした
         print("caching latents.")
 
@@ -737,10 +747,37 @@ class BaseDataset(torch.utils.data.Dataset):
             if info.latents_npz is not None:
                 info.latents = self.load_latents_from_npz(info, False)
                 info.latents = torch.FloatTensor(info.latents)
-                info.latents_flipped = self.load_latents_from_npz(info, True)  # might be None
+
+                # might be None, but that's ok because check is done in dataset
+                info.latents_flipped = self.load_latents_from_npz(info, True)
                 if info.latents_flipped is not None:
                     info.latents_flipped = torch.FloatTensor(info.latents_flipped)
                 continue
+
+            # check disk cache exists and size of latents
+            if cache_to_disk:
+                # TODO: refactor to unify with FineTuningDataset
+                info.latents_npz = os.path.splitext(info.absolute_path)[0] + ".npz"
+                info.latents_npz_flipped = os.path.splitext(info.absolute_path)[0] + "_flip.npz"
+                if not is_main_process:
+                    continue
+
+                cache_available = False
+                expected_latents_size = (info.bucket_reso[1] // 8, info.bucket_reso[0] // 8)  # bucket_resoはWxHなので注意
+                if os.path.exists(info.latents_npz):
+                    cached_latents = np.load(info.latents_npz)["arr_0"]
+                    if cached_latents.shape[1:3] == expected_latents_size:
+                        cache_available = True
+
+                        if subset.flip_aug:
+                            cache_available = False
+                            if os.path.exists(info.latents_npz_flipped):
+                                cached_latents_flipped = np.load(info.latents_npz_flipped)["arr_0"]
+                                if cached_latents_flipped.shape[1:3] == expected_latents_size:
+                                    cache_available = True
+
+                if cache_available:
+                    continue
 
             # if last member of batch has different resolution, flush the batch
             if len(batch) > 0 and batch[-1].bucket_reso != info.bucket_reso:
@@ -757,6 +794,9 @@ class BaseDataset(torch.utils.data.Dataset):
         if len(batch) > 0:
             batches.append(batch)
 
+        if cache_to_disk and not is_main_process:  # don't cache latents in non-main process, set to info only
+            return
+
         # iterate batches
         for batch in tqdm(batches, smoothing=1, total=len(batches)):
             images = []
@@ -770,14 +810,21 @@ class BaseDataset(torch.utils.data.Dataset):
             img_tensors = img_tensors.to(device=vae.device, dtype=vae.dtype)
 
             latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
+
             for info, latent in zip(batch, latents):
-                info.latents = latent
+                if cache_to_disk:
+                    np.savez(info.latents_npz, latent.float().numpy())
+                else:
+                    info.latents = latent
 
             if subset.flip_aug:
                 img_tensors = torch.flip(img_tensors, dims=[3])
                 latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
                 for info, latent in zip(batch, latents):
-                    info.latents_flipped = latent
+                    if cache_to_disk:
+                        np.savez(info.latents_npz_flipped, latent.float().numpy())
+                    else:
+                        info.latents_flipped = latent
 
     def get_image_size(self, image_path):
         image = Image.open(image_path)
@@ -805,9 +852,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
         # 画像サイズはsizeより大きいのでリサイズする
         face_size = max(face_w, face_h)
+        size = min(self.height, self.width)  # 短いほう
         min_scale = max(self.height / height, self.width / width)  # 画像がモデル入力サイズぴったりになる倍率（最小の倍率）
-        min_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
-        max_scale = min(1.0, max(min_scale, self.size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
+        min_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[1])))  # 指定した顔最小サイズ
+        max_scale = min(1.0, max(min_scale, size / (face_size * subset.face_crop_aug_range[0])))  # 指定した顔最大サイズ
         if min_scale >= max_scale:  # range指定がmin==max
             scale = min_scale
         else:
@@ -832,7 +880,7 @@ class BaseDataset(torch.utils.data.Dataset):
             else:
                 # range指定があるときのみ、すこしだけランダムに（わりと適当）
                 if subset.face_crop_aug_range[0] != subset.face_crop_aug_range[1]:
-                    if face_size > self.size // 10 and face_size >= 40:
+                    if face_size > size // 10 and face_size >= 40:
                         p1 = p1 + random.randint(-face_size // 20, +face_size // 20)
 
             p1 = max(0, min(p1, length - target_size))
@@ -870,10 +918,10 @@ class BaseDataset(torch.utils.data.Dataset):
             loss_weights.append(self.prior_loss_weight if image_info.is_reg else 1.0)
 
             # image/latentsを処理する
-            if image_info.latents is not None:
+            if image_info.latents is not None:  # cache_latents=Trueの場合
                 latents = image_info.latents if not subset.flip_aug or random.random() < 0.5 else image_info.latents_flipped
                 image = None
-            elif image_info.latents_npz is not None:
+            elif image_info.latents_npz is not None:  # FineTuningDatasetまたはcache_latents_to_disk=Trueの場合
                 latents = self.load_latents_from_npz(image_info, subset.flip_aug and random.random() >= 0.5)
                 latents = torch.FloatTensor(latents)
                 image = None
@@ -950,10 +998,10 @@ class BaseDataset(torch.utils.data.Dataset):
         example["images"] = images
 
         example["latents"] = torch.stack(latents_list) if latents_list[0] is not None else None
+        example["captions"] = captions
 
         if self.debug_dataset:
             example["image_keys"] = bucket[image_index : image_index + self.batch_size]
-            example["captions"] = captions
         return example
 
 
@@ -1160,19 +1208,27 @@ class FineTuningDataset(BaseDataset):
             tags_list = []
             for image_key, img_md in metadata.items():
                 # path情報を作る
+                abs_path = None
+
+                # まず画像を優先して探す
                 if os.path.exists(image_key):
                     abs_path = image_key
-                elif os.path.exists(os.path.splitext(image_key)[0] + ".npz"):
-                    abs_path = os.path.splitext(image_key)[0] + ".npz"
                 else:
-                    npz_path = os.path.join(subset.image_dir, image_key + ".npz")
-                    if os.path.exists(npz_path):
-                        abs_path = npz_path
+                    # わりといい加減だがいい方法が思いつかん
+                    paths = glob_images(subset.image_dir, image_key)
+                    if len(paths) > 0:
+                        abs_path = paths[0]
+
+                # なければnpzを探す
+                if abs_path is None:
+                    if os.path.exists(os.path.splitext(image_key)[0] + ".npz"):
+                        abs_path = os.path.splitext(image_key)[0] + ".npz"
                     else:
-                        # わりといい加減だがいい方法が思いつかん
-                        abs_path = glob_images(subset.image_dir, image_key)
-                        assert len(abs_path) >= 1, f"no image / 画像がありません: {image_key}"
-                        abs_path = abs_path[0]
+                        npz_path = os.path.join(subset.image_dir, image_key + ".npz")
+                        if os.path.exists(npz_path):
+                            abs_path = npz_path
+
+                assert abs_path is not None, f"no image / 画像がありません: {image_key}"
 
                 caption = img_md.get("caption")
                 tags = img_md.get("tags")
@@ -1337,10 +1393,10 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
         for dataset in self.datasets:
             dataset.enable_XTI(*args, **kwargs)
 
-    def cache_latents(self, vae, vae_batch_size=1):
+    def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
         for i, dataset in enumerate(self.datasets):
             print(f"[Dataset {i}]")
-            dataset.cache_latents(vae, vae_batch_size)
+            dataset.cache_latents(vae, vae_batch_size, cache_to_disk, is_main_process)
 
     def is_latent_cacheable(self) -> bool:
         return all([dataset.is_latent_cacheable() for dataset in self.datasets])
@@ -1397,8 +1453,8 @@ def debug_dataset(train_dataset, show_input_ids=False):
                     im = im[:, :, ::-1]  # RGB -> BGR (OpenCV)
                     if os.name == "nt":  # only windows
                         cv2.imshow("img", im)
-                    k = cv2.waitKey()
-                    cv2.destroyAllWindows()
+                        k = cv2.waitKey()
+                        cv2.destroyAllWindows()
                     if k == 27 or k == ord("s") or k == ord("e"):
                         break
             steps += 1
@@ -1440,7 +1496,6 @@ def glob_images_pathlib(dir_path, recursive):
 
 
 # endregion
-
 
 # region モジュール入れ替え部
 """
@@ -1830,7 +1885,7 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
         "--optimizer_type",
         type=str,
         default="",
-        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor",
+        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, Lion, Lion8bit,SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor",
     )
 
     # backward compatibility
@@ -1897,6 +1952,38 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     parser.add_argument("--output_dir", type=str, default=None, help="directory to output trained model / 学習後のモデル出力先ディレクトリ")
     parser.add_argument("--output_name", type=str, default=None, help="base name of trained model file / 学習後のモデルの拡張子を除くファイル名")
     parser.add_argument(
+        "--huggingface_repo_id", type=str, default=None, help="huggingface repo name to upload / huggingfaceにアップロードするリポジトリ名"
+    )
+    parser.add_argument(
+        "--huggingface_repo_type", type=str, default=None, help="huggingface repo type to upload / huggingfaceにアップロードするリポジトリの種類"
+    )
+    parser.add_argument(
+        "--huggingface_path_in_repo",
+        type=str,
+        default=None,
+        help="huggingface model path to upload files / huggingfaceにアップロードするファイルのパス",
+    )
+    parser.add_argument("--huggingface_token", type=str, default=None, help="huggingface token / huggingfaceのトークン")
+    parser.add_argument(
+        "--huggingface_repo_visibility",
+        type=str,
+        default=None,
+        help="huggingface repository visibility ('public' for public, 'private' or None for private) / huggingfaceにアップロードするリポジトリの公開設定（'public'で公開、'private'またはNoneで非公開）",
+    )
+    parser.add_argument(
+        "--save_state_to_huggingface", action="store_true", help="save state to huggingface / huggingfaceにstateを保存する"
+    )
+    parser.add_argument(
+        "--resume_from_huggingface",
+        action="store_true",
+        help="resume from huggingface (ex: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type}) / huggingfaceから学習を再開する(例: --resume {repo_id}/{path_in_repo}:{revision}:{repo_type})",
+    )
+    parser.add_argument(
+        "--async_upload",
+        action="store_true",
+        help="upload to huggingface asynchronously / huggingfaceに非同期でアップロードする",
+    )
+    parser.add_argument(
         "--save_precision",
         type=str,
         default=None,
@@ -1907,17 +1994,37 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--save_every_n_epochs", type=int, default=None, help="save checkpoint every N epochs / 学習中のモデルを指定エポックごとに保存する"
     )
     parser.add_argument(
+        "--save_every_n_steps", type=int, default=None, help="save checkpoint every N steps / 学習中のモデルを指定ステップごとに保存する"
+    )
+    parser.add_argument(
         "--save_n_epoch_ratio",
         type=int,
         default=None,
         help="save checkpoint N epoch ratio (for example 5 means save at least 5 files total) / 学習中のモデルを指定のエポック割合で保存する（たとえば5を指定すると最低5個のファイルが保存される）",
     )
-    parser.add_argument("--save_last_n_epochs", type=int, default=None, help="save last N checkpoints / 最大Nエポック保存する")
+    parser.add_argument(
+        "--save_last_n_epochs",
+        type=int,
+        default=None,
+        help="save last N checkpoints when saving every N epochs (remove older checkpoints) / 指定エポックごとにモデルを保存するとき最大Nエポック保存する（古いチェックポイントは削除する）",
+    )
     parser.add_argument(
         "--save_last_n_epochs_state",
         type=int,
         default=None,
-        help="save last N checkpoints of state (overrides the value of --save_last_n_epochs)/ 最大Nエポックstateを保存する(--save_last_n_epochsの指定を上書きします)",
+        help="save last N checkpoints of state (overrides the value of --save_last_n_epochs)/ 最大Nエポックstateを保存する（--save_last_n_epochsの指定を上書きする）",
+    )
+    parser.add_argument(
+        "--save_last_n_steps",
+        type=int,
+        default=None,
+        help="save checkpoints until N steps elapsed (remove older checkpoints if N steps elapsed) / 指定ステップごとにモデルを保存するとき、このステップ数経過するまで保存する（このステップ数経過したら削除する）",
+    )
+    parser.add_argument(
+        "--save_last_n_steps_state",
+        type=int,
+        default=None,
+        help="save states until N steps elapsed (remove older states if N steps elapsed, overrides --save_last_n_steps) / 指定ステップごとにstateを保存するとき、このステップ数経過するまで保存する（このステップ数経過したら削除する。--save_last_n_stepsを上書きする）",
     )
     parser.add_argument(
         "--save_state",
@@ -1988,12 +2095,43 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="enable logging and output TensorBoard log to this directory / ログ出力を有効にしてこのディレクトリにTensorBoard用のログを出力する",
     )
+    parser.add_argument(
+        "--log_with",
+        type=str,
+        default=None,
+        choices=["tensorboard", "wandb", "all"],
+        help="what logging tool(s) to use (if 'all', TensorBoard and WandB are both used) / ログ出力に使用するツール (allを指定するとTensorBoardとWandBの両方が使用される)",
+    )
     parser.add_argument("--log_prefix", type=str, default=None, help="add prefix for each log directory / ログディレクトリ名の先頭に追加する文字列")
+    parser.add_argument(
+        "--log_tracker_name",
+        type=str,
+        default=None,
+        help="name of tracker to use for logging, default is script-specific default name / ログ出力に使用するtrackerの名前、省略時はスクリプトごとのデフォルト名",
+    )
+    parser.add_argument(
+        "--wandb_api_key",
+        type=str,
+        default=None,
+        help="specify WandB API key to log in before starting training (optional). / WandB APIキーを指定して学習開始前にログインする（オプション）",
+    )
     parser.add_argument(
         "--noise_offset",
         type=float,
         default=None,
         help="enable noise offset with this value (if enabled, around 0.1 is recommended) / Noise offsetを有効にしてこの値を設定する（有効にする場合は0.1程度を推奨）",
+    )
+    parser.add_argument(
+        "--multires_noise_iterations",
+        type=int,
+        default=None,
+        help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
+    )
+    parser.add_argument(
+        "--multires_noise_discount",
+        type=float,
+        default=0.3,
+        help="set discount value for multires noise (has no effect without --multires_noise_iterations) / Multires noiseのdiscount値を設定する（--multires_noise_iterations指定時のみ有効）",
     )
     parser.add_argument(
         "--lowram",
@@ -2061,6 +2199,17 @@ def verify_training_args(args: argparse.Namespace):
     if args.v2 and args.clip_skip is not None:
         print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
+    if args.cache_latents_to_disk and not args.cache_latents:
+        args.cache_latents = True
+        print(
+            "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
+        )
+
+    if args.noise_offset is not None and args.multires_noise_iterations is not None:
+        raise ValueError(
+            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にすることはできません"
+        )
+
 
 def add_dataset_arguments(
     parser: argparse.ArgumentParser, support_dreambooth: bool, support_caption: bool, support_caption_dropout: bool
@@ -2110,9 +2259,14 @@ def add_dataset_arguments(
     parser.add_argument(
         "--cache_latents",
         action="store_true",
-        help="cache latents to reduce memory (augmentations must be disabled) / メモリ削減のためにlatentをcacheする（augmentationは使用不可）",
+        help="cache latents to main memory to reduce VRAM usage (augmentations must be disabled) / VRAM削減のためにlatentをメインメモリにcacheする（augmentationは使用不可） ",
     )
     parser.add_argument("--vae_batch_size", type=int, default=1, help="batch size for caching latents / latentのcache時のバッチサイズ")
+    parser.add_argument(
+        "--cache_latents_to_disk",
+        action="store_true",
+        help="cache latents to disk to reduce VRAM usage (augmentations must be disabled) / VRAM削減のためにlatentをディスクにcacheする（augmentationは使用不可）",
+    )
     parser.add_argument(
         "--enable_bucket", action="store_true", help="enable buckets for multi aspect ratio training / 複数解像度学習のためのbucketを有効にする"
     )
@@ -2204,7 +2358,7 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
         args_dict = vars(args)
 
         # remove unnecessary keys
-        for key in ["config_file", "output_config"]:
+        for key in ["config_file", "output_config", "wandb_api_key"]:
             if key in args_dict:
                 del args_dict[key]
 
@@ -2261,8 +2415,59 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
 # region utils
 
 
+def resume_from_local_or_hf_if_specified(accelerator, args):
+    if not args.resume:
+        return
+
+    if not args.resume_from_huggingface:
+        print(f"resume training from local state: {args.resume}")
+        accelerator.load_state(args.resume)
+        return
+
+    print(f"resume training from huggingface state: {args.resume}")
+    repo_id = args.resume.split("/")[0] + "/" + args.resume.split("/")[1]
+    path_in_repo = "/".join(args.resume.split("/")[2:])
+    revision = None
+    repo_type = None
+    if ":" in path_in_repo:
+        divided = path_in_repo.split(":")
+        if len(divided) == 2:
+            path_in_repo, revision = divided
+            repo_type = "model"
+        else:
+            path_in_repo, revision, repo_type = divided
+    print(f"Downloading state from huggingface: {repo_id}/{path_in_repo}@{revision}")
+
+    list_files = huggingface_util.list_dir(
+        repo_id=repo_id,
+        subfolder=path_in_repo,
+        revision=revision,
+        token=args.huggingface_token,
+        repo_type=repo_type,
+    )
+
+    async def download(filename) -> str:
+        def task():
+            return hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                revision=revision,
+                repo_type=repo_type,
+                token=args.huggingface_token,
+            )
+
+        return await asyncio.get_event_loop().run_in_executor(None, task)
+
+    loop = asyncio.get_event_loop()
+    results = loop.run_until_complete(asyncio.gather(*[download(filename=filename.rfilename) for filename in list_files]))
+    if len(results) == 0:
+        raise ValueError("No files found in the specified repo id/path/revision / 指定されたリポジトリID/パス/リビジョンにファイルが見つかりませんでした")
+    dirname = os.path.dirname(results[0])
+    accelerator.load_state(dirname)
+
+
 def get_optimizer(args, trainable_params):
-    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, Adafactor"
+    # "Optimizer to use: AdamW, AdamW8bit, Lion, Lion8bit, SGDNesterov, SGDNesterov8bit, DAdaptation, Adafactor"
 
     optimizer_type = args.optimizer_type
     if args.use_8bit_adam:
@@ -2338,6 +2543,22 @@ def get_optimizer(args, trainable_params):
             raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
         print(f"use Lion optimizer | {optimizer_kwargs}")
         optimizer_class = lion_pytorch.Lion
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+
+    elif optimizer_type == "Lion8bit".lower():
+        try:
+            import bitsandbytes as bnb
+        except ImportError:
+            raise ImportError("No bitsandbytes / bitsandbytesがインストールされていないようです")
+
+        print(f"use 8-bit Lion optimizer | {optimizer_kwargs}")
+        try:
+            optimizer_class = bnb.optim.Lion8bit
+        except AttributeError:
+            raise AttributeError(
+                "No Lion8bit. The version of bitsandbytes installed seems to be old. Please install 0.38.0 or later. / Lion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.38.0以上をインストールしてください"
+            )
+
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "SGDNesterov".lower():
@@ -2460,7 +2681,7 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
     Unified API to get any scheduler from its name.
     """
     name = args.lr_scheduler
-    num_warmup_steps = args.lr_warmup_steps
+    num_warmup_steps: Optional[int] = args.lr_warmup_steps
     num_training_steps = args.max_train_steps * num_processes * args.gradient_accumulation_steps
     num_cycles = args.lr_scheduler_num_cycles
     power = args.lr_scheduler_power
@@ -2484,6 +2705,11 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
 
             lr_scheduler_kwargs[key] = value
 
+    def wrap_check_needless_num_warmup_steps(return_vals):
+        if num_warmup_steps is not None and num_warmup_steps != 0:
+            raise ValueError(f"{name} does not require `num_warmup_steps`. Set None or 0.")
+        return return_vals
+
     # using any lr_scheduler from other library
     if args.lr_scheduler_type:
         lr_scheduler_type = args.lr_scheduler_type
@@ -2496,7 +2722,7 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
             lr_scheduler_type = values[-1]
         lr_scheduler_class = getattr(lr_scheduler_module, lr_scheduler_type)
         lr_scheduler = lr_scheduler_class(optimizer, **lr_scheduler_kwargs)
-        return lr_scheduler
+        return wrap_check_needless_num_warmup_steps(lr_scheduler)
 
     if name.startswith("adafactor"):
         assert (
@@ -2504,12 +2730,12 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
         ), f"adafactor scheduler must be used with Adafactor optimizer / adafactor schedulerはAdafactorオプティマイザと同時に使ってください"
         initial_lr = float(name.split(":")[1])
         # print("adafactor scheduler init lr", initial_lr)
-        return transformers.optimization.AdafactorSchedule(optimizer, initial_lr)
+        return wrap_check_needless_num_warmup_steps(transformers.optimization.AdafactorSchedule(optimizer, initial_lr))
 
     name = SchedulerType(name)
     schedule_func = TYPE_TO_SCHEDULER_FUNCTION[name]
     if name == SchedulerType.CONSTANT:
-        return schedule_func(optimizer)
+        return wrap_check_needless_num_warmup_steps(schedule_func(optimizer))
 
     # All other schedulers require `num_warmup_steps`
     if num_warmup_steps is None:
@@ -2592,12 +2818,31 @@ def load_tokenizer(args: argparse.Namespace):
 
 def prepare_accelerator(args: argparse.Namespace):
     if args.logging_dir is None:
-        log_with = None
         logging_dir = None
     else:
-        log_with = "tensorboard"
         log_prefix = "" if args.log_prefix is None else args.log_prefix
         logging_dir = args.logging_dir + "/" + log_prefix + time.strftime("%Y%m%d%H%M%S", time.localtime())
+
+    if args.log_with is None:
+        if logging_dir is not None:
+            log_with = "tensorboard"
+        else:
+            log_with = None
+    else:
+        log_with = args.log_with
+        if log_with in ["tensorboard", "all"]:
+            if logging_dir is None:
+                raise ValueError("logging_dir is required when log_with is tensorboard / Tensorboardを使う場合、logging_dirを指定してください")
+        if log_with in ["wandb", "all"]:
+            try:
+                import wandb
+            except ImportError:
+                raise ImportError("No wandb / wandb がインストールされていないようです")
+            if logging_dir is not None:
+                os.makedirs(logging_dir, exist_ok=True)
+                os.environ["WANDB_DIR"] = logging_dir
+            if args.wandb_api_key is not None:
+                wandb.login(key=args.wandb_api_key)
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -2640,7 +2885,7 @@ def prepare_dtype(args: argparse.Namespace):
     return weight_dtype, save_dtype
 
 
-def load_target_model(args: argparse.Namespace, weight_dtype, device='cpu'):
+def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu"):
     name_or_path = args.pretrained_model_name_or_path
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
@@ -2665,6 +2910,36 @@ def load_target_model(args: argparse.Namespace, weight_dtype, device='cpu'):
     if args.vae is not None:
         vae = model_util.load_vae(args.vae, weight_dtype)
         print("additional VAE loaded")
+
+    return text_encoder, vae, unet, load_stable_diffusion_format
+
+
+def transform_if_model_is_DDP(text_encoder, unet, network=None):
+    # Transform text_encoder, unet and network from DistributedDataParallel
+    return (model.module if type(model) == DDP else model for model in [text_encoder, unet, network] if model is not None)
+
+
+def load_target_model(args, weight_dtype, accelerator):
+    # load models for each process
+    for pi in range(accelerator.state.num_processes):
+        if pi == accelerator.state.local_process_index:
+            print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
+
+            text_encoder, vae, unet, load_stable_diffusion_format = _load_target_model(
+                args, weight_dtype, accelerator.device if args.lowram else "cpu"
+            )
+
+            # work on low-ram device
+            if args.lowram:
+                text_encoder.to(accelerator.device)
+                unet.to(accelerator.device)
+                vae.to(accelerator.device)
+
+            gc.collect()
+            torch.cuda.empty_cache()
+        accelerator.wait_for_everyone()
+
+    text_encoder, unet = transform_if_model_is_DDP(text_encoder, unet)
 
     return text_encoder, vae, unet, load_stable_diffusion_format
 
@@ -2724,26 +2999,53 @@ def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encod
     return encoder_hidden_states
 
 
-def get_epoch_ckpt_name(args: argparse.Namespace, use_safetensors, epoch):
-    model_name = DEFAULT_EPOCH_NAME if args.output_name is None else args.output_name
-    ckpt_name = EPOCH_FILE_NAME.format(model_name, epoch) + (".safetensors" if use_safetensors else ".ckpt")
-    return model_name, ckpt_name
+def default_if_none(value, default):
+    return default if value is None else value
 
 
-def save_on_epoch_end(args: argparse.Namespace, save_func, remove_old_func, epoch_no: int, num_train_epochs: int):
-    saving = epoch_no % args.save_every_n_epochs == 0 and epoch_no < num_train_epochs
-    if saving:
-        os.makedirs(args.output_dir, exist_ok=True)
-        save_func()
-
-        if args.save_last_n_epochs is not None:
-            remove_epoch_no = epoch_no - args.save_every_n_epochs * args.save_last_n_epochs
-            remove_old_func(remove_epoch_no)
-    return saving
+def get_epoch_ckpt_name(args: argparse.Namespace, ext: str, epoch_no: int):
+    model_name = default_if_none(args.output_name, DEFAULT_EPOCH_NAME)
+    return EPOCH_FILE_NAME.format(model_name, epoch_no) + ext
 
 
-def save_sd_model_on_epoch_end(
+def get_step_ckpt_name(args: argparse.Namespace, ext: str, step_no: int):
+    model_name = default_if_none(args.output_name, DEFAULT_STEP_NAME)
+    return STEP_FILE_NAME.format(model_name, step_no) + ext
+
+
+def get_last_ckpt_name(args: argparse.Namespace, ext: str):
+    model_name = default_if_none(args.output_name, DEFAULT_LAST_OUTPUT_NAME)
+    return model_name + ext
+
+
+def get_remove_epoch_no(args: argparse.Namespace, epoch_no: int):
+    if args.save_last_n_epochs is None:
+        return None
+
+    remove_epoch_no = epoch_no - args.save_every_n_epochs * args.save_last_n_epochs
+    if remove_epoch_no < 0:
+        return None
+    return remove_epoch_no
+
+
+def get_remove_step_no(args: argparse.Namespace, step_no: int):
+    if args.save_last_n_steps is None:
+        return None
+
+    # last_n_steps前のstep_noから、save_every_n_stepsの倍数のstep_noを計算して削除する
+    # save_every_n_steps=10, save_last_n_steps=30の場合、50step目には30step分残し、10step目を削除する
+    remove_step_no = step_no - args.save_last_n_steps - 1
+    remove_step_no = remove_step_no - (remove_step_no % args.save_every_n_steps)
+    if remove_step_no < 0:
+        return None
+    return remove_step_no
+
+
+# epochとstepの保存、メタデータにepoch/stepが含まれ引数が同じになるため、統合している
+# on_epoch_end: Trueならepoch終了時、Falseならstep経過時
+def save_sd_model_on_epoch_end_or_stepwise(
     args: argparse.Namespace,
+    on_epoch_end: bool,
     accelerator,
     src_path: str,
     save_stable_diffusion_format: bool,
@@ -2756,54 +3058,92 @@ def save_sd_model_on_epoch_end(
     unet,
     vae,
 ):
-    epoch_no = epoch + 1
-    model_name, ckpt_name = get_epoch_ckpt_name(args, use_safetensors, epoch_no)
+    if on_epoch_end:
+        epoch_no = epoch + 1
+        saving = epoch_no % args.save_every_n_epochs == 0 and epoch_no < num_train_epochs
+        if not saving:
+            return
 
-    if save_stable_diffusion_format:
-
-        def save_sd():
-            ckpt_file = os.path.join(args.output_dir, ckpt_name)
-            print(f"saving checkpoint: {ckpt_file}")
-            model_util.save_stable_diffusion_checkpoint(
-                args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
-            )
-
-        def remove_sd(old_epoch_no):
-            _, old_ckpt_name = get_epoch_ckpt_name(args, use_safetensors, old_epoch_no)
-            old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
-            if os.path.exists(old_ckpt_file):
-                print(f"removing old checkpoint: {old_ckpt_file}")
-                os.remove(old_ckpt_file)
-
-        save_func = save_sd
-        remove_old_func = remove_sd
+        model_name = default_if_none(args.output_name, DEFAULT_EPOCH_NAME)
+        remove_no = get_remove_epoch_no(args, epoch_no)
     else:
+        # 保存するか否かは呼び出し側で判断済み
 
-        def save_du():
+        model_name = default_if_none(args.output_name, DEFAULT_STEP_NAME)
+        epoch_no = epoch  # 例: 最初のepochの途中で保存したら0になる、SDモデルに保存される
+        remove_no = get_remove_step_no(args, global_step)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    if save_stable_diffusion_format:
+        ext = ".safetensors" if use_safetensors else ".ckpt"
+
+        if on_epoch_end:
+            ckpt_name = get_epoch_ckpt_name(args, ext, epoch_no)
+        else:
+            ckpt_name = get_step_ckpt_name(args, ext, global_step)
+
+        ckpt_file = os.path.join(args.output_dir, ckpt_name)
+        print(f"saving checkpoint: {ckpt_file}")
+        model_util.save_stable_diffusion_checkpoint(
+            args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
+        )
+
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name)
+
+        # remove older checkpoints
+        if remove_no is not None:
+            if on_epoch_end:
+                remove_ckpt_name = get_epoch_ckpt_name(args, ext, remove_no)
+            else:
+                remove_ckpt_name = get_step_ckpt_name(args, ext, remove_no)
+
+            remove_ckpt_file = os.path.join(args.output_dir, remove_ckpt_name)
+            if os.path.exists(remove_ckpt_file):
+                print(f"removing old checkpoint: {remove_ckpt_file}")
+                os.remove(remove_ckpt_file)
+
+    else:
+        if on_epoch_end:
             out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, epoch_no))
-            print(f"saving model: {out_dir}")
-            os.makedirs(out_dir, exist_ok=True)
-            model_util.save_diffusers_checkpoint(
-                args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
-            )
+        else:
+            out_dir = os.path.join(args.output_dir, STEP_DIFFUSERS_DIR_NAME.format(model_name, global_step))
 
-        def remove_du(old_epoch_no):
-            out_dir_old = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, old_epoch_no))
-            if os.path.exists(out_dir_old):
-                print(f"removing old model: {out_dir_old}")
-                shutil.rmtree(out_dir_old)
+        print(f"saving model: {out_dir}")
+        model_util.save_diffusers_checkpoint(
+            args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
+        )
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, out_dir, "/" + model_name)
 
-        save_func = save_du
-        remove_old_func = remove_du
+        # remove older checkpoints
+        if remove_no is not None:
+            if on_epoch_end:
+                remove_out_dir = os.path.join(args.output_dir, EPOCH_DIFFUSERS_DIR_NAME.format(model_name, remove_no))
+            else:
+                remove_out_dir = os.path.join(args.output_dir, STEP_DIFFUSERS_DIR_NAME.format(model_name, remove_no))
 
-    saving = save_on_epoch_end(args, save_func, remove_old_func, epoch_no, num_train_epochs)
-    if saving and args.save_state:
-        save_state_on_epoch_end(args, accelerator, model_name, epoch_no)
+            if os.path.exists(remove_out_dir):
+                print(f"removing old model: {remove_out_dir}")
+                shutil.rmtree(remove_out_dir)
+
+    if on_epoch_end:
+        save_and_remove_state_on_epoch_end(args, accelerator, epoch_no)
+    else:
+        save_and_remove_state_stepwise(args, accelerator, global_step)
 
 
-def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, epoch_no):
-    print("saving state.")
-    accelerator.save_state(os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no)))
+def save_and_remove_state_on_epoch_end(args: argparse.Namespace, accelerator, epoch_no):
+    model_name = default_if_none(args.output_name, DEFAULT_EPOCH_NAME)
+
+    print(f"saving state at epoch {epoch_no}")
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
+    accelerator.save_state(state_dir)
+    if args.save_state_to_huggingface:
+        print("uploading state to huggingface.")
+        huggingface_util.upload(args, state_dir, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
 
     last_n_epochs = args.save_last_n_epochs_state if args.save_last_n_epochs_state else args.save_last_n_epochs
     if last_n_epochs is not None:
@@ -2812,6 +3152,45 @@ def save_state_on_epoch_end(args: argparse.Namespace, accelerator, model_name, e
         if os.path.exists(state_dir_old):
             print(f"removing old state: {state_dir_old}")
             shutil.rmtree(state_dir_old)
+
+
+def save_and_remove_state_stepwise(args: argparse.Namespace, accelerator, step_no):
+    model_name = default_if_none(args.output_name, DEFAULT_STEP_NAME)
+
+    print(f"saving state at step {step_no}")
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    state_dir = os.path.join(args.output_dir, STEP_STATE_NAME.format(model_name, step_no))
+    accelerator.save_state(state_dir)
+    if args.save_state_to_huggingface:
+        print("uploading state to huggingface.")
+        huggingface_util.upload(args, state_dir, "/" + STEP_STATE_NAME.format(model_name, step_no))
+
+    last_n_steps = args.save_last_n_steps_state if args.save_last_n_steps_state else args.save_last_n_steps
+    if last_n_steps is not None:
+        # last_n_steps前のstep_noから、save_every_n_stepsの倍数のstep_noを計算して削除する
+        remove_step_no = step_no - last_n_steps - 1
+        remove_step_no = remove_step_no - (remove_step_no % args.save_every_n_steps)
+
+        if remove_step_no > 0:
+            state_dir_old = os.path.join(args.output_dir, STEP_STATE_NAME.format(model_name, remove_step_no))
+            if os.path.exists(state_dir_old):
+                print(f"removing old state: {state_dir_old}")
+                shutil.rmtree(state_dir_old)
+
+
+def save_state_on_train_end(args: argparse.Namespace, accelerator):
+    model_name = default_if_none(args.output_name, DEFAULT_LAST_OUTPUT_NAME)
+
+    print("saving last state.")
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    state_dir = os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name))
+    accelerator.save_state(state_dir)
+
+    if args.save_state_to_huggingface:
+        print("uploading last state to huggingface.")
+        huggingface_util.upload(args, state_dir, "/" + LAST_STATE_NAME.format(model_name))
 
 
 def save_sd_model_on_train_end(
@@ -2826,7 +3205,7 @@ def save_sd_model_on_train_end(
     unet,
     vae,
 ):
-    model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
+    model_name = default_if_none(args.output_name, DEFAULT_LAST_OUTPUT_NAME)
 
     if save_stable_diffusion_format:
         os.makedirs(args.output_dir, exist_ok=True)
@@ -2838,6 +3217,8 @@ def save_sd_model_on_train_end(
         model_util.save_stable_diffusion_checkpoint(
             args.v2, ckpt_file, text_encoder, unet, src_path, epoch, global_step, save_dtype, vae
         )
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=True)
     else:
         out_dir = os.path.join(args.output_dir, model_name)
         os.makedirs(out_dir, exist_ok=True)
@@ -2846,13 +3227,8 @@ def save_sd_model_on_train_end(
         model_util.save_diffusers_checkpoint(
             args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
         )
-
-
-def save_state_on_train_end(args: argparse.Namespace, accelerator):
-    print("saving last state.")
-    os.makedirs(args.output_dir, exist_ok=True)
-    model_name = DEFAULT_LAST_OUTPUT_NAME if args.output_name is None else args.output_name
-    accelerator.save_state(os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name)))
+        if args.huggingface_repo_id is not None:
+            huggingface_util.upload(args, out_dir, "/" + model_name, force_sync_upload=True)
 
 
 # scheduler:
@@ -3041,6 +3417,18 @@ def sample_images(
 
                 image.save(os.path.join(save_dir, img_filename))
 
+                # wandb有効時のみログを送信
+                try:
+                    wandb_tracker = accelerator.get_tracker("wandb")
+                    try:
+                        import wandb
+                    except ImportError:  # 事前に一度確認するのでここはエラー出ないはず
+                        raise ImportError("No wandb / wandb がインストールされていないようです")
+
+                    wandb_tracker.log({f"sample_{i}": wandb.Image(image)})
+                except:  # wandb 無効時
+                    pass
+
     # clear pipeline and cache to reduce vram usage
     del pipeline
     torch.cuda.empty_cache()
@@ -3084,7 +3472,7 @@ class collater_class:
     def __init__(self, epoch, step, dataset):
         self.current_epoch = epoch
         self.current_step = step
-        self.dataset = dataset # not used if worker_info is not None, in case of multiprocessing
+        self.dataset = dataset  # not used if worker_info is not None, in case of multiprocessing
 
     def __call__(self, examples):
         worker_info = torch.utils.data.get_worker_info()

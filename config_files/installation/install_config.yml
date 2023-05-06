@@ -43,6 +43,9 @@ kohya_gui_arguments:
   - name: Inbrowser
     description: Open in browser.
     value: false
+  - name: Headless
+    description: Headless mode will not display the native windowing toolkit. Useful for remote deployments.
+    value: false
   - name: Listen
     description: IP to listen on for connections to Gradio.
     value: 127.0.0.1

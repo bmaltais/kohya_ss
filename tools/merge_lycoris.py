@@ -1,35 +1,60 @@
-import os
-import sys
+import os, sys
+sys.path.insert(0, os.getcwd())
 import argparse
-import torch
-from lycoris.utils import merge_loha, merge_locon
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "base_model", help="The model you want to merge with loha",
+        default='', type=str
+    )
+    parser.add_argument(
+        "lycoris_model", help="the lyco model you want to merge into sd model",
+        default='', type=str
+    )
+    parser.add_argument(
+        "output_name", help="the output model",
+        default='./out.pt', type=str
+    )
+    parser.add_argument(
+        "--is_v2", help="Your base model is sd v2 or not",
+        default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--device", help="Which device you want to use to merge the weight",
+        default='cpu', type=str
+    )
+    parser.add_argument(
+        "--dtype", help='dtype to save',
+        default='float', type=str
+    )
+    parser.add_argument(
+        "--weight", help='weight for the lyco model to merge',
+        default='1.0', type=float
+    )
+    return parser.parse_args()
+ARGS = get_args()
+
+
+from lycoris_utils import merge
 from lycoris.kohya_model_utils import (
     load_models_from_stable_diffusion_checkpoint,
     save_stable_diffusion_checkpoint,
     load_file
 )
-import gradio as gr
+
+import torch
 
 
-def merge_models(base_model, lycoris_model, output_name, is_v2, device, dtype, weight):
-    base = load_models_from_stable_diffusion_checkpoint(is_v2, base_model)
-    if lycoris_model.rsplit('.', 1)[-1] == 'safetensors':
-        lyco = load_file(lycoris_model)
+def main():
+    base = load_models_from_stable_diffusion_checkpoint(ARGS.is_v2, ARGS.base_model)
+    if ARGS.lycoris_model.rsplit('.', 1)[-1] == 'safetensors':
+        lyco = load_file(ARGS.lycoris_model)
     else:
-        lyco = torch.load(lycoris_model)
-
-    algo = None
-    for key in lyco:
-        if 'hada' in key:
-            algo = 'loha'
-            break
-        elif 'lora_up' in key:
-            algo = 'lora'
-            break
-    else:
-        raise NotImplementedError('Cannot find the algo for this lycoris model file.')
-
-    dtype_str = dtype.replace('fp', 'float').replace('bf', 'bfloat')
+        lyco = torch.load(ARGS.lycoris_model)
+    
+    dtype_str = ARGS.dtype.replace('fp', 'float').replace('bf', 'bfloat')
     dtype = {
         'float': torch.float,
         'float16': torch.float16,
@@ -40,40 +65,20 @@ def merge_models(base_model, lycoris_model, output_name, is_v2, device, dtype, w
     }.get(dtype_str, None)
     if dtype is None:
         raise ValueError(f'Cannot Find the dtype "{dtype}"')
-
-    if algo == 'loha':
-        merge_loha(base, lyco, weight, device)
-    elif algo == 'lora':
-        merge_locon(base, lyco, weight, device)
-
+    
+    merge(
+        base,
+        lyco,
+        ARGS.weight,
+        ARGS.device
+    )
+    
     save_stable_diffusion_checkpoint(
-        is_v2, output_name,
-        base[0], base[2],
-        None, 0, 0, dtype,
+        ARGS.is_v2, ARGS.output_name, 
+        base[0], base[2], 
+        None, 0, 0, dtype, 
         base[1]
     )
-
-    return output_name
-
-
-def main():
-    iface = gr.Interface(
-        fn=merge_models,
-        inputs=[
-            gr.inputs.Textbox(label="Base Model Path"),
-            gr.inputs.Textbox(label="Lycoris Model Path"),
-            gr.inputs.Textbox(label="Output Model Path", default='./out.pt'),
-            gr.inputs.Checkbox(label="Is base model SD V2?", default=False),
-            gr.inputs.Textbox(label="Device", default='cpu'),
-            gr.inputs.Dropdown(choices=['float', 'float16', 'float32', 'float64', 'bfloat', 'bfloat16'], label="Dtype", default='float'),
-            gr.inputs.Number(label="Weight", default=1.0)
-        ],
-        outputs=gr.outputs.Textbox(label="Merged Model Path"),
-        title="Model Merger",
-        description="Merge Lycoris and Stable Diffusion models",
-    )
-
-    iface.launch()
 
 
 if __name__ == '__main__':

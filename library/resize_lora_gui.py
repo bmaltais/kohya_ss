@@ -54,8 +54,8 @@ def resize_lora(
 
     run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
     run_cmd += f' --save_precision {save_precision}'
-    run_cmd += f' --save_to {save_to}'
-    run_cmd += f' --model {model}'
+    run_cmd += f' --save_to "{save_to}"'
+    run_cmd += f' --model "{model}"'
     run_cmd += f' --new_rank {new_rank}'
     run_cmd += f' --device {device}'
     if not dynamic_method == 'None':
@@ -72,13 +72,15 @@ def resize_lora(
     else:
         subprocess.run(run_cmd)
 
+    print('Done resizing...')
+
 
 ###
 # Gradio UI
 ###
 
 
-def gradio_resize_lora_tab():
+def gradio_resize_lora_tab(headless=False):
     with gr.Tab('Resize LoRA'):
         gr.Markdown('This utility can resize a LoRA.')
 
@@ -92,7 +94,9 @@ def gradio_resize_lora_tab():
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_a_model_file.click(
                 get_file_path,
@@ -131,7 +135,9 @@ def gradio_resize_lora_tab():
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,

@@ -58,14 +58,18 @@ def extract_lycoris_locon(
     run_cmd += f' --device {device}'
     run_cmd += f' --mode {mode}'
     run_cmd += f' --safetensors'
-    run_cmd += f' --linear_dim {linear_dim}'
-    run_cmd += f' --conv_dim {conv_dim}'
-    run_cmd += f' --linear_threshold {linear_threshold}'
-    run_cmd += f' --conv_threshold {conv_threshold}'
-    run_cmd += f' --linear_ratio {linear_ratio}'
-    run_cmd += f' --conv_ratio {conv_ratio}'
-    run_cmd += f' --linear_quantile {linear_quantile}'
-    run_cmd += f' --conv_quantile {conv_quantile}'
+    if mode == 'fixed':
+        run_cmd += f' --linear_dim {linear_dim}'
+        run_cmd += f' --conv_dim {conv_dim}'
+    if mode == 'threshold':
+        run_cmd += f' --linear_threshold {linear_threshold}'
+        run_cmd += f' --conv_threshold {conv_threshold}'
+    if mode == 'ratio':
+        run_cmd += f' --linear_ratio {linear_ratio}'
+        run_cmd += f' --conv_ratio {conv_ratio}'
+    if mode == 'quantile':
+        run_cmd += f' --linear_quantile {linear_quantile}'
+        run_cmd += f' --conv_quantile {conv_quantile}'
     if use_sparse_bias:
         run_cmd += f' --use_sparse_bias'
     run_cmd += f' --sparsity {sparsity}'
@@ -115,7 +119,7 @@ def update_mode(mode):
     return tuple(updates)
 
 
-def gradio_extract_lycoris_locon_tab():
+def gradio_extract_lycoris_locon_tab(headless=False):
     with gr.Tab('Extract LyCORIS LoCON'):
         gr.Markdown(
             'This utility can extract a LyCORIS LoCon network from a finetuned model.'
@@ -134,7 +138,9 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_db_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_db_model_file.click(
                 get_file_path,
@@ -149,7 +155,9 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_base_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_base_model_file.click(
                 get_file_path,
@@ -164,7 +172,9 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_output_name = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_output_name.click(
                 get_saveasfilename_path,
@@ -210,34 +220,38 @@ def gradio_extract_lycoris_locon_tab():
                 minimum=0,
                 maximum=1,
                 label='Linear threshold',
-                value=0,
+                value=0.65,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the smaller the file. Recommended starting value: 0.65',
             )
             conv_threshold = gr.Slider(
                 minimum=0,
                 maximum=1,
                 label='Conv threshold',
-                value=0,
+                value=0.65,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the smaller the file. Recommended starting value: 0.65',
             )
         with gr.Row(visible=False) as ratio:
             linear_ratio = gr.Slider(
                 minimum=0,
                 maximum=1,
                 label='Linear ratio',
-                value=0,
+                value=0.75,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the smaller the file. Recommended starting value: 0.75',
             )
             conv_ratio = gr.Slider(
                 minimum=0,
                 maximum=1,
                 label='Conv ratio',
-                value=0,
+                value=0.75,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the smaller the file. Recommended starting value: 0.75',
             )
         with gr.Row(visible=False) as quantile:
             linear_quantile = gr.Slider(
@@ -247,6 +261,7 @@ def gradio_extract_lycoris_locon_tab():
                 value=0.75,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the larger the file. Recommended starting value: 0.75',
             )
             conv_quantile = gr.Slider(
                 minimum=0,
@@ -255,6 +270,7 @@ def gradio_extract_lycoris_locon_tab():
                 value=0.75,
                 step=0.01,
                 interactive=True,
+                info='The higher the value, the larger the file. Recommended starting value: 0.75',
             )
         with gr.Row():
             use_sparse_bias = gr.Checkbox(
