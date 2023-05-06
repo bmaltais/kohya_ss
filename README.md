@@ -52,6 +52,18 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 </details>
 
+<br>
+
+<details>
+<summary>How to Create Studio Quality Realistic Photos</summary>
+
+Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
+
+[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
+
+</details>
+
+
 ## Installation and Upgrading
 ### Required Prerequisites
 
