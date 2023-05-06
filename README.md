@@ -7,11 +7,10 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 ### Table of Contents
 
 - [Tutorials](#tutorials)
-- [Required Dependencies](#required-dependencies)
+- [Required Dependencies](#required-prerequisites)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation and Upgrading](#installation-and-upgrading)
   - [Containers](#containers)
-  - [Runpod](#runpod)
   - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
     - [Configuration](#configuration)
       - [Command Line Arguments](#command-line-arguments)
@@ -62,7 +61,10 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ## Installation and Upgrading
 
-### Required Dependencies
+<br>
+
+<details>
+<summary><h3 id="required-prerequisites">Required Prerequisites</h3></summary>
 
 These dependencies are taken care of via `setup.sh` or `setup.ps1` in the installation section. 
 
@@ -75,26 +77,38 @@ No additional steps should be needed unless the scripts inform you otherwise. Ho
 
 On Linux you may need to use your package manager to install these. On macOS we suggest you use [brew](https://brew.sh/).
 The VS redist component is not needed for non-Windows operating systems.
-### Containers
-Notably, the setup scripts will not use a Python virtual environment if it detects a container environment and will opt to use the system-installed Python.
 
-At this time, containers are recommended to use the launcher.py method for installation recommended here: [Bypass Python, Python TK, and Git install checks](#bypass-some)
+</details>
 
-It is also recommended to use a configuration file (install_config.yml) to incorporate in your container builds for reproducibility. See [Configuration File](#configuration-file) for more info.
+<br>
 
-For running the containers it is recommended to use launcher.py as the entrypoint with the `-x` option to skip all installation steps and run the GUI. The [GUI CLI arguments](#command-line-arguments) can be used in addition to this.
+<details>
+<summary><h3 id="containers">Containers</h3></summary>
 
-### Runpod
-Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
+To build a container, ensure you have installed the pre-reqs and then you can put this in your build file or script:
+
+```bash
+launcher.py --setup-only
+```
+
+To run in a container put this as the entry point:
+
+```bash
+launcher.py --no-setup
+```
+
+</details>
+
+<br>
 
 ### macOS, Windows, Linux, BSD
 To set up and install the application, use the provided setup scripts depending on your operating system:
 
-****Both setup scripts accept the same command-line arguments, and they will execute launcher.py with the same arguments.****
+Windows: Use **<ins>setup.ps1</ins>**. 
 
-Windows: Use **<ins>setup.ps1</ins>**. **<ins>setup.bat</ins>** is also available, but considered legacy.
+- **<ins>setup.bat</ins>** is also available, but considered legacy and may be deprecated in the future.
 
-Non-Windows: Use **<ins>setup.sh</ins>** or **<ins>setup.ps1</ins>** if you have pwsh available.
+Non-Windows: Use **<ins>setup.sh</ins>** or if you have pwsh available use **<ins>setup.ps1</ins>** .
 
 <br>
 
