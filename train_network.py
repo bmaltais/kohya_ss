@@ -43,7 +43,7 @@ def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_sche
             logs["lr/textencoder"] = float(lrs[0])
             logs["lr/unet"] = float(lrs[-1])  # may be same to textencoder
 
-        if args.optimizer_type.lower() == "DAdaptation".lower() or args.optimizer_type.lower() == "DAdaptAdam".lower() or args.optimizer_type.lower() == "DAdaptAdaGrad".lower() or args.optimizer_type.lower() == "DAdaptAdan".lower() or args.optimizer_type.lower() == "DAdaptSGD".lower():  # tracking d*lr value of unet.
+        if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value of unet.
             logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]["d"] * lr_scheduler.optimizers[-1].param_groups[0]["lr"]
     else:
         idx = 0
@@ -53,7 +53,7 @@ def generate_step_logs(args: argparse.Namespace, current_loss, avr_loss, lr_sche
 
         for i in range(idx, len(lrs)):
             logs[f"lr/group{i}"] = float(lrs[i])
-            if args.optimizer_type.lower() == "DAdaptation".lower() or args.optimizer_type.lower() == "DAdaptAdam".lower() or args.optimizer_type.lower() == "DAdaptAdaGrad".lower() or args.optimizer_type.lower() == "DAdaptAdan".lower() or args.optimizer_type.lower() == "DAdaptSGD".lower():
+            if args.optimizer_type.lower().startswith("DAdapt".lower()):
                 logs[f"lr/d*lr/group{i}"] = (
                     lr_scheduler.optimizers[-1].param_groups[i]["d"] * lr_scheduler.optimizers[-1].param_groups[i]["lr"]
                 )
@@ -277,7 +277,7 @@ def train(args):
     else:
         unet.eval()
         text_encoder.eval()
-        
+
     network.prepare_grad_etc(text_encoder, unet)
 
     if not cache_latents:
@@ -713,7 +713,7 @@ def train(args):
     if is_main_process:
         ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
         save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
-        
+
         print("model saved.")
 
 
