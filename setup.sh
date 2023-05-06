@@ -2,6 +2,7 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
+# bashsupport disable=GrazieInspection
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -27,18 +28,19 @@ Options:
   -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
-  --runpod                      Forces a runpod installation. Useful if detection fails for any reason.
-  --setup-only                  Do not launch GUI. Only conduct setup operations.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -t, --torch-version           Configure the major version of Torch.
   -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
   -v                            Increase verbosity levels up to 3. (e.g., -vvv)
+  --headless                    Headless mode will not display the native windowing toolkit. Useful for remote deployments.
   --listen=IP                   IP to listen on for connections to Gradio.
-  --username=USERNAME           Username for authentication.
-  --password=PASSWORD           Password for authentication.
-  --server-port=PORT            The port number the GUI server should use.
   --inbrowser                   Open in browser.
+  --password=PASSWORD           Password for authentication.
+  --runpod                      Forces a runpod installation. Useful if detection fails for any reason.
+  --setup-only                  Do not launch GUI. Only conduct setup operations.
   --share                       Share your installation.
+  --server-port=PORT            The port number the GUI server should use.
+  --username=USERNAME           Username for authentication.
 EOF
 }
 
@@ -94,18 +96,19 @@ while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   n | no-setup) CLI_ARGUMENTS["noSetup"]="true" ;;
   p | public) CLI_ARGUMENTS["public"]="true" ;;
   r | repair) CLI_ARGUMENTS["repair"]="true" ;;
-  runpod) CLI_ARGUMENTS["runpod"]="true" ;;
-  setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["skipSpaceCheck"]="true" ;;
   t | torch-version) CLI_ARGUMENTS["torchVersion"]="true" ;;
   u | update) CLI_ARGUMENTS["update"]="true" ;;
   v) ((CLI_ARGUMENTS["verbosity"] = CLI_ARGUMENTS["verbosity"] + 1)) ;;
-  listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
-  username) CLI_ARGUMENTS["username"]="$OPTARG" ;;
-  password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
-  server-port) CLI_ARGUMENTS["serverPort"]="$OPTARG" ;;
+  headless) CLI_ARGUMENTS["headless"]="$OPTARG" ;;
   inbrowser) CLI_ARGUMENTS["inbrowser"]="true" ;;
+  listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
+  password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
+  runpod) CLI_ARGUMENTS["runpod"]="true" ;;
+  server-port) CLI_ARGUMENTS["serverPort"]="$OPTARG" ;;
+  setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
   share) CLI_ARGUMENTS["share"]="true" ;;
+  username) CLI_ARGUMENTS["username"]="$OPTARG" ;;
   *) display_help && exit 0 ;;
   esac
 done
@@ -172,6 +175,7 @@ fi
 config_branch="${config_branch:-master}"
 config_dir="${config_dir:-$SCRIPT_DIR}"
 config_gitRepo="${config_gitRepo:-https://github.com/bmaltais/kohya_ss.git}"
+config_headless="${config_headless:-false}"
 config_interactive="${config_interactive:-false}"
 config_public="${config_public:-false}"
 config_noSetup="${config_noSetup:-false}"
@@ -216,6 +220,7 @@ config_logDir="${config_logDir:-$config_dir/logs}"
 BRANCH="$config_branch"
 DIR="$config_dir"
 GIT_REPO="$config_gitRepo"
+HEADLESS="$config_headless"
 INTERACTIVE="$config_interactive"
 LOG_DIR="$config_logDir"
 NO_SETUP="$config_noSetup"
@@ -289,6 +294,7 @@ log_debug "BRANCH: $BRANCH
 DIR: $DIR
 GIT_REPO: $GIT_REPO
 Config file location: $USER_CONFIG_FILE
+HEADLESS: $HEADLESS
 INTERACTIVE: $INTERACTIVE
 LOG_DIR: $LOG_DIR
 PUBLIC: $PUBLIC
@@ -802,6 +808,7 @@ run_launcher() {
     --branch="$BRANCH" \
     --dir="$DIR" \
     --git-repo="$GIT_REPO" \
+    $([ "$HEADLESS" = "true" ] && echo "--headless") \
     $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
     --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \

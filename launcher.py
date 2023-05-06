@@ -229,6 +229,9 @@ def parse_args(_config_data):
         {"short": "-g", "long": "--git-repo", "default": "https://github.com/bmaltais/kohya_ss.git", "type": str,
          "help": "You can optionally provide a git repo to check out. Useful for custom forks."},
 
+        {"short": "", "long": "--headless", "default": False, "type": bool,
+         "help": "Headless mode will not display the native windowing toolkit. Useful for remote deployments."},
+
         {"short": "-i", "long": "--interactive", "default": False, "type": bool,
          "help": "Interactively configure accelerate instead of using value config file."},
 
@@ -1656,26 +1659,29 @@ def launch_kohya_gui(_args):
             venv_python_bin, os.path.join(kohya_gui_file)
         ]
 
-        if _args.listen:
-            cmd.extend(["--listen", _args.listen])
-
-        if str(_args.server_port) is not None and str(_args.server_port) != "":
-            cmd.extend(["--server-port", str(_args.server_port)])
-
-        if _args.verbosity > 0:
-            cmd.extend(["--verbosity", str(_args.verbosity)])
-
-        if _args.username:
-            cmd.extend(["--username", _args.username])
-
-        if _args.password:
-            cmd.extend(["--password", _args.password])
+        if _args.headless:
+            cmd.extend(["--headless"])
 
         if _args.inbrowser:
             cmd.extend(["--inbrowser"])
 
+        if _args.listen:
+            cmd.extend(["--listen", _args.listen])
+
+        if _args.password:
+            cmd.extend(["--password", _args.password])
+
+        if str(_args.server_port) is not None and str(_args.server_port) != "":
+            cmd.extend(["--server-port", str(_args.server_port)])
+
         if _args.share:
             cmd.extend(["--share"])
+
+        if _args.username:
+            cmd.extend(["--username", _args.username])
+
+        if _args.verbosity > 0:
+            cmd.extend(["--verbosity", str(_args.verbosity)])
 
         try:
             logging.debug(f"Launching kohya_gui.py with Python bin: {venv_python_bin}")

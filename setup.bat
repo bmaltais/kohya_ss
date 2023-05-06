@@ -11,6 +11,7 @@ set Branch=master
 set Dir=%ScriptDir%
 set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
+set Headless=0
 set Interactive=0
 set LogDir=%ScriptDir%logs
 set NoSetup=0
@@ -49,6 +50,7 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="Dir" set Dir=%%b
         if "%%a"=="File" set File=%%b
         if "%%a"=="GitRepo" set GitRepo=%%b
+        if "%%a"=="Headless" set Headless=%%b
         if "%%a"=="Interactive" set Interactive=%%b
         if "%%a"=="LogDir" set LogDir=%%b
         if "%%a"=="NoSetup" set NoSetup=%%b
@@ -115,6 +117,12 @@ if /i "%arg%"=="--git-repo" (
 )
 if /i "%arg%"=="--help" (
     goto print_help
+)
+if /i "%arg%"=="--headless" (
+    set Headless=1
+    rem echo Headless set to !Headless!
+    shift
+    goto arg_loop
 )
 if /i "%arg%"=="--interactive" (
     set Interactive=1
@@ -282,6 +290,7 @@ echo --branch           : Specify the Git branch to use. Default is 'master'.
 echo --dir              : Specify the working directory. Default is the directory of the script.
 echo --file             : Specify the configuration file to be processed.
 echo --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
+echo --headless         : Headless mode will not display the native windowing toolkit. Useful for remote deployments.
 echo --help             : Display this help.
 echo --interactive      : Run in interactive mode.
 echo --log-dir          : Set the custom log directory for kohya_ss.
@@ -308,8 +317,9 @@ if not "%Branch%"=="" set "PSArgs=%PSArgs% -Branch %Branch%"
 if not "%Dir%"=="" set "PSArgs=%PSArgs% -Dir %Dir%"
 if not "%File%"=="" set "PSArgs=%PSArgs% -File %File%"
 if not "%GitRepo%"=="" set PSArgs=%PSArgs% -GitRepo %GitRepo%
-if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir %LogDir%"
+if %Headless% EQU 1 set "PSArgs=%PSArgs% -Headless"
 if %Interactive% EQU 1 set "PSArgs=%PSArgs% -Interactive"
+if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir %LogDir%"
 if %NoSetup% EQU 1 set "PSArgs=%PSArgs% -NoSetup"
 if %Public% EQU 1 set "PSArgs=%PSArgs% -Public"
 if %Repair% EQU 1 set "PSArgs=%PSArgs% -Repair"
@@ -336,8 +346,9 @@ if not "%Branch%"=="" set "PythonArgs=%PythonArgs% --branch %Branch%"
 if not "%Dir%"=="" set "PythonArgs=%PythonArgs% --dir %Dir%"
 if not "%File%"=="" set "PythonArgs=%PythonArgs% --file %File%"
 if not "%GitRepo%"=="" set PythonArgs=%PythonArgs% --git-repo %GitRepo%
-if not "%LogDir%"=="" set "PythonArgs=%PythonArgs% --log-dir %LogDir%"
+if %Headless% EQU 1 set "PythonArgs=%PythonArgs% --headless"
 if %Interactive% EQU 1 set "PythonArgs=%PythonArgs% -i"
+if not "%LogDir%"=="" set "PythonArgs=%PythonArgs% --log-dir %LogDir%"
 if %NoSetup% EQU 1 set "PythonArgs=%PythonArgs% -n"
 if %Public% EQU 1 set "PythonArgs=%PythonArgs% --public"
 if %Repair% EQU 1 set "PythonArgs=%PythonArgs% -r"

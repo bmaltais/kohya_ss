@@ -29,6 +29,9 @@
 .PARAMETER GitRepo
     You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
 
+.PARAMETER Headless
+    Headless mode will not display the native windowing toolkit. Useful for remote deployments.
+
 .PARAMETER Interactive
     Interactively configure accelerate instead of using default config file.
 
@@ -87,6 +90,7 @@ param (
     [string]$Branch,
     [string]$Dir,
     [string]$GitRepo,
+    [switch]$Headless,
     [switch]$Interactive,
     [string]$LogDir,
     [switch]$NoSetup,
@@ -133,10 +137,10 @@ param (
     This example demonstrates how to call Get-Parameters with the necessary parameters.
 
     To get specific values you would call:
-    $Parameters['ValueName'] 
+    $Parameters.ValueName
 
     To get the option passed in as -Dir:
-    $Parameters['Dir']
+    $Parameters.Dir
 
 .NOTES
     Get-Parameters relies on several helper functions to handle specific tasks, such as Get-BatchArgs
@@ -156,15 +160,15 @@ function Get-Parameters {
             [Parameter(Mandatory = $true)]
             [string]$Args
         )
-    
+
         $Result = @{}
         $splitArgs = $Args -split '\s+'
-    
+
         for ($i = 0; $i -lt $splitArgs.Length; $i++) {
             if ($splitArgs[$i] -match '^-(\w+)') {
                 $key = $Matches[1]
                 $value = $null
-                
+
                 if ($i + 1 -lt $splitArgs.Length -and -not ($splitArgs[$i + 1] -match '^-(\w+)')) {
                     $value = $splitArgs[$i + 1]
                     $i++
@@ -172,11 +176,11 @@ function Get-Parameters {
                 else {
                     $value = $true
                 }
-                
+
                 $Result[$key] = $value
             }
         }
-    
+
         return $Result
     }
 
@@ -186,9 +190,9 @@ function Get-Parameters {
             [Parameter(Mandatory = $true)]
             [hashtable]$Params
         )
-    
+
         $Result = $Params.Clone()
-    
+
         foreach ($key in $Params.Keys) {
             $value = $Params[$key]
             if (-not [string]::IsNullOrEmpty($value)) {
@@ -198,7 +202,7 @@ function Get-Parameters {
                     if ($value.StartsWith('~')) {
                         $value = $value.Replace('~', $HOME)
                     }
-                    
+
                     # Convert relative paths to absolute and normalize
                     if ($value -ne [System.IO.Path]::GetFullPath($value)) {
                         try {
@@ -226,7 +230,7 @@ function Get-Parameters {
                 }
             }
         }
-    
+
         return $Result
     }
 
@@ -265,6 +269,7 @@ function Get-Parameters {
         'Branch'         = 'master'
         'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
+        'Headless'       = $false
         'Interactive'    = $false
         'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
