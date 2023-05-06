@@ -345,6 +345,7 @@ This will store a backup file with your current locally installed pip packages a
     - Removed --no-cache again as pip cache is not enabled anyway
   - While overwriting .txt files with prefix and postfix including different encodings you might encounter this decoder error. This small fix gets rid of it... @ertugrul-dmr
   - Docker Add --no-cache-dir to reduce image size @chiragjn
+  - Reverting bitsandbytes version to 0.35.0 due to issues with 0.38.1 on some systems
 * 2023/04/05 (v21.5.8)
   - Add `Cache latents to disk` option to the gui.
   - When saving v2 models in Diffusers format in training scripts and conversion scripts, it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is `"use_linear_projection": false`, stabilityai is `true`). Please note that the weight shapes are different, so please be careful when using the weight files directly. We apologize for the inconvenience.
