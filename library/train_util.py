@@ -1885,7 +1885,7 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
         "--optimizer_type",
         type=str,
         default="",
-        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, Lion, Lion8bit,SGDNesterov, SGDNesterov8bit, DAdaptation, AdaFactor",
+        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation(DAdaptAdam), DAdaptAdaGrad, DAdaptAdan, DAdaptSGD, AdaFactor",
     )
 
     # backward compatibility
@@ -2467,7 +2467,7 @@ def resume_from_local_or_hf_if_specified(accelerator, args):
 
 
 def get_optimizer(args, trainable_params):
-    # "Optimizer to use: AdamW, AdamW8bit, Lion, Lion8bit, SGDNesterov, SGDNesterov8bit, DAdaptation, Adafactor"
+    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation, DAdaptation(DAdaptAdam), DAdaptAdaGrad, DAdaptAdan, DAdaptSGD, Adafactor"
 
     optimizer_type = args.optimizer_type
     if args.use_8bit_adam:
@@ -2570,7 +2570,7 @@ def get_optimizer(args, trainable_params):
         optimizer_class = torch.optim.SGD
         optimizer = optimizer_class(trainable_params, lr=lr, nesterov=True, **optimizer_kwargs)
 
-    elif optimizer_type == "DAdaptation".lower():
+    elif optimizer_type == "DAdaptation".lower() or optimizer_type == "DAdaptAdam".lower():
         try:
             import dadaptation
         except ImportError:
@@ -2598,7 +2598,94 @@ def get_optimizer(args, trainable_params):
 
         optimizer_class = dadaptation.DAdaptAdam
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+        
+    elif optimizer_type == "DAdaptAdaGrad".lower():
+        try:
+            import dadaptation
+        except ImportError:
+            raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
+        print(f"use D-Adaptation AdaGrad optimizer | {optimizer_kwargs}")
 
+        actual_lr = lr
+        lr_count = 1
+        if type(trainable_params) == list and type(trainable_params[0]) == dict:
+            lrs = set()
+            actual_lr = trainable_params[0].get("lr", actual_lr)
+            for group in trainable_params:
+                lrs.add(group.get("lr", actual_lr))
+            lr_count = len(lrs)
+
+        if actual_lr <= 0.1:
+            print(
+                f"learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}"
+            )
+            print("recommend option: lr=1.0 / 推奨は1.0です")
+        if lr_count > 1:
+            print(
+                f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
+            )
+
+        optimizer_class = dadaptation.DAdaptAdaGrad
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+    
+    elif optimizer_type == "DAdaptAdan".lower():
+        try:
+            import dadaptation
+        except ImportError:
+            raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
+        print(f"use D-Adaptation Adan optimizer | {optimizer_kwargs}")
+
+        actual_lr = lr
+        lr_count = 1
+        if type(trainable_params) == list and type(trainable_params[0]) == dict:
+            lrs = set()
+            actual_lr = trainable_params[0].get("lr", actual_lr)
+            for group in trainable_params:
+                lrs.add(group.get("lr", actual_lr))
+            lr_count = len(lrs)
+
+        if actual_lr <= 0.1:
+            print(
+                f"learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}"
+            )
+            print("recommend option: lr=1.0 / 推奨は1.0です")
+        if lr_count > 1:
+            print(
+                f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
+            )
+
+        optimizer_class = dadaptation.DAdaptAdan
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+        
+    elif optimizer_type == "DAdaptSGD".lower():
+        try:
+            import dadaptation
+        except ImportError:
+            raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
+        print(f"use D-Adaptation SGD optimizer | {optimizer_kwargs}")
+
+        actual_lr = lr
+        lr_count = 1
+        if type(trainable_params) == list and type(trainable_params[0]) == dict:
+            lrs = set()
+            actual_lr = trainable_params[0].get("lr", actual_lr)
+            for group in trainable_params:
+                lrs.add(group.get("lr", actual_lr))
+            lr_count = len(lrs)
+
+        if actual_lr <= 0.1:
+            print(
+                f"learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}"
+            )
+            print("recommend option: lr=1.0 / 推奨は1.0です")
+        if lr_count > 1:
+            print(
+                f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
+            )
+
+        optimizer_class = dadaptation.DAdaptSGD
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+    
     elif optimizer_type == "Adafactor".lower():
         # 引数を確認して適宜補正する
         if "relative_step" not in optimizer_kwargs:
