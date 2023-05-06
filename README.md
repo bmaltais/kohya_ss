@@ -179,7 +179,7 @@ The LoRA supported by `train_network.py` has been named to avoid confusion. The 
     
 LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
 
-To use LoRA-C3Liar with Web UI, please use our extension.
+To use LoRA-C3Lier with Web UI, please use our extension.
 
 ### LoRAの名称について
 
@@ -195,7 +195,7 @@ To use LoRA-C3Liar with Web UI, please use our extension.
 
 LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
 
-LoRA-C3Liarを使いWeb UIで生成するには拡張を使用してください。
+LoRA-C3Lierを使いWeb UIで生成するには拡張を使用してください。
 
 ## Sample image generation during training
   A prompt file might look like this, for example
