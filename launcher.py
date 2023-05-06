@@ -1353,7 +1353,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
 
         # Showcase the new functionality:
         if package_manager.contains('torch'):
-            logging.debug(f"Torch version:", package_manager.get_version("torch"))
+            logging.debug(f"Torch version: {package_manager.get_version('torch')}", )
             logging.debug(f"Packages with version 1.12.1+cu116: "
                           f"{package_manager.get_packages_by_version('1.12.1+cu116')}")
             logging.debug(f"Is Torch in the package list? {package_manager.contains('torch')}")
@@ -1605,7 +1605,24 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
         logging.critical("--update or --repair not specified. Skipping pip installations and repairs.")
         return
 
-    if os.path.exists(flag_file) and (update or repair):
+    # Check the conditions for running the install_or_repair_torch function:
+    # 1. The system is Windows or Linux
+    # 2. The script is in repair or interactive mode
+    # 3. Torch is installed, but there is a version mismatch between the specified
+    #    torch_version and the major version of the installed torch
+    # 4. Torch is not installed
+    should_install_or_repair_torch = (
+            (os_info.family == "Windows" or platform.system() == "Linux") and
+            ((repair or interactive) or
+             (update and (package_manager.get_version("torch") is None or
+                          int(package_manager.get_version("torch").split('.')[0]) != torch_version))
+             )
+    )
+
+    # Check the conditions for running the code block:
+    # 1. The flag_file does not exist
+    # 2. The flag_file exists, and either the update or repair flag is set
+    if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
         try:
             # Update pip
             logging.critical("Checking for pip updates before Python operations.")
@@ -1665,7 +1682,26 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                 temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
                             elif platform.machine() == "x86_64":
                                 temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
-                        elif (os_info.family == "Windows") or platform.system() == "Linux":
+
+                        # Check the conditions for running the install_or_repair_torch function:
+                        # 1. The system is Windows or Linux
+                        # 2. The script is in repair or interactive mode
+                        # 3. Torch is installed, but there is a version mismatch between the specified
+                        #    torch_version and the major version of the installed torch
+                        # 4. Torch is not installed
+                        if os_info.family == "Windows" or platform.system() == "Linux":
+                            should_install_or_repair_torch = True
+                        elif repair or interactive:
+                            should_install_or_repair_torch = True
+                        elif update and (package_manager.get_version("torch") is not None):
+                            should_install_or_repair_torch = int(
+                                package_manager.get_version("torch").split('.')[0]) != torch_version
+                        elif package_manager.get_version("torch") is None:
+                            should_install_or_repair_torch = True
+                        else:
+                            should_install_or_repair_torch = False
+
+                        if should_install_or_repair_torch:
                             install_or_repair_torch(update, repair, interactive)
 
                         if os_info.family == "macOS":
@@ -1756,9 +1792,12 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
             logging.error("An error occurred during pip operations: %s", str(_e))
             # You may choose to re-raise the exception if the error is critical
             # raise
-    elif interactive or (not package_manager.contains("torch")) \
-            or (package_manager.get_version("torch") is not None and
-                package_manager.get_version("torch")[0] != torch_version):
+
+    # Conditions for running the install_or_repair_torch function:
+    # 1. In interactive mode
+    # 2. Torch is not installed
+    # 3. There is a version mismatch between specified torch_version and the major version of torch installed
+    elif should_install_or_repair_torch:
         install_or_repair_torch(update, repair, interactive)
 
 
