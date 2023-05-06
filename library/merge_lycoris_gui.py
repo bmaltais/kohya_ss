@@ -25,7 +25,7 @@ def merge_lycoris(
     print('Merge model...')
 
     run_cmd = f'{PYTHON} "{os.path.join("tools", "merge_lycoris.py")}"'
-    run_cmd += f' {base_model}'
+    run_cmd += f' "{base_model}"'
     run_cmd += f' "{lycoris_model}"'
     run_cmd += f' "{output_name}"'
     run_cmd += f' --weight {weight}'
@@ -50,9 +50,11 @@ def merge_lycoris(
 ###
 
 
-def gradio_merge_lycoris_tab():
+def gradio_merge_lycoris_tab(headless=False):
     with gr.Tab('Merge LyCORIS'):
-        gr.Markdown('This utility can merge a LyCORIS model into a SD checkpoint.')
+        gr.Markdown(
+            'This utility can merge a LyCORIS model into a SD checkpoint.'
+        )
 
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
@@ -64,10 +66,12 @@ def gradio_merge_lycoris_tab():
                 label='SD Model',
                 placeholder='(Optional) Stable Diffusion base model',
                 interactive=True,
-                info='Provide a SD file path that you want to merge with the LyCORIS file'
+                info='Provide a SD file path that you want to merge with the LyCORIS file',
             )
             base_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             base_model_file.click(
                 get_file_path,
@@ -83,7 +87,9 @@ def gradio_merge_lycoris_tab():
                 interactive=True,
             )
             button_lycoris_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lycoris_model_file.click(
                 get_file_path,
@@ -109,7 +115,9 @@ def gradio_merge_lycoris_tab():
                 interactive=True,
             )
             button_output_name = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_output_name.click(
                 get_saveasfilename_path,
@@ -119,7 +127,14 @@ def gradio_merge_lycoris_tab():
             )
             dtype = gr.Dropdown(
                 label='Save dtype',
-                choices=['float', 'float16', 'float32', 'float64', 'bfloat', 'bfloat16'],
+                choices=[
+                    'float',
+                    'float16',
+                    'float32',
+                    'float64',
+                    'bfloat',
+                    'bfloat16',
+                ],
                 value='float16',
                 interactive=True,
             )

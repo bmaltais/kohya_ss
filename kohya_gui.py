@@ -27,8 +27,10 @@ import gradio as gr
 
 # noinspection PyPep8Naming
 def UI(**kwargs):
-    css = ''
+    headless = kwargs.get('headless', False)
+    logging.debug(f'Headless mode: {headless}.')
 
+    css = ''
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             logging.debug('Load CSS...')
@@ -43,13 +45,13 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab()
+            ) = dreambooth_tab(headless=headless)
         with gr.Tab('Dreambooth LoRA'):
-            lora_tab()
+            lora_tab(headless=headless)
         with gr.Tab('Dreambooth TI'):
-            ti_tab()
+            ti_tab(headless=headless)
         with gr.Tab('Finetune'):
-            finetune_tab()
+            finetune_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -57,13 +59,14 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
+                headless=headless,
             )
-            gradio_extract_dylora_tab()
-            gradio_extract_lora_tab()
-            gradio_extract_lycoris_locon_tab()
-            gradio_merge_lora_tab()
-            gradio_merge_lycoris_tab()
-            gradio_resize_lora_tab()
+            gradio_extract_dylora_tab(headless=headless)
+            gradio_extract_lora_tab(headless=headless)
+            gradio_extract_lycoris_locon_tab(headless=headless)
+            gradio_merge_lora_tab(headless=headless)
+            gradio_merge_lycoris_tab(headless=headless)
+            gradio_resize_lora_tab(headless=headless)
 
     # Show the interface
     launch_kwargs = {}
@@ -115,6 +118,7 @@ def get_cpu_manufacturer():
         return "Could not obtain CPU manufacturer."
 
 
+# noinspection SpellCheckingInspection
 def check_gpu_vram(os_type):
     nvidia_smi = shutil.which("nvidia-smi")
 
@@ -174,7 +178,7 @@ def check_gpu_vram(os_type):
         return "N/A", "N/A", False
 
 
-# noinspection PyDictCreation
+# noinspection PyDictCreation,SpellCheckingInspection
 def debug_system_info():
     os_type = platform.system()
 
@@ -350,6 +354,9 @@ def parse_args(_config_data):
         {"short": "-v", "long": "--verbosity", "default": '0', "type": str,
          "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
          "action": CountOccurrencesAction},
+
+        {"short": "", "long": "--headless", "default": False, "type": bool,
+         "help": "Headless mode will not display the native windowing toolkit. Useful for remote deployments."},
 
         {"short": None, "long": "--listen", "default": "127.0.0.1", "type": str,
          "help": "IP to listen on for connections to Gradio."},
@@ -677,4 +684,5 @@ if __name__ == '__main__':
         server_port=args.server_port,
         share=args.share,
         listen=args.listen,
+        headless=args.headless,
     )
