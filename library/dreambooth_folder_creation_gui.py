@@ -114,6 +114,7 @@ def gradio_dreambooth_folder_creation_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
+    headless=False,
 ):
     with gr.Tab('Dreambooth/LoRA Folder preparation'):
         gr.Markdown(
@@ -137,7 +138,7 @@ def gradio_dreambooth_folder_creation_tab(
                 interactive=True,
             )
             button_util_training_images_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_util_training_images_dir_input.click(
                 get_folder_path,
@@ -157,7 +158,7 @@ def gradio_dreambooth_folder_creation_tab(
                 interactive=True,
             )
             button_util_regularization_images_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_util_regularization_images_dir_input.click(
                 get_folder_path,
@@ -177,7 +178,7 @@ def gradio_dreambooth_folder_creation_tab(
                 interactive=True,
             )
             button_util_training_dir_output = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_util_training_dir_output.click(
                 get_folder_path, outputs=util_training_dir_output

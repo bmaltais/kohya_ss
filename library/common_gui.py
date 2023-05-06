@@ -35,7 +35,15 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
 
-def check_if_model_exist(output_name, output_dir, save_model_as):
+def check_if_model_exist(
+    output_name, output_dir, save_model_as, headless=False
+):
+    if headless:
+        print(
+            'Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...'
+        )
+        return False
+
     if save_model_as in ['diffusers', 'diffusers_safetendors']:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
@@ -63,6 +71,13 @@ def check_if_model_exist(output_name, output_dir, save_model_as):
     return False
 
 
+def output_message(msg='', title='', headless=False):
+    if headless:
+        print(msg)
+    else:
+        msgbox(msg=msg, title=title)
+
+
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
     use_8bit_adam = my_data.get('use_8bit_adam', False)
@@ -86,7 +101,7 @@ def update_my_data(my_data):
             my_data[key] = int(value)
         elif not value:
             my_data[key] = -1
-            
+
     # Convert values to float if they are strings
     for key in ['noise_offset', 'learning_rate', 'text_encoder_lr', 'unet_lr']:
         value = my_data.get(key, -1)
@@ -338,11 +353,11 @@ def add_pre_postfix(
         caption_file_path = os.path.join(folder, caption_file_name)
 
         if not os.path.exists(caption_file_path):
-            with open(caption_file_path, 'w', encoding="utf8") as f:
+            with open(caption_file_path, 'w', encoding='utf8') as f:
                 separator = ' ' if prefix and postfix else ''
                 f.write(f'{prefix}{separator}{postfix}')
         else:
-            with open(caption_file_path, 'r+', encoding="utf8") as f:
+            with open(caption_file_path, 'r+', encoding='utf8') as f:
                 content = f.read()
                 content = content.rstrip()
                 f.seek(0, 0)
@@ -529,13 +544,17 @@ def set_model_list(
 ###
 
 
-def gradio_config():
+def gradio_config(headless=False):
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
+            button_open_config = gr.Button(
+                'Open 📂', elem_id='open_folder', visible=(not headless)
+            )
+            button_save_config = gr.Button(
+                'Save 💾', elem_id='open_folder', visible=(not headless)
+            )
             button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder'
+                'Save as... 💾', elem_id='open_folder', visible=(not headless)
             )
             config_file_name = gr.Textbox(
                 label='',
@@ -573,7 +592,8 @@ def gradio_source_model(
         'diffusers',
         'diffusers_safetensors',
         'safetensors',
-    ]
+    ],
+    headless=False,
 ):
     with gr.Tab('Source model'):
         # Define the input elements
@@ -584,7 +604,9 @@ def gradio_source_model(
                 value='runwayml/stable-diffusion-v1-5',
             )
             pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             pretrained_model_name_or_path_file.click(
                 get_any_file_path,
@@ -593,7 +615,9 @@ def gradio_source_model(
                 show_progress=False,
             )
             pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             pretrained_model_name_or_path_folder.click(
                 get_folder_path,
@@ -748,7 +772,11 @@ def gradio_training(
             value=lr_scheduler_value,
         )
         lr_warmup = gr.Slider(
-            label='LR warmup (% of steps)', value=lr_warmup_value, minimum=0, maximum=100, step=1,
+            label='LR warmup (% of steps)',
+            value=lr_warmup_value,
+            minimum=0,
+            maximum=100,
+            step=1,
         )
         optimizer = gr.Dropdown(
             label='Optimizer',
@@ -835,7 +863,7 @@ def run_cmd_training(**kwargs):
     return run_cmd
 
 
-def gradio_advanced_training():
+def gradio_advanced_training(headless=False):
     with gr.Row():
         additional_parameters = gr.Textbox(
             label='Additional parameters',
@@ -913,13 +941,28 @@ def gradio_advanced_training():
         )
     with gr.Row():
         noise_offset = gr.Slider(
-            label='Noise offset', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.05 - 0.15'
+            label='Noise offset',
+            value=0,
+            minimum=0,
+            maximum=1,
+            step=0.01,
+            info='recommended values are 0.05 - 0.15',
         )
         multires_noise_iterations = gr.Slider(
-            label='Multires noise iterations', value=0, minimum=0, maximum=64, step=1, info='enable multires noise (recommended values are 6-10)'
+            label='Multires noise iterations',
+            value=0,
+            minimum=0,
+            maximum=64,
+            step=1,
+            info='enable multires noise (recommended values are 6-10)',
         )
         multires_noise_discount = gr.Slider(
-            label='Multires noise discount', value=0, minimum=0, maximum=1, step=0.01, info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3'
+            label='Multires noise discount',
+            value=0,
+            minimum=0,
+            maximum=1,
+            step=0.01,
+            info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
         )
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
@@ -937,7 +980,9 @@ def gradio_advanced_training():
             label='Resume from saved training state',
             placeholder='path to "last-state" state folder to resume from',
         )
-        resume_button = gr.Button('📂', elem_id='open_folder_small')
+        resume_button = gr.Button(
+            '📂', elem_id='open_folder_small', visible=(not headless)
+        )
         resume_button.click(
             get_folder_path,
             outputs=resume,
@@ -951,6 +996,18 @@ def gradio_advanced_training():
             label='Max num workers for DataLoader',
             placeholder='(Optional) Override number of epoch. Default: 8',
             value='0',
+        )
+    with gr.Row():
+        wandb_api_key = gr.Textbox(
+            label='WANDB API Key',
+            value='',
+            placeholder='(Optional)',
+            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login',
+        )
+        use_wandb = gr.Checkbox(
+            label='WANDB Logging',
+            value=False,
+            info='If unchecked, tensorboard will be used as the default for logging.',
         )
     return (
         # use_8bit_adam,
@@ -983,6 +1040,8 @@ def gradio_advanced_training():
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        wandb_api_key,
+        use_wandb,
     )
 
 
@@ -1046,20 +1105,21 @@ def run_cmd_advanced_training(**kwargs):
         else '',
         ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
         ' --random_crop' if kwargs.get('random_crop') else '',
-        
         f' --multires_noise_iterations="{int(kwargs.get("multires_noise_iterations", 0))}"'
         if kwargs.get('multires_noise_iterations', 0) > 0
         else '',
-        
         f' --multires_noise_discount="{float(kwargs.get("multires_noise_discount", 0.0))}"'
         if kwargs.get('multires_noise_discount', 0) > 0
         else '',
-        
         f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
-        if not kwargs.get('noise_offset', '') == ''
+        if kwargs.get('noise_offset') > 0
         else '',
         f' {kwargs.get("additional_parameters", "")}',
+        ' --log_with wandb' if kwargs.get('use_wandb') else '',
+        f' --wandb_api_key="{kwargs.get("wandb_api_key", "")}"'
+        if kwargs.get('wandb_api_key')
+        else '',
     ]
-    
+
     run_cmd = ''.join(options)
     return run_cmd

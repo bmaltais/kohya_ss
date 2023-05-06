@@ -6,21 +6,31 @@ RUN apt update && apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt update && \
     apt-get install -y git curl libgl1 libglib2.0-0 libgoogle-perftools-dev \
-	                   python3.10 python3.10-tk python3-html5lib python3-apt python3-pip python3.10-distutils && \
-	rm -rf /var/lib/apt/lists/*
+    python3.10-dev python3.10-tk python3-html5lib python3-apt python3-pip python3.10-distutils && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set python 3.10 as default
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 3 && \
-	update-alternatives --config python3
+    update-alternatives --config python3
 
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 
 WORKDIR /app
 RUN python3 -m pip install wheel
 
+# Todo: Install torch 2.1.0 for cu121 support (only available as nightly as of writing)
+## RUN python3 -m pip install --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+
+# Todo: Install xformers nightly for Torch 2.1.0 support
+## RUN python3 -m pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+
 # Install requirements
-COPY requirements.txt setup.py .
-RUN python3 -m pip install --no-cache-dir --use-pep517 -U -r requirements.txt
+COPY requirements.txt setup.py ./
+RUN python3 -m pip install --use-pep517 -r requirements.txt xformers
+
+# Replace pillow with pillow-simd
+RUN python3 -m pip uninstall -y pillow && \
+    CC="cc -mavx2" python3 -m pip install -U --force-reinstall pillow-simd
 
 # Fix missing libnvinfer7
 USER root
@@ -30,10 +40,6 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libn
 RUN useradd -m -s /bin/bash appuser
 USER appuser
 COPY --chown=appuser . .
-
-# https://github.com/kohya-ss/sd-scripts/issues/405#issuecomment-1509851709
-RUN sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' train_network.py && \
-    sed -i 's/import library.huggingface_util/# import library.huggingface_util/g' library/train_util.py
 
 STOPSIGNAL SIGINT
 ENV LD_PRELOAD=libtcmalloc.so

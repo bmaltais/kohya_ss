@@ -68,7 +68,7 @@ def caption_images(
 ###
 
 
-def gradio_wd14_caption_gui_tab():
+def gradio_wd14_caption_gui_tab(headless=False):
     with gr.Tab('WD14 Captioning'):
         gr.Markdown(
             'This utility will use WD14 to caption files for each images in a folder.'
@@ -83,7 +83,7 @@ def gradio_wd14_caption_gui_tab():
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,

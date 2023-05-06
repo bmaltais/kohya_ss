@@ -50,7 +50,7 @@ def verify_lora(
 ###
 
 
-def gradio_verify_lora_tab():
+def gradio_verify_lora_tab(headless=False):
     with gr.Tab('Verify LoRA'):
         gr.Markdown(
             'This utility can verify a LoRA network to make sure it is properly trained.'
@@ -66,7 +66,9 @@ def gradio_verify_lora_tab():
                 interactive=True,
             )
             button_lora_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_model_file.click(
                 get_file_path,

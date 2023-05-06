@@ -20,13 +20,14 @@ def utilities_tab(
     logging_dir_input=gr.Textbox(),
     enable_copy_info_button=bool(False),
     enable_dreambooth_tab=True,
+    headless=False
 ):
     with gr.Tab('Captioning'):
-        gradio_basic_caption_gui_tab()
-        gradio_blip_caption_gui_tab()
-        gradio_git_caption_gui_tab()
-        gradio_wd14_caption_gui_tab()
-    gradio_convert_model_tab()
+        gradio_basic_caption_gui_tab(headless=headless)
+        gradio_blip_caption_gui_tab(headless=headless)
+        gradio_git_caption_gui_tab(headless=headless)
+        gradio_wd14_caption_gui_tab(headless=headless)
+    gradio_convert_model_tab(headless=headless)
 
     return (
         train_data_dir_input,
