@@ -6,7 +6,6 @@ import logging
 import mimetypes
 import multiprocessing
 import os
-import pkgutil
 import platform
 import re
 import shutil
@@ -19,6 +18,7 @@ from contextlib import redirect_stderr
 from datetime import datetime
 from getpass import getpass
 from pathlib import Path
+from typing import Dict, List
 from urllib.parse import urlparse
 
 
@@ -1204,6 +1204,48 @@ def find_python_binary():
     return None
 
 
+# noinspection SpellCheckingInspection
+def safe_subprocess_run(_command, stop_flag=None, interactive=False,
+                        capture_output=False, text=False, bufsize=1):
+    stdout_option = None
+    stderr_option = None
+
+    if not interactive:
+        stdout_option = subprocess.PIPE
+        stderr_option = subprocess.STDOUT
+
+    with subprocess.Popen(_command, stdout=stdout_option, stderr=stderr_option,
+                          bufsize=bufsize, universal_newlines=text) as p:
+        output = ""
+        if interactive:
+            if stop_flag and stop_flag.is_set():
+                p.terminate()
+        else:
+            output_lines = []
+            for _line in p.stdout:
+                if stop_flag and stop_flag.is_set():
+                    p.terminate()
+                    break
+                output_lines.append(_line)
+                if args.verbosity >= 3:
+                    if isinstance(_line, bytes):
+                        _line = _line.decode('utf-8')
+                    logging.debug(_line.strip())
+            if capture_output:
+                output = "".join(output_lines)
+
+        # Wait for process to terminate to get the return code
+        time.sleep(0.5)
+        p.wait()
+        if p.returncode != 0:
+            logging.error(f"Command '{' '.join(_command)}' returned non-zero exit status {p.returncode}")
+            raise subprocess.CalledProcessError(p.returncode, _command, output=output)
+
+    if capture_output:
+        completed_process = subprocess.CompletedProcess(args=_command, returncode=p.returncode, stdout=output)
+        return completed_process
+
+
 def spinning_cursor():
     while True:
         for cursor in '|/-\\':
@@ -1220,24 +1262,279 @@ def spinner_task(stop_event):
         sys.stdout.flush()
 
 
+class PackageManager:
+    """
+    PackageManager is a class that represents the installed packages in the environment.
+    It provides methods to access package version information, query packages by version,
+    and check for the presence of specific packages.
+    """
+
+    def __init__(self, packages: Dict[str, str]):
+        self._packages = packages
+
+    @classmethod
+    def from_installed_packages(cls) -> "PackageManager":
+        packages = {}
+        output = safe_subprocess_run(["pip", "freeze"], capture_output=True, text=True)
+        for line in output.stdout.strip().split("\n"):
+            parts = line.split("==")
+            if len(parts) == 2:
+                name, version = parts
+                packages[name.lower()] = version
+        return cls(packages)
+
+    def add_package(self, name: str, version: str):
+        self._packages[name.lower()] = version
+
+    def get_version(self, package_name: str) -> str:
+        return self._packages.get(package_name.lower())
+
+    def get_packages_by_version(self, version: str) -> List[str]:
+        return [name for name, pkg_version in self._packages.items() if pkg_version == version]
+
+    def contains(self, package_name: str) -> bool:
+        return package_name.lower() in self._packages
+
+    def get_installed_package_names(self) -> List[str]:
+        return list(self._packages.keys())
+
+
 def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
-    def safe_subprocess_run(_command, stop_flag=None):
-        with subprocess.Popen(_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
-                              universal_newlines=True) as p:
-            for _line in p.stdout:
-                if stop_flag and stop_flag.is_set():
-                    p.terminate()
-                    break
-                if args.verbosity >= 3:
-                    logging.debug(_line.strip())
+    # Initialize package manager class first to be used in many Python operations
+    package_manager = PackageManager.from_installed_packages()
 
-            # Wait for process to terminate to get the return code
-            time.sleep(0.5)
-            p.wait()
-            if p.returncode != 0:
-                logging.error(f"Command '{' '.join(_command)}' returned non-zero exit status {p.returncode}")
-                raise subprocess.CalledProcessError(p.returncode, _command)
+    # noinspection SpellCheckingInspection,DuplicatedCode
+    def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
+        logging.debug("Looking for pre-existing torch packages.")
+
+        # Showcase the new functionality:
+        if package_manager.contains('torch'):
+            logging.debug(f"Torch version:", package_manager.get_version("torch"))
+            logging.debug(f"Packages with version 1.12.1+cu116: "
+                          f"{package_manager.get_packages_by_version('1.12.1+cu116')}")
+            logging.debug(f"Is Torch in the package list? {package_manager.contains('torch')}")
+        else:
+            logging.debug("Torch installation not detected.")
+
+        logging.debug(f"Torch Version to install: {torch_version}")
+
+        if _repair or _interactive or (package_manager.get_version("torch") is not None
+                                       and package_manager.get_version("torch")[0] != torch_version):
+
+            package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
+            logging.debug(f"Looking for {', '.join(package_names)} packages.")
+            installed_package_names = [pkg for pkg in package_names if package_manager.contains(pkg)]
+
+            if installed_package_names:
+                logging.debug(f"Uninstalling {', '.join(installed_package_names)} packages.")
+            else:
+                logging.debug(f"None of the following packages were found installed: {', '.join(package_names)}.")
+
+            if installed_package_names:
+                logging.info(f"Uninstalling {', '.join(installed_package_names)} packages.")
+                if args.verbosity < 3:
+                    _bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
+                    with tqdm_progress(total=len(installed_package_names), desc="Uninstalling packages",
+                                       unit="package", unit_scale=False, dynamic_ncols=True,
+                                       bar_format=_bar_format, mininterval=0, miniters=0) as _progress_bar:
+                        for idx, _package_name in enumerate(installed_package_names):
+                            _progress_bar.set_description(f"Uninstalling {_package_name}")
+                            try:
+                                subprocess.run(
+                                    [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", _package_name],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                write_to_log(f"Uninstalling {_package_name}.")
+                            except subprocess.CalledProcessError as e_:
+                                if args.verbosity > 3:
+                                    logging.debug(
+                                        f"Failed to uninstall {_package_name}. Error code {e_.returncode}")
+                            finally:
+                                _progress_bar.update(1)
+                else:
+                    for _package_name in installed_package_names:
+                        _result = subprocess.run(
+                            [sys.executable, "-m", "pip", "uninstall", "-y", _package_name],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                        )
+                        _output = _result.stdout.decode() + _result.stderr.decode()
+                        logging.debug(_output)
+
+        # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
+        if not (package_manager.contains('torch') or package_manager.contains('torchvision')) or \
+                (_update or _repair or _interactive):
+            if _interactive:
+                while True:
+                    input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
+                    if input_torch_version == "1":
+                        _TORCH_VERSION = TORCH_VERSION_1
+                        _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                        _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                        break
+                    elif input_torch_version == "2":
+                        _TORCH_VERSION = TORCH_VERSION_2
+                        _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+                        _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                        break
+                    else:
+                        print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+            else:
+                _TORCH_VERSION = TORCH_VERSION_1
+                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+            if torch_version == "2":
+                _TORCH_VERSION = TORCH_VERSION_2
+                _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+                _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+
+            identifier = ""
+            xformers_sys = ""
+
+            if os_info.family == "Windows":
+                xformers_sys = "win_amd64"
+                identifier = "f"
+            if platform.system() == "Linux":
+                xformers_sys = "linux_x86_64"
+                identifier = "linux"
+
+            xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
+                             f"/download/{identifier}/xformers-{XFORMERS_VERSION_1}." \
+                             f"dev0-cp310-cp310-{xformers_sys}.whl"
+
+            install_commands = [
+                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                [sys.executable, "-m", "pip", "install", "--upgrade",
+                 f"{xformers_url_1}", "--quiet"]
+            ]
+
+            if _torch_version == 2:
+                install_commands = [
+                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                    [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
+                    [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"],
+                    [sys.executable, "-m", "pip", "install", "--upgrade",
+                     f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
+                ]
+
+            if _torch_version == 1:
+                logging.critical(
+                    "Installing torch and related packages. These download large models. Please have "
+                    "patience.")
+            else:
+                logging.critical(
+                    "Installing torch v2 and related packages. These download large models that can "
+                    "take up to an hour to download. Please have patience.")
+
+            if args.verbosity < 3:
+                stop_event = multiprocessing.Event()
+                spinner_process = multiprocessing.Process()
+                try:
+                    for idx, _command in enumerate(install_commands):
+                        try:
+                            # Find the index of "install" in the command and assume the package name
+                            # is the next argument
+                            install_index = _command.index("install")
+                            _package_name = _command[install_index + 1]
+                            if _package_name.startswith(f"{TRITON_URL_2}"):
+                                _package_name = "Triton"
+                            if _package_name == "--upgrade":
+                                _package_name = _command[install_index + 2]
+
+                            # Remove version specifier if present
+                            _package_name = _package_name.split('==')[0]
+                        except ValueError:
+                            _package_name = "unknown package"
+
+                        msg = f"Installing {_package_name} ({idx + 1}/{len(install_commands)})..."
+                        print(msg, end="")
+                        sys.stdout.flush()
+                        # Restart and recreate a new spinner process for each package installation
+                        stop_event.clear()
+                        spinner_process = multiprocessing.Process(target=spinner_task,
+                                                                  args=(stop_event,))
+                        spinner_process.start()
+
+                        # Run the command that needs to have the spinner
+                        try:
+                            safe_subprocess_run(_command, stop_flag=stop_event)
+                            version = package_manager.get_version(_package_name)
+                            if version:
+                                package_manager.add_package(_package_name, version)
+                        except subprocess.CalledProcessError as e_:
+                            # Stop the spinner on the way out
+                            stop_event.set()
+                            spinner_process.join()
+
+                            print(
+                                f"\nError occurred during the installation of {_package_name}. "
+                                f"Exit code: {e_.returncode}")
+                            logging.debug(
+                                f"Error occurred during the installation of {_package_name}. "
+                                f"Exit code: {e_.returncode}")
+                            exit(1)
+
+                        # Stop the spinner on the way out
+                        stop_event.set()
+                        spinner_process.join()
+                        print("\b Done")
+                except KeyboardInterrupt:
+                    stop_event.set()
+                    if spinner_process:
+                        spinner_process.join()
+                    print("\nInstallation was interrupted by user.")
+                    exit(130)
+
+            else:
+                commands = [
+                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                     f"torchvision=={_TORCHVISION_VERSION}",
+                     "--extra-index-url", f"{_TORCH_INDEX_URL}"],
+                ]
+
+                if _torch_version == '2':
+                    commands.extend([
+                        [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
+                        [sys.executable, "-m", "pip", "install", "--upgrade",
+                         f"xformers=={XFORMERS_VERSION_2}"],
+                    ])
+
+                for idx, _command in enumerate(commands):
+                    _package_name = "unknown package"
+                    try:
+                        # Find the index of "install" in the command and assume the package name
+                        # is the next argument
+                        install_index = _command.index("install")
+                        _package_name = _command[install_index + 1]
+                        if _package_name.startswith(f"{TRITON_URL_2}"):
+                            _package_name = "Triton"
+                        if _package_name == "--upgrade":
+                            _package_name = _command[install_index + 2]
+
+                        # Remove version specifier if present
+                        _package_name = _package_name.split('==')[0]
+                    except ValueError:
+                        pass
+
+                    try:
+                        safe_subprocess_run(_command, bufsize=-1)
+                        # After successful installation, add the package to the package manager
+                        version_index = _command.index("==")  # Assuming version is specified in the command
+                        version = _command[version_index + 1]
+                        package_manager.add_package(_package_name, version)
+                    except subprocess.CalledProcessError as e_:
+                        print(
+                            f"\nError occurred during the installation of {_package_name}. "
+                            f"Exit code: {e_.returncode}")
+                        logging.debug(
+                            f"Error occurred during the installation of {_package_name}. "
+                            f"Exit code: {e_.returncode}")
+                        exit(1)
 
     # Name of the flag file
     flag_file = os.path.join(_log_dir, "status", ".pip_operations_done")
@@ -1246,363 +1543,182 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
     logging.debug(f"Pip repair flag: {repair}")
 
     # Check for the existence of the flag file
-    if os.path.exists(flag_file) and not (update or repair):
+    if os.path.exists(flag_file) and not (update or repair or interactive) and package_manager.contains("torch") and \
+            (package_manager.get_version("torch") is not None and
+             package_manager.get_version("torch")[0] == torch_version):
         logging.critical("--update or --repair not specified. Skipping pip installations and repairs.")
         return
 
-    try:
-        # Update pip
-        logging.info("Checking for pip updates before Python operations.")
-
+    if os.path.exists(flag_file) and (update or repair):
         try:
-            if args.verbosity >= 2:
-                safe_subprocess_run(
-                    [sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
-            else:
-                safe_subprocess_run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
-                                     "--no-warn-script-location", "pip"])
-        except subprocess.CalledProcessError as _e:
-            logging.error(f"An error occurred during pip operations: {str(_e)}")
-            exit(1)
+            # Update pip
+            logging.critical("Checking for pip updates before Python operations.")
 
-        # Install python dependencies
-        logging.critical("Beginning kohya_ss dependencies installation.")
-
-        # Set the paths for the built-in requirements and temporary requirements files
-        requirements_path = os.path.join(_dir, "requirements.txt")
-        logging.debug(f"Found requirements.txt at: {requirements_path}")
-        if os.path.exists(requirements_path):
-            temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="w+")
             try:
-                found_comment = False
-                with open(requirements_path, "r") as original_file:
-                    for line in original_file:
-                        logging.debug(f"Processing line: {line.strip()}")
-                        if found_comment:
-                            line = line.replace(".", _dir)
-                            logging.debug(f"Replaced . with: Kohya_SS library path.")
-                            found_comment = False
-                        elif re.search(r"#.*kohya_ss.*library.*", line):
-                            logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
-                            found_comment = True
-                        else:
-                            logging.debug(f"Processing line without any conditions: {line.strip()}")
+                if args.verbosity >= 2:
+                    safe_subprocess_run(
+                        [sys.executable, "-m", "pip", "install", "--upgrade", "--no-warn-script-location", "pip"])
+                else:
+                    safe_subprocess_run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                                         "--no-warn-script-location", "pip"])
+            except subprocess.CalledProcessError as _e:
+                logging.error(f"An error occurred during pip operations: {str(_e)}")
+                exit(1)
 
-                        # Skip comments and empty lines
-                        if (line.strip().startswith("#") or not line.strip()) or found_comment:
-                            continue
+            # Install python dependencies
+            logging.critical("Beginning kohya_ss dependencies installation.")
 
-                        if not found_comment:
-                            logging.debug(f"Installing: {line.strip()}")
-                        else:
-                            logging.debug(f"Installing: Kohya_SS library.")
-                        temp_requirements.write(line)
-
-                    # Append the appropriate packages based on the conditionals
-                    if runpod:
-                        temp_requirements.write("tensorrt\n")
-
-                    if repair:
-                        packages = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
-                        installed_packages = [pkg for pkg in packages if
-                                              pkg.lower() in [pkg.name.lower() for pkg in pkgutil.iter_modules()]]
-                        logging.debug(f"Looking for {', '.join(packages)} packages.")
-                        logging.debug(f"Uninstalling {', '.join(installed_packages)} packages.")
-                        if len(installed_packages) > 0:
-                            logging.info(f"Uninstalling {', '.join(installed_packages)} packages.")
-                            if args.verbosity < 3:
-                                bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
-                                with tqdm_progress(total=len(installed_packages), desc="Uninstalling packages",
-                                                   unit="package", unit_scale=False, dynamic_ncols=True,
-                                                   bar_format=bar_format, mininterval=0, miniters=0) as progress_bar:
-                                    for idx, package in enumerate(installed_packages):
-                                        package_name = installed_packages[idx]
-                                        progress_bar.set_description(f"Uninstalling {package_name}")
-                                        try:
-                                            subprocess.run(
-                                                [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", package],
-                                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                            write_to_log(f"Uninstalling {package_name}.")
-                                        except subprocess.CalledProcessError as _e:
-                                            if args.verbosity > 3:
-                                                logging.debug(
-                                                    f"Failed to uninstall {package}. Error code {_e.returncode}")
-                                        finally:
-                                            progress_bar.update(1)
+            # Set the paths for the built-in requirements and temporary requirements files
+            requirements_path = os.path.join(_dir, "requirements.txt")
+            logging.debug(f"Found requirements.txt at: {requirements_path}")
+            if os.path.exists(requirements_path):
+                temp_requirements = tempfile.NamedTemporaryFile(delete=False, mode="w+")
+                try:
+                    found_comment = False
+                    with open(requirements_path, "r") as original_file:
+                        for line in original_file:
+                            logging.debug(f"Processing line: {line.strip()}")
+                            if found_comment:
+                                line = line.replace(".", _dir)
+                                logging.debug(f"Replaced . with: Kohya_SS library path.")
+                                found_comment = False
+                            elif re.search(r"#.*kohya_ss.*library.*", line):
+                                logging.debug(f"Found kohya_ss library comment in line: {line.strip()}")
+                                found_comment = True
                             else:
-                                for package in installed_packages:
-                                    result = subprocess.run(
-                                        [sys.executable, "-m", "pip", "uninstall", "-y", package],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                    )
-                                    output = result.stdout.decode() + result.stderr.decode()
-                                    logging.debug(output)
+                                logging.debug(f"Processing line without any conditions: {line.strip()}")
 
-                    if os_info.family == "macOS":
-                        if platform.machine() == "arm64":
-                            temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
-                            temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
-                        elif platform.machine() == "x86_64":
-                            temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
-                    elif (os_info.family == "Windows") or platform.system() == "Linux":
-                        logging.debug("Looking for pre-existing torch packages.")
-                        torch_installed = "torch" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-                        torchvision_installed = "torchvision" in [pkg.name.lower() for pkg in pkgutil.iter_modules()]
-                        if torch_installed or torchvision_installed:
-                            logging.debug("Pre-existing torch package(s) found!")
+                            # Skip comments and empty lines
+                            if (line.strip().startswith("#") or not line.strip()) or found_comment:
+                                continue
 
-                        # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
-                        if not (torch_installed or torchvision_installed) or (update or repair):
-                            if interactive:
-                                while True:
-                                    input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
-                                    if torch_version == 1:
-                                        _TORCH_VERSION = TORCH_VERSION_1
-                                        _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                                        _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-                                        torch_version = int(input_torch_version)
-                                        break
-                                    elif torch_version == 2:
-                                        _TORCH_VERSION = TORCH_VERSION_2
-                                        _TORCHVISION_VERSION = TORCHVISION_VERSION_2
-                                        _TORCH_INDEX_URL = TORCH_INDEX_URL_2
-                                        torch_version = int(input_torch_version)
-                                        break
-                                    else:
-                                        print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+                            if not found_comment:
+                                logging.debug(f"Installing: {line.strip()}")
                             else:
-                                _TORCH_VERSION = TORCH_VERSION_1
-                                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-                                torch_version = 1
+                                logging.debug(f"Installing: Kohya_SS library.")
+                            temp_requirements.write(line)
 
-                            if os_info.family == "Windows":
-                                xformers_sys = "win_amd64"
-                                identifier = "f"
-                            if platform.system() == "Linux":
-                                xformers_sys = "linux_x86_64"
-                                identifier = "linux"
+                        # Append the appropriate packages based on the conditionals
+                        if runpod:
+                            temp_requirements.write("tensorrt\n")
 
-                            xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
-                                             f"/download/{identifier}/xformers-{XFORMERS_VERSION_1}." \
-                                             f"dev0-cp310-cp310-{xformers_sys}.whl"
+                        if os_info.family == "macOS":
+                            if platform.machine() == "arm64":
+                                temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
+                                temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
+                            elif platform.machine() == "x86_64":
+                                temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
+                        elif (os_info.family == "Windows") or platform.system() == "Linux":
+                            install_or_repair_torch(update, repair, interactive, torch_version)
 
-                            install_commands = [
-                                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
-                                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                                [sys.executable, "-m", "pip", "install", "--upgrade",
-                                 f"{xformers_url_1}", "--quiet"]
-                            ]
+                        if os_info.family == "macOS":
+                            macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
+                            if os.path.exists(macos_requirements_path):
+                                with open(macos_requirements_path, "r") as macos_req_file:
+                                    for line in macos_req_file:
+                                        # Skip comments and empty lines
+                                        if line.strip().startswith("#") or not line.strip():
+                                            continue
 
-                            if torch_version == 2:
-                                install_commands = [
-                                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                                    [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
-                                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                                    [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"],
-                                    [sys.executable, "-m", "pip", "install", "--upgrade",
-                                     f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
-                                ]
+                                        logging.debug(f"Appending macOS requirement: {line.strip()}")
+                                        temp_requirements.write(line)
 
-                            if torch_version == 1:
-                                logging.critical(
-                                    "Installing torch and related packages. These download large models. Please have "
-                                    "patience.")
-                            else:
-                                logging.critical(
-                                    "Installing torch v2 and related packages. These download large models that can "
-                                    "take up to an hour to download. Please have patience.")
+                finally:
+                    temp_requirements.flush()
+                    temp_requirements.close()
 
-                            if args.verbosity < 3:
-                                try:
-                                    stop_event = multiprocessing.Event()
-                                    for idx, command in enumerate(install_commands):
-                                        try:
-                                            # Find the index of "install" in the command and assume the package name
-                                            # is the next argument
-                                            install_index = command.index("install")
-                                            package_name = command[install_index + 1]
-                                            if package_name.startswith(f"{TRITON_URL_2}"):
-                                                package_name = "Triton"
-                                            if package_name == "--upgrade":
-                                                package_name = command[install_index + 2]
+                logging.debug("requirements.txt successfully processed and merged.")
+                if args.verbosity >= 3:
+                    result = subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
+                         "-r", temp_requirements.name],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+                    output = result.stdout.decode() + result.stderr.decode()
+                    logging.debug(output)
+                else:
+                    logging.critical("Please be patient. It may take time for the requirements to be "
+                                     "collected before showing progress.")
 
-                                            # Remove version specifier if present
-                                            package_name = package_name.split('==')[0]
-                                        except ValueError:
-                                            package_name = "unknown package"
+                    bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
 
-                                        msg = f"Installing {package_name} ({idx + 1}/{len(install_commands)})..."
-                                        print(msg, end="")
-                                        sys.stdout.flush()
-                                        # Restart and recreate a new spinner process for each package installation
-                                        stop_event.clear()
-                                        spinner_process = multiprocessing.Process(target=spinner_task,
-                                                                                  args=(stop_event,))
-                                        spinner_process.start()
+                    with open(temp_requirements.name, "r") as f:
+                        num_packages = sum(1 for line in f if line.strip())
+                        with tqdm_progress(total=num_packages, desc="Installing packages",
+                                           unit="package", unit_scale=False, dynamic_ncols=True,
+                                           bar_format=bar_format, mininterval=0, miniters=0) as progress_bar:
+                            f.seek(0)
+                            for package in f:
+                                package_name = package.strip().split('==')[0]
+                                progress_bar.set_description(f"Installing {package_name}")
 
-                                        # Run the command that needs to have the spinner
-                                        try:
-                                            safe_subprocess_run(command, stop_flag=stop_event)
-                                        except subprocess.CalledProcessError as _e:
-                                            # Stop the spinner on the way out
-                                            stop_event.set()
-                                            spinner_process.join()
+                                command = [sys.executable, "-m", "pip", "install", "--upgrade",
+                                           "--use-pep517", "--no-warn-script-location", package]
 
-                                            print(
-                                                f"\nError occurred during the installation of {package_name}. "
-                                                f"Exit code: {_e.returncode}")
-                                            logging.debug(
-                                                f"Error occurred during the installation of {package_name}. "
-                                                f"Exit code: {_e.returncode}")
-                                            exit(1)
-
-                                        # Stop the spinner on the way out
-                                        stop_event.set()
-                                        spinner_process.join()
-                                        print("\b Done")
-                                except KeyboardInterrupt:
-                                    stop_event.set()
-                                    spinner_process.join()
-                                    print("\nInstallation was interrupted by user.")
-                                    exit(130)
-                            else:
-                                commands = [
-                                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                                     f"torchvision=={_TORCHVISION_VERSION}",
-                                     "--extra-index-url", f"{_TORCH_INDEX_URL}"],
-                                ]
-
-                                if torch_version == '2':
-                                    commands.extend([
-                                        [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
-                                        [sys.executable, "-m", "pip", "install", "--upgrade",
-                                         f"xformers=={XFORMERS_VERSION_2}"],
-                                    ])
-
-                                for idx, command in enumerate(commands):
-                                    package_name = "unknown package"
+                                if args.verbosity < 3:
+                                    command.append("--quiet")
                                     try:
-                                        # Find the index of "install" in the command and assume the package name
-                                        # is the next argument
-                                        install_index = command.index("install")
-                                        package_name = command[install_index + 1]
-                                        if package_name.startswith(f"{TRITON_URL_2}"):
-                                            package_name = "Triton"
-                                        if package_name == "--upgrade":
-                                            package_name = command[install_index + 2]
-
-                                        # Remove version specifier if present
-                                        package_name = package_name.split('==')[0]
-                                    except ValueError:
-                                        pass
-
+                                        safe_subprocess_run(command)
+                                        write_to_log(f"Installing {package_name}.")
+                                    except subprocess.CalledProcessError as _e:
+                                        logging.error(f"An error occurred during pip operations: {str(_e)}")
+                                        exit(1)
+                                else:
                                     try:
                                         safe_subprocess_run(command)
                                     except subprocess.CalledProcessError as _e:
-                                        print(
-                                            f"\nError occurred during the installation of {package_name}. "
-                                            f"Exit code: {_e.returncode}")
-                                        logging.debug(
-                                            f"Error occurred during the installation of {package_name}. "
-                                            f"Exit code: {_e.returncode}")
+                                        output = _e.output
+                                        logging.debug(output)
+                                        logging.error(f"An error occurred during pip operations: {str(_e)}")
                                         exit(1)
+                                progress_bar.update(1)
 
-                    if os_info.family == "macOS":
-                        macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
-                        if os.path.exists(macos_requirements_path):
-                            with open(macos_requirements_path, "r") as macos_req_file:
-                                for line in macos_req_file:
-                                    # Skip comments and empty lines
-                                    if line.strip().startswith("#") or not line.strip():
-                                        continue
+                # Get the scripts directory based on the operating system
+                if os_info.family == "Windows":
+                    scripts_dir = os.path.join(Path(sys.executable).parent, 'Scripts')
+                else:
+                    scripts_dir = os.path.join(Path(sys.executable).parent, 'bin')
 
-                                    logging.debug(f"Appending macOS requirement: {line.strip()}")
-                                    temp_requirements.write(line)
+                # Add the scripts directory to the PATH
+                os.environ['PATH'] = scripts_dir + os.pathsep + os.environ['PATH']
 
-            finally:
-                temp_requirements.flush()
-                temp_requirements.close()
+                # Delete the temporary requirements file
+                logging.debug(f"Removing {temp_requirements.name}")
+                if os.path.exists(temp_requirements.name):
+                    os.remove(temp_requirements.name)
 
-            logging.debug("requirements.txt successfully processed and merged.")
-            if args.verbosity >= 3:
-                result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "--upgrade", "--use-pep517",
-                     "-r", temp_requirements.name],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                output = result.stdout.decode() + result.stderr.decode()
-                logging.debug(output)
-            else:
-                logging.critical("Please be patient. It may take time for the requirements to be "
-                                 "collected before showing progress.")
+            os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
+            with open(flag_file, 'w') as f:
+                f.write('Pip operations done on: ' + str(datetime.now()))
 
-                bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
+            logging.info("Pip operations completed successfully.")
 
-                with open(temp_requirements.name, "r") as f:
-                    num_packages = sum(1 for line in f if line.strip())
-                    with tqdm_progress(total=num_packages, desc="Installing packages",
-                                       unit="package", unit_scale=False, dynamic_ncols=True,
-                                       bar_format=bar_format, mininterval=0, miniters=0) as progress_bar:
-                        f.seek(0)
-                        for package in f:
-                            package_name = package.strip().split('==')[0]
-                            progress_bar.set_description(f"Installing {package_name}")
-
-                            command = [sys.executable, "-m", "pip", "install", "--upgrade",
-                                       "--use-pep517", "--no-warn-script-location", package]
-
-                            if args.verbosity < 3:
-                                command.append("--quiet")
-                                try:
-                                    safe_subprocess_run(command)
-                                    write_to_log(f"Installing {package_name}.")
-                                except subprocess.CalledProcessError as _e:
-                                    logging.error(f"An error occurred during pip operations: {str(_e)}")
-                                    exit(1)
-                            else:
-                                try:
-                                    safe_subprocess_run(command)
-                                except subprocess.CalledProcessError as _e:
-                                    output = _e.output
-                                    logging.debug(output)
-                                    logging.error(f"An error occurred during pip operations: {str(_e)}")
-                                    exit(1)
-                            progress_bar.update(1)
-
-            # Get the scripts directory based on the operating system
-            if os_info.family == "Windows":
-                scripts_dir = os.path.join(Path(sys.executable).parent, 'Scripts')
-            else:
-                scripts_dir = os.path.join(Path(sys.executable).parent, 'bin')
-
-            # Add the scripts directory to the PATH
-            os.environ['PATH'] = scripts_dir + os.pathsep + os.environ['PATH']
-
-            # Delete the temporary requirements file
-            logging.debug(f"Removing {temp_requirements.name}")
-            if os.path.exists(temp_requirements.name):
-                os.remove(temp_requirements.name)
-
-        os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
-        with open(flag_file, 'w') as f:
-            f.write('Pip operations done on: ' + str(datetime.now()))
-
-        logging.info("Pip operations completed successfully.")
-
-    except Exception as _e:
-        # Handle exceptions appropriately
-        logging.error("An error occurred during pip operations: %s", str(_e))
-        # You may choose to re-raise the exception if the error is critical
-        # raise
+        except Exception as _e:
+            # Handle exceptions appropriately
+            logging.error("An error occurred during pip operations: %s", str(_e))
+            # You may choose to re-raise the exception if the error is critical
+            # raise
+    elif interactive or (not package_manager.contains("torch")) \
+            or (package_manager.get_version("torch") is not None and
+                package_manager.get_version("torch")[0] != torch_version):
+        install_or_repair_torch(update, repair, interactive, torch_version)
 
 
 def configure_accelerate(interactive):
+    def configure_accelerate_manually(_interactive):
+        if _interactive:
+            try:
+                logging.critical("Manually configure accelerate: ")
+                safe_subprocess_run(["accelerate", "config"], interactive=True)
+            except FileNotFoundError:
+                logging.error(
+                    "The 'accelerate' command was not found. Please ensure it is installed and available in your PATH.")
+                exit(1)
+            except subprocess.CalledProcessError as e_:
+                logging.error(f"Accelerate config failed with error code {e_.returncode}")
+                exit(1)
+
     if os_info.family == "macOS" and platform.machine() == "arm64":
         source_accelerate_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config_files",
                                                      "accelerate", "macos_config.yaml")
@@ -1612,16 +1728,9 @@ def configure_accelerate(interactive):
 
     logging.debug(f"Source accelerate config location: {source_accelerate_config_file}")
 
-    if interactive:
-        try:
-            logging.critical("Manually configure accelerate: ")
-            subprocess.check_call(["accelerate", "config"])
-        except FileNotFoundError:
-            logging.error(
-                "The 'accelerate' command was not found. Please ensure it is installed and available in your PATH.")
-        except subprocess.CalledProcessError as _e:
-            logging.error(f"Accelerate config failed with error code {_e.returncode}")
-    else:
+    configure_accelerate_manually(interactive)
+
+    if not interactive:
         target_config_location = None
 
         if os_info.family == "Windows":
@@ -1657,15 +1766,7 @@ def configure_accelerate(interactive):
                 logging.debug(f"Copied accelerate config file to: {target_config_location}")
         else:
             logging.info("Could not place the accelerate configuration file. Please configure manually.")
-
-            try:
-                logging.critical("Manually configure accelerate: ")
-                subprocess.check_call(["accelerate", "config"])
-            except FileNotFoundError:
-                logging.error(
-                    "The 'accelerate' command was not found. Please ensure it is installed and available in your PATH.")
-            except subprocess.CalledProcessError as _e:
-                logging.error(f"Accelerate config failed with error code {_e.returncode}")
+            configure_accelerate_manually(_interactive=True)
 
 
 def launch_kohya_gui(_args):

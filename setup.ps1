@@ -1798,6 +1798,61 @@ function Install-Git {
 
 <#
 .SYNOPSIS
+    Displays a countdown timer and allows users to skip the countdown or cancel the installation.
+
+.DESCRIPTION
+    This function displays a countdown timer, decrementing from the given countdown value.
+    It also provides users the option to skip the countdown and continue or cancel the installation.
+    The user can press 'y' to skip the countdown or 'n' to cancel the installation.
+
+.PARAMETER countdown
+    An integer representing the number of seconds for the countdown.
+
+.EXAMPLE
+    $continueInstallation = DisplayCountdown -countdown 15
+    Displays a 15-second countdown and allows the user to either skip or cancel the installation.
+
+.NOTES
+    The countdown is displayed with carriage return (`r) to update the same line.
+#>
+function DisplayCountdown($countdown) {
+    Write-Host "Press 'y' to skip the countdown and continue or 'n' to cancel the installation."
+    $continue = $false
+
+    for ($i = 0; $i -lt $countdown; $i++) {
+        $remainingTime = $countdown - $i
+        Write-Host "`rContinuing in $remainingTime... " -NoNewline
+
+        $keyInfo = $null
+        $timeout = 1000
+
+        while (($timeout -gt 0) -and (-not $keyInfo)) {
+            $timeout -= 100
+            if ([console]::KeyAvailable) {
+                $keyInfo = [System.Console]::ReadKey($true)
+            }
+            Start-Sleep -Milliseconds 100
+        }
+
+        if ($keyInfo) {
+            $key = $keyInfo.Key
+            if ($key -eq "Y") {
+                $continue = $true
+                break
+            }
+            elseif ($key -eq "N") {
+                $continue = $false
+                break
+            }
+        }
+    }
+
+    Write-Host
+    return $continue
+}
+
+<#
+.SYNOPSIS
 Checks if a specific version of the Microsoft Visual C++ Redistributable is installed on the system.
 
 .DESCRIPTION
@@ -1865,7 +1920,6 @@ function Test-VCRedistInstalled {
     return $found
 }
 
-
 <#
 .SYNOPSIS
     Installs the Visual Studio redistributables on Windows systems.
@@ -1899,8 +1953,21 @@ function Install-VCRedistWindows {
     }
 
     if (-not (Test-IsAdmin)) {
+        Write-Host "`n`n"
         Write-Warning "Admin privileges are required to install Visual Studio redistributables. The script will attempt to run the installer with elevated privileges."
-        Start-Sleep -Seconds 5
+
+        $continueInstallation = DisplayCountdown -countdown 15
+
+        if ($continueInstallation) {
+            # Continue with normal operations
+            Write-Host "Continuing with the installation."
+        }
+        else {
+            Write-Host "Installation cancelled."
+            Write-Host "Please manually install VC via the following URL: " -ForegroundColor Yellow -NoNewline
+            Write-Host "https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow
+            exit 1
+        }
 
         try {
             Get-VCRedist
@@ -1917,6 +1984,8 @@ function Install-VCRedistWindows {
             elseif ($exitCode -ne 0) {
                 # Any other non-zero exit code indicates an error
                 Write-ErrorLog "VC Redistributable installation failed with exit code $($proc.ExitCode)."
+                Write-CriticalLog "Please try again or manually install VC via the following URL: ." -ForegroundColor Yellow -NoHeader
+                Write-CriticalLog "https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow -NoHeader
                 exit 1
             }
         }
