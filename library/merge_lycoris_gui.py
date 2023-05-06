@@ -51,7 +51,7 @@ def merge_lycoris(
 ###
 
 
-def gradio_merge_lycoris_tab():
+def gradio_merge_lycoris_tab(headless=False):
     with gr.Tab('Merge LyCORIS'):
         gr.Markdown(
             'This utility can merge a LyCORIS model into a SD checkpoint.'
@@ -70,7 +70,7 @@ def gradio_merge_lycoris_tab():
                 info='Provide a SD file path that you want to merge with the LyCORIS file',
             )
             base_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             base_model_file.click(
                 get_file_path,
@@ -86,7 +86,7 @@ def gradio_merge_lycoris_tab():
                 interactive=True,
             )
             button_lycoris_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_lycoris_model_file.click(
                 get_file_path,
@@ -112,7 +112,7 @@ def gradio_merge_lycoris_tab():
                 interactive=True,
             )
             button_output_name = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_output_name.click(
                 get_saveasfilename_path,

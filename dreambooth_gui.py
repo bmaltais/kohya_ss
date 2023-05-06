@@ -27,6 +27,7 @@ from library.common_gui import (
     # set_legacy_8bitadam,
     update_my_data,
     check_if_model_exist,
+    output_message,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -38,7 +39,7 @@ from library.dreambooth_folder_creation_gui import (
 )
 from library.utilities import utilities_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
+# from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -267,6 +268,7 @@ def open_configuration(
 
 
 def train_model(
+    headless,
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
@@ -337,39 +339,40 @@ def train_model(
     use_wandb,
     wandb_api_key,
 ):
+    headless_bool = True if headless.get('label') == 'True' else False
+    
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        output_message(msg='Source model information is missing', headless=headless_bool)
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        output_message(msg='Image folder path is missing', headless=headless_bool)
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        output_message(msg='Image folder does not exist', headless=headless_bool)
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            output_message(msg='Regularisation folder does not exist', headless=headless_bool)
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        output_message(msg='Output folder path is missing', headless=headless_bool)
         return
 
-    if check_if_model_exist(output_name, output_dir, save_model_as):
+    if check_if_model_exist(output_name, output_dir, save_model_as, headless=headless_bool):
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
-        msgbox(
-            "Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning',
+        output_message(msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+            title='Warning', headless=headless_bool
         )
         lr_warmup = '0'
         
     if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
-        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        output_message(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error', headless=headless_bool)
         return
 
     # Get a list of all subfolders in train_data_dir, excluding hidden folders
@@ -599,9 +602,11 @@ def dreambooth_tab(
     reg_data_dir=gr.Textbox(),
     output_dir=gr.Textbox(),
     logging_dir=gr.Textbox(),
+    headless=False
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
+    dummy_headless = gr.Label(value=headless, visible=False)
     gr.Markdown('Train a custom model using kohya dreambooth python code...')
     (
         button_open_config,
@@ -609,7 +614,7 @@ def dreambooth_tab(
         button_save_as_config,
         config_file_name,
         button_load_config,
-    ) = gradio_config()
+    ) = gradio_config(headless=headless)
 
     (
         pretrained_model_name_or_path,
@@ -617,7 +622,7 @@ def dreambooth_tab(
         v_parameterization,
         save_model_as,
         model_list,
-    ) = gradio_source_model()
+    ) = gradio_source_model(headless=headless)
 
     with gr.Tab('Folders'):
         with gr.Row():
@@ -626,7 +631,7 @@ def dreambooth_tab(
                 placeholder='Folder where the training folders containing the images are located',
             )
             train_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             train_data_dir_input_folder.click(
                 get_folder_path,
@@ -638,7 +643,7 @@ def dreambooth_tab(
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
             reg_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             reg_data_dir_input_folder.click(
                 get_folder_path,
@@ -651,7 +656,7 @@ def dreambooth_tab(
                 placeholder='Folder to output trained model',
             )
             output_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             output_dir_input_folder.click(get_folder_path, outputs=output_dir)
             logging_dir = gr.Textbox(
@@ -659,7 +664,7 @@ def dreambooth_tab(
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
             logging_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             logging_dir_input_folder.click(
                 get_folder_path,
@@ -748,7 +753,7 @@ def dreambooth_tab(
                     label='VAE',
                     placeholder='(Optiona) path to checkpoint of vae to replace for training',
                 )
-                vae_button = gr.Button('📂', elem_id='open_folder_small')
+                vae_button = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
                 vae_button.click(
                     get_any_file_path,
                     outputs=vae,
@@ -787,7 +792,7 @@ def dreambooth_tab(
                 save_last_n_steps_state,
                 use_wandb,
                 wandb_api_key,
-            ) = gradio_advanced_training()
+            ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
                 inputs=[color_aug],
@@ -810,6 +815,7 @@ def dreambooth_tab(
             reg_data_dir_input=reg_data_dir,
             output_dir_input=output_dir,
             logging_dir_input=logging_dir,
+            headless=headless,
         )
 
     button_run = gr.Button('Train model', variant='primary')
@@ -930,7 +936,7 @@ def dreambooth_tab(
 
     button_run.click(
         train_model,
-        inputs=settings_list,
+        inputs=[dummy_headless] + settings_list,
         show_progress=False,
     )
 
@@ -944,13 +950,18 @@ def dreambooth_tab(
 
 def UI(**kwargs):
     css = ''
+    
+    headless = kwargs.get('headless', False)
+    print(f'headless: {headless}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             print('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css)
+    interface = gr.Blocks(
+        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+    )
 
     with interface:
         with gr.Tab('Dreambooth'):
@@ -959,7 +970,7 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab()
+            ) = dreambooth_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -967,26 +978,39 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
+                headless=headless
             )
 
     # Show the interface
     launch_kwargs = {}
-    if not kwargs.get('username', None) == '':
-        launch_kwargs['auth'] = (
-            kwargs.get('username', None),
-            kwargs.get('password', None),
-        )
-    if kwargs.get('server_port', 0) > 0:
-        launch_kwargs['server_port'] = kwargs.get('server_port', 0)
-    if kwargs.get('inbrowser', False):
-        launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
-    print(launch_kwargs)
+    username = kwargs.get('username')
+    password = kwargs.get('password')
+    server_port = kwargs.get('server_port', 0)
+    inbrowser = kwargs.get('inbrowser', False)
+    share = kwargs.get('share', False)
+    server_name = kwargs.get('listen')
+
+    launch_kwargs['server_name'] = server_name
+    if username and password:
+        launch_kwargs['auth'] = (username, password)
+    if server_port > 0:
+        launch_kwargs['server_port'] = server_port
+    if inbrowser:
+        launch_kwargs['inbrowser'] = inbrowser
+    if share:
+        launch_kwargs['share'] = share
     interface.launch(**launch_kwargs)
 
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--listen',
+        type=str,
+        default='127.0.0.1',
+        help='IP to listen on for connections to Gradio',
+    )
     parser.add_argument(
         '--username', type=str, default='', help='Username for authentication'
     )
@@ -1002,6 +1026,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--inbrowser', action='store_true', help='Open in browser'
     )
+    parser.add_argument(
+        '--share', action='store_true', help='Share the gradio UI'
+    )
+    parser.add_argument(
+        '--headless', action='store_true', help='Is the server headless'
+    )
 
     args = parser.parse_args()
 
@@ -1010,4 +1040,7 @@ if __name__ == '__main__':
         password=args.password,
         inbrowser=args.inbrowser,
         server_port=args.server_port,
+        share=args.share,
+        listen=args.listen,
+        headless=args.headless,
     )

@@ -331,6 +331,19 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/06 (v21.5.9)
+  - Inplement headless mode to enable easier support under headless services like vast.ai. To make use of it start the gui with the `--headless` argument like:
+
+    `.\gui.ps1 --headless` or `.\gui.bat --headless` or `./gui.sh --headless`
+  - Added the option for the user to put the wandb api key in a textbox under the advanced configuration dropdown and a checkbox to toggle for using wandb logging. @x-CK-x
+  - Docker build image @Trojaner
+    - Updated README to use docker compose run instead of docker compose up to fix broken tqdm
+      - Related: Doesn't work with docker-compose tqdm/tqdm#771
+    - Fixed build for latest release
+    - Replace pillow with pillow-simd
+    - Removed --no-cache again as pip cache is not enabled anyway
+  - While overwriting .txt files with prefix and postfix including different encodings you might encounter this decoder error. This small fix gets rid of it... @ertugrul-dmr
+  - Docker Add --no-cache-dir to reduce image size @chiragjn
 * 2023/04/05 (v21.5.8)
   - Add `Cache latents to disk` option to the gui.
   - When saving v2 models in Diffusers format in training scripts and conversion scripts, it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is `"use_linear_projection": false`, stabilityai is `true`). Please note that the weight shapes are different, so please be careful when using the weight files directly. We apologize for the inconvenience.

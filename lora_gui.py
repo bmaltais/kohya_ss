@@ -4,7 +4,7 @@
 # v3.1: Adding captionning of images to utilities
 
 import gradio as gr
-import easygui
+# import easygui
 import json
 import math
 import os
@@ -28,6 +28,7 @@ from library.common_gui import (
     # set_legacy_8bitadam,
     update_my_data,
     check_if_model_exist,
+    output_message,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -44,7 +45,7 @@ from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
+# from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -317,7 +318,9 @@ def open_configuration(
     return tuple(values)
 
 
+
 def train_model(
+    headless,
     print_only,
     pretrained_model_name_or_path,
     v2,
@@ -408,59 +411,60 @@ def train_model(
     wandb_api_key,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
+    headless_bool = True if headless.get('label') == 'True' else False
 
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        output_message(msg='Source model information is missing', headless=headless_bool)
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        output_message(msg='Image folder path is missing', headless=headless_bool)
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        output_message(msg='Image folder does not exist', headless=headless_bool)
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            output_message(msg='Regularisation folder does not exist', headless=headless_bool)
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        output_message(msg='Output folder path is missing', headless=headless_bool)
         return
 
     if int(bucket_reso_steps) < 1:
-        msgbox('Bucket resolution steps need to be greater than 0')
+        output_message(msg='Bucket resolution steps need to be greater than 0', headless=headless_bool)
         return
     
     if noise_offset == '':
         noise_offset = 0
         
     if float(noise_offset) > 1 or float(noise_offset) < 0:
-        msgbox('Noise offset need to be a value between 0 and 1')
+        output_message(msg='Noise offset need to be a value between 0 and 1', headless=headless_bool)
         return
     
     if float(noise_offset) > 0 and (multires_noise_iterations > 0 or multires_noise_discount > 0):
-        msgbox(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error')
+        output_message(msg='noise offset and multires_noise can\'t be set at the same time. Only use one or the other.', title='Error', headless=headless_bool)
         return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     if stop_text_encoder_training_pct > 0:
-        msgbox(
-            'Output "stop text encoder training" is not yet supported. Ignoring'
+        output_message(
+            msg='Output "stop text encoder training" is not yet supported. Ignoring', headless=headless_bool
         )
         stop_text_encoder_training_pct = 0
 
-    if check_if_model_exist(output_name, output_dir, save_model_as):
+    if check_if_model_exist(output_name, output_dir, save_model_as, headless=headless_bool):
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
-        msgbox(
-            "Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning',
+        output_message(
+            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+            title='Warning', headless=headless_bool
         )
         lr_warmup = '0'
 
@@ -673,7 +677,7 @@ def train_model(
             run_cmd += f' --network_train_unet_only'
     else:
         if float(learning_rate) == 0:
-            msgbox('Please input learning rate values.')
+            output_message(msg='Please input learning rate values.', headless=headless_bool)
             return
 
     run_cmd += f' --network_dim={network_dim}'
@@ -796,9 +800,12 @@ def lora_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
+    headless=False
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
+    dummy_headless = gr.Label(value=headless, visible=False)
+    
     gr.Markdown(
         'Train a custom model using kohya train network LoRA python code...'
     )
@@ -808,7 +815,7 @@ def lora_tab(
         button_save_as_config,
         config_file_name,
         button_load_config,
-    ) = gradio_config()
+    ) = gradio_config(headless=headless)
 
     (
         pretrained_model_name_or_path,
@@ -820,7 +827,7 @@ def lora_tab(
         save_model_as_choices=[
             'ckpt',
             'safetensors',
-        ]
+        ], headless=headless
     )
 
     with gr.Tab('Folders'):
@@ -829,7 +836,7 @@ def lora_tab(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
             train_data_dir_folder.click(
                 get_folder_path,
                 outputs=train_data_dir,
@@ -839,7 +846,7 @@ def lora_tab(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
             reg_data_dir_folder.click(
                 get_folder_path,
                 outputs=reg_data_dir,
@@ -850,7 +857,7 @@ def lora_tab(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            output_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
             output_dir_folder.click(
                 get_folder_path,
                 outputs=output_dir,
@@ -860,7 +867,7 @@ def lora_tab(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
             logging_dir_folder.click(
                 get_folder_path,
                 outputs=logging_dir,
@@ -917,7 +924,7 @@ def lora_tab(
                 placeholder='{Optional) Path to existing LoRA network weights to resume training',
             )
             lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                document_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             lora_network_weights_file.click(
                 get_any_file_path,
@@ -1159,7 +1166,7 @@ def lora_tab(
                 save_last_n_steps_state,
                 use_wandb,
                 wandb_api_key,
-            ) = gradio_advanced_training()
+            ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
                 inputs=[color_aug],
@@ -1188,12 +1195,13 @@ def lora_tab(
             reg_data_dir_input=reg_data_dir,
             output_dir_input=output_dir,
             logging_dir_input=logging_dir,
+            headless=headless,
         )
-        gradio_dataset_balancing_tab()
-        gradio_merge_lora_tab()
-        gradio_svd_merge_lora_tab()
-        gradio_resize_lora_tab()
-        gradio_verify_lora_tab()
+        gradio_dataset_balancing_tab(headless=headless)
+        gradio_merge_lora_tab(headless=headless)
+        gradio_svd_merge_lora_tab(headless=headless)
+        gradio_resize_lora_tab(headless=headless)
+        gradio_verify_lora_tab(headless=headless)
 
     button_run = gr.Button('Train model', variant='primary')
 
@@ -1333,13 +1341,13 @@ def lora_tab(
 
     button_run.click(
         train_model,
-        inputs=[dummy_db_false] + settings_list,
+        inputs=[dummy_headless] + [dummy_db_false] + settings_list,
         show_progress=False,
     )
 
     button_print.click(
         train_model,
-        inputs=[dummy_db_true] + settings_list,
+        inputs=[dummy_headless] + [dummy_db_true] + settings_list,
         show_progress=False,
     )
 
@@ -1353,13 +1361,18 @@ def lora_tab(
 
 def UI(**kwargs):
     css = ''
+    
+    headless = kwargs.get('headless', False)
+    print(f'headless: {headless}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             print('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css)
+    interface = gr.Blocks(
+        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+    )
 
     with interface:
         with gr.Tab('LoRA'):
@@ -1368,7 +1381,7 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = lora_tab()
+            ) = lora_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -1376,28 +1389,39 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
+                headless=headless
             )
 
     # Show the interface
     launch_kwargs = {}
-    if not kwargs.get('username', None) == '':
-        launch_kwargs['auth'] = (
-            kwargs.get('username', None),
-            kwargs.get('password', None),
-        )
-    if kwargs.get('server_port', 0) > 0:
-        launch_kwargs['server_port'] = kwargs.get('server_port', 0)
-    if kwargs.get('inbrowser', False):
-        launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
-    if kwargs.get('listen', True):
-        launch_kwargs['server_name'] = '0.0.0.0'
-    print(launch_kwargs)
+    username = kwargs.get('username')
+    password = kwargs.get('password')
+    server_port = kwargs.get('server_port', 0)
+    inbrowser = kwargs.get('inbrowser', False)
+    share = kwargs.get('share', False)
+    server_name = kwargs.get('listen')
+
+    launch_kwargs['server_name'] = server_name
+    if username and password:
+        launch_kwargs['auth'] = (username, password)
+    if server_port > 0:
+        launch_kwargs['server_port'] = server_port
+    if inbrowser:
+        launch_kwargs['inbrowser'] = inbrowser
+    if share:
+        launch_kwargs['share'] = share
     interface.launch(**launch_kwargs)
 
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--listen',
+        type=str,
+        default='127.0.0.1',
+        help='IP to listen on for connections to Gradio',
+    )
     parser.add_argument(
         '--username', type=str, default='', help='Username for authentication'
     )
@@ -1414,9 +1438,10 @@ if __name__ == '__main__':
         '--inbrowser', action='store_true', help='Open in browser'
     )
     parser.add_argument(
-        '--listen',
-        action='store_true',
-        help='Launch gradio with server name 0.0.0.0, allowing LAN access',
+        '--share', action='store_true', help='Share the gradio UI'
+    )
+    parser.add_argument(
+        '--headless', action='store_true', help='Is the server headless'
     )
 
     args = parser.parse_args()
@@ -1426,4 +1451,7 @@ if __name__ == '__main__':
         password=args.password,
         inbrowser=args.inbrowser,
         server_port=args.server_port,
+        share=args.share,
+        listen=args.listen,
+        headless=args.headless,
     )

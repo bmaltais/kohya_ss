@@ -35,7 +35,11 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
 ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
 
-def check_if_model_exist(output_name, output_dir, save_model_as):
+def check_if_model_exist(output_name, output_dir, save_model_as, headless=False):
+    if headless:
+        print('Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...')
+        return False
+    
     if save_model_as in ['diffusers', 'diffusers_safetendors']:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
@@ -62,6 +66,11 @@ def check_if_model_exist(output_name, output_dir, save_model_as):
 
     return False
 
+def output_message(msg='', title='', headless=False):
+    if headless:
+        print(msg)
+    else:
+        msgbox(msg=msg, title=title)
 
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
@@ -529,13 +538,13 @@ def set_model_list(
 ###
 
 
-def gradio_config():
+def gradio_config(headless=False):
     with gr.Accordion('Configuration file', open=False):
         with gr.Row():
-            button_open_config = gr.Button('Open 📂', elem_id='open_folder')
-            button_save_config = gr.Button('Save 💾', elem_id='open_folder')
+            button_open_config = gr.Button('Open 📂', elem_id='open_folder', visible=(not headless))
+            button_save_config = gr.Button('Save 💾', elem_id='open_folder', visible=(not headless))
             button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder'
+                'Save as... 💾', elem_id='open_folder', visible=(not headless)
             )
             config_file_name = gr.Textbox(
                 label='',
@@ -573,7 +582,8 @@ def gradio_source_model(
         'diffusers',
         'diffusers_safetensors',
         'safetensors',
-    ]
+    ],
+    headless=False
 ):
     with gr.Tab('Source model'):
         # Define the input elements
@@ -584,7 +594,7 @@ def gradio_source_model(
                 value='runwayml/stable-diffusion-v1-5',
             )
             pretrained_model_name_or_path_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                document_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             pretrained_model_name_or_path_file.click(
                 get_any_file_path,
@@ -593,7 +603,7 @@ def gradio_source_model(
                 show_progress=False,
             )
             pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             pretrained_model_name_or_path_folder.click(
                 get_folder_path,
@@ -835,7 +845,7 @@ def run_cmd_training(**kwargs):
     return run_cmd
 
 
-def gradio_advanced_training():
+def gradio_advanced_training(headless=False):
     with gr.Row():
         additional_parameters = gr.Textbox(
             label='Additional parameters',
@@ -937,7 +947,7 @@ def gradio_advanced_training():
             label='Resume from saved training state',
             placeholder='path to "last-state" state folder to resume from',
         )
-        resume_button = gr.Button('📂', elem_id='open_folder_small')
+        resume_button = gr.Button('📂', elem_id='open_folder_small', visible=(not headless))
         resume_button.click(
             get_folder_path,
             outputs=resume,

@@ -104,7 +104,7 @@ def warning(insecure):
             return False
 
 
-def gradio_dataset_balancing_tab():
+def gradio_dataset_balancing_tab(headless=False):
     with gr.Tab('Dreambooth/LoRA Dataset balancing'):
         gr.Markdown(
             'This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.'
@@ -120,7 +120,7 @@ def gradio_dataset_balancing_tab():
             )
 
             select_dataset_folder_button = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             select_dataset_folder_button.click(
                 get_folder_path,

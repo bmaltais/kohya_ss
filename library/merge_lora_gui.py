@@ -96,7 +96,7 @@ def merge_lora(
 ###
 
 
-def gradio_merge_lora_tab():
+def gradio_merge_lora_tab(headless=False):
     with gr.Tab('Merge LoRA'):
         gr.Markdown(
             'This utility can merge up to 4 LoRA together or alternativelly merge up to 4 LoRA into a SD checkpoint.'
@@ -115,7 +115,7 @@ def gradio_merge_lora_tab():
                 info='Provide a SD file path IF you want to merge it with LoRA files',
             )
             sd_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             sd_model_file.click(
                 get_file_path,
@@ -131,7 +131,7 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_lora_a_model_file.click(
                 get_file_path,
@@ -146,7 +146,7 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_b_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_lora_b_model_file.click(
                 get_file_path,
@@ -181,7 +181,7 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_c_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_lora_c_model_file.click(
                 get_file_path,
@@ -196,7 +196,7 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_d_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_lora_d_model_file.click(
                 get_file_path,
@@ -231,7 +231,7 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_save_to.click(
                 get_saveasfilename_path,

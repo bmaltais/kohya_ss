@@ -119,7 +119,7 @@ def update_mode(mode):
     return tuple(updates)
 
 
-def gradio_extract_lycoris_locon_tab():
+def gradio_extract_lycoris_locon_tab(headless=False):
     with gr.Tab('Extract LyCORIS LoCON'):
         gr.Markdown(
             'This utility can extract a LyCORIS LoCon network from a finetuned model.'
@@ -138,7 +138,7 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_db_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_db_model_file.click(
                 get_file_path,
@@ -153,7 +153,7 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_base_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_base_model_file.click(
                 get_file_path,
@@ -168,7 +168,7 @@ def gradio_extract_lycoris_locon_tab():
                 interactive=True,
             )
             button_output_name = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_output_name.click(
                 get_saveasfilename_path,

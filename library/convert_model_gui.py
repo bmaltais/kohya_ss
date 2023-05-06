@@ -164,7 +164,7 @@ def convert_model(
 ###
 
 
-def gradio_convert_model_tab():
+def gradio_convert_model_tab(headless=False):
     with gr.Tab('Convert model'):
         gr.Markdown(
             'This utility can be used to convert from one stable diffusion model format to another.'
@@ -176,7 +176,7 @@ def gradio_convert_model_tab():
                 interactive=True,
             )
             button_source_model_dir = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_source_model_dir.click(
                 get_folder_path,
@@ -185,7 +185,7 @@ def gradio_convert_model_tab():
             )
 
             button_source_model_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                document_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_source_model_file.click(
                 get_file_path,
@@ -212,7 +212,7 @@ def gradio_convert_model_tab():
                 interactive=True,
             )
             button_target_model_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol, elem_id='open_folder_small', visible=(not headless)
             )
             button_target_model_folder.click(
                 get_folder_path,
