@@ -8,7 +8,6 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 - [Tutorials](#tutorials)
 - [Required Dependencies](#required-prerequisites)
-  - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation and Upgrading](#installation-and-upgrading)
   - [Containers](#containers)
   - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
@@ -17,13 +16,6 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
       - [Configuration File](#configuration-file)
     - [Running Kohya_SS](#running-kohya_ss)
     - [CUDNN 8.6](#optional--cudnn-86)
-- [Upgrading](#upgrading)
-  - [Windows](#windows-upgrade)
-  - [Linux/macOS](#linux-and-macos-upgrade)
-- [Launching the GUI](#starting-gui-service)
-  - [Windows](#launching-the-gui-on-windows)
-  - [Linux/macOS](#launching-the-gui-on-linux-and-macos)
-  - [Direct Launch via Python Script](#launching-the-gui-directly-using-kohyaguipy)
 - [Dreambooth](#dreambooth)
 - [Finetune](#finetune)
 - [Train Network](#train-network)
@@ -31,9 +23,10 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 - [Troubleshooting](#troubleshooting)
   - [Page File Limit](#page-file-limit)
   - [No module called tkinter](#no-module-called-tkinter)
-  - [FileNotFoundError](#filenotfounderror)
+  - [FileNotFound Error](#filenotfound-error)
   - [Deleting Downloaded Model Cache](#deleting-downloaded-model-cache)
   - [Installation Issues](#installation-issues)
+    - [Debug Mode](#debug-mode)
     - [General Installation Workflow](#general-installation-workflow)
 - [Change History](#change-history)
 
@@ -61,8 +54,6 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 
 ## Installation and Upgrading
 
-<br>
-
 <details>
 <summary><h3 id="required-prerequisites">Required Prerequisites</h3></summary>
 
@@ -79,8 +70,6 @@ On Linux you may need to use your package manager to install these. On macOS we 
 The VS redist component is not needed for non-Windows operating systems.
 
 </details>
-
-<br>
 
 <details>
 <summary><h3 id="containers">Containers</h3></summary>
@@ -217,9 +206,7 @@ This command does the following:
 ### Configuration
 
 <details>
-<summary>Command Line Arguments</summary>
-
-##### Command Line Arguments
+<summary><h5 id="command-line-arguments">Command Line Arguments</h5></summary>
 
 <details>
 <summary>setup.ps1</summary>
@@ -359,11 +346,10 @@ Use them in the same manner is the above arguments:
 ```
 
 </details>
+</details>
 <br>
 <details>
-<summary>Configuration File</summary>
-
-##### Configuration File
+<summary><h5 id="configuration-file">Configuration File</h5></summary>
 
 You may now specify configuration files to load values from. An example configuration file is placed at $installation/config_files/installation/install_config.yml.
 The scripts will load values in the following priority order:
@@ -376,7 +362,6 @@ The scripts will load values in the following priority order:
 
 Therefore, values that are placed in $HOME/.kohya_ss/install_config.yml will override values found in $ScriptDirectory/config_files/installation/install_config.yml.
 This allows you to have user-level definitions, project-level definitions, and run-time definitions.
-
 
 </details>
 
@@ -400,8 +385,6 @@ Run the following commands to install:
 
 python .\tools\cudann_1.8_install.py
 ```
-
-Once the commands have completed successfully you should be ready to use the new version. MacOS support is not tested and has been mostly taken from https://gist.github.com/jstayco/9f5733f05b9dc29de95c4056a023d645
 
 </details>
 
@@ -432,27 +415,21 @@ Once you have created the LoRA network, you can generate images via auto1111 by 
 ## Troubleshooting
 
 <details>
-<summary>Page File Limit</summary>
-
-### Page File Limit
+<summary><h3 id="page-file-limit">Page File Limit</h3></summary>
 
 - X error relating to `page file`: Increase the page file size limit in Windows.
 
 </details>
 
 <details>
-<summary>No module called tkinter</summary>
+<summary><h3 id="no-module-called-tkinter">No Module Called TKinter</h3></summary>
 
-### No module called tkinter
-
-- Re-install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) on your system.
+- Re-run the install script or manually install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe) on your system.
 
 </details>
 
 <details>
-<summary>FileNotFoundError</summary>
-
-### FileNotFoundError
+<summary><h3 id="filenotfound-error">FileNotFound Error</h3></summary>
 
 This is usually related to an installation issue. Make sure you do not have any python modules installed locally that could conflict with the ones installed in the venv:
 
@@ -469,9 +446,7 @@ This will store your a backup file with your current locally installed pip packa
 </details>
 
 <details>
-<summary>Deleting Downloaded Model Cache</summary>
-
-### Deleting Downloaded Model Cache
+<summary><h3 id="deleting-downloaded-model-cache">Deleting Downloaded Model Cache</h3></summary>
 
 By default huggingface stores its downloaded models in 
 
@@ -486,17 +461,39 @@ If you are going to delete the models, it is advised to shutdown the software wh
 ### Installation Issues
 
 <details>
-<summary>General Installation Workflow</summary>
+<summary><h3 id="debug-mode">Debug Mode</h3></summary>
+In order to run debug mode you can enable that on any script as such:
 
-#### General Installation Workflow
+```bash
+# By default they will store the logs in your kohya_ss install folder /logs.
+setup.ps1 -Debug
+
+setup.bat --verbosity 3
+
+setup.sh -vvv
+
+launcher.py -vvv
+
+# You may configure any one of these scripts to output to a custom log directory
+setup.ps1 -Debug -LogDIr C:\my\custom\folder
+setup.sh -vvv --log-dir /my/custom/folder
+```
+
+Combine the appropriate debug switch with whatever switches and values are appropriate for your configuration or deployment.
+</details>
+
+<details>
+<summary><h3 id="general-installation-workflow">General Installation Workflow</h3></summary>
+
 1. Run setup.ps1 on Windows or setup.sh on non-Windows operating systems with the desired command-line arguments.
 2. The setup script will execute launcher.py with the same arguments.
 3. launcher.py will pass the command-line arguments through to kohya_gui.py, which will use these arguments to configure the GUI and other settings according to your preferences.
-Now the workflow is complete, and your application is set up and configured. 
 
+Now the workflow is complete, and your application is set up and configured. 
 You can run launcher.py whenever you want to launch the application with the specified settings.
 
 </details>
+
 
 ## Change History
 
