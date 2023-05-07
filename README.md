@@ -332,6 +332,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/04/07 (v21.5.10)
+  - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
 * 2023/04/06 (v21.5.9)
   - Inplement headless mode to enable easier support under headless services like vast.ai. To make use of it start the gui with the `--headless` argument like:
 
