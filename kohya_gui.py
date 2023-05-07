@@ -350,9 +350,6 @@ def parse_args(_config_data):
         {"short": "-l", "long": "--log-dir", "default": None, "type": str,
          "help": "Override the default log directory.", "is_path": True},
 
-        {"short": "-p", "long": "--public", "default": False, "type": bool,
-         "help": "Expose public URL in runpod mode. Won't have an effect in other modes."},
-
         {"short": "-v", "long": "--verbosity", "default": '0', "type": str,
          "help": "Increase verbosity levels. Use multiple times (e.g., -vvv) or specify number (e.g., -v 4).",
          "action": CountOccurrencesAction},

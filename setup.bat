@@ -15,9 +15,7 @@ set Headless=0
 set Interactive=0
 set LogDir=%ScriptDir%logs
 set NoSetup=0
-set Public=0
 set Repair=0
-set Runpod=0
 set SetupOnly=0
 set SkipSpaceCheck=0
 set TorchVersion=0
@@ -54,9 +52,7 @@ if not "%ConfigFile%"=="" (
         if "%%a"=="Interactive" set Interactive=%%b
         if "%%a"=="LogDir" set LogDir=%%b
         if "%%a"=="NoSetup" set NoSetup=%%b
-        if "%%a"=="Public" set Public=%%b
-        if "%%a"=="Repair" set Runpod=%%b
-        if "%%a"=="Runpod" set Runpod=%%b
+        if "%%a"=="Repair" set Repair=%%b
         if "%%a"=="SetupOnly" set SetupOnly=%%b
         if "%%a"=="SkipSpaceCheck" set SkipSpaceCheck=%%b
         if "%%a"=="TorchVersion" set TorchVersion=%%b
@@ -145,21 +141,9 @@ if /i "%arg%"=="--no-setup" (
     shift
     goto arg_loop
 )
-if /i "%arg%"=="--public" (
-    set Public=1
-    rem echo Public set to !Public!
-    shift
-    goto arg_loop
-)
 if /i "%arg%"=="--repair" (
     set Repair=1
     rem echo Repair set to !Repair!
-    shift
-    goto arg_loop
-)
-if /i "%arg%"=="--runpod" (
-    set Runpod=1
-    rem echo Runpod set to !Runpod!
     shift
     goto arg_loop
 )
@@ -295,9 +279,7 @@ echo --help             : Display this help.
 echo --interactive      : Run in interactive mode.
 echo --log-dir          : Set the custom log directory for kohya_ss.
 echo --no-setup         : Skip the setup process.
-echo --public           : Run in public mode.
 echo --repair           : This runs the installation repair operations. These could take a few minutes to run.
-echo --runpod           : Run in Runpod mode.
 echo --setup-only       : Only run the setup process, do not launch the application.
 echo --skip-space-check : Skip the disk space check.
 echo --update           : Run the update process.
@@ -321,9 +303,7 @@ if %Headless% EQU 1 set "PSArgs=%PSArgs% -Headless"
 if %Interactive% EQU 1 set "PSArgs=%PSArgs% -Interactive"
 if not "%LogDir%"=="" set "PSArgs=%PSArgs% -LogDir %LogDir%"
 if %NoSetup% EQU 1 set "PSArgs=%PSArgs% -NoSetup"
-if %Public% EQU 1 set "PSArgs=%PSArgs% -Public"
 if %Repair% EQU 1 set "PSArgs=%PSArgs% -Repair"
-if %Runpod% EQU 1 set "PSArgs=%PSArgs% -Runpod"
 if %SetupOnly% EQU 1 set "PSArgs=%PSArgs% -SetupOnly"
 if %SkipSpaceCheck% EQU 1 set "PSArgs=%PSArgs% -SkipSpaceCheck"
 if not %TorchVersion% EQU 0 set "PSArgs=%PSArgs% -TorchVersion %TorchVersion%"
@@ -350,9 +330,7 @@ if %Headless% EQU 1 set "PythonArgs=%PythonArgs% --headless"
 if %Interactive% EQU 1 set "PythonArgs=%PythonArgs% -i"
 if not "%LogDir%"=="" set "PythonArgs=%PythonArgs% --log-dir %LogDir%"
 if %NoSetup% EQU 1 set "PythonArgs=%PythonArgs% -n"
-if %Public% EQU 1 set "PythonArgs=%PythonArgs% --public"
 if %Repair% EQU 1 set "PythonArgs=%PythonArgs% -r"
-if %Runpod% EQU 1 set "PythonArgs=%PythonArgs% --runpod"
 if %SetupOnly% EQU 1 set "PythonArgs=%PythonArgs% --setup-only"
 if %SkipSpaceCheck% EQU 1 set "PythonArgs=%PythonArgs% --skip-space-check"
 if not %TorchVersion% EQU 0 set "PythonArgs=%PythonArgs% --torch-version %TorchVersion%"

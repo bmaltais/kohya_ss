@@ -246,14 +246,8 @@ def parse_args(_config_data):
         {"short": "-n", "long": "--no-setup", "default": False, "type": bool,
          "help": "Skip setup operations and launch the GUI."},
 
-        {"short": "-p", "long": "--public", "default": False, "type": bool,
-         "help": "Expose public URL in runpod mode. Won't have an effect in other modes."},
-
         {"short": "-r", "long": "--repair", "default": False, "type": bool,
          "help": "This runs the installation repair operations. These could take a few minutes to run."},
-
-        {"short": "", "long": "--runpod", "default": False, "type": bool,
-         "help": "Forces a runpod installation. Useful if detection fails for any reason."},
 
         {"short": None, "long": "--setup-only", "default": False, "type": bool,
          "help": "Do not launch GUI. Only conduct setup operations."},
@@ -397,31 +391,6 @@ def parse_args(_config_data):
 def env_var_exists(var_name):
     return var_name in os.environ and os.environ[var_name] != ""
 
-
-# noinspection SpellCheckingInspection
-def get_default_dir(runpod, script_dir):
-    os_type = platform.system()
-    if os_type == "Linux":
-        if runpod:
-            default_dir = "/workspace/kohya_ss"
-        elif os.path.isdir(os.path.join(script_dir, ".git")):
-            default_dir = script_dir
-        elif os.access("/opt", os.W_OK):
-            default_dir = "/opt/kohya_ss"
-        elif env_var_exists("HOME"):
-            default_dir = os.path.join(os.environ["HOME"], "kohya_ss")
-        else:
-            default_dir = os.getcwd()
-    else:
-        if os.path.isdir(os.path.join(script_dir, ".git")):
-            default_dir = script_dir
-        elif env_var_exists("HOME"):
-            default_dir = os.path.join(os.environ["HOME"], "kohya_ss")
-        else:
-            default_dir = os.getcwd()
-    return default_dir
-
-
 def check_and_create_install_folder(parent_dir, _dir):
     if os.access(parent_dir, os.W_OK) and not os.path.isdir(_dir):
         logging.info(f"Creating install folder {_dir}.")
@@ -486,8 +455,8 @@ def create_symlinks(symlink, target_file):
 
 
 # noinspection SpellCheckingInspection
-def prepare_environment_files_and_folders(_site_packages_dir, runpod, _dir):
-    if runpod and in_container:
+def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir):
+    if in_container:
         # Symlink paths
         libnvinfer_plugin_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
         libnvinfer_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer.so.7")
@@ -1177,7 +1146,7 @@ def check_permissions(_dir):
 
 
 # noinspection SpellCheckingInspection
-def clean_old_artifacts(_dir, _site_packages_dir):
+def pre_pip_prepare_environment_files_and_folders(_dir, _site_packages_dir):
     if os_info.family == "Windows":
         bitsandbytes_site_packages_dir = os.path.join(_site_packages_dir, "bitsandbytes")
 
@@ -1342,7 +1311,7 @@ class PackageManager:
 
 
 # noinspection SpellCheckingInspection,GrazieInspection
-def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
+def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
     # Initialize package manager class first to be used in many Python operations
     package_manager = PackageManager.from_installed_packages()
@@ -1678,10 +1647,6 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                 logging.debug(f"Installing: Kohya_SS library.")
                             temp_requirements.write(line)
 
-                        # Append the appropriate packages based on the conditionals
-                        if runpod:
-                            temp_requirements.write("tensorrt\n")
-
                         if os_info.family == "macOS":
                             if platform.machine() == "arm64":
                                 temp_requirements.write(f"tensorflow-macos=={TENSORFLOW_MACOS_VERSION}\n")
@@ -1933,11 +1898,11 @@ def main(_args=None):
     check_and_create_install_folder(parent_dir, _args.dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
-        clean_old_artifacts(_args.dir, site_packages_dir)
+        pre_pip_prepare_environment_files_and_folders(_args.dir, site_packages_dir)
         if brew_install_tensorflow_deps(_args.verbosity):
-            install_python_dependencies(_args.dir, _args.runpod, _args.torch_version, _args.update, _args.repair,
+            install_python_dependencies(_args.dir, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
-            prepare_environment_files_and_folders(site_packages_dir, _args.runpod, _args.dir)
+            post_pip_prepare_environment_files_and_folders(site_packages_dir, _args.dir)
             configure_accelerate(_args.interactive)
             if not getattr(_args, 'setup_only'):
                 launch_kohya_gui(_args)

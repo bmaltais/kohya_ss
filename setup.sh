@@ -14,19 +14,18 @@ Usage:
   # Same as example 1, but uses long options
   setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
 
-  # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
-  setup.sh -vvv --skip-space-check --runpod
+  # Running setup in Debug mode while skipping the available space check
+    .\setup.ps1 -vvv --skip-space-check
 
 Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
   -f FILE, --file=FILE          Load a custom configuration file.
-  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
   -l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
   -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
-  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
   -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -t, --torch-version           Configure the major version of Torch.
@@ -36,7 +35,6 @@ Options:
   --listen=IP                   IP to listen on for connections to Gradio.
   --inbrowser                   Open in browser.
   --password=PASSWORD           Password for authentication.
-  --runpod                      Forces a runpod installation. Useful if detection fails for any reason.
   --setup-only                  Do not launch GUI. Only conduct setup operations.
   --share                       Share your installation.
   --server-port=PORT            The port number the GUI server should use.
@@ -94,7 +92,6 @@ while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   i | interactive) CLI_ARGUMENTS["interactive"]="true" ;;
   l | log-dir) CLI_ARGUMENTS["logDir"]="$OPTARG" ;;
   n | no-setup) CLI_ARGUMENTS["noSetup"]="true" ;;
-  p | public) CLI_ARGUMENTS["public"]="true" ;;
   r | repair) CLI_ARGUMENTS["repair"]="true" ;;
   s | skip-space-check) CLI_ARGUMENTS["skipSpaceCheck"]="true" ;;
   t | torch-version) CLI_ARGUMENTS["torchVersion"]="true" ;;
@@ -104,7 +101,6 @@ while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   inbrowser) CLI_ARGUMENTS["inbrowser"]="true" ;;
   listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
   password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
-  runpod) CLI_ARGUMENTS["runpod"]="true" ;;
   server-port) CLI_ARGUMENTS["serverPort"]="$OPTARG" ;;
   setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
   share) CLI_ARGUMENTS["share"]="true" ;;
@@ -177,10 +173,8 @@ config_dir="${config_dir:-$SCRIPT_DIR}"
 config_gitRepo="${config_gitRepo:-https://github.com/bmaltais/kohya_ss.git}"
 config_headless="${config_headless:-false}"
 config_interactive="${config_interactive:-false}"
-config_public="${config_public:-false}"
 config_noSetup="${config_noSetup:-false}"
 config_repair="${config_repair:-false}"
-config_runpod="${config_runpod:-false}"
 config_setupOnly="${config_setupOnly:-false}"
 config_skipSpaceCheck="${config_skipSpaceCheck:-false}"
 config_torchVersion="${config_torchVersion:-1}"
@@ -224,9 +218,7 @@ HEADLESS="$config_headless"
 INTERACTIVE="$config_interactive"
 LOG_DIR="$config_logDir"
 NO_SETUP="$config_noSetup"
-PUBLIC="$config_public"
 REPAIR="$config_repair"
-RUNPOD="$config_runpod"
 SETUP_ONLY="$config_setupOnly"
 SKIP_SPACE_CHECK="$config_skipSpaceCheck"
 TORCH_VERSION="$config_torchVersion"
@@ -396,9 +388,7 @@ Config file location: $USER_CONFIG_FILE
 HEADLESS: $HEADLESS
 INTERACTIVE: $INTERACTIVE
 LOG_DIR: $LOG_DIR
-PUBLIC: $PUBLIC
 REPAIR: $REPAIR
-RUNPOD: $RUNPOD
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
 TORCH_VERSION: $TORCH_VERSION
 UPDATE: $UPDATE
@@ -1049,9 +1039,7 @@ run_launcher() {
     $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
     --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
-    $([ "$PUBLIC" = "true" ] && echo "--public") \
     $([ "$REPAIR" = "true" ] && echo "--repair") \
-    $([ "$RUNPOD" = "true" ] && echo "--runpod") \
     $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
     $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
     $([ "$UPDATE" = "true" ] && echo "--update") \

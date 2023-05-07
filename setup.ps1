@@ -11,8 +11,8 @@
     .\setup.ps1 -Branch dev -Dir C:\workspace\kohya_ss -GitRepo https://mycustom.repo.tld/custom_fork.git
 
 .EXAMPLE
-    # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
-    .\setup.ps1 -Verbosity 3 -SkipSpaceCheck -Runpod
+    # Running setup in Debug mode while skipping the available space check
+    .\setup.ps1 -Verbosity 3 -SkipSpaceCheck
 
 .PARAMETER Branch
     Select which branch of kohya to check out on new installs.
@@ -27,7 +27,7 @@
     The full path to a custom configuration file.
 
 .PARAMETER GitRepo
-    You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+    You can optionally provide a git repo to check out. Useful for custom forks.
 
 .PARAMETER Headless
     Headless mode will not display the native windowing toolkit. Useful for remote deployments.
@@ -41,14 +41,8 @@
 .PARAMETER NoGitUpdate
     Do not update kohya_ss repo. No git pull or clone operations.
 
-.PARAMETER Public
-    Expose public URL in runpod mode. Won't have an effect in other modes.
-
 .PARAMETER Repair
     This runs the installation repair operations. These could take a few minutes to run.
-
-.PARAMETER Runpod
-    Forces a runpod installation. Useful if detection fails for any reason.
 
 .PARAMETER SetupOnly
     Do not launch GUI. Only conduct setup operations.
@@ -94,9 +88,7 @@ param (
     [switch]$Interactive,
     [string]$LogDir,
     [switch]$NoSetup,
-    [switch]$Public,
     [switch]$Repair,
-    [switch]$Runpod,
     [switch]$SetupOnly,
     [switch]$SkipSpaceCheck,
     [int]$TorchVersion,
@@ -273,9 +265,7 @@ function Get-Parameters {
         'Interactive'    = $false
         'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
-        'Public'         = $false
         'Repair'         = $false
-        'Runpod'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
         'TorchVersion'   = 1
