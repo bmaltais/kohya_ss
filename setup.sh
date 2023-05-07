@@ -461,7 +461,7 @@ normalize_path() {
 # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 size_available() {
   local folder
-
+  
   case "${os_info["family"]}" in
   "Windows")
     if [ -d "$DIR" ]; then
@@ -491,8 +491,12 @@ size_available() {
 
   # Return available space in GB
   if [[ "${os_info["family"]}" == "Windows" ]]; then
-    powershell -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter \"DeviceID='$folder'\" | Select-Object FreeSpace" |
+    drive=$(powershell.exe -Command "(Get-Item -Path '$folder').Root.Name")
+    drive=${drive::-1} # Remove the trailing backslash
+    echo $(powershell.exe -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DeviceID=''$drive''' \
+      | Select-Object -ExpandProperty FreeSpace") |
       awk '/[0-9]+/ {print int($1 / 1024 / 1024 / 1024)}'
+
   else
     df --output=avail -B1G "$folder" | tail -n1 | awk '{print $1}'
   fi
@@ -500,7 +504,7 @@ size_available() {
 
 check_storage_space() {
   if [ "$SKIP_SPACE_CHECK" = false ]; then
-    if [ "$(size_available)" -lt "$1" ]; then
+    if [[ ! -z "$(size_available)" && "$(size_available)" =~ ^[0-9]+$ && "$(size_available)" -lt "$1" ]]; then
       echo "You have less than 10Gb of free space. This installation may fail."
       local MSGTIMEOUT=10 # In seconds
       local MESSAGE="Continuing in..."
@@ -548,7 +552,7 @@ install_git_windows() {
 
   if command -v git >/dev/null 2>&1; then
     echo "Git is already installed."
-    return 0
+    return
   fi
 
   if command -v scoop >/dev/null 2>&1; then
@@ -562,7 +566,7 @@ install_git_windows() {
     package_manager_found=true
   fi
 
-  if [ "$package_manager_found" = false ]; then
+  if ! "$package_manager_found"; then
     if is_admin; then
       local install_scope
       install_scope=$(update_install_scope "$interactive")
@@ -582,10 +586,13 @@ install_git_windows() {
       fi
     fi
 
+    local installer_path_windows=$(cygpath -w "$installer_path")
+    local log_file_path_windows=$(cygpath -w "${downloads_folder}/git_install_log.txt")
+
     if [ "$install_scope" = "user" ]; then
-      start /wait "$installer_path" /VERYSILENT /NORESTART /LOG /NOICONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
     else
-      start /wait "$installer_path" /VERYSILENT /NORESTART /LOG /NOICONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh" /ALLUSERS=1
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
     fi
 
     rm -f "$installer_path"
@@ -596,7 +603,7 @@ install_git() {
   shopt -s nocasematch
   if command -v git >/dev/null 2>&1; then
     echo "Git is already installed."
-    return 0
+    return
   fi
 
   # Windows
@@ -696,10 +703,13 @@ install_python310_windows() {
       fi
     fi
 
+    local installer_path_windows=$(cygpath -w "$installer_path")
+    local log_file_path_windows=$(cygpath -w "${downloads_folder}/git_install_log.txt")
+
     if [ "$install_scope" = "user" ]; then
-      start /wait "$installer_path" /passive InstallAllUsers=0 PrependPath=1 Include_tcltk=1
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
     else
-      start /wait "$installer_path" /passive InstallAllUsers=1 PrependPath=1 Include_tcltk=1
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
     fi
 
     rm -f "$installer_path"
@@ -786,7 +796,14 @@ install_vc_redist_windows() {
     fi
   fi
 
-  start /wait "$installer_path" /install /quiet /norestart
+  local installer_path_windows=$(cygpath -w "$installer_path")
+
+  if [ "$install_scope" = "user" ]; then
+    powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
+  else
+    powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
+  fi
+
   rm -f "$installer_path"
 }
 
