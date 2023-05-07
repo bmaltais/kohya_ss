@@ -28,14 +28,14 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 Most of the documents are written in Japanese.
 
-* [Training guide - common](./train_README-ja.md) : data preparation, options etc... 
-  * [Chinese version](./train_README-zh.md)
-* [Dataset config](./config_README-ja.md) 
-* [DreamBooth training guide](./train_db_README-ja.md)
-* [Step by Step fine-tuning guide](./fine_tune_README_ja.md):
-* [training LoRA](./train_network_README-ja.md)
-* [training Textual Inversion](./train_ti_README-ja.md)
-* [Image generation](./gen_img_README-ja.md)
+* [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
+  * [Chinese version](./docs/train_README-zh.md)
+* [Dataset config](./docs/config_README-ja.md) 
+* [DreamBooth training guide](./docs/train_db_README-ja.md)
+* [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
+* [training LoRA](./docs/train_network_README-ja.md)
+* [training Textual Inversion](./docs/train_ti_README-ja.md)
+* [Image generation](./docs/gen_img_README-ja.md)
 * note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windows Required Dependencies
