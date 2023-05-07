@@ -1692,6 +1692,7 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                         if should_install_or_repair_torch:
                             install_or_repair_torch(update, repair, interactive)
 
+                        # This is where we merge the macOS requirements.txt into the temporary requirements.txt
                         if os_info.family == "macOS":
                             macos_requirements_path = os.path.join(_dir, "requirements_macos.txt")
                             if os.path.exists(macos_requirements_path):
