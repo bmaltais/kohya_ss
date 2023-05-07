@@ -96,11 +96,11 @@ def update_my_data(my_data):
 
     # Convert values to int if they are strings
     for key in ['epoch', 'save_every_n_epochs', 'lr_warmup']:
-        value = my_data.get(key, -1)
+        value = my_data.get(key, 0)
         if isinstance(value, str) and value.strip().isdigit():
             my_data[key] = int(value)
         elif not value:
-            my_data[key] = -1
+            my_data[key] = 0
 
     # Convert values to float if they are strings
     for key in ['noise_offset', 'learning_rate', 'text_encoder_lr', 'unet_lr']:
