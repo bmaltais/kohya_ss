@@ -49,8 +49,8 @@ if %choice%==1 (
     pip install https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl
 )
 
-@REM copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-@REM copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-@REM copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
 accelerate config
