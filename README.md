@@ -147,6 +147,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 - Added support for pre-calculation of LoRA weights in image generation scripts. Specify `--network_pre_calc`.
   - The prompt option `--am` is available. Also, it is disabled when Regional LoRA is used.
 - Added Adaptive noise scale to each training script. Specify a number with `--adaptive_noise_scale` to enable it.
+  - __Experimental option. It may be removed or changed in the future.__
   - This is an original implementation that automatically adjusts the value of the noise offset according to the absolute value of the mean of each channel of the latents. It is expected that appropriate noise offsets will be set for bright and dark images, respectively.
   - Specify it together with `--noise_offset`.
   - The actual value of the noise offset is calculated as `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale`. Since the latent is close to a normal distribution, it may be a good idea to specify a value of about 1/10 to the same as the noise offset.
@@ -160,6 +161,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 - 画像生成スクリプトでLoRAの重みの事前計算をサポートしました。`--network_pre_calc`を指定してください。
   - プロンプトオプションの`--am`が利用できます。またRegional LoRA使用時には無効になります。
 - 各学習スクリプトにAdaptive noise scaleを追加しました。`--adaptive_noise_scale`で数値を指定すると有効になります。
+  - __実験的オプションです。将来的に削除、仕様変更される可能性があります。__
   - Noise offsetの値を、latentsの各チャネルの平均値の絶対値に応じて自動調整するオプションです。独自の実装で、明るい画像、暗い画像に対してそれぞれ適切なnoise offsetが設定されることが期待されます。
   - `--noise_offset` と同時に指定してください。
   - 実際のNoise offsetの値は `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale` で計算されます。 latentは正規分布に近いためnoise_offsetの1/10～同程度の値を指定するとよいかもしれません。
