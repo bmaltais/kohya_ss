@@ -257,33 +257,128 @@ fi
 
 LOG_FILE="$LOG_DIR/$CURRENT_DATE/$LOG_FILENAME"
 
+# The color_code function takes a color name as input and returns the corresponding
+# ANSI escape code for that color. These escape codes are used to set the color of
+# the text displayed in the terminal.
+#
+# The parse_logger_args function processes named parameters like --color and --no-header
+# in the arguments provided to the logging functions. It returns the corresponding
+# color code and header flag (0 for displaying the header, 1 for hiding it).
+#
+# Example usage:
+# log_warn "Warning message without header" --color=blue --no-header
+color_code() {
+  local color_name=$1
+  case $color_name in
+  black) echo "30" ;;
+  red) echo "31" ;;
+  green) echo "32" ;;
+  yellow) echo "33" ;;
+  blue) echo "34" ;;
+  magenta) echo "35" ;;
+  cyan) echo "36" ;;
+  white) echo "37" ;;
+  *) echo "97" ;; # Default to white
+  esac
+}
+
+parse_logger_args() {
+  local args=("$@")
+  local color=""
+  local no_header="0"
+
+  for i in "${!args[@]}"; do
+    case "${args[$i]}" in
+    --color)
+      i=$((i + 1))
+      color=$(color_code "${args[$i]}")
+      ;;
+    --no-header)
+      no_header="1"
+      ;;
+    esac
+  done
+
+  printf "%s %s" "$color" "$no_header"
+}
+
 log_debug() {
+  local message=$1
+  local args=$(parse_logger_args "${@:2}")
+
+  local color=$(echo "$args" | cut -d' ' -f1)
+  local no_header=$(echo "$args" | cut -d' ' -f2)
+
   if ((VERBOSITY >= 3)); then
-    printf "DEBUG: %s\n" "$1" | tee -a "$LOG_FILE"
+    if ((no_header == 0)); then
+      message="DEBUG: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
   fi
 }
 
 log_info() {
+  local message=$1
+  local args=$(parse_logger_args "${@:2}")
+
+  local color=$(echo "$args" | cut -d' ' -f1)
+  local no_header=$(echo "$args" | cut -d' ' -f2)
+
   if ((VERBOSITY >= 2)); then
-    printf "INFO: %s\n" "$1" | tee -a "$LOG_FILE"
+    if ((no_header == 0)); then
+      message="INFO: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
   fi
 }
 
 log_warn() {
+  local message=$1
+  local args=$(parse_logger_args "${@:2}")
+
+  local color=$(echo "$args" | cut -d' ' -f1)
+  local no_header=$(echo "$args" | cut -d' ' -f2)
+
   if ((VERBOSITY >= 1)); then
-    printf "WARNING: %s\n" "$1" | tee -a "$LOG_FILE"
+    if ((no_header == 0)); then
+      message="WARNING: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
   fi
 }
 
 log_error() {
+  local message=$1
+  local args=$(parse_logger_args "${@:2}")
+
+  local color=$(echo "$args" | cut -d' ' -f1)
+  local no_header=$(echo "$args" | cut -d' ' -f2)
+
   if ((VERBOSITY >= 0)); then
-    printf "ERROR: %s\n" "$1" | tee -a "$LOG_FILE"
+    if ((no_header == 0)); then
+      message="ERROR: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
   fi
 }
 
 log_critical() {
+  local message=$1
+  local args=$(parse_logger_args "${@:2}")
+
+  local color=$(echo "$args" | cut -d' ' -f1)
+  local no_header=$(echo "$args" | cut -d' ' -f2)
+
   if ((VERBOSITY >= 0)); then
-    printf "CRITICAL: %s\n" "$1" | tee -a "$LOG_FILE"
+    if ((no_header == 0)); then
+      message="CRITICAL: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
   fi
 }
 
@@ -461,7 +556,7 @@ normalize_path() {
 # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
 size_available() {
   local folder
-  
+
   case "${os_info["family"]}" in
   "Windows")
     if [ -d "$DIR" ]; then
@@ -483,7 +578,7 @@ size_available() {
     elif [ -d "$(echo "$DIR" | cut -d '/' -f2)" ]; then
       folder="$(echo "$DIR" | cut -d '/' -f2)"
     else
-      echo "We are assuming a root drive install for space-checking purposes." >&2
+      log_info "We are assuming a root drive install for space-checking purposes."
       folder='/'
     fi
     ;;
@@ -505,7 +600,7 @@ size_available() {
 check_storage_space() {
   if [ "$SKIP_SPACE_CHECK" = false ]; then
     if [[ ! -z "$(size_available)" && "$(size_available)" =~ ^[0-9]+$ && "$(size_available)" -lt "$1" ]]; then
-      echo "You have less than 10Gb of free space. This installation may fail."
+      log_critical "You have less than 10Gb of free space. This installation may fail." --color red
       local MSGTIMEOUT=10 # In seconds
       local MESSAGE="Continuing in..."
       echo "Press control-c to cancel the installation."
@@ -516,11 +611,6 @@ check_storage_space() {
     fi
   fi
 }
-
-# Example access to that data.
-# echo "OS Name: ${os_info["name"]}"
-# echo "OS Family: ${os_info["family"]}"
-# echo "OS Version: ${os_info["version"]}"
 
 package_exists() {
   local package="$1"
@@ -541,7 +631,21 @@ package_exists() {
     pkg info "$package" >/dev/null 2>&1
     return $?
   else
-    echo "Unsupported operating system for package_exists function."
+    log_critical "Unsupported operating system for package_exists function." --color red
+    return 1
+  fi
+}
+
+git_is_installed() {
+  if command -v git >/dev/null 2>&1; then
+    local git_version=$(git --version 2>&1)
+  else
+    return 1
+  fi
+
+  if [[ $git_version =~ ^git\ version ]]; then
+    return 0
+  else
     return 1
   fi
 }
@@ -550,9 +654,9 @@ install_git_windows() {
   local interactive="$1"
   local package_manager_found=false
 
-  if command -v git >/dev/null 2>&1; then
-    echo "Git is already installed."
-    return
+  if git_is_installed; then
+    log_critical "git is already installed." --no-header --color yellow
+    return 0
   fi
 
   if command -v scoop >/dev/null 2>&1; then
@@ -581,7 +685,7 @@ install_git_windows() {
 
     if [ ! -f "$installer_path" ]; then
       if ! curl -o "$installer_path" -L "$git_url"; then
-        echo "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer."
+        log_critical "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer." --color red
         exit 1
       fi
     fi
@@ -601,9 +705,9 @@ install_git_windows() {
 
 install_git() {
   shopt -s nocasematch
-  if command -v git >/dev/null 2>&1; then
-    echo "Git is already installed."
-    return
+  if git_is_installed; then
+    log_critical "git is already installed." --no-header --color yellow
+    return 0
   fi
 
   # Windows
@@ -615,8 +719,8 @@ install_git() {
     if command -v brew >/dev/null 2>&1; then
       ! package_exists git && brew install git
     else
-      echo "Please install Homebrew first to continue with Git installation."
-      echo "You can find that here: https://brew.sh"
+      log_critical "Please install Homebrew first to continue with Git installation." --no-header --color yellow
+      log_critical "You can find that here: https://brew.sh" --no-header --color yellow
       exit 1
     fi
 
@@ -625,7 +729,7 @@ install_git() {
     if is_admin; then
       ! package_exists git && (sudo apt-get update && sudo apt-get install -y git)
     else
-      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
       exit 1
     fi
   # RedHat
@@ -633,7 +737,7 @@ install_git() {
     if is_admin; then
       ! package_exists git && sudo dnf install -y git
     else
-      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
       exit 1
     fi
 
@@ -642,7 +746,7 @@ install_git() {
     if is_admin; then
       ! package_exists git && sudo pacman -Sy --noconfirm git
     else
-      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
       exit 1
     fi
 
@@ -651,7 +755,7 @@ install_git() {
     if is_admin; then
       ! package_exists git && sudo zypper install -y git
     else
-      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
       exit 1
     fi
 
@@ -660,18 +764,39 @@ install_git() {
     if is_admin; then
       ! package_exists git && sudo pkg install -y git
     else
-      echo "Admin privileges are required to install Git. Please run the script as root or with sudo."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
       exit 1
     fi
   else
-    echo "Unsupported operating system. Please install Git manually."
+    log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
     exit 1
   fi
   shopt -u nocasematch
 }
 
+python310_is_installed() {
+  if command -v python >/dev/null 2>&1; then
+    local python_version=$(python --version 2>&1)
+  elif command -v py >/dev/null 2>&1; then
+    local python_version=$(py -3.10 --version 2>&1)
+  else
+    return 1
+  fi
+
+  if [[ $python_version =~ ^Python\ 3\.10 ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 install_python310_windows() {
   local interactive="$1"
+
+  if python310_is_installed; then
+    log_critical "Python 3.10 is already installed." --no-header --color yellow
+    return 0
+  fi
 
   if command -v scoop >/dev/null 2>&1; then
     local package_manager_found=false
@@ -698,7 +823,7 @@ install_python310_windows() {
 
     if [ ! -f "$installer_path" ]; then
       if ! curl -o "$installer_path" -L "$python_url"; then
-        echo "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer."
+        log_critical "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer." --color red
         exit 1
       fi
     fi
@@ -758,20 +883,55 @@ install_python_and_tk() {
       [[ ${#missing_packages[@]} -ne 0 ]] && brew install "${missing_packages[@]}"
       brew link --overwrite --force python@3.10
     else
-      echo "Please install Homebrew first to continue with Python 3.10 and Tk installation."
-      echo "You can find that here: https://brew.sh"
+      log_critical "Please install Homebrew first to continue with Python 3.10 and Tk installation." --no-header --color yellow
+      log_c "You can find that here: https://brew.sh" --no-header --color yellow
       exit 1
     fi
 
   # Windows
-  elif [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" =~ Windows ]]; then
+  elif [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" == "Windows" ]]; then
     install_python310_windows "$INTERACTIVE"
   else
-    echo "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually."
-    echo "For manual installation, you can download the official Python tar.gz packages from:"
-    echo "https://www.python.org/downloads/source/"
+    log_critical "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually." --color red
+    log_critical "For manual installation, you can download the official Python tar.gz packages from:" --no-header --color yellow
+    log_critical "https://www.python.org/downloads/source/" --no-header --color yellow
     exit 1
   fi
+}
+
+display_countdown() {
+  local countdown=$1
+  printf "Press 'y' to skip the countdown and continue or 'n' to cancel the installation.\n"
+  local continue_installation=1
+
+  for ((i = 0; i < countdown; i++)); do
+    local remaining_time=$((countdown - i))
+    printf "\rContinuing in %d... " "$remaining_time"
+
+    local key=""
+    local timeout=10
+
+    while ((timeout > 0)); do
+      read -r -s -N 1 -t 0.1 key
+      if [[ -n $key ]]; then
+        break
+      fi
+      ((timeout--))
+    done
+
+    if [[ -n $key ]]; then
+      if [[ $key == "y" ]]; then
+        continue_installation=0
+        break
+      elif [[ $key == "n" ]]; then
+        continue_installation=1
+        break
+      fi
+    fi
+  done
+
+  printf "\n"
+  return $continue_installation
 }
 
 install_vc_redist_windows() {
@@ -779,46 +939,102 @@ install_vc_redist_windows() {
     return 0
   fi
 
-  if ! is_admin; then
-    echo "Admin privileges are required to install the Visual Studio redistributable. Please run this script as an administrator."
-    exit 1
-  fi
+  local vc_redist_oldest_year=2015
+  local vc_redist_newest_year=2022
 
-  local vc_redist_url="https://aka.ms/vs/17/release/vc_redist.x64.exe"
-  local vc_redist_installer_name="vc_redist.x64.exe"
-  local downloads_folder="$HOME/Downloads"
-  local installer_path="${downloads_folder}/${vc_redist_installer_name}"
+  if ! is_vc_redist_installed "$vc_redist_oldest_year" "$vc_redist_newest_year"; then
+    if ! is_admin; then
+      log_critical "Admin privileges are required to install the Visual Studio redistributable. The script will attempt to run with elevated privileges." --color red
+      display_countdown 15
+      continue_installation=$?
 
-  if [ ! -f "$installer_path" ]; then
-    if ! curl -o "$installer_path" -L "$vc_redist_url"; then
-      echo "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
-      exit 1
+      if ((continue_installation == 0)); then
+        printf "Continuing with the installation.\n"
+      else
+        log_critical "VC Redist Installation cancelled." --color red
+        log_critical "Please manually install VC via the following URL: " --no-header --color yellow
+        log_critical "https://aka.ms/vs/17/release/vc_redist.x64.exe" --no-header --color yellow
+        exit 1
+      fi
     fi
-  fi
 
-  local installer_path_windows=$(cygpath -w "$installer_path")
+    local vc_redist_url="https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    local vc_redist_installer_name="vc_redist.x64.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${vc_redist_installer_name}"
 
-  if [ "$install_scope" = "user" ]; then
-    powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
+    log_critical "Downloading VC Redist installer." --no-header
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -# -o "$installer_path" -L "$vc_redist_url"; then
+        log_critical "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+        exit 1
+      else
+        log_critical "Download complete!" --no-header
+      fi
+    fi
+
+    log_critical "The UAC Prompt for the installer should appear; you may need to find that in the task bar." --no-header --color yellow
+
+    local installer_path_windows=$(cygpath -w "$installer_path")
+    local powershell_exit_code=$(powershell.exe -Command "(Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/install /quiet /norestart' -Wait -Passthru -NoNewWindow).ExitCode")
+
+    if [ -z "$powershell_exit_code" ]; then
+      log_critical "Failed to retrieve exit code from the VC Redist installation process. Exiting the script." --color red
+      exit 1
+    elif [ "$powershell_exit_code" -eq 3010 ]; then
+      # Exit code 3010 means a reboot is required, so handle this case separately
+      log_critical "VC Redistributable installation requires a reboot." --color yellow
+      log_critical "Exiting script to avoid any issues. Please reboot the computer and run this setup again." --color red
+      exit 0
+    elif [ "$powershell_exit_code" -ne 0 ]; then
+      log_critical "VC Redist installation failed or was cancelled. Exiting the script." --color red
+      exit 1
+    else
+      if [ -f "$installer_path" ]; then
+        rm -f "$installer_path"
+      fi
+    fi
+
+    rm -f "$installer_path"
   else
-    powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
+    log_critical "VC Redist already installed." --no-header --color yellow
   fi
+}
 
-  rm -f "$installer_path"
+is_vc_redist_installed() {
+  local vc_redist_oldest_year=$1
+  local vc_redist_newest_year=$2
+  local registry_keys=("HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall" "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall")
+  local installed=1
+
+  for key in "${registry_keys[@]}"; do
+    local installed_software=$(powershell.exe -Command "Get-ChildItem -Path ${key} | Get-ItemProperty | Select-Object -Property DisplayName" | tr -d '\000')
+    local matching_software=$(echo "$installed_software" | grep -P "Microsoft Visual C\+\+ ${vc_redist_oldest_year}-${vc_redist_newest_year} Redistributable \(x64\) .*")
+
+    if [ "$matching_software" ]; then
+      installed=0
+      break
+    fi
+  done
+
+  return $installed
 }
 
 run_launcher() {
   if command -v python3.10 >/dev/null 2>&1; then
     local PYTHON_EXEC="python3.10"
+  elif command -v python >/dev/null 2>&1 && [ "$(python -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python"
   elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
     local PYTHON_EXEC="python3"
   else
-    echo "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again."
+    log_critical "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again." --color red
     exit 1
   fi
 
   # Print a literal string to give us some space before executing launcher.py
-  log_critical $'Launcher.py is now executing.\n\n'
+  log_critical $'Launcher.py is now executing.\n\n' --no-header
 
   # shellcheck disable=SC2046
   "$PYTHON_EXEC" launcher.py \
