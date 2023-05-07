@@ -1341,7 +1341,7 @@ class PackageManager:
         return list(self._packages.keys())
 
 
-# noinspection SpellCheckingInspection
+# noinspection SpellCheckingInspection,GrazieInspection
 def install_python_dependencies(_dir, runpod, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
     # Initialize package manager class first to be used in many Python operations
@@ -1607,15 +1607,16 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
 
     # Check the conditions for running the install_or_repair_torch function:
     # 1. The system is Windows or Linux
-    # 2. The script is in repair or interactive mode
-    # 3. Torch is installed, but there is a version mismatch between the specified
-    #    torch_version and the major version of the installed torch
-    # 4. Torch is not installed
+    # 2. One of the following is true:
+    #    a. The script is in repair or interactive mode
+    #    b. Torch is not installed
+    #    c. There is a version mismatch between the specified torch_version
+    #       and the major version of the installed torch
     should_install_or_repair_torch = (
             (os_info.family == "Windows" or platform.system() == "Linux") and
             ((repair or interactive) or
-             (update and (package_manager.get_version("torch") is None or
-                          int(package_manager.get_version("torch").split('.')[0]) != torch_version))
+             package_manager.get_version("torch") is None or
+             int(package_manager.get_version("torch").split('.')[0]) != torch_version
              )
     )
 
@@ -1682,24 +1683,6 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                                 temp_requirements.write(f"tensorflow-metal=={TENSORFLOW_METAL_VERSION}\n")
                             elif platform.machine() == "x86_64":
                                 temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
-
-                        # Check the conditions for running the install_or_repair_torch function:
-                        # 1. The system is Windows or Linux
-                        # 2. The script is in repair or interactive mode
-                        # 3. Torch is installed, but there is a version mismatch between the specified
-                        #    torch_version and the major version of the installed torch
-                        # 4. Torch is not installed
-                        if os_info.family == "Windows" or platform.system() == "Linux":
-                            should_install_or_repair_torch = True
-                        elif repair or interactive:
-                            should_install_or_repair_torch = True
-                        elif update and (package_manager.get_version("torch") is not None):
-                            should_install_or_repair_torch = int(
-                                package_manager.get_version("torch").split('.')[0]) != torch_version
-                        elif package_manager.get_version("torch") is None:
-                            should_install_or_repair_torch = True
-                        else:
-                            should_install_or_repair_torch = False
 
                         if should_install_or_repair_torch:
                             install_or_repair_torch(update, repair, interactive)
@@ -1793,10 +1776,6 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
             # You may choose to re-raise the exception if the error is critical
             # raise
 
-    # Conditions for running the install_or_repair_torch function:
-    # 1. In interactive mode
-    # 2. Torch is not installed
-    # 3. There is a version mismatch between specified torch_version and the major version of torch installed
     elif should_install_or_repair_torch:
         install_or_repair_torch(update, repair, interactive)
 
