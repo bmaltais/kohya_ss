@@ -440,7 +440,12 @@ def train_model(
 
     # calculate max_train_steps
     max_train_steps = int(
-        math.ceil(float(repeats) / int(train_batch_size) * int(epoch))
+        math.ceil(
+            float(repeats)
+            / int(train_batch_size)
+            / int(gradient_accumulation_steps)
+            * int(epoch)
+        )
     )
 
     # Divide by two because flip augmentation create two copied of the source images

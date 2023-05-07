@@ -475,6 +475,7 @@ def train_model(
             math.ceil(
                 float(total_steps)
                 / int(train_batch_size)
+                / int(gradient_accumulation_steps)
                 * int(epoch)
                 * int(reg_factor)
             )
