@@ -463,27 +463,6 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
     xformersオプションを指定するとxformersのCrossAttentionを用います。xformersをインストールしていない場合やエラーとなる場合（環境にもよりますが `mixed_precision="no"` の場合など）、代わりに `mem_eff_attn` オプションを指定すると省メモリ版CrossAttentionを使用します（xformersよりも速度は遅くなります）。
 
-- `--save_precision`
-
-    保存時のデータ精度を指定します。save_precisionオプションにfloat、fp16、bf16のいずれかを指定すると、その形式でモデルを保存します（DreamBooth、fine tuningでDiffusers形式でモデルを保存する場合は無効です）。モデルのサイズを削減したい場合などにお使いください。
-
-- `--save_every_n_epochs` / `--save_state` / `--resume`
-    save_every_n_epochsオプションに数値を指定すると、そのエポックごとに学習途中のモデルを保存します。
-
-    save_stateオプションを同時に指定すると、optimizer等の状態も含めた学習状態を合わせて保存します（保存したモデルからも学習再開できますが、それに比べると精度の向上、学習時間の短縮が期待できます）。保存先はフォルダになります。
-    
-    学習状態は保存先フォルダに `<output_name>-??????-state`（??????はエポック数）という名前のフォルダで出力されます。長時間にわたる学習時にご利用ください。
-
-    保存された学習状態から学習を再開するにはresumeオプションを使います。学習状態のフォルダ（`output_dir` ではなくその中のstateのフォルダ）を指定してください。
-
-    なおAcceleratorの仕様により、エポック数、global stepは保存されておらず、resumeしたときにも1からになりますがご容赦ください。
-
-- `--save_model_as` （DreamBooth, fine tuning のみ）
-
-    モデルの保存形式を`ckpt, safetensors, diffusers, diffusers_safetensors` から選べます。
-    
-    `--save_model_as=safetensors` のように指定します。Stable Diffusion形式（ckptまたはsafetensors）を読み込み、Diffusers形式で保存する場合、不足する情報はHugging Faceからv1.5またはv2.1の情報を落としてきて補完します。
-    
 - `--clip_skip`
     
     `2` を指定すると、Text Encoder (CLIP) の後ろから二番目の層の出力を用います。1またはオプション省略時は最後の層を用います。
@@ -501,6 +480,12 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     ただし学習時のトークン拡張の仕様は Automatic1111 氏のWeb UIとは微妙に異なるため（分割の仕様など）、必要なければ75で学習することをお勧めします。
 
     clip_skipと同様に、モデルの学習状態と異なる長さで学習するには、ある程度の教師データ枚数、長めの学習時間が必要になると思われます。
+
+- `--weighted_captions`
+
+    指定するとAutomatic1111氏のWeb UIと同様の重み付きキャプションが有効になります。「Textual Inversion と XTI」以外の学習に使用できます。キャプションだけでなく DreamBooth 手法の token string でも有効です。
+
+    重みづけキャプションの記法はWeb UIとほぼ同じで、(abc)や[abc]、(abc:1.23)などが使用できます。入れ子も可能です。括弧内にカンマを含めるとプロンプトのshuffle/dropoutで括弧の対応付けがおかしくなるため、括弧内にはカンマを含めないでください。
 
 - `--persistent_data_loader_workers`
 
@@ -527,11 +512,27 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
     その後ブラウザを開き、http://localhost:6006/ へアクセスすると表示されます。
 
+- `--log_with` / `--log_tracker_name`
+
+    学習ログの保存に関するオプションです。`tensorboard` だけでなく `wandb`への保存が可能です。詳細は [PR#428](https://github.com/kohya-ss/sd-scripts/pull/428)をご覧ください。
+
 - `--noise_offset`
 
     こちらの記事の実装になります: https://www.crosslabs.org//blog/diffusion-with-offset-noise
     
     全体的に暗い、明るい画像の生成結果が良くなる可能性があるようです。LoRA学習でも有効なようです。`0.1` 程度の値を指定するとよいようです。
+
+- `--adaptive_noise_scale` （実験的オプション）
+
+    Noise offsetの値を、latentsの各チャネルの平均値の絶対値に応じて自動調整するオプションです。`--noise_offset` と同時に指定することで有効になります。Noise offsetの値は `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale` で計算されます。latentは正規分布に近いためnoise_offsetの1/10～同程度の値を指定するとよいかもしれません。
+
+    負の値も指定でき、その場合はnoise offsetは0以上にclipされます。
+
+- `--multires_noise_iterations` / `--multires_noise_discount`
+    
+    Multi resolution noise (pyramid noise)の設定です。詳細は [PR#471](https://github.com/kohya-ss/sd-scripts/pull/471) およびこちらのページ [Multi-Resolution Noise for Diffusion Model Training](https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2) を参照してください。
+    
+    `--multires_noise_iterations` に数値を指定すると有効になります。6~10程度の値が良いようです。`--multires_noise_discount` に0.1~0.3 程度の値（LoRA学習等比較的データセットが小さい場合のPR作者の推奨）、ないしは0.8程度の値（元記事の推奨）を指定してください（デフォルトは 0.3）。
 
 - `--debug_dataset`
 
@@ -545,13 +546,61 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
     DreamBoothおよびfine tuningでは、保存されるモデルはこのVAEを組み込んだものになります。
 
-- `--cache_latents`
+- `--cache_latents` / `--cache_latents_to_disk`
 
     使用VRAMを減らすためVAEの出力をメインメモリにキャッシュします。`flip_aug` 以外のaugmentationは使えなくなります。また全体の学習速度が若干速くなります。
+
+    cache_latents_to_diskを指定するとキャッシュをディスクに保存します。スクリプトを終了し、再度起動した場合もキャッシュが有効になります。
 
 - `--min_snr_gamma`
 
     Min-SNR Weighting strategyを指定します。詳細は[こちら](https://github.com/kohya-ss/sd-scripts/pull/308)を参照してください。論文では`5`が推奨されています。
+
+## モデルの保存に関する設定
+
+- `--save_precision`
+
+    保存時のデータ精度を指定します。save_precisionオプションにfloat、fp16、bf16のいずれかを指定すると、その形式でモデルを保存します（DreamBooth、fine tuningでDiffusers形式でモデルを保存する場合は無効です）。モデルのサイズを削減したい場合などにお使いください。
+
+- `--save_every_n_epochs` / `--save_state` / `--resume`
+
+    save_every_n_epochsオプションに数値を指定すると、そのエポックごとに学習途中のモデルを保存します。
+
+    save_stateオプションを同時に指定すると、optimizer等の状態も含めた学習状態を合わせて保存します（保存したモデルからも学習再開できますが、それに比べると精度の向上、学習時間の短縮が期待できます）。保存先はフォルダになります。
+    
+    学習状態は保存先フォルダに `<output_name>-??????-state`（??????はエポック数）という名前のフォルダで出力されます。長時間にわたる学習時にご利用ください。
+
+    保存された学習状態から学習を再開するにはresumeオプションを使います。学習状態のフォルダ（`output_dir` ではなくその中のstateのフォルダ）を指定してください。
+
+    なおAcceleratorの仕様により、エポック数、global stepは保存されておらず、resumeしたときにも1からになりますがご容赦ください。
+
+- `--save_every_n_steps`
+
+    save_every_n_stepsオプションに数値を指定すると、そのステップごとに学習途中のモデルを保存します。save_every_n_epochsと同時に指定できます。
+
+- `--save_model_as` （DreamBooth, fine tuning のみ）
+
+    モデルの保存形式を`ckpt, safetensors, diffusers, diffusers_safetensors` から選べます。
+    
+    `--save_model_as=safetensors` のように指定します。Stable Diffusion形式（ckptまたはsafetensors）を読み込み、Diffusers形式で保存する場合、不足する情報はHugging Faceからv1.5またはv2.1の情報を落としてきて補完します。
+
+- `--huggingface_repo_id` 等
+
+    huggingface_repo_idが指定されているとモデル保存時に同時にHuggingFaceにアップロードします。アクセストークンの取り扱いに注意してください（HuggingFaceのドキュメントを参照してください）。
+
+    他の引数をたとえば以下のように指定してください。
+
+    -   `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
+
+    huggingface_repo_visibilityに`public`を指定するとリポジトリが公開されます。省略時または`private`（などpublic以外）を指定すると非公開になります。
+
+    `--save_state`オプション指定時に`--save_state_to_huggingface`を指定するとstateもアップロードします。
+
+    `--resume`オプション指定時に`--resume_from_huggingface`を指定するとHuggingFaceからstateをダウンロードして再開します。その時の --resumeオプションは `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`になります。
+    
+    例: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
+
+    `--async_upload`オプションを指定するとアップロードを非同期で行います。
 
 ## オプティマイザ関係
 
@@ -566,7 +615,10 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - Lion8bit : 引数は同上
     - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
     - SGDNesterov8bit : 引数は同上
-    - DAdaptation : https://github.com/facebookresearch/dadaptation
+    - DAdaptation(DAdaptAdam) : https://github.com/facebookresearch/dadaptation
+    - DAdaptAdaGrad : 引数は同上
+    - DAdaptAdan : 引数は同上
+    - DAdaptSGD : 引数は同上
     - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
     - 任意のオプティマイザ
 

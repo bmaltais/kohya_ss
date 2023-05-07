@@ -16,13 +16,13 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
-* [学習について、共通編](./train_README-ja.md) : データ整備やオプションなど
-    * [データセット設定](./config_README-ja.md)
-* [DreamBoothの学習について](./train_db_README-ja.md)
-* [fine-tuningのガイド](./fine_tune_README_ja.md):
-* [LoRAの学習について](./train_network_README-ja.md)
-* [Textual Inversionの学習について](./train_ti_README-ja.md)
-* note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
+* [学習について、共通編](./docs/train_README-ja.md) : データ整備やオプションなど
+    * [データセット設定](./docs/config_README-ja.md)
+* [DreamBoothの学習について](./docs/train_db_README-ja.md)
+* [fine-tuningのガイド](./docs/fine_tune_README_ja.md):
+* [LoRAの学習について](./docs/train_network_README-ja.md)
+* [Textual Inversionの学習について](./docs/train_ti_README-ja.md)
+* [画像生成スクリプト](./docs/gen_img_README-ja.md)
 * note.com [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windowsでの動作に必要なプログラム
