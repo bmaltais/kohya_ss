@@ -1853,35 +1853,28 @@ function DisplayCountdown($countdown) {
 
 <#
 .SYNOPSIS
-Checks if a specific version of the Microsoft Visual C++ Redistributable is installed on the system.
+   Checks if the specified range of Microsoft Visual C++ Redistributable versions is installed.
 
 .DESCRIPTION
-The Test-VCRedistInstalled function checks if the specified version of Microsoft Visual C++ Redistributable is installed. 
-The function uses the Windows Registry to determine the installed software. If running with administrator privileges, it checks software installed for all users.
-Otherwise, it checks software installed for the current user only. If the specified version is installed, the function outputs a message indicating this and returns $true.
-Otherwise, it outputs a message indicating that the version is not installed and returns $false.
+   The Test-VCRedistInstalled function checks the registry to determine if any version of
+   Microsoft Visual C++ Redistributable within the specified range is installed on the system.
+   It supports checking for the Visual C++ <oldest_year>-<newest_year> Redistributable (x64).
 
-.PARAMETER Version
-A string specifying the version of the Microsoft Visual C++ Redistributable to check for. The version should be specified in the form used in the Windows Registry (e.g., "2015-2019").
+.PARAMETER vcRedistOldestYear
+   The oldest year of the Visual C++ Redistributable range to search for.
+
+.PARAMETER vcRedistNewestYear
+   The newest year of the Visual C++ Redistributable range to search for.
 
 .EXAMPLE
-Test-VCRedistInstalled -version "2015-2019"
+   Test-VCRedistInstalled -vcRedistOldestYear 2015 -vcRedistNewestYear 2022
 
-This example checks if the Microsoft Visual C++ 2015-2019 Redistributable is installed.
-
-.INPUTS
-System.String. You can pipe a string that specifies the version to Test-VCRedistInstalled.
-
-.OUTPUTS
-System.Boolean. This cmdlet returns a boolean value indicating whether the specified version of the Microsoft Visual C++ Redistributable is installed.
-
-.NOTES
-The function checks the software installed for all users if it is run with administrator privileges. 
-Otherwise, it checks the software installed for the current user only.
+   This example checks if any version of Microsoft Visual C++ 2015-2022 Redistributable (x64) is installed.
 #>
 function Test-VCRedistInstalled {
     param(
-        [string]$Version
+        [int]$vcRedistOldestYear,
+        [int]$vcRedistNewestYear
     )
 
     $registryKeys = @(
@@ -1897,12 +1890,7 @@ function Test-VCRedistInstalled {
         Get-ItemProperty |
         Select-Object -Property DisplayName
 
-        # If this test is failing, it is best to debug it by listing all of the software installed via the below 2 Debug lines
-        # This is commented out by default to avoid leaking users' personal information.
-        # Write-DebugLog "Installed software in ${key}: $($installedSoftware.DisplayName)"
-
-        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+.*$Version.*Redistributable" }
-        # Write-DebugLog "Matching software in ${key}: $($matchingSoftware.DisplayName)"
+        $matchingSoftware = $installedSoftware | Where-Object { $_.DisplayName -match "Microsoft Visual C\+\+ $($vcRedistOldestYear)-$($vcRedistNewestYear) Redistributable \(x64\) .*" }
 
         if ($matchingSoftware) {
             $found = $true
@@ -1911,10 +1899,10 @@ function Test-VCRedistInstalled {
     }
 
     if ($found) {
-        Write-DebugLog "Visual C++ $Version Redistributable is already installed."
+        Write-DebugLog "Visual C++ $($vcRedistOldestYear)-$($vcRedistNewestYear) Redistributable is already installed."
     }
     else {
-        Write-DebugLog "Visual C++ $Version Redistributable is not installed."
+        Write-DebugLog "Visual C++ $($vcRedistOldestYear)-$($vcRedistNewestYear) Redistributable is not installed."
     }
 
     return $found
@@ -1925,7 +1913,7 @@ function Test-VCRedistInstalled {
     Installs the Visual Studio redistributables on Windows systems.
 
 .DESCRIPTION
-    This function downloads and installs the Visual Studio 2015, 2017, 2019, and 2022 redistributable on Windows systems. It checks for administrator privileges and prompts the user for elevation if necessary.
+    This function downloads and installs the Visual Studio 2015-2022 redistributable on Windows systems. It checks for administrator privileges and prompts the user for elevation if necessary.
 
 .PARAMETER Interactive
     A boolean value that indicates whether to prompt the user for choices during the installation process.
@@ -2222,8 +2210,8 @@ function Main {
             }
 
             if ($os.family -eq "Windows") {
-                Write-DebugLog "Checking for VC version: ${script:vcRedistVersion}"
-                if (-not (Test-VCRedistInstalled -Version "${script:vcRedistVersion}")) {
+                Write-DebugLog "Checking for VC version: ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
+                if (-not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
                     Install-VCRedistWindows
                 }
                 else {
@@ -2406,7 +2394,8 @@ $script:gitPath = Get-GitExePath
 # Software Versions
 $script:pythonVersion = "3.10.11"
 $script:gitVersion = "2.40.1"
-$script:vcRedistVersion = "2019"
+$script:vcRedistOldestYear = 2015
+$script:vcRedistNewestYear = 2022
 
 # Set the downloads folder for storing pre-req installation files
 if ($os.family -eq "Windows") {
