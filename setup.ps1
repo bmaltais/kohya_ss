@@ -2222,8 +2222,8 @@ function Main {
             }
 
             if ($os.family -eq "Windows") {
-                Write-DebugLog "Checking for VC version: 20${script:vcRedistVersion}"
-                if (-not (Test-VCRedistInstalled -Version "20${script:vcRedistVersion}")) {
+                Write-DebugLog "Checking for VC version: ${script:vcRedistVersion}"
+                if (-not (Test-VCRedistInstalled -Version "${script:vcRedistVersion}")) {
                     Install-VCRedistWindows
                 }
                 else {
@@ -2406,7 +2406,7 @@ $script:gitPath = Get-GitExePath
 # Software Versions
 $script:pythonVersion = "3.10.11"
 $script:gitVersion = "2.40.1"
-$script:vcRedistVersion = "17"
+$script:vcRedistVersion = "2019"
 
 # Set the downloads folder for storing pre-req installation files
 if ($os.family -eq "Windows") {
@@ -2432,7 +2432,7 @@ if ($os.family -eq "Windows") {
 
     # VC Redist URL and hash
     $script:vcRedistInstallerName = "vc_redist.x64.exe"
-    $script:vcRedistUrl = "https://aka.ms/vs/$($script:vcRedistVersion)/release/$($script:vcRedistInstallerName)"
+    $script:vcRedistUrl = "https://aka.ms/vs/17/release/$($script:vcRedistInstallerName)"
     $script:vcInstallerPath = Join-Path -Path $script:downloadsFolder -ChildPath $script:vcRedistInstallerName
     Write-DebugLog "VC Installer path: $script:vcInstallerPath"
 }
