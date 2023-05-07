@@ -9,7 +9,7 @@ pytorch-lightning==1.9.0
 bitsandbytes==0.35.0
 tensorboard==2.10.1
 safetensors==0.2.6
-gradio==3.16.2
+# gradio==3.16.2
 altair==4.2.2
 easygui==0.98.3
 toml==0.10.2
