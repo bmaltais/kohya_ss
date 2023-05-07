@@ -867,6 +867,11 @@ def run_cmd_training(**kwargs):
 
 
 def gradio_advanced_training(headless=False):
+    def noise_offset_type_change(noise_offset_type):
+        if noise_offset_type == 'Original':
+            return (gr.Group.update(visible=True), gr.Group.update(visible=False))
+        else:
+            return (gr.Group.update(visible=False), gr.Group.update(visible=True))
     with gr.Row():
         additional_parameters = gr.Textbox(
             label='Additional parameters',
@@ -942,30 +947,54 @@ def gradio_advanced_training(headless=False):
         random_crop = gr.Checkbox(
             label='Random crop instead of center crop', value=False
         )
+    
     with gr.Row():
-        noise_offset = gr.Slider(
-            label='Noise offset',
-            value=0,
-            minimum=0,
-            maximum=1,
-            step=0.01,
-            info='recommended values are 0.05 - 0.15',
+        noise_offset_type = gr.Dropdown(
+            label='Noise offset type',
+            choices=[
+                'Original',
+                'Multires',
+            ],
+            value='Original',
         )
-        multires_noise_iterations = gr.Slider(
-            label='Multires noise iterations',
-            value=0,
-            minimum=0,
-            maximum=64,
-            step=1,
-            info='enable multires noise (recommended values are 6-10)',
-        )
-        multires_noise_discount = gr.Slider(
-            label='Multires noise discount',
-            value=0,
-            minimum=0,
-            maximum=1,
-            step=0.01,
-            info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+        with gr.Row(visible=True) as noise_offset_original:
+            noise_offset = gr.Slider(
+                label='Noise offset',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='recommended values are 0.05 - 0.15',
+            )
+            adaptive_noise_scale = gr.Slider(
+                label='Adaptive noise scale',
+                value=0,
+                minimum=-1,
+                maximum=1,
+                step=0.001,
+                info='(Experimental, Optional) Since the latent is close to a normal distribution, it may be a good idea to specify a value around 1/10 the noise offset.',
+            )
+        with gr.Row(visible=False) as noise_offset_multires:
+            multires_noise_iterations = gr.Slider(
+                label='Multires noise iterations',
+                value=0,
+                minimum=0,
+                maximum=64,
+                step=1,
+                info='enable multires noise (recommended values are 6-10)',
+            )
+            multires_noise_discount = gr.Slider(
+                label='Multires noise discount',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+            )
+        noise_offset_type.change(
+            noise_offset_type_change,
+            inputs=[noise_offset_type],
+            outputs=[noise_offset_original, noise_offset_multires]
         )
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
@@ -1034,7 +1063,9 @@ def gradio_advanced_training(headless=False):
         bucket_reso_steps,
         caption_dropout_every_n_epochs,
         caption_dropout_rate,
+        noise_offset_type,
         noise_offset,
+        adaptive_noise_scale,
         multires_noise_iterations,
         multires_noise_discount,
         additional_parameters,
@@ -1049,80 +1080,136 @@ def gradio_advanced_training(headless=False):
 
 
 def run_cmd_advanced_training(**kwargs):
-    options = [
-        f' --max_train_epochs="{kwargs.get("max_train_epochs", "")}"'
-        if kwargs.get('max_train_epochs')
-        else '',
-        f' --max_data_loader_n_workers="{kwargs.get("max_data_loader_n_workers", "")}"'
-        if kwargs.get('max_data_loader_n_workers')
-        else '',
-        f' --max_token_length={kwargs.get("max_token_length", "")}'
-        if int(kwargs.get('max_token_length', 75)) > 75
-        else '',
-        f' --clip_skip={kwargs.get("clip_skip", "")}'
-        if int(kwargs.get('clip_skip', 1)) > 1
-        else '',
-        f' --resume="{kwargs.get("resume", "")}"'
-        if kwargs.get('resume')
-        else '',
-        f' --keep_tokens="{kwargs.get("keep_tokens", "")}"'
-        if int(kwargs.get('keep_tokens', 0)) > 0
-        else '',
-        f' --caption_dropout_every_n_epochs="{int(kwargs.get("caption_dropout_every_n_epochs", 0))}"'
-        if int(kwargs.get('caption_dropout_every_n_epochs', 0)) > 0
-        else '',
-        f' --caption_dropout_rate="{float(kwargs.get("caption_dropout_rate", 0))}"'
-        if float(kwargs.get('caption_dropout_rate', 0)) > 0
-        else '',
-        f' --vae_batch_size="{kwargs.get("vae_batch_size", 0)}"'
-        if int(kwargs.get('vae_batch_size', 0)) > 0
-        else '',
-        f' --bucket_reso_steps={int(kwargs.get("bucket_reso_steps", 1))}'
-        if int(kwargs.get('bucket_reso_steps', 64)) >= 1
-        else '',
-        f' --save_every_n_steps="{int(kwargs.get("save_every_n_steps", 0))}"'
-        if int(kwargs.get('save_every_n_steps')) > 0
-        else '',
-        f' --save_last_n_steps="{int(kwargs.get("save_last_n_steps", 0))}"'
-        if int(kwargs.get('save_last_n_steps')) > 0
-        else '',
-        f' --save_last_n_steps_state="{int(kwargs.get("save_last_n_steps_state", 0))}"'
-        if int(kwargs.get('save_last_n_steps_state')) > 0
-        else '',
-        f' --min_snr_gamma={int(kwargs.get("min_snr_gamma", 0))}'
-        if int(kwargs.get('min_snr_gamma', 0)) >= 1
-        else '',
-        ' --save_state' if kwargs.get('save_state') else '',
-        ' --mem_eff_attn' if kwargs.get('mem_eff_attn') else '',
-        ' --color_aug' if kwargs.get('color_aug') else '',
-        ' --flip_aug' if kwargs.get('flip_aug') else '',
-        ' --shuffle_caption' if kwargs.get('shuffle_caption') else '',
-        ' --gradient_checkpointing'
-        if kwargs.get('gradient_checkpointing')
-        else '',
-        ' --full_fp16' if kwargs.get('full_fp16') else '',
-        ' --xformers' if kwargs.get('xformers') else '',
-        # ' --use_8bit_adam' if kwargs.get('use_8bit_adam') else '',
-        ' --persistent_data_loader_workers'
-        if kwargs.get('persistent_data_loader_workers')
-        else '',
-        ' --bucket_no_upscale' if kwargs.get('bucket_no_upscale') else '',
-        ' --random_crop' if kwargs.get('random_crop') else '',
-        f' --multires_noise_iterations="{int(kwargs.get("multires_noise_iterations", 0))}"'
-        if kwargs.get('multires_noise_iterations', 0) > 0
-        else '',
-        f' --multires_noise_discount="{float(kwargs.get("multires_noise_discount", 0.0))}"'
-        if kwargs.get('multires_noise_discount', 0) > 0
-        else '',
-        f' --noise_offset={float(kwargs.get("noise_offset", 0))}'
-        if kwargs.get('noise_offset') > 0
-        else '',
-        f' {kwargs.get("additional_parameters", "")}',
-        ' --log_with wandb' if kwargs.get('use_wandb') else '',
-        f' --wandb_api_key="{kwargs.get("wandb_api_key", "")}"'
-        if kwargs.get('wandb_api_key')
-        else '',
-    ]
-
-    run_cmd = ''.join(options)
+    run_cmd = ''
+    
+    max_train_epochs = kwargs.get("max_train_epochs", "")
+    if max_train_epochs:
+        run_cmd += ' --max_train_epochs={max_train_epochs}'
+        
+    max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers", "")
+    if max_data_loader_n_workers:
+        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+    
+    max_token_length = kwargs.get("max_token_length", 75)
+    if int(max_token_length) > 75:
+        run_cmd += f' --max_token_length={max_token_length}'
+        
+    clip_skip = kwargs.get("clip_skip", 1)
+    if int(clip_skip) > 1:
+        run_cmd += f' --clip_skip={clip_skip}'
+        
+    resume = kwargs.get("resume", "")
+    if resume:
+        run_cmd += f' --resume="{resume}"'
+        
+    keep_tokens = kwargs.get("keep_tokens", 0)
+    if int(keep_tokens) > 0:
+        run_cmd += f' --keep_tokens="{keep_tokens}"'
+        
+    caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs", 0)
+    if int(caption_dropout_every_n_epochs) > 0:
+        run_cmd += f' --caption_dropout_every_n_epochs="{caption_dropout_every_n_epochs}"'
+    
+    caption_dropout_rate = kwargs.get("caption_dropout_rate", 0)
+    if float(caption_dropout_rate) > 0:
+        run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
+        
+    vae_batch_size = kwargs.get("vae_batch_size", 0)
+    if int(vae_batch_size) > 0:
+        run_cmd += f' --vae_batch_size="{vae_batch_size}"'
+        
+    bucket_reso_steps = kwargs.get("bucket_reso_steps", 64)
+    if int(bucket_reso_steps) >= 1:
+        run_cmd += f' --bucket_reso_steps={bucket_reso_steps}'
+        
+    save_every_n_steps = kwargs.get("save_every_n_steps", 0)
+    if int(save_every_n_steps) > 0:
+        run_cmd += f' --save_every_n_steps="{save_every_n_steps}"'
+        
+    save_last_n_steps = kwargs.get("save_last_n_steps", 0)
+    if int(save_last_n_steps) > 0:
+        run_cmd += f' --save_last_n_steps="{save_last_n_steps}"'
+        
+    save_last_n_steps_state = kwargs.get("save_last_n_steps_state", 0)
+    if int(save_last_n_steps_state) > 0:
+        run_cmd += f' --save_last_n_steps_state="{save_last_n_steps_state}"'
+        
+    min_snr_gamma = kwargs.get("min_snr_gamma", 0)
+    if int(min_snr_gamma) >= 1:
+        run_cmd += f' --min_snr_gamma={min_snr_gamma}'
+    
+    save_state = kwargs.get('save_state')
+    if save_state:
+        run_cmd += ' --save_state'
+        
+    mem_eff_attn = kwargs.get('mem_eff_attn')
+    if mem_eff_attn:
+        run_cmd += ' --mem_eff_attn'
+    
+    color_aug = kwargs.get('color_aug')
+    if color_aug:
+        run_cmd += ' --color_aug'
+    
+    flip_aug = kwargs.get('flip_aug')
+    if flip_aug:
+        run_cmd += ' --flip_aug'
+    
+    shuffle_caption = kwargs.get('shuffle_caption')
+    if shuffle_caption:
+        run_cmd += ' --shuffle_caption'
+    
+    gradient_checkpointing = kwargs.get('gradient_checkpointing')
+    if gradient_checkpointing:
+        run_cmd += ' --gradient_checkpointing'
+    
+    full_fp16 = kwargs.get('full_fp16')
+    if full_fp16:
+        run_cmd += ' --full_fp16'
+    
+    xformers = kwargs.get('xformers')
+    if xformers:
+        run_cmd += ' --xformers'
+    
+    persistent_data_loader_workers = kwargs.get('persistent_data_loader_workers')
+    if persistent_data_loader_workers:
+        run_cmd += ' --persistent_data_loader_workers'
+    
+    bucket_no_upscale = kwargs.get('bucket_no_upscale')
+    if bucket_no_upscale:
+        run_cmd += ' --bucket_no_upscale'
+    
+    random_crop = kwargs.get('random_crop')
+    if random_crop:
+        run_cmd += ' --random_crop'
+        
+    noise_offset_type = kwargs.get('noise_offset_type', 'Original')
+    if noise_offset_type == 'Original':
+        noise_offset = kwargs.get("noise_offset", 0)
+        if noise_offset > 0:
+            run_cmd += f' --noise_offset={float(noise_offset)}'
+        
+        adaptive_noise_scale = kwargs.get("adaptive_noise_scale", 0)
+        if adaptive_noise_scale != 0 and float(kwargs.get("noise_offset", 0)) > 0:
+            run_cmd += f' --adaptive_noise_scale={float(adaptive_noise_scale)}'
+    else:
+        multires_noise_iterations = kwargs.get("multires_noise_iterations", 0)
+        if multires_noise_iterations > 0:
+            run_cmd += f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
+        
+        multires_noise_discount = kwargs.get("multires_noise_discount", 0)
+        if multires_noise_discount > 0:
+            run_cmd += f' --multires_noise_discount="{float(multires_noise_discount)}"'
+    
+    additional_parameters = kwargs.get("additional_parameters", "")
+    if additional_parameters:
+        run_cmd += f' {additional_parameters}'
+    
+    use_wandb = kwargs.get('use_wandb')
+    if use_wandb:
+        run_cmd += ' --log_with wandb'
+    
+    wandb_api_key = kwargs.get("wandb_api_key", "")
+    if wandb_api_key:
+        run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        
     return run_cmd

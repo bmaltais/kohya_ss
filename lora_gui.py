@@ -119,7 +119,7 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -256,7 +256,7 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -385,7 +385,7 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -466,15 +466,15 @@ def train_model(
         )
         return
 
-    if float(noise_offset) > 0 and (
-        multires_noise_iterations > 0 or multires_noise_discount > 0
-    ):
-        output_message(
-            msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
-            title='Error',
-            headless=headless_bool,
-        )
-        return
+    # if float(noise_offset) > 0 and (
+    #     multires_noise_iterations > 0 or multires_noise_discount > 0
+    # ):
+    #     output_message(
+    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
+    #         title='Error',
+    #         headless=headless_bool,
+    #     )
+    #     return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -768,7 +768,9 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
+        noise_offset_type=noise_offset_type,
         noise_offset=noise_offset,
+        adaptive_noise_scale=adaptive_noise_scale,
         multires_noise_iterations=multires_noise_iterations,
         multires_noise_discount=multires_noise_discount,
         additional_parameters=additional_parameters,
@@ -1201,7 +1203,7 @@ def lora_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,
+                noise_offset_type,noise_offset,adaptive_noise_scale,
                 multires_noise_iterations,
                 multires_noise_discount,
                 additional_parameters,
@@ -1328,7 +1330,7 @@ def lora_tab(
         caption_dropout_rate,
         optimizer,
         optimizer_args,
-        noise_offset,
+        noise_offset_type,noise_offset,adaptive_noise_scale,
         multires_noise_iterations,
         multires_noise_discount,
         LoRA_type,
