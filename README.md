@@ -5,6 +5,15 @@ This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffus
 ### Table of Contents
 
 - [Tutorials](#tutorials)
+* [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
+  * [Chinese version](./docs/train_README-zh.md)
+* [Dataset config](./docs/config_README-ja.md) 
+* [DreamBooth training guide](./docs/train_db_README-ja.md)
+* [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
+* [Training LoRA](./docs/train_network_README-ja.md)
+* [training Textual Inversion](./docs/train_ti_README-ja.md)
+* [Image generation](./docs/gen_img_README-ja.md)
+* note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
@@ -282,7 +291,7 @@ The LoRA supported by `train_network.py` has been named to avoid confusion. The 
     
 LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
 
-To use LoRA-C3Liar with Web UI, please use our extension.
+To use LoRA-C3Lier with Web UI, please use our extension.
 
 ## Sample image generation during training
 A prompt file might look like this, for example
@@ -334,6 +343,18 @@ This will store a backup file with your current locally installed pip packages a
 
 * 2023/04/07 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
+  - The documentation has been moved to the `docs` folder. If you have links, please change them.
+  - DAdaptAdaGrad, DAdaptAdan, and DAdaptSGD are now supported by DAdaptation. [PR#455](https://github.com/kohya-ss/sd-scripts/pull/455) Thanks to sdbds!
+    - DAdaptation needs to be installed. Also, depending on the optimizer, DAdaptation may need to be updated. Please update with `pip install --upgrade dadaptation`.
+  - Added support for pre-calculation of LoRA weights in image generation scripts. Specify `--network_pre_calc`.
+    - The prompt option `--am` is available. Also, it is disabled when Regional LoRA is used.
+  - Added Adaptive noise scale to each training script. Specify a number with `--adaptive_noise_scale` to enable it.
+    - __Experimental option. It may be removed or changed in the future.__
+    - This is an original implementation that automatically adjusts the value of the noise offset according to the absolute value of the mean of each channel of the latents. It is expected that appropriate noise offsets will be set for bright and dark images, respectively.
+    - Specify it together with `--noise_offset`.
+    - The actual value of the noise offset is calculated as `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale`. Since the latent is close to a normal distribution, it may be a good idea to specify a value of about 1/10 to the same as the noise offset.
+    - Negative values can also be specified, in which case the noise offset will be clipped to 0 or more.
+  - Other minor fixes.
 * 2023/04/06 (v21.5.9)
   - Inplement headless mode to enable easier support under headless services like vast.ai. To make use of it start the gui with the `--headless` argument like:
 
