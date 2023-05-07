@@ -22,7 +22,7 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 * [fine-tuningのガイド](./fine_tune_README_ja.md):
 * [LoRAの学習について](./train_network_README-ja.md)
 * [Textual Inversionの学習について](./train_ti_README-ja.md)
-* note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
+* [画像生成スクリプト](./gen_img_README-ja.md)
 * note.com [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windowsでの動作に必要なプログラム
