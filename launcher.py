@@ -1718,7 +1718,11 @@ def install_python_dependencies(_dir, runpod, torch_version, update=False, repai
                         stderr=subprocess.PIPE,
                     )
                     output = result.stdout.decode() + result.stderr.decode()
-                    logging.debug(output)
+
+                    for line in output.splitlines():
+                        print(f"DEBUG: {line}")
+                        censored_line = censor_local_path(line)
+                        write_to_log(f"DEBUG: {censored_line}")
                 else:
                     logging.critical("Please be patient. It may take time for the requirements to be "
                                      "collected before showing progress.")
@@ -1991,7 +1995,11 @@ class CustomFormatter(logging.Formatter):
         date_subdir = os.path.join(_logs_dir, current_date_str)
         os.makedirs(date_subdir, exist_ok=True)
 
-        log_filename = f"launcher_{current_time_str}_{logging.getLevelName(log_level).lower()}.log"
+        log_level_name = logging.getLevelName(log_level).lower()
+        if log_level == logging.ERROR:
+            log_filename = f"launcher_{current_time_str}.log"
+        else:
+            log_filename = f"launcher_{current_time_str}_{log_level_name}.log"
         log_filepath = os.path.join(date_subdir, log_filename)
 
         return log_filepath
@@ -2063,6 +2071,8 @@ if __name__ == "__main__":
         if args.verbosity >= 3:
             for k, v in args.__dict__.items():
                 logging.debug(f"{k}: {v}")
+
+        logging.critical("Beginning launcher.py.")
 
         # Following check disabled as PyCharm can't detect it's being used in a subprocess
         # noinspection PyUnusedLocal

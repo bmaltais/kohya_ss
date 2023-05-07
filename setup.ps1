@@ -430,9 +430,13 @@ function Set-Logging {
         3 { "debug" }
         default { "unknown" }
     }
-
-    # Define log filename
-    $script:logFilename = "launcher_$($currentTime)_$($script:logLevelName).log"
+    
+    if ($script:Parameters.Verbosity -eq 0) {
+        $script:logFilename = "launcher_$($currentTime).log"
+    }
+    else {
+        $script:logFilename = "launcher_$($currentTime)_$($script:logLevelName).log"
+    }
 
     # Create log directory if it doesn't exist
     $LogDir = "$LogDir/$currentDate"

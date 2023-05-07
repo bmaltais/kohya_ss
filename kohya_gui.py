@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 # noinspection DuplicatedCode
 
+import argparse
 import logging
+import os
 import platform
 import re
 import shutil
 import subprocess
 import sys
 from datetime import datetime
-import os
-import argparse
-from lora_gui import lora_tab
-from library.merge_lycoris_gui import gradio_merge_lycoris_tab
-from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
-from library.extract_lora_gui import gradio_extract_lora_tab
-from library.utilities import utilities_tab
-from textual_inversion_gui import ti_tab
-from finetune_gui import finetune_tab
-from dreambooth_gui import dreambooth_tab
-import yaml
+
 import gradio as gr
+import yaml
+
+from dreambooth_gui import dreambooth_tab
+from finetune_gui import finetune_tab
+from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
+from library.extract_lora_gui import gradio_extract_lora_tab
+from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
+from library.merge_lora_gui import gradio_merge_lora_tab
+from library.merge_lycoris_gui import gradio_merge_lycoris_tab
+from library.resize_lora_gui import gradio_resize_lora_tab
+from library.utilities import utilities_tab
+from lora_gui import lora_tab
+from textual_inversion_gui import ti_tab
 
 
 # noinspection PyPep8Naming
@@ -560,7 +562,11 @@ class CustomFormatter(logging.Formatter):
         date_subdir = os.path.join(_logs_dir, current_date_str)
         os.makedirs(date_subdir, exist_ok=True)
 
-        log_filename = f"kohya_ss_{current_time_str}_{logging.getLevelName(log_level).lower()}.log"
+        log_level_name = logging.getLevelName(log_level).lower()
+        if log_level == logging.ERROR:
+            log_filename = f"kohya_ss_{current_time_str}.log"
+        else:
+            log_filename = f"kohya_ss_{current_time_str}_{log_level_name}.log"
         log_filepath = os.path.join(date_subdir, log_filename)
 
         return log_filepath
@@ -628,7 +634,7 @@ if __name__ == '__main__':
     for handler in logging.getLogger().handlers:
         handler.setFormatter(CustomFormatter())
 
-    logging.critical(f"Logs will be stored in: {args.log_dir}")
+    print(f"Logs will be stored in: {args.log_dir}")
 
     # Check if python3 or python3.10 binary exists
     # noinspection DuplicatedCode

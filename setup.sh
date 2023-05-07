@@ -249,7 +249,11 @@ LOG_LEVEL_NAME=$(case $VERBOSITY in
   3) echo "debug" ;;
   *) echo "unknown" ;;
   esac)
-LOG_FILENAME="launcher_${CURRENT_TIME}_${LOG_LEVEL_NAME}.log"
+if [ "$VERBOSITY" -eq 0 ]; then
+  LOG_FILENAME="launcher_${CURRENT_TIME}.log"
+else
+  LOG_FILENAME="launcher_${CURRENT_TIME}_${LOG_LEVEL_NAME}.log"
+fi
 
 if [ ! -d "$LOG_DIR/$CURRENT_DATE/" ]; then
   mkdir -p "$LOG_DIR/$CURRENT_DATE/"
