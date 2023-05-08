@@ -31,7 +31,7 @@ setup_arguments:
     value: false
   - name: TorchVersion
     description: Configure the major version of Torch.
-    value: 1
+    value: 0
   - name: Update
     description: Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
     value: false

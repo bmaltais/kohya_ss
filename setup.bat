@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 set ScriptDir=%~dp0
 
 rem Set the valid possible values for Torch versions here:
-set "validTorchVersions=1 2"
+set "validTorchVersions=0 1 2"
 
 rem Define the default values
 set Branch=master

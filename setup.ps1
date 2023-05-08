@@ -268,7 +268,7 @@ function Get-Parameters {
         'Repair'         = $false
         'SetupOnly'      = $false
         'SkipSpaceCheck' = $false
-        'TorchVersion'   = 1
+        'TorchVersion'   = 0
         'Verbosity'      = 0
         'Update'         = $false
         'Listen'         = '127.0.0.1'
@@ -2373,7 +2373,7 @@ else {
 }
 
 # If all switches came back valid, validate acceptable Torch versions launcher.py will accept
-$validTorchVersions = @(1, 2)
+$validTorchVersions = @(0, 1, 2)
 
 if (-not ($validTorchVersions -contains $Parameters.TorchVersion)) {
     Write-CriticalLog "Invalid value for -TorchVersion: $($Parameters.TorchVersion). Valid values are $($validTorchVersions -join ', ')." -ForegroundColor Red

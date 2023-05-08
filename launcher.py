@@ -211,7 +211,7 @@ class CountOccurrencesAction(argparse.Action):
 # Valid versions are listed in valid_torch_versions.
 class CheckTorchVersionAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        valid_torch_versions = [1, 2]
+        valid_torch_versions = [0, 1, 2]
         if int(values) not in valid_torch_versions:
             parser.error(f'\nInvalid value for --torch-version: {values}. '
                          f'Valid values are {", ".join(map(str, valid_torch_versions))}.')
@@ -255,7 +255,7 @@ def parse_args(_config_data):
         {"short": "-s", "long": "--skip-space-check", "default": False, "type": bool,
          "help": "Skip the 10Gb minimum storage space check."},
 
-        {"short": "-t", "long": "--torch-version", "default": 1, "type": int,
+        {"short": "-t", "long": "--torch-version", "default": 0, "type": int,
          "help": "Configure the major version of Torch.", "action": CheckTorchVersionAction},
 
         {"short": "-u", "long": "--update", "default": False, "type": bool,
@@ -1344,11 +1344,12 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
     package_manager = PackageManager.from_installed_packages()
 
     # noinspection SpellCheckingInspection,DuplicatedCode
-    def install_or_repair_torch(_update, _repair, _interactive):
+    def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
         logging.debug("Looking for pre-existing torch packages.")
 
-        # Showcase the new functionality:
+        # PackageManager functionality demo:
         if package_manager.contains('torch'):
+            logging.debug(f"Package Manager functions: ", )
             logging.debug(f"Torch version: {package_manager.get_version('torch')}", )
             logging.debug(f"Packages with version 1.12.1+cu116: "
                           f"{package_manager.get_packages_by_version('1.12.1+cu116')}")
@@ -1356,10 +1357,10 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         else:
             logging.debug("Torch installation not detected.")
 
-        logging.debug(f"Torch Version to install: {torch_version}")
+        logging.debug(f"Torch Version to install: {_torch_version}")
 
         if _repair or _interactive or (package_manager.get_version("torch") is not None
-                                       and package_manager.get_version("torch")[0] != torch_version):
+                                       and package_manager.get_version("torch")[0] != _torch_version):
 
             package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
             logging.debug(f"Looking for {', '.join(package_names)} packages.")
@@ -1404,7 +1405,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         if not (package_manager.contains('torch') or package_manager.contains('torchvision')) or \
                 (_update or _repair or _interactive) \
                 or (package_manager.get_version("torch") is not None
-                    and package_manager.get_version("torch")[0] != torch_version):
+                    and package_manager.get_version("torch")[0] != _torch_version):
+
+            # Create a flag file for the Torch version
+            torch_flag_file = os.path.join(_log_dir, "status", "._torch_version")
+
             if _interactive:
                 while True:
                     input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
@@ -1421,13 +1426,23 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     else:
                         print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
             else:
-                _TORCH_VERSION = TORCH_VERSION_1
-                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-            if torch_version == 2:
-                _TORCH_VERSION = TORCH_VERSION_2
-                _TORCHVISION_VERSION = TORCHVISION_VERSION_2
-                _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                # Read the torch version from the flag file if it exists and the input _torch_version is 0
+                if _torch_version == 0 and os.path.exists(torch_flag_file):
+                    with open(torch_flag_file, 'r') as _f:
+                        _torch_version = int(_f.read().strip())
+                elif _torch_version in (0, 1):
+                    _TORCH_VERSION = TORCH_VERSION_1
+                    _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                    _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                elif _torch_version == 2:
+                    _TORCH_VERSION = TORCH_VERSION_2
+                    _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+                    _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                else:
+                    # This should not be hit, but it's better to have a stable fallback if invalid data makes it here
+                    _TORCH_VERSION = TORCH_VERSION_1
+                    _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                    _TORCH_INDEX_URL = TORCH_INDEX_URL_1
 
             identifier = ""
             xformers_sys = ""
@@ -1452,7 +1467,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                  f"{xformers_url_1}", "--quiet"]
             ]
 
-            if torch_version == 2:
+            if _torch_version == 2:
                 install_commands = [
                     [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
                      "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
@@ -1468,7 +1483,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     install_commands.extend([[sys.executable, "-m", "pip",
                                               "install", "triton==2.0.0.post1", "--quiet"]])
 
-            if torch_version == 1:
+            if _torch_version == 1:
                 logging.critical(
                     "Installing torch and related packages. These download large models. Please have "
                     "patience.")
@@ -1540,6 +1555,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         stop_event.set()
                         spinner_process.join()
                         print("\b Done")
+
+                        # After the installation process is complete and successful,
+                        # update the torch version in the flag file
+                        with open(torch_flag_file, 'w') as _f:
+                            _f.write(str(_torch_version))
                 except KeyboardInterrupt:
                     stop_event.set()
                     if spinner_process:
@@ -1554,7 +1574,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                      "--extra-index-url", f"{_TORCH_INDEX_URL}"],
                 ]
 
-                if torch_version == '2':
+                if _torch_version == '2':
                     commands.extend([
                         [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
                         [sys.executable, "-m", "pip", "install", "--upgrade",
@@ -1584,6 +1604,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         version_index = _command.index("==")  # Assuming version is specified in the command
                         version = _command[version_index + 1]
                         package_manager.add_package(_package_name, version)
+
+                        # After the installation process is complete and successful,
+                        # update the torch version in the flag file
+                        with open(torch_flag_file, 'w') as _f:
+                            _f.write(str(_torch_version))
                     except subprocess.CalledProcessError as e_:
                         print(
                             f"\nError occurred during the installation of {_package_name}. "
@@ -1687,7 +1712,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                 temp_requirements.write(f"tensorflow=={TENSORFLOW_VERSION}\n")
 
                         if should_install_or_repair_torch:
-                            install_or_repair_torch(update, repair, interactive)
+                            install_or_repair_torch(update, repair, interactive, torch_version)
 
                         # This is where we merge the macOS requirements.txt into the temporary requirements.txt
                         if os_info.family == "macOS":
@@ -1785,7 +1810,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
             # raise
 
     elif should_install_or_repair_torch:
-        install_or_repair_torch(update, repair, interactive)
+        install_or_repair_torch(update, repair, interactive, torch_version)
 
 
 # noinspection SpellCheckingInspection
