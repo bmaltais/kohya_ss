@@ -391,6 +391,7 @@ def parse_args(_config_data):
 def env_var_exists(var_name):
     return var_name in os.environ and os.environ[var_name] != ""
 
+
 def check_and_create_install_folder(parent_dir, _dir):
     if os.access(parent_dir, os.W_OK) and not os.path.isdir(_dir):
         logging.info(f"Creating install folder {_dir}.")
