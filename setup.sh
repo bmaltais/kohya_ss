@@ -299,11 +299,15 @@ parse_logger_args() {
 }
 
 log_debug() {
-  local message=$1
-  local args=$(parse_logger_args "${@:2}")
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
 
-  local color=$(echo "$args" | cut -d' ' -f1)
-  local no_header=$(echo "$args" | cut -d' ' -f2)
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
 
   if ((VERBOSITY >= 3)); then
     if ((no_header == 0)); then
@@ -315,11 +319,15 @@ log_debug() {
 }
 
 log_info() {
-  local message=$1
-  local args=$(parse_logger_args "${@:2}")
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
 
-  local color=$(echo "$args" | cut -d' ' -f1)
-  local no_header=$(echo "$args" | cut -d' ' -f2)
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
 
   if ((VERBOSITY >= 2)); then
     if ((no_header == 0)); then
@@ -331,11 +339,15 @@ log_info() {
 }
 
 log_warn() {
-  local message=$1
-  local args=$(parse_logger_args "${@:2}")
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
 
-  local color=$(echo "$args" | cut -d' ' -f1)
-  local no_header=$(echo "$args" | cut -d' ' -f2)
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
 
   if ((VERBOSITY >= 1)); then
     if ((no_header == 0)); then
@@ -347,11 +359,15 @@ log_warn() {
 }
 
 log_error() {
-  local message=$1
-  local args=$(parse_logger_args "${@:2}")
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
 
-  local color=$(echo "$args" | cut -d' ' -f1)
-  local no_header=$(echo "$args" | cut -d' ' -f2)
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
 
   if ((VERBOSITY >= 0)); then
     if ((no_header == 0)); then
@@ -363,11 +379,15 @@ log_error() {
 }
 
 log_critical() {
-  local message=$1
-  local args=$(parse_logger_args "${@:2}")
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
 
-  local color=$(echo "$args" | cut -d' ' -f1)
-  local no_header=$(echo "$args" | cut -d' ' -f2)
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
 
   if ((VERBOSITY >= 0)); then
     if ((no_header == 0)); then
@@ -580,10 +600,13 @@ size_available() {
 
   # Return available space in GB
   if [[ "${os_info["family"]}" == "Windows" ]]; then
+    local drive
     drive=$(powershell.exe -Command "(Get-Item -Path '$folder').Root.Name")
-    drive=${drive::-1} # Remove the trailing backslash
-    echo $(powershell.exe -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DeviceID=''$drive''' \
-      | Select-Object -ExpandProperty FreeSpace") |
+    drive=${drive::-1}
+
+    # shellcheck disable=SC2046
+    powershell.exe -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DeviceID=''$drive''' \
+      | Select-Object -ExpandProperty FreeSpace" |
       awk '/[0-9]+/ {print int($1 / 1024 / 1024 / 1024)}'
 
   else
@@ -632,7 +655,8 @@ package_exists() {
 
 git_is_installed() {
   if command -v git >/dev/null 2>&1; then
-    local git_version=$(git --version 2>&1)
+    local git_version
+    git_version=$(git --version 2>&1)
   else
     return 1
   fi
@@ -684,8 +708,8 @@ install_git_windows() {
       fi
     fi
 
-    local installer_path_windows=$(cygpath -w "$installer_path")
-    local log_file_path_windows=$(cygpath -w "${downloads_folder}/git_install_log.txt")
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
 
     if [ "$install_scope" = "user" ]; then
       powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
@@ -770,9 +794,11 @@ install_git() {
 
 python310_is_installed() {
   if command -v python >/dev/null 2>&1; then
-    local python_version=$(python --version 2>&1)
+    local python_version
+    python_version=$(python --version 2>&1)
   elif command -v py >/dev/null 2>&1; then
-    local python_version=$(py -3.10 --version 2>&1)
+    local python_version
+    python_version=$(py -3.10 --version 2>&1)
   else
     return 1
   fi
@@ -822,8 +848,8 @@ install_python310_windows() {
       fi
     fi
 
-    local installer_path_windows=$(cygpath -w "$installer_path")
-    local log_file_path_windows=$(cygpath -w "${downloads_folder}/git_install_log.txt")
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
 
     if [ "$install_scope" = "user" ]; then
       powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
@@ -970,8 +996,11 @@ install_vc_redist_windows() {
 
     log_critical "The UAC Prompt for the installer should appear; you may need to find that in the task bar." --no-header --color yellow
 
-    local installer_path_windows=$(cygpath -w "$installer_path")
-    local powershell_exit_code=$(powershell.exe -Command "(Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/install /quiet /norestart' -Wait -Passthru -NoNewWindow).ExitCode")
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
+
+    local powershell_exit_code
+    powershell_exit_code=$(powershell.exe -Command "(Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/install /quiet /norestart' -Wait -Passthru -NoNewWindow).ExitCode")
 
     if [ -z "$powershell_exit_code" ]; then
       log_critical "Failed to retrieve exit code from the VC Redist installation process. Exiting the script." --color red
@@ -1003,8 +1032,11 @@ is_vc_redist_installed() {
   local installed=1
 
   for key in "${registry_keys[@]}"; do
-    local installed_software=$(powershell.exe -Command "Get-ChildItem -Path ${key} | Get-ItemProperty | Select-Object -Property DisplayName" | tr -d '\000')
-    local matching_software=$(echo "$installed_software" | grep -P "Microsoft Visual C\+\+ ${vc_redist_oldest_year}-${vc_redist_newest_year} Redistributable \(x64\) .*")
+    local installed_software
+    installed_software=$(powershell.exe -Command "Get-ChildItem -Path ${key} | Get-ItemProperty | Select-Object -Property DisplayName" | tr -d '\000')
+
+    local matching_software
+    matching_software=$(echo "$installed_software" | grep -P "Microsoft Visual C\+\+ ${vc_redist_oldest_year}-${vc_redist_newest_year} Redistributable \(x64\) .*")
 
     if [ "$matching_software" ]; then
       installed=0
