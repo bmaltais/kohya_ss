@@ -16,7 +16,6 @@ packaging~=23.0
 setuptools==67.6.1
 safetensors==0.2.6
 tensorboard==2.10.1; sys_platform != 'darwin'
-tensorrt==8.6.1; sys_platform != 'darwin'
 tk==0.1.0
 toml==0.10.2
 transformers==4.26.0

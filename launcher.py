@@ -425,7 +425,7 @@ def size_available(_dir, parent_dir):
 
 def check_storage_space(_dir, parent_dir, space_check=True):
     if space_check:
-        if size_available(_dir, parent_dir) < 10:
+        if size_available(_dir, parent_dir) < 15:
             logging.info("You have less than 10Gb of free space. This installation may fail.")
             msg_timeout = 10  # In seconds
             message = "Continuing in..."
@@ -451,24 +451,37 @@ def create_symlinks(symlink, target_file):
             else:
                 logging.error(f"{target_file} does not exist. Nothing to link.")
     else:
-        logging.info(f"Linking {os.path.basename(symlink)}.")
-        os.symlink(target_file, symlink)
+        if os.path.isfile(target_file):
+            logging.info(f"Linking {os.path.basename(symlink)}.")
+            os.symlink(target_file, symlink)
+        else:
+            logging.warning(f"{target_file} does not exist. Nothing to link.")
 
 
 # noinspection SpellCheckingInspection
 def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir):
     if in_container:
+        # Symlink paths for libnvinfer.so.7 and libnvinfer_plugin.so.7
+        libnvinfer_symlink = "/usr/lib/x86_64-linux-gnu/libnvinfer.so.7"
+        libnvinfer_plugin_symlink = "/usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7"
+
+        # Target file paths for libnvinfer.so.7 and libnvinfer_plugin.so.7
+        libnvinfer_target = "/usr/lib/x86_64-linux-gnu/libnvinfer.so"
+        libnvinfer_plugin_target = "/usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so"
+
+        create_symlinks(libnvinfer_symlink, libnvinfer_target)
+        create_symlinks(libnvinfer_plugin_symlink, libnvinfer_plugin_target)
+
         # Symlink paths
-        libnvinfer_plugin_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
+        libnvinfer_plugin_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.8")
         libnvinfer_symlink = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer.so.7")
         libcudart_symlink = os.path.join(_site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.11.0")
 
         # Target file paths
-        libnvinfer_plugin_target = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.8")
+        libnvinfer_plugin_target = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer_plugin.so.7")
         libnvinfer_target = os.path.join(_site_packages_dir, "tensorrt", "libnvinfer.so.8")
         libcudart_target = os.path.join(_site_packages_dir, "nvidia", "cuda_runtime", "lib", "libcudart.so.12")
 
-        logging.info("Checking symlinks now.")
         create_symlinks(libnvinfer_plugin_symlink, libnvinfer_plugin_target)
         create_symlinks(libnvinfer_symlink, libnvinfer_target)
         create_symlinks(libcudart_symlink, libcudart_target)
@@ -489,12 +502,16 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir):
 # noinspection SpellCheckingInspection
 def in_container():
     cgroup_path = "/proc/1/cgroup"
+    sched_path = "/proc/1/sched"
 
-    if not os.path.isfile(cgroup_path):
+    if not os.path.isfile(cgroup_path) or not os.path.isfile(sched_path):
         return False
 
     with open(cgroup_path, "r") as cgroup_file:
         content = cgroup_file.read()
+
+    with open(sched_path, "r") as sched_file:
+        sched_content = sched_file.readline()
 
     container_indicators = [
         r':cpuset:/(docker|kubepods)',
@@ -507,7 +524,9 @@ def in_container():
         r':/system.slice/pod-',
     ]
 
-    if any(re.search(pattern, content) for pattern in container_indicators) or os.path.exists('/.dockerenv'):
+    if (any(re.search(pattern, content) for pattern in container_indicators) or
+            os.path.exists('/.dockerenv') or
+            not sched_content.startswith("systemd (1")):
         return True
 
     return False
@@ -942,7 +961,14 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
         elif not git_repo.startswith("https://github.com/bmaltais/kohya_ss") or branch != "master":
             logging.info("Sorry, we only support zip file updates for master branch on "
                          "https://github.com/bmaltais/kohya_ss")
-            success = False
+
+            # If we have a valid installation, but we're unable to update the entire project, we still want to
+            # continue and update all the pip components.
+            if (len(os.listdir(_dir)) > 2 and os.path.exists(os.path.join(_dir, "pyproject.toml")) and
+                    os.path.exists(os.path.join(_dir, "kohya_gui.py"))):
+                success = True
+            else:
+                success = False
         elif len(os.listdir(_dir)) > 1:
             logging.critical("Non-git installation detected, but --update flag not used. Skipping release zip file "
                              "download attempt.")
@@ -1432,10 +1458,15 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                      "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
                     [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
                      "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                    [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"],
                     [sys.executable, "-m", "pip", "install", "--upgrade",
                      f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
                 ]
+
+                if os_info.family == "Windows":
+                    install_commands.extend([[sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"]])
+                elif platform.system() == "Linux":
+                    install_commands.extend([[sys.executable, "-m", "pip",
+                                              "install", "triton==2.0.0.post1", "--quiet"]])
 
             if torch_version == 1:
                 logging.critical(

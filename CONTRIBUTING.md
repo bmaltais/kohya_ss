@@ -273,11 +273,11 @@ This can be overriden with the Log Dir (Directory) argument.
 
 ### Logging Functions
 
-| Language  | Critical           | Error            | Info            | Warning         | Debug           |
-| --------- | ------------------ | ---------------- | --------------- | --------------- | --------------- |
-| PowerShell | Write-CriticalLog | Write-ErrorLog   | Write-InfoLog   | Write-WarnLog   | Write-DebugLog  |
-| Bash      | log_critical       | log_error        | log_info        | log_warn        | log_debug       |
-| Python    | logging.critical() | logging.error()  | logging.info()  | logging.warn()  | logging.debug() |
+| Language  | Critical           | Error            | Info            | Warning           | Debug           |
+| --------- | ------------------ | ---------------- | --------------- |-------------------| --------------- |
+| PowerShell | Write-CriticalLog | Write-ErrorLog   | Write-InfoLog   | Write-WarningLog  | Write-DebugLog  |
+| Bash      | log_critical       | log_error        | log_info        | log_warning       | log_debug       |
+| Python    | logging.critical() | logging.error()  | logging.info()  | logging.warning() | logging.debug() |
 
 > **Special note**: Python also has a `write_to_log()` function that will bypass terminal input, but still allow logging strings. Very useful when you want to display a minimal interface, but still need a logging statement.
 >

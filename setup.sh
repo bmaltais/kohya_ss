@@ -262,7 +262,7 @@ LOG_FILE="$LOG_DIR/$CURRENT_DATE/$LOG_FILENAME"
 # color code and header flag (0 for displaying the header, 1 for hiding it).
 #
 # Example usage:
-# log_warn "Warning message without header" --color=blue --no-header
+# log_warning "Warning message without header" --color=blue --no-header
 color_code() {
   local color_name=$1
   case $color_name in
@@ -338,7 +338,7 @@ log_info() {
   fi
 }
 
-log_warn() {
+log_warning() {
   local message
   message=$1
   local args

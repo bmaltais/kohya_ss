@@ -493,15 +493,15 @@ function Write-InfoLog {
 Logs a warning message.
 
 .DESCRIPTION
-The Write-WarnLog function logs a warning message to the console and the log file if the verbosity level is 1 or higher.
+The Write-WarningLog function logs a warning message to the console and the log file if the verbosity level is 1 or higher.
 
 .PARAMETER message
 The warning message to log.
 
 .EXAMPLE
-Write-WarnLog "This is a warning message."
+Write-WarningLog "This is a warning message."
 #>
-function Write-WarnLog {
+function Write-WarningLog {
     param (
         [string]$message,
         [System.ConsoleColor]$ForegroundColor = 'Yellow'
