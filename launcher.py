@@ -1357,14 +1357,14 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         logging.debug("Looking for pre-existing torch packages.")
 
         # PackageManager functionality demo:
-        if package_manager.contains('torch'):
-            logging.debug(f"Package Manager functions: ", )
-            logging.debug(f"Torch version: {package_manager.get_version('torch')}", )
-            logging.debug(f"Packages with version 1.12.1+cu116: "
-                          f"{package_manager.get_packages_by_version('1.12.1+cu116')}")
-            logging.debug(f"Is Torch in the package list? {package_manager.contains('torch')}")
-        else:
-            logging.debug("Torch installation not detected.")
+        # if package_manager.contains('torch'):
+        #     logging.debug(f"Package Manager functions: ", )
+        #     logging.debug(f"Torch version: {package_manager.get_version('torch')}", )
+        #     logging.debug(f"Packages with version 1.12.1+cu116: "
+        #                   f"{package_manager.get_packages_by_version('1.12.1+cu116')}")
+        #     logging.debug(f"Is Torch in the package list? {package_manager.contains('torch')}")
+        # else:
+        #     logging.debug("Torch installation not detected.")
 
         # Create a flag file for the Torch version
         torch_flag_file = os.path.join(_log_dir, "status", "torch_version")
@@ -1372,17 +1372,25 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         if os.path.exists(torch_flag_file):
             logging.debug(f"{torch_flag_file} exists.")
             with open(torch_flag_file, 'r') as _f:
-                _torch_version = int(_f.read().strip())
-                logging.debug(f"Setting Torch version to: {_torch_version}")
+                _torch_version_from_file = int(_f.read().strip())
 
-        logging.debug(f"Torch Version to install: {_torch_version}")
+            if _torch_version_from_file == _torch_version or _torch_version == 0:
+                _torch_version = _torch_version_from_file
+
+        logging.debug(f"Setting Torch version to: {_torch_version}")
 
         if _repair or _interactive or (package_manager.get_version("torch") is not None
-                                       and package_manager.get_version("torch")[0] != _torch_version):
+                                       and int(package_manager.get_version("torch")[0]) != _torch_version):
 
             package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
             logging.debug(f"Looking for {', '.join(package_names)} packages.")
-            installed_package_names = [pkg for pkg in package_names if package_manager.contains(pkg)]
+
+            # Check for the torch package and version separately
+            torch_package_check = package_manager.contains("torch") and int(
+                package_manager.get_version("torch")[0]) != _torch_version
+
+            installed_package_names = [pkg for pkg in package_names if package_manager.contains(pkg) and
+                                       (pkg != "torch" or torch_package_check)]
 
             if installed_package_names:
                 logging.debug(f"Uninstalling {', '.join(installed_package_names)} packages.")
@@ -1423,40 +1431,36 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         if not (package_manager.contains('torch') or package_manager.contains('torchvision')) or \
                 (_update or _repair or _interactive) \
                 or (package_manager.get_version("torch") is not None
-                    and package_manager.get_version("torch")[0] != _torch_version):
+                    and int(package_manager.get_version("torch")[0]) != _torch_version):
             if _interactive:
                 while True:
                     input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
                     if input_torch_version == "1":
-                        _TORCH_VERSION = TORCH_VERSION_1
-                        _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                        _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                        _torch_version = 1
                         break
                     elif input_torch_version == "2":
-                        _TORCH_VERSION = TORCH_VERSION_2
-                        _TORCHVISION_VERSION = TORCHVISION_VERSION_2
-                        _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+                        _torch_version = 2
                         break
                     else:
                         print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+            # Read the torch version from the flag file if it exists and the input _torch_version is 0
+            if _torch_version == 0 and os.path.exists(torch_flag_file) and not _interactive:
+                with open(torch_flag_file, 'r') as _f:
+                    _torch_version = int(_f.read().strip())
+
+            if _torch_version in (0, 1):
+                _TORCH_VERSION = TORCH_VERSION_1
+                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+            elif _torch_version == 2:
+                _TORCH_VERSION = TORCH_VERSION_2
+                _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+                _TORCH_INDEX_URL = TORCH_INDEX_URL_2
             else:
-                # Read the torch version from the flag file if it exists and the input _torch_version is 0
-                if _torch_version == 0 and os.path.exists(torch_flag_file):
-                    with open(torch_flag_file, 'r') as _f:
-                        _torch_version = int(_f.read().strip())
-                elif _torch_version in (0, 1):
-                    _TORCH_VERSION = TORCH_VERSION_1
-                    _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                    _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-                elif _torch_version == 2:
-                    _TORCH_VERSION = TORCH_VERSION_2
-                    _TORCHVISION_VERSION = TORCHVISION_VERSION_2
-                    _TORCH_INDEX_URL = TORCH_INDEX_URL_2
-                else:
-                    # This should not be hit, but it's better to have a stable fallback if invalid data makes it here
-                    _TORCH_VERSION = TORCH_VERSION_1
-                    _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                    _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+                # This should not be hit, but it's better to have a stable fallback if invalid data makes it here
+                _TORCH_VERSION = TORCH_VERSION_1
+                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
 
             identifier = ""
             xformers_sys = ""
@@ -1610,6 +1614,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
                         # Remove version specifier if present
                         _package_name = _package_name.split('==')[0]
+                        logging.debug(_package_name)
                     except ValueError:
                         pass
 
