@@ -1740,6 +1740,10 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
                                         logging.debug(f"Appending macOS requirement: {line.strip()}")
                                         temp_requirements.write(line)
+                            else:
+                                logging.critical("macOS requirements file not found. "
+                                                 "Exiting to avoid environment corruption.")
+                                exit(1)
 
                 finally:
                     temp_requirements.flush()
@@ -1811,11 +1815,14 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                 if os.path.exists(temp_requirements.name):
                     os.remove(temp_requirements.name)
 
-            os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
-            with open(flag_file, 'w') as f:
-                f.write('Pip operations done on: ' + str(datetime.now()))
+                os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
+                with open(flag_file, 'w') as f:
+                    f.write('Pip operations done on: ' + str(datetime.now()))
 
-            logging.info("Pip operations completed successfully.")
+                logging.info("Pip operations completed successfully.")
+            else:
+                logging.critical("Requirements file not found. Exiting to avoid environment corruption.")
+                exit(1)
 
         except Exception as _e:
             # Handle exceptions appropriately
