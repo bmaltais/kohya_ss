@@ -1595,7 +1595,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
     def censor_local_path(_package_name):
         if os.path.isfile(_package_name) or os.path.isdir(_package_name):
-            return "<censored_local_path to maintain user privacy>"
+            return "<Censored local path to maintain user privacy>"
         return _package_name
 
     # Name of the flag file
@@ -1734,9 +1734,8 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                             f.seek(0)
                             for package in f:
                                 package_name = package.strip().split('==')[0]
-                                censored_package_name = censor_local_path(package_name)
-                                progress_bar.set_description(f"Installing {censored_package_name}")
 
+                                progress_bar.set_description(f"Installing {package_name}")
                                 command = [sys.executable, "-m", "pip", "install", "--upgrade",
                                            "--use-pep517", "--no-warn-script-location", package]
 
@@ -1744,6 +1743,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                     command.append("--quiet")
                                     try:
                                         safe_subprocess_run(command, bufsize=-1)
+                                        censored_package_name = censor_local_path(package_name)
                                         write_to_log(f"Installing {censored_package_name}.")
                                     except subprocess.CalledProcessError as _e:
                                         logging.error(f"An error occurred during pip operations: {str(_e)}")
