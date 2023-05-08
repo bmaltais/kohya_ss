@@ -1366,6 +1366,13 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
         else:
             logging.debug("Torch installation not detected.")
 
+        # Create a flag file for the Torch version
+        torch_flag_file = os.path.join(_log_dir, "status", ".torch_version")
+
+        if os.path.exists(torch_flag_file):
+            with open(torch_flag_file, 'r') as _f:
+                _torch_version = int(_f.read().strip())
+
         logging.debug(f"Torch Version to install: {_torch_version}")
 
         if _repair or _interactive or (package_manager.get_version("torch") is not None
@@ -1415,10 +1422,6 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                 (_update or _repair or _interactive) \
                 or (package_manager.get_version("torch") is not None
                     and package_manager.get_version("torch")[0] != _torch_version):
-
-            # Create a flag file for the Torch version
-            torch_flag_file = os.path.join(_log_dir, "status", ".torch_version")
-
             if _interactive:
                 while True:
                     input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
