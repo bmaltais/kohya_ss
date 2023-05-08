@@ -705,7 +705,7 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
         elif os.path.isdir(_git_repo):
             # For local folder paths, normalize to an absolute path
             local_repo_path = os.path.abspath(_git_repo)
-            git_credentials = {'url': local_repo_path}
+            git_credentials = {'local_repo_path': local_repo_path}
         else:
             raise ValueError(
                 "Invalid Git URL scheme or local folder path. Only 'https', 'ssh', and local folder paths are "
@@ -728,7 +728,16 @@ def update_kohya_ss(_dir, git_repo, branch, update, repair=None):
                 logging.debug("git pull operation entered.")
 
                 pull_progress = GitProgressPrinter(operation="pull", repo_name=_git_repo, local_folder=_dir)
-                local_git_repo.remotes.origin.pull(progress=pull_progress, **git_credentials)
+
+                if 'local_repo_path' in git_credentials:
+                    remote_name = "local_repo"
+                    if remote_name not in [remote.name for remote in local_git_repo.remotes]:
+                        local_git_repo.create_remote(remote_name, git_credentials['local_repo_path'])
+                    local_git_repo.remotes[remote_name].fetch(progress=pull_progress)
+                    local_git_repo.git.merge('FETCH_HEAD')
+                    local_git_repo.delete_remote(remote_name)
+                else:
+                    local_git_repo.remotes.origin.pull(progress=pull_progress, **git_credentials)
 
                 _success = True
                 return _success, _error
@@ -1408,7 +1417,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     and package_manager.get_version("torch")[0] != _torch_version):
 
             # Create a flag file for the Torch version
-            torch_flag_file = os.path.join(_log_dir, "status", "._torch_version")
+            torch_flag_file = os.path.join(_log_dir, "status", ".torch_version")
 
             if _interactive:
                 while True:
@@ -1483,7 +1492,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     install_commands.extend([[sys.executable, "-m", "pip",
                                               "install", "triton==2.0.0.post1", "--quiet"]])
 
-            if _torch_version == 1:
+            if _torch_version in (0, 1):
                 logging.critical(
                     "Installing torch and related packages. These download large models. Please have "
                     "patience.")
@@ -1556,10 +1565,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         spinner_process.join()
                         print("\b Done")
 
-                        # After the installation process is complete and successful,
-                        # update the torch version in the flag file
-                        with open(torch_flag_file, 'w') as _f:
-                            _f.write(str(_torch_version))
+                    # After the installation process is complete and successful,
+                    # update the torch version in the flag file
+                    os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
+                    with open(torch_flag_file, 'w') as _f:
+                        _f.write(str(_torch_version))
                 except KeyboardInterrupt:
                     stop_event.set()
                     if spinner_process:
@@ -1604,11 +1614,6 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         version_index = _command.index("==")  # Assuming version is specified in the command
                         version = _command[version_index + 1]
                         package_manager.add_package(_package_name, version)
-
-                        # After the installation process is complete and successful,
-                        # update the torch version in the flag file
-                        with open(torch_flag_file, 'w') as _f:
-                            _f.write(str(_torch_version))
                     except subprocess.CalledProcessError as e_:
                         print(
                             f"\nError occurred during the installation of {_package_name}. "
@@ -1617,6 +1622,12 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                             f"Error occurred during the installation of {_package_name}. "
                             f"Exit code: {e_.returncode}")
                         exit(1)
+
+                # After the installation process is complete and successful,
+                # update the torch version in the flag file
+                os.makedirs(os.path.join(_log_dir, "status"), exist_ok=True)
+                with open(torch_flag_file, 'w') as _f:
+                    _f.write(str(_torch_version))
 
     def censor_local_path(_package_name):
         if os.path.isfile(_package_name) or os.path.isdir(_package_name):
