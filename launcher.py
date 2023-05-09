@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import zipfile
 from contextlib import redirect_stderr
@@ -1098,8 +1099,10 @@ def get_os_info():
 
 
 def brew_install_tensorflow_deps(verbosity=1):
+    # cctools and ld64 will need alternative install methods
     # noinspection SpellCheckingInspection
-    brew_install_cmd = "brew install llvm cctools ld64"
+    brew_install_cmd = "brew install"
+    package_names = ["llvm"]
 
     def brew_installed():
         if os_info.family == "macOS":
@@ -1116,20 +1119,61 @@ def brew_install_tensorflow_deps(verbosity=1):
         if not brew_installed():
             logging.error("Homebrew not found. Please install Homebrew before running this script.")
             return False
-        stdout_setting = subprocess.PIPE if verbosity >= 3 else subprocess.DEVNULL
-        stderr_setting = subprocess.PIPE if verbosity >= 1 else subprocess.DEVNULL
 
         try:
-            logging.info("Installing Homebrew packages...")
-            result = subprocess.run(brew_install_cmd.split(), stdout=stdout_setting, stderr=stderr_setting)
-            result.check_returncode()
-            if verbosity >= 3:
-                logging.debug(result.stdout.decode('utf-8'))
+            if args.verbosity < 3:
+                _bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
+                with tqdm_progress(total=len(package_names), desc="Installing brew packages",
+                                   unit="package", unit_scale=False, dynamic_ncols=True,
+                                   bar_format=_bar_format, mininterval=0, miniters=0) as _progress_bar:
+                    for idx, _package_name in enumerate(package_names):
+                        _progress_bar.set_description(f"Installing {_package_name}")
+                        try:
+                            subprocess.run(
+                                ["brew", "install", _package_name],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            write_to_log(f"Installing {_package_name} via brew.")
+                        except subprocess.CalledProcessError as e_:
+                            logging.error(
+                                f"Failed to install {_package_name}. Error code {e_.returncode}")
+                        finally:
+                            _progress_bar.update(1)
+            else:
+                def stream_watcher(identifier, stream):
+                    for line in stream:
+                        clean_line = line.decode().strip()
+                        if identifier == "STDOUT":
+                            logging.debug(clean_line)
+                        else:
+                            logging.error(clean_line)
+
+                try:
+                    logging.debug("Beginning Homebrew package installations.")
+                    for _package_name in package_names:
+                        process = subprocess.Popen(["brew", "install", _package_name], stdout=subprocess.PIPE,
+                                                   stderr=subprocess.PIPE)
+
+                        # Create two threads to handle stdout and stderr
+                        out_thread = threading.Thread(target=stream_watcher, args=('STDOUT', process.stdout))
+                        err_thread = threading.Thread(target=stream_watcher, args=('STDERR', process.stderr))
+
+                        # Start the threads
+                        out_thread.start()
+                        err_thread.start()
+
+                        # Wait for the process to complete and the threads to finish
+                        process.wait()
+                        out_thread.join()
+                        err_thread.join()
+
+                except subprocess.CalledProcessError as _e:
+                    logging.error(_e.stderr.decode('utf-8'))
+                    return False
+
             logging.info("Homebrew packages installed successfully.")
             return True
         except subprocess.CalledProcessError as _e:
-            if verbosity >= 1:
-                logging.error(_e.stderr.decode('utf-8'))
+            logging.error(_e.stderr.decode('utf-8'))
             return False
 
 
@@ -1391,12 +1435,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
             installed_package_names = [pkg for pkg in package_names if package_manager.contains(pkg) and
                                        (pkg != "torch" or torch_package_check)]
-
             if installed_package_names:
                 logging.debug(f"Uninstalling {', '.join(installed_package_names)} packages.")
             else:
                 logging.debug(f"None of the following packages were found installed: {', '.join(package_names)}.")
-
+            exit(0)
             if installed_package_names:
                 logging.info(f"Uninstalling {', '.join(installed_package_names)} packages.")
                 if args.verbosity < 3:
@@ -1412,8 +1455,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                 write_to_log(f"Uninstalling {_package_name}.")
                             except subprocess.CalledProcessError as e_:
-                                if args.verbosity > 3:
-                                    logging.debug(
+                                    logging.error(
                                         f"Failed to uninstall {_package_name}. Error code {e_.returncode}")
                             finally:
                                 _progress_bar.update(1)
@@ -2131,14 +2173,23 @@ if __name__ == "__main__":
         # Check if python3 or python3.10 binary exists
         # noinspection DuplicatedCode
         python_bin = find_python_binary()
+
         if not python_bin:
             logging.error("Valid python3 or python3.10 binary not found.")
             logging.error("Cannot proceed with the python steps.")
             exit(1)
 
-        if not (sys.version_info.major == 3 and sys.version_info.minor == 10):
+        # Get the version information for the detected Python binary
+        output = safe_subprocess_run([python_bin, "--version"], capture_output=True, text=True)
+        python_version = output.stdout.strip()
+
+        # Extract the major and minor version numbers
+        python_major_ver, python_minor_ver = [int(x) for x in python_version.split()[1].split('.')[:2]]
+
+        # Check if the detected Python binary has the desired version
+        if not (python_major_ver == 3 and python_minor_ver == 10):
             logging.info("Error: This script requires Python 3.10.")
-            logging.debug(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
+            logging.debug(f"Python version: {python_major_ver}.{python_minor_ver}")
             sys.exit(1)
 
         # Create and activate virtual environment if not in container environment
