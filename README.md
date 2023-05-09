@@ -136,9 +136,7 @@ Custom Settings:
 ```
 
 <details>
-<summary>Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</summary>
-
-#### Bypass Some
+<summary><h4 id="bypass-some">Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</h4></summary>
 
 Bypass Python, git, and tk checks by running launcher.py:
 ```bash
@@ -156,11 +154,9 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <br>
 
 <details>
-<summary>Bypass all setup steps, installation checks, and Python validations.</summary>
+<summary><h4 id="bypass-most">Bypass all setup steps, installation checks, and Python validations.</h4></summary>
 
-####  Bypass Most
-
-The -x or --exclude-setup options bypass all setup and checks:
+The -n or --no-setup options bypass all setup and checks:
 ```bash
 # Windows
 python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
@@ -174,9 +170,7 @@ launcher.py --listen 192.168.1.100 --username myusername --password mypassword -
 <br>
 
 <details>
-<summary>Bypass everything and run Kohya directly</summary>
-
-#### Bypass all
+<summary><h4 id="bypass-all">Bypass everything and run Kohya directly.</h4></summary>
 
 Kohya GUI will also respect the configuration file like all other scripts:
 ```bash
@@ -192,9 +186,7 @@ python3 kohya_gui.py --listen 192.168.1.100 --username myusername --password myp
 <br>
 
 <details>
-<summary>Permission Errors when running setup.ps1</summary>
-
-#### Permission Errors
+<summary><h4 id="permission-errors">Permission Errors when running setup.ps1</h4></summary>
 
 Try the following command in PowerShell:
 ```pwsh
