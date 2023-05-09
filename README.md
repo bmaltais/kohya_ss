@@ -163,10 +163,10 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 The -x or --exclude-setup options bypass all setup and checks:
 ```bash
 # Windows
-python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 
 # Linux / Non-Windows / Cygwin, Msys, etc
-python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 ```
 
 </details>
