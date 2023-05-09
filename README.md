@@ -7,7 +7,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 ### Table of Contents
 
 - [Tutorials](#tutorials)
-* [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
+* [Training guide: common data preparation, options etc.](./docs/train_README-ja.md)
   * [Chinese version](./docs/train_README-zh.md)
 * [Dataset config](./docs/config_README-ja.md) 
 * [DreamBooth training guide](./docs/train_db_README-ja.md)
@@ -15,7 +15,7 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 * [Training LoRA](./docs/train_network_README-ja.md)
 * [training Textual Inversion](./docs/train_ti_README-ja.md)
 * [Image generation](./docs/gen_img_README-ja.md)
-* note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
+* [Model conversion (note.com)](https://note.com/kohya_ss/n/n374f316fe4ad)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
