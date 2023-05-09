@@ -5,3 +5,4 @@ bitsandbytes_windows_deprecated/
 dataset/
 __pycache__/
 venv/
+logs
