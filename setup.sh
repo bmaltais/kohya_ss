@@ -2,12 +2,7 @@
 
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
-# Set the required package versions here.
-# They will be appended to the requirements.txt file in the installation directory.
-TENSORFLOW_VERSION="2.12.0"
-TENSORFLOW_MACOS_VERSION="2.12.0"
-TENSORFLOW_METAL_VERSION="0.8.0"
-
+# bashsupport disable=GrazieInspection
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -19,334 +14,612 @@ Usage:
   # Same as example 1, but uses long options
   setup.sh --branch=dev --dir=/workspace/kohya_ss --git-repo=https://mycustom.repo.tld/custom_fork.git
 
-  # Maximum verbosity, fully automated installation in a runpod environment skipping the runpod env checks
-  setup.sh -vvv --skip-space-check --runpod
+  # Running setup in Debug mode while skipping the available space check
+    .\setup.ps1 -vvv --skip-space-check
 
 Options:
   -b BRANCH, --branch=BRANCH    Select which branch of kohya to check out on new installs.
   -d DIR, --dir=DIR             The full path you want kohya_ss installed to.
-  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out for runpod installation. Useful for custom forks.
+  -f FILE, --file=FILE          Load a custom configuration file.
+  -g REPO, --git_repo=REPO      You can optionally provide a git repo to check out. Useful for custom forks.
   -h, --help                    Show this screen.
   -i, --interactive             Interactively configure accelerate instead of using default config file.
-  -n, --no-git-update           Do not update kohya_ss repo. No git pull or clone operations.
-  -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
-  -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
+  -l LOG_DIR, --log-dir=LOG_DIR Set the custom log directory for kohya_ss.
+  -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
+  -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
-  -u, --no-gui                  Skips launching the GUI.
-  -v, --verbose                 Increase verbosity levels up to 3.
+  -t, --torch-version           Configure the major version of Torch.
+  -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
+  -v                            Increase verbosity levels up to 3. (e.g., -vvv)
+  --headless                    Headless mode will not display the native windowing toolkit. Useful for remote deployments.
+  --listen=IP                   IP to listen on for connections to Gradio.
+  --inbrowser                   Open in browser.
+  --password=PASSWORD           Password for authentication.
+  --setup-only                  Do not launch GUI. Only conduct setup operations.
+  --share                       Share your installation.
+  --server-port=PORT            The port number the GUI server should use.
+  --username=USERNAME           Username for authentication.
 EOF
 }
 
-# Checks to see if variable is set and non-empty.
-# This is defined first, so we can use the function for some default variable values
-env_var_exists() {
-  if [[ -n "${!1}" ]]; then
-    return 0
-  else
-    return 1
+# This gets the directory the script is run from so pathing can work relative to the script where needed.
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+
+get_abs_filename() {
+  # $1 : relative filename
+  if [ -d "$(dirname "$1")" ]; then
+    echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
   fi
 }
 
-# Need RUNPOD to have a default value before first access
-RUNPOD=false
-if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
-  RUNPOD=true
-fi
+# This code handles the loading of parameter values in the following order of precedence:
+# 1. Command-line arguments provided by the user
+# 2. Values defined in install_config.yml (location order in configFileLocations or defined by -f)
+# 3. Default values specified in the script
+#
+# The default values are specified in the `config_<variable>` variables using the
+# `${config_<variable>:-<default_value>}` syntax. If the config file doesn't provide
+# a value, the default value will be used.
+#
+# The config file values are read and stored in the `config_<variable>` variables. If
+# the config file provides a value, it will override the default value.
+#
+# The CLI arguments are stored in the `CLI_ARGUMENTS` associative array.
+#
+# The loop `for key in "${!CLI_ARGUMENTS[@]}"; do` iterates through the CLI arguments
+# and overwrites the corresponding `config_<variable>` variable if a CLI argument
+# was provided.
+#
+# The final values for each option are assigned to their respective script defaults
+# (e.g., `BRANCH="$config_Branch"`).
 
-# This gets the directory the script is run from so pathing can work relative to the script where needed.
-SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
+USER_CONFIG_FILE=""
+declare -A CLI_ARGUMENTS
 
-# Variables defined before the getopts loop, so we have sane default values.
-# Default installation locations based on OS and environment
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  if [ "$RUNPOD" = true ]; then
-    DIR="/workspace/kohya_ss"
-  elif [ -d "$SCRIPT_DIR/.git" ]; then
-    DIR="$SCRIPT_DIR"
-  elif [ -w "/opt" ]; then
-    DIR="/opt/kohya_ss"
-  elif env_var_exists HOME; then
-    DIR="$HOME/kohya_ss"
-  else
-    # The last fallback is simply PWD
-    DIR="$(PWD)"
-  fi
-else
-  if [ -d "$SCRIPT_DIR/.git" ]; then
-    DIR="$SCRIPT_DIR"
-  elif env_var_exists HOME; then
-    DIR="$HOME/kohya_ss"
-  else
-    # The last fallback is simply PWD
-    DIR="$(PWD)"
-  fi
-fi
-
-VERBOSITY=2    #Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
-MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
-
-BRANCH="master"
-GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
-INTERACTIVE=false
-PUBLIC=false
-SKIP_SPACE_CHECK=false
-SKIP_GIT_UPDATE=false
-SKIP_GUI=false
-
-while getopts ":vb:d:g:inprus-:" opt; do
+while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
-  if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
-    opt="${OPTARG%%=*}"     # extract long option name
-    OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
-    OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
+  if [ "$opt" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    opt="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#"$opt"}" # extract long option argument (maybe empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case $opt in
-  b | branch) BRANCH="$OPTARG" ;;
-  d | dir) DIR="$OPTARG" ;;
-  g | git-repo) GIT_REPO="$OPTARG" ;;
-  i | interactive) INTERACTIVE=true ;;
-  n | no-git-update) SKIP_GIT_UPDATE=true ;;
-  p | public) PUBLIC=true ;;
-  r | runpod) RUNPOD=true ;;
-  s | skip-space-check) SKIP_SPACE_CHECK=true ;;
-  u | no-gui) SKIP_GUI=true ;;
-  v) ((VERBOSITY = VERBOSITY + 1)) ;;
-  h) display_help && exit 0 ;;
+  b | branch) CLI_ARGUMENTS["branch"]="$OPTARG" ;;
+  d | dir) CLI_ARGUMENTS["dir"]="$OPTARG" ;;
+  f | file) USER_CONFIG_FILE="$OPTARG" ;;
+  g | git-repo) CLI_ARGUMENTS["gitRepo"]="$OPTARG" ;;
+  h | help) display_help && exit 0 ;;
+  i | interactive) CLI_ARGUMENTS["interactive"]="true" ;;
+  l | log-dir) CLI_ARGUMENTS["logDir"]="$OPTARG" ;;
+  n | no-setup) CLI_ARGUMENTS["noSetup"]="true" ;;
+  r | repair) CLI_ARGUMENTS["repair"]="true" ;;
+  s | skip-space-check) CLI_ARGUMENTS["skipSpaceCheck"]="true" ;;
+  t | torch-version) CLI_ARGUMENTS["torchVersion"]="true" ;;
+  u | update) CLI_ARGUMENTS["update"]="true" ;;
+  v) ((CLI_ARGUMENTS["verbosity"] = CLI_ARGUMENTS["verbosity"] + 1)) ;;
+  headless) CLI_ARGUMENTS["headless"]="true" ;;
+  inbrowser) CLI_ARGUMENTS["inbrowser"]="true" ;;
+  listen) CLI_ARGUMENTS["listen"]="$OPTARG" ;;
+  password) CLI_ARGUMENTS["password"]="$OPTARG" ;;
+  server-port) CLI_ARGUMENTS["serverPort"]="$OPTARG" ;;
+  setup-only) CLI_ARGUMENTS["setupOnly"]="true" ;;
+  share) CLI_ARGUMENTS["share"]="true" ;;
+  username) CLI_ARGUMENTS["username"]="$OPTARG" ;;
   *) display_help && exit 0 ;;
   esac
 done
 shift $((OPTIND - 1))
 
-# Just in case someone puts in a relative path into $DIR,
-# we're going to get the absolute path of that.
-if [[ "$DIR" != /* ]] && [[ "$DIR" != ~* ]]; then
-  DIR="$(
-    cd "$(dirname "$DIR")" || exit 1
-    pwd
-  )/$(basename "$DIR")"
+# This reads a YAML configuration file and extracts default argument values.
+# It stores these values in variables with a specified prefix.
+# The function supports two sections: 'arguments' and 'kohya_gui_arguments'.
+# For each argument in the sections, it looks for a 'name' and a 'default' value,
+# and then stores the default value in a variable named "${prefix}_<name>"
+# or "${prefix}_gui_<name>" for the respective sections.
+parse_and_validate_yaml() {
+  local yaml_file="$1"
+  local prefix="$2"
+  local line key value state section
+
+  state="none"
+  section="none"
+
+  while IFS= read -r line; do
+    # echo "$line"
+    if [[ "$line" =~ ^[[:space:]]*(setup_arguments|kohya_gui_arguments):[[:space:]]*$ ]]; then
+      section="${BASH_REMATCH[1]}"
+      state="none"
+      # echo "Section: $section"
+    elif [[ "$section" != "none" ]] && [[ "$line" =~ ^[[:space:]]*-?[[:space:]]*name:[[:space:]]*([^[:space:]#]+)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      state="searching_value"
+      # echo "Key: $key"
+    elif [[ "$state" == "searching_value" ]] && [[ "$line" =~ ^[[:space:]]*value:[[:space:]]*([^[:space:]].*[^[:space:]])?[[:space:]]*$ ]]; then
+      value="${BASH_REMATCH[1]}"
+      # echo "Found value for $key: $value"
+      if [[ "$section" == "setup_arguments" ]]; then
+        eval "${prefix}_${key}=\"$value\""
+      elif [[ "$section" == "kohya_gui_arguments" ]]; then
+        eval "${prefix}_${key}=\"$value\""
+      fi
+      state="none"
+    fi
+  done <"$yaml_file"
+}
+
+configFileLocations=(
+  "$SCRIPT_DIR/config_files/installation/install_config.yml"
+  "$HOME/.kohya_ss/install_config.yml"
+  "$SCRIPT_DIR/install_config.yml"
+)
+
+# Load and merge default config files
+for location in "${configFileLocations[@]}"; do
+  # echo "Parsing $location"
+  if [ -f "$location" ]; then
+    parse_and_validate_yaml "$location" "config"
+    # echo "Parsed $location"
+  fi
+done
+
+# Load and merge user-specified config file
+if [ -n "$USER_CONFIG_FILE" ] && [ -f "$USER_CONFIG_FILE" ]; then
+  parse_and_validate_yaml "$USER_CONFIG_FILE" "config"
 fi
 
-for v in $( #Start counting from 3 since 1 and 2 are standards (stdout/stderr).
-  seq 3 $VERBOSITY
-); do
-  (("$v" <= "$MAXVERBOSITY")) && eval exec "$v>&2" #Don't change anything higher than the maximum verbosity allowed.
+# Set default values only if they haven't been set by the config files
+config_branch="${config_branch:-master}"
+config_dir="${config_dir:-$SCRIPT_DIR}"
+config_gitRepo="${config_gitRepo:-https://github.com/bmaltais/kohya_ss.git}"
+config_headless="${config_headless:-false}"
+config_interactive="${config_interactive:-false}"
+config_noSetup="${config_noSetup:-false}"
+config_repair="${config_repair:-false}"
+config_setupOnly="${config_setupOnly:-false}"
+config_skipSpaceCheck="${config_skipSpaceCheck:-false}"
+config_torchVersion="${config_torchVersion:-0}"
+config_update="${config_update:-false}"
+config_verbosity="${config_verbosity:-0}"
+config_listen="${config_listen:-127.0.0.1}"
+config_username="${config_username:-}"
+config_password="${config_password:-}"
+config_serverPort="${config_serverPort:-0}"
+config_inbrowser="${config_inbrowser:-false}"
+config_share="${config_share:-false}"
+
+# Override config values with CLI arguments
+for key in "${!CLI_ARGUMENTS[@]}"; do
+  configVar="config_$key"
+  # echo "Processing CLI argument $key with value ${CLI_ARGUMENTS[$key]}"
+  if [[ -n ${CLI_ARGUMENTS[$key]} ]]; then # Check if the CLI argument is not empty
+    if [[ "$key" == "dir" ]]; then         # If the argument is the directory, convert to an absolute path
+      # echo "CLI_ARGUMENTS dir: ${CLI_ARGUMENTS[$key]}"
+      # echo "get_abs_filename: $(get_abs_filename "${CLI_ARGUMENTS[$key]}")"
+      eval "$configVar=$(get_abs_filename "${CLI_ARGUMENTS[$key]}")"
+    else
+      eval "$configVar=${CLI_ARGUMENTS[$key]}"
+    fi
+  fi
 done
 
-for v in $( #From the verbosity level one higher than requested, through the maximum;
-  seq $((VERBOSITY + 1)) $MAXVERBOSITY
-); do
-  (("$v" > "2")) && eval exec "$v>/dev/null" #Redirect these to bitbucket, provided that they don't match stdout and stderr.
-done
+# After CLI arguments have been processed, check if config_dir is _CURRENT_SCRIPT_DIR_
+if [ "$config_dir" == "_CURRENT_SCRIPT_DIR_" ]; then
+  config_dir="$SCRIPT_DIR"
+fi
 
-# Example of how to use the verbosity levels.
-# printf "%s\n" "This message is seen at verbosity level 1 and above." >&3
-# printf "%s\n" "This message is seen at verbosity level 2 and above." >&4
-# printf "%s\n" "This message is seen at verbosity level 3 and above." >&5
+# After that, set dependent config values
+config_logDir="${config_logDir:-$config_dir/logs}"
+
+# Use the variables from the configuration file as default values
+BRANCH="$config_branch"
+DIR="$config_dir"
+GIT_REPO="$config_gitRepo"
+HEADLESS="$config_headless"
+INTERACTIVE="$config_interactive"
+LOG_DIR="$config_logDir"
+NO_SETUP="$config_noSetup"
+REPAIR="$config_repair"
+SETUP_ONLY="$config_setupOnly"
+SKIP_SPACE_CHECK="$config_skipSpaceCheck"
+TORCH_VERSION="$config_torchVersion"
+UPDATE="$config_update"
+VERBOSITY="$config_verbosity"
+GUI_LISTEN="$config_listen"
+GUI_USERNAME="$config_username"
+GUI_PASSWORD="$config_password"
+GUI_SERVER_PORT="$config_serverPort"
+GUI_INBROWSER="$config_inbrowser"
+GUI_SHARE="$config_share"
+
+# We set up logging here to match the format we are using downstream in the Python scripts
+CURRENT_DATE=$(date +%Y-%m-%d)
+CURRENT_TIME=$(date +%H%M)
+LOG_LEVEL_NAME=$(case $VERBOSITY in
+  0) echo "error" ;;
+  1) echo "warning" ;;
+  2) echo "info" ;;
+  3) echo "debug" ;;
+  *) echo "unknown" ;;
+  esac)
+if [ "$VERBOSITY" -eq 0 ]; then
+  LOG_FILENAME="launcher_${CURRENT_TIME}.log"
+else
+  LOG_FILENAME="launcher_${CURRENT_TIME}_${LOG_LEVEL_NAME}.log"
+fi
+
+if [ ! -d "$LOG_DIR/$CURRENT_DATE/" ]; then
+  mkdir -p "$LOG_DIR/$CURRENT_DATE/"
+fi
+
+LOG_FILE="$LOG_DIR/$CURRENT_DATE/$LOG_FILENAME"
+
+# The color_code function takes a color name as input and returns the corresponding
+# ANSI escape code for that color. These escape codes are used to set the color of
+# the text displayed in the terminal.
+#
+# The parse_logger_args function processes named parameters like --color and --no-header
+# in the arguments provided to the logging functions. It returns the corresponding
+# color code and header flag (0 for displaying the header, 1 for hiding it).
+#
+# Example usage:
+# log_warning "Warning message without header" --color=blue --no-header
+color_code() {
+  local color_name=$1
+  case $color_name in
+  black) echo "30" ;;
+  red) echo "31" ;;
+  green) echo "32" ;;
+  yellow) echo "33" ;;
+  blue) echo "34" ;;
+  magenta) echo "35" ;;
+  cyan) echo "36" ;;
+  white) echo "37" ;;
+  *) echo "97" ;; # Default to white
+  esac
+}
+
+parse_logger_args() {
+  local args=("$@")
+  local color=""
+  local no_header="0"
+
+  for i in "${!args[@]}"; do
+    case "${args[$i]}" in
+    --color)
+      i=$((i + 1))
+      color=$(color_code "${args[$i]}")
+      ;;
+    --no-header)
+      no_header="1"
+      ;;
+    esac
+  done
+
+  printf "%s %s" "$color" "$no_header"
+}
+
+log_debug() {
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
+
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
+
+  if ((VERBOSITY >= 3)); then
+    if ((no_header == 0)); then
+      message="DEBUG: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
+  fi
+}
+
+log_info() {
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
+
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
+
+  if ((VERBOSITY >= 2)); then
+    if ((no_header == 0)); then
+      message="INFO: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
+  fi
+}
+
+log_warning() {
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
+
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
+
+  if ((VERBOSITY >= 1)); then
+    if ((no_header == 0)); then
+      message="WARNING: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
+  fi
+}
+
+log_error() {
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
+
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
+
+  if ((VERBOSITY >= 0)); then
+    if ((no_header == 0)); then
+      message="ERROR: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
+  fi
+}
+
+log_critical() {
+  local message
+  message=$1
+  local args
+  args=$(parse_logger_args "${@:2}")
+
+  local color
+  color=$(echo "$args" | cut -d' ' -f1)
+  local no_header
+  no_header=$(echo "$args" | cut -d' ' -f2)
+
+  if ((VERBOSITY >= 0)); then
+    if ((no_header == 0)); then
+      message="CRITICAL: $message"
+    fi
+    printf "\033[${color}m%s\033[0m\n" "$message"
+    echo "$message" >>"$LOG_FILE"
+  fi
+}
+
+log_debug "$0 launching."
 
 # Debug variable dump at max verbosity
-echo "BRANCH: $BRANCH
+log_debug "BRANCH: $BRANCH
 DIR: $DIR
 GIT_REPO: $GIT_REPO
+Config file location: $USER_CONFIG_FILE
+HEADLESS: $HEADLESS
 INTERACTIVE: $INTERACTIVE
-PUBLIC: $PUBLIC
-RUNPOD: $RUNPOD
+LOG_DIR: $LOG_DIR
+REPAIR: $REPAIR
 SKIP_SPACE_CHECK: $SKIP_SPACE_CHECK
+TORCH_VERSION: $TORCH_VERSION
+UPDATE: $UPDATE
+Skip Setup: $NO_SETUP
 VERBOSITY: $VERBOSITY
-Script directory is ${SCRIPT_DIR}." >&5
-
-# This must be set after the getopts loop to account for $DIR changes.
-PARENT_DIR="$(dirname "${DIR}")"
-VENV_DIR="$DIR/venv"
-
-if [ -w "$PARENT_DIR" ] && [ ! -d "$DIR" ]; then
-  echo "Creating install folder ${DIR}."
-  mkdir "$DIR"
-fi
-
-if [ ! -w "$DIR" ]; then
-  echo "We cannot write to ${DIR}."
-  echo "Please ensure the install directory is accurate and you have the correct permissions."
-  exit 1
-fi
+Script directory is ${SCRIPT_DIR}."
 
 # Shared functions
-# This checks for free space on the installation drive and returns that in Gb.
-size_available() {
-  local folder
-  if [ -d "$DIR" ]; then
-    folder="$DIR"
-  elif [ -d "$PARENT_DIR" ]; then
-    folder="$PARENT_DIR"
-  elif [ -d "$(echo "$DIR" | cut -d "/" -f2)" ]; then
-    folder="$(echo "$DIR" | cut -d "/" -f2)"
-  else
-    echo "We are assuming a root drive install for space-checking purposes."
-    folder='/'
-  fi
+get_os_info() {
+  declare -A os_info
+  os_info["name"]="Unknown"
+  os_info["family"]="Unknown"
+  os_info["version"]="Unknown"
 
-  local FREESPACEINKB
-  FREESPACEINKB="$(df -Pk "$folder" | sed 1d | grep -v used | awk '{ print $4 "\t" }')"
-  echo "Detected available space in Kb: $FREESPACEINKB" >&5
-  local FREESPACEINGB
-  FREESPACEINGB=$((FREESPACEINKB / 1024 / 1024))
-  echo "$FREESPACEINGB"
-}
-
-# The expected usage is create_symlinks symlink target_file
-create_symlinks() {
-  echo "Checking symlinks now."
-  # Next line checks for valid symlink
-  if [ -L "$1" ]; then
-    # Check if the linked file exists and points to the expected file
-    if [ -e "$1" ] && [ "$(readlink "$1")" == "$2" ]; then
-      echo "$(basename "$1") symlink looks fine. Skipping."
-    else
-      if [ -f "$2" ]; then
-        echo "Broken symlink detected. Recreating $(basename "$1")."
-        rm "$1" &&
-          ln -s "$2" "$1"
-      else
-        echo "$2 does not exist. Nothing to link."
-      fi
-    fi
-  else
-    echo "Linking $(basename "$1")."
-    ln -s "$2" "$1"
-  fi
-}
-
-install_python_dependencies() {
-  # Switch to local virtual env
-  echo "Switching to virtual Python environment."
-  if ! inDocker; then
-    if command -v python3.10 >/dev/null; then
-      python3.10 -m venv "$DIR/venv"
-    elif command -v python3 >/dev/null; then
-      python3 -m venv "$DIR/venv"
-    else
-      echo "Valid python3 or python3.10 binary not found."
-      echo "Cannot proceed with the python steps."
-      return 1
-    fi
-
-    # Activate the virtual environment
-    source "$DIR/venv/bin/activate"
-  fi
-
-  # Updating pip if there is one
-  echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip >&3
-
-  echo "Installing python dependencies. This could take a few minutes as it downloads files."
-  echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
-  case "$OSTYPE" in
-  "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
-    --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
-    pip install -U -I --no-deps \
-      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
-  "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
-  "cygwin")
-    :
+  case "$(uname -s)" in
+  Darwin*)
+    os_info["name"]="macOS"
+    os_info["family"]="macOS"
+    os_info["version"]=$(sw_vers -productVersion)
     ;;
-  "msys")
-    :
+  MINGW64_NT* | MSYS_NT* | CYGWIN_NT*)
+    os_info["name"]="Windows"
+    os_info["family"]="Windows"
+    os_info["version"]=$(systeminfo | grep "^OS Version" | awk -F: '{print $2}' | tr -d '[:space:]')
+    ;;
+  Linux*)
+    if [ -f /etc/os-release ]; then
+      os_info["name"]=$(grep -oP '(?<=^ID=).*' /etc/os-release | tr -d '"')
+      os_info["family"]=$(grep -oP '(?<=^ID_LIKE=).*' /etc/os-release | tr -d '"')
+      os_info["version"]=$(grep -oP '(?<=^VERSION=).*' /etc/os-release | tr -d '"')
+    elif [ -f /etc/redhat-release ]; then
+      os_info["name"]=$(awk '{print $1}' /etc/redhat-release)
+      os_info["family"]="RedHat"
+      os_info["version"]=$(awk '{print $3}' /etc/redhat-release)
+    fi
+
+    if [ "${os_info["name"]}" == "Unknown" ]; then
+      local uname_output
+      uname_output=$(uname -a)
+
+      case $uname_output in
+      *Ubuntu*)
+        os_info["name"]="Ubuntu"
+        os_info["family"]="Ubuntu"
+        ;;
+      *Debian*)
+        os_info["name"]="Debian"
+        os_info["family"]="Debian"
+        ;;
+      *Red\ Hat* | *CentOS*)
+        os_info["name"]="RedHat"
+        os_info["family"]="RedHat"
+        ;;
+      *Fedora*)
+        os_info["name"]="Fedora"
+        os_info["family"]="Fedora"
+        ;;
+      *SUSE*)
+        os_info["name"]="openSUSE"
+        os_info["family"]="SUSE"
+        ;;
+      *Arch*)
+        os_info["name"]="Arch"
+        os_info["family"]="Arch"
+        ;;
+      *)
+        os_info["name"]="Generic Linux"
+        os_info["family"]="Generic Linux"
+        ;;
+      esac
+    fi
+    ;;
+
+  FreeBSD*)
+    os_info["name"]="FreeBSD"
+    os_info["family"]="FreeBSD"
+    os_info["version"]=$(uname -r)
+    ;;
+  *)
+    os_info["name"]="Unknown"
+    os_info["family"]="Unknown"
     ;;
   esac
 
-  if [ "$RUNPOD" = true ]; then
-    echo "Installing tenssort."
-    pip install tensorrt >&3
-  fi
-
-  # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
-  # pip install pydevd-pycharm~=223.8836.43
-
-  #This will copy our requirements.txt file out and make the khoya_ss lib a dynamic location then cleanup.
-  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
-  echo "Copying $DIR/requirements.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >"$TEMP_REQUIREMENTS_FILE"
-
-  # This will check if macOS is running then determine if M1+ or Intel CPU.
-  # It will append the appropriate packages to the requirements.txt file.
-  # Other OSs won't be affected and the version variables are at the top of this file.
-  if [[ "$(uname)" == "Darwin" ]]; then
-    # Check if the processor is Apple Silicon (arm64)
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    # Check if the processor is Intel (x86_64)
-    elif [[ "$(uname -m)" == "x86_64" ]]; then
-      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    fi
-  fi
-
-  if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
-  else
-    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
-  fi
-
-  echo "Removing the temp requirements file."
-  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
-    rm -f "$TEMP_REQUIREMENTS_FILE"
-  fi
-
-  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
-    if command -v deactivate >/dev/null; then
-      echo "Exiting Python virtual environment."
-      deactivate
-    else
-      echo "deactivate command not found. Could still be in the Python virtual environment."
-    fi
-  fi
+  declare -p os_info
 }
 
-# Attempt to non-interactively install a default accelerate config file unless specified otherwise.
-# Documentation for order of precedence locations for configuration file for automated installation:
-# https://huggingface.co/docs/accelerate/basic_tutorials/launch#custom-configurations
-configure_accelerate() {
-  echo "Source accelerate config location: $DIR/config_files/accelerate/default_config.yaml" >&3
-  if [ "$INTERACTIVE" = true ]; then
-    accelerate config
-  else
-    if env_var_exists HF_HOME; then
-      if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
-        mkdir -p "$HF_HOME/accelerate/" &&
-          echo "Target accelerate config location: $HF_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HF_HOME/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $HF_HOME/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists XDG_CACHE_HOME; then
-      if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
-        mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
-          echo "Target accelerate config location: $XDG_CACHE_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists HOME; then
-      if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
-        mkdir -p "$HOME/.cache/huggingface/accelerate" &&
-          echo "Target accelerate config location: $HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HOME/.cache/huggingface/accelerate/default_config.yaml" &&
-          echo "Copying accelerate config file to: $HOME/.cache/huggingface/accelerate/default_config.yaml"
-      fi
+# Eval here to make it global for the other functions
+eval "$(get_os_info)"
+
+is_admin() {
+  case "${os_info["name"]}" in
+  "Windows" | "MINGW64_NT" | "CYGWIN_NT")
+    if net session >/dev/null 2>&1; then
+      return 0
     else
-      echo "Could not place the accelerate configuration file. Please configure manually."
-      sleep 2
-      accelerate config
+      return 1
     fi
-  fi
+    ;;
+  *)
+    if [ "$EUID" = 0 ] || [ "$(id -u)" = 0 ] || [ "$UID" = 0 ]; then
+      return 0
+    else
+      return 1
+    fi
+    ;;
+  esac
 }
 
+update_install_scope() {
+  local interactive="$1"
+  local install_option
+  local install_scope
+
+  if [ "$interactive" = true ]; then
+    while true; do
+      read -rp "Choose installation option: (1) Local (2) Global: " install_option
+      if [ "$install_option" = "1" ] || [ "$install_option" = "2" ]; then
+        break
+      fi
+    done
+  else
+    install_option=2
+  fi
+
+  if [ "$install_option" = "1" ]; then
+    install_scope="user"
+  else
+    install_scope="allusers"
+  fi
+
+  echo "$install_scope"
+}
+
+normalize_path() {
+  local path="$1"
+
+  case "${os_info["name"]}" in
+  "Windows")
+    if command -v cygpath >/dev/null 2>&1; then
+      path=$(cygpath -m -a "$path" 2>/dev/null || echo "$path")
+    else
+      # Fallback method for Windows without cygpath
+      path="$(cd "$(dirname "$path")" && pwd -W)/$(basename "$path")"
+    fi
+    ;;
+  *)
+    # Portable approach for Linux and BSD systems, including minimal environments like Alpine Linux
+    # shellcheck disable=SC2164
+    path=$(
+      cd "$(dirname "$path")"
+      pwd
+    )/$(basename "$path")
+    ;;
+  esac
+
+  echo "$path"
+}
 # Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
+size_available() {
+  local folder
+
+  case "${os_info["family"]}" in
+  "Windows")
+    if [ -d "$DIR" ]; then
+      folder="$DIR"
+    elif [ -d "$PARENT_DIR" ]; then
+      folder="$PARENT_DIR"
+    elif [ -d "$(echo "$DIR" | cut -d '/' -f1)" ]; then
+      folder="$(echo "$DIR" | cut -d '/' -f1)"
+    else
+      echo "We are assuming a C: drive install for space-checking purposes." >&2
+      folder='C:'
+    fi
+    ;;
+  *)
+    if [ -d "$DIR" ]; then
+      folder="$DIR"
+    elif [ -d "$PARENT_DIR" ]; then
+      folder="$PARENT_DIR"
+    elif [ -d "$(echo "$DIR" | cut -d '/' -f2)" ]; then
+      folder="$(echo "$DIR" | cut -d '/' -f2)"
+    else
+      log_info "We are assuming a root drive install for space-checking purposes."
+      folder='/'
+    fi
+    ;;
+  esac
+
+  # Return available space in GB
+  if [[ "${os_info["family"]}" == "Windows" ]]; then
+    local drive
+    drive=$(powershell.exe -Command "(Get-Item -Path '$folder').Root.Name")
+    drive=${drive::-1}
+
+    # shellcheck disable=SC2046
+    powershell.exe -Command "Get-WmiObject -Class Win32_LogicalDisk -Filter 'DeviceID=''$drive''' \
+      | Select-Object -ExpandProperty FreeSpace" |
+      awk '/[0-9]+/ {print int($1 / 1024 / 1024 / 1024)}'
+
+  else
+    df --output=avail -B1G "$folder" | tail -n1 | awk '{print $1}'
+  fi
+}
+
 check_storage_space() {
   if [ "$SKIP_SPACE_CHECK" = false ]; then
-    if [ "$(size_available)" -lt 10 ]; then
-      echo "You have less than 10Gb of free space. This installation may fail."
-      MSGTIMEOUT=10 # In seconds
-      MESSAGE="Continuing in..."
+    if [[ ! -z "$(size_available)" && "$(size_available)" =~ ^[0-9]+$ && "$(size_available)" -lt "$1" ]]; then
+      log_critical "You have less than 10Gb of free space. This installation may fail." --color red
+      local MSGTIMEOUT=10 # In seconds
+      local MESSAGE="Continuing in..."
       echo "Press control-c to cancel the installation."
       for ((i = MSGTIMEOUT; i >= 0; i--)); do
         printf "\r${MESSAGE} %ss. " "${i}"
@@ -356,293 +629,473 @@ check_storage_space() {
   fi
 }
 
-isContainerOrPod() {
-  local cgroup=/proc/1/cgroup
-  test -f $cgroup && (grep -qE ':cpuset:/(docker|kubepods)' $cgroup || grep -q ':/docker/' $cgroup)
+package_exists() {
+  local package="$1"
+
+  if [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
+    dpkg -s "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ (Fedora|CentOS|RedHat) ]] || [[ "${os_info["family"]}" =~ (Fedora|CentOS|RedHat) ]]; then
+    rpm -q "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ (Arch|Manjaro) ]] || [[ "${os_info["family"]}" =~ (Arch|Manjaro) ]]; then
+    pacman -Qi "$package" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ openSUSE ]] || [[ "${os_info["family"]}" =~ openSUSE ]]; then
+    zypper if "$package" | grep "Installed: Yes" >/dev/null 2>&1
+    return $?
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]] || [[ "${os_info["family"]}" =~ FreeBSD ]]; then
+    pkg info "$package" >/dev/null 2>&1
+    return $?
+  else
+    log_critical "Unsupported operating system for package_exists function." --color red
+    return 1
+  fi
 }
 
-isDockerBuildkit() {
-  local cgroup=/proc/1/cgroup
-  test -f $cgroup && grep -q ':cpuset:/docker/buildkit' $cgroup
-}
+git_is_installed() {
+  if command -v git >/dev/null 2>&1; then
+    local git_version
+    git_version=$(git --version 2>&1)
+  else
+    return 1
+  fi
 
-isDockerContainer() {
-  [ -e /.dockerenv ]
-}
-
-inDocker() {
-  if isContainerOrPod || isDockerBuildkit || isDockerContainer; then
+  if [[ $git_version =~ ^git\ version ]]; then
     return 0
   else
     return 1
   fi
 }
 
-# These are the git operations that will run to update or clone the repo
-update_kohya_ss() {
-  if [ "$SKIP_GIT_UPDATE" = false ]; then
-    if command -v git >/dev/null; then
-      # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ "$(git -C "$DIR" status --porcelain=v1 2>/dev/null | wc -l)" -gt 0 ] &&
-        echo "These files need to be committed or discarded: " >&4 &&
-        git -C "$DIR" status >&4; then
-        echo "There are changes that need to be committed or discarded in the repo in $DIR."
-        echo "Commit those changes or run this script with -n to skip git operations entirely."
+install_git_windows() {
+  local interactive="$1"
+  local package_manager_found=false
+
+  if git_is_installed; then
+    log_critical "git is already installed." --no-header --color yellow
+    return 0
+  fi
+
+  if command -v scoop >/dev/null 2>&1; then
+    scoop install git
+    package_manager_found=true
+  elif command -v choco >/dev/null 2>&1; then
+    choco install git
+    package_manager_found=true
+  elif command -v winget >/dev/null 2>&1; then
+    winget install --id Git.Git
+    package_manager_found=true
+  fi
+
+  if ! "$package_manager_found"; then
+    if is_admin; then
+      local install_scope
+      install_scope=$(update_install_scope "$interactive")
+    else
+      install_scope="user"
+    fi
+
+    local git_url="https://github.com/git-for-windows/git/releases/download/v2.35.1.windows.1/Git-2.35.1-64-bit.exe"
+    local git_installer_name="Git-2.35.1-64-bit.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${git_installer_name}"
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -o "$installer_path" -L "$git_url"; then
+        log_critical "Failed to download Git. Please check your internet connection or provide a pre-downloaded installer." --color red
         exit 1
       fi
-
-      echo "Attempting to clone $GIT_REPO."
-      if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
-        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
-        git -C "$DIR" switch "$BRANCH" >&4
-      else
-        echo "git repo detected. Attempting to update repository instead."
-        echo "Updating: $GIT_REPO"
-        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
-        if ! git -C "$DIR" switch "$BRANCH" >&4; then
-          echo "Branch $BRANCH did not exist. Creating it." >&4
-          git -C "$DIR" switch -c "$BRANCH" >&4
-        fi
-      fi
-    else
-      echo "You need to install git."
-      echo "Rerun this after installing git or run this script with -n to skip the git operations."
     fi
-  else
-    echo "Skipping git operations."
+
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
+
+    if [ "$install_scope" = "user" ]; then
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
+    else
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
+    fi
+
+    rm -f "$installer_path"
   fi
 }
 
-# Start OS-specific detection and work
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  # Check if root or sudo
-  root=false
-  if [ "$EUID" = 0 ]; then
-    root=true
-  elif command -v id >/dev/null && [ "$(id -u)" = 0 ]; then
-    root=true
-  elif [ "$UID" = 0 ]; then
-    root=true
+install_git() {
+  shopt -s nocasematch
+  if git_is_installed; then
+    log_critical "git is already installed." --no-header --color yellow
+    return 0
   fi
 
-  get_distro_name() {
-    local line
-    if [ -f /etc/os-release ]; then
-      # We search for the line starting with ID=
-      # Then we remove the ID= prefix to get the name itself
-      line="$(grep -Ei '^ID=' /etc/os-release)"
-      echo "Raw detected os-release distro line: $line" >&5
-      line=${line##*=}
-      echo "$line"
-      return 0
-    elif command -v python >/dev/null; then
-      line="$(python -mplatform)"
-      echo "$line"
-      return 0
-    elif command -v python3 >/dev/null; then
-      line="$(python3 -mplatform)"
-      echo "$line"
-      return 0
+  # Windows
+  if [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" =~ Windows ]]; then
+    install_git_windows "$INTERACTIVE"
+
+  # macOS
+  elif [[ "${os_info["name"]}" =~ macOS || "${os_info["family"]}" =~ macOS ]]; then
+    if command -v brew >/dev/null 2>&1; then
+      ! package_exists git && brew install git
     else
-      line="None"
-      echo "$line"
-      return 1
+      log_critical "Please install Homebrew first to continue with Git installation." --no-header --color yellow
+      log_critical "You can find that here: https://brew.sh" --no-header --color yellow
+      exit 1
     fi
-  }
 
-  # We search for the line starting with ID_LIKE=
-  # Then we remove the ID_LIKE= prefix to get the name itself
-  # This is the "type" of distro. For example, Ubuntu returns "debian".
-  get_distro_family() {
-    local line
-    if [ -f /etc/os-release ]; then
-      if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
-        line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
-        echo "Raw detected os-release distro family line: $line" >&5
-        line=${line##*=}
-        echo "$line"
-        return 0
-      else
-        line="None"
-        echo "$line"
-        return 1
-      fi
+  # Ubuntu/Debian
+  elif [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
+    if is_admin; then
+      ! package_exists git && (sudo apt-get update && sudo apt-get install -y git)
     else
-      line="None"
-      echo "$line"
-      return 1
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+      exit 1
     fi
-  }
-
-  check_storage_space
-  update_kohya_ss
-
-  distro=get_distro_name
-  family=get_distro_family
-  echo "Raw detected distro string: $distro" >&4
-  echo "Raw detected distro family string: $family" >&4
-
-  echo "Installing Python TK if not found on the system."
-  if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
-    echo "Ubuntu detected."
-    if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      if [ "$root" = true ]; then
-        apt update -y >&3 && apt install -y python3-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
+  # RedHat
+  elif [[ "${os_info["name"]}" =~ Fedora|CentOS|RedHat || "${os_info["family"]}" =~ Fedora|CentOS|RedHat ]]; then
+    if is_admin; then
+      ! package_exists git && sudo dnf install -y git
     else
-      echo "Python TK found! Skipping install!"
-    fi
-  elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
-    echo "Redhat or Redhat base detected."
-    if ! rpm -qa | grep -qi python3-tkinter; then
-      if [ "$root" = true ]; then
-        dnf install python3-tkinter -y >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
-    echo "Arch Linux or Arch base detected."
-    if ! pacman -Qi tk >/dev/null; then
-      if [ "$root" = true ]; then
-        pacman --noconfirm -S tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
-    echo "OpenSUSE detected."
-    if ! rpm -qa | grep -qi python-tk; then
-      if [ "$root" = true ]; then
-        zypper install -y python-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
-    fi
-  elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
-    if [ "$distro" = "None" ]; then
-      echo "We could not detect your distribution of Linux. Please file a bug report on github with the contents of your /etc/os-release file."
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+      exit 1
     fi
 
-    if [ "$family" = "None" ]; then
-      echo "We could not detect the family of your Linux distribution. Please file a bug report on github with the contents of your /etc/os-release file."
+  # Arch
+  elif [[ "${os_info["name"]}" =~ Arch|Manjaro || "${os_info["family"]}" =~ Arch|Manjaro ]]; then
+    if is_admin; then
+      ! package_exists git && sudo pacman -Sy --noconfirm git
+    else
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+      exit 1
     fi
+
+  # openSUSE
+  elif [[ "${os_info["name"]}" =~ openSUSE || "${os_info["family"]}" =~ openSUSE ]]; then
+    if is_admin; then
+      ! package_exists git && sudo zypper install -y git
+    else
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+      exit 1
+    fi
+
+  # FreeBSD
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]]; then
+    if is_admin; then
+      ! package_exists git && sudo pkg install -y git
+    else
+      log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+      exit 1
+    fi
+  else
+    log_critical "Admin privileges are required to install Git. Please run the script as root or with sudo."--color red
+    exit 1
+  fi
+  shopt -u nocasematch
+}
+
+python310_is_installed() {
+  if command -v python >/dev/null 2>&1; then
+    local python_version
+    python_version=$(python --version 2>&1)
+  elif command -v py >/dev/null 2>&1; then
+    local python_version
+    python_version=$(py -3.10 --version 2>&1)
+  else
+    return 1
   fi
 
-  install_python_dependencies
+  if [[ $python_version =~ ^Python\ 3\.10 ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
-  # We need just a little bit more setup for non-interactive environments
-  if [ "$RUNPOD" = true ]; then
-    if inDocker; then
-      # We get the site-packages from python itself, then cut the string, so no other code changes required.
-      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
-    fi
+install_python310_windows() {
+  local interactive="$1"
 
-    # Symlink paths
-    libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
-    libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
-    libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
-
-    #Target file paths
-    libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
-    libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
-    libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
-
-    echo "Checking symlinks now."
-    create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
-    create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
-    create_symlinks "$libcudart_symlink" "$libcudart_target"
-
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
-    fi
-
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
-    fi
-
-    configure_accelerate
-
-    # This is a non-interactive environment, so just directly call gui.sh after all setup steps are complete.
-    if [ "$SKIP_GUI" = false ]; then
-      if command -v bash >/dev/null; then
-        if [ "$PUBLIC" = false ]; then
-          bash "$DIR"/gui.sh
-          exit 0
-        else
-          bash "$DIR"/gui.sh --share
-          exit 0
-        fi
-      else
-        # This shouldn't happen, but we're going to try to help.
-        if [ "$PUBLIC" = false ]; then
-          sh "$DIR"/gui.sh
-          exit 0
-        else
-          sh "$DIR"/gui.sh --share
-          exit 0
-        fi
-      fi
-    fi
+  if python310_is_installed; then
+    log_critical "Python 3.10 is already installed." --no-header --color yellow
+    return 0
   fi
 
-  echo -e "Setup finished! Run \e[0;92m./gui.sh\e[0m to start."
-  echo "Please note if you'd like to expose your public server you need to run ./gui.sh --share"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  # The initial setup script to prep the environment on macOS
-  # xformers has been omitted as that is for Nvidia GPUs only
+  if command -v scoop >/dev/null 2>&1; then
+    local package_manager_found=false
+  elif command -v choco >/dev/null 2>&1; then
+    choco install python --version=3.10 --params "/IncludeTclTk"
+    local package_manager_found=true
+  elif command -v winget >/dev/null 2>&1; then
+    winget install --id Python.Python --version 3.10.*
+    local package_manager_found=true
+  fi
 
-  if ! command -v brew >/dev/null; then
-    echo "Please install homebrew first. This is a requirement for the remaining setup."
-    echo "You can find that here: https://brew.sh"
-    #shellcheck disable=SC2016
-    echo 'The "brew" command should be in $PATH to be detected.'
+  if [ "$package_manager_found" = false ]; then
+    if is_admin; then
+      local install_scope
+      install_scope=$(update_install_scope "$interactive")
+    else
+      install_scope="user"
+    fi
+
+    local python_url="https://www.python.org/ftp/python/3.10.0/python-3.10.0-amd64.exe"
+    local python_installer_name="python-3.10.0-amd64.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${python_installer_name}"
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -o "$installer_path" -L "$python_url"; then
+        log_critical "Failed to download Python 3.10. Please check your internet connection or provide a pre-downloaded installer." --color red
+        exit 1
+      fi
+    fi
+
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
+
+    if [ "$install_scope" = "user" ]; then
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\"' -Wait -NoNewWindow"
+    else
+      powershell.exe -Command "Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/VERYSILENT /NORESTART /LOG=\"$LOG_FILE\" /NOICONS /COMPONENTS=\"icons,ext\\reg\\shellhere,assoc,assoc_sh\" /ALLUSERS=1' -Wait -NoNewWindow"
+    fi
+
+    rm -f "$installer_path"
+  fi
+}
+
+install_python_and_tk() {
+  local missing_packages=()
+
+  # Ubuntu/Debian
+  if [[ "${os_info["name"]}" =~ Ubuntu|Debian || "${os_info["family"]}" =~ Ubuntu|Debian ]]; then
+    package_exists python3.10 || missing_packages+=("python3.10")
+    package_exists python3-tk || missing_packages+=("python3-tk")
+    package_exists python3.10-venv || missing_packages+=("python3.10-venv")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo apt-get update && sudo apt-get install -y "${missing_packages[@]}"
+
+  # Redhat
+  elif [[ "${os_info["name"]}" =~ Fedora|CentOS|RedHat || "${os_info["family"]}" =~ Fedora|CentOS|RedHat ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists python3-tkinter || missing_packages+=("python3-tkinter")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo yum install -y "${missing_packages[@]}"
+
+  # Arch
+  elif [[ "${os_info["name"]}" =~ Arch|Manjaro || "${os_info["family"]}" =~ Arch|Manjaro ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists tk || missing_packages+=("tk")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo pacman -Syu --needed "${missing_packages[@]}"
+
+  # openSUSE
+  elif [[ "${os_info["name"]}" =~ openSUSE || "${os_info["family"]}" =~ openSUSE ]]; then
+    package_exists python310 || missing_packages+=("python310")
+    package_exists python3-tk || missing_packages+=("python3-tk")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo zypper in "${missing_packages[@]}"
+
+  # FreeBSD
+  elif [[ "${os_info["name"]}" =~ FreeBSD ]]; then
+    package_exists py310-python || missing_packages+=("py310-python")
+    package_exists py310-tkinter || missing_packages+=("py310-tkinter")
+    [[ ${#missing_packages[@]} -ne 0 ]] && sudo pkg install "${missing_packages[@]}"
+
+  # macOS
+  elif [[ "${os_info["name"]}" =~ macOS || "${os_info["family"]}" =~ macOS ]]; then
+    if command -v brew >/dev/null 2>&1; then
+      ! brew list --versions python@3.10 >/dev/null && missing_packages+=("python@3.10")
+      ! brew list --versions tcl-tk >/dev/null && missing_packages+=("tcl-tk")
+      [[ ${#missing_packages[@]} -ne 0 ]] && brew install "${missing_packages[@]}"
+      brew link --overwrite --force python@3.10
+    else
+      log_critical "Please install Homebrew first to continue with Python 3.10 and Tk installation." --no-header --color yellow
+      log_c "You can find that here: https://brew.sh" --no-header --color yellow
+      exit 1
+    fi
+
+  # Windows
+  elif [[ "${os_info["name"]}" =~ Windows || "${os_info["family"]}" == "Windows" ]]; then
+    install_python310_windows "$INTERACTIVE"
+  else
+    log_critical "Unsupported operating system. Please install Python 3.10 and Python Tk 3.10 manually." --color red
+    log_critical "For manual installation, you can download the official Python tar.gz packages from:" --no-header --color yellow
+    log_critical "https://www.python.org/downloads/source/" --no-header --color yellow
+    exit 1
+  fi
+}
+
+display_countdown() {
+  local countdown=$1
+  printf "Press 'y' to skip the countdown and continue or 'n' to cancel the installation.\n"
+  local continue_installation=1
+
+  for ((i = 0; i < countdown; i++)); do
+    local remaining_time=$((countdown - i))
+    printf "\rContinuing in %d... " "$remaining_time"
+
+    local key=""
+    local timeout=10
+
+    while ((timeout > 0)); do
+      read -r -s -N 1 -t 0.1 key
+      if [[ -n $key ]]; then
+        break
+      fi
+      ((timeout--))
+    done
+
+    if [[ -n $key ]]; then
+      if [[ $key == "y" ]]; then
+        continue_installation=0
+        break
+      elif [[ $key == "n" ]]; then
+        continue_installation=1
+        break
+      fi
+    fi
+  done
+
+  printf "\n"
+  return $continue_installation
+}
+
+install_vc_redist_windows() {
+  if [ "${os_info["family"]}" != "Windows" ]; then
+    return 0
+  fi
+
+  local vc_redist_oldest_year=2015
+  local vc_redist_newest_year=2022
+
+  if ! is_vc_redist_installed "$vc_redist_oldest_year" "$vc_redist_newest_year"; then
+    if ! is_admin; then
+      log_critical "Admin privileges are required to install the Visual Studio redistributable. The script will attempt to run with elevated privileges." --color red
+      display_countdown 15
+      continue_installation=$?
+
+      if ((continue_installation == 0)); then
+        printf "Continuing with the installation.\n"
+      else
+        log_critical "VC Redist Installation cancelled." --color red
+        log_critical "Please manually install VC via the following URL: " --no-header --color yellow
+        log_critical "https://aka.ms/vs/17/release/vc_redist.x64.exe" --no-header --color yellow
+        exit 1
+      fi
+    fi
+
+    local vc_redist_url="https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    local vc_redist_installer_name="vc_redist.x64.exe"
+    local downloads_folder="$HOME/Downloads"
+    local installer_path="${downloads_folder}/${vc_redist_installer_name}"
+
+    log_critical "Downloading VC Redist installer." --no-header
+
+    if [ ! -f "$installer_path" ]; then
+      if ! curl -# -o "$installer_path" -L "$vc_redist_url"; then
+        log_critical "Failed to download Visual Studio redistributables. Please check your internet connection or provide a pre-downloaded installer."
+        exit 1
+      else
+        log_critical "Download complete!" --no-header
+      fi
+    fi
+
+    log_critical "The UAC Prompt for the installer should appear; you may need to find that in the task bar." --no-header --color yellow
+
+    local installer_path_windows
+    installer_path_windows=$(cygpath -w "$installer_path")
+
+    local powershell_exit_code
+    powershell_exit_code=$(powershell.exe -Command "(Start-Process -FilePath \"$installer_path_windows\" -ArgumentList '/install /quiet /norestart' -Wait -Passthru -NoNewWindow).ExitCode")
+
+    if [ -z "$powershell_exit_code" ]; then
+      log_critical "Failed to retrieve exit code from the VC Redist installation process. Exiting the script." --color red
+      exit 1
+    elif [ "$powershell_exit_code" -eq 3010 ]; then
+      # Exit code 3010 means a reboot is required, so handle this case separately
+      log_critical "VC Redistributable installation requires a reboot." --color yellow
+      log_critical "Exiting script to avoid any issues. Please reboot the computer and run this setup again." --color red
+      exit 0
+    elif [ "$powershell_exit_code" -ne 0 ]; then
+      log_critical "VC Redist installation failed or was cancelled. Exiting the script." --color red
+      exit 1
+    else
+      if [ -f "$installer_path" ]; then
+        rm -f "$installer_path"
+      fi
+    fi
+
+    rm -f "$installer_path"
+  else
+    log_critical "VC Redist already installed." --no-header --color yellow
+  fi
+}
+
+is_vc_redist_installed() {
+  local vc_redist_oldest_year=$1
+  local vc_redist_newest_year=$2
+  local registry_keys=("HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall" "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall")
+  local installed=1
+
+  for key in "${registry_keys[@]}"; do
+    local installed_software
+    installed_software=$(powershell.exe -Command "Get-ChildItem -Path ${key} | Get-ItemProperty | Select-Object -Property DisplayName" | tr -d '\000')
+
+    local matching_software
+    matching_software=$(echo "$installed_software" | grep -P "Microsoft Visual C\+\+ ${vc_redist_oldest_year}-${vc_redist_newest_year} Redistributable \(x64\) .*")
+
+    if [ "$matching_software" ]; then
+      installed=0
+      break
+    fi
+  done
+
+  return $installed
+}
+
+run_launcher() {
+  if command -v python3.10 >/dev/null 2>&1; then
+    local PYTHON_EXEC="python3.10"
+  elif command -v python >/dev/null 2>&1 && [ "$(python -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python"
+  elif command -v python3 >/dev/null 2>&1 && [ "$(python3 -c 'import sys; print(sys.version_info[:2])')" = "(3, 10)" ]; then
+    local PYTHON_EXEC="python3"
+  else
+    log_critical "Error: Python 3.10 is required to run this script. Please install Python 3.10 and try again." --color red
     exit 1
   fi
 
-  check_storage_space
+  # Print a literal string to give us some space before executing launcher.py
+  log_critical $'Launcher.py is now executing.\n\n' --no-header
 
-  # Install base python packages
-  echo "Installing Python 3.10 if not found."
-  if ! brew ls --versions python@3.10 >/dev/null; then
-    echo "Installing Python 3.10."
-    brew install python@3.10 >&3
-  else
-    echo "Python 3.10 found!"
+  # shellcheck disable=SC2046
+  "$PYTHON_EXEC" launcher.py \
+    --branch="$BRANCH" \
+    --dir="$DIR" \
+    --git-repo="$GIT_REPO" \
+    $([ "$HEADLESS" = "true" ] && echo "--headless") \
+    $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
+    --log-dir="$LOG_DIR" \
+    $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
+    $([ "$REPAIR" = "true" ] && echo "--repair") \
+    $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
+    $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
+    $([ "$UPDATE" = "true" ] && echo "--update") \
+    --listen="$GUI_LISTEN" \
+    --username="$GUI_USERNAME" \
+    --password="$GUI_PASSWORD" \
+    --server-port="$GUI_SERVER_PORT" \
+    $([ "$GUI_INBROWSER" = "true" ] && echo "--inbrowser") \
+    $([ "$GUI_SHARE" = "true" ] && echo "--share") \
+    -v "$VERBOSITY"
+}
+
+function main() {
+  if ! "$NO_SETUP"; then
+    DIR="$(normalize_path "$DIR")"
+
+    # Warn user and give them a chance to cancel install if less than 5Gb is available on storage device
+    check_storage_space 5
+    install_git
+    install_python_and_tk
+    install_vc_redist_windows
   fi
-  echo "Installing Python-TK 3.10 if not found."
-  if ! brew ls --versions python-tk@3.10 >/dev/null; then
-    echo "Installing Python TK 3.10."
-    brew install python-tk@3.10 >&3
-  else
-    echo "Python Tkinter 3.10 found!"
-  fi
 
-  update_kohya_ss
+  run_launcher
+}
 
-  if ! install_python_dependencies; then
-    echo "You may need to install Python. The command for this is brew install python@3.10."
-  fi
-
-  configure_accelerate
-  echo -e "Setup finished! Run ./gui.sh to start."
-elif [[ "$OSTYPE" == "cygwin" ]]; then
-  # Cygwin is a standalone suite of Linux utilities on Windows
-  echo "This hasn't been validated on cygwin yet."
-elif [[ "$OSTYPE" == "msys" ]]; then
-  # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
-  # "git bash" on Windows may also be detected as msys.
-  echo "This hasn't been validated in msys (mingw) on Windows yet."
-fi
+main
