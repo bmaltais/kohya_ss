@@ -609,8 +609,8 @@ def get_latest_tag(git_repo):
 def find_ssh_private_key_path(git_repo):
     def get_git_config_ssh_key(_host):
         try:
-            output = subprocess.check_output(["git", "config", f"host.{_host}.identityFile"], universal_newlines=True)
-            key_path = output.strip()
+            _output = subprocess.check_output(["git", "config", f"host.{_host}.identityFile"], universal_newlines=True)
+            key_path = _output.strip()
             if os.path.exists(key_path):
                 logging.debug(f"Found SSH key in Git config for host '{_host}': {key_path}")
                 return key_path
@@ -1098,10 +1098,10 @@ def get_os_info():
     return OSInfo()
 
 
-def brew_install_tensorflow_deps(verbosity=1):
-    # cctools and ld64 will need alternative install methods
+def brew_install_tensorflow_deps():
+    # cctools and ld64 will need alternative installation methods
+
     # noinspection SpellCheckingInspection
-    brew_install_cmd = "brew install"
     package_names = ["llvm"]
 
     def brew_installed():
@@ -1307,7 +1307,7 @@ def safe_subprocess_run(_command, stop_flag=None, interactive=False,
 
     with subprocess.Popen(_command, stdout=stdout_option, stderr=stderr_option,
                           bufsize=bufsize, universal_newlines=text) as p:
-        output = ""
+        _output = ""
         if interactive:
             if stop_flag and stop_flag.is_set():
                 p.terminate()
@@ -1323,17 +1323,17 @@ def safe_subprocess_run(_command, stop_flag=None, interactive=False,
                         _line = _line.decode('utf-8')
                     logging.debug(_line.strip())
             if capture_output:
-                output = "".join(output_lines)
+                _output = "".join(output_lines)
 
         # Wait for process to terminate to get the return code
         time.sleep(0.5)
         p.wait()
         if p.returncode != 0:
             logging.error(f"Command '{' '.join(_command)}' returned non-zero exit status {p.returncode}")
-            raise subprocess.CalledProcessError(p.returncode, _command, output=output)
+            raise subprocess.CalledProcessError(p.returncode, _command, output=_output)
 
     if capture_output:
-        completed_process = subprocess.CompletedProcess(args=_command, returncode=p.returncode, stdout=output)
+        completed_process = subprocess.CompletedProcess(args=_command, returncode=p.returncode, stdout=_output)
         return completed_process
 
 
@@ -1348,7 +1348,7 @@ def spinner_task(stop_event):
     while not stop_event.is_set():
         sys.stdout.write(next(cursor))
         sys.stdout.flush()
-        time.sleep(0.1)
+        time.sleep(0.25)
         sys.stdout.write('\b')
         sys.stdout.flush()
 
@@ -1366,8 +1366,8 @@ class PackageManager:
     @classmethod
     def from_installed_packages(cls) -> "PackageManager":
         packages = {}
-        output = safe_subprocess_run(["pip", "freeze"], capture_output=True, text=True)
-        for line in output.stdout.strip().split("\n"):
+        _output = safe_subprocess_run(["pip", "freeze"], capture_output=True, text=True)
+        for line in _output.stdout.strip().split("\n"):
             parts = line.split("==")
             if len(parts) == 2:
                 name, version = parts
@@ -1395,6 +1395,105 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
     # Initialize package manager class first to be used in many Python operations
     package_manager = PackageManager.from_installed_packages()
+
+    def uninstall_packages(package_names, verbosity):
+        installed_package_names = []
+        for pkg in package_names:
+            logging.debug(f"Checking for: {pkg}")
+            if package_manager.contains(pkg):
+                logging.debug(f"Adding: {pkg}")
+                installed_package_names.append(pkg)
+        if not installed_package_names:
+            logging.debug(
+                f"None of the following packages were found installed: {', '.join(package_names)}.")
+            return
+
+        logging.debug(f"Uninstalling {', '.join(installed_package_names)} packages.")
+
+        if verbosity < 3:
+            _bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
+            with tqdm_progress(total=len(installed_package_names), desc="Uninstalling packages",
+                               unit="package", unit_scale=False, dynamic_ncols=True,
+                               bar_format=_bar_format, mininterval=0, miniters=0) as _progress_bar:
+                for idx, _package_name in enumerate(installed_package_names):
+                    _progress_bar.set_description(f"Uninstalling {_package_name}")
+                    try:
+                        subprocess.run(
+                            [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", _package_name],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        write_to_log(f"Uninstalling {_package_name}.")
+                    except subprocess.CalledProcessError as e_:
+                        logging.error(
+                            f"Failed to uninstall {_package_name}. Error code {e_.returncode}")
+                    finally:
+                        _progress_bar.update(1)
+        else:
+            for _package_name in installed_package_names:
+                _result = subprocess.run(
+                    [sys.executable, "-m", "pip", "uninstall", "-y", _package_name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                output_ = _result.stdout.decode() + _result.stderr.decode()
+                logging.debug(output_)
+
+    def configure_torch_dependencies(_update, _repair, _interactive, _torch_version, verbosity):
+        if _torch_version in (0, 1):
+            _TORCH_VERSION = TORCH_VERSION_1
+            _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+            _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+        elif _torch_version == 2:
+            _TORCH_VERSION = TORCH_VERSION_2
+            _TORCHVISION_VERSION = TORCHVISION_VERSION_2
+            _TORCH_INDEX_URL = TORCH_INDEX_URL_2
+        else:
+            # This should not be hit, but it's better to have a stable fallback if invalid data makes it here
+            _TORCH_VERSION = TORCH_VERSION_1
+            _TORCHVISION_VERSION = TORCHVISION_VERSION_1
+            _TORCH_INDEX_URL = TORCH_INDEX_URL_1
+
+        identifier = ""
+        xformers_sys = ""
+
+        quiet_flag = ["--quiet"] if verbosity < 3 else []
+
+        if _torch_version == 2:
+            install_commands = [
+                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", *quiet_flag],
+                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", *quiet_flag],
+                [sys.executable, "-m", "pip", "install", "--upgrade",
+                 f"xformers=={XFORMERS_VERSION_2}", *quiet_flag]
+            ]
+        else:
+            if os_info.family == "Windows":
+                xformers_sys = "win_amd64"
+                identifier = "f"
+            if platform.system() == "Linux":
+                xformers_sys = "linux_x86_64"
+                identifier = "linux"
+
+            xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
+                             f"/download/{identifier}/xformers-{XFORMERS_VERSION_1}." \
+                             f"dev0-cp310-cp310-{xformers_sys}.whl"
+
+            install_commands = [
+                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", *quiet_flag],
+                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
+                 "--extra-index-url", f"{_TORCH_INDEX_URL}", *quiet_flag],
+                [sys.executable, "-m", "pip", "install", "--upgrade",
+                 f"{xformers_url_1}", *quiet_flag]
+            ]
+
+        # Install Triton Library for appropriate OS
+        if os_info.family == "Windows":
+            install_commands.extend([[sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", *quiet_flag]])
+        elif platform.system() == "Linux":
+            install_commands.extend([[sys.executable, "-m", "pip",
+                                      "install", "triton==2.0.0.post1", *quiet_flag]])
+        return install_commands
 
     # noinspection SpellCheckingInspection,DuplicatedCode
     def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
@@ -1425,49 +1524,10 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
         if _repair or _interactive or (package_manager.get_version("torch") is not None
                                        and int(package_manager.get_version("torch")[0]) != _torch_version):
-
             package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
             logging.debug(f"Looking for {', '.join(package_names)} packages.")
 
-            # Check for the torch package and version separately
-            torch_package_check = package_manager.contains("torch") and int(
-                package_manager.get_version("torch")[0]) != _torch_version
-
-            installed_package_names = [pkg for pkg in package_names if package_manager.contains(pkg) and
-                                       (pkg != "torch" or torch_package_check)]
-            if installed_package_names:
-                logging.debug(f"Uninstalling {', '.join(installed_package_names)} packages.")
-            else:
-                logging.debug(f"None of the following packages were found installed: {', '.join(package_names)}.")
-            exit(0)
-            if installed_package_names:
-                logging.info(f"Uninstalling {', '.join(installed_package_names)} packages.")
-                if args.verbosity < 3:
-                    _bar_format = "{desc:30}: {n_fmt}/{total_fmt} {bar} {elapsed}/{remaining}"
-                    with tqdm_progress(total=len(installed_package_names), desc="Uninstalling packages",
-                                       unit="package", unit_scale=False, dynamic_ncols=True,
-                                       bar_format=_bar_format, mininterval=0, miniters=0) as _progress_bar:
-                        for idx, _package_name in enumerate(installed_package_names):
-                            _progress_bar.set_description(f"Uninstalling {_package_name}")
-                            try:
-                                subprocess.run(
-                                    [sys.executable, "-m", "pip", "uninstall", "--quiet", "-y", _package_name],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                write_to_log(f"Uninstalling {_package_name}.")
-                            except subprocess.CalledProcessError as e_:
-                                    logging.error(
-                                        f"Failed to uninstall {_package_name}. Error code {e_.returncode}")
-                            finally:
-                                _progress_bar.update(1)
-                else:
-                    for _package_name in installed_package_names:
-                        _result = subprocess.run(
-                            [sys.executable, "-m", "pip", "uninstall", "-y", _package_name],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        )
-                        _output = _result.stdout.decode() + _result.stderr.decode()
-                        logging.debug(_output)
+            uninstall_packages(package_names, args.verbosity)
 
         # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
         if not (package_manager.contains('torch') or package_manager.contains('torchvision')) or \
@@ -1485,63 +1545,14 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         break
                     else:
                         print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+
             # Read the torch version from the flag file if it exists and the input _torch_version is 0
             if _torch_version == 0 and os.path.exists(torch_flag_file) and not _interactive:
                 with open(torch_flag_file, 'r') as _f:
                     _torch_version = int(_f.read().strip())
 
-            if _torch_version in (0, 1):
-                _TORCH_VERSION = TORCH_VERSION_1
-                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-            elif _torch_version == 2:
-                _TORCH_VERSION = TORCH_VERSION_2
-                _TORCHVISION_VERSION = TORCHVISION_VERSION_2
-                _TORCH_INDEX_URL = TORCH_INDEX_URL_2
-            else:
-                # This should not be hit, but it's better to have a stable fallback if invalid data makes it here
-                _TORCH_VERSION = TORCH_VERSION_1
-                _TORCHVISION_VERSION = TORCHVISION_VERSION_1
-                _TORCH_INDEX_URL = TORCH_INDEX_URL_1
-
-            identifier = ""
-            xformers_sys = ""
-
-            if os_info.family == "Windows":
-                xformers_sys = "win_amd64"
-                identifier = "f"
-            if platform.system() == "Linux":
-                xformers_sys = "linux_x86_64"
-                identifier = "linux"
-
-            xformers_url_1 = f"https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases" \
-                             f"/download/{identifier}/xformers-{XFORMERS_VERSION_1}." \
-                             f"dev0-cp310-cp310-{xformers_sys}.whl"
-
-            install_commands = [
-                [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
-                 "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                [sys.executable, "-m", "pip", "install", "--upgrade",
-                 f"{xformers_url_1}", "--quiet"]
-            ]
-
-            if _torch_version == 2:
-                install_commands = [
-                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                    [sys.executable, "-m", "pip", "install", f"torchvision=={_TORCHVISION_VERSION}",
-                     "--extra-index-url", f"{_TORCH_INDEX_URL}", "--quiet"],
-                    [sys.executable, "-m", "pip", "install", "--upgrade",
-                     f"xformers=={XFORMERS_VERSION_2}", "--quiet"],
-                ]
-
-                if os_info.family == "Windows":
-                    install_commands.extend([[sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}", "--quiet"]])
-                elif platform.system() == "Linux":
-                    install_commands.extend([[sys.executable, "-m", "pip",
-                                              "install", "triton==2.0.0.post1", "--quiet"]])
+            install_commands = configure_torch_dependencies(update, repair, _interactive,
+                                                            _torch_version, args.verbosity)
 
             if _torch_version in (0, 1):
                 logging.critical(
@@ -1602,9 +1613,11 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                             # Stop the spinner on the way out
                             stop_event.set()
                             spinner_process.join()
+                            sys.stdout.write('\n')  # Move the cursor to the next line
+                            sys.stdout.flush()
 
                             print(
-                                f"\nError occurred during the installation of {_package_name}. "
+                                f"Error occurred during the installation of {_package_name}. "
                                 f"Exit code: {e_.returncode}")
                             logging.debug(
                                 f"Error occurred during the installation of {_package_name}. "
@@ -1629,20 +1642,10 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     exit(130)
 
             else:
-                commands = [
-                    [sys.executable, "-m", "pip", "install", f"torch=={_TORCH_VERSION}",
-                     f"torchvision=={_TORCHVISION_VERSION}",
-                     "--extra-index-url", f"{_TORCH_INDEX_URL}"],
-                ]
+                install_commands = configure_torch_dependencies(update, repair, _interactive, _torch_version,
+                                                                args.verbosity)
 
-                if _torch_version == '2':
-                    commands.extend([
-                        [sys.executable, "-m", "pip", "install", f"{TRITON_URL_2}"],
-                        [sys.executable, "-m", "pip", "install", "--upgrade",
-                         f"xformers=={XFORMERS_VERSION_2}"],
-                    ])
-
-                for idx, _command in enumerate(commands):
+                for idx, _command in enumerate(install_commands):
                     _package_name = "unknown package"
                     try:
                         # Find the index of "install" in the command and assume the package name
@@ -1806,9 +1809,9 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                     )
-                    output = result.stdout.decode() + result.stderr.decode()
+                    _output = result.stdout.decode() + result.stderr.decode()
 
-                    for line in output.splitlines():
+                    for line in _output.splitlines():
                         print(f"DEBUG: {line}")
                         censored_line = censor_local_path(line)
                         write_to_log(f"DEBUG: {censored_line}")
@@ -1844,8 +1847,8 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                     try:
                                         safe_subprocess_run(command)
                                     except subprocess.CalledProcessError as _e:
-                                        output = _e.output
-                                        logging.debug(output)
+                                        _output = _e.output
+                                        logging.debug(_output)
                                         logging.error(f"An error occurred during pip operations: {str(_e)}")
                                         exit(1)
                                 progress_bar.update(1)
@@ -2026,7 +2029,7 @@ def main(_args=None):
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
         pre_pip_prepare_environment_files_and_folders(_args.dir, site_packages_dir)
-        if brew_install_tensorflow_deps(_args.verbosity):
+        if brew_install_tensorflow_deps():
             install_python_dependencies(_args.dir, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
             post_pip_prepare_environment_files_and_folders(site_packages_dir, _args.dir)
@@ -2225,6 +2228,9 @@ if __name__ == "__main__":
         if getattr(args, 'no-setup') and not getattr(args, 'setup_only'):
             launch_kohya_gui(args)
             exit(0)
+        elif getattr(args, 'no-setup') and getattr(args, 'setup_only'):
+            logging.error("No Setup and Setup Only are mutually exclusive options.")
+            exit(1)
         else:
             main(args)
     except KeyboardInterrupt:
