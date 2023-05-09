@@ -18,6 +18,7 @@ import time
 import zipfile
 from contextlib import redirect_stderr
 from datetime import datetime
+from fnmatch import fnmatch
 from getpass import getpass
 from pathlib import Path
 from typing import Dict, List
@@ -499,6 +500,32 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir):
             os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:{cuda_runtime_dir}"
         else:
             logging.warning(f"{cuda_runtime_dir} not found; not linking library.")
+
+        # Some container base images will be sourced from Conda. We should handle those.
+        base_conda_folder = "/opt/conda"
+        conda_site_packages_dir = os.path.join(base_conda_folder, f"lib/python{sys.version[:3]}/site-packages")
+        if os.path.isdir(base_conda_folder):
+            if os.path.isdir(conda_site_packages_dir):
+                source_dir = os.path.join(conda_site_packages_dir, "bitsandbytes")
+                pattern = '*cuda*.so'
+                exclude = 'nocublaslt'
+
+                # Find matching files
+                matching_files = [f for f in os.listdir(source_dir) if fnmatch(f, pattern) and exclude not in f]
+
+                # Sort files (in case there are multiple matches)
+                matching_files.sort()
+
+                if matching_files:
+                    src_file = os.path.join(source_dir, matching_files[-1])
+                    dest_file = os.path.join(source_dir, 'bitsandbytes', 'libbitsandbytes_cpu.so')
+
+                    # Copy the file
+                    shutil.copy(src_file, dest_file)
+                else:
+                    logging.debug("No matching libbitsandbytes_cpu.so found.")
+
+            os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:/opt/conda/lib"
 
 
 # noinspection SpellCheckingInspection
@@ -1415,6 +1442,7 @@ def configure_torch_version(_log_dir, torch_version_):
 
     return int(torch_version_)
 
+
 # noinspection SpellCheckingInspection,GrazieInspection
 def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                                 interactive=False, _log_dir=None):
@@ -1538,7 +1566,6 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
 
         if _repair or _interactive or (package_manager.get_version("torch") is not None
                                        and int(package_manager.get_version("torch")[0]) != _torch_version):
-
             package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
             logging.debug(f"Looking for {', '.join(package_names)} packages.")
 
