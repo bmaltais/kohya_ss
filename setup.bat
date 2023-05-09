@@ -44,13 +44,15 @@ if %choice%==1 (
 ) else (
     pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
     pip install --use-pep517 --upgrade -r requirements.txt
-    pip install --upgrade xformers==0.0.17
+    pip install --upgrade xformers==0.0.19
     rem pip install -U -I --no-deps https://files.pythonhosted.org/packages/d6/f7/02662286419a2652c899e2b3d1913c47723fc164b4ac06a85f769c291013/xformers-0.0.17rc482-cp310-cp310-win_amd64.whl
     pip install https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl
 )
 
-copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+python.exe .\tools\update_bitsandbytes.py
+
+@REM copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+@REM copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+@REM copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
 accelerate config
