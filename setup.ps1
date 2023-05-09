@@ -262,7 +262,7 @@ function Get-Parameters {
         'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Headless'       = $false
-        'Interactive'    = $false
+        'Interactive'    = $true
         'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
         'Repair'         = $false
