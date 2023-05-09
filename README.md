@@ -255,17 +255,17 @@ launcher.py --no-setup
 -Public [<SwitchParameter>]
     Expose public URL in runpod mode. Won't have an effect in other modes.
     
-.PARAMETER Repair
+-Repair [<SwitchParameter>]
     This runs the installation repair operations. These could take a few minutes to run.
-
--Runpod [<SwitchParameter>]
-    Forces a runpod installation. Useful if detection fails for any reason.
 
 -SetupOnly [<SwitchParameter>]
     Do not launch GUI. Only conduct setup operations.
 
 -SkipSpaceCheck [<SwitchParameter>]
     Skip the 10Gb minimum storage space check.
+    
+- TorchVersion <Int32>
+    Configure the major version of Torch.
 
 -Verbosity <Int32>
     Increase verbosity levels up to 3.
@@ -305,10 +305,10 @@ launcher.py --no-setup
 --interactive      : Run in interactive mode.
 --no-setup         : Skip the setup process.
 --public           : Run in public mode.
- --repair          : This runs the installation repair operations. These could take a few minutes to run.
---runpod           : Run in Runpod mode.
+--repair           : This runs the installation repair operations. These could take a few minutes to run.
 --setup-only       : Only run the setup process, do not launch the application.
 --skip-space-check : Skip the disk space check.
+--torch-version    : Configure the major version of Torch.
 --update           : Run the update process.
 --verbose          : Increase the verbosity level.
 --listen           : Specify the GUI listen address. Default is '127.0.0.1'.
@@ -334,9 +334,9 @@ launcher.py --no-setup
 -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
 -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
 -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
---runpod                      Forces a runpod installation. Useful if detection fails for any reason.
 --setup-only                  Do not launch GUI. Only conduct setup operations.
 -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+-t, --torch-version           Configure the major version of Torch.
 -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
 -v                            Increase verbosity levels up to 3. (e.g., -vvv)
 --listen                      The IP address to listen on (default: 127.0.0.1).
@@ -387,9 +387,8 @@ This allows you to have user-level definitions, project-level definitions, and r
 <br>
 
 <details>
-<summary>Optional: CUDNN 8.6</summary>
+<summary><h2 id="optional-cuddn-86">Optional: CUDNN 8.6</h2></summary>
 
-### Optional: CUDNN 8.6
 
 This step is optional but can improve the learning speed for NVIDIA 30X0/40X0 owners. It allows for larger training batch size and faster training speed.
 
@@ -561,6 +560,12 @@ You can run launcher.py whenever you want to launch the application with the spe
 * 2023/04/10 (v21.5.11)
   - Make docker headless @Trojaner
   - Add functions to catch `null` values in json config files
+
+</details>
+
+<details>
+<summary>21.5</summary>
+
 * 2023/04/09 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.
