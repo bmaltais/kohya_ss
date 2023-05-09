@@ -819,6 +819,26 @@ def gradio_training(
         optimizer_args,
     )
 
+def get_int_or_default(kwargs, key, default_value=0):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, int):
+        return value
+    else:
+        return default_value
+    
+def get_float_or_default(kwargs, key, default_value=0.0):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, float):
+        return value
+    else:
+        return default_value
+
+def get_str_or_default(kwargs, key, default_value=""):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, str):
+        return value
+    else:
+        return default_value
 
 def run_cmd_training(**kwargs):
     run_cmd = ''
@@ -1108,11 +1128,11 @@ def run_cmd_advanced_training(**kwargs):
     if max_data_loader_n_workers:
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
     
-    max_token_length = int(kwargs.get("max_token_length", 75))
+    max_token_length = get_int_or_default(kwargs, "max_token_length", 75)
     if max_token_length > 75:
         run_cmd += f' --max_token_length={max_token_length}'
         
-    clip_skip = int(kwargs.get("clip_skip", 1))
+    clip_skip = get_int_or_default(kwargs, "clip_skip", 1)
     if clip_skip > 1:
         run_cmd += f' --clip_skip={clip_skip}'
         
@@ -1120,38 +1140,38 @@ def run_cmd_advanced_training(**kwargs):
     if resume:
         run_cmd += f' --resume="{resume}"'
         
-    keep_tokens = int(kwargs.get("keep_tokens", 0))
+    keep_tokens = get_int_or_default(kwargs, "keep_tokens")
     if keep_tokens > 0:
         run_cmd += f' --keep_tokens="{keep_tokens}"'
         
-    caption_dropout_every_n_epochs = int(kwargs.get("caption_dropout_every_n_epochs", 0))
+    caption_dropout_every_n_epochs = get_int_or_default(kwargs, "caption_dropout_every_n_epochs")
     if caption_dropout_every_n_epochs > 0:
         run_cmd += f' --caption_dropout_every_n_epochs="{caption_dropout_every_n_epochs}"'
     
-    caption_dropout_rate = float(kwargs.get("caption_dropout_rate", 0))
+    caption_dropout_rate = get_int_or_default(kwargs, "caption_dropout_rate")
     if caption_dropout_rate > 0:
         run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
         
-    vae_batch_size = int(kwargs.get("vae_batch_size", 0))
+    vae_batch_size = get_int_or_default(kwargs, "vae_batch_size")
     if vae_batch_size > 0:
         run_cmd += f' --vae_batch_size="{vae_batch_size}"'
         
-    bucket_reso_steps = int(kwargs.get("bucket_reso_steps", 64))
+    bucket_reso_steps = get_int_or_default(kwargs, "bucket_reso_steps", 64)
     run_cmd += f' --bucket_reso_steps={bucket_reso_steps}'
         
-    save_every_n_steps = int(kwargs.get("save_every_n_steps", 0))
+    save_every_n_steps = get_int_or_default(kwargs, "save_every_n_steps")
     if save_every_n_steps > 0:
         run_cmd += f' --save_every_n_steps="{save_every_n_steps}"'
         
-    save_last_n_steps = int(kwargs.get("save_last_n_steps", 0))
+    save_last_n_steps = get_int_or_default(kwargs, "save_last_n_steps")
     if save_last_n_steps > 0:
         run_cmd += f' --save_last_n_steps="{save_last_n_steps}"'
         
-    save_last_n_steps_state = int(kwargs.get("save_last_n_steps_state", 0))
+    save_last_n_steps_state = get_int_or_default(kwargs, "save_last_n_steps_state")
     if save_last_n_steps_state > 0:
         run_cmd += f' --save_last_n_steps_state="{save_last_n_steps_state}"'
         
-    min_snr_gamma = int(kwargs.get("min_snr_gamma", 0))
+    min_snr_gamma = get_int_or_default(kwargs, "min_snr_gamma")
     if min_snr_gamma >= 1:
         run_cmd += f' --min_snr_gamma={min_snr_gamma}'
     
@@ -1201,19 +1221,19 @@ def run_cmd_advanced_training(**kwargs):
         
     noise_offset_type = kwargs.get('noise_offset_type', 'Original')
     if noise_offset_type == 'Original':
-        noise_offset = float(kwargs.get("noise_offset", 0))
+        noise_offset = get_float_or_default(kwargs, "noise_offset")
         if noise_offset > 0:
             run_cmd += f' --noise_offset={noise_offset}'
         
-        adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
-        if adaptive_noise_scale != 0 and noise_offset > 0:
+        adaptive_noise_scale = get_float_or_default(kwargs, "adaptive_noise_scale")
+        if adaptive_noise_scale != 0.0 and noise_offset > 0:
             run_cmd += f' --adaptive_noise_scale={adaptive_noise_scale}'
     else:
-        multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
+        multires_noise_iterations = get_int_or_default(kwargs, "multires_noise_iterations")
         if multires_noise_iterations > 0:
             run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
         
-        multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
+        multires_noise_discount = get_float_or_default(kwargs, "multires_noise_discount")
         if multires_noise_discount > 0:
             run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
     

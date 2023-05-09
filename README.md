@@ -341,7 +341,10 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/04/07 (v21.5.10)
+* 2023/04/10 (v21.5.11)
+  - Make docker headless @Trojaner
+  - Add functions to catch `null` values in json config files
+* 2023/04/09 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.
   - DAdaptAdaGrad, DAdaptAdan, and DAdaptSGD are now supported by DAdaptation. [PR#455](https://github.com/kohya-ss/sd-scripts/pull/455) Thanks to sdbds!
