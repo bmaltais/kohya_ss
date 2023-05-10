@@ -10,14 +10,14 @@ from .common_gui import (
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'  # 📄
+document_symbol = '\U0001F4C4'   # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def extract_dylora(
-        model,
-        save_to,
-        unit,
+    model,
+    save_to,
+    unit,
 ):
     # Check for caption_text_input
     if model == '':
@@ -30,7 +30,7 @@ def extract_dylora(
         return
 
     run_cmd = (
-        f'{PYTHON} "{os.path.join("networks", "extract_lora_from_dylora.py")}"'
+        f'{PYTHON} "{os.path.join("networks","extract_lora_from_dylora.py")}"'
     )
     run_cmd += f' --save_to "{save_to}"'
     run_cmd += f' --model "{model}"'

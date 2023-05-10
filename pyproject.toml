@@ -7,8 +7,8 @@ name = "kohya_ss"
 version = "1.0.3"
 description = "A GUI wrapper for kohya-ss SD scipts enabling LoRA training with an easy-to-use web application."
 authors = [
-    {name = "bmaltais", email = ""},
-    {name = "Jeremy Tayco", email = ""},
+    {name = "bmaltais", email = "test@ducourier.com"},
+    {name = "Jeremy Tayco", email = "test@ducourier.com"},
 ]
 readme = "README.md"
 classifiers = [

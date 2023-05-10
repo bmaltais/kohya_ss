@@ -38,6 +38,9 @@
 .PARAMETER LogDir
     Specifies the directory where log files will be stored.
 
+.PARAMETER NoGitUpdate
+    Do not update kohya_ss repo. No git pull or clone operations.
+
 .PARAMETER Repair
     This runs the installation repair operations. These could take a few minutes to run.
 

@@ -304,21 +304,21 @@ def parse_args(_config_data):
 
     # usage is generated dynamically here
     parser = argparse.ArgumentParser(
-        description="Launcher script for kohya_ss. This script helps you configure, install, maintain, "
-                    "and launch the kohya_ss application.",
+        description="Launcher script for Kohya_SS. This script helps you configure, install, and launch the Kohya_SS "
+                    "application.",
         usage=generate_usage(default_args),
         epilog="""Examples:
     Switch to the dev branch:
-    launcher.py --branch dev
+    python launcher.py --branch dev
 
-    Install kohya_ss to a new directory with a custom fork
-    launcher.py --dir /path/to/kohya_ss --git-repo https://github.com/user/customRepo --branch myFeatureBranch
+    Point to a custom installation directory
+    python launcher.py --dir /path/to/kohya_ss
 
-    Update your installation (via git pull)
-    launcher.py --update
+    Update to the latest stable mainline installation
+    python launcher.py --dir /path/to/kohya_ss --update
 
     Bypass all environment checks except Python dependency validation and launch the GUI:
-    launcher.py --no-setup""",
+    python launcher.py --exclude-setup""",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 

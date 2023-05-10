@@ -1,4 +1,5 @@
 import gradio as gr
+from easygui import msgbox
 import subprocess
 import os
 from .common_gui import (
@@ -9,22 +10,22 @@ from .common_gui import (
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'  # 📄
+document_symbol = '\U0001F4C4'   # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
 def merge_lycoris(
-        base_model,
-        lycoris_model,
-        weight,
-        output_name,
-        dtype,
-        device,
-        is_v2,
+    base_model,
+    lycoris_model,
+    weight,
+    output_name,
+    dtype,
+    device,
+    is_v2,
 ):
     print('Merge model...')
 
-    run_cmd = f'{PYTHON} "{os.path.join("tools", "merge_lycoris.py")}"'
+    run_cmd = f'{PYTHON} "{os.path.join("tools","merge_lycoris.py")}"'
     run_cmd += f' "{base_model}"'
     run_cmd += f' "{lycoris_model}"'
     run_cmd += f' "{output_name}"'
