@@ -902,21 +902,21 @@ function Test-Python310Installed {
     catch {
         switch ($_.Exception.GetType().Name) {
             'Win32Exception' {
-                Write-ErrorLog "Python executable found at $pythonPath, but it could not be run. It may be corrupted or there may be a permission issue."
+                Write-ErrorLog "Python executable found at ${script:pythonPath} , but it could not be run. It may be corrupted or there may be a permission issue."
                 return $false
             }
             'RuntimeException' {
                 if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                    Write-DebugLog "Python executable not found at $pythonPath."
+                    Write-DebugLog "Python executable not found at ${script:pythonPath} ."
                     return $false
                 }
                 else {
-                    Write-ErrorLog "An unknown error occurred when trying to run Python at ${pythonPath}: $($_.Exception.Message)"
+                    Write-ErrorLog "An unknown error occurred when trying to run Python at ${script:pythonPath} : $($_.Exception.Message)"
                     return $false
                 }
             }
             default {
-                Write-DebugLog "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
+                Write-DebugLog "An unknown error occurred when trying to check Python version at ${script:pythonPath} : $($_.Exception.Message)"
                 return $false
             }
         }
