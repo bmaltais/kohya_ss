@@ -5,9 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kohya_ss"
 version = "1.0.3"
-description = "A description for your library"
+description = "A GUI wrapper for kohya-ss SD scipts enabling LoRA training with an easy-to-use web application."
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "bmaltais", email = ""},
+    {name = "Jeremy Tayco", email = ""},
 ]
 readme = "README.md"
 classifiers = [
@@ -22,4 +23,3 @@ license = "Apache-2.0"
 
 [tool.setuptools.packages.find]
 where = ["library"] # We have to explicitly tell build tools where to look
-

@@ -7,22 +7,15 @@ If you run on Linux and would like to use the GUI, there is now a port of it as 
 ### Table of Contents
 
 - [Tutorials](#tutorials)
-* [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
-  * [Chinese version](./docs/train_README-zh.md)
-* [Dataset config](./docs/config_README-ja.md) 
-* [DreamBooth training guide](./docs/train_db_README-ja.md)
-* [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
-* [Training LoRA](./docs/train_network_README-ja.md)
-* [training Textual Inversion](./docs/train_ti_README-ja.md)
-* [Image generation](./docs/gen_img_README-ja.md)
-* note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
-- [Required Dependencies](#required-dependencies)
-  - [Linux/macOS](#linux-and-macos-dependencies)
-- [Installation](#installation)
-    - [Docker](#docker)
-    - [Linux/macOS](#linux-and-macos)
-      - [Default Install Locations](#install-location)
-    - [Windows](#windows)
+- [Training guide: common data preparation, options etc.](./docs/train_README-ja.md)
+  - [Chinese version](./docs/train_README-zh.md)
+- [Dataset config](./docs/config_README-ja.md) 
+- [DreamBooth training guide](./docs/train_db_README-ja.md)
+- [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
+- [Training LoRA](./docs/train_network_README-ja.md)
+- [training Textual Inversion](./docs/train_ti_README-ja.md)
+- [Image generation](./docs/gen_img_README-ja.md)
+- [Model conversion (note.com)](https://note.com/kohya_ss/n/n374f316fe4ad)
 - [Required Dependencies](#required-prerequisites)
 - [Installation and Upgrading](#installation-and-upgrading)
   - [macOS, Windows, Linux, BSD](#macos-windows-linux-bsd)
@@ -118,27 +111,38 @@ There are many configuration options which you can find just below this section.
 Default Settings: 
 ```bash
 # Windows
-.\setup.ps1
+setup.ps1
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-./setup.sh
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh
 ```
 
 Custom Settings:
 ```bash
 # Windows
-.\setup.ps1 -Listen 192.168.1.100 -Username myusername -Password mypassword -ServerPort 8000 -Interactive $true -RunPod $true `
+setup.ps1 -Listen 192.168.1.100 -Username myusername -Password mypassword -ServerPort 8000 -Interactive $true -RunPod $true `
 -Branch mybranch -Dir "C:\path\to\kohya_ss" -GitRepo "https://github.com/myfork/kohya_ss.git"
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r \
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
 
-<details>
-<summary>Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</summary>
+Read Help Documentation:
+```bash
+# Windows
+Get-Help ./setup.ps1 -Full
 
-#### Bypass Some
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh [-h | --help]
+
+# Universal
+launcher.py [-h | --help]
+```
+
+
+<details>
+<summary><h4 id="bypass-some">Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</h4></summary>
 
 Bypass Python, git, and tk checks by running launcher.py:
 ```bash
@@ -146,8 +150,8 @@ Bypass Python, git, and tk checks by running launcher.py:
 python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod `
 --branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod \
+# Linux / macOS / Cygwin, Msys, etc
+launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
 
@@ -156,17 +160,15 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <br>
 
 <details>
-<summary>Bypass all setup steps, installation checks, and Python validations.</summary>
+<summary><h4 id="bypass-most">Bypass all setup steps, installation checks, and Python validations.</h4></summary>
 
-####  Bypass Most
-
-The -x or --exclude-setup options bypass all setup and checks:
+The -n or --no-setup options bypass all setup and checks:
 ```bash
 # Windows
-python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --exclude-setup
+# Linux / macOS / Cygwin, Msys, etc
+launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 ```
 
 </details>
@@ -174,17 +176,15 @@ python3 launcher.py --listen 192.168.1.100 --username myusername --password mypa
 <br>
 
 <details>
-<summary>Bypass everything and run Kohya directly</summary>
-
-#### Bypass all
+<summary><h4 id="bypass-all">Bypass everything and run Kohya directly.</h4></summary>
 
 Kohya GUI will also respect the configuration file like all other scripts:
 ```bash
 # Windows
 python .\kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-python3 kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
+# Linux / macOS / Cygwin, Msys, etc
+kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
 ```
 
 </details>
@@ -192,9 +192,7 @@ python3 kohya_gui.py --listen 192.168.1.100 --username myusername --password myp
 <br>
 
 <details>
-<summary>Permission Errors when running setup.ps1</summary>
-
-#### Permission Errors
+<summary><h4 id="permission-errors">Permission Errors when running setup.ps1</h4></summary>
 
 Try the following command in PowerShell:
 ```pwsh
@@ -263,17 +261,17 @@ launcher.py --no-setup
 -Public [<SwitchParameter>]
     Expose public URL in runpod mode. Won't have an effect in other modes.
     
-.PARAMETER Repair
+-Repair [<SwitchParameter>]
     This runs the installation repair operations. These could take a few minutes to run.
-
--Runpod [<SwitchParameter>]
-    Forces a runpod installation. Useful if detection fails for any reason.
 
 -SetupOnly [<SwitchParameter>]
     Do not launch GUI. Only conduct setup operations.
 
 -SkipSpaceCheck [<SwitchParameter>]
     Skip the 10Gb minimum storage space check.
+    
+- TorchVersion <Int32>
+    Configure the major version of Torch.
 
 -Verbosity <Int32>
     Increase verbosity levels up to 3.
@@ -313,10 +311,10 @@ launcher.py --no-setup
 --interactive      : Run in interactive mode.
 --no-setup         : Skip the setup process.
 --public           : Run in public mode.
- --repair          : This runs the installation repair operations. These could take a few minutes to run.
---runpod           : Run in Runpod mode.
+--repair           : This runs the installation repair operations. These could take a few minutes to run.
 --setup-only       : Only run the setup process, do not launch the application.
 --skip-space-check : Skip the disk space check.
+--torch-version    : Configure the major version of Torch.
 --update           : Run the update process.
 --verbose          : Increase the verbosity level.
 --listen           : Specify the GUI listen address. Default is '127.0.0.1'.
@@ -342,9 +340,9 @@ launcher.py --no-setup
 -n, --no-setup                Skip all setup steps and only validate python requirements then launch GUI.
 -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
 -r, --repair                  This runs the installation repair operations. These could take a few minutes to run.
---runpod                      Forces a runpod installation. Useful if detection fails for any reason.
 --setup-only                  Do not launch GUI. Only conduct setup operations.
 -s, --skip-space-check        Skip the 10Gb minimum storage space check.
+-t, --torch-version           Configure the major version of Torch.
 -u, --update                  Update kohya_ss with specified branch, repo, or latest stable if git's unavailable.
 -v                            Increase verbosity levels up to 3. (e.g., -vvv)
 --listen                      The IP address to listen on (default: 127.0.0.1).
@@ -395,9 +393,8 @@ This allows you to have user-level definitions, project-level definitions, and r
 <br>
 
 <details>
-<summary>Optional: CUDNN 8.6</summary>
+<summary><h2 id="optional-cuddn-86">Optional: CUDNN 8.6</h2></summary>
 
-### Optional: CUDNN 8.6
 
 This step is optional but can improve the learning speed for NVIDIA 30X0/40X0 owners. It allows for larger training batch size and faster training speed.
 
@@ -559,9 +556,6 @@ You can run launcher.py whenever you want to launch the application with the spe
 
 </details>
 
-
-## 
-
 <details>
 <summary><h3 id="changelog">Changelog</h3></summary>
 
@@ -569,6 +563,12 @@ You can run launcher.py whenever you want to launch the application with the spe
 * 2023/04/10 (v21.5.11)
   - Make docker headless @Trojaner
   - Add functions to catch `null` values in json config files
+
+</details>
+
+<details>
+<summary>21.5</summary>
+
 * 2023/04/09 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.
