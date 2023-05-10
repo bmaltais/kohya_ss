@@ -556,9 +556,6 @@ You can run launcher.py whenever you want to launch the application with the spe
 
 </details>
 
-
-## 
-
 <details>
 <summary><h3 id="changelog">Changelog</h3></summary>
 
