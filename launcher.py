@@ -462,7 +462,47 @@ def create_symlinks(symlink, target_file):
 
 
 # noinspection SpellCheckingInspection
-def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir):
+def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _log_dir, update, repair):
+    # Name of the flag file
+    flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
+
+    # We check the same conditions as pip operations, as we should not run this if pip operations don't.
+    if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
+        if os_info.family == "Windows":
+            bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
+            bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
+            bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
+
+            if os.path.exists(bitsandbytes_source):
+                # Create destination directories if they don't exist
+                try:
+                    os.makedirs(bitsandbytes_dest, exist_ok=True)
+                except OSError as _e:
+                    if _e.errno != errno.EEXIST:
+                        raise
+                try:
+                    os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
+                except OSError as _e:
+                    if _e.errno != errno.EEXIST:
+                        raise
+
+                # Copy .dll files
+                for file in os.listdir(bitsandbytes_source):
+                    if file.endswith(".dll"):
+                        shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
+                        logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
+                                      f"to {os.path.join(bitsandbytes_dest, file)}")
+
+                # Copy cextension.py
+                shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
+                            os.path.join(bitsandbytes_dest, "cextension.py"))
+                logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
+
+                # Copy main.py
+                shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
+                logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
+                              f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
+
     if in_container:
         # Symlink paths for libnvinfer.so.7 and libnvinfer_plugin.so.7
         libnvinfer_symlink = "/usr/lib/x86_64-linux-gnu/libnvinfer.so.7"
@@ -1254,48 +1294,20 @@ def check_permissions(_dir):
 
 
 # noinspection SpellCheckingInspection
-def pre_pip_prepare_environment_files_and_folders(_dir, _site_packages_dir):
-    if os_info.family == "Windows":
-        bitsandbytes_site_packages_dir = os.path.join(_site_packages_dir, "bitsandbytes")
+def pre_pip_prepare_environment_files_and_folders(_dir, _site_packages_dir, _log_dir, update, repair):
+    # Name of the flag file
+    flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
 
-        # Remove directories if they exist
-        if os.path.exists(bitsandbytes_site_packages_dir):
-            logging.debug(f"Removing folder {bitsandbytes_site_packages_dir}")
-            shutil.rmtree(bitsandbytes_site_packages_dir)
+    # We check the same conditions as pip operations, as we should not run this if pip operations don't.
+    if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
+        # Clean old bitsandbytes content to avoid issues from upgrading or downgrading versions
+        if os_info.family == "Windows":
+            bitsandbytes_site_packages_dir = os.path.join(_site_packages_dir, "bitsandbytes")
 
-        bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
-        bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
-        bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
-
-        if os.path.exists(bitsandbytes_source):
-            # Create destination directories if they don't exist
-            try:
-                os.makedirs(bitsandbytes_dest, exist_ok=True)
-            except OSError as _e:
-                if _e.errno != errno.EEXIST:
-                    raise
-            try:
-                os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
-            except OSError as _e:
-                if _e.errno != errno.EEXIST:
-                    raise
-
-            # Copy .dll files
-            for file in os.listdir(bitsandbytes_source):
-                if file.endswith(".dll"):
-                    shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
-                    logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
-                                  f"to {os.path.join(bitsandbytes_dest, file)}")
-
-            # Copy cextension.py
-            shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
-                        os.path.join(bitsandbytes_dest, "cextension.py"))
-            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
-
-            # Copy main.py
-            shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
-            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
-                          f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
+            # Remove directories if they exist
+            if os.path.exists(bitsandbytes_site_packages_dir):
+                logging.debug(f"Removing folder {bitsandbytes_site_packages_dir}")
+                shutil.rmtree(bitsandbytes_site_packages_dir)
 
 
 # noinspection DuplicatedCode
@@ -2072,11 +2084,13 @@ def main(_args=None):
     check_and_create_install_folder(parent_dir, _args.dir)
     check_storage_space(getattr(_args, "skip-space-check"), _args.dir, parent_dir)
     if update_kohya_ss(_args.dir, getattr(_args, "git-repo"), _args.branch, _args.update, _args.repair):
-        pre_pip_prepare_environment_files_and_folders(_args.dir, site_packages_dir)
+        pre_pip_prepare_environment_files_and_folders(_args.dir, site_packages_dir,
+                                                      getattr(_args, "log-dir"), _args.update, _args.repair)
         if brew_install_tensorflow_deps():
             install_python_dependencies(_args.dir, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
-            post_pip_prepare_environment_files_and_folders(site_packages_dir, _args.dir)
+            post_pip_prepare_environment_files_and_folders(site_packages_dir, _args.dir,
+                                                           getattr(_args, "log-dir"), _args.update, _args.repair)
             configure_accelerate(_args.interactive)
             if not getattr(_args, 'setup_only'):
                 launch_kohya_gui(_args)
