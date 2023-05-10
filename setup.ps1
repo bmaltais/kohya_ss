@@ -850,7 +850,6 @@ function Get-OsInfo {
     return [PSCustomObject]$os
 }
 
-
 <#
 .SYNOPSIS
     Checks if Python 3.10 is installed and meets the required conditions.
@@ -1133,9 +1132,6 @@ function Get-PythonExePath {
 
     return $foundPythonPath
 }
-
-
-
 
 <#
 .SYNOPSIS
