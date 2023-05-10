@@ -111,22 +111,35 @@ There are many configuration options which you can find just below this section.
 Default Settings: 
 ```bash
 # Windows
-.\setup.ps1
+setup.ps1
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-./setup.sh
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh
 ```
 
 Custom Settings:
 ```bash
 # Windows
-.\setup.ps1 -Listen 192.168.1.100 -Username myusername -Password mypassword -ServerPort 8000 -Interactive $true -RunPod $true `
+setup.ps1 -Listen 192.168.1.100 -Username myusername -Password mypassword -ServerPort 8000 -Interactive $true -RunPod $true `
 -Branch mybranch -Dir "C:\path\to\kohya_ss" -GitRepo "https://github.com/myfork/kohya_ss.git"
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-./setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r \
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh -l 192.168.1.100 -u myusername -p mypassword -s 8000 -i -r \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
+
+Read Help Documentation:
+```bash
+# Windows
+Get-Help ./setup.ps1 -Full
+
+# Linux / macOS / Cygwin, Msys, etc
+setup.sh [-h | --help]
+
+# Universal
+launcher.py [-h | --help]
+```
+
 
 <details>
 <summary><h4 id="bypass-some">Bypass Python, git, and tk checks. Keep Python venv and dependency validations.</h4></summary>
@@ -137,8 +150,8 @@ Bypass Python, git, and tk checks by running launcher.py:
 python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod `
 --branch mybranch --dir "C:\path\to\kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-python3 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod \
+# Linux / macOS / Cygwin, Msys, etc
+launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --interactive --runpod \
 --branch mybranch --dir "/path/to/kohya_ss" --git_repo "https://github.com/myfork/kohya_ss.git"
 ```
 
@@ -154,7 +167,7 @@ The -n or --no-setup options bypass all setup and checks:
 # Windows
 python .\launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 
-# Linux / Non-Windows / Cygwin, Msys, etc
+# Linux / macOS / Cygwin, Msys, etc
 launcher.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000 --no-setup
 ```
 
@@ -170,8 +183,8 @@ Kohya GUI will also respect the configuration file like all other scripts:
 # Windows
 python .\kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
 
-# Linux / Non-Windows / Cygwin, Msys, etc
-python3 kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
+# Linux / macOS / Cygwin, Msys, etc
+kohya_gui.py --listen 192.168.1.100 --username myusername --password mypassword --server_port 8000
 ```
 
 </details>
