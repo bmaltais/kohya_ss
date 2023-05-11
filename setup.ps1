@@ -853,80 +853,94 @@ function Get-OsInfo {
     return [PSCustomObject]$os
 }
 
-
 <#
 .SYNOPSIS
-   Checks if Python 3.10 is installed on the system.
+    Checks if Python 3.10 is installed and meets the required conditions.
 
 .DESCRIPTION
-   Verifies if Python 3.10 is installed by checking its version.
-   Returns a boolean value based on the presence of Python 3.10.
+    Verifies that the installed Python version is 3.10 and optionally checks
+    for the presence of required packages. Returns $true if the conditions are
+    met, otherwise returns $false.
 
 .EXAMPLE
-   $isPython310Installed = Test-Python310Installed
+    if (Test-Python310Installed) {
+        Write-Host "Python 3.10 is installed and meets the requirements."
+    }
+    else {
+        Write-Host "Python 3.10 is not installed or does not meet the requirements."
+    }
 
 .OUTPUTS
-   System.Boolean
-   True if Python 3.10 is installed, otherwise False.
+    [System.Boolean]
 #>
 function Test-Python310Installed {
     try {
-        if ($null -eq $script:pythonPath) {
+        if ($null -eq $pythonPath) {
             Write-DebugLog "Python executable not found."
             return $false
         }
 
-        Write-DebugLog "We are testing this python path: {$script:pythonPath}"
-        $script:pythonVersion = & $script:pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
-        $script:pythonVersion = $script:pythonVersion -replace '^Python\s', ''
+        Write-DebugLog "We are testing this python path: {$pythonPath}"
+        $pythonVersion = & $script:pythonPath--version 2>&1 | Out-String -Stream -ErrorAction Stop
+        $pythonVersion = $pythonVersion -replace '^Python\s', ''
 
-        if ($script:pythonVersion.StartsWith('3.10')) {
+        if ($pythonVersion.StartsWith('3.10')) {
+            # We can also check for required packages at this point if needed.
+            # $requiredPackages = @("numpy", "pandas")
+            # foreach ($package in $requiredPackages) 
+            #     $installed = & $script:pythonPath-m pip show $package 2>&1
+            #     if ($null -eq $installed) {
+            #         Write-Error "Required package '$package' not found."
+            #         return $false
+            #     }
+            # }
+
             return $true
         }
         else {
-            Write-Error "Python version at $script:pythonPath is not 3.10, it's $script:pythonVersion."
+            Write-ErrorLog "Python version at ${script:pythonPath} is not 3.10, it's $pythonVersion."
             return $false
         }
     }
     catch {
         switch ($_.Exception.GetType().Name) {
             'Win32Exception' {
-                Write-Error "Python executable found at $script:pythonPath , but it could not be run. It may be corrupted or there may be a permission issue."
+                Write-ErrorLog "Python executable found at ${script:pythonPath} , but it could not be run. It may be corrupted or there may be a permission issue."
                 return $false
             }
             'RuntimeException' {
                 if ($_.Exception.Message -like '*The term*is not recognized as the name of a cmdlet*') {
-                    Write-DebugLog "Python executable not found at $script:pythonPath ."
+                    Write-DebugLog "Python executable not found at ${script:pythonPath} ."
                     return $false
                 }
                 else {
-                    Write-Error "An unknown error occurred when trying to run Python at ${pythonPath}: $($_.Exception.Message)"
+                    Write-ErrorLog "An unknown error occurred when trying to run Python at ${script:pythonPath} : $($_.Exception.Message)"
                     return $false
                 }
             }
             default {
-                Write-DebugLog "An unknown error occurred when trying to check Python version at ${pythonPath}: $($_.Exception.Message)"
+                Write-DebugLog "An unknown error occurred when trying to check Python version at ${script:pythonPath} : $($_.Exception.Message)"
                 return $false
             }
         }
     }
 }
 
-
 <#
 .SYNOPSIS
-   Retrieves the path to the Python 3.10 executable.
+    Get-PythonExePath retrieves the path to the Python 3.10 executable on the system.
 
 .DESCRIPTION
-   Searches for Python 3.10 executable in the system and returns its path.
-   It handles different platforms and common edge cases such as Homebrew on macOS and FreeBSD.
+    Get-PythonExePath searches for a Python 3.10 executable in various locations on the system,
+    such as PATH, Chocolatey, scoop, winget, and the Windows registry.
 
 .EXAMPLE
-   $script:pythonPath = Get-PythonExePath
+    $script:pythonPath= Get-PythonExePath
+    Write-Host "Python 3.10 executable path: $pythonPath"
 
 .OUTPUTS
-   System.String
-   The path to the Python 3.10 executable or $null if not found.
+    System.String
+        Returns the full path to the Python 3.10 executable if found, or $null if not found.
 #>
 function Get-PythonExePath {
     $pythonCandidates = @("python3.10", "python3", "python")
@@ -954,26 +968,173 @@ function Get-PythonExePath {
     }
 
     if ($null -eq $foundPythonPath) {
-        # macOS with Homebrew
-        if ($os.family -eq "Darwin") {
-            $brewPythonPath = "/usr/local/opt/python@3.10/bin/python3.10"
-            if (Test-Path $brewPythonPath) {
-                $foundPythonPath = $brewPythonPath
+        # Search PATH environment variable
+        $pathDirs = $env:Path -split ';'
+        foreach ($dir in $pathDirs) {
+            foreach ($candidate in $pythonCandidates) {
+                $pathPython = Join-Path $dir $candidate
+                if (Test-Path $pathPython) {
+                    $pathPythonVersion = & $pathPython --version 2>&1
+                    if ($pathPythonVersion -match "^Python 3\.10") {
+                        $foundPythonPath = $pathPython
+                        break
+                    }
+                }
+            }
+            if ($null -ne $foundPythonPath) {
+                break
             }
         }
+    }
 
-        # FreeBSD
-        if ($os.family -eq "FreeBSD") {
-            $freebsdPythonPath = "/usr/local/bin/python3.10"
-            if (Test-Path $freebsdPythonPath) {
-                $foundPythonPath = $freebsdPythonPath
+    # Check platform-specific paths if Python is still not found
+    if ($null -eq $foundPythonPath) {
+        switch ($os.family) {
+            "Windows" {
+                # First try a simple where-object detect
+                try {
+                    $wherePythonPath = Where-Object "python" 2>&1
+                    if ($null -ne $wherePythonPath) {
+                        $pythonPaths = $wherePythonPath -split "\n" | ForEach-Object { $_.Trim() }
+                        foreach ($path in $pythonPaths) {
+                            $version = & $path "--version" 2>&1
+                            if ($version -match "^Python 3\.10") {
+                                $foundPythonPath = $path
+                                break
+                            }
+                        }
+                    }
+                }
+                catch {
+                    Write-Warning "Failed to find Python 3.10 using 'where' command"
+                }
+
+                # Windows Registry
+                if ($null -eq $foundPythonPath) {
+                    $pythonRegistryPaths = @(
+                        "HKLM:\Software\Python\PythonCore",
+                        "HKLM:\Software\Wow6432Node\Python\PythonCore"
+                    )
+
+                    # We are searching all subkeys for the top level keys to find and test any found "InstallPath" value
+                    foreach ($path in $pythonRegistryPaths) {
+                        if (Test-Path $path) {
+                            $pythonCoreSubKeys = Get-ChildItem -Path $path
+                            foreach ($subKey in $pythonCoreSubKeys) {
+                                $installPathKey = Join-Path $subKey.PSPath "InstallPath"
+                                if (Test-Path $installPathKey) {
+                                    $installPath = (Get-ItemProperty -Path $installPathKey).'(Default)'
+                                    foreach ($candidate in $pythonCandidates) {
+                                        $registryPythonPath = Join-Path $installPath $candidate
+                                        if (Test-Path $registryPythonPath) {
+                                            $registryPythonVersion = & $registryPythonPath --version 2>&1
+                                            if ($registryPythonVersion -match "^Python 3\.10") {
+                                                $foundPythonPath = $registryPythonPath
+                                                break
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                # Windows with scoop
+                $scoopPythonBasePath = Join-Path $env:USERPROFILE "scoop\apps\python"
+                if (Test-Path $scoopPythonBasePath) {
+                    $scoopPythonDirs = Get-ChildItem $scoopPythonBasePath -Directory
+
+                    # Check the current Python installation
+                    $scoopCurrentPythonPath = Join-Path $scoopPythonBasePath "current"
+                    $scoopPythonDirs += Get-Item $scoopCurrentPythonPath
+
+                    foreach ($scoopPythonDir in $scoopPythonDirs) {
+                        $found = $false
+                        foreach ($candidate in $pythonCandidates) {
+                            $scoopPythonExe = Join-Path $scoopPythonDir.FullName $candidate
+                            if (Test-Path $scoopPythonExe) {
+                                $scoopPythonVersion = & $scoopPythonExe --version 2>&1
+                                if ($scoopPythonVersion -match "^Python 3\.10") {
+                                    $foundPythonPath = $scoopPythonExe
+                                    $found = $true
+                                    break
+                                }
+                            }
+                        }
+                        if ($found) {
+                            break
+                        }
+                    }
+                }
+
+                # Windows with Chocolatey
+                if (Test-Path "${env:ChocolateyInstall}\bin") {
+                    $chocoBin = "${env:ChocolateyInstall}\bin"
+                    foreach ($candidate in $pythonCandidates) {
+                        $chocoPythonPath = Join-Path $chocoBin $candidate
+                        if (Test-Path $chocoPythonPath) {
+                            $chocoPythonVersion = & $chocoPythonPath --version 2>&1
+                            if ($chocoPythonVersion -match "^Python 3\.10") {
+                                $foundPythonPath = $chocoPythonPath
+                                break
+                            }
+                        }
+                    }
+                }
+
+                # Windows with winget
+                $wingetPythonPath = "C:\Program Files\Python310"
+                if (Test-Path $wingetPythonPath) {
+                    foreach ($candidate in $pythonCandidates) {
+                        $wingetPythonExe = Join-Path $wingetPythonPath $candidate
+                        if (Test-Path $wingetPythonExe) {
+                            $wingetPythonVersion = & $wingetPythonExe --version 2>&1
+                            if ($wingetPythonVersion -match "^Python 3\.10") {
+                                $foundPythonPath = $wingetPythonExe
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            "Darwin" {
+                # macOS with Homebrew
+                try {
+                    $brewInfo = & "brew" "info" "python@3.10" 2>&1
+                    if ($brewInfo -match "Cellar") {
+                        $brewPythonPath = $brewInfo -split "\n" | Where-Object { $_ -match "Cellar" } | ForEach-Object { $_.Trim() }
+                        $brewPythonPath = Join-Path $brewPythonPath "bin/python3.10"
+                        if (Test-Path $brewPythonPath) {
+                            $foundPythonPath = $brewPythonPath
+                        }
+                    }
+                }
+                catch {
+                    Write-Warning "Homebrew not found or failed to get Python 3.10 info"
+                }
+            }
+
+            "FreeBSD" {
+                # FreeBSD
+                try {
+                    $pkgInfo = & "pkg" "info" "-ql" "python310" 2>&1
+                    $pkgPythonPath = $pkgInfo -split "\n" | Where-Object { $_ -match "bin/python3.10$" } | ForEach-Object { $_.Trim() }
+                    if (Test-Path $pkgPythonPath) {
+                        $foundPythonPath = $pkgPythonPath
+                    }
+                }
+                catch {
+                    Write-Warning "FreeBSD pkg not found or failed to get Python 3.10 info"
+                }
             }
         }
     }
 
     return $foundPythonPath
 }
-
 
 <#
 .SYNOPSIS
