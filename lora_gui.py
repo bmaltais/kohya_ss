@@ -95,7 +95,7 @@ def save_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -232,7 +232,7 @@ def open_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -361,7 +361,7 @@ def train_model(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -717,8 +717,12 @@ def train_model(
 
     run_cmd += f' --network_dim={network_dim}'
 
-    if not lora_network_weights == '':
-        run_cmd += f' --network_weights="{lora_network_weights}"'
+    if LoRA_type not in ['LyCORIS/LoCon', 'LyCORIS/LoHa']:
+        if not lora_network_weights == '':
+            run_cmd += f' --network_weights="{lora_network_weights}"'
+        if dim_from_weights:
+            run_cmd += f' --dim_from_weights'
+            
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if not output_name == '':
@@ -965,21 +969,29 @@ def lora_tab(
                 ],
                 value='Standard',
             )
-            lora_network_weights = gr.Textbox(
-                label='LoRA network weights',
-                placeholder='{Optional) Path to existing LoRA network weights to resume training',
-            )
-            lora_network_weights_file = gr.Button(
-                document_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            lora_network_weights_file.click(
-                get_any_file_path,
-                inputs=[lora_network_weights],
-                outputs=lora_network_weights,
-                show_progress=False,
-            )
+            with gr.Box():
+                with gr.Row():
+                    lora_network_weights = gr.Textbox(
+                        label='LoRA network weights',
+                        placeholder='(Optional)',
+                        info='Path to an existing LoRA network weights to resume training from'
+                    )
+                    lora_network_weights_file = gr.Button(
+                        document_symbol,
+                        elem_id='open_folder_small',
+                        visible=(not headless),
+                    )
+                    lora_network_weights_file.click(
+                        get_any_file_path,
+                        inputs=[lora_network_weights],
+                        outputs=lora_network_weights,
+                        show_progress=False,
+                    )
+                    dim_from_weights = gr.Checkbox(
+                        label='DIM from weights',
+                        value=False,
+                        info='Automatically determine the dim(rank) from the weight file.',
+                    )
         (
             learning_rate,
             lr_scheduler,
@@ -1077,6 +1089,14 @@ def lora_tab(
                 'Kohya DyLoRA',
                 'Kohya LoCon',
             }
+            
+            # Determine if LoRA network weights should be visible based on LoRA_type
+            LoRA_network_weights_visible = LoRA_type in {
+                'Standard',
+                'LoCon',
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+            }
 
             # Determine if kohya_dylora_visible should be visible based on LoRA_type
             kohya_dylora_visible = LoRA_type == 'Kohya DyLoRA'
@@ -1086,6 +1106,9 @@ def lora_tab(
                 gr.Group.update(visible=LoCon_row),
                 gr.Group.update(visible=LoRA_type_change),
                 gr.Group.update(visible=kohya_dylora_visible),
+                gr.Textbox.update(visible=LoRA_network_weights_visible),
+                gr.Button.update(visible=LoRA_network_weights_visible),
+                gr.Checkbox.update(visible=LoRA_network_weights_visible),
             )
 
         with gr.Row():
@@ -1232,7 +1255,7 @@ def lora_tab(
         LoRA_type.change(
             update_LoRA_settings,
             inputs=[LoRA_type],
-            outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora],
+            outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora, lora_network_weights, lora_network_weights_file, dim_from_weights],
         )
 
     with gr.Tab('Tools'):
@@ -1307,7 +1330,7 @@ def lora_tab(
         text_encoder_lr,
         unet_lr,
         network_dim,
-        lora_network_weights,
+        lora_network_weights,dim_from_weights,
         color_aug,
         flip_aug,
         clip_skip,
