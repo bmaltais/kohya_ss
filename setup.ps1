@@ -785,10 +785,10 @@ function Update-InstallScope {
 #>
 function Get-OsInfo {
     $os = @{
-        family  = "Unknown"
-        name    = "Unknown"
+        family   = "Unknown"
+        name     = "Unknown"
         platform = "Unknown"
-        version = "Unknown"
+        version  = "Unknown"
     }
 
     if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
@@ -1947,7 +1947,7 @@ function Install-Git {
 #>
 function DisplayCountdown($countdown) {
     Write-Host "Press 'y' to skip the countdown and continue or 'n' to cancel the installation."
-    $continue = $false
+    $continue = $true
 
     for ($i = 0; $i -lt $countdown; $i++) {
         $remainingTime = $countdown - $i
@@ -2072,18 +2072,18 @@ function Install-VCRedistWindows {
 
     if (-not (Test-IsAdmin)) {
         Write-Host "`n`n"
-        Write-Warning "Admin privileges are required to install Visual Studio redistributables. The script will attempt to run the installer with elevated privileges."
+        Write-CriticalLog "Admin privileges are required to install Visual Studio redistributables. The script will attempt to run the installer with elevated privileges." -NoHeader -ForegroundColor Yellow
 
-        $continueInstallation = DisplayCountdown -countdown 15
+        $continueInstallation = DisplayCountdown -countdown 10
 
         if ($continueInstallation) {
             # Continue with normal operations
-            Write-Host "Continuing with the installation."
+            Write-CriticalLog "Continuing with the installation." -NoHeader
         }
         else {
-            Write-Host "Installation cancelled."
-            Write-Host "Please manually install VC via the following URL: " -ForegroundColor Yellow -NoNewline
-            Write-Host "https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow
+            Write-CriticalLog "Installation cancelled."
+            Write-CriticalLog "Please manually install VC via the following URL: " -ForegroundColor Yellow -NoNewline
+            Write-CriticalLog "https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow -NoHeader
             exit 1
         }
 
@@ -2312,40 +2312,54 @@ function Main {
 
     process {
         if (-not $Parameters.NoSetup) {
+            $missingSoftware = @()
+        
             if (-not (Test-Python310Installed)) {
-                Write-CriticalLog "Installing Python 3.10. This could take a few minutes." -NoHeader
-                Install-Python310 -Interactive:$Params.interactive
+                $missingSoftware += "Python 3.10"
             }
-            else {
-                Write-CriticalLog "Python 3.10 is already installed." -NoHeader
-            }
-            
-            if ($os.family -eq "Windows") {
-                if (-not (Test-Python310Installed)) {
-                    Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes." -NoHeader
-                    $installScope = Update-InstallScope($Interactive)
-                    Install-Python3Tk $installScope
-                }
-            }
-            else {
-                Install-Python3Tk
-            }
-
+        
             if (-not (Test-GitInstalled)) {
-                Write-CriticalLog "Installing git. This could take a few minutes." -NoHeader
-                Install-Git
+                $missingSoftware += "Git"
             }
-            else {
-                Write-CriticalLog "Git already installed." -NoHeader
+        
+            if ($os.family -eq "Windows" -and -not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
+                $missingSoftware += "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
             }
-
-            if ($os.family -eq "Windows") {
-                Write-DebugLog "Checking for VC version: ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
-                if (-not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
-                    Install-VCRedistWindows
+        
+            if ($missingSoftware.Count -gt 0) {
+                $missingSoftwareList = $missingSoftware -join ', '
+                Write-CriticalLog "The following software was detected as not installed: ${missingSoftwareList}. If you proceed with the installation we will install these prerequisites."
+                Write-CriticalLog "If you do not wish to continue with this installation, please cancel during the countdown." -NoHeader
+                $continueInstallation = DisplayCountdown -countdown 15
+        
+                if ($continueInstallation) {
+                    # Continue with normal operations
+                    Write-CriticalLog "Continuing with the installation." -NoHeader
+                    if ($missingSoftware -contains "Python 3.10") {
+                        Write-CriticalLog "Installing Python 3.10. This could take a few minutes." -NoHeader
+                        Install-Python310 -Interactive:$Params.interactive
+                        if ($os.family -eq "Windows") {
+                            Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes." -NoHeader
+                            $installScope = Update-InstallScope($Interactive)
+                            Install-Python3Tk $installScope
+                        }
+                        else {
+                            Install-Python3Tk
+                        }
+                    }
+                    if ($missingSoftware -contains "Git") {
+                        Write-CriticalLog "Installing git. This could take a few minutes." -NoHeader
+                        Install-Git
+                    }
+                    if ($os.family -eq "Windows" -and $missingSoftware -contains "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}") {
+                        Write-DebugLog "Checking for VC version: ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
+                        Install-VCRedistWindows
+                    }
                 }
                 else {
-                    Write-CriticalLog "VC Redist already installed." -NoHeader
+                    Write-CriticalLog "Installation cancelled." -NoHeader
+                    Write-CriticalLog "Please manually install the following software: $missingSoftwareList." -ForegroundColor Yellow -NoNewline
+                    exit 1
                 }
             }
         }
