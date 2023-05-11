@@ -464,7 +464,7 @@ def create_symlinks(symlink, target_file):
 # noinspection SpellCheckingInspection
 def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _log_dir, update, repair):
     # Name of the flag file
-    flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
+    # flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
 
     # We check the same conditions as pip operations, as we should not run this if pip operations don't.
     # if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
@@ -493,21 +493,15 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _lo
                     shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
                     logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
                                     f"to {os.path.join(bitsandbytes_dest, file)}")
-                    print(f"Copying {os.path.join(bitsandbytes_source, file)}"
-                                    f"to {os.path.join(bitsandbytes_dest, file)}")
 
             # Copy cextension.py
             shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
                         os.path.join(bitsandbytes_dest, "cextension.py"))
             logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
-            
-            print(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
 
             # Copy main.py
             shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
             logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
-                            f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
-            print(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
                             f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
 
     if in_container:
