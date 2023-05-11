@@ -7,4 +7,4 @@ import sys
 script_path = os.path.join("tools", "create_user_files.py")
 subprocess.run([sys.executable, script_path])
 
-setup(name="library", version="1.0.3", packages=find_packages())
+setup(name="library", version="1.0.4", packages=find_packages())

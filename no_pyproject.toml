@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kohya_ss"
-version = "1.0.3"
+version = "1.0.4"
 description = "A GUI wrapper for kohya-ss SD scipts enabling LoRA training with an easy-to-use web application."
 authors = [
     {name = "bmaltais", email = "test@ducourier.com"},
