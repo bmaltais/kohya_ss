@@ -148,13 +148,13 @@ def merge(args):
 
     merge_to_sd_model(text_encoder, unet, args.models, args.ratios, merge_dtype)
 
-    print(f"saving SD model to: {args.save_to}")
+    print(f"\nsaving SD model to: {args.save_to}")
     model_util.save_stable_diffusion_checkpoint(args.v2, args.save_to, text_encoder, unet,
                                                 args.sd_model, 0, 0, save_dtype, vae)
   else:
     state_dict, _, _ = merge_lora_models(args.models, args.ratios, merge_dtype)
 
-    print(f"saving model to: {args.save_to}")
+    print(f"\nsaving model to: {args.save_to}")
     save_to_file(args.save_to, state_dict, state_dict, save_dtype)
 
 
