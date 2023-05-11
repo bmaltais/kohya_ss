@@ -4,7 +4,7 @@ This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffus
 
 If you run on Linux and would like to use the GUI, there is now a port of it as a docker container. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
-By default this project uses Torch v1 and an automated installation procedure. If you'd like to customize the options, please check the [Configuration](#configuration) section.
+**By default this project uses Torch v1 and an automated installation procedure. If you'd like to customize the options, please check the [Configuration](#configuration) section.**
 
 ### Table of Contents
 
