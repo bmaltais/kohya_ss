@@ -262,7 +262,7 @@ function Get-Parameters {
         'Dir'            = "$PSScriptRoot"
         'GitRepo'        = 'https://github.com/bmaltais/kohya_ss.git'
         'Headless'       = $false
-        'Interactive'    = $true
+        'Interactive'    = $false
         'LogDir'         = "$PSScriptRoot/logs"
         'NoSetup'        = $false
         'Repair'         = $false
@@ -797,6 +797,12 @@ function Get-OsInfo {
         $os.version = [System.Environment]::OSVersion.Version.ToString()
         $os.platform = "Windows"
     }
+    elseif (Test-Path "C:\Windows") {
+        $os.name = "Windows"
+        $os.family = "Windows"
+        $os.version = [System.Environment]::OSVersion.Version.ToString()
+        $os.platform = "Windows"
+    }
     elseif (Test-Path "/System/Library/CoreServices/SystemVersion.plist") {
         $os.name = "macOS"
         $os.family = "macOS"
@@ -881,13 +887,13 @@ function Get-OsInfo {
 #>
 function Test-Python310Installed {
     try {
-        if ($null -eq $pythonPath) {
+        if ($null -eq $script:pythonPath) {
             Write-DebugLog "Python executable not found."
             return $false
         }
 
-        Write-DebugLog "We are testing this python path: {$pythonPath}"
-        $pythonVersion = & $script:pythonPath--version 2>&1 | Out-String -Stream -ErrorAction Stop
+        Write-DebugLog "We are testing this python path: ${pythonPath}"
+        $pythonVersion = & $script:pythonPath --version 2>&1 | Out-String -Stream -ErrorAction Stop
         $pythonVersion = $pythonVersion -replace '^Python\s', ''
 
         if ($pythonVersion.StartsWith('3.10')) {
@@ -1846,7 +1852,7 @@ function Install-Git {
             else {
                 # We default to installing at a user level if admin is not detected.
                 $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
-                
+
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
                     Remove-Item $script:gitInstallerPath

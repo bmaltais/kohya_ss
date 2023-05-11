@@ -89,7 +89,7 @@ while getopts ":vb:d:f:g:il:nprst:ux-:" opt; do
   f | file) USER_CONFIG_FILE="$OPTARG" ;;
   g | git-repo) CLI_ARGUMENTS["gitRepo"]="$OPTARG" ;;
   h | help) display_help && exit 0 ;;
-  i | interactive) CLI_ARGUMENTS["interactive"]="true" ;;
+  i | interactive) CLI_ARGUMENTS["interactive"]="false" ;;
   l | log-dir) CLI_ARGUMENTS["logDir"]="$OPTARG" ;;
   n | no-setup) CLI_ARGUMENTS["noSetup"]="true" ;;
   r | repair) CLI_ARGUMENTS["repair"]="true" ;;
