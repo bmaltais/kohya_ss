@@ -103,7 +103,7 @@ TORCHVISION_VERSION_2 = "0.15.1+cu118"
 TORCH_INDEX_URL_2 = "https://download.pytorch.org/whl/cu118"
 TRITON_URL_2 = "https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl"
 # noinspection SpellCheckingInspection
-XFORMERS_VERSION_2 = "0.0.17"
+XFORMERS_VERSION_2 = "0.0.19"
 
 
 # noinspection DuplicatedCode
