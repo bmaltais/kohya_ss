@@ -138,6 +138,28 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 11 May 2023, 2023/05/11
+
+- Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
+  - It is useful in combination with `resize_lora.py`. Please see the PR for details.
+- Fixed a bug where the noise resolution was incorrect with Multires noise. [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489) Thanks to sdbds!
+  - Please see the PR for details.
+- The image generation scripts can now use img2img and highres fix at the same time.
+- Fixed a bug where the hint image of ControlNet was incorrectly BGR instead of RGB in the image generation scripts.
+- Added a feature to the image generation scripts to use the memory-efficient VAE.
+  - If you specify a number with the `--vae_slices` option, the memory-efficient VAE will be used. The maximum output size will be larger, but it will be slower. Please specify a value of about `16` or `32`.
+  - The implementation of the VAE is in `library/slicing_vae.py`.
+
+- `train_network.py`にdim(rank)を重みファイルから自動決定するオプション`--dim_from_weights`が追加されました。 [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) AI-Casanova氏に感謝します。
+  - `resize_lora.py`と組み合わせると有用です。詳細はPRもご参照ください。
+- Multires noiseでノイズ解像度が正しくない不具合が修正されました。 [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489)  sdbds氏に感謝します。
+  - 詳細は当該PRをご参照ください。
+- 生成スクリプトでimg2imgとhighres fixを同時に使用できるようにしました。
+- 生成スクリプトでControlNetのhint画像が誤ってBGRだったのをRGBに修正しました。
+- 生成スクリプトで省メモリ化VAEを使えるよう機能追加しました。
+  - `--vae_slices`オプションに数値を指定すると、省メモリ化VAEを用います。出力可能な最大サイズが大きくなりますが、遅くなります。`16`または`32`程度の値を指定してください。
+  - VAEの実装は`library/slicing_vae.py`にあります。
+
 ### 7 May 2023, 2023/05/07
 
 - The documentation has been moved to the `docs` folder. If you have links, please change them.
