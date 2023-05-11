@@ -1072,6 +1072,7 @@ run_launcher() {
     --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
     $([ "$REPAIR" = "true" ] && echo "--repair") \
+    --torch-version="$TORCH_VERSION" \
     $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
     $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
     $([ "$UPDATE" = "true" ] && echo "--update") \
