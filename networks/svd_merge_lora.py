@@ -160,7 +160,7 @@ def merge(args):
   new_conv_rank = args.new_conv_rank if args.new_conv_rank is not None else args.new_rank
   state_dict = merge_lora_models(args.models, args.ratios, args.new_rank, new_conv_rank, args.device, merge_dtype)
 
-  print(f"saving model to: {args.save_to}")
+  print(f"\nsaving model to: {args.save_to}")
   save_to_file(args.save_to, state_dict, save_dtype)
 
 
