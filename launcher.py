@@ -467,41 +467,48 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _lo
     flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
 
     # We check the same conditions as pip operations, as we should not run this if pip operations don't.
-    if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
-        if os_info.family == "Windows":
-            bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
-            bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
-            bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
+    # if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
+    if os_info.family == "Windows":
+        print(f"Installing bitsandbytes windows files...")
+        bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
+        bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
+        bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
 
-            if os.path.exists(bitsandbytes_source):
-                # Create destination directories if they don't exist
-                try:
-                    os.makedirs(bitsandbytes_dest, exist_ok=True)
-                except OSError as _e:
-                    if _e.errno != errno.EEXIST:
-                        raise
-                try:
-                    os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
-                except OSError as _e:
-                    if _e.errno != errno.EEXIST:
-                        raise
+        if os.path.exists(bitsandbytes_source):
+            # Create destination directories if they don't exist
+            try:
+                os.makedirs(bitsandbytes_dest, exist_ok=True)
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
+                    raise
+            try:
+                os.makedirs(bitsandbytes_cuda_dest, exist_ok=True)
+            except OSError as _e:
+                if _e.errno != errno.EEXIST:
+                    raise
 
-                # Copy .dll files
-                for file in os.listdir(bitsandbytes_source):
-                    if file.endswith(".dll"):
-                        shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
-                        logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
-                                      f"to {os.path.join(bitsandbytes_dest, file)}")
+            # Copy .dll files
+            for file in os.listdir(bitsandbytes_source):
+                if file.endswith(".dll"):
+                    shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
+                    logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
+                                    f"to {os.path.join(bitsandbytes_dest, file)}")
+                    print(f"Copying {os.path.join(bitsandbytes_source, file)}"
+                                    f"to {os.path.join(bitsandbytes_dest, file)}")
 
-                # Copy cextension.py
-                shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
-                            os.path.join(bitsandbytes_dest, "cextension.py"))
-                logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
+            # Copy cextension.py
+            shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
+                        os.path.join(bitsandbytes_dest, "cextension.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
+            
+            print(f"Copying {os.path.join(bitsandbytes_source, 'cextension.py')}")
 
-                # Copy main.py
-                shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
-                logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
-                              f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
+            # Copy main.py
+            shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
+            logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
+                            f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
+            print(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
+                            f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
 
     if in_container:
         # Symlink paths for libnvinfer.so.7 and libnvinfer_plugin.so.7
