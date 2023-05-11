@@ -176,7 +176,10 @@ def train(args):
             net_kwargs[key] = value
 
     # if a new network is added in future, add if ~ then blocks for each network (;'∀')
-    network = network_module.create_network(1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
+    if args.dim_from_weights:
+        network, _ = network_module.create_network_from_weights(1, args.network_weights, vae, text_encoder, unet, **net_kwargs)
+    else:
+        network = network_module.create_network(1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, **net_kwargs)
     if network is None:
         return
 
@@ -522,10 +525,11 @@ def train(args):
     loss_total = 0.0
     del train_dataset_group
 
-    # if hasattr(network, "on_step_start"):
-    #     on_step_start = network.on_step_start
-    # else:
-    #     on_step_start = lambda *args, **kwargs: None
+    # callback for step start
+    if hasattr(network, "on_step_start"):
+        on_step_start = network.on_step_start
+    else:
+        on_step_start = lambda *args, **kwargs: None
 
     # function for saving/removing
     def save_model(ckpt_name, unwrapped_nw, steps, epoch_no, force_sync_upload=False):
@@ -560,7 +564,7 @@ def train(args):
         for step, batch in enumerate(train_dataloader):
             current_step.value = global_step
             with accelerator.accumulate(network):
-                # on_step_start(text_encoder, unet)
+                on_step_start(text_encoder, unet)
 
                 with torch.no_grad():
                     if "latents" in batch and batch["latents"] is not None:
@@ -759,6 +763,11 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--training_comment", type=str, default=None, help="arbitrary comment string stored in metadata / メタデータに記録する任意のコメント文字列"
+    )
+    parser.add_argument(
+        "--dim_from_weights",
+        action="store_true",
+        help="automatically determine dim (rank) from network_weights / dim (rank)をnetwork_weightsで指定した重みから自動で決定する",
     )
 
     return parser

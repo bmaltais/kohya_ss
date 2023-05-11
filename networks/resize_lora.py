@@ -326,7 +326,7 @@ def resize(args):
   metadata["sshs_model_hash"] = model_hash
   metadata["sshs_legacy_hash"] = legacy_hash
 
-  print(f"\nsaving model to: {args.save_to}")
+  print(f"saving model to: {args.save_to}")
   save_to_file(args.save_to, state_dict, state_dict, save_dtype, metadata)
 
 
