@@ -239,7 +239,7 @@ function Get-Parameters {
     }
 
     # Define possible configuration file locations
-    $configFileLocations = if ($os.family -eq "Windows") {
+    $configFileLocations = if ($script:os.family -eq "Windows") {
         @(
             (Join-Path -Path "$PSScriptRoot\config_files\installation" -ChildPath "install_config.yml")
             (Join-Path -Path "$env:USERPROFILE\.kohya_ss" -ChildPath "install_config.yml"),
@@ -631,7 +631,7 @@ function Test-Value {
    This function should work on Windows, Linux, macOS, and BSD systems.
 #>
 function Test-IsAdmin {
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         # Windows-specific code
         $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
@@ -679,7 +679,7 @@ function Get-ElevationCommand {
         [string[]]$args
     )
 
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         # On Windows, use the Start-Process cmdlet to run the command as administrator
         if ((Test-IsAdmin) -eq $true) {
             return ""
@@ -778,10 +778,10 @@ function Update-InstallScope {
         An object containing the name, family, and version of the operating system.
 
 .EXAMPLE
-    $os = Get-OsInfo
-    Write-CriticalLog "Operating System: $($os.name)"
-    Write-CriticalLog "OS Family: $($os.family)"
-    Write-CriticalLog "OS Version: $($os.version)"
+    $script:os = Get-OsInfo
+    Write-CriticalLog "Operating System: $($script:os.name)"
+    Write-CriticalLog "OS Family: $($script:os.family)"
+    Write-CriticalLog "OS Version: $($script:os.version)"
 #>
 function Get-OsInfo {
     $os = @{
@@ -951,7 +951,7 @@ function Test-Python310Installed {
 function Get-PythonExePath {
     $pythonCandidates = @("python3.10", "python3", "python")
 
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         $pythonCandidates += @("python3.10.exe", "python3.exe", "python.exe")
     }
 
@@ -977,6 +977,10 @@ function Get-PythonExePath {
         # Search PATH environment variable
         $pathDirs = $env:Path -split ';'
         foreach ($dir in $pathDirs) {
+            if ([string]::IsNullOrEmpty($dir)) {
+                continue
+            }
+
             foreach ($candidate in $pythonCandidates) {
                 $pathPython = Join-Path $dir $candidate
                 if (Test-Path $pathPython) {
@@ -995,11 +999,11 @@ function Get-PythonExePath {
 
     # Check platform-specific paths if Python is still not found
     if ($null -eq $foundPythonPath) {
-        switch ($os.family) {
+        switch ($script:os.family) {
             "Windows" {
                 # First try a simple where-object detect
                 try {
-                    $wherePythonPath = Where-Object "python" 2>&1
+                    $wherePythonPath = & "where.exe" "python" 2>&1
                     if ($null -ne $wherePythonPath) {
                         $pythonPaths = $wherePythonPath -split "\n" | ForEach-Object { $_.Trim() }
                         foreach ($path in $pythonPaths) {
@@ -1030,22 +1034,21 @@ function Get-PythonExePath {
                                 $installPathKey = Join-Path $subKey.PSPath "InstallPath"
                                 if (Test-Path $installPathKey) {
                                     $installPath = (Get-ItemProperty -Path $installPathKey).'(Default)'
-                                    foreach ($candidate in $pythonCandidates) {
-                                        $registryPythonPath = Join-Path $installPath $candidate
-                                        if (Test-Path $registryPythonPath) {
-                                            $registryPythonVersion = & $registryPythonPath --version 2>&1
-                                            if ($registryPythonVersion -match "^Python 3\.10") {
-                                                $foundPythonPath = $registryPythonPath
-                                                break
-                                            }
+                                    if (Test-Path $installPath) {
+                                        $registryPythonVersion = & $installPath --version 2>&1
+                                        if ($registryPythonVersion -match "^Python 3\.10") {
+                                            $foundPythonPath = $installPath
+                                            break
                                         }
                                     }
                                 }
                             }
                         }
+                        if ($null -ne $foundPythonPath) {
+                            break
+                        }
                     }
                 }
-
 
                 # Windows with scoop
                 $scoopPythonBasePath = Join-Path $env:USERPROFILE "scoop\apps\python"
@@ -1105,7 +1108,7 @@ function Get-PythonExePath {
                     }
                 }
             }
-
+                
             "Darwin" {
                 # macOS with Homebrew
                 try {
@@ -1122,7 +1125,7 @@ function Get-PythonExePath {
                     Write-Warning "Homebrew not found or failed to get Python 3.10 info"
                 }
             }
-
+                
             "FreeBSD" {
                 # FreeBSD
                 try {
@@ -1138,9 +1141,9 @@ function Get-PythonExePath {
             }
         }
     }
-
+                
     return $foundPythonPath
-}
+}                
 
 <#
 .SYNOPSIS
@@ -1207,15 +1210,26 @@ function Install-Python310 {
             # This should have worked, but it looks like scoop might not have Python 3.10 available,
             # so we're just going to use the native method for now.
             #scoop install python@3.10
-            #$packageManagerFound = $true
-            $packageManagerFound = $false
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Python 3.10 using Scoop. Please run this script from an elevated command prompt or install Python 3.10 manually."
+                exit 1
+            }
+            $packageManagerFound = $true
         }
         elseif (Get-Command "choco" -ErrorAction SilentlyContinue) {
             choco install python --version=3.10
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Python 3.10 using Chocolatey. Please run this script from an elevated command prompt or install Python 3.10 manually."
+                exit 1
+            }
             $packageManagerFound = $true
         }
         elseif (Get-Command "winget" -ErrorAction SilentlyContinue) {
             winget install --id Python.Python --version 3.10.*
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Python 3.10 using Winget. Please run this script from an elevated command prompt or install Python 3.10 manually."
+                exit 1
+            }
             $packageManagerFound = $true
         }
 
@@ -1286,7 +1300,7 @@ function Install-Python310 {
             $elevate = "sudo"
         }
 
-        switch ($os.family) {
+        switch ($script:os.family) {
             "Ubuntu" {
                 if (& $elevate apt-get update) {
                     if (!(& $elevate apt-get install -y python3.10)) {
@@ -1334,13 +1348,13 @@ function Install-Python310 {
         return
     }
 
-    if ($os.platform -eq "Windows") {
+    if ($script:os.platform -eq "Windows") {
         Install-Python310Windows
     }
-    elseif ($os.platform -eq "macOS") {
+    elseif ($script:os.platform -eq "macOS") {
         Install-Python310Mac
     }
-    elseif ($os.platform -eq "Linux") {
+    elseif ($script:os.platform -eq "Linux") {
         Install-Python310Linux
     }
     else {
@@ -1378,9 +1392,9 @@ function Install-Python3Tk {
         [string]$installScope = 'user'
     )
 
-    $osFamily = $os.family.ToLower()
+    $osFamily = $script:os.family.ToLower()
 
-    if ($os.family -eq "Linux" -or $os.family -eq "macOS") {
+    if ($script:os.platform -eq "Linux" -or $script:os.family -eq "macOS") {
         # Linux / macOS installation
     
         # Pre-check: Try to import Tkinter in Python 3.10
@@ -1637,7 +1651,7 @@ function Get-GitHashFromWeb {
    It also attempts to modify the $env:Path environment variable if the Git executable is found.
 #>
 function Get-GitExePath {
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         # Try to get the Git path from the registry if Git is installed natively on Windows
         $registryPath = "HKLM:\SOFTWARE\GitForWindows"
         $gitPath = Get-ItemPropertyValue -Path $registryPath -Name InstallPath -ErrorAction SilentlyContinue
@@ -1677,7 +1691,7 @@ function Get-GitExePath {
             }
         }
     }
-    elseif ($os.family -eq "Darwin") {
+    elseif ($script:os.family -eq "Darwin") {
         # Try to find Git installation path using Homebrew
         if (Get-Command brew -ErrorAction SilentlyContinue) {
             $brewResults = brew list --cask --versions git
@@ -1692,7 +1706,7 @@ function Get-GitExePath {
             $gitPath = '/usr/bin'
         }
     }
-    elseif ($os.family -eq "Linux" -or $os.family -eq "FreeBSD") {
+    elseif ($script:os.family -eq "Linux" -or $script:os.family -eq "FreeBSD") {
         # Try to find Git installation path using the package manager
         if (Get-Command apt-get -ErrorAction SilentlyContinue) {
             $dpkgResults = dpkg -l git
@@ -1758,38 +1772,36 @@ function Install-Git {
         $packageManagerFound = $false
 
         if (Get-Command "scoop" -ErrorAction SilentlyContinue) {
-            try {
-                scoop install git
-                $packageManagerFound = $true
+            scoop install git
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Git using Scoop. Try running this script with admin privileges or install Git manually."
+                exit 1
             }
-            catch {
-                Write-Error "Error: Failed to install Git using Scoop. $_"
-            }
+            $packageManagerFound = $true
         }
-    
+        
         if (-not $packageManagerFound -and (Get-Command "choco" -ErrorAction SilentlyContinue)) {
-            try {
-                choco install git
-                $packageManagerFound = $true
+            choco install git
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Git using Chocolatey. Try running this script with admin privileges or install Git manually."
+                exit 1
             }
-            catch {
-                Write-Error "Error: Failed to install Git using Chocolatey. $_"
-            }
+            $packageManagerFound = $true
         }
-    
+        
         if (-not $packageManagerFound -and (Get-Command "winget" -ErrorAction SilentlyContinue)) {
-            try {
-                winget install --id Git.Git
-                $packageManagerFound = $true
+            winget install --id Git.Git
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to install Git using Winget. Try running this script with admin privileges or install Git manually."
+                exit 1
             }
-            catch {
-                Write-Error "Error: Failed to install Git using Winget. $_"
-            }
-            if ($packageManagerFound) {
-                # Update the environment and Git path after installation to ensure it is picked up by the environment every time
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-                $script:gitPath = Get-GitExePath
-            }
+            $packageManagerFound = $true
+        }     
+
+        if ($packageManagerFound) {
+            # Update the environment and Git path after installation to ensure it is picked up by the environment every time
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+            $script:gitPath = Get-GitExePath
         }
         
         if (-not $packageManagerFound) {
@@ -1821,10 +1833,12 @@ function Install-Git {
                 else {
                     $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
                 }
+
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
                     Remove-Item $script:gitInstallerPath
                 }
+
                 # Update the environment and Git path after installation to ensure it is picked up by the environment every time
                 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
                 $script:gitPath = Get-GitExePath
@@ -1832,6 +1846,7 @@ function Install-Git {
             else {
                 # We default to installing at a user level if admin is not detected.
                 $proc = Start-Process -FilePath $script:gitInstallerPath -ArgumentList "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh" -PassThru
+                
                 $proc.WaitForExit()
                 if (Test-Path $script:gitInstallerPath) {
                     Remove-Item $script:gitInstallerPath
@@ -1856,7 +1871,7 @@ function Install-Git {
     }
 
     function Install-GitLinux {
-        $osFamily = Get-OsFamily
+        $osFamily = $os.family.ToLower()
         if ($osFamily -match "debian" -or $osFamily -match "ubuntu") {
             try {
                 Invoke-Expression (Get-ElevationCommand "apt-get" "install" "-y" "git")
@@ -1903,13 +1918,13 @@ function Install-Git {
         }
     }
 
-    if ($os.platform -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         Install-GitWindows
     }
-    elseif ($os.platform -eq "macOS") {
+    elseif ($script:os.family -eq "macOS") {
         Install-GitMac
     }
-    elseif ($os.platform -eq "Linux") {
+    elseif ($script:os.platform -eq "Linux") {
         Install-GitLinux
     }
     else {
@@ -2052,7 +2067,7 @@ function Test-VCRedistInstalled {
     Install-VCRedistWindows -Interactive $true
 #>
 function Install-VCRedistWindows {
-    if ($os.family -ne "Windows") {
+    if ($script:os.family -ne "Windows") {
         return
     }
 
@@ -2167,7 +2182,7 @@ function Install-VCRedistWindows {
     Returns an array of built-in parameter names for the current PowerShell executable.
 #>
 function Get-BuiltInParameters {
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         if ($PSVersionTable.PSVersion.Major -ge 6) {
             $powershellExeName = 'pwsh.exe'
         }
@@ -2230,7 +2245,7 @@ function Test-Parameters {
     $Script = Join-Path $Dir $file
 
     # List of built-in parameters to exclude
-    if ($os.family -eq "Windows") {
+    if ($script:os.family -eq "Windows") {
         if ($PSVersionTable.PSVersion.Major -lt 6) {
             $builtInParams = [System.Management.Automation.Cmdlet].GetMethod('get_CommonParameters').Invoke($null, @())
         }
@@ -2322,7 +2337,7 @@ function Main {
                 $missingSoftware += "Git"
             }
         
-            if ($os.family -eq "Windows" -and -not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
+            if ($script:os.family -eq "Windows" -and -not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
                 $missingSoftware += "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
             }
         
@@ -2338,7 +2353,7 @@ function Main {
                     if ($missingSoftware -contains "Python 3.10") {
                         Write-CriticalLog "Installing Python 3.10. This could take a few minutes." -NoHeader
                         Install-Python310 -Interactive:$Params.interactive
-                        if ($os.family -eq "Windows") {
+                        if ($script:os.family -eq "Windows") {
                             Write-CriticalLog "Installing Python 3.10 Tk. This could take a few minutes." -NoHeader
                             $installScope = Update-InstallScope($Interactive)
                             Install-Python3Tk $installScope
@@ -2351,7 +2366,7 @@ function Main {
                         Write-CriticalLog "Installing git. This could take a few minutes." -NoHeader
                         Install-Git
                     }
-                    if ($os.family -eq "Windows" -and $missingSoftware -contains "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}") {
+                    if ($script:os.family -eq "Windows" -and $missingSoftware -contains "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}") {
                         Write-DebugLog "Checking for VC version: ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
                         Install-VCRedistWindows
                     }
@@ -2484,8 +2499,8 @@ else {
 # 3) Default values built into the scripts if none specified by user and there is no config file.
 
 # Set a global OS detection for usage in functions
-$os = Get-OsInfo
-Write-DebugLog "Detected OS Family: {$os.family}."
+$script:os = Get-OsInfo
+Write-DebugLog "Detected OS Family: {$script:os.family}."
 
 # Format parameters and setup logging
 $script:Parameters = Get-Parameters -BoundParameters $PSBoundParameters -BatchArgs $BatchArgs
@@ -2542,7 +2557,7 @@ $script:vcRedistOldestYear = 2015
 $script:vcRedistNewestYear = 2022
 
 # Set the downloads folder for storing pre-req installation files
-if ($os.family -eq "Windows") {
+if ($script:os.family -eq "Windows") {
     $script:downloadsFolder = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads'
 
 
