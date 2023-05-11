@@ -569,6 +569,16 @@ You can run launcher.py whenever you want to launch the application with the spe
 <details>
 <summary>21.5</summary>
 
+* 2023/07/11 (v21.5.11)
+  - Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
+    - It is useful in combination with `resize_lora.py`. Please see the PR for details.
+  - Fixed a bug where the noise resolution was incorrect with Multires noise. [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489) Thanks to sdbds!
+    - Please see the PR for details.
+  - The image generation scripts can now use img2img and highres fix at the same time.
+  - Fixed a bug where the hint image of ControlNet was incorrectly BGR instead of RGB in the image generation scripts.
+  - Added a feature to the image generation scripts to use the memory-efficient VAE.
+    - If you specify a number with the `--vae_slices` option, the memory-efficient VAE will be used. The maximum output size will be larger, but it will be slower. Please specify a value of about `16` or `32`.
+    - The implementation of the VAE is in `library/slicing_vae.py`.
 * 2023/04/09 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.

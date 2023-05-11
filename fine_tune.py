@@ -266,7 +266,7 @@ def train(args):
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name)
 
     for epoch in range(num_train_epochs):
-        print(f"epoch {epoch+1}/{num_train_epochs}")
+        print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         for m in training_models:

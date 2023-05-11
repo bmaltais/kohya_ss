@@ -1424,7 +1424,7 @@ def debug_dataset(train_dataset, show_input_ids=False):
 
     epoch = 1
     while True:
-        print(f"epoch: {epoch}")
+        print(f"\nepoch: {epoch}")
 
         steps = (epoch - 1) * len(train_dataset) + 1
         indices = list(range(len(train_dataset)))
@@ -3111,7 +3111,7 @@ def save_sd_model_on_epoch_end_or_stepwise(
             ckpt_name = get_step_ckpt_name(args, ext, global_step)
 
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
-        print(f"saving checkpoint: {ckpt_file}")
+        print(f"\nsaving checkpoint: {ckpt_file}")
         model_util.save_stable_diffusion_checkpoint(
             args.v2, ckpt_file, text_encoder, unet, src_path, epoch_no, global_step, save_dtype, vae
         )
@@ -3137,7 +3137,7 @@ def save_sd_model_on_epoch_end_or_stepwise(
         else:
             out_dir = os.path.join(args.output_dir, STEP_DIFFUSERS_DIR_NAME.format(model_name, global_step))
 
-        print(f"saving model: {out_dir}")
+        print(f"\nsaving model: {out_dir}")
         model_util.save_diffusers_checkpoint(
             args.v2, out_dir, text_encoder, unet, src_path, vae=vae, use_safetensors=use_safetensors
         )
@@ -3164,7 +3164,7 @@ def save_sd_model_on_epoch_end_or_stepwise(
 def save_and_remove_state_on_epoch_end(args: argparse.Namespace, accelerator, epoch_no):
     model_name = default_if_none(args.output_name, DEFAULT_EPOCH_NAME)
 
-    print(f"saving state at epoch {epoch_no}")
+    print(f"\nsaving state at epoch {epoch_no}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
@@ -3185,7 +3185,7 @@ def save_and_remove_state_on_epoch_end(args: argparse.Namespace, accelerator, ep
 def save_and_remove_state_stepwise(args: argparse.Namespace, accelerator, step_no):
     model_name = default_if_none(args.output_name, DEFAULT_STEP_NAME)
 
-    print(f"saving state at step {step_no}")
+    print(f"\nsaving state at step {step_no}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, STEP_STATE_NAME.format(model_name, step_no))
@@ -3210,7 +3210,7 @@ def save_and_remove_state_stepwise(args: argparse.Namespace, accelerator, step_n
 def save_state_on_train_end(args: argparse.Namespace, accelerator):
     model_name = default_if_none(args.output_name, DEFAULT_LAST_OUTPUT_NAME)
 
-    print("saving last state.")
+    print("\nsaving last state.")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name))
