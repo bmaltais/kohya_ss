@@ -785,8 +785,9 @@ function Update-InstallScope {
 #>
 function Get-OsInfo {
     $os = @{
-        name    = "Unknown"
         family  = "Unknown"
+        name    = "Unknown"
+        platform = "Unknown"
         version = "Unknown"
     }
 
@@ -794,10 +795,12 @@ function Get-OsInfo {
         $os.name = "Windows"
         $os.family = "Windows"
         $os.version = [System.Environment]::OSVersion.Version.ToString()
+        $os.platform = "Windows"
     }
     elseif (Test-Path "/System/Library/CoreServices/SystemVersion.plist") {
         $os.name = "macOS"
         $os.family = "macOS"
+        $os.platform = "macOS"
         $os.version = "Unknown"
         try {
             $os.version = (Get-Content -Raw -Path "/System/Library/CoreServices/SystemVersion.plist" -ErrorAction Stop | Select-String -Pattern "<string>([\d\.]+)</string>" | ForEach-Object { $_.Matches.Groups[1].Value }) -join ""
@@ -813,6 +816,7 @@ function Get-OsInfo {
                 $os.name = if ($os_release -match 'ID="?([^"\n]+)') { $matches[1] } else { "Unknown" }
                 $os.family = if ($os_release -match 'ID_LIKE="?([^"\n]+)') { $matches[1] } else { "Unknown" }
                 $os.version = if ($os_release -match 'VERSION="?([^"\n]+)') { $matches[1] } else { "Unknown" }
+                $os.platform = "Linux"
             }
             catch {
                 Write-Warning "Error reading /etc/os-release: $_"
@@ -824,6 +828,7 @@ function Get-OsInfo {
                 if ($redhat_release -match '([^ ]+) release ([^ ]+)') {
                     $os.name = $matches[1]
                     $os.family = "RedHat"
+                    $os.platform = "Linux"
                     $os.version = $matches[2]
                 }
             }
@@ -835,18 +840,19 @@ function Get-OsInfo {
         if ($os.name -eq "Unknown") {
             try {
                 $uname = uname -a
-                if ($uname -match "Ubuntu") { $os.name = "Ubuntu"; $os.family = "Ubuntu" }
+                if ($uname -match "Ubuntu") { $os.name = "Ubuntu"; $os.family = "Ubuntu"; $os.platform = "Linux" }
                 elseif ($uname -match "Debian") { $os.name = "Debian"; $os.family = "Debian" }
-                elseif ($uname -match "Red Hat" -or $uname -match "CentOS") { $os.name = "RedHat"; $os.family = "RedHat" }
-                elseif ($uname -match "Fedora") { $os.name = "Fedora"; $os.family = "Fedora" }
-                elseif ($uname -match "SUSE") { $os.name = "openSUSE"; $os.family = "SUSE" }
-                elseif ($uname -match "Arch") { $os.name = "Arch"; $os.family = "Arch" }
-                else { $os.name = "Generic Linux"; $os.family = "Generic Linux" }
+                elseif ($uname -match "Red Hat" -or $uname -match "CentOS") { $os.name = "RedHat"; $os.family = "RedHat"; $os.platform = "Linux" }
+                elseif ($uname -match "Fedora") { $os.name = "Fedora"; $os.family = "Fedora"; $os.platform = "Linux" }
+                elseif ($uname -match "SUSE") { $os.name = "openSUSE"; $os.family = "SUSE"; $os.platform = "Linux" }
+                elseif ($uname -match "Arch") { $os.name = "Arch"; $os.family = "Arch"; $os.platform = "Linux" }
+                else { $os.name = "Generic Linux"; $os.family = "Generic Linux"; $os.platform = "Linux" }
             }
             catch {
                 Write-Warning "Error executing uname command: $_"
                 $os.name = "Generic Linux"
                 $os.family = "Generic Linux"
+                $os.platform = "Linux"
             }
         }
     }
@@ -1328,29 +1334,13 @@ function Install-Python310 {
         return
     }
 
-    $osPlatform = ""
-    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
-        $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
-    }
-    elseif ($PSVersionTable.Platform -eq 'Unix') {
-        $osPlatform = (uname -s).ToString()
-    }
-    elseif ($PSVersionTable.Platform -eq 'MacOS') {
-        $osPlatform = (uname -s).ToString()
-    }
-    else {
-        Write-Error "Unsupported operating system. Please install Python 3.10 manually."
-        exit 1
-    }
-
-
-    if ($osPlatform -like "*Windows*") {
+    if ($os.platform -eq "Windows") {
         Install-Python310Windows
     }
-    elseif ($osPlatform -like "*Mac*") {
+    elseif ($os.platform -eq "macOS") {
         Install-Python310Mac
     }
-    elseif ($osPlatform -like "*Linux*") {
+    elseif ($os.platform -eq "Linux") {
         Install-Python310Linux
     }
     else {
@@ -1390,7 +1380,7 @@ function Install-Python3Tk {
 
     $osFamily = $os.family.ToLower()
 
-    if ($PSVersionTable.Platform -eq 'Unix') {
+    if ($os.family -eq "Linux" -or $os.family -eq "macOS") {
         # Linux / macOS installation
     
         # Pre-check: Try to import Tkinter in Python 3.10
@@ -1913,28 +1903,13 @@ function Install-Git {
         }
     }
 
-    $osPlatform = ""
-    if ($PSVersionTable.Platform -eq 'Windows' -or $PSVersionTable.PSEdition -eq 'Desktop') {
-        $osPlatform = (Get-WmiObject -Class Win32_OperatingSystem).Caption
-    }
-    elseif ($PSVersionTable.Platform -eq 'Unix') {
-        $osPlatform = (uname -s).ToString()
-    }
-    elseif ($PSVersionTable.Platform -eq 'MacOS') {
-        $osPlatform = (uname -s).ToString()
-    }
-    else {
-        Write-Error "Unsupported operating system. Please install Git manually."
-        exit 1
-    }
-
-    if ($osPlatform -like "*Windows*") {
+    if ($os.platform -eq "Windows") {
         Install-GitWindows
     }
-    elseif ($osPlatform -like "*Mac*") {
+    elseif ($os.platform -eq "macOS") {
         Install-GitMac
     }
-    elseif ($osPlatform -like "*Linux*" -or $osPlatform -like "*BSD*") {
+    elseif ($os.platform -eq "Linux") {
         Install-GitLinux
     }
     else {
