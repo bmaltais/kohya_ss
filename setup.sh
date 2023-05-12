@@ -1071,6 +1071,7 @@ run_launcher() {
     $([ "$INTERACTIVE" = "true" ] && echo "--interactive") \
     --log-dir="$LOG_DIR" \
     $([ "$NO_SETUP" = "true" ] && echo "--no-setup") \
+    --torch-version="$TORCH_VERSION" \
     $([ "$REPAIR" = "true" ] && echo "--repair") \
     $([ "$SETUP_ONLY" = "true" ] && echo "--setup-only") \
     $([ "$SKIP_SPACE_CHECK" = "true" ] && echo "--skipspacecheck") \
