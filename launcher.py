@@ -1569,7 +1569,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
     def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
         logging.debug("Looking for pre-existing torch packages.")
 
-        # Read get the torch version the automated way unless the user is in interactive mode
+        # Read the torch version the automated way unless the user is in interactive mode
         if not _interactive:
             _torch_version = configure_torch_version(_log_dir, _torch_version)
         else:
