@@ -302,13 +302,16 @@ launcher.py --no-setup
 <details>
 <summary>setup.bat</summary>
 
+Please note that setup.bat is interactive by default to facilitate an easy experience for Windows GUI users.
+Therefore, this is the only script that --interactive has the opposite behavior and disables interactive mode.
+
 ```commandline
 --branch           : Specify the Git branch to use. Default is 'master'.
 --dir              : Specify the working directory. Default is the directory of the script.
 --file             : Specify the configuration file to be processed.
 --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
 --help             : Display this help.
---interactive      : Run in interactive mode.
+--interactive      : Disable Interactive mode and run in automated mode.
 --no-setup         : Skip the setup process.
 --public           : Run in public mode.
 --repair           : This runs the installation repair operations. These could take a few minutes to run.

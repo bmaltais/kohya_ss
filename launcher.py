@@ -1583,6 +1583,7 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
                     break
                 else:
                     print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+            logging.critical(f"Torch Version selected: {_torch_version}")
 
         # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
         if not package_manager.contains('torch') or not package_manager.contains('torchvision') or \

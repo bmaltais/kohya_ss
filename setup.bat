@@ -12,7 +12,7 @@ set Dir=%ScriptDir%
 set File=
 set GitRepo=https://github.com/bmaltais/kohya_ss.git
 set Headless=0
-set Interactive=0
+set Interactive=1
 set LogDir=%ScriptDir%logs
 set NoSetup=0
 set Repair=0
@@ -121,7 +121,7 @@ if /i "%arg%"=="--headless" (
     goto arg_loop
 )
 if /i "%arg%"=="--interactive" (
-    set Interactive=1
+    set Interactive=0
     rem echo Interactive set to !Interactive!
     shift
     goto arg_loop
@@ -276,7 +276,7 @@ echo --file             : Specify the configuration file to be processed.
 echo --git-repo         : Specify the Git repository URL. Default is 'https://github.com/bmaltais/kohya_ss.git'.
 echo --headless         : Headless mode will not display the native windowing toolkit. Useful for remote deployments.
 echo --help             : Display this help.
-echo --interactive      : Run in interactive mode.
+echo --interactive      : Disable Interactive mode and run in automated mode.
 echo --log-dir          : Set the custom log directory for kohya_ss.
 echo --no-setup         : Skip the setup process.
 echo --repair           : This runs the installation repair operations. These could take a few minutes to run.
