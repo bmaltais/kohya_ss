@@ -819,6 +819,40 @@ def gradio_training(
         optimizer_args,
     )
 
+def get_int_or_default(kwargs, key, default_value=0):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, str):
+        return int(value)
+    elif isinstance(value, float):
+        return int(value)
+    else:
+        print(f'{key} is not an int, float or a string, setting value to {default_value}')
+        return default_value
+    
+def get_float_or_default(kwargs, key, default_value=0.0):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, float):
+        return value
+    elif isinstance(value, int):
+        return float(value)
+    elif isinstance(value, str):
+        return float(value)
+    else:
+        print(f'{key} is not an int, float or a string, setting value to {default_value}')
+        return default_value
+
+def get_str_or_default(kwargs, key, default_value=""):
+    value = kwargs.get(key, default_value)
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, int):
+        return str(value)
+    elif isinstance(value, str):
+        return str(value)
+    else:
+        return default_value
 
 def run_cmd_training(**kwargs):
     run_cmd = ''
