@@ -2100,7 +2100,7 @@ function Install-VCRedistWindows {
         }
         else {
             Write-CriticalLog "Installation cancelled."
-            Write-CriticalLog "Please manually install VC via the following URL: " -ForegroundColor Yellow -NoNewline
+            Write-CriticalLog "Please manually install VC via the following URL: " -ForegroundColor Yellow
             Write-CriticalLog "https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow -NoHeader
             exit 1
         }
@@ -2355,7 +2355,9 @@ function Main {
         
             if ($missingSoftware.Count -gt 0) {
                 $missingSoftwareList = $missingSoftware -join ', '
-                Write-CriticalLog "The following software was detected as not installed: ${missingSoftwareList}. If you proceed with the installation we will install these prerequisites."
+                Write-Host "`n"
+                Write-CriticalLog "The following software was detected as not installed: ${missingSoftwareList}." -ForegroundColor Red
+                Write-CriticalLog "`nIf you proceed with the installation we will install these prerequisites."-NoHeader
                 Write-CriticalLog "If you do not wish to continue with this installation, please cancel during the countdown." -NoHeader
                 $continueInstallation = DisplayCountdown -countdown 15
         
@@ -2385,7 +2387,7 @@ function Main {
                 }
                 else {
                     Write-CriticalLog "Installation cancelled." -NoHeader
-                    Write-CriticalLog "Please manually install the following software: $missingSoftwareList." -ForegroundColor Yellow -NoNewline
+                    Write-CriticalLog "Please manually install the following software: $missingSoftwareList." -ForegroundColor Yellow
                     exit 1
                 }
             }
