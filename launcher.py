@@ -462,14 +462,8 @@ def create_symlinks(symlink, target_file):
 
 
 # noinspection SpellCheckingInspection
-def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _log_dir, update, repair):
-    # Name of the flag file
-    # flag_file = os.path.join(_log_dir, "status", "pip_operations_done")
-
-    # We check the same conditions as pip operations, as we should not run this if pip operations don't.
-    # if not os.path.exists(flag_file) or (os.path.exists(flag_file) and (update or repair)):
+def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _log_dir):
     if os_info.family == "Windows":
-        print(f"Installing bitsandbytes windows files...")
         bitsandbytes_source = os.path.join(_dir, "bitsandbytes_windows")
         bitsandbytes_dest = os.path.join(_site_packages_dir, "bitsandbytes")
         bitsandbytes_cuda_dest = os.path.join(_site_packages_dir, "bitsandbytes", "cuda_setup")
@@ -492,7 +486,7 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _lo
                 if file.endswith(".dll"):
                     shutil.copy(os.path.join(bitsandbytes_source, file), bitsandbytes_dest)
                     logging.debug(f"Copying {os.path.join(bitsandbytes_source, file)}"
-                                    f"to {os.path.join(bitsandbytes_dest, file)}")
+                                  f"to {os.path.join(bitsandbytes_dest, file)}")
 
             # Copy cextension.py
             shutil.copy(os.path.join(bitsandbytes_source, "cextension.py"),
@@ -502,7 +496,7 @@ def post_pip_prepare_environment_files_and_folders(_site_packages_dir, _dir, _lo
             # Copy main.py
             shutil.copy(os.path.join(bitsandbytes_source, "main.py"), os.path.join(bitsandbytes_cuda_dest, "main.py"))
             logging.debug(f"Copying {os.path.join(bitsandbytes_source, 'main.py')} to "
-                            f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
+                          f"{os.path.join(bitsandbytes_cuda_dest, 'main.py')}")
 
     if in_container:
         # Symlink paths for libnvinfer.so.7 and libnvinfer_plugin.so.7
@@ -1575,35 +1569,34 @@ def install_python_dependencies(_dir, torch_version, update=False, repair=False,
     def install_or_repair_torch(_update, _repair, _interactive, _torch_version):
         logging.debug("Looking for pre-existing torch packages.")
 
-        _torch_version = configure_torch_version(_log_dir, _torch_version)
-
-        if _repair or _interactive or (package_manager.get_version("torch") is not None
-                                       and int(package_manager.get_version("torch")[0]) != _torch_version):
-            package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
-            logging.debug(f"Looking for {', '.join(package_names)} packages.")
-
-            uninstall_packages(package_names, args.verbosity)
+        # Read get the torch version the automated way unless the user is in interactive mode
+        if not _interactive:
+            _torch_version = configure_torch_version(_log_dir, _torch_version)
+        else:
+            while True:
+                input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
+                if input_torch_version == "1":
+                    _torch_version = 1
+                    break
+                elif input_torch_version == "2":
+                    _torch_version = 2
+                    break
+                else:
+                    print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
 
         # Install/Reinstall Torch and Torchvision if one is missing or update/repair is flagged.
         if not package_manager.contains('torch') or not package_manager.contains('torchvision') or \
-                (_update or _repair or _interactive) \
-                or (package_manager.get_version("torch") is not None
-                    and int(package_manager.get_version("torch")[0]) != _torch_version):
-            if _interactive:
-                while True:
-                    input_torch_version = input("Choose Torch version: (1) V1, (2) V2: ")
-                    if input_torch_version == "1":
-                        _torch_version = 1
-                        break
-                    elif input_torch_version == "2":
-                        _torch_version = 2
-                        break
-                    else:
-                        print("Invalid choice. Please enter 1 for Torch V1 or 2 for Torch V2.")
+                (_update or _repair) or (package_manager.get_version("torch") is not None
+                                         and int(package_manager.get_version("torch")[0]) != _torch_version):
 
-            # Read the torch version from the flag file if it exists and the input _torch_version is 0
-            if _torch_version == 0 and not _interactive:
-                _torch_version = configure_torch_version(_log_dir, _torch_version)
+            # Check if there is a Torch version mismatch between the selection and the installed Torch or if we are
+            # in repair mode.
+            if package_manager.get_version("torch") is not None \
+                    and int(package_manager.get_version("torch")[0]) != _torch_version \
+                    or _repair:
+                package_names = ["xformers", "torch", "torchvision", "triton", "bitsandbytes"]
+                logging.debug(f"Looking for {', '.join(package_names)} packages.")
+                uninstall_packages(package_names, args.verbosity)
 
             install_commands = configure_torch_dependencies(update, repair, _interactive,
                                                             _torch_version, args.verbosity)
@@ -2091,7 +2084,7 @@ def main(_args=None):
             install_python_dependencies(_args.dir, _args.torch_version, _args.update, _args.repair,
                                         _args.interactive, getattr(_args, "log-dir"))
             post_pip_prepare_environment_files_and_folders(site_packages_dir, _args.dir,
-                                                           getattr(_args, "log-dir"), _args.update, _args.repair)
+                                                           getattr(_args, "log-dir"))
             configure_accelerate(_args.interactive)
             if not getattr(_args, 'setup_only'):
                 launch_kohya_gui(_args)
