@@ -213,12 +213,12 @@ class CountOccurrencesAction(argparse.Action):
 # Valid versions are listed in valid_torch_versions.
 # noinspection SpellCheckingInspection
 class ChecktorchVersionAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, value, option_string=None):
         valid_torch_versions = [0, 1, 2]
-        if int(values) not in valid_torch_versions:
-            parser.error(f'\nInvalid value for --torch-version: {values}. '
+        if int(value) not in valid_torch_versions:
+            parser.error(f'\nInvalid value for --torch-version: {value}. '
                          f'Valid values are {", ".join(map(str, valid_torch_versions))}.')
-        setattr(namespace, self.dest, int(values))
+        setattr(namespace, self.dest, int(value))
 
 
 # noinspection SpellCheckingInspection

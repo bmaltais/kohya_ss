@@ -2049,10 +2049,7 @@ function Test-VCRedistInstalled {
         }
     }
 
-    if ($found) {
-        Write-DebugLog "Visual C++ $($vcRedistOldestYear)-$($vcRedistNewestYear) Redistributable is already installed."
-    }
-    else {
+    if (-not ($found)) {
         Write-DebugLog "Visual C++ $($vcRedistOldestYear)-$($vcRedistNewestYear) Redistributable is not installed."
     }
 
@@ -2337,14 +2334,23 @@ function Main {
         
             if (-not (Test-Python310Installed)) {
                 $missingSoftware += "Python 3.10"
+            } 
+            else {
+                Write-CriticalLog "Python 3.10 is installed." -NoHeader
             }
         
             if (-not (Test-GitInstalled)) {
                 $missingSoftware += "Git"
+            } 
+            else {
+                Write-CriticalLog "Git is installed." -NoHeader
             }
-        
+    
             if ($script:os.family -eq "Windows" -and -not (Test-VCRedistInstalled -vcRedistOldestYear $script:vcRedistOldestYear -vcRedistNewestYear $script:vcRedistNewestYear)) {
                 $missingSoftware += "VC Redist ${script:vcRedistOldestYear}-${script:vcRedistNewestYear}"
+            } 
+            else {
+                Write-CriticalLog "VC Redistitributable ${script:vcRedistOldestYear}-${script:vcRedistNewestYear} is installed." -NoHeader
             }
         
             if ($missingSoftware.Count -gt 0) {
@@ -2468,7 +2474,7 @@ function Main {
 
             # Call launcher.py with the appropriate parameters
             $launcherFileName = Split-Path $launcher -Leaf
-            Write-CriticalLog "Switching to ${launcherFileName}.`n`n" -NoHeader
+            Write-CriticalLog "Now calling ${launcherFileName}.`n`n" -NoHeader
             $command = "$pyExe -u $launcher $installArgs"
             Write-DebugLog "Running command: $command"
             & $pyExe -u "$launcher" $($installArgs.ToArray())
@@ -2592,5 +2598,5 @@ if ($script:os.family -eq "Windows") {
 }
 
 # Main entry point to the script
-Write-CriticalLog "Beginning main function." -NoHeader
+Write-DebugLog "Beginning main function." -NoHeader
 Main -Parameters $script:Parameters
