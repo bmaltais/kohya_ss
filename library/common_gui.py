@@ -1092,8 +1092,8 @@ def gradio_advanced_training(headless=False):
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
-        wandb_api_key,
         use_wandb,
+        wandb_api_key,
     )
 
 
