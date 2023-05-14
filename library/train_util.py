@@ -3303,6 +3303,9 @@ def sample_images(
         with open(args.sample_prompts, 'r') as f:
             data = toml.load(f)
         prompts = [dict(**data['prompt'], **subset) for subset in data['prompt']['subset']]
+    elif args.sample_prompts.endswith('.json'):
+        with open(args.sample_prompts, 'r') as f:
+            prompts = json.load(f)
     
     # schedulerを用意する
     sched_init_args = {}
