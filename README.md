@@ -4,7 +4,12 @@ This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffus
 
 ### Table of Contents
 
+<<<<<<< HEAD
 - [Tutorials](#tutorials)
+=======
+[English translation by darkstorm2150 is here](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation). Thanks to darkstorm2150!
+
+>>>>>>> 6d6df18387a72193af62c651473fe1369b6a2040
 * [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
   * [Chinese version](./docs/train_README-zh.md)
 * [Dataset config](./docs/config_README-ja.md) 
@@ -352,6 +357,9 @@ This will store a backup file with your current locally installed pip packages a
     - If you specify a number with the `--vae_slices` option, the memory-efficient VAE will be used. The maximum output size will be larger, but it will be slower. Please specify a value of about `16` or `32`.
     - The implementation of the VAE is in `library/slicing_vae.py`.
   - Fix for wandb #ebabchick
+  - Added [English translation of documents](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation) by darkstorm2150. Thank you very much!
+  - The prompt for sample generation during training can now be specified in `.toml` or `.json`. [PR #504](https://github.com/kohya-ss/sd-scripts/pull/504) Thanks to Linaqruf!
+    - For details on prompt description, please see the PR.
 * 2023/04/07 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.

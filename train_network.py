@@ -347,6 +347,7 @@ def train(args):
         "ss_noise_offset": args.noise_offset,
         "ss_multires_noise_iterations": args.multires_noise_iterations,
         "ss_multires_noise_discount": args.multires_noise_discount,
+        "ss_adaptive_noise_scale": args.adaptive_noise_scale,
         "ss_training_comment": args.training_comment,  # will not be updated after training
         "ss_sd_scripts_commit_hash": train_util.get_git_revision_hash(),
         "ss_optimizer": optimizer_name + (f"({optimizer_args})" if len(optimizer_args) > 0 else ""),
