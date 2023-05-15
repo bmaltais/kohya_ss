@@ -341,7 +341,7 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/07/11 (v21.5.11)
+* 2023/07/15 (v21.5.11)
   - Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
     - It is useful in combination with `resize_lora.py`. Please see the PR for details.
   - Fixed a bug where the noise resolution was incorrect with Multires noise. [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489) Thanks to sdbds!
@@ -351,6 +351,7 @@ This will store a backup file with your current locally installed pip packages a
   - Added a feature to the image generation scripts to use the memory-efficient VAE.
     - If you specify a number with the `--vae_slices` option, the memory-efficient VAE will be used. The maximum output size will be larger, but it will be slower. Please specify a value of about `16` or `32`.
     - The implementation of the VAE is in `library/slicing_vae.py`.
+  - Fix for wandb #ebabchick
 * 2023/04/07 (v21.5.10)
   - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
   - The documentation has been moved to the `docs` folder. If you have links, please change them.
