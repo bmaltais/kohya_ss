@@ -143,7 +143,7 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 ### 15 May 2023, 2023/05/15
 
 - Added [English translation of documents](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation) by darkstorm2150. Thank you very much!
-- The prompt for sample generation during training can now be specified in `.toml` or `.json`. [PR #504]((https://github.com/kohya-ss/sd-scripts/pull/504) Thanks to Linaqruf!
+- The prompt for sample generation during training can now be specified in `.toml` or `.json`. [PR #504](https://github.com/kohya-ss/sd-scripts/pull/504) Thanks to Linaqruf!
   - For details on prompt description, please see the PR.
 
 - darkstorm2150氏に[ドキュメント類を英訳](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation)していただきました。ありがとうございます！
