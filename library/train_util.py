@@ -2127,12 +2127,12 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
     )
-    parser.add_argument(
-        "--perlin_noise",
-        type=int,
-        default=None,
-        help="enable perlin noise and set the octaves",
-    )
+    # parser.add_argument(
+    #     "--perlin_noise",
+    #     type=int,
+    #     default=None,
+    #     help="enable perlin noise and set the octaves / perlin noiseを有効にしてoctavesをこの値に設定する",
+    # )
     parser.add_argument(
         "--multires_noise_discount",
         type=float,
@@ -2217,15 +2217,21 @@ def verify_training_args(args: argparse.Namespace):
             "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
         )
 
+    # noise_offset, perlin_noise, multires_noise_iterations cannot be enabled at the same time
+    # Listを使って数えてもいいけど並べてしまえ
     if args.noise_offset is not None and args.multires_noise_iterations is not None:
         raise ValueError(
-            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にすることはできません"
+            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にできません"
         )
+    # if args.noise_offset is not None and args.perlin_noise is not None:
+    #     raise ValueError("noise_offset and perlin_noise cannot be enabled at the same time / noise_offsetとperlin_noiseは同時に有効にできません")
+    # if args.perlin_noise is not None and args.multires_noise_iterations is not None:
+    #     raise ValueError(
+    #         "perlin_noise and multires_noise_iterations cannot be enabled at the same time / perlin_noiseとmultires_noise_iterationsを同時に有効にできません"
+    #     )
 
     if args.adaptive_noise_scale is not None and args.noise_offset is None:
-        raise ValueError(
-            "adaptive_noise_scale requires noise_offset / adaptive_noise_scaleを使用するにはnoise_offsetが必要です"
-        )
+        raise ValueError("adaptive_noise_scale requires noise_offset / adaptive_noise_scaleを使用するにはnoise_offsetが必要です")
 
 
 def add_dataset_arguments(
@@ -3301,18 +3307,18 @@ def sample_images(
     # with open(args.sample_prompts, "rt", encoding="utf-8") as f:
     #     prompts = f.readlines()
 
-    if args.sample_prompts.endswith('.txt'):
-        with open(args.sample_prompts, 'r') as f:
+    if args.sample_prompts.endswith(".txt"):
+        with open(args.sample_prompts, "r") as f:
             lines = f.readlines()
         prompts = [line.strip() for line in lines if len(line.strip()) > 0 and line[0] != "#"]
-    elif args.sample_prompts.endswith('.toml'):
-        with open(args.sample_prompts, 'r') as f:
+    elif args.sample_prompts.endswith(".toml"):
+        with open(args.sample_prompts, "r") as f:
             data = toml.load(f)
-        prompts = [dict(**data['prompt'], **subset) for subset in data['prompt']['subset']]
-    elif args.sample_prompts.endswith('.json'):
-        with open(args.sample_prompts, 'r') as f:
+        prompts = [dict(**data["prompt"], **subset) for subset in data["prompt"]["subset"]]
+    elif args.sample_prompts.endswith(".json"):
+        with open(args.sample_prompts, "r") as f:
             prompts = json.load(f)
-    
+
     # schedulerを用意する
     sched_init_args = {}
     if args.sample_sampler == "ddim":
@@ -3381,7 +3387,7 @@ def sample_images(
             for i, prompt in enumerate(prompts):
                 if not accelerator.is_main_process:
                     continue
-            
+
                 if isinstance(prompt, dict):
                     negative_prompt = prompt.get("negative_prompt")
                     sample_steps = prompt.get("sample_steps", 30)
@@ -3390,7 +3396,7 @@ def sample_images(
                     scale = prompt.get("scale", 7.5)
                     seed = prompt.get("seed")
                     prompt = prompt.get("prompt")
-                else:               
+                else:
                     # prompt = prompt.strip()
                     # if len(prompt) == 0 or prompt[0] == "#":
                     #     continue
