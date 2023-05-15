@@ -410,9 +410,9 @@ def rand_perlin_2d_octaves(device, shape, res, octaves=1, persistence=0.5):
         amplitude *= persistence
     return noise
 
-def perlin_noise(noise, device):
+def perlin_noise(noise, device,octaves):
     b, c, w, h = noise.shape()
-    perlin = lambda : rand_perlin_2d_octaves(device,(w,h),(4,4),1)
+    perlin = lambda : rand_perlin_2d_octaves(device,(w,h),(4,4),octaves)
     noise_perlin_r = torch.rand(noise.shape, device=device) + perlin()
     noise_perlin_g = torch.rand(noise.shape, device=device) + perlin()
     noise_perlin_b = torch.rand(noise.shape, device=device) + perlin()
@@ -420,7 +420,7 @@ def perlin_noise(noise, device):
         (noise_perlin_r,
          noise_perlin_g,
          noise_perlin_b),
-        2)
+        1)
     return noise_perlin
 
 

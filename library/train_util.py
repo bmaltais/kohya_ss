@@ -2128,6 +2128,12 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
     )
     parser.add_argument(
+        "--perlin_noise",
+        type=int,
+        default=None,
+        help="enable perlin noise and set the octaves",
+    )
+    parser.add_argument(
         "--multires_noise_discount",
         type=float,
         default=0.3,
