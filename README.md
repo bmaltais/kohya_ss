@@ -140,6 +140,13 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 16 May 2023, 2023/05/16
+
+- Fixed an issue where an error would occur if the encoding of the prompt file was different from the default. [PR #510](https://github.com/kohya-ss/sd-scripts/pull/510) Thanks to sdbds!
+  - Please save the prompt file in UTF-8.
+- プロンプトファイルのエンコーディングがデフォルトと異なる場合にエラーが発生する問題を修正しました。 [PR #510](https://github.com/kohya-ss/sd-scripts/pull/510) sdbds氏に感謝します。
+  - プロンプトファイルはUTF-8で保存してください。
+
 ### 15 May 2023, 2023/05/15
 
 - Added [English translation of documents](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation) by darkstorm2150. Thank you very much!
