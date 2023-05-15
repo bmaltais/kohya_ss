@@ -23,7 +23,14 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings, pyramid_noise_like, apply_noise_offset
+from library.custom_train_functions import (
+    apply_snr_weight,
+    get_weighted_text_embeddings,
+    pyramid_noise_like,
+    apply_noise_offset,
+)
+
+# perlin_noise,
 
 
 def train(args):
@@ -240,7 +247,7 @@ def train(args):
     loss_list = []
     loss_total = 0.0
     for epoch in range(num_train_epochs):
-        print(f"epoch {epoch+1}/{num_train_epochs}")
+        print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
@@ -274,6 +281,8 @@ def train(args):
                     noise = apply_noise_offset(latents, noise, args.noise_offset, args.adaptive_noise_scale)
                 elif args.multires_noise_iterations:
                     noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
+                # elif args.perlin_noise:
+                #     noise = perlin_noise(noise, latents.device, args.perlin_noise)  # only shape of noise is used currently
 
                 # Get the text embedding for conditioning
                 with torch.set_grad_enabled(global_step < args.stop_text_encoder_training):

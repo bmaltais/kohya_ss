@@ -62,7 +62,7 @@ def load_control_net(v2, unet, model):
 
   # 重みをU-Netに読み込めるようにする。ControlNetはSD版のstate dictなので、それを読み込む
   is_difference = "difference" in ctrl_sd_sd
-  print("ControlNet: loading difference")
+  print("ControlNet: loading difference:", is_difference)
 
   # ControlNetには存在しないキーがあるので、まず現在のU-NetでSD版の全keyを作っておく
   # またTransfer Controlの元weightとなる
@@ -123,7 +123,8 @@ def load_preprocess(prep_type: str):
 
 def preprocess_ctrl_net_hint_image(image):
   image = np.array(image).astype(np.float32) / 255.0
-  image = image[:, :, ::-1].copy()                         # rgb to bgr
+  # ControlNetのサンプルはcv2を使っているが、読み込みはGradioなので実はRGBになっている
+  # image = image[:, :, ::-1].copy()                         # rgb to bgr
   image = image[None].transpose(0, 3, 1, 2)       # nchw
   image = torch.from_numpy(image)
   return image                              # 0 to 1
