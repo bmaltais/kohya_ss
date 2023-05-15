@@ -28,6 +28,8 @@ The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
 
 Most of the documents are written in Japanese.
 
+[English translation by darkstorm2150 is here](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation). Thanks to darkstorm2150!
+
 * [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
   * [Chinese version](./docs/train_README-zh.md)
 * [Dataset config](./docs/config_README-ja.md) 
@@ -137,6 +139,16 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 [BLIP](https://github.com/salesforce/BLIP): BSD-3-Clause
 
 ## Change History
+
+### 15 May 2023, 2023/05/15
+
+- Added [English translation of documents](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation) by darkstorm2150. Thank you very much!
+- The prompt for sample generation during training can now be specified in `.toml` or `.json`. [PR #504]((https://github.com/kohya-ss/sd-scripts/pull/504) Thanks to Linaqruf!
+  - For details on prompt description, please see the PR.
+
+- darkstorm2150氏に[ドキュメント類を英訳](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation)していただきました。ありがとうございます！
+- 学習中のサンプル生成のプロンプトを`.toml`または`.json`で指定可能になりました。 [PR #504](https://github.com/kohya-ss/sd-scripts/pull/504) Linaqruf氏に感謝します。
+  - プロンプト記述の詳細は当該PRをご覧ください。
 
 ### 11 May 2023, 2023/05/11
 

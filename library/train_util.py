@@ -2127,6 +2127,12 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
     )
+    # parser.add_argument(
+    #     "--perlin_noise",
+    #     type=int,
+    #     default=None,
+    #     help="enable perlin noise and set the octaves / perlin noiseを有効にしてoctavesをこの値に設定する",
+    # )
     parser.add_argument(
         "--multires_noise_discount",
         type=float,
@@ -2211,15 +2217,21 @@ def verify_training_args(args: argparse.Namespace):
             "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
         )
 
+    # noise_offset, perlin_noise, multires_noise_iterations cannot be enabled at the same time
+    # Listを使って数えてもいいけど並べてしまえ
     if args.noise_offset is not None and args.multires_noise_iterations is not None:
         raise ValueError(
-            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にすることはできません"
+            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にできません"
         )
+    # if args.noise_offset is not None and args.perlin_noise is not None:
+    #     raise ValueError("noise_offset and perlin_noise cannot be enabled at the same time / noise_offsetとperlin_noiseは同時に有効にできません")
+    # if args.perlin_noise is not None and args.multires_noise_iterations is not None:
+    #     raise ValueError(
+    #         "perlin_noise and multires_noise_iterations cannot be enabled at the same time / perlin_noiseとmultires_noise_iterationsを同時に有効にできません"
+    #     )
 
     if args.adaptive_noise_scale is not None and args.noise_offset is None:
-        raise ValueError(
-            "adaptive_noise_scale requires noise_offset / adaptive_noise_scaleを使用するにはnoise_offsetが必要です"
-        )
+        raise ValueError("adaptive_noise_scale requires noise_offset / adaptive_noise_scaleを使用するにはnoise_offsetが必要です")
 
 
 def add_dataset_arguments(
@@ -2918,11 +2930,11 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu"):
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
     if load_stable_diffusion_format:
-        print("load StableDiffusion checkpoint")
+        print(f"load StableDiffusion checkpoint: {name_or_path}")
         text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, name_or_path, device)
     else:
         # Diffusers model is loaded to CPU
-        print("load Diffusers pretrained models")
+        print(f"load Diffusers pretrained models: {name_or_path}")
         try:
             pipe = StableDiffusionPipeline.from_pretrained(name_or_path, tokenizer=None, safety_checker=None)
         except EnvironmentError as ex:
@@ -3291,8 +3303,21 @@ def sample_images(
     vae.to(device)
 
     # read prompts
-    with open(args.sample_prompts, "rt", encoding="utf-8") as f:
-        prompts = f.readlines()
+
+    # with open(args.sample_prompts, "rt", encoding="utf-8") as f:
+    #     prompts = f.readlines()
+
+    if args.sample_prompts.endswith(".txt"):
+        with open(args.sample_prompts, "r") as f:
+            lines = f.readlines()
+        prompts = [line.strip() for line in lines if len(line.strip()) > 0 and line[0] != "#"]
+    elif args.sample_prompts.endswith(".toml"):
+        with open(args.sample_prompts, "r") as f:
+            data = toml.load(f)
+        prompts = [dict(**data["prompt"], **subset) for subset in data["prompt"]["subset"]]
+    elif args.sample_prompts.endswith(".json"):
+        with open(args.sample_prompts, "r") as f:
+            prompts = json.load(f)
 
     # schedulerを用意する
     sched_init_args = {}
@@ -3362,53 +3387,63 @@ def sample_images(
             for i, prompt in enumerate(prompts):
                 if not accelerator.is_main_process:
                     continue
-                prompt = prompt.strip()
-                if len(prompt) == 0 or prompt[0] == "#":
-                    continue
 
-                # subset of gen_img_diffusers
-                prompt_args = prompt.split(" --")
-                prompt = prompt_args[0]
-                negative_prompt = None
-                sample_steps = 30
-                width = height = 512
-                scale = 7.5
-                seed = None
-                for parg in prompt_args:
-                    try:
-                        m = re.match(r"w (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            width = int(m.group(1))
-                            continue
+                if isinstance(prompt, dict):
+                    negative_prompt = prompt.get("negative_prompt")
+                    sample_steps = prompt.get("sample_steps", 30)
+                    width = prompt.get("width", 512)
+                    height = prompt.get("height", 512)
+                    scale = prompt.get("scale", 7.5)
+                    seed = prompt.get("seed")
+                    prompt = prompt.get("prompt")
+                else:
+                    # prompt = prompt.strip()
+                    # if len(prompt) == 0 or prompt[0] == "#":
+                    #     continue
 
-                        m = re.match(r"h (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            height = int(m.group(1))
-                            continue
+                    # subset of gen_img_diffusers
+                    prompt_args = prompt.split(" --")
+                    prompt = prompt_args[0]
+                    negative_prompt = None
+                    sample_steps = 30
+                    width = height = 512
+                    scale = 7.5
+                    seed = None
+                    for parg in prompt_args:
+                        try:
+                            m = re.match(r"w (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                width = int(m.group(1))
+                                continue
 
-                        m = re.match(r"d (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            seed = int(m.group(1))
-                            continue
+                            m = re.match(r"h (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                height = int(m.group(1))
+                                continue
 
-                        m = re.match(r"s (\d+)", parg, re.IGNORECASE)
-                        if m:  # steps
-                            sample_steps = max(1, min(1000, int(m.group(1))))
-                            continue
+                            m = re.match(r"d (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                seed = int(m.group(1))
+                                continue
 
-                        m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
-                        if m:  # scale
-                            scale = float(m.group(1))
-                            continue
+                            m = re.match(r"s (\d+)", parg, re.IGNORECASE)
+                            if m:  # steps
+                                sample_steps = max(1, min(1000, int(m.group(1))))
+                                continue
 
-                        m = re.match(r"n (.+)", parg, re.IGNORECASE)
-                        if m:  # negative prompt
-                            negative_prompt = m.group(1)
-                            continue
+                            m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
+                            if m:  # scale
+                                scale = float(m.group(1))
+                                continue
 
-                    except ValueError as ex:
-                        print(f"Exception in parsing / 解析エラー: {parg}")
-                        print(ex)
+                            m = re.match(r"n (.+)", parg, re.IGNORECASE)
+                            if m:  # negative prompt
+                                negative_prompt = m.group(1)
+                                continue
+
+                        except ValueError as ex:
+                            print(f"Exception in parsing / 解析エラー: {parg}")
+                            print(ex)
 
                 if seed is not None:
                     torch.manual_seed(seed)
