@@ -3308,15 +3308,15 @@ def sample_images(
     #     prompts = f.readlines()
 
     if args.sample_prompts.endswith(".txt"):
-        with open(args.sample_prompts, "r") as f:
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
             lines = f.readlines()
         prompts = [line.strip() for line in lines if len(line.strip()) > 0 and line[0] != "#"]
     elif args.sample_prompts.endswith(".toml"):
-        with open(args.sample_prompts, "r") as f:
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
             data = toml.load(f)
         prompts = [dict(**data["prompt"], **subset) for subset in data["prompt"]["subset"]]
     elif args.sample_prompts.endswith(".json"):
-        with open(args.sample_prompts, "r") as f:
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
             prompts = json.load(f)
 
     # schedulerを用意する
