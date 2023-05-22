@@ -638,7 +638,7 @@ def create_network_from_weights(multiplier, file, vae, text_encoder, unet, weigh
     # support old LoRA without alpha
     for key in modules_dim.keys():
         if key not in modules_alpha:
-            modules_alpha = modules_dim[key]
+            modules_alpha[key] = modules_dim[key]
 
     module_class = LoRAInfModule if for_inference else LoRAModule
 
