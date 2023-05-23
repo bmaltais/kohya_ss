@@ -4,21 +4,16 @@ This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffus
 
 ### Table of Contents
 
-<<<<<<< HEAD
 - [Tutorials](#tutorials)
-=======
-[English translation by darkstorm2150 is here](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation). Thanks to darkstorm2150!
-
->>>>>>> 6d6df18387a72193af62c651473fe1369b6a2040
 * [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
   * [Chinese version](./docs/train_README-zh.md)
-* [Dataset config](./docs/config_README-ja.md) 
-* [DreamBooth training guide](./docs/train_db_README-ja.md)
-* [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
-* [Training LoRA](./docs/train_network_README-ja.md)
-* [training Textual Inversion](./docs/train_ti_README-ja.md)
-* [Image generation](./docs/gen_img_README-ja.md)
-* note.com [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
+  * [Dataset config](./docs/config_README-ja.md) 
+  * [DreamBooth training guide](./docs/train_db_README-ja.md)
+  * [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
+  * [Training LoRA](./docs/train_network_README-ja.md)
+  * [training Textual Inversion](./docs/train_ti_README-ja.md)
+  * [Image generation](./docs/gen_img_README-ja.md)
+  * [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
 - [Required Dependencies](#required-dependencies)
   - [Linux/macOS](#linux-and-macos-dependencies)
 - [Installation](#installation)
