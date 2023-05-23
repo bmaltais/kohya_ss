@@ -345,6 +345,14 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/07/15 (v21.5.12)
+- Fixed several bugs.
+  - The state is saved even when the `--save_state` option is not specified in `fine_tune.py` and `train_db.py`. [PR #521](https://github.com/kohya-ss/sd-scripts/pull/521) Thanks to akshaal!
+  - Cannot load LoRA without `alpha`. [PR #527](https://github.com/kohya-ss/sd-scripts/pull/527) Thanks to Manjiz!
+  - Minor changes to console output during sample generation. [PR #515](https://github.com/kohya-ss/sd-scripts/pull/515) Thanks to yanhuifair!
+- The generation script now uses xformers for VAE as well.
+- Fixed an issue where an error would occur if the encoding of the prompt file was different from the default. [PR #510](https://github.com/kohya-ss/sd-scripts/pull/510) Thanks to sdbds!
+  - Please save the prompt file in UTF-8.
 * 2023/07/15 (v21.5.11)
   - Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
     - It is useful in combination with `resize_lora.py`. Please see the PR for details.
