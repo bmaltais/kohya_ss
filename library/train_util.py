@@ -1071,7 +1071,7 @@ class DreamBoothDataset(BaseDataset):
                         assert len(lines) > 0, f"caption file is empty / キャプションファイルが空です: {cap_path}"
                         caption = lines[0].strip()
                     break
-                return caption
+             return caption
 
         def load_dreambooth_dir(subset: DreamBoothSubset):
             if not os.path.isdir(subset.image_dir):
