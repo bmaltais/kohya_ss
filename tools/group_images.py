@@ -65,7 +65,7 @@ def process_images(input_folder, output_folder, group_size):
                 # Save the image with the new filename
                 output_path = os.path.join(output_folder, f"group-{i+1}-image-{j+1}.jpg")
                 print(f"  Saving processed image to {output_path}")
-                img.save(output_path)
+                img.convert('RGB').save(output_path)
 
 def main():
     parser = argparse.ArgumentParser(description='Process groups of images.')
