@@ -79,8 +79,8 @@ Run the following commands in your OS shell after installing [git](https://git-s
 ```bash
 git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
-docker compose build
-docker compose run --service-ports kohya-ss-gui
+docker-compose build
+docker-compose run --service-ports kohya-ss-gui
 ```
 
 This will take a while (up to 20 minutes) on the first run.
