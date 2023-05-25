@@ -558,6 +558,12 @@ def train_model(
         )
         reg_factor = 2
 
+    print(f'Total steps: {total_steps}')
+    print(f'Train batch size: {train_batch_size}')
+    print(f'Gradient accumulation steps: {gradient_accumulation_steps}')
+    print(f'Epoch: {epoch}')
+    print(f'Regulatization factor: {reg_factor}')
+
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
@@ -568,7 +574,7 @@ def train_model(
             * int(reg_factor)
         )
     )
-    print(f'max_train_steps = {max_train_steps}')
+    print(f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}')
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
