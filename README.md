@@ -347,6 +347,12 @@ This will store a backup file with your current locally installed pip packages a
 
 * 2023/05/24 (v21.5.13)
 - Upgrade gradio release to fix issue with UI refresh on config load.
+- [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!
+  - `--optimizer_type` now accepts `DAdaptAdamPreprint`, `DAdaptAdanIP`, and `DAdaptLion`.
+  - `DAdaptAdam` is now new. The old `DAdaptAdam` is available with `DAdaptAdamPreprint`.
+  - Simply specifying `DAdaptation` will use `DAdaptAdamPreprint` (same behavior as before).
+  - You need to install D-Adaptation v3.0. After activating venv, please do `pip install -U dadaptation`.
+  - See PR and D-Adaptation documentation for details.
 * 2023/05/22 (v21.5.12)
 - Fixed several bugs.
   - The state is saved even when the `--save_state` option is not specified in `fine_tune.py` and `train_db.py`. [PR #521](https://github.com/kohya-ss/sd-scripts/pull/521) Thanks to akshaal!
