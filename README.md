@@ -140,6 +140,21 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 25 May 2023, 2023/05/25
+
+- [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!
+  - `--optimizer_type` now accepts `DAdaptAdamPreprint`, `DAdaptAdanIP`, and `DAdaptLion`.
+  - `DAdaptAdam` is now new. The old `DAdaptAdam` is available with `DAdaptAdamPreprint`.
+  - Simply specifying `DAdaptation` will use `DAdaptAdamPreprint` (same behavior as before).
+  - You need to install D-Adaptation v3.0. After activating venv, please do `pip install -U dadaptation`.
+  - See PR and D-Adaptation documentation for details.
+- [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation)がサポートされました。 [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530)  sdbds氏に感謝します。
+  - `--optimizer_type`に`DAdaptAdamPreprint`、`DAdaptAdanIP`、`DAdaptLion` が追加されました。
+  - `DAdaptAdam`が新しくなりました。今までの`DAdaptAdam`は`DAdaptAdamPreprint`で使用できます。
+  - 単に `DAdaptation` を指定すると`DAdaptAdamPreprint`が使用されます（今までと同じ動き）。
+  - D-Adaptation v3.0のインストールが必要です。venvを有効にした後 `pip install -U dadaptation` としてください。
+  - 詳細はPRおよびD-Adaptationのドキュメントを参照してください。
+
 ### 22 May 2023, 2023/05/22
 
 - Fixed several bugs.
