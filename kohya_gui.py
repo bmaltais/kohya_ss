@@ -118,12 +118,13 @@ def UI(**kwargs):
                 enable_copy_info_button=True,
                 headless=headless,
             )
-            gradio_extract_dylora_tab(headless=headless)
-            gradio_extract_lora_tab(headless=headless)
-            gradio_extract_lycoris_locon_tab(headless=headless)
-            gradio_merge_lora_tab(headless=headless)
-            gradio_merge_lycoris_tab(headless=headless)
-            gradio_resize_lora_tab(headless=headless)
+            with gr.Tab('LoRA'):
+                gradio_extract_dylora_tab(headless=headless)
+                gradio_extract_lora_tab(headless=headless)
+                gradio_extract_lycoris_locon_tab(headless=headless)
+                gradio_merge_lora_tab(headless=headless)
+                gradio_merge_lycoris_tab(headless=headless)
+                gradio_resize_lora_tab(headless=headless)
 
     # Show the interface
     launch_kwargs = {}

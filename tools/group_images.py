@@ -3,7 +3,7 @@ import shutil
 from PIL import Image
 import os
 import numpy as np
-import math
+# import math
 
 class ImageProcessor:
 
@@ -38,7 +38,7 @@ class ImageProcessor:
             cropped_images = self.crop_images(group, avg_aspect_ratio)
             self.resize_and_save_images(cropped_images, group_index)
             if not self.do_not_copy_other_files:
-                self.copy_other_files(group)
+                self.copy_other_files(group, group_index)
 
     def get_aspect_ratios(self, group):
         aspect_ratios = []
@@ -83,8 +83,8 @@ class ImageProcessor:
             print(f"  Saving processed image to {output_path}")
             img.convert('RGB').save(output_path)
 
-    def copy_other_files(self, group):
-        for path in group:
+    def copy_other_files(self, group, group_index):
+        for j, path in enumerate(group):
             dirpath, original_filename = os.path.split(path)
             original_basename, original_ext = os.path.splitext(original_filename)
             for filename in os.listdir(dirpath):
@@ -92,7 +92,7 @@ class ImageProcessor:
                     continue
                 basename, ext = os.path.splitext(filename)
                 if basename == original_basename and ext != original_ext:
-                    shutil.copy2(os.path.join(dirpath, filename), self.output_folder)
+                    shutil.copy2(os.path.join(dirpath, filename), os.path.join(self.output_folder, f"group-{group_index+1}-image-{j+1}{ext}"))
 
     def process_images(self):
         images = self.get_image_paths()
