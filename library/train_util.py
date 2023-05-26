@@ -1109,7 +1109,6 @@ class DreamBoothDataset(BaseDataset):
                         print(missing_caption+f"... and {remaining_missing_captions} more")
                         break
                     print(missing_caption)
-                time.sleep(5)
             return img_paths, captions
 
         print("prepare images.")
