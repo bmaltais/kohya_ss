@@ -1,18 +1,18 @@
 import argparse
 import shutil
-from PIL import Image
+from PIL import Image, ImageOps
 import os
 import numpy as np
-# import math
 
 class ImageProcessor:
 
-    def __init__(self, input_folder, output_folder, group_size, include_subfolders, do_not_copy_other_files):
+    def __init__(self, input_folder, output_folder, group_size, include_subfolders, do_not_copy_other_files, pad):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.group_size = group_size
         self.include_subfolders = include_subfolders
         self.do_not_copy_other_files = do_not_copy_other_files
+        self.pad = pad
         self.image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 
     def get_image_paths(self):
@@ -100,6 +100,42 @@ class ImageProcessor:
         for i, group in enumerate(groups):
             print(f"Processing group {i+1} with {len(group)} images...")
             self.process_group(group, i)
+            
+    def process_group(self, group, group_index):
+        if len(group) > 0:
+            aspect_ratios = self.get_aspect_ratios(group)
+            avg_aspect_ratio = np.mean(aspect_ratios)
+            if self.pad:
+                padded_images = self.pad_images(group, avg_aspect_ratio)
+                self.resize_and_save_images(padded_images, group_index)
+            else:
+                cropped_images = self.crop_images(group, avg_aspect_ratio)
+                self.resize_and_save_images(cropped_images, group_index)
+            if not self.do_not_copy_other_files:
+                self.copy_other_files(group, group_index)
+
+    def pad_images(self, group, avg_aspect_ratio):
+        padded_images = []
+        for j, path in enumerate(group):
+            with Image.open(path) as img:
+                print(f"  Processing image {j+1}: {path}")
+                img = self.pad_image(img, avg_aspect_ratio)
+                padded_images.append(img)
+        return padded_images
+
+    def pad_image(self, img, avg_aspect_ratio):
+        img_aspect_ratio = img.width / img.height
+        if img_aspect_ratio < avg_aspect_ratio:
+            # Too tall, increase width
+            new_width = avg_aspect_ratio * img.height
+            pad_width = int((new_width - img.width) / 2)
+            img = ImageOps.expand(img, border=(pad_width, 0), fill='black')
+        else:
+            # Too wide, increase height
+            new_height = img.width / avg_aspect_ratio
+            pad_height = int((new_height - img.height) / 2)
+            img = ImageOps.expand(img, border=(0, pad_height), fill='black')
+        return img
 
 def main():
     parser = argparse.ArgumentParser(description='Process groups of images.')
@@ -108,10 +144,11 @@ def main():
     parser.add_argument('group_size', type=int, help='Number of images in each group')
     parser.add_argument('--include_subfolders', action='store_true', help='Include subfolders in search for images')
     parser.add_argument('--do_not_copy_other_files', '--no_copy', dest='do_not_copy_other_files', action='store_true', help='Do not copy other files with the same name as images')
+    parser.add_argument('--pad', action='store_true', help='Pad images instead of cropping them')
 
     args = parser.parse_args()
 
-    processor = ImageProcessor(args.input_folder, args.output_folder, args.group_size, args.include_subfolders, args.do_not_copy_other_files)
+    processor = ImageProcessor(args.input_folder, args.output_folder, args.group_size, args.include_subfolders, args.do_not_copy_other_files, args.pad)
     processor.process_images()
 
 if __name__ == "__main__":

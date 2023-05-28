@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/05/28 (v21.5.14)
+- Add Create Groupo tool and GUI
 * 2023/05/24 (v21.5.13)
 - Upgrade gradio release to fix issue with UI refresh on config load.
 - [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!

@@ -95,7 +95,7 @@ def gradio_group_images_gui_tab(headless=False):
                 info='Do not copy other files in the input folder to the output folder',
             )
 
-        group_images_button = gr.Button('Caption images')
+        group_images_button = gr.Button('Group images')
 
         group_images_button.click(
             group_images,
