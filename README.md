@@ -345,7 +345,17 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/07/15 (v21.5.12)
+* 2023/05/28 (v21.5.14)
+- Add Create Groupo tool and GUI
+* 2023/05/24 (v21.5.13)
+- Upgrade gradio release to fix issue with UI refresh on config load.
+- [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!
+  - `--optimizer_type` now accepts `DAdaptAdamPreprint`, `DAdaptAdanIP`, and `DAdaptLion`.
+  - `DAdaptAdam` is now new. The old `DAdaptAdam` is available with `DAdaptAdamPreprint`.
+  - Simply specifying `DAdaptation` will use `DAdaptAdamPreprint` (same behavior as before).
+  - You need to install D-Adaptation v3.0. After activating venv, please do `pip install -U dadaptation`.
+  - See PR and D-Adaptation documentation for details.
+* 2023/05/22 (v21.5.12)
 - Fixed several bugs.
   - The state is saved even when the `--save_state` option is not specified in `fine_tune.py` and `train_db.py`. [PR #521](https://github.com/kohya-ss/sd-scripts/pull/521) Thanks to akshaal!
   - Cannot load LoRA without `alpha`. [PR #527](https://github.com/kohya-ss/sd-scripts/pull/527) Thanks to Manjiz!
@@ -353,7 +363,7 @@ This will store a backup file with your current locally installed pip packages a
 - The generation script now uses xformers for VAE as well.
 - Fixed an issue where an error would occur if the encoding of the prompt file was different from the default. [PR #510](https://github.com/kohya-ss/sd-scripts/pull/510) Thanks to sdbds!
   - Please save the prompt file in UTF-8.
-* 2023/07/15 (v21.5.11)
+* 2023/05/15 (v21.5.11)
   - Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
     - It is useful in combination with `resize_lora.py`. Please see the PR for details.
   - Fixed a bug where the noise resolution was incorrect with Multires noise. [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489) Thanks to sdbds!
