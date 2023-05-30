@@ -1087,8 +1087,9 @@ class DreamBoothDataset(BaseDataset):
             for img_path in img_paths:
                 cap_for_img = read_caption(img_path, subset.caption_extension)
                 if cap_for_img is None and subset.class_tokens is None:
-                    print(f"neither caption file nor class tokens are found. use empty caption for {img_path}")
+                    print(f"neither caption file nor class tokens are found. use empty caption for {img_path} / キャプションファイルもclass tokenも見つかりませんでした。空のキャプションを使用します: {img_path}")
                     captions.append("")
+                    missing_captions.append(img_path)
                 else:
                     if cap_for_img is None:
                         captions.append(subset.class_tokens)
@@ -1103,10 +1104,12 @@ class DreamBoothDataset(BaseDataset):
                 number_of_missing_captions_to_show = 5
                 remaining_missing_captions = number_of_missing_captions - number_of_missing_captions_to_show
 
-                print(f"No caption file found for {number_of_missing_captions} images. Training will continue without captions for these images")
+                print(
+                    f"No caption file found for {number_of_missing_captions} images. Training will continue without captions for these images. If class token exists, it will be used. / {number_of_missing_captions}枚の画像にキャプションファイルが見つかりませんでした。これらの画像についてはキャプションなしで学習を続行します。class tokenが存在する場合はそれを使います。"
+                )
                 for i, missing_caption in enumerate(missing_captions):
                     if i >= number_of_missing_captions_to_show:
-                        print(missing_caption+f"... and {remaining_missing_captions} more")
+                        print(missing_caption + f"... and {remaining_missing_captions} more")
                         break
                     print(missing_caption)
             return img_paths, captions
