@@ -158,12 +158,12 @@ def train(args):
     if args.base_weights is not None:
         # base_weights が指定されている場合は、指定された重みを読み込みマージする
         for i, weight_path in enumerate(args.base_weights):
-            print(f"merging module: {weight_path}")
-
             if args.base_weights_multiplier is None or len(args.base_weights_multiplier) <= i:
                 multiplier = 1.0
             else:
                 multiplier = args.base_weights_multiplier[i]
+
+            print(f"merging module: {weight_path} with multiplier {multiplier}")
 
             module, weights_sd = network_module.create_network_from_weights(
                 multiplier, weight_path, vae, text_encoder, unet, for_inference=True
