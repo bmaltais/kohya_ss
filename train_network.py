@@ -148,6 +148,30 @@ def train(args):
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
 
+    # 差分追加学習のためにモデルを読み込む
+    import sys
+
+    sys.path.append(os.path.dirname(__file__))
+    print("import network module:", args.network_module)
+    network_module = importlib.import_module(args.network_module)
+
+    if args.base_weights is not None:
+        # base_weights が指定されている場合は、指定された重みを読み込みマージする
+        for i, weight_path in enumerate(args.base_weights):
+            if args.base_weights_multiplier is None or len(args.base_weights_multiplier) <= i:
+                multiplier = 1.0
+            else:
+                multiplier = args.base_weights_multiplier[i]
+
+            print(f"merging module: {weight_path} with multiplier {multiplier}")
+
+            module, weights_sd = network_module.create_network_from_weights(
+                multiplier, weight_path, vae, text_encoder, unet, for_inference=True
+            )
+            module.merge_to(text_encoder, unet, weights_sd, weight_dtype, accelerator.device if args.lowram else "cpu")
+
+        print(f"all weights merged: {', '.join(args.base_weights)}")
+
     # 学習を準備する
     if cache_latents:
         vae.to(accelerator.device, dtype=weight_dtype)
@@ -163,12 +187,6 @@ def train(args):
         accelerator.wait_for_everyone()
 
     # prepare network
-    import sys
-
-    sys.path.append(os.path.dirname(__file__))
-    print("import network module:", args.network_module)
-    network_module = importlib.import_module(args.network_module)
-
     net_kwargs = {}
     if args.network_args is not None:
         for net_arg in args.network_args:
@@ -769,6 +787,20 @@ def setup_parser() -> argparse.ArgumentParser:
         "--dim_from_weights",
         action="store_true",
         help="automatically determine dim (rank) from network_weights / dim (rank)をnetwork_weightsで指定した重みから自動で決定する",
+    )
+    parser.add_argument(
+        "--base_weights",
+        type=str,
+        default=None,
+        nargs="*",
+        help="network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みファイル",
+    )
+    parser.add_argument(
+        "--base_weights_multiplier",
+        type=float,
+        default=None,
+        nargs="*",
+        help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
     )
 
     return parser

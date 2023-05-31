@@ -140,6 +140,24 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 31 May 2023, 2023/05/31
+
+- Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
+  - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
+- `train_network.py` now supports merging network weights before training. [PR #542](https://github.com/kohya-ss/sd-scripts/pull/542) Thanks to u-haru!
+  - `--base_weights` option specifies LoRA or other model files (multiple files are allowed) to merge.
+  - `--base_weights_multiplier` option specifies multiplier of the weights to merge (multiple values are allowed). If omitted or less than `base_weights`, 1.0 is used.
+  - This is useful for incremental learning. See PR for details.
+- Show warning and continue training when uploading to HuggingFace fails.
+
+- 学習時に画像のキャプションファイルが存在しない場合、警告が表示されるようになりました。 [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) TingTingin氏に感謝します。
+  - class+identifier方式のデータセットを利用している場合も警告が表示されます。意図している通りの場合は無視してください。
+- `train_network.py` に学習前にモデルにnetworkの重みをマージする機能が追加されました。 [PR #542](https://github.com/kohya-ss/sd-scripts/pull/542) u-haru氏に感謝します。
+  - `--base_weights` オプションでLoRA等のモデルファイル（複数可）を指定すると、それらの重みをマージします。
+  - `--base_weights_multiplier` オプションでマージする重みの倍率（複数可）を指定できます。省略時または`base_weights`よりも数が少ない場合は1.0になります。
+  - 差分追加学習などにご利用ください。詳細はPRをご覧ください。
+- HuggingFaceへのアップロードに失敗した場合、警告を表示しそのまま学習を続行するよう変更しました。
+
 ### 25 May 2023, 2023/05/25
 
 - [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!
