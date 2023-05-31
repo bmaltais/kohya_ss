@@ -345,6 +345,14 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/05/28 (v21.5.15)
+- Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
+  - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
+- `train_network.py` now supports merging network weights before training. [PR #542](https://github.com/kohya-ss/sd-scripts/pull/542) Thanks to u-haru!
+  - `--base_weights` option specifies LoRA or other model files (multiple files are allowed) to merge.
+  - `--base_weights_multiplier` option specifies multiplier of the weights to merge (multiple values are allowed). If omitted or less than `base_weights`, 1.0 is used.
+  - This is useful for incremental learning. See PR for details.
+- Show warning and continue training when uploading to HuggingFace fails.
 * 2023/05/28 (v21.5.14)
 - Add Create Groupo tool and GUI
 * 2023/05/24 (v21.5.13)
@@ -391,69 +399,3 @@ This will store a backup file with your current locally installed pip packages a
     - The actual value of the noise offset is calculated as `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale`. Since the latent is close to a normal distribution, it may be a good idea to specify a value of about 1/10 to the same as the noise offset.
     - Negative values can also be specified, in which case the noise offset will be clipped to 0 or more.
   - Other minor fixes.
-* 2023/04/06 (v21.5.9)
-  - Inplement headless mode to enable easier support under headless services like vast.ai. To make use of it start the gui with the `--headless` argument like:
-
-    `.\gui.ps1 --headless` or `.\gui.bat --headless` or `./gui.sh --headless`
-  - Added the option for the user to put the wandb api key in a textbox under the advanced configuration dropdown and a checkbox to toggle for using wandb logging. @x-CK-x
-  - Docker build image @Trojaner
-    - Updated README to use docker compose run instead of docker compose up to fix broken tqdm
-      - Related: Doesn't work with docker-compose tqdm/tqdm#771
-    - Fixed build for latest release
-    - Replace pillow with pillow-simd
-    - Removed --no-cache again as pip cache is not enabled anyway
-  - While overwriting .txt files with prefix and postfix including different encodings you might encounter this decoder error. This small fix gets rid of it... @ertugrul-dmr
-  - Docker Add --no-cache-dir to reduce image size @chiragjn
-  - Reverting bitsandbytes version to 0.35.0 due to issues with 0.38.1 on some systems
-* 2023/04/05 (v21.5.8)
-  - Add `Cache latents to disk` option to the gui.
-  - When saving v2 models in Diffusers format in training scripts and conversion scripts, it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is `"use_linear_projection": false`, stabilityai is `true`). Please note that the weight shapes are different, so please be careful when using the weight files directly. We apologize for the inconvenience.
-      - Since the U-Net model is created based on the configuration, it should not cause any problems in training or inference.
-      - Added `--unet_use_linear_projection` option to `convert_diffusers20_original_sd.py` script. If you specify this option, you can save a Diffusers format model with the same configuration as stabilityai's model from an SD format model (a single `*.safetensors` or `*.ckpt` file). Unfortunately, it is not possible to convert a Diffusers format model to the same format.
-  - Lion8bit optimizer is supported. [PR #447](https://github.com/kohya-ss/sd-scripts/pull/447) Thanks to sdbds!
-    - Currently it is optional because you need to update `bitsandbytes` version. See "Optional: Use Lion8bit" in installation instructions to use it.
-  - Multi-GPU training with DDP is supported in each training script. [PR #448](https://github.com/kohya-ss/sd-scripts/pull/448) Thanks to Isotr0py!
-  - Multi resolution noise (pyramid noise) is supported in each training script. [PR #471](https://github.com/kohya-ss/sd-scripts/pull/471) Thanks to pamparamm!
-    - See PR and this page [Multi-Resolution Noise for Diffusion Model Training](https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2) for details.
-  - Add --no-cache-dir to reduce image size @chiragjn
-* 2023/05/01 (v21.5.7)
-  - `tag_images_by_wd14_tagger.py` can now get arguments from outside. [PR #453](https://github.com/kohya-ss/sd-scripts/pull/453) Thanks to mio2333!
-  - Added `--save_every_n_steps` option to each training script. The model is saved every specified steps.
-    - `--save_last_n_steps` option can be used to save only the specified number of models (old models will be deleted).
-    - If you specify the `--save_state` option, the state will also be saved at the same time. You can specify the number of steps to keep the state with the `--save_last_n_steps_state` option (the same value as `--save_last_n_steps` is used if omitted).
-    - You can use the epoch-based model saving and state saving options together.
-    - Not tested in multi-GPU environment. Please report any bugs.
-  - `--cache_latents_to_disk` option automatically enables `--cache_latents` option when specified. [#438](https://github.com/kohya-ss/sd-scripts/issues/438)
-  - Fixed a bug in `gen_img_diffusers.py` where latents upscaler would fail with a batch size of 2 or more.
-  - Fix triton error
-  - Fix issue with merge lora path with spaces
-  - Added support for logging to wandb. Please refer to PR #428. Thank you p1atdev!
-    - wandb installation is required. Please install it with pip install wandb. Login to wandb with wandb login command, or set --wandb_api_key option for automatic login.
-    - Please let me know if you find any bugs as the test is not complete.
-  - You can automatically login to wandb by setting the --wandb_api_key option. Please be careful with the handling of API Key. PR #435 Thank you Linaqruf!
-  - Improved the behavior of --debug_dataset on non-Windows environments. PR #429 Thank you tsukimiya!
-  - Fixed --face_crop_aug option not working in Fine tuning method.
-  - Prepared code to use any upscaler in gen_img_diffusers.py.
-  - Fixed to log to TensorBoard when --logging_dir is specified and --log_with is not specified.
-  - Add new docker image solution.. Thanks to @Trojaner 
-* 2023/04/22 (v21.5.5)
-    - Update LoRA merge GUI to support SD checkpoint merge and up to 4 LoRA merging
-    - Fixed `lora_interrogator.py` not working. Please refer to [PR #392](https://github.com/kohya-ss/sd-scripts/pull/392) for details. Thank you A2va and heyalexchoi!
-    - Fixed the handling of tags containing `_` in `tag_images_by_wd14_tagger.py`.
-    - Add new Extract DyLoRA gui to the Utilities tab.
-    - Add new Merge LyCORIS models into checkpoint gui to the Utilities tab.
-    - Add new info on startup to help debug things
-* 2023/04/17 (v21.5.4)
-    - Fixed a bug that caused an error when loading DyLoRA with the `--network_weight` option in `train_network.py`.
-    - Added the `--recursive` option to each script in the `finetune` folder to process folders recursively. Please refer to [PR #400](https://github.com/kohya-ss/sd-scripts/pull/400/) for details. Thanks to Linaqruf!
-    - Upgrade Gradio to latest release
-    - Fix issue when Adafactor is used as optimizer and LR Warmup is not 0: https://github.com/bmaltais/kohya_ss/issues/617
-    - Added support for DyLoRA in `train_network.py`. Please refer to [here](./train_network_README-ja.md#dylora) for details (currently only in Japanese).
-    - Added support for caching latents to disk in each training script. Please specify __both__ `--cache_latents` and `--cache_latents_to_disk` options.
-        - The files are saved in the same folder as the images with the extension `.npz`. If you specify the `--flip_aug` option, the files with `_flip.npz` will also be saved.
-        - Multi-GPU training has not been tested.
-        - This feature is not tested with all combinations of datasets and training scripts, so there may be bugs.
-    - Added workaround for an error that occurs when training with `fp16` or `bf16` in `fine_tune.py`.
-    - Implemented DyLoRA GUI support. There will now be a new 'DyLoRA Unit` slider when the LoRA type is selected as `kohya DyLoRA` to specify the desired Unit value for DyLoRA training.
-    - Update gui.bat and gui.ps1 based on: https://github.com/bmaltais/kohya_ss/issues/188
-    - Update `setup.bat` to install torch 2.0.0 instead of 1.2.1. If you want to upgrade from 1.2.1 to 2.0.0 run setup.bat again, select 1 to uninstall the previous torch modules, then select 2 for torch 2.0.0

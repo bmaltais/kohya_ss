@@ -6,9 +6,7 @@ import os
 from library.utils import fire_in_thread
 
 
-def exists_repo(
-    repo_id: str, repo_type: str, revision: str = "main", token: str = None
-):
+def exists_repo(repo_id: str, repo_type: str, revision: str = "main", token: str = None):
     api = HfApi(
         token=token,
     )
@@ -32,27 +30,35 @@ def upload(
     private = args.huggingface_repo_visibility is None or args.huggingface_repo_visibility != "public"
     api = HfApi(token=token)
     if not exists_repo(repo_id=repo_id, repo_type=repo_type, token=token):
-        api.create_repo(repo_id=repo_id, repo_type=repo_type, private=private)
+        try:
+            api.create_repo(repo_id=repo_id, repo_type=repo_type, private=private)
+        except Exception as e:  # とりあえずRepositoryNotFoundErrorは確認したが他にあると困るので
+            print("===========================================")
+            print(f"failed to create HuggingFace repo / HuggingFaceのリポジトリの作成に失敗しました : {e}")
+            print("===========================================")
 
-    is_folder = (type(src) == str and os.path.isdir(src)) or (
-        isinstance(src, Path) and src.is_dir()
-    )
+    is_folder = (type(src) == str and os.path.isdir(src)) or (isinstance(src, Path) and src.is_dir())
 
     def uploader():
-        if is_folder:
-            api.upload_folder(
-                repo_id=repo_id,
-                repo_type=repo_type,
-                folder_path=src,
-                path_in_repo=path_in_repo,
-            )
-        else:
-            api.upload_file(
-                repo_id=repo_id,
-                repo_type=repo_type,
-                path_or_fileobj=src,
-                path_in_repo=path_in_repo,
-            )
+        try:
+            if is_folder:
+                api.upload_folder(
+                    repo_id=repo_id,
+                    repo_type=repo_type,
+                    folder_path=src,
+                    path_in_repo=path_in_repo,
+                )
+            else:
+                api.upload_file(
+                    repo_id=repo_id,
+                    repo_type=repo_type,
+                    path_or_fileobj=src,
+                    path_in_repo=path_in_repo,
+                )
+        except Exception as e:  # RuntimeErrorを確認済みだが他にあると困るので
+            print("===========================================")
+            print(f"failed to upload to HuggingFace / HuggingFaceへのアップロードに失敗しました : {e}")
+            print("===========================================")
 
     if args.async_upload and not force_sync_upload:
         fire_in_thread(uploader)
@@ -71,7 +77,5 @@ def list_dir(
         token=token,
     )
     repo_info = api.repo_info(repo_id=repo_id, revision=revision, repo_type=repo_type)
-    file_list = [
-        file for file in repo_info.siblings if file.rfilename.startswith(subfolder)
-    ]
+    file_list = [file for file in repo_info.siblings if file.rfilename.startswith(subfolder)]
     return file_list
