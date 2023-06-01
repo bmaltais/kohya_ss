@@ -209,8 +209,9 @@ def train(args):
     if args.dim_from_weights:
         network, _ = network_module.create_network_from_weights(1, args.network_weights, vae, text_encoder, unet, **net_kwargs)
     else:
+        # LyCORIS will work with this...
         network = network_module.create_network(
-            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, args.dropout, **net_kwargs
+            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, dropout=args.network_dropout, **net_kwargs
         )
     if network is None:
         return
@@ -367,7 +368,8 @@ def train(args):
         "ss_lr_scheduler": args.lr_scheduler,
         "ss_network_module": args.network_module,
         "ss_network_dim": args.network_dim,  # None means default because another network than LoRA may have another default dim
-        "ss_network_alpha": args.network_alpha,  # some networks may not use this value
+        "ss_network_alpha": args.network_alpha,  # some networks may not have alpha
+        "ss_network_dropout": args.network_dropout,  # some networks may not have dropout
         "ss_mixed_precision": args.mixed_precision,
         "ss_full_fp16": bool(args.full_fp16),
         "ss_v2": bool(args.v2),
@@ -391,7 +393,6 @@ def train(args):
         "ss_prior_loss_weight": args.prior_loss_weight,
         "ss_min_snr_gamma": args.min_snr_gamma,
         "ss_scale_weight_norms": args.scale_weight_norms,
-        "ss_dropout": args.dropout,
     }
 
     if use_user_config:
@@ -799,6 +800,12 @@ def setup_parser() -> argparse.ArgumentParser:
         help="alpha for LoRA weight scaling, default 1 (same as network_dim for same behavior as old version) / LoRaの重み調整のalpha値、デフォルト1（旧バージョンと同じ動作をするにはnetwork_dimと同じ値を指定）",
     )
     parser.add_argument(
+        "--network_dropout",
+        type=float,
+        default=None,
+        help="Drops neurons out of training every step (0 or None is default behavior (no dropout), 1 would drop all neurons) / 訓練時に毎ステップでニューロンをdropする（0またはNoneはdropoutなし、1は全ニューロンをdropout）",
+    )
+    parser.add_argument(
         "--network_args", type=str, default=None, nargs="*", help="additional argmuments for network (key=value) / ネットワークへの追加の引数"
     )
     parser.add_argument("--network_train_unet_only", action="store_true", help="only training U-Net part / U-Net関連部分のみ学習する")
@@ -818,12 +825,6 @@ def setup_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
-    )
-    parser.add_argument(
-        "--dropout",
-        type=float,
-        default=None,
-        help="Drops neurons out of training every step (0 is default behavior, 1 would drop all neurons)",
     )
     parser.add_argument(
         "--base_weights",
