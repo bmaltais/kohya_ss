@@ -1,5 +1,6 @@
 import argparse
 import gc
+import json
 import math
 import os
 import random
@@ -11,6 +12,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler, ControlNetModel
+from safetensors.torch import load_file
 
 import library.model_util as model_util
 import library.train_util as train_util
@@ -25,9 +27,6 @@ from library.custom_train_functions import (
     apply_snr_weight,
     pyramid_noise_like,
     apply_noise_offset,
-)
-from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
-    download_controlnet_from_original_ckpt,
 )
 
 
@@ -124,19 +123,24 @@ def train(args):
 
     # モデルを読み込む
     text_encoder, vae, unet, _ = train_util.load_target_model(
-        args, weight_dtype, accelerator
+        args, weight_dtype, accelerator, unet_use_linear_projection_in_v2=True
     )
+
+    controlnet = ControlNetModel.from_unet(unet)
+
     if args.controlnet_model_name_or_path:
-        if os.path.isfile(args.controlnet_model_name_or_path):
-            controlnet = download_controlnet_from_original_ckpt(
-                args.controlnet_model_name_or_path
-            )
-        else:
-            controlnet = ControlNetModel.from_pretrained(
-                args.controlnet_model_name_or_path
-            )
-    else:
-        controlnet = ControlNetModel.from_unet(unet)
+        filename = args.controlnet_model_name_or_path
+        if os.path.isfile(filename):
+            if os.path.splitext(filename)[1] == ".safetensors":
+                state_dict = load_file(filename)
+            else:
+                state_dict = torch.load(filename)
+            state_dict = model_util.convert_controlnet_state_dict_to_diffusers(state_dict)
+            controlnet.load_state_dict(state_dict)
+        elif os.path.isdir(filename):
+            controlnet = ControlNetModel.from_pretrained(filename)
+
+
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
@@ -289,7 +293,9 @@ def train(args):
     )
     if accelerator.is_main_process:
         accelerator.init_trackers(
-            "controlnet_train" if args.log_tracker_name is None else args.log_tracker_name
+            "controlnet_train"
+            if args.log_tracker_name is None
+            else args.log_tracker_name
         )
 
     loss_list = []
@@ -350,7 +356,7 @@ def train(args):
                 b_size = latents.shape[0]
 
                 input_ids = batch["input_ids"].to(accelerator.device)
-                encoder_hidden_states = train_util.gethidden_states(
+                encoder_hidden_states = train_util.get_hidden_states(
                     args, input_ids, tokenizer, text_encoder, weight_dtype
                 )
 
@@ -450,6 +456,7 @@ def train(args):
                     tokenizer,
                     text_encoder,
                     unet,
+                    controlnet=controlnet,
                 )
 
                 # 指定ステップごとにモデルを保存
@@ -537,6 +544,7 @@ def train(args):
             tokenizer,
             text_encoder,
             unet,
+            controlnet=controlnet,
         )
 
         # end of epoch
@@ -569,6 +577,13 @@ def setup_parser() -> argparse.ArgumentParser:
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)
 
+    parser.add_argument(
+        "--save_model_as",
+        type=str,
+        default="safetensors",
+        choices=[None, "ckpt", "pt", "safetensors"],
+        help="format to save the model (default is .safetensors) / モデル保存時の形式（デフォルトはsafetensors）",
+    )
     parser.add_argument(
         "--controlnet_model_name_or_path",
         type=str,
