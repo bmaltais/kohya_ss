@@ -670,7 +670,7 @@ def train(args):
                 optimizer.zero_grad(set_to_none=True)
 
             if args.scale_weight_norms:
-                keys_scaled, mean_norm, maximum_norm = max_norm(network.state_dict(), args.scale_weight_norms)
+                keys_scaled, mean_norm, maximum_norm = max_norm(network.state_dict(), args.scale_weight_norms, accelerator.device)
                 max_mean_logs = {"Keys Scaled": keys_scaled, "Average key norm": mean_norm}
             else:
                 keys_scaled, mean_norm, maximum_norm = None, None, None
