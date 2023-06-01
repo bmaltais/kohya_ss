@@ -6,7 +6,6 @@ import os
 import random
 import time
 import json
-import toml
 from multiprocessing import Value
 
 from tqdm import tqdm
@@ -165,7 +164,7 @@ def train(args):
     import sys
 
     sys.path.append(os.path.dirname(__file__))
-    print("import network module:", args.network_module)
+    accelerator.print("import network module:", args.network_module)
     network_module = importlib.import_module(args.network_module)
 
     if args.base_weights is not None:
@@ -176,14 +175,15 @@ def train(args):
             else:
                 multiplier = args.base_weights_multiplier[i]
 
-            print(f"merging module: {weight_path} with multiplier {multiplier}")
+            accelerator.print(f"merging module: {weight_path} with multiplier {multiplier}")
 
             module, weights_sd = network_module.create_network_from_weights(
                 multiplier, weight_path, vae, text_encoder, unet, for_inference=True
             )
             module.merge_to(text_encoder, unet, weights_sd, weight_dtype, accelerator.device if args.lowram else "cpu")
 
-        print(f"all weights merged: {', '.join(args.base_weights)}")
+        accelerator.print(f"all weights merged: {', '.join(args.base_weights)}")
+
     # 学習を準備する
     if cache_latents:
         vae.to(accelerator.device, dtype=weight_dtype)
@@ -225,7 +225,7 @@ def train(args):
 
     if args.network_weights is not None:
         info = network.load_weights(args.network_weights)
-        print(f"loaded network weights from {args.network_weights}: {info}")
+        accelerator.print(f"load network weights from {args.network_weights}: {info}")
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -233,13 +233,13 @@ def train(args):
         network.enable_gradient_checkpointing()  # may have no effect
 
     # 学習に必要なクラスを準備する
-    print("preparing optimizer, data loader etc.")
+    accelerator.print("prepare optimizer, data loader etc.")
 
     # 後方互換性を確保するよ
     try:
         trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr, args.learning_rate)
     except TypeError:
-        print(
+        accelerator.print(
             "Deprecated: use prepare_optimizer_params(text_encoder_lr, unet_lr, learning_rate) instead of prepare_optimizer_params(text_encoder_lr, unet_lr)"
         )
         trainable_params = network.prepare_optimizer_params(args.text_encoder_lr, args.unet_lr)
@@ -264,8 +264,7 @@ def train(args):
         args.max_train_steps = args.max_train_epochs * math.ceil(
             len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
         )
-        if is_main_process:
-            print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+        accelerator.print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
 
     # データセット側にも学習ステップを送信
     train_dataset_group.set_max_train_steps(args.max_train_steps)
@@ -278,7 +277,7 @@ def train(args):
         assert (
             args.mixed_precision == "fp16"
         ), "full_fp16 requires mixed precision='fp16' / full_fp16を使う場合はmixed_precision='fp16'を指定してください。"
-        print("enabling full fp16 training.")
+        accelerator.print("enable full fp16 training.")
         network.to(weight_dtype)
 
     # acceleratorがなんかよろしくやってくれるらしい
@@ -338,16 +337,15 @@ def train(args):
     # TODO: find a way to handle total batch size when there are multiple datasets
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
 
-    if is_main_process:
-        print("running training / 学習開始")
-        print(f"  num train images * repeats / 学習画像の数×繰り返し回数: {train_dataset_group.num_train_images}")
-        print(f"  num reg images / 正則化画像の数: {train_dataset_group.num_reg_images}")
-        print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
-        print(f"  num epochs / epoch数: {num_train_epochs}")
-        print(f"  batch size per device / バッチサイズ: {', '.join([str(d.batch_size) for d in train_dataset_group.datasets])}")
-        # print(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
-        print(f"  gradient accumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
-        print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
+    accelerator.print("running training / 学習開始")
+    accelerator.print(f"  num train images * repeats / 学習画像の数×繰り返し回数: {train_dataset_group.num_train_images}")
+    accelerator.print(f"  num reg images / 正則化画像の数: {train_dataset_group.num_reg_images}")
+    accelerator.print(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
+    accelerator.print(f"  num epochs / epoch数: {num_train_epochs}")
+    accelerator.print(f"  batch size per device / バッチサイズ: {', '.join([str(d.batch_size) for d in train_dataset_group.datasets])}")
+    # accelerator.print(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
+    accelerator.print(f"  gradient accumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
+    accelerator.print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
 
     # TODO refactor metadata creation and move to util
     metadata = {
@@ -572,7 +570,7 @@ def train(args):
         os.makedirs(args.output_dir, exist_ok=True)
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
-        print(f"\nsaving checkpoint: {ckpt_file}")
+        accelerator.print(f"\nsaving checkpoint: {ckpt_file}")
         metadata["ss_training_finished_at"] = str(time.time())
         metadata["ss_steps"] = str(steps)
         metadata["ss_epoch"] = str(epoch_no)
@@ -584,13 +582,12 @@ def train(args):
     def remove_model(old_ckpt_name):
         old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
         if os.path.exists(old_ckpt_file):
-            print(f"removing old checkpoint: {old_ckpt_file}")
+            accelerator.print(f"removing old checkpoint: {old_ckpt_file}")
             os.remove(old_ckpt_file)
 
     # training loop
     for epoch in range(num_train_epochs):
-        if is_main_process:
-            print(f"\nepoch {epoch+1}/{num_train_epochs}")
+        accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         metadata["ss_epoch"] = str(epoch + 1)

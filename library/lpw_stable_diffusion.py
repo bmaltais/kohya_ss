@@ -464,10 +464,10 @@ class StableDiffusionLongPromptWeightingPipeline(StableDiffusionPipeline):
         tokenizer: CLIPTokenizer,
         unet: UNet2DConditionModel,
         scheduler: SchedulerMixin,
-        clip_skip: int,
         safety_checker: StableDiffusionSafetyChecker,
         feature_extractor: CLIPFeatureExtractor,
         requires_safety_checker: bool = True,
+        clip_skip: int = 1,
     ):
         super().__init__(
             vae=vae,
