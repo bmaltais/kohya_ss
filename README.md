@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/02 (v21.6.1)
+- Add detection of files outside the venv to scripts
 * 2023/06/02 (v21.6.0)
 - Merge kohya_ss repo changes
 - Improge logging of kohya_ss GUI
