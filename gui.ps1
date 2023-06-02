@@ -1,4 +1,30 @@
+# Check if a virtual environment is active and deactivate it if necessary
+if ($env:VIRTUAL_ENV) {
+    # Write-Host "Deactivating the virtual environment to test for modules installed locally..."
+    & deactivate
+}
+
+# Run pip freeze and capture the output
+$pipOutput = & pip freeze
+
+# Check if modules are found in the output
+if ($pipOutput) {
+    Write-Host " "
+    Write-Host -ForegroundColor Yellow -Object "============================================================="
+    Write-Host -ForegroundColor Yellow -Object "Modules installed outside the virtual environment were found."
+    Write-Host -ForegroundColor Yellow -Object "This can cause issues. Please review the installed modules."
+    Write-Host " "
+    Write-Host -ForegroundColor Yellow -Object "You can deinstall all the local modules with:"
+    Write-Host " "
+    Write-Host -ForegroundColor Blue -Object "deactivate"
+    Write-Host -ForegroundColor Blue -Object "pip freeze > uninstall.txt"
+    Write-Host -ForegroundColor Blue -Object "pip uninstall -y -r uninstall.txt"
+    Write-Host -ForegroundColor Yellow -Object "============================================================="
+    Write-Host " "
+} 
+
 # Activate the virtual environment
+# Write-Host "Activating the virtual environment..."
 & .\venv\Scripts\activate
 $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 
