@@ -4,6 +4,11 @@ import subprocess
 import os
 from .common_gui import get_saveasfilename_path, get_file_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -64,7 +69,7 @@ def resize_lora(
     if verbose:
         run_cmd += f' --verbose'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -72,7 +77,7 @@ def resize_lora(
     else:
         subprocess.run(run_cmd)
 
-    print('Done resizing...')
+    log.info('Done resizing...')
 
 
 ###

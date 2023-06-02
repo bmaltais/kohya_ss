@@ -4,6 +4,11 @@ from .common_gui import get_folder_path
 import shutil
 import os
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 
 def copy_info_to_Folders_tab(training_folder):
     img_folder = os.path.join(training_folder, 'img')
@@ -29,7 +34,7 @@ def dreambooth_folder_preparation(
 
     # Check if the input variables are empty
     if not len(util_training_dir_output):
-        print(
+        log.info(
             "Destination training directory is missing... can't perform the required task..."
         )
         return
@@ -49,7 +54,7 @@ def dreambooth_folder_preparation(
 
     # Create the training_dir path
     if util_training_images_dir_input == '':
-        print(
+        log.info(
             "Training images directory is missing... can't perform the required task..."
         )
         return
@@ -61,17 +66,17 @@ def dreambooth_folder_preparation(
 
         # Remove folders if they exist
         if os.path.exists(training_dir):
-            print(f'Removing existing directory {training_dir}...')
+            log.info(f'Removing existing directory {training_dir}...')
             shutil.rmtree(training_dir)
 
         # Copy the training images to their respective directories
-        print(f'Copy {util_training_images_dir_input} to {training_dir}...')
+        log.info(f'Copy {util_training_images_dir_input} to {training_dir}...')
         shutil.copytree(util_training_images_dir_input, training_dir)
 
     if not util_regularization_images_dir_input == '':
         # Create the regularization_dir path
         if not util_regularization_images_repeat_input > 0:
-            print('Repeats is missing... not copying regularisation images...')
+            log.info('Repeats is missing... not copying regularisation images...')
         else:
             regularization_dir = os.path.join(
                 util_training_dir_output,
@@ -80,18 +85,18 @@ def dreambooth_folder_preparation(
 
             # Remove folders if they exist
             if os.path.exists(regularization_dir):
-                print(f'Removing existing directory {regularization_dir}...')
+                log.info(f'Removing existing directory {regularization_dir}...')
                 shutil.rmtree(regularization_dir)
 
             # Copy the regularisation images to their respective directories
-            print(
+            log.info(
                 f'Copy {util_regularization_images_dir_input} to {regularization_dir}...'
             )
             shutil.copytree(
                 util_regularization_images_dir_input, regularization_dir
             )
     else:
-        print(
+        log.info(
             'Regularization images directory is missing... not copying regularisation images...'
         )
 
@@ -104,7 +109,7 @@ def dreambooth_folder_preparation(
     if not os.path.exists(os.path.join(util_training_dir_output, 'model')):
         os.makedirs(os.path.join(util_training_dir_output, 'model'))
 
-    print(
+    log.info(
         f'Done creating kohya_ss training folder structure at {util_training_dir_output}...'
     )
 

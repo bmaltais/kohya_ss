@@ -7,6 +7,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -36,7 +41,7 @@ def extract_dylora(
     run_cmd += f' --model "{model}"'
     run_cmd += f' --unit {unit}'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -44,7 +49,7 @@ def extract_dylora(
     else:
         subprocess.run(run_cmd)
 
-    print('Done extracting DyLoRA...')
+    log.info('Done extracting DyLoRA...')
 
 
 ###

@@ -4,6 +4,11 @@ import gradio as gr
 from easygui import msgbox, boolbox
 from .common_gui import get_folder_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 # def select_folder():
 #     # Open a file dialog to select a directory
 #     folder = filedialog.askdirectory()
@@ -46,7 +51,7 @@ def dataset_balancing(concept_repeats, folder, insecure):
             images = len(image_files)
 
             if images == 0:
-                print(
+                log.info(
                     f'No images of type .jpg, .jpeg, .png, .gif, .webp were found in {os.listdir(os.path.join(folder, subdir))}'
                 )
 
@@ -86,7 +91,7 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
             os.rename(old_name, new_name)
         else:
-            print(
+            log.info(
                 f'Skipping folder {subdir} because it does not match kohya_ss expected syntax...'
             )
 

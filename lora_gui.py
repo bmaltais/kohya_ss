@@ -4,6 +4,8 @@
 # v3.1: Adding captionning of images to utilities
 
 import gradio as gr
+import logging
+import time
 
 # import easygui
 import json
@@ -47,6 +49,11 @@ from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -54,7 +61,6 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
-
 
 def save_configuration(
     save_as,
@@ -156,14 +162,14 @@ def save_configuration(
     save_as_bool = True if save_as.get('label') == 'True' else False
 
     if save_as_bool:
-        print('Save as...')
+        log.info('Save as...')
         file_path = get_saveasfile_path(file_path)
     else:
-        print('Save...')
+        log.info('Save...')
         if file_path == None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
-    # print(file_path)
+    # log.info(file_path)
 
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -299,7 +305,7 @@ def open_configuration(
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            print('Loading config...')
+            log.info('Loading config...')
 
             # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
@@ -415,6 +421,7 @@ def train_model(
     wandb_api_key,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
+    log.info(f'Start training LoRA {LoRA_type} ...')
     headless_bool = True if headless.get('label') == 'True' else False
 
     if pretrained_model_name_or_path == '':
@@ -534,35 +541,35 @@ def train_model(
                 ]
             )
 
-            print(f'Folder {folder}: {num_images} images found')
+            log.info(f'Folder {folder}: {num_images} images found')
 
             # Calculate the total number of steps for this folder
             steps = repeats * num_images
 
-            # Print the result
-            print(f'Folder {folder}: {steps} steps')
+            # log.info the result
+            log.info(f'Folder {folder}: {steps} steps')
 
             total_steps += steps
 
         except ValueError:
             # Handle the case where the folder name does not contain an underscore
-            print(
+            log.info(
                 f"Error: '{folder}' does not contain an underscore, skipping..."
             )
 
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print(
+        log.info(
             '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
         )
         reg_factor = 2
 
-    print(f'Total steps: {total_steps}')
-    print(f'Train batch size: {train_batch_size}')
-    print(f'Gradient accumulation steps: {gradient_accumulation_steps}')
-    print(f'Epoch: {epoch}')
-    print(f'Regulatization factor: {reg_factor}')
+    log.info(f'Total steps: {total_steps}')
+    log.info(f'Train batch size: {train_batch_size}')
+    log.info(f'Gradient accumulation steps: {gradient_accumulation_steps}')
+    log.info(f'Epoch: {epoch}')
+    log.info(f'Regulatization factor: {reg_factor}')
 
     # calculate max_train_steps
     max_train_steps = int(
@@ -574,7 +581,7 @@ def train_model(
             * int(reg_factor)
         )
     )
-    print(f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}')
+    log.info(f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}')
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -583,10 +590,10 @@ def train_model(
         stop_text_encoder_training = math.ceil(
             float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
         )
-    print(f'stop_text_encoder_training = {stop_text_encoder_training}')
+    log.info(f'stop_text_encoder_training = {stop_text_encoder_training}')
 
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    print(f'lr_warmup_steps = {lr_warmup_steps}')
+    log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
 
@@ -625,7 +632,7 @@ def train_model(
         try:
             import lycoris
         except ModuleNotFoundError:
-            print(
+            log.info(
                 "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
             )
             return
@@ -635,7 +642,7 @@ def train_model(
         try:
             import lycoris
         except ModuleNotFoundError:
-            print(
+            log.info(
                 "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
             )
             return
@@ -820,12 +827,12 @@ def train_model(
     #     run_cmd += f' --conv_alphas="{conv_alphas}"'
 
     if print_only_bool:
-        print(
+        log.info(
             '\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n'
         )
-        print('\033[96m' + run_cmd + '\033[0m\n')
+        log.info('\033[96m' + run_cmd + '\033[0m\n')
     else:
-        print(run_cmd)
+        log.info(run_cmd)
         # Run the command
         if os.name == 'posix':
             os.system(run_cmd)
@@ -1078,7 +1085,7 @@ def lora_tab(
         # Show of hide LoCon conv settings depending on LoRA type selection
         def update_LoRA_settings(LoRA_type):
             # Print a message when LoRA type is changed
-            print('LoRA type changed...')
+            log.info('LoRA type changed...')
 
             # Determine if LoCon_row should be visible based on LoRA_type
             LoCon_row = LoRA_type in {
@@ -1442,11 +1449,11 @@ def UI(**kwargs):
     css = ''
 
     headless = kwargs.get('headless', False)
-    print(f'headless: {headless}')
+    log.info(f'headless: {headless}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            log.info('Load CSS...')
             css += file.read() + '\n'
 
     interface = gr.Blocks(
@@ -1489,6 +1496,7 @@ def UI(**kwargs):
         launch_kwargs['inbrowser'] = inbrowser
     if share:
         launch_kwargs['share'] = share
+    log.info(launch_kwargs)
     interface.launch(**launch_kwargs)
 
 

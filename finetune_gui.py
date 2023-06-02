@@ -31,6 +31,11 @@ from library.tensorboard_gui import (
 from library.utilities import utilities_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -128,14 +133,14 @@ def save_configuration(
     save_as_bool = True if save_as.get('label') == 'True' else False
 
     if save_as_bool:
-        print('Save as...')
+        log.info('Save as...')
         file_path = get_saveasfile_path(file_path)
     else:
-        print('Save...')
+        log.info('Save...')
         if file_path == None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
-    # print(file_path)
+    # log.info(file_path)
 
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -258,7 +263,7 @@ def open_configuration(
         # load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
-            print('Loading config...')
+            log.info('Loading config...')
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
             my_data = update_my_data(my_data)
     else:
@@ -391,7 +396,7 @@ def train_model(
         if full_path:
             run_cmd += f' --full_path'
 
-        print(run_cmd)
+        log.info(run_cmd)
 
         # Run the command
         if os.name == 'posix':
@@ -416,7 +421,7 @@ def train_model(
         if full_path:
             run_cmd += f' --full_path'
 
-        print(run_cmd)
+        log.info(run_cmd)
 
         # Run the command
         if os.name == 'posix':
@@ -433,10 +438,10 @@ def train_model(
             if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
         ]
     )
-    print(f'image_num = {image_num}')
+    log.info(f'image_num = {image_num}')
 
     repeats = int(image_num) * int(dataset_repeats)
-    print(f'repeats = {str(repeats)}')
+    log.info(f'repeats = {str(repeats)}')
 
     # calculate max_train_steps
     max_train_steps = int(
@@ -452,10 +457,10 @@ def train_model(
     if flip_aug:
         max_train_steps = int(math.ceil(float(max_train_steps) / 2))
 
-    print(f'max_train_steps = {max_train_steps}')
+    log.info(f'max_train_steps = {max_train_steps}')
 
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    print(f'lr_warmup_steps = {lr_warmup_steps}')
+    log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "./fine_tune.py"'
     if v2:
@@ -560,7 +565,7 @@ def train_model(
         output_dir,
     )
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -931,11 +936,11 @@ def UI(**kwargs):
     css = ''
 
     headless = kwargs.get('headless', False)
-    print(f'headless: {headless}')
+    log.info(f'headless: {headless}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            log.info('Load CSS...')
             css += file.read() + '\n'
 
     interface = gr.Blocks(

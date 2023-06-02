@@ -5,6 +5,11 @@ import os
 import shutil
 from .common_gui import get_folder_path, get_file_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -28,16 +33,16 @@ def convert_model(
 
     # Check if source model exist
     if os.path.isfile(source_model_input):
-        print('The provided source model is a file')
+        log.info('The provided source model is a file')
     elif os.path.isdir(source_model_input):
-        print('The provided model is a folder')
+        log.info('The provided model is a folder')
     else:
         msgbox('The provided source model is neither a file nor a folder')
         return
 
     # Check if source model exist
     if os.path.isdir(target_model_folder_input):
-        print('The provided model folder exist')
+        log.info('The provided model folder exist')
     else:
         msgbox('The provided target folder does not exist')
         return
@@ -51,10 +56,10 @@ def convert_model(
 
     # check if v1 models
     if str(source_model_type) in v1_models:
-        print('SD v1 model specified. Setting --v1 parameter')
+        log.info('SD v1 model specified. Setting --v1 parameter')
         run_cmd += ' --v1'
     else:
-        print('SD v2 model specified. Setting --v2 parameter')
+        log.info('SD v2 model specified. Setting --v2 parameter')
         run_cmd += ' --v2'
 
     if not target_save_precision_type == 'unspecified':
@@ -94,7 +99,7 @@ def convert_model(
         )
         run_cmd += f' "{target_model_path}"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -120,7 +125,7 @@ def convert_model(
             inference_file = os.path.join(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
-            print(f'Saving v2-inference.yaml as {inference_file}')
+            log.info(f'Saving v2-inference.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference.yaml',
                 f'{inference_file}',
@@ -130,7 +135,7 @@ def convert_model(
             inference_file = os.path.join(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
-            print(f'Saving v2-inference-v.yaml as {inference_file}')
+            log.info(f'Saving v2-inference-v.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference-v.yaml',
                 f'{inference_file}',

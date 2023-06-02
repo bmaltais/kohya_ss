@@ -8,6 +8,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -47,13 +52,13 @@ def merge_lora(
     precision,
     save_precision,
 ):
-    print('Merge model...')
+    log.info('Merge model...')
     models = [sd_model, lora_a_model, lora_b_model, lora_c_model, lora_d_model]
     lora_models = models[1:]
     ratios = [ratio_a, ratio_b, ratio_c, ratio_d]
 
     if not verify_conditions(sd_model, lora_models):
-        print(
+        log.info(
             'Warning: Either provide at least one LoRa model along with the sd_model or at least two LoRa models if no sd_model is provided.'
         )
         return
@@ -80,7 +85,7 @@ def merge_lora(
         run_cmd += f' --models {models_cmd}'
         run_cmd += f' --ratios {ratios_cmd}'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -88,7 +93,7 @@ def merge_lora(
     else:
         subprocess.run(run_cmd)
 
-    print('Done merging...')
+    log.info('Done merging...')
 
 
 ###

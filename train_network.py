@@ -80,25 +80,25 @@ def train(args):
     # データセットを準備する
     blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
     if use_user_config:
-        print(f"Load dataset config from {args.dataset_config}")
+        print(f"Loading dataset config from {args.dataset_config}")
         user_config = config_util.load_user_config(args.dataset_config)
         ignored = ["train_data_dir", "reg_data_dir", "in_json"]
         if any(getattr(args, attr) is not None for attr in ignored):
             print(
-                "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
                     ", ".join(ignored)
                 )
             )
     else:
         if use_dreambooth_method:
-            print("Use DreamBooth method.")
+            print("Using DreamBooth method.")
             user_config = {
                 "datasets": [
                     {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
                 ]
             }
         else:
-            print("Train with captions.")
+            print("Training with captions.")
             user_config = {
                 "datasets": [
                     {
@@ -135,7 +135,7 @@ def train(args):
         ), "when caching latents, either color_aug or random_crop cannot be used / latentをキャッシュするときはcolor_augとrandom_cropは使えません"
 
     # acceleratorを準備する
-    print("prepare accelerator")
+    print("preparing accelerator")
     accelerator, unwrap_model = train_util.prepare_accelerator(args)
     is_main_process = accelerator.is_main_process
 
@@ -147,7 +147,30 @@ def train(args):
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+    
+    # 差分追加学習のためにモデルを読み込む
+    import sys
 
+    sys.path.append(os.path.dirname(__file__))
+    print("import network module:", args.network_module)
+    network_module = importlib.import_module(args.network_module)
+
+    if args.base_weights is not None:
+        # base_weights が指定されている場合は、指定された重みを読み込みマージする
+        for i, weight_path in enumerate(args.base_weights):
+            if args.base_weights_multiplier is None or len(args.base_weights_multiplier) <= i:
+                multiplier = 1.0
+            else:
+                multiplier = args.base_weights_multiplier[i]
+
+            print(f"merging module: {weight_path} with multiplier {multiplier}")
+
+            module, weights_sd = network_module.create_network_from_weights(
+                multiplier, weight_path, vae, text_encoder, unet, for_inference=True
+            )
+            module.merge_to(text_encoder, unet, weights_sd, weight_dtype, accelerator.device if args.lowram else "cpu")
+
+        print(f"all weights merged: {', '.join(args.base_weights)}")
     # 学習を準備する
     if cache_latents:
         vae.to(accelerator.device, dtype=weight_dtype)
@@ -163,12 +186,6 @@ def train(args):
         accelerator.wait_for_everyone()
 
     # prepare network
-    import sys
-
-    sys.path.append(os.path.dirname(__file__))
-    print("import network module:", args.network_module)
-    network_module = importlib.import_module(args.network_module)
-
     net_kwargs = {}
     if args.network_args is not None:
         for net_arg in args.network_args:
@@ -192,7 +209,7 @@ def train(args):
 
     if args.network_weights is not None:
         info = network.load_weights(args.network_weights)
-        print(f"load network weights from {args.network_weights}: {info}")
+        print(f"loaded network weights from {args.network_weights}: {info}")
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -200,7 +217,7 @@ def train(args):
         network.enable_gradient_checkpointing()  # may have no effect
 
     # 学習に必要なクラスを準備する
-    print("prepare optimizer, data loader etc.")
+    print("preparing optimizer, data loader etc.")
 
     # 後方互換性を確保するよ
     try:
@@ -245,7 +262,7 @@ def train(args):
         assert (
             args.mixed_precision == "fp16"
         ), "full_fp16 requires mixed precision='fp16' / full_fp16を使う場合はmixed_precision='fp16'を指定してください。"
-        print("enable full fp16 training.")
+        print("enabling full fp16 training.")
         network.to(weight_dtype)
 
     # acceleratorがなんかよろしくやってくれるらしい
@@ -769,6 +786,20 @@ def setup_parser() -> argparse.ArgumentParser:
         "--dim_from_weights",
         action="store_true",
         help="automatically determine dim (rank) from network_weights / dim (rank)をnetwork_weightsで指定した重みから自動で決定する",
+    )
+    parser.add_argument(
+        "--base_weights",
+        type=str,
+        default=None,
+        nargs="*",
+        help="network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みファイル",
+    )
+    parser.add_argument(
+        "--base_weights_multiplier",
+        type=float,
+        default=None,
+        nargs="*",
+        help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
     )
 
     return parser
