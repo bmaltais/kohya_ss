@@ -8,6 +8,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -79,7 +84,7 @@ def extract_lycoris_locon(
     run_cmd += f' "{db_model}"'
     run_cmd += f' "{output_name}"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':

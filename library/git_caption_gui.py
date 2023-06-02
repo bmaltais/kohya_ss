@@ -4,6 +4,11 @@ import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
@@ -26,7 +31,7 @@ def caption_images(
         msgbox('Please provide an extension for the caption files.')
         return
 
-    print(f'GIT captioning files in {train_data_dir}...')
+    log.info(f'GIT captioning files in {train_data_dir}...')
     run_cmd = f'{PYTHON} finetune/make_captions_by_git.py'
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
@@ -39,7 +44,7 @@ def caption_images(
         run_cmd += f' --caption_extension="{caption_ext}"'
     run_cmd += f' "{train_data_dir}"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -55,7 +60,7 @@ def caption_images(
         postfix=postfix,
     )
 
-    print('...captioning done')
+    log.info('...captioning done')
 
 
 ###

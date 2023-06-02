@@ -8,6 +8,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -34,7 +39,7 @@ def verify_lora(
         f'{lora_model}',
     ]
 
-    print(' '.join(run_cmd))
+    log.info(' '.join(run_cmd))
 
     # Run the command
     process = subprocess.Popen(

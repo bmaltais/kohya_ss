@@ -8,13 +8,21 @@ from rich.console import Console
 from rich.pretty import install as pretty_install
 from rich.traceback import install as traceback_install
 
+log = None
+
 def setup_logging(clean=False, debug=False):
+    global log
+    
+    if log is not None:
+        return log
+    
     try:
         if clean and os.path.isfile('setup.log'):
             os.remove('setup.log')
         time.sleep(0.1) # prevent race condition
     except:
         pass
+    
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s', filename='setup.log', filemode='a', encoding='utf-8', force=True)
     
     console = Console(log_time=True, log_time_format='%H:%M:%S-%f', theme=Theme({
@@ -28,4 +36,5 @@ def setup_logging(clean=False, debug=False):
     rh.set_name(logging.DEBUG if debug else logging.INFO)
     log = logging.getLogger("sd")
     log.addHandler(rh)
+    
     return log

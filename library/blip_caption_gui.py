@@ -4,6 +4,11 @@ import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 
@@ -33,7 +38,7 @@ def caption_images(
         msgbox('Please provide an extension for the caption files.')
         return
 
-    print(f'Captioning files in {train_data_dir}...')
+    log.info(f'Captioning files in {train_data_dir}...')
     run_cmd = f'{PYTHON} "finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
@@ -47,7 +52,7 @@ def caption_images(
     run_cmd += f' "{train_data_dir}"'
     run_cmd += f' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -63,7 +68,7 @@ def caption_images(
         postfix=postfix,
     )
 
-    print('...captioning done')
+    log.info('...captioning done')
 
 
 ###

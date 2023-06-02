@@ -7,6 +7,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -23,7 +28,7 @@ def merge_lycoris(
     device,
     is_v2,
 ):
-    print('Merge model...')
+    log.info('Merge model...')
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","merge_lycoris.py")}"'
     run_cmd += f' "{base_model}"'
@@ -35,7 +40,7 @@ def merge_lycoris(
     if is_v2:
         run_cmd += f' --is_v2'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -43,7 +48,7 @@ def merge_lycoris(
     else:
         subprocess.run(run_cmd)
 
-    print('Done merging...')
+    log.info('Done merging...')
 
 
 ###

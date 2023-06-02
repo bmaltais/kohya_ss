@@ -49,6 +49,11 @@ from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 # from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
@@ -56,63 +61,6 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
-log = logging.getLogger('sd')
-
-# setup console and file logging
-# def setup_logging(clean=False):
-#     try:
-#         if clean and os.path.isfile('setup.log'):
-#             os.remove('setup.log')
-#         time.sleep(0.1)   # prevent race condition
-#     except:
-#         pass
-#     logging.basicConfig(
-#         level=logging.DEBUG,
-#         format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s',
-#         filename='setup.log',
-#         filemode='a',
-#         encoding='utf-8',
-#         force=True,
-#     )
-#     from rich.theme import Theme
-#     from rich.logging import RichHandler
-#     from rich.console import Console
-#     from rich.pretty import install as pretty_install
-#     from rich.traceback import install as traceback_install
-
-#     console = Console(
-#         log_time=True,
-#         log_time_format='%H:%M:%S-%f',
-#         theme=Theme(
-#             {
-#                 'traceback.border': 'black',
-#                 'traceback.border.syntax_error': 'black',
-#                 'inspect.value.border': 'black',
-#             }
-#         ),
-#     )
-#     pretty_install(console=console)
-#     traceback_install(
-#         console=console,
-#         extra_lines=1,
-#         width=console.width,
-#         word_wrap=False,
-#         indent_guides=False,
-#         suppress=[],
-#     )
-#     rh = RichHandler(
-#         show_time=True,
-#         omit_repeated_times=False,
-#         show_level=True,
-#         show_path=False,
-#         markup=False,
-#         rich_tracebacks=True,
-#         log_time_format='%H:%M:%S-%f',
-#         level=logging.DEBUG if args.debug else logging.INFO,
-#         console=console,
-#     )
-#     rh.set_name(logging.DEBUG if args.debug else logging.INFO)
-#     log.addHandler(rh)
 
 def save_configuration(
     save_as,
@@ -612,16 +560,16 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        print(
+        log.info(
             '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
         )
         reg_factor = 2
 
-    print(f'Total steps: {total_steps}')
-    print(f'Train batch size: {train_batch_size}')
-    print(f'Gradient accumulation steps: {gradient_accumulation_steps}')
-    print(f'Epoch: {epoch}')
-    print(f'Regulatization factor: {reg_factor}')
+    log.info(f'Total steps: {total_steps}')
+    log.info(f'Train batch size: {train_batch_size}')
+    log.info(f'Gradient accumulation steps: {gradient_accumulation_steps}')
+    log.info(f'Epoch: {epoch}')
+    log.info(f'Regulatization factor: {reg_factor}')
 
     # calculate max_train_steps
     max_train_steps = int(
@@ -1501,7 +1449,7 @@ def UI(**kwargs):
     css = ''
 
     headless = kwargs.get('headless', False)
-    print(f'headless: {headless}')
+    log.info(f'headless: {headless}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:

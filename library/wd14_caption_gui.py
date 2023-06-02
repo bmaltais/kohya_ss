@@ -4,6 +4,11 @@ import subprocess
 from .common_gui import get_folder_path
 import os
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 
 def caption_images(
     train_data_dir,
@@ -28,7 +33,7 @@ def caption_images(
         msgbox('Please provide an extension for the caption files.')
         return
 
-    print(f'Captioning files in {train_data_dir}...')
+    log.info(f'Captioning files in {train_data_dir}...')
     run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
     run_cmd += f' --batch_size={int(batch_size)}'
     run_cmd += f' --general_threshold={general_threshold}'
@@ -52,7 +57,7 @@ def caption_images(
         run_cmd += f' --undesired_tags="{undesired_tags}"'
     run_cmd += f' "{train_data_dir}"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -60,7 +65,7 @@ def caption_images(
     else:
         subprocess.run(run_cmd)
 
-    print('...captioning done')
+    log.info('...captioning done')
 
 
 ###

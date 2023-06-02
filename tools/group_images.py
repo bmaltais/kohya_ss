@@ -4,6 +4,11 @@ from PIL import Image, ImageOps
 import os
 import numpy as np
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 class ImageProcessor:
 
     def __init__(self, input_folder, output_folder, group_size, include_subfolders, do_not_copy_other_files, pad):
@@ -52,7 +57,7 @@ class ImageProcessor:
         cropped_images = []
         for j, path in enumerate(group):
             with Image.open(path) as img:
-                print(f"  Processing image {j+1}: {path}")
+                log.info(f"  Processing image {j+1}: {path}")
                 img = self.crop_image(img, avg_aspect_ratio)
                 cropped_images.append(img)
         return cropped_images
@@ -80,7 +85,7 @@ class ImageProcessor:
             img = img.resize((max_width, max_height))
             os.makedirs(self.output_folder, exist_ok=True)
             output_path = os.path.join(self.output_folder, f"group-{group_index+1}-image-{j+1}.jpg")
-            print(f"  Saving processed image to {output_path}")
+            log.info(f"  Saving processed image to {output_path}")
             img.convert('RGB').save(output_path)
 
     def copy_other_files(self, group, group_index):
@@ -98,7 +103,7 @@ class ImageProcessor:
         images = self.get_image_paths()
         groups = self.group_images(images)
         for i, group in enumerate(groups):
-            print(f"Processing group {i+1} with {len(group)} images...")
+            log.info(f"Processing group {i+1} with {len(group)} images...")
             self.process_group(group, i)
             
     def process_group(self, group, group_index):
@@ -118,7 +123,7 @@ class ImageProcessor:
         padded_images = []
         for j, path in enumerate(group):
             with Image.open(path) as img:
-                print(f"  Processing image {j+1}: {path}")
+                log.info(f"  Processing image {j+1}: {path}")
                 img = self.pad_image(img, avg_aspect_ratio)
                 padded_images.append(img)
         return padded_images

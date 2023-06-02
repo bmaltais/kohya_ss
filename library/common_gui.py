@@ -6,6 +6,11 @@ import easygui
 import shutil
 import sys
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -39,7 +44,7 @@ def check_if_model_exist(
     output_name, output_dir, save_model_as, headless=False
 ):
     if headless:
-        print(
+        log.info(
             'Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...'
         )
         return False
@@ -49,7 +54,7 @@ def check_if_model_exist(
         if os.path.isdir(ckpt_folder):
             msg = f'A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?'
             if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
-                print(
+                log.info(
                     'Aborting training due to existing model with same name...'
                 )
                 return True
@@ -58,12 +63,12 @@ def check_if_model_exist(
         if os.path.isfile(ckpt_file):
             msg = f'A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?'
             if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
-                print(
+                log.info(
                     'Aborting training due to existing model with same name...'
                 )
                 return True
     else:
-        print(
+        log.info(
             'Can\'t verify if existing model exist when save model is set a "same as source model", continuing to train model...'
         )
         return False
@@ -73,7 +78,7 @@ def check_if_model_exist(
 
 def output_message(msg='', title='', headless=False):
     if headless:
-        print(msg)
+        log.info(msg)
     else:
         msgbox(msg=msg, title=title)
 
@@ -120,9 +125,9 @@ def update_my_data(my_data):
     ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
         message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
         if my_data.get('LoRA_type'):
-            print(message.format('LoRA'))
+            log.info(message.format('LoRA'))
         if my_data.get('num_vectors_per_token'):
-            print(message.format('TI'))
+            log.info(message.format('TI'))
         my_data['save_model_as'] = 'safetensors'
 
     return my_data
@@ -151,7 +156,7 @@ def get_file_path(
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+        # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
@@ -178,7 +183,7 @@ def get_file_path(
         if not file_path:
             file_path = current_file_path
         current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+        # log.info(f'current file path: {current_file_path}')
 
     return file_path
 
@@ -189,7 +194,7 @@ def get_any_file_path(file_path=''):
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+        # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
@@ -257,7 +262,7 @@ def get_saveasfile_path(
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+        # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
@@ -275,15 +280,15 @@ def get_saveasfile_path(
         )
         root.destroy()
 
-        # print(save_file_path)
+        # log.info(save_file_path)
 
         if save_file_path == None:
             file_path = current_file_path
         else:
-            print(save_file_path.name)
+            log.info(save_file_path.name)
             file_path = save_file_path.name
 
-        # print(file_path)
+        # log.info(file_path)
 
     return file_path
 
@@ -296,7 +301,7 @@ def get_saveasfilename_path(
         and sys.platform != 'darwin'
     ):
         current_file_path = file_path
-        # print(f'current file path: {current_file_path}')
+        # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
@@ -317,7 +322,7 @@ def get_saveasfilename_path(
         if save_file_path == '':
             file_path = current_file_path
         else:
-            # print(save_file_path)
+            # log.info(save_file_path)
             file_path = save_file_path
 
     return file_path
@@ -401,7 +406,7 @@ def find_replace(
         search_text (str, optional): Text to search for in the caption files.
         replace_text (str, optional): Text to replace the search text with.
     """
-    print('Running caption find/replace')
+    log.info('Running caption find/replace')
 
     if not has_ext_files(folder_path, caption_file_ext):
         msgbox(
@@ -453,7 +458,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
                 # Copy the v2-inference-v.yaml file to the current file, with a .yaml extension
                 if v2 and v_parameterization:
-                    print(
+                    log.info(
                         f'Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml'
                     )
                     shutil.copy(
@@ -461,7 +466,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f'{output_dir}/{file_name}.yaml',
                     )
                 elif v2:
-                    print(
+                    log.info(
                         f'Saving v2-inference.yaml as {output_dir}/{file_name}.yaml'
                     )
                     shutil.copy(
@@ -475,14 +480,14 @@ def set_pretrained_model_name_or_path_input(
 ):
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
     if str(model_list) in V2_BASE_MODELS:
-        print('SD v2 model detected. Setting --v2 parameter')
+        log.info('SD v2 model detected. Setting --v2 parameter')
         v2 = True
         v_parameterization = False
         pretrained_model_name_or_path = str(model_list)
 
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
     if str(model_list) in V_PARAMETERIZATION_MODELS:
-        print(
+        log.info(
             'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
         )
         v2 = True
@@ -832,7 +837,7 @@ def get_int_or_default(kwargs, key, default_value=0):
     elif isinstance(value, float):
         return int(value)
     else:
-        print(f'{key} is not an int, float or a string, setting value to {default_value}')
+        log.info(f'{key} is not an int, float or a string, setting value to {default_value}')
         return default_value
     
 def get_float_or_default(kwargs, key, default_value=0.0):
@@ -844,7 +849,7 @@ def get_float_or_default(kwargs, key, default_value=0.0):
     elif isinstance(value, str):
         return float(value)
     else:
-        print(f'{key} is not an int, float or a string, setting value to {default_value}')
+        log.info(f'{key} is not an int, float or a string, setting value to {default_value}')
         return default_value
 
 def get_str_or_default(kwargs, key, default_value=""):
@@ -872,7 +877,7 @@ def run_cmd_training(**kwargs):
     lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
     if lr_warmup_steps:
         if lr_scheduler == 'constant':
-            print('Can\'t use LR warmup with LR Scheduler constant... ignoring...')
+            log.info('Can\'t use LR warmup with LR Scheduler constant... ignoring...')
         else:
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
     

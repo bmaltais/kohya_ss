@@ -4,6 +4,11 @@ import subprocess
 from .common_gui import get_folder_path
 import os
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
 def group_images(
@@ -21,7 +26,7 @@ def group_images(
         msgbox('Please provide an output folder.')
         return
 
-    print(f'Grouping images in {input_folder}...')
+    log.info(f'Grouping images in {input_folder}...')
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","group_images.py")}"'
     run_cmd += f' "{input_folder}"'
@@ -32,14 +37,14 @@ def group_images(
     if do_not_copy_other_files:
         run_cmd += f' --do_not_copy_other_files'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     if os.name == 'posix':
         os.system(run_cmd)
     else:
         subprocess.run(run_cmd)
 
-    print('...grouping done')
+    log.info('...grouping done')
 
 
 def gradio_group_images_gui_tab(headless=False):

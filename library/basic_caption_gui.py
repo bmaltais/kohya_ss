@@ -4,6 +4,11 @@ import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace
 import os
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 
 def caption_images(
     caption_text,
@@ -25,7 +30,7 @@ def caption_images(
         return
 
     if caption_text:
-        print(f'Captioning files in {images_dir} with {caption_text}...')
+        log.info(f'Captioning files in {images_dir} with {caption_text}...')
         run_cmd = f'python "tools/caption.py"'
         run_cmd += f' --caption_text="{caption_text}"'
         if overwrite:
@@ -34,7 +39,7 @@ def caption_images(
             run_cmd += f' --caption_file_ext="{caption_ext}"'
         run_cmd += f' "{images_dir}"'
 
-        print(run_cmd)
+        log.info(run_cmd)
 
         # Run the command
         if os.name == 'posix':
@@ -64,7 +69,7 @@ def caption_images(
                 'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...'
             )
 
-    print('...captioning done')
+    log.info('...captioning done')
 
 
 # Gradio UI
