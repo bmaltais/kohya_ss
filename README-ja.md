@@ -16,13 +16,13 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
-* [学習について、共通編](./train_README-ja.md) : データ整備やオプションなど
-    * [データセット設定](./config_README-ja.md)
-* [DreamBoothの学習について](./train_db_README-ja.md)
-* [fine-tuningのガイド](./fine_tune_README_ja.md):
-* [LoRAの学習について](./train_network_README-ja.md)
-* [Textual Inversionの学習について](./train_ti_README-ja.md)
-* note.com [画像生成スクリプト](https://note.com/kohya_ss/n/n2693183a798e)
+* [学習について、共通編](./docs/train_README-ja.md) : データ整備やオプションなど
+    * [データセット設定](./docs/config_README-ja.md)
+* [DreamBoothの学習について](./docs/train_db_README-ja.md)
+* [fine-tuningのガイド](./docs/fine_tune_README_ja.md):
+* [LoRAの学習について](./docs/train_network_README-ja.md)
+* [Textual Inversionの学習について](./docs/train_ti_README-ja.md)
+* [画像生成スクリプト](./docs/gen_img_README-ja.md)
 * note.com [モデル変換スクリプト](https://note.com/kohya_ss/n/n374f316fe4ad)
 
 ## Windowsでの動作に必要なプログラム
@@ -114,6 +114,16 @@ accelerate configの質問には以下のように答えてください。（bf1
 ### PyTorchとxformersのバージョンについて
 
 他のバージョンでは学習がうまくいかない場合があるようです。特に他の理由がなければ指定のバージョンをお使いください。
+
+### オプション：Lion8bitを使う
+
+Lion8bitを使う場合には`bitsandbytes`を0.38.0以降にアップグレードする必要があります。`bitsandbytes`をアンインストールし、Windows環境では例えば[こちら](https://github.com/jllllll/bitsandbytes-windows-webui)などからWindows版のwhlファイルをインストールしてください。たとえば以下のような手順になります。
+
+```powershell
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl
+```
+
+アップグレード時には`pip install .`でこのリポジトリを更新し、必要に応じて他のパッケージもアップグレードしてください。
 
 ## アップグレード
 

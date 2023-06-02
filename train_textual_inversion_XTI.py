@@ -20,7 +20,7 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight
+from library.custom_train_functions import apply_snr_weight, pyramid_noise_like, apply_noise_offset
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
 imagenet_templates_small = [
@@ -104,7 +104,7 @@ def train(args):
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
 
     # モデルを読み込む
-    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype)
+    text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # Convert the init_word to token_id
     if args.init_word is not None:
@@ -314,6 +314,9 @@ def train(args):
         text_encoder, optimizer, train_dataloader, lr_scheduler
     )
 
+    # transform DDP after prepare
+    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
+
     index_no_updates = torch.arange(len(tokenizer)) < token_ids_XTI[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
     orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
@@ -378,7 +381,7 @@ def train(args):
         os.makedirs(args.output_dir, exist_ok=True)
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
-        print(f"saving checkpoint: {ckpt_file}")
+        print(f"\nsaving checkpoint: {ckpt_file}")
         save_weights(ckpt_file, embs, save_dtype)
         if args.huggingface_repo_id is not None:
             huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
@@ -391,7 +394,7 @@ def train(args):
 
     # training loop
     for epoch in range(num_train_epochs):
-        print(f"epoch {epoch+1}/{num_train_epochs}")
+        print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
         text_encoder.train()
@@ -423,8 +426,9 @@ def train(args):
                 # Sample noise that we'll add to the latents
                 noise = torch.randn_like(latents, device=latents.device)
                 if args.noise_offset:
-                    # https://www.crosslabs.org//blog/diffusion-with-offset-noise
-                    noise += args.noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
+                    noise = apply_noise_offset(latents, noise, args.noise_offset, args.adaptive_noise_scale)
+                elif args.multires_noise_iterations:
+                    noise = pyramid_noise_like(noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount)
 
                 # Sample a random timestep for each image
                 timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
@@ -499,7 +503,7 @@ def train(args):
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
-                if args.optimizer_type.lower() == "DAdaptation".lower():  # tracking d*lr value
+                if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value
                     logs["lr/d*lr"] = (
                         lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
                     )

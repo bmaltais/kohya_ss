@@ -71,7 +71,7 @@ def caption_images(
 ###
 
 
-def gradio_blip_caption_gui_tab():
+def gradio_blip_caption_gui_tab(headless=False):
     with gr.Tab('BLIP Captioning'):
         gr.Markdown(
             'This utility will use BLIP to caption files for each images in a folder.'
@@ -83,7 +83,7 @@ def gradio_blip_caption_gui_tab():
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,

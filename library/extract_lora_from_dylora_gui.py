@@ -46,15 +46,16 @@ def extract_dylora(
 
     print('Done extracting DyLoRA...')
 
+
 ###
 # Gradio UI
 ###
 
 
-def gradio_extract_dylora_tab():
+def gradio_extract_dylora_tab(headless=False):
     with gr.Tab('Extract DyLoRA'):
         gr.Markdown(
-            'This utility can extract a LoRA network from a finetuned model.'
+            'This utility can extract a DyLoRA network from a finetuned model.'
         )
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
@@ -66,7 +67,9 @@ def gradio_extract_dylora_tab():
                 interactive=True,
             )
             button_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_model_file.click(
                 get_file_path,
@@ -81,7 +84,9 @@ def gradio_extract_dylora_tab():
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,

@@ -14,6 +14,7 @@ save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
+
 def check_model(model):
     if not model:
         return True
@@ -21,6 +22,7 @@ def check_model(model):
         msgbox(f'The provided {model} is not a file')
         return False
     return True
+
 
 def verify_conditions(sd_model, lora_models):
     lora_models_count = sum(1 for model in lora_models if model)
@@ -51,7 +53,9 @@ def merge_lora(
     ratios = [ratio_a, ratio_b, ratio_c, ratio_d]
 
     if not verify_conditions(sd_model, lora_models):
-        print("Warning: Either provide at least one LoRa model along with the sd_model or at least two LoRa models if no sd_model is provided.")
+        print(
+            'Warning: Either provide at least one LoRa model along with the sd_model or at least two LoRa models if no sd_model is provided.'
+        )
         return
 
     for model in models:
@@ -86,14 +90,17 @@ def merge_lora(
 
     print('Done merging...')
 
+
 ###
 # Gradio UI
 ###
 
 
-def gradio_merge_lora_tab():
+def gradio_merge_lora_tab(headless=False):
     with gr.Tab('Merge LoRA'):
-        gr.Markdown('This utility can merge up to 4 LoRA together or alternativelly merge up to 4 LoRA into a SD checkpoint.')
+        gr.Markdown(
+            'This utility can merge up to 4 LoRA together or alternativelly merge up to 4 LoRA into a SD checkpoint.'
+        )
 
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
@@ -105,10 +112,12 @@ def gradio_merge_lora_tab():
                 label='SD Model',
                 placeholder='(Optional) Stable Diffusion model',
                 interactive=True,
-                info='Provide a SD file path IF you want to merge it with LoRA files'
+                info='Provide a SD file path IF you want to merge it with LoRA files',
             )
             sd_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             sd_model_file.click(
                 get_file_path,
@@ -116,7 +125,7 @@ def gradio_merge_lora_tab():
                 outputs=sd_model,
                 show_progress=False,
             )
-            
+
         with gr.Row():
             lora_a_model = gr.Textbox(
                 label='LoRA model "A"',
@@ -124,7 +133,9 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_a_model_file.click(
                 get_file_path,
@@ -139,7 +150,9 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_b_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_b_model_file.click(
                 get_file_path,
@@ -147,7 +160,7 @@ def gradio_merge_lora_tab():
                 outputs=lora_b_model,
                 show_progress=False,
             )
-            
+
         with gr.Row():
             ratio_a = gr.Slider(
                 label='Model A merge ratio (eg: 0.5 mean 50%)',
@@ -157,7 +170,7 @@ def gradio_merge_lora_tab():
                 value=0.0,
                 interactive=True,
             )
-            
+
             ratio_b = gr.Slider(
                 label='Model B merge ratio (eg: 0.5 mean 50%)',
                 minimum=0,
@@ -166,7 +179,7 @@ def gradio_merge_lora_tab():
                 value=0.0,
                 interactive=True,
             )
-            
+
         with gr.Row():
             lora_c_model = gr.Textbox(
                 label='LoRA model "C"',
@@ -174,7 +187,9 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_lora_c_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_c_model_file.click(
                 get_file_path,
@@ -182,14 +197,16 @@ def gradio_merge_lora_tab():
                 outputs=lora_c_model,
                 show_progress=False,
             )
-            
+
             lora_d_model = gr.Textbox(
                 label='LoRA model "D"',
                 placeholder='Path to the LoRA D model',
                 interactive=True,
             )
             button_lora_d_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_d_model_file.click(
                 get_file_path,
@@ -197,7 +214,7 @@ def gradio_merge_lora_tab():
                 outputs=lora_d_model,
                 show_progress=False,
             )
-            
+
         with gr.Row():
             ratio_c = gr.Slider(
                 label='Model C merge ratio (eg: 0.5 mean 50%)',
@@ -207,7 +224,7 @@ def gradio_merge_lora_tab():
                 value=0.0,
                 interactive=True,
             )
-            
+
             ratio_d = gr.Slider(
                 label='Model D merge ratio (eg: 0.5 mean 50%)',
                 minimum=0,
@@ -224,7 +241,9 @@ def gradio_merge_lora_tab():
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,

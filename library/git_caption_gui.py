@@ -27,9 +27,7 @@ def caption_images(
         return
 
     print(f'GIT captioning files in {train_data_dir}...')
-    run_cmd = (
-        f'{PYTHON} finetune/make_captions_by_git.py'
-    )
+    run_cmd = f'{PYTHON} finetune/make_captions_by_git.py'
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
@@ -65,7 +63,7 @@ def caption_images(
 ###
 
 
-def gradio_git_caption_gui_tab():
+def gradio_git_caption_gui_tab(headless=False):
     with gr.Tab('GIT Captioning'):
         gr.Markdown(
             'This utility will use GIT to caption files for each images in a folder.'
@@ -77,7 +75,7 @@ def gradio_git_caption_gui_tab():
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,

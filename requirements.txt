@@ -1,13 +1,17 @@
-accelerate==0.15.0
+# Some comments
+accelerate==0.18.0
 albumentations==1.3.0
 altair==4.2.2
-bitsandbytes==0.35.0
-dadaptation==1.5
+# https://github.com/bmaltais/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl; sys_platform == 'win32'
+# This next line is not an error but rather there to properly catch if the url based bitsandbytes was properly installed by the line above...
+bitsandbytes==0.35.0; sys_platform == 'win32'
+bitsandbytes==0.38.1; (sys_platform == "darwin" or sys_platform == "linux")
+dadaptation==3.1
 diffusers[torch]==0.10.2
 easygui==0.98.3
 einops==0.6.0
 ftfy==6.1.1
-gradio==3.27.0; sys_platform != 'darwin'
+gradio==3.32.0; sys_platform != 'darwin'
 gradio==3.23.0; sys_platform == 'darwin'
 lion-pytorch==0.0.6
 opencv-python==4.7.0.68

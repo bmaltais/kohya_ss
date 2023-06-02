@@ -24,9 +24,9 @@ def convert(args):
     is_save_ckpt = len(os.path.splitext(args.model_to_save)[1]) > 0
 
     assert not is_load_ckpt or args.v1 != args.v2, f"v1 or v2 is required to load checkpoint / checkpointの読み込みにはv1/v2指定が必要です"
-    assert (
-        is_save_ckpt or args.reference_model is not None
-    ), f"reference model is required to save as Diffusers / Diffusers形式での保存には参照モデルが必要です"
+    # assert (
+    #     is_save_ckpt or args.reference_model is not None
+    # ), f"reference model is required to save as Diffusers / Diffusers形式での保存には参照モデルが必要です"
 
     # モデルを読み込む
     msg = "checkpoint" if is_load_ckpt else ("Diffusers" + (" as fp16" if args.fp16 else ""))
@@ -34,7 +34,7 @@ def convert(args):
 
     if is_load_ckpt:
         v2_model = args.v2
-        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(v2_model, args.model_to_load)
+        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(v2_model, args.model_to_load, unet_use_linear_projection_in_v2=args.unet_use_linear_projection)
     else:
         pipe = StableDiffusionPipeline.from_pretrained(
             args.model_to_load, torch_dtype=load_dtype, tokenizer=None, safety_checker=None
@@ -61,7 +61,7 @@ def convert(args):
         )
         print(f"model saved. total converted state_dict keys: {key_count}")
     else:
-        print(f"copy scheduler/tokenizer config from: {args.reference_model}")
+        print(f"copy scheduler/tokenizer config from: {args.reference_model if args.reference_model is not None else 'default model'}")
         model_util.save_diffusers_checkpoint(
             v2_model, args.model_to_save, text_encoder, unet, args.reference_model, vae, args.use_safetensors
         )
@@ -75,6 +75,9 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--v2", action="store_true", help="load v2.0 model (v1 or v2 is required to load checkpoint) / 2.0のモデルを読み込む"
+    )
+    parser.add_argument(
+        "--unet_use_linear_projection", action="store_true", help="When saving v2 model as Diffusers, set U-Net config to `use_linear_projection=true` (to match stabilityai's model) / Diffusers形式でv2モデルを保存するときにU-Netの設定を`use_linear_projection=true`にする（stabilityaiのモデルと合わせる）"
     )
     parser.add_argument(
         "--fp16",
@@ -100,7 +103,7 @@ def setup_parser() -> argparse.ArgumentParser:
         "--reference_model",
         type=str,
         default=None,
-        help="reference model for schduler/tokenizer, required in saving Diffusers, copy schduler/tokenizer from this / scheduler/tokenizerのコピー元のDiffusersモデル、Diffusers形式で保存するときに必要",
+        help="scheduler/tokenizerのコピー元Diffusersモデル、Diffusers形式で保存するときに使用される、省略時は`runwayml/stable-diffusion-v1-5` または `stabilityai/stable-diffusion-2-1` / reference Diffusers model to copy scheduler/tokenizer config from, used when saving as Diffusers format, default is `runwayml/stable-diffusion-v1-5` or `stabilityai/stable-diffusion-2-1`",
     )
     parser.add_argument(
         "--use_safetensors",

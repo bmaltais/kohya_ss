@@ -6,6 +6,8 @@
 import gradio as gr
 import logging
 import time
+
+# import easygui
 import json
 import math
 import os
@@ -29,6 +31,7 @@ from library.common_gui import (
     # set_legacy_8bitadam,
     update_my_data,
     check_if_model_exist,
+    output_message,
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -45,7 +48,8 @@ from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.sampler_gui import sample_gradio_config, run_cmd_sample
-from easygui import msgbox
+
+# from easygui import msgbox
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -132,6 +136,7 @@ def save_configuration(
     seed,
     num_cpu_threads_per_process,
     cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -148,7 +153,7 @@ def save_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -172,7 +177,9 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -196,6 +203,8 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb,
+    wandb_api_key,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -264,6 +273,7 @@ def open_configuration(
     seed,
     num_cpu_threads_per_process,
     cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -280,7 +290,7 @@ def open_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -304,7 +314,9 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -328,6 +340,8 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb,
+    wandb_api_key,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -367,6 +381,7 @@ def open_configuration(
 
 
 def train_model(
+    headless,
     print_only,
     pretrained_model_name_or_path,
     v2,
@@ -387,6 +402,7 @@ def train_model(
     seed,
     num_cpu_threads_per_process,
     cache_latents,
+    cache_latents_to_disk,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -403,7 +419,7 @@ def train_model(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    lora_network_weights,dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -427,7 +443,9 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset,
+    noise_offset_type,noise_offset,adaptive_noise_scale,
+    multires_noise_iterations,
+    multires_noise_discount,
     LoRA_type,
     conv_dim,
     conv_alpha,
@@ -451,51 +469,92 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    use_wandb,
+    wandb_api_key,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
+    headless_bool = True if headless.get('label') == 'True' else False
 
     if pretrained_model_name_or_path == '':
-        msgbox('Source model information is missing')
+        output_message(
+            msg='Source model information is missing', headless=headless_bool
+        )
         return
 
     if train_data_dir == '':
-        msgbox('Image folder path is missing')
+        output_message(
+            msg='Image folder path is missing', headless=headless_bool
+        )
         return
 
     if not os.path.exists(train_data_dir):
-        msgbox('Image folder does not exist')
+        output_message(
+            msg='Image folder does not exist', headless=headless_bool
+        )
         return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
-            msgbox('Regularisation folder does not exist')
+            output_message(
+                msg='Regularisation folder does not exist',
+                headless=headless_bool,
+            )
             return
 
     if output_dir == '':
-        msgbox('Output folder path is missing')
+        output_message(
+            msg='Output folder path is missing', headless=headless_bool
+        )
         return
 
     if int(bucket_reso_steps) < 1:
-        msgbox('Bucket resolution steps need to be greater than 0')
+        output_message(
+            msg='Bucket resolution steps need to be greater than 0',
+            headless=headless_bool,
+        )
         return
+
+    if noise_offset == '':
+        noise_offset = 0
+
+    if float(noise_offset) > 1 or float(noise_offset) < 0:
+        output_message(
+            msg='Noise offset need to be a value between 0 and 1',
+            headless=headless_bool,
+        )
+        return
+
+    # if float(noise_offset) > 0 and (
+    #     multires_noise_iterations > 0 or multires_noise_discount > 0
+    # ):
+    #     output_message(
+    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
+    #         title='Error',
+    #         headless=headless_bool,
+    #     )
+    #     return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     if stop_text_encoder_training_pct > 0:
-        msgbox(
-            'Output "stop text encoder training" is not yet supported. Ignoring'
+        output_message(
+            msg='Output "stop text encoder training" is not yet supported. Ignoring',
+            headless=headless_bool,
         )
         stop_text_encoder_training_pct = 0
 
-    if check_if_model_exist(output_name, output_dir, save_model_as):
+    if check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless_bool
+    ):
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':
-        msgbox(
-            "Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+        output_message(
+            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
             title='Warning',
+            headless=headless_bool,
         )
         lr_warmup = '0'
 
@@ -504,12 +563,6 @@ def train_model(
         text_encoder_lr = 0
     if unet_lr == '':
         unet_lr = 0
-
-    # if (float(text_encoder_lr) == 0) and (float(unet_lr) == 0):
-    #     msgbox(
-    #         'At least one Learning Rate value for "Text encoder" or "Unet" need to be provided'
-    #     )
-    #     return
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -556,16 +609,31 @@ def train_model(
                 f"Error: '{folder}' does not contain an underscore, skipping..."
             )
 
+    if reg_data_dir == '':
+        reg_factor = 1
+    else:
+        print(
+            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        )
+        reg_factor = 2
+
+    print(f'Total steps: {total_steps}')
+    print(f'Train batch size: {train_batch_size}')
+    print(f'Gradient accumulation steps: {gradient_accumulation_steps}')
+    print(f'Epoch: {epoch}')
+    print(f'Regulatization factor: {reg_factor}')
+
     # calculate max_train_steps
     max_train_steps = int(
         math.ceil(
             float(total_steps)
             / int(train_batch_size)
+            / int(gradient_accumulation_steps)
             * int(epoch)
-            # * int(reg_factor)
+            * int(reg_factor)
         )
     )
-    log.info(f'max_train_steps = {max_train_steps}')
+    log.info(f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}')
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -599,7 +667,8 @@ def train_model(
         run_cmd += f' --reg_data_dir="{reg_data_dir}"'
     run_cmd += f' --resolution={max_resolution}'
     run_cmd += f' --output_dir="{output_dir}"'
-    run_cmd += f' --logging_dir="{logging_dir}"'
+    if not logging_dir == '':
+        run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --network_alpha="{network_alpha}"'
     if not training_comment == '':
         run_cmd += f' --training_comment="{training_comment}"'
@@ -704,14 +773,21 @@ def train_model(
             run_cmd += f' --unet_lr={unet_lr}'
             run_cmd += f' --network_train_unet_only'
     else:
-        if float(text_encoder_lr) == 0:
-            msgbox('Please input learning rate values.')
+        if float(learning_rate) == 0:
+            output_message(
+                msg='Please input learning rate values.',
+                headless=headless_bool,
+            )
             return
 
     run_cmd += f' --network_dim={network_dim}'
 
-    if not lora_network_weights == '':
-        run_cmd += f' --network_weights="{lora_network_weights}"'
+    if LoRA_type not in ['LyCORIS/LoCon', 'LyCORIS/LoHa']:
+        if not lora_network_weights == '':
+            run_cmd += f' --network_weights="{lora_network_weights}"'
+        if dim_from_weights:
+            run_cmd += f' --dim_from_weights'
+            
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if not output_name == '':
@@ -735,6 +811,7 @@ def train_model(
         seed=seed,
         caption_extension=caption_extension,
         cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
     )
@@ -761,13 +838,19 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
+        noise_offset_type=noise_offset_type,
         noise_offset=noise_offset,
+        adaptive_noise_scale=adaptive_noise_scale,
+        multires_noise_iterations=multires_noise_iterations,
+        multires_noise_discount=multires_noise_discount,
         additional_parameters=additional_parameters,
         vae_batch_size=vae_batch_size,
         min_snr_gamma=min_snr_gamma,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
+        use_wandb=use_wandb,
+        wandb_api_key=wandb_api_key,
     )
 
     run_cmd += run_cmd_sample(
@@ -823,9 +906,12 @@ def lora_tab(
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
+    headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
+    dummy_headless = gr.Label(value=headless, visible=False)
+
     gr.Markdown(
         'Train a custom model using kohya train network LoRA python code...'
     )
@@ -835,7 +921,7 @@ def lora_tab(
         button_save_as_config,
         config_file_name,
         button_load_config,
-    ) = gradio_config()
+    ) = gradio_config(headless=headless)
 
     (
         pretrained_model_name_or_path,
@@ -847,7 +933,8 @@ def lora_tab(
         save_model_as_choices=[
             'ckpt',
             'safetensors',
-        ]
+        ],
+        headless=headless,
     )
 
     with gr.Tab('Folders'):
@@ -856,7 +943,9 @@ def lora_tab(
                 label='Image folder',
                 placeholder='Folder where the training folders containing the images are located',
             )
-            train_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            train_data_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             train_data_dir_folder.click(
                 get_folder_path,
                 outputs=train_data_dir,
@@ -866,7 +955,9 @@ def lora_tab(
                 label='Regularisation folder',
                 placeholder='(Optional) Folder where where the regularization folders containing the images are located',
             )
-            reg_data_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            reg_data_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             reg_data_dir_folder.click(
                 get_folder_path,
                 outputs=reg_data_dir,
@@ -877,7 +968,9 @@ def lora_tab(
                 label='Output folder',
                 placeholder='Folder to output trained model',
             )
-            output_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            output_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             output_dir_folder.click(
                 get_folder_path,
                 outputs=output_dir,
@@ -887,7 +980,9 @@ def lora_tab(
                 label='Logging folder',
                 placeholder='Optional: enable logging and output TensorBoard log to this folder',
             )
-            logging_dir_folder = gr.Button('📂', elem_id='open_folder_small')
+            logging_dir_folder = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             logging_dir_folder.click(
                 get_folder_path,
                 outputs=logging_dir,
@@ -939,19 +1034,29 @@ def lora_tab(
                 ],
                 value='Standard',
             )
-            lora_network_weights = gr.Textbox(
-                label='LoRA network weights',
-                placeholder='{Optional) Path to existing LoRA network weights to resume training',
-            )
-            lora_network_weights_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
-            )
-            lora_network_weights_file.click(
-                get_any_file_path,
-                inputs=[lora_network_weights],
-                outputs=lora_network_weights,
-                show_progress=False,
-            )
+            with gr.Box():
+                with gr.Row():
+                    lora_network_weights = gr.Textbox(
+                        label='LoRA network weights',
+                        placeholder='(Optional)',
+                        info='Path to an existing LoRA network weights to resume training from'
+                    )
+                    lora_network_weights_file = gr.Button(
+                        document_symbol,
+                        elem_id='open_folder_small',
+                        visible=(not headless),
+                    )
+                    lora_network_weights_file.click(
+                        get_any_file_path,
+                        inputs=[lora_network_weights],
+                        outputs=lora_network_weights,
+                        show_progress=False,
+                    )
+                    dim_from_weights = gr.Checkbox(
+                        label='DIM from weights',
+                        value=False,
+                        info='Automatically determine the dim(rank) from the weight file.',
+                    )
         (
             learning_rate,
             lr_scheduler,
@@ -965,6 +1070,7 @@ def lora_tab(
             seed,
             caption_extension,
             cache_latents,
+            cache_latents_to_disk,
             optimizer,
             optimizer_args,
         ) = gradio_training(
@@ -974,15 +1080,15 @@ def lora_tab(
         )
 
         with gr.Row():
-            text_encoder_lr = gr.Textbox(
+            text_encoder_lr = gr.Number(
                 label='Text Encoder learning rate',
                 value='5e-5',
-                placeholder='Optional',
+                info='Optional',
             )
-            unet_lr = gr.Textbox(
+            unet_lr = gr.Number(
                 label='Unet learning rate',
                 value='0.0001',
-                placeholder='Optional',
+                info='Optional',
             )
             network_dim = gr.Slider(
                 minimum=1,
@@ -1048,6 +1154,14 @@ def lora_tab(
                 'Kohya DyLoRA',
                 'Kohya LoCon',
             }
+            
+            # Determine if LoRA network weights should be visible based on LoRA_type
+            LoRA_network_weights_visible = LoRA_type in {
+                'Standard',
+                'LoCon',
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+            }
 
             # Determine if kohya_dylora_visible should be visible based on LoRA_type
             kohya_dylora_visible = LoRA_type == 'Kohya DyLoRA'
@@ -1057,6 +1171,9 @@ def lora_tab(
                 gr.Group.update(visible=LoCon_row),
                 gr.Group.update(visible=LoRA_type_change),
                 gr.Group.update(visible=kohya_dylora_visible),
+                gr.Textbox.update(visible=LoRA_network_weights_visible),
+                gr.Button.update(visible=LoRA_network_weights_visible),
+                gr.Checkbox.update(visible=LoRA_network_weights_visible),
             )
 
         with gr.Row():
@@ -1175,14 +1292,18 @@ def lora_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset,
+                noise_offset_type,noise_offset,adaptive_noise_scale,
+                multires_noise_iterations,
+                multires_noise_discount,
                 additional_parameters,
                 vae_batch_size,
                 min_snr_gamma,
                 save_every_n_steps,
                 save_last_n_steps,
                 save_last_n_steps_state,
-            ) = gradio_advanced_training()
+                use_wandb,
+                wandb_api_key,
+            ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
                 inputs=[color_aug],
@@ -1199,7 +1320,7 @@ def lora_tab(
         LoRA_type.change(
             update_LoRA_settings,
             inputs=[LoRA_type],
-            outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora],
+            outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora, lora_network_weights, lora_network_weights_file, dim_from_weights],
         )
 
     with gr.Tab('Tools'):
@@ -1211,12 +1332,13 @@ def lora_tab(
             reg_data_dir_input=reg_data_dir,
             output_dir_input=output_dir,
             logging_dir_input=logging_dir,
+            headless=headless,
         )
-        gradio_dataset_balancing_tab()
-        gradio_merge_lora_tab()
-        gradio_svd_merge_lora_tab()
-        gradio_resize_lora_tab()
-        gradio_verify_lora_tab()
+        gradio_dataset_balancing_tab(headless=headless)
+        gradio_merge_lora_tab(headless=headless)
+        gradio_svd_merge_lora_tab(headless=headless)
+        gradio_resize_lora_tab(headless=headless)
+        gradio_verify_lora_tab(headless=headless)
 
     button_run = gr.Button('Train model', variant='primary')
 
@@ -1256,6 +1378,7 @@ def lora_tab(
         seed,
         num_cpu_threads_per_process,
         cache_latents,
+        cache_latents_to_disk,
         caption_extension,
         enable_bucket,
         gradient_checkpointing,
@@ -1272,7 +1395,7 @@ def lora_tab(
         text_encoder_lr,
         unet_lr,
         network_dim,
-        lora_network_weights,
+        lora_network_weights,dim_from_weights,
         color_aug,
         flip_aug,
         clip_skip,
@@ -1296,7 +1419,9 @@ def lora_tab(
         caption_dropout_rate,
         optimizer,
         optimizer_args,
-        noise_offset,
+        noise_offset_type,noise_offset,adaptive_noise_scale,
+        multires_noise_iterations,
+        multires_noise_discount,
         LoRA_type,
         conv_dim,
         conv_alpha,
@@ -1320,6 +1445,8 @@ def lora_tab(
         save_every_n_steps,
         save_last_n_steps,
         save_last_n_steps_state,
+        use_wandb,
+        wandb_api_key,
     ]
 
     button_open_config.click(
@@ -1352,13 +1479,13 @@ def lora_tab(
 
     button_run.click(
         train_model,
-        inputs=[dummy_db_false] + settings_list,
+        inputs=[dummy_headless] + [dummy_db_false] + settings_list,
         show_progress=False,
     )
 
     button_print.click(
         train_model,
-        inputs=[dummy_db_true] + settings_list,
+        inputs=[dummy_headless] + [dummy_db_true] + settings_list,
         show_progress=False,
     )
 
@@ -1373,12 +1500,17 @@ def lora_tab(
 def UI(**kwargs):
     css = ''
 
+    headless = kwargs.get('headless', False)
+    print(f'headless: {headless}')
+
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             log.info('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css)
+    interface = gr.Blocks(
+        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+    )
 
     with interface:
         with gr.Tab('LoRA'):
@@ -1387,7 +1519,7 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = lora_tab()
+            ) = lora_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -1395,21 +1527,27 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
+                headless=headless,
             )
 
     # Show the interface
     launch_kwargs = {}
-    if not kwargs.get('username', None) == '':
-        launch_kwargs['auth'] = (
-            kwargs.get('username', None),
-            kwargs.get('password', None),
-        )
-    if kwargs.get('server_port', 0) > 0:
-        launch_kwargs['server_port'] = kwargs.get('server_port', 0)
-    if kwargs.get('inbrowser', False):
-        launch_kwargs['inbrowser'] = kwargs.get('inbrowser', False)
-    if kwargs.get('listen', True):
-        launch_kwargs['server_name'] = '0.0.0.0'
+    username = kwargs.get('username')
+    password = kwargs.get('password')
+    server_port = kwargs.get('server_port', 0)
+    inbrowser = kwargs.get('inbrowser', False)
+    share = kwargs.get('share', False)
+    server_name = kwargs.get('listen')
+
+    launch_kwargs['server_name'] = server_name
+    if username and password:
+        launch_kwargs['auth'] = (username, password)
+    if server_port > 0:
+        launch_kwargs['server_port'] = server_port
+    if inbrowser:
+        launch_kwargs['inbrowser'] = inbrowser
+    if share:
+        launch_kwargs['share'] = share
     log.info(launch_kwargs)
     interface.launch(**launch_kwargs)
 
@@ -1417,6 +1555,12 @@ def UI(**kwargs):
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--listen',
+        type=str,
+        default='127.0.0.1',
+        help='IP to listen on for connections to Gradio',
+    )
     parser.add_argument(
         '--username', type=str, default='', help='Username for authentication'
     )
@@ -1433,9 +1577,10 @@ if __name__ == '__main__':
         '--inbrowser', action='store_true', help='Open in browser'
     )
     parser.add_argument(
-        '--listen',
-        action='store_true',
-        help='Launch gradio with server name 0.0.0.0, allowing LAN access',
+        '--share', action='store_true', help='Share the gradio UI'
+    )
+    parser.add_argument(
+        '--headless', action='store_true', help='Is the server headless'
     )
 
     args = parser.parse_args()
@@ -1445,4 +1590,7 @@ if __name__ == '__main__':
         password=args.password,
         inbrowser=args.inbrowser,
         server_port=args.server_port,
+        share=args.share,
+        listen=args.listen,
+        headless=args.headless,
     )
