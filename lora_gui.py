@@ -827,10 +827,10 @@ def train_model(
     #     run_cmd += f' --conv_alphas="{conv_alphas}"'
 
     if print_only_bool:
-        log.info(
-            '\033[93m\nHere is the trainer command as a reference. It will not be executed:\033[0m\n'
+        log.warning(
+            'Here is the trainer command as a reference. It will not be executed:\n'
         )
-        log.info('\033[96m' + run_cmd + '\033[0m\n')
+        log.info(run_cmd)
     else:
         log.info(run_cmd)
         # Run the command

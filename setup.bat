@@ -1,4 +1,53 @@
 @echo off
+setlocal
+
+REM Define color variables
+set "yellow_text=[1;33m"
+set "blue_text=[1;34m"
+set "reset_text=[0m"
+
+REM Run pip freeze and capture the output
+for /f "delims=" %%I in ('pip freeze') do (
+    set "pip_output=%%I"
+    goto :CheckModules
+)
+
+:CheckModules
+REM Check if modules are found in the output
+if defined pip_output (
+    echo %yellow_text%=============================================================
+    echo Modules installed outside the virtual environment were found.
+    echo This can cause issues. Please review the installed modules.
+    echo.
+    echo You can uninstall all local modules with:
+    echo.
+    echo %blue_text%deactivate
+    echo pip freeze ^> uninstall.txt
+    echo pip uninstall -y -r uninstall.txt
+    echo %yellow_text%=============================================================%reset_text%
+)
+
+:PromptUser
+REM Ask the user if they want to quit or continue
+echo.
+echo Do you want to:
+echo [1] - Quit
+echo [2] - Continue with the setup
+set /p "choice=Enter your choice (1 or 2): "
+if /i "%choice%"=="1" (
+    echo You chose to quit.
+    echo.
+    goto :Quit
+) else if /i "%choice%"=="2" (
+    echo You chose to continue.
+    echo.
+) else (
+    echo Invalid choice. Please try again.
+    echo.
+    goto :PromptUser
+)
+
+endlocal
 
 set PYTHON_VER=3.10.9
 
@@ -56,3 +105,5 @@ python.exe .\tools\update_bitsandbytes.py
 @REM copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
 accelerate config
+
+:Quit
