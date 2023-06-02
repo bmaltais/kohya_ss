@@ -345,6 +345,9 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/02 (v21.6.0)
+- Merge kohya_ss repo changes
+- Improge logging of kohya_ss GUI
 * 2023/05/28 (v21.5.15)
 - Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
   - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
