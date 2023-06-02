@@ -16,6 +16,7 @@ gradio==3.23.0; sys_platform == 'darwin'
 lion-pytorch==0.0.6
 opencv-python==4.7.0.68
 pytorch-lightning==1.9.0
+rich==13.4.1
 safetensors==0.2.6
 tensorboard==2.10.1 ; sys_platform != 'darwin'
 tensorboard==2.12.1 ; sys_platform == 'darwin'
