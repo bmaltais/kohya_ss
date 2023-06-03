@@ -345,6 +345,10 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/03 (v21.6.4)
+- Fix dreambooth issue with new logging
+- Update setup and upgrade scripts
+- Adding test folder
 * 2023/06/02 (v21.6.3)
 - Fix install issue with setup logic
 * 2023/06/02 (v21.6.2)

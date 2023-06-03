@@ -103,8 +103,8 @@ def print_error_messages(missing_requirements, wrong_version_requirements, requi
             for requirement, expected_version, actual_version in wrong_version_requirements:
                 log.info(f" - {requirement} (expected version {expected_version}, found version {actual_version})")
         
-        upgrade_script = "upgrade.ps1" if os.name == "nt" else "upgrade.sh"
-        log.info(f"\nRun \033[33m{upgrade_script}\033[0m or \033[33mpip install -U -r {requirements_file}\033[0m to resolve the missing requirements listed above...")
+        upgrade_script = "upgrade.bat" if os.name == "nt" else "upgrade.sh"
+        log.info(f"\nRun {upgrade_script} to resolve the missing requirements listed above...")
         sys.exit(1)
 
     log.info("All requirements satisfied.")
