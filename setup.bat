@@ -25,26 +25,8 @@ if defined pip_output (
     echo pip freeze ^> uninstall.txt
     echo pip uninstall -y -r uninstall.txt
     echo %yellow_text%=============================================================%reset_text%
-)
 
-:PromptUser
-REM Ask the user if they want to quit or continue
-echo.
-echo Do you want to:
-echo [1] - Quit
-echo [2] - Continue with the setup
-set /p "choice=Enter your choice (1 or 2): "
-if /i "%choice%"=="1" (
-    echo You chose to quit.
-    echo.
-    goto :Quit
-) else if /i "%choice%"=="2" (
-    echo You chose to continue.
-    echo.
-) else (
-    echo Invalid choice. Please try again.
-    echo.
-    goto :PromptUser
+    goto PromptUser
 )
 
 endlocal
@@ -63,6 +45,9 @@ IF NOT EXIST venv (
     echo venv folder already exists, skipping creation...
 )
 call .\venv\Scripts\activate.bat
+
+REM Upgrade pip if needed
+python.exe -m pip install --upgrade pip
 
 echo Do you want to uninstall previous versions of torch and associated files before installing? Usefull if you are upgrading from torch 1.12.1 to torch 2.0.0 or if you are downgrading from torch 2.0.0 to torch 1.12.1.
 echo [1] - Yes
@@ -93,7 +78,7 @@ if %choice%==1 (
 ) else (
     pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
     pip install --use-pep517 --upgrade -r requirements.txt
-    pip install --upgrade xformers==0.0.19
+    rem pip install --upgrade xformers==0.0.20
     rem pip install -U -I --no-deps https://files.pythonhosted.org/packages/d6/f7/02662286419a2652c899e2b3d1913c47723fc164b4ac06a85f769c291013/xformers-0.0.17rc482-cp310-cp310-win_amd64.whl
     pip install https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl
 )
@@ -105,5 +90,27 @@ python.exe .\tools\update_bitsandbytes.py
 @REM copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 
 accelerate config
+
+exit
+
+:PromptUser
+REM Ask the user if they want to quit or continue
+echo.
+echo Do you want to:
+echo [1] - Quit
+echo [2] - Continue with the setup
+set /p "choice=Enter your choice (1 or 2): "
+if /i "%choice%"=="1" (
+    echo You chose to quit.
+    echo.
+    goto :Quit
+) else if /i "%choice%"=="2" (
+    echo You chose to continue.
+    echo.
+) else (
+    echo Invalid choice. Please try again.
+    echo.
+    goto :PromptUser
+)
 
 :Quit

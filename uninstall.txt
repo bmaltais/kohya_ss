@@ -1,2 +1,0 @@
-pip freeze \
-pip freeze 
