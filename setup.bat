@@ -28,7 +28,7 @@ if %errorlevel% equ 1 (
 call .\venv\Scripts\activate.bat
 
 :: Upgrade pip if needed
-pip install --upgrade pip
+python.exe -m pip install --upgrade pip
 
 echo.
 echo Please choose the version of torch you want to install:
