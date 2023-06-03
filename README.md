@@ -345,6 +345,27 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/04 (v21.7.0)
+- Max Norm Regularization is now available in `train_network.py`. [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
+  - Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.
+  - Specify as `--scale_weight_norms=1.0`. It seems good to try from `1.0`.
+  - The networks other than LoRA in this repository (such as LyCORIS) do not support this option.
+
+- Three types of dropout have been added to `train_network.py` and LoRA network.
+  - Dropout is a technique to suppress overfitting and improve network performance by randomly setting some of the network outputs to 0.
+  - `--network_dropout` is a normal dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Proposed in [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
+    - `--network_dropout=0.1` specifies the dropout probability to `0.1`.
+    - Note that the specification method is different from LyCORIS.
+  - For LoRA network, `--network_args` can specify `rank_dropout` to dropout each rank with specified probability. Also `module_dropout` can be specified to dropout each module with specified probability.
+    - Specify as `--network_args "rank_dropout=0.2" "module_dropout=0.1"`.
+  - `--network_dropout`, `rank_dropout`, and `module_dropout` can be specified at the same time.
+  - Values of 0.1 to 0.3 may be good to try. Values greater than 0.5 should not be specified.
+  - `rank_dropout` and `module_dropout` are original techniques of this repository. Their effectiveness has not been verified yet.
+  - The networks other than LoRA in this repository (such as LyCORIS) do not support these options.
+  
+- Added an option `--scale_v_pred_loss_like_noise_pred` to scale v-prediction loss like noise prediction in each training script.
+  - By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.
+  - See [this article](https://xrg.hatenablog.com/entry/2023/06/02/202418) by xrg for details (written in Japanese). Thanks to xrg for the great suggestion!
 * 2023/06/03 (v21.6.5)
 - Fix dreambooth issue with new logging
 - Update setup and upgrade scripts
