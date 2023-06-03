@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/02 (v21.6.2)
+- Fix install issue with torch version
 * 2023/06/02 (v21.6.1)
 - Add detection of files outside the venv to scripts
 * 2023/06/02 (v21.6.0)
