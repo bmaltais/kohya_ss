@@ -78,7 +78,7 @@ from diffusers import (
     HeunDiscreteScheduler,
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
-    UNet2DConditionModel,
+    # UNet2DConditionModel,
     StableDiffusionPipeline,
 )
 from einops import rearrange
@@ -95,6 +95,7 @@ import library.train_util as train_util
 from networks.lora import LoRANetwork
 import tools.original_control_net as original_control_net
 from tools.original_control_net import ControlNetInfo
+from library.original_unet import UNet2DConditionModel
 
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
