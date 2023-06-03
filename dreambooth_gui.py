@@ -412,11 +412,7 @@ def train_model(
 
     # Check if subfolders are present. If not let the user know and return
     if not subfolders:
-        log.info(
-            '\033[33mNo subfolders were found in',
-            train_data_dir,
-            " can't train\...033[0m",
-        )
+        log.info(f'No {subfolders} were found in train_data_dir can\'t train...')
         return
 
     total_steps = 0
@@ -427,11 +423,7 @@ def train_model(
         try:
             repeats = int(folder.split('_')[0])
         except ValueError:
-            log.info(
-                '\033[33mSubfolder',
-                folder,
-                "does not have a proper repeat value, please correct the name or remove it... can't train...\033[0m",
-            )
+            log.info(f'Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can\'t train...')
             continue
 
         # Count the number of images in the folder
@@ -456,14 +448,10 @@ def train_model(
             total_steps += steps
 
             # Print the result
-            log.info('\033[33mFolder', folder, ':', steps, 'steps\033[0m')
+            log.info(f'Folder {folder} : steps {steps}')
 
     if total_steps == 0:
-        log.info(
-            '\033[33mNo images were found in folder',
-            train_data_dir,
-            '... please rectify!\033[0m',
-        )
+        log.info(f'No images were found in folder {train_data_dir}... please rectify!')
         return
 
     # Print the result
@@ -472,8 +460,7 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        log.info(
-            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        log.info(f'Regularisation images are used... Will double the number of steps required...'
         )
         reg_factor = 2
 
