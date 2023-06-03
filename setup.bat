@@ -25,10 +25,31 @@ if defined pip_output (
     echo pip freeze ^> uninstall.txt
     echo pip uninstall -y -r uninstall.txt
     echo %yellow_text%=============================================================%reset_text%
-
-    goto PromptUser
+    goto :PromptUser
 )
 
+:PromptUser
+REM Ask the user if they want to quit or continue
+echo.
+echo Do you want to:
+echo [1] - Quit
+echo [2] - Continue with the setup
+set /p "choice=Enter your choice (1 or 2): "
+if /i "%choice%"=="1" (
+    echo You chose to quit.
+    echo.
+    goto :Quit
+) else if /i "%choice%"=="2" (
+    echo You chose to continue.
+    echo.
+    goto :ContinueSetup
+) else (
+    echo Invalid choice. Please try again.
+    echo.
+    goto :PromptUser
+)
+
+:ContinueSetup
 endlocal
 
 set PYTHON_VER=3.10.9
@@ -63,7 +84,6 @@ echo [1] - v1 (torch 1.12.1) (Recommended)
 echo [2] - v2 (torch 2.0.0) (Experimental)
 set /p choice="Enter your choice (1 or 2): "
 
-
 :: Only does this section to cleanup the old custom dll versions that we used to use. No longer needed now with the new bitsandbytes version
 pip uninstall -y bitsandbytes
 IF EXIST ".\venv\Lib\site-packages\bitsandbytes" (
@@ -78,7 +98,7 @@ if %choice%==1 (
 ) else (
     pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
     pip install --use-pep517 --upgrade -r requirements.txt
-    rem pip install --upgrade xformers==0.0.20
+    pip install --upgrade xformers==0.0.20
     rem pip install -U -I --no-deps https://files.pythonhosted.org/packages/d6/f7/02662286419a2652c899e2b3d1913c47723fc164b4ac06a85f769c291013/xformers-0.0.17rc482-cp310-cp310-win_amd64.whl
     pip install https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl
 )
@@ -91,26 +111,5 @@ python.exe .\tools\update_bitsandbytes.py
 
 accelerate config
 
-exit
-
-:PromptUser
-REM Ask the user if they want to quit or continue
-echo.
-echo Do you want to:
-echo [1] - Quit
-echo [2] - Continue with the setup
-set /p "choice=Enter your choice (1 or 2): "
-if /i "%choice%"=="1" (
-    echo You chose to quit.
-    echo.
-    goto :Quit
-) else if /i "%choice%"=="2" (
-    echo You chose to continue.
-    echo.
-) else (
-    echo Invalid choice. Please try again.
-    echo.
-    goto :PromptUser
-)
-
 :Quit
+exit
