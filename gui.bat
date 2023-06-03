@@ -6,6 +6,9 @@ set "yellow_text=[1;33m"
 set "blue_text=[1;34m"
 set "reset_text=[0m"
 
+:: Deactivate the virtual environment
+call .\venv\Scripts\deactivate.bat
+
 REM Run pip freeze and capture the output
 for /f "delims=" %%I in ('pip freeze') do (
     set "pip_output=%%I"

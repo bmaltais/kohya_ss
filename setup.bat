@@ -6,6 +6,23 @@ set "yellow_text=[1;33m"
 set "blue_text=[1;34m"
 set "reset_text=[0m"
 
+set PYTHON_VER=3.10.9
+
+REM Check if Python version meets the recommended version
+python --version 2>nul | findstr /b /c:"Python %PYTHON_VER%" >nul
+if errorlevel 1 (
+    echo Warning: Python version %PYTHON_VER% is recommended.
+)
+
+IF NOT EXIST venv (
+    python -m venv venv
+) ELSE (
+    echo venv folder already exists, skipping creation...
+)
+
+:: Deactivate the virtual environment
+call .\venv\Scripts\deactivate.bat
+
 REM Run pip freeze and capture the output
 for /f "delims=" %%I in ('pip freeze') do (
     set "pip_output=%%I"
@@ -52,19 +69,6 @@ if /i "%choice%"=="1" (
 :ContinueSetup
 endlocal
 
-set PYTHON_VER=3.10.9
-
-REM Check if Python version meets the recommended version
-python --version 2>nul | findstr /b /c:"Python %PYTHON_VER%" >nul
-if errorlevel 1 (
-    echo Warning: Python version %PYTHON_VER% is recommended.
-)
-
-IF NOT EXIST venv (
-    python -m venv venv
-) ELSE (
-    echo venv folder already exists, skipping creation...
-)
 call .\venv\Scripts\activate.bat
 
 REM Upgrade pip if needed
