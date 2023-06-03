@@ -5,17 +5,34 @@ import re
 from typing import List, Optional, Union
 
 
-def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
+def prepare_scheduler_for_custom_training(noise_scheduler, device):
+    if hasattr(noise_scheduler, "all_snr"):
+        return
+
     alphas_cumprod = noise_scheduler.alphas_cumprod
     sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
     sqrt_one_minus_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
     alpha = sqrt_alphas_cumprod
     sigma = sqrt_one_minus_alphas_cumprod
     all_snr = (alpha / sigma) ** 2
-    snr = torch.stack([all_snr[t] for t in timesteps])
+
+    noise_scheduler.all_snr = all_snr.to(device)
+
+
+def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
+    snr = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])
     gamma_over_snr = torch.div(torch.ones_like(snr) * gamma, snr)
     snr_weight = torch.minimum(gamma_over_snr, torch.ones_like(gamma_over_snr)).float()  # from paper
     loss = loss * snr_weight
+    return loss
+
+
+def scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler):
+    snr_t = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])  # batch_size
+    snr_t = torch.minimum(snr_t, torch.ones_like(snr_t) * 1000)  # if timestep is 0, snr_t is inf, so limit it to 1000
+    scale = snr_t / (snr_t + 1)
+
+    loss = loss * scale
     return loss
 
 
@@ -28,6 +45,11 @@ def add_custom_train_arguments(parser: argparse.ArgumentParser, support_weighted
         type=float,
         default=None,
         help="gamma for reducing the weight of high loss timesteps. Lower numbers have stronger effect. 5 is recommended by paper. / 低いタイムステップでの高いlossに対して重みを減らすためのgamma値、低いほど効果が強く、論文では5が推奨",
+    )
+    parser.add_argument(
+        "--scale_v_pred_loss_like_noise_pred",
+        action="store_true",
+        help="scale v-prediction loss like noise prediction loss / v-prediction lossをnoise prediction lossと同じようにスケーリングする",
     )
     if support_weighted_captions:
         parser.add_argument(
@@ -434,3 +456,46 @@ def perlin_noise(noise, device, octaves):
     noise += noise_perlin # broadcast for each batch
     return noise / noise.std()  # Scaled back to roughly unit variance
 """
+
+
+def max_norm(state_dict, max_norm_value, device):
+    downkeys = []
+    upkeys = []
+    alphakeys = []
+    norms = []
+    keys_scaled = 0
+
+    for key in state_dict.keys():
+        if "lora_down" in key and "weight" in key:
+            downkeys.append(key)
+            upkeys.append(key.replace("lora_down", "lora_up"))
+            alphakeys.append(key.replace("lora_down.weight", "alpha"))
+
+    for i in range(len(downkeys)):
+        down = state_dict[downkeys[i]].to(device)
+        up = state_dict[upkeys[i]].to(device)
+        alpha = state_dict[alphakeys[i]].to(device)
+        dim = down.shape[0]
+        scale = alpha / dim
+
+        if up.shape[2:] == (1, 1) and down.shape[2:] == (1, 1):
+            updown = (up.squeeze(2).squeeze(2) @ down.squeeze(2).squeeze(2)).unsqueeze(2).unsqueeze(3)
+        elif up.shape[2:] == (3, 3) or down.shape[2:] == (3, 3):
+            updown = torch.nn.functional.conv2d(down.permute(1, 0, 2, 3), up).permute(1, 0, 2, 3)
+        else:
+            updown = up @ down
+
+        updown *= scale
+
+        norm = updown.norm().clamp(min=max_norm_value / 2)
+        desired = torch.clamp(norm, max=max_norm_value)
+        ratio = desired.cpu() / norm.cpu()
+        sqrt_ratio = ratio**0.5
+        if ratio != 1:
+            keys_scaled += 1
+            state_dict[upkeys[i]] *= sqrt_ratio
+            state_dict[downkeys[i]] *= sqrt_ratio
+        scalednorm = updown.norm() * ratio
+        norms.append(scalednorm.item())
+
+    return keys_scaled, sum(norms) / len(norms), max(norms)
