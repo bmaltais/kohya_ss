@@ -19,6 +19,7 @@ from library.custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
+
 def UI(**kwargs):
     css = ''
 

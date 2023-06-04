@@ -62,6 +62,7 @@ save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 path_of_this_folder = os.getcwd()
 
+
 def save_configuration(
     save_as,
     file_path,
@@ -101,7 +102,8 @@ def save_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,dim_from_weights,
+    lora_network_weights,
+    dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -125,7 +127,9 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -153,6 +157,11 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
+    scale_weight_norms,
+    network_dropout,
+    rank_dropout,
+    module_dropout,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -238,7 +247,8 @@ def open_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,dim_from_weights,
+    lora_network_weights,
+    dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -262,7 +272,9 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -290,6 +302,11 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
+    scale_weight_norms,
+    network_dropout,
+    rank_dropout,
+    module_dropout,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -367,7 +384,8 @@ def train_model(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,dim_from_weights,
+    lora_network_weights,
+    dim_from_weights,
     color_aug,
     flip_aug,
     clip_skip,
@@ -391,7 +409,9 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
@@ -419,6 +439,11 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
+    scale_weight_norms,
+    network_dropout,
+    rank_dropout,
+    module_dropout,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -581,7 +606,9 @@ def train_model(
             * int(reg_factor)
         )
     )
-    log.info(f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}')
+    log.info(
+        f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}'
+    )
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -628,6 +655,7 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
+
     if LoRA_type == 'LoCon' or LoRA_type == 'LyCORIS/LoCon':
         try:
             import lycoris
@@ -638,6 +666,7 @@ def train_model(
             return
         run_cmd += f' --network_module=lycoris.kohya'
         run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=lora"'
+
     if LoRA_type == 'LyCORIS/LoHa':
         try:
             import lycoris
@@ -659,6 +688,8 @@ def train_model(
             'block_alphas',
             'conv_dims',
             'conv_alphas',
+            'rank_dropout',
+            'module_dropout',
         ]
 
         run_cmd += f' --network_module=networks.lora'
@@ -670,7 +701,7 @@ def train_model(
 
         network_args = ''
         if LoRA_type == 'Kohya LoCon':
-            network_args += f' "conv_dim={conv_dim}" "conv_alpha={conv_alpha}"'
+            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
 
         for key, value in kohya_lora_vars.items():
             if value:
@@ -691,6 +722,8 @@ def train_model(
             'block_alphas',
             'conv_dims',
             'conv_alphas',
+            'rank_dropout',
+            'module_dropout',
             'unit',
         ]
 
@@ -735,7 +768,7 @@ def train_model(
             run_cmd += f' --network_weights="{lora_network_weights}"'
         if dim_from_weights:
             run_cmd += f' --dim_from_weights'
-            
+
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
     if not output_name == '':
@@ -746,6 +779,12 @@ def train_model(
         run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
     if not lr_scheduler_power == '':
         run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
+
+    if scale_weight_norms > 0.0:
+        run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
+
+    if network_dropout > 0.0:
+        run_cmd += f' --network_dropout="{network_dropout}"'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -799,6 +838,7 @@ def train_model(
         save_last_n_steps_state=save_last_n_steps_state,
         use_wandb=use_wandb,
         wandb_api_key=wandb_api_key,
+        scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
     )
 
     run_cmd += run_cmd_sample(
@@ -987,7 +1027,7 @@ def lora_tab(
                     lora_network_weights = gr.Textbox(
                         label='LoRA network weights',
                         placeholder='(Optional)',
-                        info='Path to an existing LoRA network weights to resume training from'
+                        info='Path to an existing LoRA network weights to resume training from',
                     )
                     lora_network_weights_file = gr.Button(
                         document_symbol,
@@ -1102,7 +1142,7 @@ def lora_tab(
                 'Kohya DyLoRA',
                 'Kohya LoCon',
             }
-            
+
             # Determine if LoRA network weights should be visible based on LoRA_type
             LoRA_network_weights_visible = LoRA_type in {
                 'Standard',
@@ -1218,6 +1258,40 @@ def lora_tab(
                     label='LR power',
                     placeholder='(Optional) For Cosine with restart and polynomial only',
                 )
+            with gr.Row():
+                scale_weight_norms = gr.Slider(
+                    label='Scale weight norms',
+                    value=0,
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
+                    interactive=True,
+                )
+                network_dropout = gr.Slider(
+                    label='Network dropout',
+                    value=0.0,
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+                )
+                rank_dropout = gr.Slider(
+                    label='Rank dropout',
+                    value=0.0,
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                )
+                module_dropout = gr.Slider(
+                    label='Module dropout',
+                    value=0.0,
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                )
             (
                 # use_8bit_adam,
                 xformers,
@@ -1240,7 +1314,9 @@ def lora_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset_type,noise_offset,adaptive_noise_scale,
+                noise_offset_type,
+                noise_offset,
+                adaptive_noise_scale,
                 multires_noise_iterations,
                 multires_noise_discount,
                 additional_parameters,
@@ -1251,6 +1327,7 @@ def lora_tab(
                 save_last_n_steps_state,
                 use_wandb,
                 wandb_api_key,
+                scale_v_pred_loss_like_noise_pred,
             ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
@@ -1268,7 +1345,14 @@ def lora_tab(
         LoRA_type.change(
             update_LoRA_settings,
             inputs=[LoRA_type],
-            outputs=[LoCon_row, kohya_advanced_lora, kohya_dylora, lora_network_weights, lora_network_weights_file, dim_from_weights],
+            outputs=[
+                LoCon_row,
+                kohya_advanced_lora,
+                kohya_dylora,
+                lora_network_weights,
+                lora_network_weights_file,
+                dim_from_weights,
+            ],
         )
 
     with gr.Tab('Tools'):
@@ -1343,7 +1427,8 @@ def lora_tab(
         text_encoder_lr,
         unet_lr,
         network_dim,
-        lora_network_weights,dim_from_weights,
+        lora_network_weights,
+        dim_from_weights,
         color_aug,
         flip_aug,
         clip_skip,
@@ -1367,7 +1452,9 @@ def lora_tab(
         caption_dropout_rate,
         optimizer,
         optimizer_args,
-        noise_offset_type,noise_offset,adaptive_noise_scale,
+        noise_offset_type,
+        noise_offset,
+        adaptive_noise_scale,
         multires_noise_iterations,
         multires_noise_discount,
         LoRA_type,
@@ -1395,6 +1482,11 @@ def lora_tab(
         save_last_n_steps_state,
         use_wandb,
         wandb_api_key,
+        scale_v_pred_loss_like_noise_pred,
+        scale_weight_norms,
+        network_dropout,
+        rank_dropout,
+        module_dropout,
     ]
 
     button_open_config.click(
