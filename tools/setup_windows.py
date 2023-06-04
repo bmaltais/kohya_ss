@@ -4,16 +4,18 @@ import sys
 import logging
 import shutil
 import sysconfig
-import time
+import datetime
 import platform
 import pkg_resources
 
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger("sd")
 
+# ANSI escape code for yellow color
+YELLOW = "\033[93m"
+
 # setup console and file logging
 def setup_logging(clean=False):
-    log_file = os.path.join(os.path.dirname(__file__), 'setup.log')
     from rich.theme import Theme
     from rich.logging import RichHandler
     from rich.console import Console
@@ -26,6 +28,15 @@ def setup_logging(clean=False):
     }))
     # logging.getLogger("urllib3").setLevel(logging.ERROR)
     # logging.getLogger("httpx").setLevel(logging.ERROR)
+    
+    current_datetime = datetime.datetime.now()
+    current_datetime_str = current_datetime.strftime("%Y%m%d-%H%M%S")
+    log_file = os.path.join(os.path.dirname(__file__), f"../logs/setup/kohya_ss_gui_{current_datetime_str}.log")
+    
+    # Create directories if they don't exist
+    log_directory = os.path.dirname(log_file)
+    os.makedirs(log_directory, exist_ok=True)
+        
     level = logging.INFO
     logging.basicConfig(level=logging.ERROR, format='%(asctime)s | %(name)s | %(levelname)s | %(module)s | %(message)s', filename=log_file, filemode='a', encoding='utf-8', force=True)
     log.setLevel(logging.DEBUG) # log to file is always at level debug for facility `sd`
@@ -230,45 +241,98 @@ def get_torch_version_installed():
     else:
         return 0
 
-if __name__ == "__main__":
-    ensure_base_requirements()
-    setup_logging()
+def cleanup_venv():
+    log.info(f'Cleaning up all modules from the venv...')
+    subprocess.run(f'"{sys.executable}" -m pip freeze > uninstall.txt', shell=True, check=False, env=os.environ)
+    with open('uninstall.txt', 'r', encoding='utf8') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip() != '' and not line.startswith('#') and line is not None]
+        for line in lines:
+            log.info(f'Uninstalling: {line}')
+            subprocess.run(f'"{sys.executable}" -m pip uninstall -y --no-cache-dir {line}', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    print()
-    print('Please choose the version of torch you want to install:')
-    print('[1] - v1 (torch 1.12.1) (Recommended for best compatibility)')
-    print('[2] - v2 (torch 2.0.1) (Faster but more prone to issues and not supported by kohya_ss (the author))')
-    choice = input('Enter your choice (1 or 2): ')
-        
+
+def install_kohya_ss_torch1():
     check_python()
 
     # Upgrade pip if needed
     install('--upgrade pip')
 
-    
     reinstall = False
-    if choice == '1':
-        if get_torch_version_installed() != 1:
-            uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow triton')
-            reinstall = True
-            
-        install('torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116', 'torch torchvision', reinstall=reinstall)
-        install('https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps', 'xformers-0.0.14', reinstall=reinstall)
-        install_requirements('requirements_windows_torch1.txt')
-        delete_file('./logs/status/torch_version')
-        write_to_file('./logs/status/torch_version', '1')
-
-    else:
-        if get_torch_version_installed() != 2:
-            uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow')
-            reinstall = True
+    
+    if get_torch_version_installed() != 1:
+        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow triton')
+        reinstall = True
         
-        install('torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118', 'torch torchvision', reinstall=reinstall)
-        install_requirements('requirements_windows_torch2.txt')
-        # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
-        delete_file('./logs/status/torch_version')
-        write_to_file('./logs/status/torch_version', '2')
+    install('torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116', 'torch torchvision', reinstall=reinstall)
+    install('https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps', 'xformers-0.0.14', reinstall=reinstall)
+    install_requirements('requirements_windows_torch1.txt')
+    delete_file('./logs/status/torch_version')
+    write_to_file('./logs/status/torch_version', '1')
 
     sync_bits_and_bytes_files()
 
     run_cmd(f'accelerate config')
+
+def install_kohya_ss_torch2():
+    check_python()
+
+    # Upgrade pip if needed
+    install('--upgrade pip')
+
+    reinstall = False
+    
+    if get_torch_version_installed() != 2:
+        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow')
+        reinstall = True
+    
+    install('torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118', 'torch torchvision', reinstall=reinstall)
+    install_requirements('requirements_windows_torch2.txt')
+    # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
+    delete_file('./logs/status/torch_version')
+    write_to_file('./logs/status/torch_version', '2')
+
+    sync_bits_and_bytes_files()
+
+    run_cmd(f'accelerate config')
+    
+def clear_screen():
+    # Check the current operating system to execute the correct clear screen command
+    if os.name == "nt":  # If the operating system is Windows
+        os.system("cls")
+    else:  # If the operating system is Linux or Mac
+        os.system("clear")
+
+def main_menu():
+    clear_screen()
+    while True:
+        print("\nKohya_ss GUI setup menu:\n")
+        print("0. Cleanup the venv")
+        print("1. Install kohya_ss gui [torch 1]")
+        print("2. Install kohya_ss gui [torch 2]")
+        print("3. Quit")
+        
+        choice = input("\nEnter your choice: ")
+        print('')
+
+        if choice == "0":
+            confirmation = input(f"{YELLOW}Are you sure you want to delete all Python modules installed in the current venv? (y/n): \033[0m")
+            if confirmation.lower() == "y":
+                cleanup_venv()
+            else:
+                print("Cleanup canceled.")
+        elif choice == "1":
+            print(f'{YELLOW}Be patient, this can take quite some time to complete...\033[0m\n')
+            install_kohya_ss_torch1()
+        elif choice == "2":
+            print(f'{YELLOW}Be patient, this can take quite some time to complete...\033[0m\n')
+            install_kohya_ss_torch2()
+        elif choice == "3":
+            print("Quitting the program.")
+            break
+        else:
+            print("Invalid choice. Please enter a number between 0-3.")
+
+if __name__ == "__main__":
+    ensure_base_requirements()
+    setup_logging()
+    main_menu()
