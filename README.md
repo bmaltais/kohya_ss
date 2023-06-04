@@ -345,6 +345,7 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+
 * 2023/06/04 (v21.7.1)
 - This is mostly an update to the whole setup method for kohya_ss. I got fedup with all the issues from the batch file method and leveraged the great work of vladimandic to improve the whole setup experience.
 
@@ -391,6 +392,12 @@ Hope this is useful.
 - Added an option `--scale_v_pred_loss_like_noise_pred` to scale v-prediction loss like noise prediction in each training script.
   - By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.
   - See [this article](https://xrg.hatenablog.com/entry/2023/06/02/202418) by xrg for details (written in Japanese). Thanks to xrg for the great suggestion!
+
+* 2023/06/03 (v21.6.5)
+- Fix dreambooth issue with new logging
+- Update setup and upgrade scripts
+- Adding test folder
+
 * 2023/05/28 (v21.5.15)
 - Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
   - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
