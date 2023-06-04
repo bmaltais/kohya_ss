@@ -53,7 +53,7 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, reinstall: bool = F
     uninstall = arg.startswith('uninstall')  # Check if the argument is for uninstalling
 
     if not quiet:
-        package_name = arg.replace("uninstall", "").replace("--ignore-installed", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("-I", "").replace("-U", "").replace("  ", " ").replace("install", "").replace("-y", "").strip()
+        package_name = arg.replace("uninstall", "").replace("--ignore-installed", "").replace("--no-cache-dir", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("-I", "").replace("-U", "").replace("  ", " ").replace("install", "").replace("-y", "").strip()
         
         if uninstall:
             log.info(f'Uninstalling package: {package_name}')
@@ -260,7 +260,7 @@ def install_kohya_ss_torch1():
     reinstall = False
     
     if get_torch_version_installed() != 1:
-        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow triton')
+        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow  tensorflow-estimator tensorflow-intel tensorflow-io-gcs-filesystem triton')
         reinstall = True
         
     install('torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116', 'torch torchvision', reinstall=reinstall)
@@ -282,7 +282,7 @@ def install_kohya_ss_torch2():
     reinstall = False
     
     if get_torch_version_installed() != 2:
-        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow')
+        uninstall(f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow tensorflow-estimator tensorflow-intel tensorflow-io-gcs-filesystem')
         reinstall = True
     
     install('torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118', 'torch torchvision', reinstall=reinstall)
