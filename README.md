@@ -345,6 +345,31 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/04 (v21.7.1)
+- This is mostly an update to the whole setup method for kohya_ss. I got fedup with all the issues from the batch file method and leveraged the great work of vladimandic to improve the whole setup experience.
+
+There is now a new menu in setup.bat that will appear:
+
+```
+Kohya_ss GUI setup menu:
+
+0. Cleanup the venv
+1. Install kohya_ss gui [torch 1]
+2. Install kohya_ss gui [torch 2]
+3. Start GUI in browser
+4. Quit
+
+Enter your choice:
+```
+
+The only obscure option might be option 0. This will help cleanup a corrupted venv without having to delete de folder. This van be really usefull for cases where nothing is working anymore and you should re-install from scratch. Just run the venv cleanup then select the version of kohya_ss GUI you want to instal (torch1 or 2).
+
+You can also start the GUI right from the setup menu using option 3.
+
+After pulling a new version you can either re-run `setup.bat` and install the version you want... or just run `gui.bat` and it will update the python modules as required.
+
+Hope this is useful.
+
 * 2023/06/04 (v21.7.0)
 - Max Norm Regularization is now available in `train_network.py`. [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
   - Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.
@@ -366,19 +391,6 @@ This will store a backup file with your current locally installed pip packages a
 - Added an option `--scale_v_pred_loss_like_noise_pred` to scale v-prediction loss like noise prediction in each training script.
   - By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.
   - See [this article](https://xrg.hatenablog.com/entry/2023/06/02/202418) by xrg for details (written in Japanese). Thanks to xrg for the great suggestion!
-* 2023/06/03 (v21.6.5)
-- Fix dreambooth issue with new logging
-- Update setup and upgrade scripts
-- Adding test folder
-* 2023/06/02 (v21.6.3)
-- Fix install issue with setup logic
-* 2023/06/02 (v21.6.2)
-- Fix install issue with torch version
-* 2023/06/02 (v21.6.1)
-- Add detection of files outside the venv to scripts
-* 2023/06/02 (v21.6.0)
-- Merge kohya_ss repo changes
-- Improge logging of kohya_ss GUI
 * 2023/05/28 (v21.5.15)
 - Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
   - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
@@ -387,49 +399,3 @@ This will store a backup file with your current locally installed pip packages a
   - `--base_weights_multiplier` option specifies multiplier of the weights to merge (multiple values are allowed). If omitted or less than `base_weights`, 1.0 is used.
   - This is useful for incremental learning. See PR for details.
 - Show warning and continue training when uploading to HuggingFace fails.
-* 2023/05/28 (v21.5.14)
-- Add Create Groupo tool and GUI
-* 2023/05/24 (v21.5.13)
-- Upgrade gradio release to fix issue with UI refresh on config load.
-- [D-Adaptation v3.0](https://github.com/facebookresearch/dadaptation) is now supported. [PR #530](https://github.com/kohya-ss/sd-scripts/pull/530) Thanks to sdbds!
-  - `--optimizer_type` now accepts `DAdaptAdamPreprint`, `DAdaptAdanIP`, and `DAdaptLion`.
-  - `DAdaptAdam` is now new. The old `DAdaptAdam` is available with `DAdaptAdamPreprint`.
-  - Simply specifying `DAdaptation` will use `DAdaptAdamPreprint` (same behavior as before).
-  - You need to install D-Adaptation v3.0. After activating venv, please do `pip install -U dadaptation`.
-  - See PR and D-Adaptation documentation for details.
-* 2023/05/22 (v21.5.12)
-- Fixed several bugs.
-  - The state is saved even when the `--save_state` option is not specified in `fine_tune.py` and `train_db.py`. [PR #521](https://github.com/kohya-ss/sd-scripts/pull/521) Thanks to akshaal!
-  - Cannot load LoRA without `alpha`. [PR #527](https://github.com/kohya-ss/sd-scripts/pull/527) Thanks to Manjiz!
-  - Minor changes to console output during sample generation. [PR #515](https://github.com/kohya-ss/sd-scripts/pull/515) Thanks to yanhuifair!
-- The generation script now uses xformers for VAE as well.
-- Fixed an issue where an error would occur if the encoding of the prompt file was different from the default. [PR #510](https://github.com/kohya-ss/sd-scripts/pull/510) Thanks to sdbds!
-  - Please save the prompt file in UTF-8.
-* 2023/05/15 (v21.5.11)
-  - Added an option `--dim_from_weights` to `train_network.py` to automatically determine the dim(rank) from the weight file. [PR #491](https://github.com/kohya-ss/sd-scripts/pull/491) Thanks to AI-Casanova!
-    - It is useful in combination with `resize_lora.py`. Please see the PR for details.
-  - Fixed a bug where the noise resolution was incorrect with Multires noise. [PR #489](https://github.com/kohya-ss/sd-scripts/pull/489) Thanks to sdbds!
-    - Please see the PR for details.
-  - The image generation scripts can now use img2img and highres fix at the same time.
-  - Fixed a bug where the hint image of ControlNet was incorrectly BGR instead of RGB in the image generation scripts.
-  - Added a feature to the image generation scripts to use the memory-efficient VAE.
-    - If you specify a number with the `--vae_slices` option, the memory-efficient VAE will be used. The maximum output size will be larger, but it will be slower. Please specify a value of about `16` or `32`.
-    - The implementation of the VAE is in `library/slicing_vae.py`.
-  - Fix for wandb #ebabchick
-  - Added [English translation of documents](https://github.com/darkstorm2150/sd-scripts#links-to-usage-documentation) by darkstorm2150. Thank you very much!
-  - The prompt for sample generation during training can now be specified in `.toml` or `.json`. [PR #504](https://github.com/kohya-ss/sd-scripts/pull/504) Thanks to Linaqruf!
-    - For details on prompt description, please see the PR.
-* 2023/04/07 (v21.5.10)
-  - Fix issue https://github.com/bmaltais/kohya_ss/issues/734
-  - The documentation has been moved to the `docs` folder. If you have links, please change them.
-  - DAdaptAdaGrad, DAdaptAdan, and DAdaptSGD are now supported by DAdaptation. [PR#455](https://github.com/kohya-ss/sd-scripts/pull/455) Thanks to sdbds!
-    - DAdaptation needs to be installed. Also, depending on the optimizer, DAdaptation may need to be updated. Please update with `pip install --upgrade dadaptation`.
-  - Added support for pre-calculation of LoRA weights in image generation scripts. Specify `--network_pre_calc`.
-    - The prompt option `--am` is available. Also, it is disabled when Regional LoRA is used.
-  - Added Adaptive noise scale to each training script. Specify a number with `--adaptive_noise_scale` to enable it.
-    - __Experimental option. It may be removed or changed in the future.__
-    - This is an original implementation that automatically adjusts the value of the noise offset according to the absolute value of the mean of each channel of the latents. It is expected that appropriate noise offsets will be set for bright and dark images, respectively.
-    - Specify it together with `--noise_offset`.
-    - The actual value of the noise offset is calculated as `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale`. Since the latent is close to a normal distribution, it may be a good idea to specify a value of about 1/10 to the same as the noise offset.
-    - Negative values can also be specified, in which case the noise offset will be clipped to 0 or more.
-  - Other minor fixes.

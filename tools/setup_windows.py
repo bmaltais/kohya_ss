@@ -243,7 +243,7 @@ def get_torch_version_installed():
 
 def cleanup_venv():
     log.info(f'Cleaning up all modules from the venv...')
-    subprocess.run(f'"{sys.executable}" -m pip freeze > uninstall.txt', shell=True, check=False, env=os.environ)
+    subprocess.run(f'"{sys.executable}" -m pip freeze > uninstall.txt', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     with open('uninstall.txt', 'r', encoding='utf8') as f:
         lines = [line.strip() for line in f.readlines() if line.strip() != '' and not line.startswith('#') and line is not None]
         for line in lines:
@@ -309,7 +309,8 @@ def main_menu():
         print("0. Cleanup the venv")
         print("1. Install kohya_ss gui [torch 1]")
         print("2. Install kohya_ss gui [torch 2]")
-        print("3. Quit")
+        print("3. Start Kohya_ss GUI in browser")
+        print("4. Quit")
         
         choice = input("\nEnter your choice: ")
         print('')
@@ -327,6 +328,8 @@ def main_menu():
             print(f'{YELLOW}Be patient, this can take quite some time to complete...\033[0m\n')
             install_kohya_ss_torch2()
         elif choice == "3":
+            subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
+        elif choice == "4":
             print("Quitting the program.")
             break
         else:
