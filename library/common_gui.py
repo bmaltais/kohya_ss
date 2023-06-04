@@ -1102,6 +1102,11 @@ def gradio_advanced_training(headless=False):
             value=False,
             info='If unchecked, tensorboard will be used as the default for logging.',
         )
+        scale_v_pred_loss_like_noise_pred = gr.Checkbox(
+            label='Scale v prediction loss',
+            value=False,
+            info='Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.',
+        )
     return (
         # use_8bit_adam,
         xformers,
@@ -1137,6 +1142,7 @@ def gradio_advanced_training(headless=False):
         save_last_n_steps_state,
         use_wandb,
         wandb_api_key,
+        scale_v_pred_loss_like_noise_pred,
     )
 
 
@@ -1241,6 +1247,10 @@ def run_cmd_advanced_training(**kwargs):
     random_crop = kwargs.get('random_crop')
     if random_crop:
         run_cmd += ' --random_crop'
+        
+    scale_v_pred_loss_like_noise_pred = kwargs.get('scale_v_pred_loss_like_noise_pred')
+    if scale_v_pred_loss_like_noise_pred:
+        run_cmd += ' --scale_v_pred_loss_like_noise_pred'
         
     noise_offset_type = kwargs.get('noise_offset_type', 'Original')
     if noise_offset_type == 'Original':

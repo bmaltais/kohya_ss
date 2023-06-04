@@ -21,9 +21,6 @@ call .\venv\Scripts\deactivate.bat
 
 :: Calling external python program to check for local modules
 python .\tools\check_local_modules.py
-if %errorlevel% equ 1 (
-    exit /b
-)
 
 call .\venv\Scripts\activate.bat
 

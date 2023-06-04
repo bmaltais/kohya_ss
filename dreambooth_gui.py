@@ -109,7 +109,9 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     sample_every_n_steps,
@@ -125,6 +127,7 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -227,7 +230,9 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     sample_every_n_steps,
@@ -243,6 +248,7 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -328,7 +334,9 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    noise_offset_type,noise_offset,adaptive_noise_scale,
+    noise_offset_type,
+    noise_offset,
+    adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
     sample_every_n_steps,
@@ -344,6 +352,7 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    scale_v_pred_loss_like_noise_pred,
 ):
     headless_bool = True if headless.get('label') == 'True' else False
 
@@ -412,7 +421,9 @@ def train_model(
 
     # Check if subfolders are present. If not let the user know and return
     if not subfolders:
-        log.info(f'No {subfolders} were found in train_data_dir can\'t train...')
+        log.info(
+            f"No {subfolders} were found in train_data_dir can't train..."
+        )
         return
 
     total_steps = 0
@@ -423,7 +434,9 @@ def train_model(
         try:
             repeats = int(folder.split('_')[0])
         except ValueError:
-            log.info(f'Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can\'t train...')
+            log.info(
+                f"Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can't train..."
+            )
             continue
 
         # Count the number of images in the folder
@@ -451,7 +464,9 @@ def train_model(
             log.info(f'Folder {folder} : steps {steps}')
 
     if total_steps == 0:
-        log.info(f'No images were found in folder {train_data_dir}... please rectify!')
+        log.info(
+            f'No images were found in folder {train_data_dir}... please rectify!'
+        )
         return
 
     # Print the result
@@ -460,7 +475,8 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        log.info(f'Regularisation images are used... Will double the number of steps required...'
+        log.info(
+            f'Regularisation images are used... Will double the number of steps required...'
         )
         reg_factor = 2
 
@@ -588,6 +604,7 @@ def train_model(
         save_last_n_steps_state=save_last_n_steps_state,
         use_wandb=use_wandb,
         wandb_api_key=wandb_api_key,
+        scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
     )
 
     run_cmd += run_cmd_sample(
@@ -800,7 +817,9 @@ def dreambooth_tab(
                 bucket_reso_steps,
                 caption_dropout_every_n_epochs,
                 caption_dropout_rate,
-                noise_offset_type,noise_offset,adaptive_noise_scale,
+                noise_offset_type,
+                noise_offset,
+                adaptive_noise_scale,
                 multires_noise_iterations,
                 multires_noise_discount,
                 additional_parameters,
@@ -811,6 +830,7 @@ def dreambooth_tab(
                 save_last_n_steps_state,
                 use_wandb,
                 wandb_api_key,
+                scale_v_pred_loss_like_noise_pred,
             ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
@@ -907,7 +927,9 @@ def dreambooth_tab(
         caption_dropout_rate,
         optimizer,
         optimizer_args,
-        noise_offset_type,noise_offset,adaptive_noise_scale,
+        noise_offset_type,
+        noise_offset,
+        adaptive_noise_scale,
         multires_noise_iterations,
         multires_noise_discount,
         sample_every_n_steps,
@@ -923,6 +945,7 @@ def dreambooth_tab(
         save_last_n_steps_state,
         use_wandb,
         wandb_api_key,
+        scale_v_pred_loss_like_noise_pred,
     ]
 
     button_open_config.click(
