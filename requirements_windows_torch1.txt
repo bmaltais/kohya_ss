@@ -3,7 +3,7 @@ albumentations==1.3.0
 altair==4.2.2
 bitsandbytes==0.35.0
 dadaptation==3.1
-diffusers[torch]==0.10.2
+diffusers==0.10.2
 easygui==0.98.3
 einops==0.6.0
 fairscale==0.4.13
