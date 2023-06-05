@@ -345,6 +345,9 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/05 (v21.7.4)
+- Add manual accelerate config option
+- Remove the ability to switch between torch 1 and 2 as it was causing errors with the venv
 * 2023/06/04 (v21.7.3)
 - Add accelerate configuration from file
 - Fix issue with torch uninstallation resulting in Error sometimes
