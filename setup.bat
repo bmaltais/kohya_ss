@@ -14,7 +14,7 @@ IF NOT EXIST venv (
 )
 
 :: Create the directory if it doesn't exist
-mkdir ".\logs\status" > nul 2>&1
+mkdir ".\logs\setup" > nul 2>&1
 
 :: Deactivate the virtual environment
 call .\venv\Scripts\deactivate.bat

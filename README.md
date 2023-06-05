@@ -345,6 +345,10 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/04 (v21.7.3)
+- Add accelerate configuration from file
+- Fix issue with torch uninstallation resulting in Error sometimes
+- Fix broken link to cudann files
 * 2023/06/04 (v21.7.2)
 - Improve handling of legacy installations
 * 2023/06/04 (v21.7.1)
