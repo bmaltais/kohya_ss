@@ -12,14 +12,5 @@ git pull
 :: Activate the virtual environment
 call .\venv\Scripts\activate.bat
 
-REM Check if torch_version is 1
-findstr /C:"1" ".\logs\status\torch_version" >nul
-
-REM Check the error level to determine if the text was found
-if %errorlevel% equ 0 (
-    echo Torch version 1...
-    pip install --use-pep517 --upgrade -r requirements_windows_torch1.txt
-) else (
-    echo Torch version 2...
-    pip install --use-pep517 --upgrade -r requirements_windows_torch2.txt
-)
+:: Validate requirements
+python.exe .\tools\validate_requirements.py
