@@ -17,6 +17,10 @@ YELLOW = '\033[93m'
 
 # setup console and file logging
 def setup_logging(clean=False):
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+
     from rich.theme import Theme
     from rich.logging import RichHandler
     from rich.console import Console
@@ -86,7 +90,80 @@ def setup_logging(clean=False):
     log.addHandler(rh)
 
 
+def configure_accelerate():
+    #
+    # This function was taken and adapted from code written by jstayco
+    #
+
+    from pathlib import Path
+
+    def env_var_exists(var_name):
+        return var_name in os.environ and os.environ[var_name] != ''
+
+    source_accelerate_config_file = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'config_files',
+        'accelerate',
+        'default_config.yaml',
+    )
+
+    log.debug(
+        f'Source accelerate config location: {source_accelerate_config_file}'
+    )
+
+    target_config_location = None
+
+    log.debug(
+        f"Environment variables: HF_HOME: {os.environ.get('HF_HOME')}, "
+        f"LOCALAPPDATA: {os.environ.get('LOCALAPPDATA')}, "
+        f"USERPROFILE: {os.environ.get('USERPROFILE')}"
+    )
+    if env_var_exists('HF_HOME'):
+        target_config_location = Path(
+            os.environ['HF_HOME'], 'accelerate', 'default_config.yaml'
+        )
+    elif env_var_exists('LOCALAPPDATA'):
+        target_config_location = Path(
+            os.environ['LOCALAPPDATA'],
+            'huggingface',
+            'accelerate',
+            'default_config.yaml',
+        )
+    elif env_var_exists('USERPROFILE'):
+        target_config_location = Path(
+            os.environ['USERPROFILE'],
+            '.cache',
+            'huggingface',
+            'accelerate',
+            'default_config.yaml',
+        )
+
+    log.debug(f'Target config location: {target_config_location}')
+
+    if target_config_location:
+        log.info('Configured accelerate...')
+        if not target_config_location.is_file():
+            target_config_location.parent.mkdir(parents=True, exist_ok=True)
+            log.debug(
+                f'Target accelerate config location: {target_config_location}'
+            )
+            shutil.copyfile(
+                source_accelerate_config_file, target_config_location
+            )
+            log.debug(
+                f'Copied accelerate config file to: {target_config_location}'
+            )
+    else:
+        log.info(
+            'Could not place the accelerate configuration file. Please configure manually with: accelerate config.'
+        )
+
+
 def check_torch():
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+
     # Check for nVidia toolkit or AMD toolkit
     if shutil.which('nvidia-smi') is not None or os.path.exists(
         os.path.join(
@@ -135,11 +212,14 @@ def check_torch():
         log.error(f'Could not load torch: {e}')
         sys.exit(1)
 
+
 def cudann_install():
-    cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows")
-    cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
-    
-    log.info(f"Checking for CUDNN files in {cudnn_dest}...")
+    cudnn_src = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), '..\cudnn_windows'
+    )
+    cudnn_dest = os.path.join(sysconfig.get_paths()['purelib'], 'torch', 'lib')
+
+    log.info(f'Checking for CUDNN files in {cudnn_dest}...')
     if os.path.exists(cudnn_src):
         if os.path.exists(cudnn_dest):
             # check for different files
@@ -147,14 +227,18 @@ def cudann_install():
             for file in os.listdir(cudnn_src):
                 src_file = os.path.join(cudnn_src, file)
                 dest_file = os.path.join(cudnn_dest, file)
-                #if dest file exists, check if it's different
+                # if dest file exists, check if it's different
                 if os.path.exists(dest_file):
                     shutil.copy2(src_file, cudnn_dest)
-            log.info("Copied CUDNN 8.6 files to destination")
-    else: 
-        log.error(f"Installation Failed: \"{cudnn_src}\" could not be found. ")
+            log.info('Copied CUDNN 8.6 files to destination')
+    else:
+        log.error(f'Installation Failed: "{cudnn_src}" could not be found. ')
+
 
 def pip(
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
     arg: str,
     ignore: bool = False,
     quiet: bool = False,
@@ -214,6 +298,10 @@ def pip(
 
 
 def installed(package, friendly: str = None):
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+
     ok = True
     try:
         if friendly:
@@ -265,6 +353,9 @@ def installed(package, friendly: str = None):
 
 # install package using pip if not already installed
 def install(
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
     package,
     friendly: str = None,
     ignore: bool = False,
@@ -299,6 +390,10 @@ def run_cmd(run_cmd):
 
 # check python version
 def check_python(ignore=True, skip_git=False):
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+
     supported_minors = [9, 10]
     log.info(f'Python {platform.python_version()} on {platform.system()}')
     if not (
@@ -327,6 +422,10 @@ def delete_file(file_path):
 
 
 def install_requirements(requirements_file):
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+
     log.info('Verifying requirements')
     with open(requirements_file, 'r', encoding='utf8') as f:
         lines = [
@@ -462,7 +561,8 @@ def install_kohya_ss_torch1():
     )
     install_requirements('requirements_windows_torch1.txt')
     sync_bits_and_bytes_files()
-    run_cmd(f'accelerate config')
+    configure_accelerate()
+    # run_cmd(f'accelerate config')
 
 
 def install_kohya_ss_torch2():
@@ -487,7 +587,8 @@ def install_kohya_ss_torch2():
     install_requirements('requirements_windows_torch2.txt')
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
     sync_bits_and_bytes_files()
-    run_cmd(f'accelerate config')
+    configure_accelerate()
+    # run_cmd(f'accelerate config')
 
 
 def clear_screen():
@@ -526,11 +627,13 @@ def main_menu():
                 print('3. Cancel')
                 choice_torch = input('\nEnter your choice: ')
                 print('')
-                
+
                 if choice_torch == 1:
                     install_kohya_ss_torch1()
+                    break
                 elif choice_torch == '2':
                     install_kohya_ss_torch2()
+                    break
                 elif choice_torch == '3':
                     break
                 else:
