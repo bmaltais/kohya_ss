@@ -171,7 +171,7 @@ Then configure accelerate with the same answers as in the MacOS instructions whe
 
 This step is optional but can improve the learning speed for NVIDIA 30X0/40X0 owners. It allows for larger training batch size and faster training speed.
 
-Due to the file size, I can't host the DLLs needed for CUDNN 8.6 on Github. I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090 GPU) you can download them [here](https://b1.thefileditch.ch/mwxKTEtelILoIbMbruuM.zip).
+Due to the file size, I can't host the DLLs needed for CUDNN 8.6 on Github. I strongly advise you download them for a speed boost in sample generation (almost 50% on 4090 GPU) you can download them [here](https://github.com/bmaltais/python-library/raw/main/cudnn_windows.zip).
 
 To install, simply unzip the directory and place the `cudnn_windows` folder in the root of the this repo.
 
@@ -345,7 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-
+* 2023/06/04 (v21.7.2)
+- Improve handling of legacy installations
 * 2023/06/04 (v21.7.1)
 - This is mostly an update to the whole setup method for kohya_ss. I got fedup with all the issues from the batch file method and leveraged the great work of vladimandic to improve the whole setup experience.
 
