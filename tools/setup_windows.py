@@ -1,6 +1,7 @@
 import subprocess
 import os
 import sys
+import filecmp
 import logging
 import shutil
 import sysconfig
@@ -134,6 +135,24 @@ def check_torch():
         log.error(f'Could not load torch: {e}')
         sys.exit(1)
 
+def cudann_install():
+    cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows")
+    cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
+    
+    log.info(f"Checking for CUDNN files in {cudnn_dest}...")
+    if os.path.exists(cudnn_src):
+        if os.path.exists(cudnn_dest):
+            # check for different files
+            filecmp.clear_cache()
+            for file in os.listdir(cudnn_src):
+                src_file = os.path.join(cudnn_src, file)
+                dest_file = os.path.join(cudnn_dest, file)
+                #if dest file exists, check if it's different
+                if os.path.exists(dest_file):
+                    shutil.copy2(src_file, cudnn_dest)
+            log.info("Copied CUDNN 8.6 files to destination")
+    else: 
+        log.error(f"Installation Failed: \"{cudnn_src}\" could not be found. ")
 
 def pip(
     arg: str,
@@ -442,11 +461,7 @@ def install_kohya_ss_torch1():
         reinstall=reinstall,
     )
     install_requirements('requirements_windows_torch1.txt')
-    delete_file('./logs/status/torch_version')
-    write_to_file('./logs/status/torch_version', '1')
-
     sync_bits_and_bytes_files()
-
     run_cmd(f'accelerate config')
 
 
@@ -471,11 +486,7 @@ def install_kohya_ss_torch2():
     )
     install_requirements('requirements_windows_torch2.txt')
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
-    delete_file('./logs/status/torch_version')
-    write_to_file('./logs/status/torch_version', '2')
-
     sync_bits_and_bytes_files()
-
     run_cmd(f'accelerate config')
 
 
@@ -492,8 +503,8 @@ def main_menu():
     while True:
         print('\nKohya_ss GUI setup menu:\n')
         print('0. Cleanup the venv')
-        print('1. Install kohya_ss gui [torch 1]')
-        print('2. Install kohya_ss gui [torch 2]')
+        print('1. Install kohya_ss gui')
+        print('2. Install cudann files')
         print('3. Start Kohya_ss GUI in browser')
         print('4. Quit')
 
@@ -509,15 +520,23 @@ def main_menu():
             else:
                 print('Cleanup canceled.')
         elif choice == '1':
-            print(
-                f'{YELLOW}Be patient, this can take quite some time to complete...\033[0m\n'
-            )
-            install_kohya_ss_torch1()
+            while True:
+                print('1. Torch 1')
+                print('2. Torch 2')
+                print('3. Cancel')
+                choice_torch = input('\nEnter your choice: ')
+                print('')
+                
+                if choice_torch == 1:
+                    install_kohya_ss_torch1()
+                elif choice_torch == '2':
+                    install_kohya_ss_torch2()
+                elif choice_torch == '3':
+                    break
+                else:
+                    print('Invalid choice. Please enter a number between 1-3.')
         elif choice == '2':
-            print(
-                f'{YELLOW}Be patient, this can take quite some time to complete...\033[0m\n'
-            )
-            install_kohya_ss_torch2()
+            cudann_install()
         elif choice == '3':
             subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
         elif choice == '4':
