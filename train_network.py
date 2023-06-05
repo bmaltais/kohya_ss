@@ -724,7 +724,7 @@ def train(args):
             progress_bar.set_postfix(**logs)
 
             if args.scale_weight_norms:
-                progress_bar.set_postfix(**max_mean_logs)
+                progress_bar.set_postfix(**{**max_mean_logs,**logs})
 
             if args.logging_dir is not None:
                 logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler, keys_scaled, mean_norm, maximum_norm)
