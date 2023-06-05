@@ -210,7 +210,8 @@ def check_torch():
                 )
                 return int(torch.__version__[0])
     except Exception as e:
-        log.error(f'Could not load torch: {e}')
+        log.warning(f'Could not load torch: {e}')
+        return 0
 
 
 def cudann_install():
@@ -542,8 +543,9 @@ def install_kohya_ss_torch1():
     install('--upgrade pip')
 
     reinstall = False
+    torch_ver = check_torch()
 
-    if check_torch() != 1:
+    if torch_ver != 1 and torch_ver != 0:
         uninstall('uninstall -y --no-cache-dir xformers')
         uninstall('uninstall -y --no-cache-dir torchvision')
         uninstall('uninstall -y --no-cache-dir torch')
@@ -578,8 +580,9 @@ def install_kohya_ss_torch2():
     install('--upgrade pip')
 
     reinstall = False
+    torch_ver = check_torch()
 
-    if check_torch() != 2:
+    if torch_ver != 2 and torch_ver != 0:
         uninstall('uninstall -y --no-cache-dir xformers')
         uninstall('uninstall -y --no-cache-dir torchvision')
         uninstall('uninstall -y --no-cache-dir torch')

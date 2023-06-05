@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/05 (v21.7.4)
+-Fix installation issue where it would try to uninstall modules that are not installed
 * 2023/06/04 (v21.7.3)
 - Add accelerate configuration from file
 - Fix issue with torch uninstallation resulting in Error sometimes
