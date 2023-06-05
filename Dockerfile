@@ -37,7 +37,8 @@ USER root
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
     ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
 
-RUN useradd -m -s /bin/bash appuser
+RUN useradd -m -s /bin/bash appuser && \
+    chown -R appuser: /app
 USER appuser
 COPY --chown=appuser . .
 
