@@ -14,6 +14,7 @@ log = logging.getLogger('sd')
 
 # ANSI escape code for yellow color
 YELLOW = '\033[93m'
+RESET_COLOR = '\033[0m'
 
 # setup console and file logging
 def setup_logging(clean=False):
@@ -104,11 +105,17 @@ def configure_accelerate():
     
     source_accelerate_config_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
+        '..',
         'config_files',
         'accelerate',
         'default_config.yaml',
     )
 
+    if not os.path.exists(source_accelerate_config_file):
+        log.info(
+            f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
+        )
+    
     log.debug(
         f'Source accelerate config location: {source_accelerate_config_file}'
     )
@@ -210,7 +217,7 @@ def check_torch():
                 )
                 return int(torch.__version__[0])
     except Exception as e:
-        log.warning(f'Could not load torch: {e}')
+        # log.warning(f'Could not load torch: {e}')
         return 0
 
 
@@ -236,64 +243,20 @@ def cudann_install():
         log.error(f'Installation Failed: "{cudnn_src}" could not be found. ')
 
 
-def pip(
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
-    arg: str,
-    ignore: bool = False,
-    quiet: bool = False,
-    reinstall: bool = False,
-):
+def pip(arg: str, ignore: bool = False, quiet: bool = False):
     arg = arg.replace('>=', '==')
-    uninstall = arg.startswith(
-        'uninstall'
-    )  # Check if the argument is for uninstalling
-
     if not quiet:
-        package_name = (
-            arg.replace('uninstall', '')
-            .replace('--ignore-installed', '')
-            .replace('--no-cache-dir', '')
-            .replace('--upgrade', '')
-            .replace('--no-deps', '')
-            .replace('--force', '')
-            .replace('-I', '')
-            .replace('-U', '')
-            .replace('  ', ' ')
-            .replace('install', '')
-            .replace('-y', '')
-            .strip()
-        )
-
-        if uninstall:
-            log.info(f'Uninstalling package: {package_name}')
-        else:
-            action = 'Reinstalling' if reinstall else 'Installing'
-            log.info(f'{action} package: {package_name}')
-
-    log.debug(f'Running pip: {arg}')
-    result = subprocess.run(
-        f'"{sys.executable}" -m pip {arg}',
-        shell=True,
-        check=False,
-        env=os.environ,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    txt = result.stdout.decode(encoding='utf8', errors='ignore')
+        log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
+    log.debug(f"Running pip: {arg}")
+    result = subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    txt = result.stdout.decode(encoding="utf8", errors="ignore")
     if len(result.stderr) > 0:
-        txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(
-            encoding='utf8', errors='ignore'
-        )
+        txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
     txt = txt.strip()
     if result.returncode != 0 and not ignore:
-        global errors  # pylint: disable=global-statement
+        global errors # pylint: disable=global-statement
         errors += 1
-        if uninstall:
-            log.error(f'Error running pip uninstall: {arg}')
-        else:
-            log.error(f'Error running pip install: {arg}')
+        log.error(f'Error running pip: {arg}')
         log.debug(f'Pip output: {txt}')
     return txt
 
@@ -366,12 +329,7 @@ def install(
         global quick_allowed   # pylint: disable=global-statement
         quick_allowed = False
     if reinstall or not installed(package, friendly):
-        pip(f'install --upgrade {package}', ignore=ignore, reinstall=reinstall)
-
-
-# uninstall package using pip
-def uninstall(package, ignore: bool = False):
-    pip(f'{package}', ignore=ignore)
+        pip(f'install --upgrade {package}', ignore=ignore)
 
 
 def ensure_base_requirements():
@@ -506,66 +464,25 @@ def sync_bits_and_bytes_files():
         log.error(f'An unexpected error occurred: {e}')
 
 
-def cleanup_venv():
-    log.info(f'Cleaning up all modules from the venv...')
-    subprocess.run(
-        f'"{sys.executable}" -m pip freeze > uninstall.txt',
-        shell=True,
-        check=False,
-        env=os.environ,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    with open('uninstall.txt', 'r', encoding='utf8') as f:
-        lines = [
-            line.strip()
-            for line in f.readlines()
-            if line.strip() != ''
-            and not line.startswith('#')
-            and line is not None
-        ]
-        for line in lines:
-            log.info(f'Uninstalling: {line}')
-            subprocess.run(
-                f'"{sys.executable}" -m pip uninstall -y --no-cache-dir {line}',
-                shell=True,
-                check=False,
-                env=os.environ,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-
 def install_kohya_ss_torch1():
     check_python()
 
     # Upgrade pip if needed
     install('--upgrade pip')
 
-    reinstall = False
-    torch_ver = check_torch()
-
-    if torch_ver != 1 and torch_ver != 0:
-        uninstall('uninstall -y --no-cache-dir xformers')
-        uninstall('uninstall -y --no-cache-dir torchvision')
-        uninstall('uninstall -y --no-cache-dir torch')
-        uninstall('uninstall -y --no-cache-dir torch') # Double up due to possible error during 1st uninstall attempt
-        uninstall('uninstall -y --no-cache-dir tensorflow')
-        uninstall('uninstall -y --no-cache-dir tensorflow-estimator')
-        uninstall('uninstall -y --no-cache-dir tensorflow-intel')
-        uninstall('uninstall -y --no-cache-dir tensorflow-io-gcs-filesystem')
-        uninstall('uninstall -y --no-cache-dir triton')
-        reinstall = True
+    if check_torch() == 2:
+        input(
+            f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
+        )
+        return
 
     install(
         'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
-        'torch torchvision',
-        reinstall=reinstall,
+        'torch torchvision'
     )
     install(
         'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
-        'xformers-0.0.14',
-        reinstall=reinstall,
+        'xformers-0.0.14'
     )
     install_requirements('requirements_windows_torch1.txt')
     sync_bits_and_bytes_files()
@@ -579,24 +496,15 @@ def install_kohya_ss_torch2():
     # Upgrade pip if needed
     install('--upgrade pip')
 
-    reinstall = False
-    torch_ver = check_torch()
-
-    if torch_ver != 2 and torch_ver != 0:
-        uninstall('uninstall -y --no-cache-dir xformers')
-        uninstall('uninstall -y --no-cache-dir torchvision')
-        uninstall('uninstall -y --no-cache-dir torch')
-        uninstall('uninstall -y --no-cache-dir torch') # Double up due to possible error during 1st uninstall attempt
-        uninstall('uninstall -y --no-cache-dir tensorflow')
-        uninstall('uninstall -y --no-cache-dir tensorflow-estimator')
-        uninstall('uninstall -y --no-cache-dir tensorflow-intel')
-        uninstall('uninstall -y --no-cache-dir tensorflow-io-gcs-filesystem')
-        reinstall = True
+    if check_torch() == 1:
+        input(
+            f'{YELLOW}\nTorch 1 is already installed in the venv. To install Torch 2 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
+        )
+        return
 
     install(
         'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
-        'torch torchvision',
-        reinstall=reinstall,
+        'torch torchvision'
     )
     install_requirements('requirements_windows_torch2.txt')
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
@@ -617,24 +525,16 @@ def main_menu():
     clear_screen()
     while True:
         print('\nKohya_ss GUI setup menu:\n')
-        print('0. Cleanup the venv')
         print('1. Install kohya_ss gui')
         print('2. Install cudann files')
-        print('3. Start Kohya_ss GUI in browser')
-        print('4. Quit')
+        print('3. Manually configure accelerate')
+        print('4. Start Kohya_ss GUI in browser')
+        print('5. Quit')
 
         choice = input('\nEnter your choice: ')
         print('')
 
-        if choice == '0':
-            confirmation = input(
-                f'{YELLOW}Are you sure you want to delete all Python modules installed in the current venv? (y/n): \033[0m'
-            )
-            if confirmation.lower() == 'y':
-                cleanup_venv()
-            else:
-                print('Cleanup canceled.')
-        elif choice == '1':
+        if choice == '1':
             while True:
                 print('1. Torch 1')
                 print('2. Torch 2')
@@ -655,12 +555,14 @@ def main_menu():
         elif choice == '2':
             cudann_install()
         elif choice == '3':
-            subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
+            run_cmd('accelerate config')
         elif choice == '4':
+            subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
+        elif choice == '5':
             print('Quitting the program.')
             break
         else:
-            print('Invalid choice. Please enter a number between 0-3.')
+            print('Invalid choice. Please enter a number between 1-5.')
 
 
 if __name__ == '__main__':
