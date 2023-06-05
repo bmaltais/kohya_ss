@@ -100,6 +100,8 @@ def configure_accelerate():
     def env_var_exists(var_name):
         return var_name in os.environ and os.environ[var_name] != ''
 
+    log.info('Configuring accelerate...')
+    
     source_accelerate_config_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'config_files',
@@ -141,7 +143,6 @@ def configure_accelerate():
     log.debug(f'Target config location: {target_config_location}')
 
     if target_config_location:
-        log.info('Configured accelerate...')
         if not target_config_location.is_file():
             target_config_location.parent.mkdir(parents=True, exist_ok=True)
             log.debug(
@@ -210,7 +211,6 @@ def check_torch():
                 return int(torch.__version__[0])
     except Exception as e:
         log.error(f'Could not load torch: {e}')
-        sys.exit(1)
 
 
 def cudann_install():
@@ -544,9 +544,15 @@ def install_kohya_ss_torch1():
     reinstall = False
 
     if check_torch() != 1:
-        uninstall(
-            f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow  tensorflow-estimator tensorflow-intel tensorflow-io-gcs-filesystem triton'
-        )
+        uninstall('uninstall -y --no-cache-dir xformers')
+        uninstall('uninstall -y --no-cache-dir torchvision')
+        uninstall('uninstall -y --no-cache-dir torch')
+        uninstall('uninstall -y --no-cache-dir torch') # Double up due to possible error during 1st uninstall attempt
+        uninstall('uninstall -y --no-cache-dir tensorflow')
+        uninstall('uninstall -y --no-cache-dir tensorflow-estimator')
+        uninstall('uninstall -y --no-cache-dir tensorflow-intel')
+        uninstall('uninstall -y --no-cache-dir tensorflow-io-gcs-filesystem')
+        uninstall('uninstall -y --no-cache-dir triton')
         reinstall = True
 
     install(
@@ -574,9 +580,14 @@ def install_kohya_ss_torch2():
     reinstall = False
 
     if check_torch() != 2:
-        uninstall(
-            f'uninstall -y --no-cache-dir xformers torchvision torch tensorflow tensorflow-estimator tensorflow-intel tensorflow-io-gcs-filesystem'
-        )
+        uninstall('uninstall -y --no-cache-dir xformers')
+        uninstall('uninstall -y --no-cache-dir torchvision')
+        uninstall('uninstall -y --no-cache-dir torch')
+        uninstall('uninstall -y --no-cache-dir torch') # Double up due to possible error during 1st uninstall attempt
+        uninstall('uninstall -y --no-cache-dir tensorflow')
+        uninstall('uninstall -y --no-cache-dir tensorflow-estimator')
+        uninstall('uninstall -y --no-cache-dir tensorflow-intel')
+        uninstall('uninstall -y --no-cache-dir tensorflow-io-gcs-filesystem')
         reinstall = True
 
     install(
@@ -628,7 +639,7 @@ def main_menu():
                 choice_torch = input('\nEnter your choice: ')
                 print('')
 
-                if choice_torch == 1:
+                if choice_torch == '1':
                     install_kohya_ss_torch1()
                     break
                 elif choice_torch == '2':
