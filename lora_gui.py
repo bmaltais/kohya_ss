@@ -677,6 +677,9 @@ def train_model(
             return
         run_cmd += f' --network_module=lycoris.kohya'
         run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
 
     if LoRA_type in ['Kohya LoCon', 'Standard']:
         kohya_lora_var_list = [
@@ -1262,25 +1265,25 @@ def lora_tab(
                 scale_weight_norms = gr.Slider(
                     label='Scale weight norms',
                     value=0,
-                    minimum=0.0,
-                    maximum=1.0,
+                    minimum=0,
+                    maximum=1,
                     step=0.01,
                     info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
                     interactive=True,
                 )
                 network_dropout = gr.Slider(
                     label='Network dropout',
-                    value=0.0,
-                    minimum=0.0,
-                    maximum=1.0,
+                    value=0,
+                    minimum=0,
+                    maximum=1,
                     step=0.01,
                     info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
                 )
                 rank_dropout = gr.Slider(
                     label='Rank dropout',
-                    value=0.0,
-                    minimum=0.0,
-                    maximum=1.0,
+                    value=0,
+                    minimum=0,
+                    maximum=1,
                     step=0.01,
                     info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
                 )

@@ -221,6 +221,43 @@ def check_torch():
         return 0
 
 
+# report current version of code
+def check_repo_version(): # pylint: disable=unused-argument
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+    
+    if not os.path.exists('.git'):
+        log.error('Not a git repository')
+        return
+    # status = git('status')
+    # if 'branch' not in status:
+    #    log.error('Cannot get git repository status')
+    #    sys.exit(1)
+    ver = git('log -1 --pretty=format:"%h %ad"')
+    log.info(f'Version: {ver}')
+    
+# execute git command
+def git(arg: str, folder: str = None, ignore: bool = False):
+    #
+    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    #
+    
+    git_cmd = os.environ.get('GIT', "git")
+    result = subprocess.run(f'"{git_cmd}" {arg}', check=False, shell=True, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=folder or '.')
+    txt = result.stdout.decode(encoding="utf8", errors="ignore")
+    if len(result.stderr) > 0:
+        txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
+    txt = txt.strip()
+    if result.returncode != 0 and not ignore:
+        global errors # pylint: disable=global-statement
+        errors += 1
+        log.error(f'Error running git: {folder} / {arg}')
+        if 'or stash them' in txt:
+            log.error(f'Local changes detected: check log for details: {log_file}')
+        log.debug(f'Git output: {txt}')
+    return txt
+
 def cudann_install():
     cudnn_src = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), '..\cudnn_windows'
@@ -465,6 +502,7 @@ def sync_bits_and_bytes_files():
 
 
 def install_kohya_ss_torch1():
+    check_repo_version()
     check_python()
 
     # Upgrade pip if needed
@@ -491,6 +529,7 @@ def install_kohya_ss_torch1():
 
 
 def install_kohya_ss_torch2():
+    check_repo_version()
     check_python()
 
     # Upgrade pip if needed

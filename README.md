@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/07/05 (v21 7.5)
+- Fix reported issue with LoHA: https://github.com/bmaltais/kohya_ss/issues/922
 * 2023/06/05 (v21.7.4)
 - Add manual accelerate config option
 - Remove the ability to switch between torch 1 and 2 as it was causing errors with the venv
