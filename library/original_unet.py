@@ -107,6 +107,7 @@ v2.1
 """
 
 import math
+from types import SimpleNamespace
 from typing import Dict, Optional, Tuple, Union
 import torch
 from torch import nn
@@ -132,6 +133,10 @@ UP_BLOCK_TYPES = ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "Cros
 
 def get_parameter_dtype(parameter: torch.nn.Module):
     return next(parameter.parameters()).dtype
+
+
+def get_parameter_device(parameter: torch.nn.Module):
+    return next(parameter.parameters()).device
 
 
 def get_timestep_embedding(
@@ -1068,6 +1073,7 @@ class UNet2DConditionModel(nn.Module):
         self.out_channels = OUT_CHANNELS
 
         self.sample_size = sample_size
+        self.prepare_config()
 
         # state_dictの書式が変わるのでmoduleの持ち方は変えられない
 
@@ -1154,12 +1160,18 @@ class UNet2DConditionModel(nn.Module):
         self.conv_out = nn.Conv2d(BLOCK_OUT_CHANNELS[0], OUT_CHANNELS, kernel_size=3, padding=1)
 
     # region diffusers compatibility
+    def prepare_config(self):
+        self.config = SimpleNamespace()
+
     @property
     def dtype(self) -> torch.dtype:
-        """
-        `torch.dtype`: The dtype of the module (assuming that all the module parameters have the same dtype).
-        """
+        # `torch.dtype`: The dtype of the module (assuming that all the module parameters have the same dtype).
         return get_parameter_dtype(self)
+
+    @property
+    def device(self) -> torch.device:
+        # `torch.device`: The device on which the module is (assuming that all the module parameters are on the same device).
+        return get_parameter_device(self)
 
     def set_attention_slice(self, slice_size):
         raise NotImplementedError("Attention slicing is not supported for this model.")
