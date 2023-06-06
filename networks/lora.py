@@ -400,7 +400,7 @@ def parse_block_lr_kwargs(nw_kwargs):
     return down_lr_weight, mid_lr_weight, up_lr_weight
 
 
-def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, unet, dropout=None, **kwargs):
+def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, unet, neuron_dropout=None, **kwargs):
     if network_dim is None:
         network_dim = 4  # default
     if network_alpha is None:
@@ -455,7 +455,7 @@ def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, un
         multiplier=multiplier,
         lora_dim=network_dim,
         alpha=network_alpha,
-        dropout=dropout,
+        dropout=neuron_dropout,
         rank_dropout=rank_dropout,
         module_dropout=module_dropout,
         conv_lora_dim=conv_dim,
