@@ -1240,8 +1240,11 @@ def lora_tab(
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
-                gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
+                gradient_accumulation_steps = gr.Slider(
+                    label='Gradient accumulate steps', value='1',
+                    minimum=1,
+                    maximum=128,
+                    step=1
                 )
                 weighted_captions = gr.Checkbox(
                     label='Weighted captions',

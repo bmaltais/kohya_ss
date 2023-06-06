@@ -952,7 +952,7 @@ def gradio_advanced_training(headless=False):
             info='(Optional) Save only the specified number of models (old models will be deleted)',
         )
         save_last_n_steps_state = gr.Number(
-            label='Save last N steps',
+            label='Save last N states',
             value=0,
             precision=0,
             info='(Optional) Save only the specified number of states (old models will be deleted)',
