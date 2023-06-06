@@ -140,6 +140,13 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 6 Jun. 2023, 2023/06/06
+
+- Fix `train_network.py` to probably work with older versions of LyCORIS.
+- `gen_img_diffusers.py` now supports `BREAK` syntax.
+- `train_network.py`がLyCORISの以前のバージョンでも恐らく動作するよう修正しました。
+- `gen_img_diffusers.py` で `BREAK` 構文をサポートしました。
+
 ### 3 Jun. 2023, 2023/06/03
 
 - Max Norm Regularization is now available in `train_network.py`. [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
