@@ -212,7 +212,7 @@ def train(args):
     else:
         # LyCORIS will work with this...
         network = network_module.create_network(
-            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, dropout=args.network_dropout, **net_kwargs
+            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, neuron_dropout=args.network_dropout, **net_kwargs
         )
     if network is None:
         return
@@ -724,7 +724,7 @@ def train(args):
             progress_bar.set_postfix(**logs)
 
             if args.scale_weight_norms:
-                progress_bar.set_postfix(**max_mean_logs)
+                progress_bar.set_postfix(**{**max_mean_logs, **logs})
 
             if args.logging_dir is not None:
                 logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler, keys_scaled, mean_norm, maximum_norm)

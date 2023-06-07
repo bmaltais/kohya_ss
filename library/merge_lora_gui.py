@@ -104,7 +104,7 @@ def merge_lora(
 def gradio_merge_lora_tab(headless=False):
     with gr.Tab('Merge LoRA'):
         gr.Markdown(
-            'This utility can merge up to 4 LoRA together or alternativelly merge up to 4 LoRA into a SD checkpoint.'
+            'This utility can merge up to 4 LoRA together or alternatively merge up to 4 LoRA into a SD checkpoint.'
         )
 
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)

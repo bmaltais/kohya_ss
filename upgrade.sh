@@ -13,4 +13,4 @@ git pull
 source venv/bin/activate
 
 # Upgrade the required packages
-pip install --use-pep517 --upgrade -r requirements.txt
+pip install --use-pep517 --upgrade -r requirements_unix.txt

@@ -3,7 +3,7 @@
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
 # Set the required package versions here.
-# They will be appended to the requirements.txt file in the installation directory.
+# They will be appended to the requirements_unix.txt file in the installation directory.
 TENSORFLOW_VERSION="2.12.0"
 TENSORFLOW_MACOS_VERSION="2.12.0"
 TENSORFLOW_METAL_VERSION="0.8.0"
@@ -262,14 +262,14 @@ install_python_dependencies() {
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements.txt file out and make the khoya_ss lib a dynamic location then cleanup.
+  #This will copy our requirements_unix.txt file out and make the khoya_ss lib a dynamic location then cleanup.
   local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
-  echo "Copying $DIR/requirements.txt to $TEMP_REQUIREMENTS_FILE" >&3
+  echo "Copying $DIR/requirements_unix.txt to $TEMP_REQUIREMENTS_FILE" >&3
   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements.txt" >"$TEMP_REQUIREMENTS_FILE"
+  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_unix.txt" >"$TEMP_REQUIREMENTS_FILE"
 
   # This will check if macOS is running then determine if M1+ or Intel CPU.
-  # It will append the appropriate packages to the requirements.txt file.
+  # It will append the appropriate packages to the requirements_unix.txt file.
   # Other OSs won't be affected and the version variables are at the top of this file.
   if [[ "$(uname)" == "Darwin" ]]; then
     # Check if the processor is Apple Silicon (arm64)

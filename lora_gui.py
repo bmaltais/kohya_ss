@@ -133,6 +133,10 @@ def save_configuration(
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
+    factor,
+    use_cp,
+    decompose_both,
+    train_on_input,
     conv_dim,
     conv_alpha,
     sample_every_n_steps,
@@ -278,6 +282,10 @@ def open_configuration(
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
+    factor,
+    use_cp,
+    decompose_both,
+    train_on_input,
     conv_dim,
     conv_alpha,
     sample_every_n_steps,
@@ -415,6 +423,10 @@ def train_model(
     multires_noise_iterations,
     multires_noise_discount,
     LoRA_type,
+    factor,
+    use_cp,
+    decompose_both,
+    train_on_input,
     conv_dim,
     conv_alpha,
     sample_every_n_steps,
@@ -676,7 +688,49 @@ def train_model(
             )
             return
         run_cmd += f' --network_module=lycoris.kohya'
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=loha"'
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "algo=loha"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+
+    if LoRA_type == 'LyCORIS/iA3':
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f' --network_module=lycoris.kohya'
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+
+    if LoRA_type == 'LyCORIS/DyLoRA':
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f' --network_module=lycoris.kohya'
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "block_size={unit}" "algo=dylora"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+
+    if LoRA_type == 'LyCORIS/LoKr':
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f' --network_module=lycoris.kohya'
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "factor={factor}" "use_cp={use_cp}" "algo=lokr"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -1018,9 +1072,11 @@ def lora_tab(
                 choices=[
                     'Kohya DyLoRA',
                     'Kohya LoCon',
-                    # 'LoCon',
+                    'LyCORIS/DyLoRA',
+                    'LyCORIS/iA3',
                     'LyCORIS/LoCon',
                     'LyCORIS/LoHa',
+                    'LyCORIS/LoKr',
                     'Standard',
                 ],
                 value='Standard',
@@ -1081,6 +1137,30 @@ def lora_tab(
                 value='0.0001',
                 info='Optional',
             )
+        with gr.Row():
+            factor = gr.Slider(
+                label='LoKr factor',
+                value=-1,
+                minimum=-1,
+                maximum=64,
+                step=1,
+                visible=False,
+            )
+            use_cp = gr.Checkbox(
+                value=False,
+                label='Use CP decomposition',
+                info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+            )
+            decompose_both = gr.Checkbox(
+                value=False,
+                label='LoKr decompose both',
+            )
+            train_on_input = gr.Checkbox(
+                value=False,
+                label='iA3 train on input',
+            )
+
+        with gr.Row():
             network_dim = gr.Slider(
                 minimum=1,
                 maximum=1024,
@@ -1115,11 +1195,45 @@ def lora_tab(
                 step=0.1,
                 label='Convolution Alpha',
             )
+        with gr.Row():
+            scale_weight_norms = gr.Slider(
+                label='Scale weight norms',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
+                interactive=True,
+            )
+            network_dropout = gr.Slider(
+                label='Network dropout',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+            )
+            rank_dropout = gr.Slider(
+                label='Rank dropout',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+            )
+            module_dropout = gr.Slider(
+                label='Module dropout',
+                value=0.0,
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+            )
         with gr.Row(visible=False) as kohya_dylora:
             unit = gr.Slider(
                 minimum=1,
                 maximum=64,
-                label='DyLoRA Unit',
+                label='DyLoRA Unit / Block size',
                 value=1,
                 step=1,
                 interactive=True,
@@ -1135,7 +1249,10 @@ def lora_tab(
                 'LoCon',
                 'Kohya DyLoRA',
                 'Kohya LoCon',
+                'LyCORIS/DyLoRA',
+                'LyCORIS/iA3',
                 'LyCORIS/LoHa',
+                'LyCORIS/LoKr',
                 'LyCORIS/LoCon',
             }
 
@@ -1154,8 +1271,65 @@ def lora_tab(
                 'Kohya LoCon',
             }
 
+            # Determine if LyCORIS factor should be visible based on LoRA_type
+            LoKr_factor_visible = LoRA_type in {
+                'LyCORIS/LoKr',
+            }
+
+            # Determine if LyCORIS use_cp should be visible based on LoRA_type
+            use_cp_visible = LoRA_type in {
+                'LyCORIS/DyLoRA',
+                'LyCORIS/LoHa',
+                'LyCORIS/LoCon',
+                'LyCORIS/LoKr',
+            }
+
+            # Determine if LyCORIS decompose_both should be visible based on LoRA_type
+            LoKr_decompose_both_visible = LoRA_type in {
+                'LyCORIS/LoKr',
+            }
+
+            # Determine if scale_weight_norms should be visible based on LoRA_type
+            scale_weight_norms_visible = LoRA_type in {
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+            }
+
+            # Determine if network_dropout should be visible based on LoRA_type
+            network_dropout_visible = LoRA_type in {
+                'LoCon',
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+                'LyCORIS/DyLoRA',
+                'LyCORIS/LoHa',
+                'LyCORIS/LoCon',
+                'LyCORIS/LoKr',
+            }
+
+            # Determine if scale_weight_norms should be visible based on LoRA_type
+            rank_dropout_visible = LoRA_type in {
+                'LoCon',
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+            }
+
+            # Determine if module_dropout should be visible based on LoRA_type
+            module_dropout_visible = LoRA_type in {
+                'LoCon',
+                'Kohya DyLoRA',
+                'Kohya LoCon',
+            }
+
+            # Determine if train_on_input should be visible based on LoRA_type
+            train_on_input_visible = LoRA_type in {
+                'LyCORIS/iA3',
+            }
+
             # Determine if kohya_dylora_visible should be visible based on LoRA_type
-            kohya_dylora_visible = LoRA_type == 'Kohya DyLoRA'
+            kohya_dylora_visible = LoRA_type in {
+                'Kohya DyLoRA',
+                'LyCORIS/DyLoRA',
+            }
 
             # Return the updated visibility settings for the groups
             return (
@@ -1165,6 +1339,14 @@ def lora_tab(
                 gr.Textbox.update(visible=LoRA_network_weights_visible),
                 gr.Button.update(visible=LoRA_network_weights_visible),
                 gr.Checkbox.update(visible=LoRA_network_weights_visible),
+                gr.Slider.update(visible=LoKr_factor_visible),
+                gr.Slider.update(visible=use_cp_visible),
+                gr.Slider.update(visible=LoKr_decompose_both_visible),
+                gr.Slider.update(visible=train_on_input_visible),
+                gr.Slider.update(visible=scale_weight_norms_visible),
+                gr.Slider.update(visible=network_dropout_visible),
+                gr.Slider.update(visible=rank_dropout_visible),
+                gr.Slider.update(visible=module_dropout_visible),
             )
 
         with gr.Row():
@@ -1240,8 +1422,12 @@ def lora_tab(
                 no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
-                gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
+                gradient_accumulation_steps = gr.Slider(
+                    label='Gradient accumulate steps',
+                    value='1',
+                    minimum=1,
+                    maximum=128,
+                    step=1,
                 )
                 weighted_captions = gr.Checkbox(
                     label='Weighted captions',
@@ -1261,40 +1447,7 @@ def lora_tab(
                     label='LR power',
                     placeholder='(Optional) For Cosine with restart and polynomial only',
                 )
-            with gr.Row():
-                scale_weight_norms = gr.Slider(
-                    label='Scale weight norms',
-                    value=0,
-                    minimum=0,
-                    maximum=1,
-                    step=0.01,
-                    info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
-                    interactive=True,
-                )
-                network_dropout = gr.Slider(
-                    label='Network dropout',
-                    value=0,
-                    minimum=0,
-                    maximum=1,
-                    step=0.01,
-                    info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
-                )
-                rank_dropout = gr.Slider(
-                    label='Rank dropout',
-                    value=0,
-                    minimum=0,
-                    maximum=1,
-                    step=0.01,
-                    info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-                )
-                module_dropout = gr.Slider(
-                    label='Module dropout',
-                    value=0.0,
-                    minimum=0.0,
-                    maximum=1.0,
-                    step=0.01,
-                    info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-                )
+
             (
                 # use_8bit_adam,
                 xformers,
@@ -1355,6 +1508,14 @@ def lora_tab(
                 lora_network_weights,
                 lora_network_weights_file,
                 dim_from_weights,
+                factor,
+                use_cp,
+                decompose_both,
+                train_on_input,
+                scale_weight_norms,
+                network_dropout,
+                rank_dropout,
+                module_dropout,
             ],
         )
 
@@ -1461,6 +1622,10 @@ def lora_tab(
         multires_noise_iterations,
         multires_noise_discount,
         LoRA_type,
+        factor,
+        use_cp,
+        decompose_both,
+        train_on_input,
         conv_dim,
         conv_alpha,
         sample_every_n_steps,

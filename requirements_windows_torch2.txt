@@ -11,7 +11,7 @@ ftfy==6.1.1
 gradio==3.33.1
 huggingface-hub==0.15.1
 lion-pytorch==0.0.6
-lycoris_lora==0.1.4
+lycoris_lora==0.1.6
 opencv-python==4.7.0.68
 pytorch-lightning==1.9.0
 rich==13.4.1

@@ -345,7 +345,13 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
-* 2023/07/05 (v21 7.5)
+* 2023/06/06 (v21.7.6)
+- Small UI improvements
+- Fix `train_network.py` to probably work with older versions of LyCORIS.
+- `gen_img_diffusers.py` now supports `BREAK` syntax.
+- Add Lycoris iA3, LoKr and DyLoRA support to the UI
+- Upgrade LuCORIS python module to 0.1.6
+* 2023/06/05 (v21 7.5)
 - Fix reported issue with LoHA: https://github.com/bmaltais/kohya_ss/issues/922
 * 2023/06/05 (v21.7.4)
 - Add manual accelerate config option
