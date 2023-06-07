@@ -86,7 +86,6 @@ def main():
         '-r',
         '--requirements',
         type=str,
-        default='requirements.txt',
         help='Path to the requirements file.',
     )
     parser.add_argument('--debug', action='store_true', help='Debug on')

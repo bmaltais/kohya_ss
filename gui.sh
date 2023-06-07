@@ -17,6 +17,6 @@ cd "$SCRIPT_DIR"
 source "$SCRIPT_DIR/venv/bin/activate"
 
 # If the requirements are validated, run the kohya_gui.py script with the command-line arguments
-if python  "$SCRIPT_DIR"/tools/validate_requirements.py -r "$SCRIPT_DIR"/requirements.txt; then
+if python  "$SCRIPT_DIR"/tools/validate_requirements.py -r "$SCRIPT_DIR"/requirements_unix.txt; then
     python "$SCRIPT_DIR/kohya_gui.py" "$@"
 fi
