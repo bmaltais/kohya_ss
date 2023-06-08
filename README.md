@@ -345,6 +345,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/08 (v21.7.7)
+- Add `Print only` button to all training tabs
 * 2023/06/06 (v21.7.6)
 - Small UI improvements
 - Fix `train_network.py` to probably work with older versions of LyCORIS.

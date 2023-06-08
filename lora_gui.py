@@ -1239,115 +1239,91 @@ def lora_tab(
                 interactive=True,
             )
 
-        # Show of hide LoCon conv settings depending on LoRA type selection
-        def update_LoRA_settings(LoRA_type):
-            # Print a message when LoRA type is changed
-            log.info('LoRA type changed...')
+            # Show or hide LoCon conv settings depending on LoRA type selection
+            def update_LoRA_settings(LoRA_type):
+                log.info('LoRA type changed...')
 
-            # Determine if LoCon_row should be visible based on LoRA_type
-            LoCon_row = LoRA_type in {
-                'LoCon',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-                'LyCORIS/DyLoRA',
-                'LyCORIS/iA3',
-                'LyCORIS/LoHa',
-                'LyCORIS/LoKr',
-                'LyCORIS/LoCon',
-            }
+                visibility_and_gr_types = {
+                    'LoCon_row': (
+                        {
+                            'LoCon',
+                            'Kohya DyLoRA',
+                            'Kohya LoCon',
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/iA3',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoKr',
+                            'LyCORIS/LoCon',
+                        },
+                        gr.Row,
+                    ),
+                    'kohya_advanced_lora': (
+                        {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Row,
+                    ),
+                    'kohya_dylora': (
+                        {'Kohya DyLoRA', 'LyCORIS/DyLoRA'},
+                        gr.Row,
+                    ),
+                    'lora_network_weights': (
+                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Textbox,
+                    ),
+                    'lora_network_weights_file': (
+                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Button,
+                    ),
+                    'dim_from_weights': (
+                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Checkbox,
+                    ),
+                    'factor': ({'LyCORIS/LoKr'}, gr.Slider),
+                    'use_cp': (
+                        {
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoCon',
+                            'LyCORIS/LoKr',
+                        },
+                        gr.Slider,
+                    ),
+                    'decompose_both': ({'LyCORIS/LoKr'}, gr.Slider),
+                    'train_on_input': ({'LyCORIS/iA3'}, gr.Slider),
+                    'scale_weight_norms': (
+                        {'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Slider,
+                    ),
+                    'network_dropout': (
+                        {
+                            'LoCon',
+                            'Kohya DyLoRA',
+                            'Kohya LoCon',
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoCon',
+                            'LyCORIS/LoKr',
+                        },
+                        gr.Slider,
+                    ),
+                    'rank_dropout': (
+                        {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Slider,
+                    ),
+                    'module_dropout': (
+                        {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                        gr.Slider,
+                    ),
+                }
 
-            # Determine if LoRA_type_change should be visible based on LoRA_type
-            LoRA_type_change = LoRA_type in {
-                'Standard',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-            }
+                results = []
+                for attr, (
+                    visibility,
+                    gr_type,
+                ) in visibility_and_gr_types.items():
+                    visible = LoRA_type in visibility
+                    results.append(gr_type.update(visible=visible))
 
-            # Determine if LoRA network weights should be visible based on LoRA_type
-            LoRA_network_weights_visible = LoRA_type in {
-                'Standard',
-                'LoCon',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-            }
-
-            # Determine if LyCORIS factor should be visible based on LoRA_type
-            LoKr_factor_visible = LoRA_type in {
-                'LyCORIS/LoKr',
-            }
-
-            # Determine if LyCORIS use_cp should be visible based on LoRA_type
-            use_cp_visible = LoRA_type in {
-                'LyCORIS/DyLoRA',
-                'LyCORIS/LoHa',
-                'LyCORIS/LoCon',
-                'LyCORIS/LoKr',
-            }
-
-            # Determine if LyCORIS decompose_both should be visible based on LoRA_type
-            LoKr_decompose_both_visible = LoRA_type in {
-                'LyCORIS/LoKr',
-            }
-
-            # Determine if scale_weight_norms should be visible based on LoRA_type
-            scale_weight_norms_visible = LoRA_type in {
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-            }
-
-            # Determine if network_dropout should be visible based on LoRA_type
-            network_dropout_visible = LoRA_type in {
-                'LoCon',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-                'LyCORIS/DyLoRA',
-                'LyCORIS/LoHa',
-                'LyCORIS/LoCon',
-                'LyCORIS/LoKr',
-            }
-
-            # Determine if scale_weight_norms should be visible based on LoRA_type
-            rank_dropout_visible = LoRA_type in {
-                'LoCon',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-            }
-
-            # Determine if module_dropout should be visible based on LoRA_type
-            module_dropout_visible = LoRA_type in {
-                'LoCon',
-                'Kohya DyLoRA',
-                'Kohya LoCon',
-            }
-
-            # Determine if train_on_input should be visible based on LoRA_type
-            train_on_input_visible = LoRA_type in {
-                'LyCORIS/iA3',
-            }
-
-            # Determine if kohya_dylora_visible should be visible based on LoRA_type
-            kohya_dylora_visible = LoRA_type in {
-                'Kohya DyLoRA',
-                'LyCORIS/DyLoRA',
-            }
-
-            # Return the updated visibility settings for the groups
-            return (
-                gr.Group.update(visible=LoCon_row),
-                gr.Group.update(visible=LoRA_type_change),
-                gr.Group.update(visible=kohya_dylora_visible),
-                gr.Textbox.update(visible=LoRA_network_weights_visible),
-                gr.Button.update(visible=LoRA_network_weights_visible),
-                gr.Checkbox.update(visible=LoRA_network_weights_visible),
-                gr.Slider.update(visible=LoKr_factor_visible),
-                gr.Slider.update(visible=use_cp_visible),
-                gr.Slider.update(visible=LoKr_decompose_both_visible),
-                gr.Slider.update(visible=train_on_input_visible),
-                gr.Slider.update(visible=scale_weight_norms_visible),
-                gr.Slider.update(visible=network_dropout_visible),
-                gr.Slider.update(visible=rank_dropout_visible),
-                gr.Slider.update(visible=module_dropout_visible),
-            )
+                return tuple(results)
 
         with gr.Row():
             max_resolution = gr.Textbox(
