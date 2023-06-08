@@ -140,6 +140,11 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 8 Jun. 2023, 2023/06/08
+
+- Fixed a bug where clip skip did not work when training with weighted captions (`--weighted_captions` specified) and when generating sample images during training.
+- 重みづけキャプションでの学習時（`--weighted_captions`指定時）および学習中のサンプル画像生成時にclip skipが機能しない不具合を修正しました。
+
 ### 6 Jun. 2023, 2023/06/06
 
 - Fix `train_network.py` to probably work with older versions of LyCORIS.
