@@ -1002,8 +1002,8 @@ def gradio_advanced_training(headless=False):
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True
         )
-        bucket_reso_steps = gr.Number(
-            label='Bucket resolution steps', value=64
+        bucket_reso_steps = gr.Slider(
+            label='Bucket resolution steps', value=64, minimum=1, maximum=128
         )
         random_crop = gr.Checkbox(
             label='Random crop instead of center crop', value=False

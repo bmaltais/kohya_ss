@@ -151,12 +151,8 @@ def save_configuration(
     # Return the values of the variables as a dictionary
     variables = {
         name: value
-        for name, value in parameters  # locals().items()
-        if name
-        not in [
-            'file_path',
-            'save_as',
-        ]
+        for name, value in sorted(parameters, key=lambda x: x[0])
+        if name not in ['file_path', 'save_as']
     }
 
     # Extract the destination directory from the file path
@@ -501,7 +497,7 @@ def train_model(
     run_cmd += f' --learning_rate={learning_rate}'
 
     run_cmd += ' --enable_bucket'
-    run_cmd += f' --resolution={max_resolution}'
+    run_cmd += f' --resolution="{max_resolution}"'
     run_cmd += f' --min_bucket_reso={min_bucket_reso}'
     run_cmd += f' --max_bucket_reso={max_bucket_reso}'
 
