@@ -347,6 +347,8 @@ This will store a backup file with your current locally installed pip packages a
 
 * 2023/06/08 (v21.7.7)
 - Add `Print only` button to all training tabs
+- Sort json file vars for easier visual search
+- Fixed a bug where clip skip did not work when training with weighted captions (`--weighted_captions` specified) and when generating sample images during training.
 * 2023/06/06 (v21.7.6)
 - Small UI improvements
 - Fix `train_network.py` to probably work with older versions of LyCORIS.
