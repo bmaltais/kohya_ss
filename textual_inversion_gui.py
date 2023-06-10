@@ -28,6 +28,7 @@ from library.common_gui import (
     update_my_data,
     check_if_model_exist,
     output_message,
+    verify_image_folder_pattern,
 )
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -388,6 +389,9 @@ def train_model(
             msg='Image folder does not exist', headless=headless_bool
         )
         return
+    
+    if not verify_image_folder_pattern(train_data_dir):
+        return
 
     if reg_data_dir != '':
         if not os.path.exists(reg_data_dir):
@@ -395,6 +399,9 @@ def train_model(
                 msg='Regularisation folder does not exist',
                 headless=headless_bool,
             )
+            return
+        
+        if not verify_image_folder_pattern(reg_data_dir):
             return
 
     if output_dir == '':
