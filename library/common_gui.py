@@ -1288,7 +1288,7 @@ def run_cmd_advanced_training(**kwargs):
 def verify_image_folder_pattern(folder_path):
     # Check if the folder exists
     if not os.path.isdir(folder_path):
-        log.error(f"The provided path '{folder_path}' is not a valid folder. Please remediate...")
+        log.error(f"The provided path '{folder_path}' is not a valid folder. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return False
 
     # Create a regular expression pattern to match the required sub-folder names
@@ -1303,12 +1303,12 @@ def verify_image_folder_pattern(folder_path):
 
     # Check if all sub-folders match the pattern
     if len(matching_subfolders) != len(os.listdir(folder_path)):
-        log.error(f"Not all images folders have proper name patterns in {folder_path}. Please remediate...")
+        log.error(f"Not all images folders have proper name patterns in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return False
 
     # Check if no sub-folders exist
     if not matching_subfolders:
-        log.error(f"No image folders found in {folder_path}. Please remediate...")
+        log.error(f"No image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return False
 
     log.info(f'Valid image folder names found in: {folder_path}')

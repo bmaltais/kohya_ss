@@ -1,29 +1,46 @@
 # Drambootd, Lora and TI image folder structure
 
-To ensure successful training, Kohya utilizes a specific folder structure that provides the necessary repeat value for the images. It is essential to follow this structure precisely.
+To ensure successful training with Kohya, it is crucial to follow a specific folder structure that provides the necessary image repeats. Please adhere to the following structure precisely:
 
-For instance, let's consider training two concepts, each with 30 repeats. We will refer to the first concept as cat and the second concept as dog. While you need at least one concept for training, you can include as many as desired.
-
-The folder structure for these concepts should be as follows:
+Folder Structure Example:
 
 ```txt
-images
+c:
 |
-├── 30_cat
+├──images
 |   |
-|   ├── image1.jpg
-|   ├── image1.txt
-|   ├── image2.png
-|   └── image2.txt
+|   ├── 30_cat
+|   |   |
+|   |   ├── image1.jpg
+|   |   ├── image1.txt
+|   |   ├── image2.png
+|   |   └── image2.txt
+|   |
+|   └── 30_dog
+|       |
+|       ├── image1.jpg
+|       ├── image1.txt
+|       ├── image2.png
+|       └── image2.txt
 |
-└── 30_dog
-    |
-    ├── image1.jpg
-    ├── image1.txt
-    ├── image2.png
-    └── image2.txt
+├──regularization
+|   |
+|   ├── 1_cat
+|   |   |
+|   |   ├── reg1.jpg
+|   |   ├── reg2.jpg
+|   |
+|   └── 1_dog
+|       |
+|       ├── reg1.jpg
+|       ├── reg2.jpg
 ```
 
-Please note that the same folder structure is required for regularization images as well.
+Ensure that you maintain the same structure for the regularization images.
 
-By adhering to this folder structure, you ensure that the images are organized appropriately and that the training process proceeds smoothly.
+In the Kohya_ss GUI, follow these steps:
+
+1. Enter the path to the images folder in the Image folder field.
+2. Enter the path to the regularisation folder in the Regularisation folder field.
+
+By adhering to this folder structure, you can ensure a smooth and effective training process with Kohya.
