@@ -3467,11 +3467,11 @@ def sample_images(
         unet=unet,
         tokenizer=tokenizer,
         scheduler=scheduler,
-        clip_skip=args.clip_skip,
         safety_checker=None,
         feature_extractor=None,
         requires_safety_checker=False,
     )
+    pipeline.clip_skip = args.clip_skip     # Pipelineのコンストラクタにckip_skipを追加できないので後から設定する
     pipeline.to(device)
 
     save_dir = args.output_dir + "/sample"
