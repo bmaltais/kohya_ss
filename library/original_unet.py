@@ -278,7 +278,7 @@ class FlashAttentionFunction(torch.autograd.Function):
             for k_ind, (kc, vc, dkc, dvc) in enumerate(col_splits):
                 k_start_index = k_ind * k_bucket_size
 
-                attn_weights = einsum("... i d, ... j d -> ... i j", qc, kc) * scale
+                attn_weights = torch.einsum("... i d, ... j d -> ... i j", qc, kc) * scale
 
                 if causal and q_start_index < (k_start_index + k_bucket_size - 1):
                     causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool, device=device).triu(
@@ -293,14 +293,14 @@ class FlashAttentionFunction(torch.autograd.Function):
 
                 p = exp_attn_weights / lc
 
-                dv_chunk = einsum("... i j, ... i d -> ... j d", p, doc)
-                dp = einsum("... i d, ... j d -> ... i j", doc, vc)
+                dv_chunk = torch.einsum("... i j, ... i d -> ... j d", p, doc)
+                dp = torch.einsum("... i d, ... j d -> ... i j", doc, vc)
 
                 D = (doc * oc).sum(dim=-1, keepdims=True)
                 ds = p * scale * (dp - D)
 
-                dq_chunk = einsum("... i j, ... j d -> ... i d", ds, kc)
-                dk_chunk = einsum("... i j, ... i d -> ... j d", ds, qc)
+                dq_chunk = torch.einsum("... i j, ... j d -> ... i d", ds, kc)
+                dk_chunk = torch.einsum("... i j, ... i d -> ... j d", ds, qc)
 
                 dqc.add_(dq_chunk)
                 dkc.add_(dk_chunk)
