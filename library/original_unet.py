@@ -686,8 +686,6 @@ class CrossAttention(nn.Module):
         return out
 
     def forward_sdpa(self, x, context=None, mask=None):
-        import xformers.ops
-
         h = self.heads
         q_in = self.to_q(x)
         context = context if context is not None else x
