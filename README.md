@@ -75,8 +75,6 @@ cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_set
 accelerate config
 ```
 
-update: ``python -m venv venv`` is seemed to be safer than ``python -m venv --system-site-packages venv`` (some user have packages in global python).
-
 Answers to accelerate config:
 
 ```txt
@@ -93,6 +91,30 @@ note: Some user reports ``ValueError: fp16 mixed precision requires a GPU`` is o
 ``What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:`` 
 
 (Single GPU with id `0` will be used.)
+
+### Experimental: Use PyTorch 2.0
+
+In this case, you need to install PyTorch 2.0 and xformers 0.0.20. Instead of the above, please type the following:
+
+```powershell
+git clone https://github.com/kohya-ss/sd-scripts.git
+cd sd-scripts
+
+python -m venv venv
+.\venv\Scripts\activate
+
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118
+pip install --upgrade -r requirements.txt
+pip install xformers==0.0.20
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+
+accelerate config
+```
+
+Answers to accelerate config should be the same as above.
 
 ### about PyTorch and xformers
 
