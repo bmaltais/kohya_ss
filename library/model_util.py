@@ -4,6 +4,7 @@
 import math
 import os
 import torch
+import diffusers
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig, logging
 from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline  # , UNet2DConditionModel
 from safetensors.torch import load_file, save_file
@@ -127,17 +128,30 @@ def renew_vae_attention_paths(old_list, n_shave_prefix_segments=0):
         new_item = new_item.replace("norm.weight", "group_norm.weight")
         new_item = new_item.replace("norm.bias", "group_norm.bias")
 
-        new_item = new_item.replace("q.weight", "to_q.weight")
-        new_item = new_item.replace("q.bias", "to_q.bias")
+        if diffusers.__version__ < "0.15.0":
+            new_item = new_item.replace("q.weight", "query.weight")
+            new_item = new_item.replace("q.bias", "query.bias")
 
-        new_item = new_item.replace("k.weight", "to_k.weight")
-        new_item = new_item.replace("k.bias", "to_k.bias")
+            new_item = new_item.replace("k.weight", "key.weight")
+            new_item = new_item.replace("k.bias", "key.bias")
 
-        new_item = new_item.replace("v.weight", "to_v.weight")
-        new_item = new_item.replace("v.bias", "to_v.bias")
+            new_item = new_item.replace("v.weight", "value.weight")
+            new_item = new_item.replace("v.bias", "value.bias")
 
-        new_item = new_item.replace("proj_out.weight", "to_out.0.weight")
-        new_item = new_item.replace("proj_out.bias", "to_out.0.bias")
+            new_item = new_item.replace("proj_out.weight", "proj_attn.weight")
+            new_item = new_item.replace("proj_out.bias", "proj_attn.bias")
+        else:
+            new_item = new_item.replace("q.weight", "to_q.weight")
+            new_item = new_item.replace("q.bias", "to_q.bias")
+
+            new_item = new_item.replace("k.weight", "to_k.weight")
+            new_item = new_item.replace("k.bias", "to_k.bias")
+
+            new_item = new_item.replace("v.weight", "to_v.weight")
+            new_item = new_item.replace("v.bias", "to_v.bias")
+
+            new_item = new_item.replace("proj_out.weight", "to_out.0.weight")
+            new_item = new_item.replace("proj_out.bias", "to_out.0.bias")
 
         new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
 
@@ -192,7 +206,15 @@ def assign_to_checkpoint(
                 new_path = new_path.replace(replacement["old"], replacement["new"])
 
         # proj_attn.weight has to be converted from conv 1D to linear
-        if ".attentions." in new_path and ".0.to_" in new_path and old_checkpoint[path["old"]].ndim > 2:
+        reshaping = False
+        if diffusers.__version__ < "0.15.0":
+            if "proj_attn.weight" in new_path:
+                reshaping = True
+        else:
+            if ".attentions." in new_path and ".0.to_" in new_path and old_checkpoint[path["old"]].ndim > 2:
+                reshaping = True
+
+        if reshaping:
             checkpoint[new_path] = old_checkpoint[path["old"]][:, :, 0, 0]
         else:
             checkpoint[new_path] = old_checkpoint[path["old"]]
@@ -780,14 +802,24 @@ def convert_vae_state_dict(vae_state_dict):
         sd_mid_res_prefix = f"mid.block_{i+1}."
         vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
-    vae_conversion_map_attn = [
-        # (stable-diffusion, HF Diffusers)
-        ("norm.", "group_norm."),
-        ("q.", "to_q."),
-        ("k.", "to_k."),
-        ("v.", "to_v."),
-        ("proj_out.", "to_out.0."),
-    ]
+    if diffusers.__version__ < "0.15.0":
+        vae_conversion_map_attn = [
+            # (stable-diffusion, HF Diffusers)
+            ("norm.", "group_norm."),
+            ("q.", "query."),
+            ("k.", "key."),
+            ("v.", "value."),
+            ("proj_out.", "proj_attn."),
+        ]
+    else:
+        vae_conversion_map_attn = [
+            # (stable-diffusion, HF Diffusers)
+            ("norm.", "group_norm."),
+            ("q.", "to_q."),
+            ("k.", "to_k."),
+            ("v.", "to_v."),
+            ("proj_out.", "to_out.0."),
+        ]
 
     mapping = {k: k for k in vae_state_dict.keys()}
     for k, v in mapping.items():
