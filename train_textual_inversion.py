@@ -98,7 +98,7 @@ def train(args):
 
     # acceleratorを準備する
     print("prepare accelerator")
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -291,7 +291,7 @@ def train(args):
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
-    orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
+    orig_embeds_params = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
 
     # Freeze all parameters except for the token embeddings in text encoder
     text_encoder.requires_grad_(True)
@@ -440,7 +440,7 @@ def train(args):
 
                 # Let's make sure we don't update any embedding weights besides the newly added token
                 with torch.no_grad():
-                    unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
+                    accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
                         index_no_updates
                     ]
 
@@ -457,7 +457,9 @@ def train(args):
                 if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
-                        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+                        updated_embs = (
+                            accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+                        )
 
                         ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
                         save_model(ckpt_name, updated_embs, global_step, epoch)
@@ -493,7 +495,7 @@ def train(args):
 
         accelerator.wait_for_everyone()
 
-        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+        updated_embs = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
             saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
@@ -517,7 +519,7 @@ def train(args):
 
     is_main_process = accelerator.is_main_process
     if is_main_process:
-        text_encoder = unwrap_model(text_encoder)
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     accelerator.end_training()
 

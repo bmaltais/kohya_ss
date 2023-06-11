@@ -95,7 +95,7 @@ def train(args):
             f"gradient_accumulation_stepsが{args.gradient_accumulation_steps}に設定されています。accelerateは複数モデル（U-NetおよびText Encoder）の学習時にgradient_accumulation_stepsをサポートしていないため結果は未知数です"
         )
 
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -372,8 +372,8 @@ def train(args):
                             epoch,
                             num_train_epochs,
                             global_step,
-                            unwrap_model(text_encoder),
-                            unwrap_model(unet),
+                            accelerator.unwrap_model(text_encoder),
+                            accelerator.unwrap_model(unet),
                             vae,
                         )
 
@@ -420,8 +420,8 @@ def train(args):
                     epoch,
                     num_train_epochs,
                     global_step,
-                    unwrap_model(text_encoder),
-                    unwrap_model(unet),
+                    accelerator.unwrap_model(text_encoder),
+                    accelerator.unwrap_model(unet),
                     vae,
                 )
 
@@ -429,8 +429,8 @@ def train(args):
 
     is_main_process = accelerator.is_main_process
     if is_main_process:
-        unet = unwrap_model(unet)
-        text_encoder = unwrap_model(text_encoder)
+        unet = accelerator.unwrap_model(unet)
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     accelerator.end_training()
 

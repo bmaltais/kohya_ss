@@ -11,6 +11,7 @@ import torch
 from accelerate.utils import set_seed
 import diffusers
 from diffusers import DDPMScheduler
+import library
 
 import library.train_util as train_util
 import library.huggingface_util as huggingface_util
@@ -20,7 +21,14 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, prepare_scheduler_for_custom_training, pyramid_noise_like, apply_noise_offset, scale_v_prediction_loss_like_noise_prediction
+from library.custom_train_functions import (
+    apply_snr_weight,
+    prepare_scheduler_for_custom_training,
+    pyramid_noise_like,
+    apply_noise_offset,
+    scale_v_prediction_loss_like_noise_prediction,
+)
+import library.original_unet as original_unet
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
 imagenet_templates_small = [
@@ -98,7 +106,7 @@ def train(args):
 
     # acceleratorを準備する
     print("prepare accelerator")
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -257,9 +265,9 @@ def train(args):
 
     # モデルに xformers とか memory efficient attention を組み込む
     train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
-    diffusers.models.UNet2DConditionModel.forward = unet_forward_XTI
-    diffusers.models.unet_2d_blocks.CrossAttnDownBlock2D.forward = downblock_forward_XTI
-    diffusers.models.unet_2d_blocks.CrossAttnUpBlock2D.forward = upblock_forward_XTI
+    original_unet.UNet2DConditionModel.forward = unet_forward_XTI
+    original_unet.CrossAttnDownBlock2D.forward = downblock_forward_XTI
+    original_unet.CrossAttnUpBlock2D.forward = upblock_forward_XTI
 
     # 学習を準備する
     if cache_latents:
@@ -319,7 +327,7 @@ def train(args):
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids_XTI[0]
     # print(len(index_no_updates), torch.sum(index_no_updates))
-    orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
+    orig_embeds_params = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
 
     # Freeze all parameters except for the token embeddings in text encoder
     text_encoder.requires_grad_(True)
@@ -473,7 +481,7 @@ def train(args):
 
                 # Let's make sure we don't update any embedding weights besides the newly added token
                 with torch.no_grad():
-                    unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
+                    accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
                         index_no_updates
                     ]
 
@@ -490,7 +498,13 @@ def train(args):
                 if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
-                        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
+                        updated_embs = (
+                            accelerator.unwrap_model(text_encoder)
+                            .get_input_embeddings()
+                            .weight[token_ids_XTI]
+                            .data.detach()
+                            .clone()
+                        )
 
                         ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
                         save_model(ckpt_name, updated_embs, global_step, epoch)
@@ -526,7 +540,7 @@ def train(args):
 
         accelerator.wait_for_everyone()
 
-        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
+        updated_embs = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[token_ids_XTI].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
             saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
@@ -551,7 +565,7 @@ def train(args):
 
     is_main_process = accelerator.is_main_process
     if is_main_process:
-        text_encoder = unwrap_model(text_encoder)
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     accelerator.end_training()
 
