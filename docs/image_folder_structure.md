@@ -16,7 +16,14 @@ c:
 |   |   ├── image2.png
 |   |   └── image2.txt
 |   |
-|   └── 30_dog
+|   ├── 30_dog
+|   |   |
+|   |   ├── image1.jpg
+|   |   ├── image1.txt
+|   |   ├── image2.png
+|   |   └── image2.txt
+|   |
+|   └── 40_black mamba
 |       |
 |       ├── image1.jpg
 |       ├── image1.txt
@@ -30,17 +37,23 @@ c:
 |   |   ├── reg1.jpg
 |   |   ├── reg2.jpg
 |   |
-|   └── 1_dog
+|   ├── 1_dog
+|   |   |
+|   |   ├── reg1.jpg
+|   |   ├── reg2.jpg
+|   |
+|   └── 1_black mamba
 |       |
 |       ├── reg1.jpg
 |       ├── reg2.jpg
+
 ```
 
-Ensure that you maintain the same structure for the regularization images.
+Please note the following important information regarding file extensions and their impact on concept names during model training:
 
-In the Kohya_ss GUI, follow these steps:
+If a file with a .txt or .caption extension and the same name as an image is present in the image subfolder, it will take precedence over the concept name during the model training process.
+For example, if there is an image file named image1.jpg in the 30_cat subfolder, and there is a corresponding text file named image1.txt or image1.caption in the same subfolder, the concept name used during training will be determined by the content of that text file rather than the subfolder name.
 
-1. Enter the path to the images folder in the Image folder field.
-2. Enter the path to the regularisation folder in the Regularisation folder field.
+Ensure that the content of such text files accurately reflects the desired concept name or any relevant caption information associated with the corresponding image.
 
-By adhering to this folder structure, you can ensure a smooth and effective training process with Kohya.
+By considering this information and maintaining the proper folder structure, including any necessary text or caption files, you can ensure a smooth and effective training process with Kohya.
