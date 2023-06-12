@@ -128,7 +128,7 @@ def renew_vae_attention_paths(old_list, n_shave_prefix_segments=0):
         new_item = new_item.replace("norm.weight", "group_norm.weight")
         new_item = new_item.replace("norm.bias", "group_norm.bias")
 
-        if diffusers.__version__ < "0.15.0":
+        if diffusers.__version__ < "0.17.0":
             new_item = new_item.replace("q.weight", "query.weight")
             new_item = new_item.replace("q.bias", "query.bias")
 
@@ -207,7 +207,7 @@ def assign_to_checkpoint(
 
         # proj_attn.weight has to be converted from conv 1D to linear
         reshaping = False
-        if diffusers.__version__ < "0.15.0":
+        if diffusers.__version__ < "0.17.0":
             if "proj_attn.weight" in new_path:
                 reshaping = True
         else:
@@ -802,7 +802,7 @@ def convert_vae_state_dict(vae_state_dict):
         sd_mid_res_prefix = f"mid.block_{i+1}."
         vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
-    if diffusers.__version__ < "0.15.0":
+    if diffusers.__version__ < "0.17.0":
         vae_conversion_map_attn = [
             # (stable-diffusion, HF Diffusers)
             ("norm.", "group_norm."),
