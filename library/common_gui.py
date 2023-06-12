@@ -1,6 +1,7 @@
 from tkinter import filedialog, Tk
 from easygui import msgbox
 import os
+import re
 import gradio as gr
 import easygui
 import shutil
@@ -1002,8 +1003,8 @@ def gradio_advanced_training(headless=False):
         bucket_no_upscale = gr.Checkbox(
             label="Don't upscale bucket resolution", value=True
         )
-        bucket_reso_steps = gr.Number(
-            label='Bucket resolution steps', value=64
+        bucket_reso_steps = gr.Slider(
+            label='Bucket resolution steps', value=64, minimum=1, maximum=128
         )
         random_crop = gr.Checkbox(
             label='Random crop instead of center crop', value=False
@@ -1283,3 +1284,32 @@ def run_cmd_advanced_training(**kwargs):
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
         
     return run_cmd
+
+def verify_image_folder_pattern(folder_path):
+    # Check if the folder exists
+    if not os.path.isdir(folder_path):
+        log.error(f"The provided path '{folder_path}' is not a valid folder. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
+        return False
+
+    # Create a regular expression pattern to match the required sub-folder names
+    pattern = r'^\d+_\w+'
+
+    # Get the list of sub-folders matching the pattern
+    matching_subfolders = [
+        subfolder
+        for subfolder in os.listdir(folder_path)
+        if os.path.isdir(os.path.join(folder_path, subfolder)) and re.match(pattern, subfolder)
+    ]
+
+    # Check if all sub-folders match the pattern
+    if len(matching_subfolders) != len(os.listdir(folder_path)):
+        log.error(f"Not all images folders have proper name patterns in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
+        return False
+
+    # Check if no sub-folders exist
+    if not matching_subfolders:
+        log.error(f"No image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
+        return False
+
+    log.info(f'Valid image folder names found in: {folder_path}')
+    return True

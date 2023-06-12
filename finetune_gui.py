@@ -151,12 +151,8 @@ def save_configuration(
     # Return the values of the variables as a dictionary
     variables = {
         name: value
-        for name, value in parameters  # locals().items()
-        if name
-        not in [
-            'file_path',
-            'save_as',
-        ]
+        for name, value in sorted(parameters, key=lambda x: x[0])
+        if name not in ['file_path', 'save_as']
     }
 
     # Extract the destination directory from the file path
@@ -286,6 +282,7 @@ def open_configuration(
 
 def train_model(
     headless,
+    print_only,
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
@@ -365,6 +362,9 @@ def train_model(
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
 ):
+    print_only_bool = True if print_only.get('label') == 'True' else False
+    log.info(f'Start Finetuning...')
+
     headless_bool = True if headless.get('label') == 'True' else False
 
     if check_if_model_exist(
@@ -407,11 +407,12 @@ def train_model(
 
         log.info(run_cmd)
 
-        # Run the command
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        if not print_only_bool:
+            # Run the command
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
@@ -432,11 +433,12 @@ def train_model(
 
         log.info(run_cmd)
 
-        # Run the command
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        if not print_only_bool:
+            # Run the command
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     image_num = len(
         [
@@ -495,7 +497,7 @@ def train_model(
     run_cmd += f' --learning_rate={learning_rate}'
 
     run_cmd += ' --enable_bucket'
-    run_cmd += f' --resolution={max_resolution}'
+    run_cmd += f' --resolution="{max_resolution}"'
     run_cmd += f' --min_bucket_reso={min_bucket_reso}'
     run_cmd += f' --max_bucket_reso={max_bucket_reso}'
 
@@ -575,20 +577,28 @@ def train_model(
         output_dir,
     )
 
-    log.info(run_cmd)
-
-    # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
+    if print_only_bool:
+        log.warning(
+            'Here is the trainer command as a reference. It will not be executed:\n'
+        )
+        log.info(run_cmd)
     else:
-        subprocess.run(run_cmd)
+        log.info(run_cmd)
 
-    # check if output_dir/last is a folder... therefore it is a diffuser model
-    last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        # Run the command
+        if os.name == 'posix':
+            os.system(run_cmd)
+        else:
+            subprocess.run(run_cmd)
 
-    if not last_dir.is_dir():
-        # Copy inference model for v2 if required
-        save_inference_file(output_dir, v2, v_parameterization, output_name)
+        # check if output_dir/last is a folder... therefore it is a diffuser model
+        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+
+        if not last_dir.is_dir():
+            # Copy inference model for v2 if required
+            save_inference_file(
+                output_dir, v2, v_parameterization, output_name
+            )
 
 
 def remove_doublequote(file_path):
@@ -823,6 +833,8 @@ def finetune_tab(headless=False):
 
     button_run = gr.Button('Train model', variant='primary')
 
+    button_print = gr.Button('Print training command')
+
     # Setup gradio tensorboard buttons
     button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
 
@@ -917,7 +929,17 @@ def finetune_tab(headless=False):
         scale_v_pred_loss_like_noise_pred,
     ]
 
-    button_run.click(train_model, inputs=[dummy_headless] + settings_list)
+    button_run.click(
+        train_model,
+        inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+        show_progress=False,
+    )
+
+    button_print.click(
+        train_model,
+        inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+        show_progress=False,
+    )
 
     button_open_config.click(
         open_configuration,
