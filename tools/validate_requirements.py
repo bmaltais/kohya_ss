@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import argparse
-from setup_windows import install
+from setup_windows import install, check_repo_version
 from library.custom_logging import setup_logging
 
 # Set up logging
@@ -78,6 +78,7 @@ def install_requirements(requirements_file):
 
 
 def main():
+    check_repo_version()
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Validate that requirements are satisfied.'

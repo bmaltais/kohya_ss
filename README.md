@@ -345,6 +345,9 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/14 (v21.7.8)
+- Add tkinter to dockerised version (thanks to @burdokow)
+- Add option to create caption files from folder names to the `group_images.py` tool.
 * 2023/06/12 (v21.7.7)
 - Add `Print only` button to all training tabs
 - Sort json file vars for easier visual search
