@@ -16,7 +16,9 @@ def group_images(
     output_folder,
     group_size,
     include_subfolders,
-    do_not_copy_other_files
+    do_not_copy_other_files,
+    generate_captions,
+    caption_ext
 ):
     if input_folder == '':
         msgbox('Input folder is missing...')
@@ -36,6 +38,10 @@ def group_images(
         run_cmd += f' --include_subfolders'
     if do_not_copy_other_files:
         run_cmd += f' --do_not_copy_other_files'
+    if generate_captions:
+        run_cmd += f' --caption'
+        if caption_ext:
+            run_cmd += f' --caption_ext={caption_ext}'
 
     log.info(run_cmd)
 
@@ -99,6 +105,19 @@ def gradio_group_images_gui_tab(headless=False):
                 value=False,
                 info='Do not copy other files in the input folder to the output folder',
             )
+            
+            generate_captions = gr.Checkbox(
+                label='Generate Captions',
+                value=False,
+                info='Generate caption files for the grouped images based on their folder name',
+            )
+            
+            caption_ext = gr.Textbox(
+                label='Caption Extension',
+                placeholder='Caption file extension (e.g., .txt)',
+                value='.txt',
+                interactive=True,
+            )
 
         group_images_button = gr.Button('Group images')
 
@@ -109,7 +128,9 @@ def gradio_group_images_gui_tab(headless=False):
                 output_folder,
                 group_size,
                 include_subfolders,
-                do_not_copy_other_files
+                do_not_copy_other_files,
+                generate_captions,
+                caption_ext,
             ],
             show_progress=False,
         )

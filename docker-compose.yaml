@@ -12,6 +12,7 @@ services:
     environment:
       CLI_ARGS: ""
       SAFETENSORS_FAST_GPU: 1
+      DISPLAY: $DISPLAY
     tmpfs:
       - /tmp      
     volumes:
@@ -21,6 +22,7 @@ services:
       - ./.cache/config:/app/appuser/.config
       - ./.cache/nv:/home/appuser/.nv 
       - ./.cache/keras:/home/appuser/.keras      
+      - /tmp/.X11-unix:/tmp/.X11-unix
     deploy:
       resources:
         reservations:
