@@ -1,8 +1,21 @@
 import os
+import re
 import sys
 import shutil
 import argparse
 from setup_windows import install, check_repo_version
+
+# Get the absolute path of the current file's directory (Kohua_SS project directory)
+project_directory = os.path.dirname(os.path.abspath(__file__))
+
+# Check if the "tools" directory is present in the project_directory
+if "tools" in project_directory:
+    # If the "tools" directory is present, move one level up to the parent directory
+    project_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Add the project directory to the beginning of the Python search path
+sys.path.insert(0, project_directory)
+
 from library.custom_logging import setup_logging
 
 # Set up logging
@@ -74,7 +87,10 @@ def install_requirements(requirements_file):
 
         # Iterate over each line and install the requirements
         for line in lines:
-            install(line)
+            # Remove brackets and their contents from the line using regular expressions
+            # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+            package_name = re.sub(r'\[.*?\]', '', line)
+            install(line, package_name)
 
 
 def main():
