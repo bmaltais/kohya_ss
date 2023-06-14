@@ -36,7 +36,6 @@ from torch.optim import Optimizer
 from torchvision import transforms
 from transformers import CLIPTokenizer
 import transformers
-import diffusers
 from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION
 from diffusers import (
     StableDiffusionPipeline,
@@ -52,6 +51,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
 )
+from library.original_unet import UNet2DConditionModel
 from huggingface_hub import hf_hub_download
 import albumentations as albu
 import numpy as np
@@ -2947,10 +2947,25 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu"):
             print(
                 f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
             )
+            raise ex
         text_encoder = pipe.text_encoder
         vae = pipe.vae
         unet = pipe.unet
         del pipe
+
+        # Diffusers U-Net to original U-Net
+        # TODO *.ckpt/*.safetensorsのv2と同じ形式にここで変換すると良さそう
+        # print(f"unet config: {unet.config}")
+        original_unet = UNet2DConditionModel(
+            unet.config.sample_size,
+            unet.config.attention_head_dim,
+            unet.config.cross_attention_dim,
+            unet.config.use_linear_projection,
+            unet.config.upcast_attention,
+        )
+        original_unet.load_state_dict(unet.state_dict())
+        unet = original_unet
+        print("U-Net converted to original U-Net")
 
     # VAEを読み込む
     if args.vae is not None:
