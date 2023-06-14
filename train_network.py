@@ -92,42 +92,56 @@ def train(args):
     tokenizer = train_util.load_tokenizer(args)
 
     # データセットを準備する
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
-    if use_user_config:
-        print(f"Loading dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "reg_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            print(
-                "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
+        if use_user_config:
+            print(f"Loading dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "reg_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                print(
+                    "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        if use_dreambooth_method:
-            print("Using DreamBooth method.")
-            user_config = {
-                "datasets": [
-                    {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
-                ]
-            }
         else:
-            print("Training with captions.")
-            user_config = {
-                "datasets": [
-                    {
-                        "subsets": [
-                            {
-                                "image_dir": args.train_data_dir,
-                                "metadata_file": args.in_json,
-                            }
-                        ]
-                    }
-                ]
-            }
+            if use_dreambooth_method:
+                print("Using DreamBooth method.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(
+                                args.train_data_dir, args.reg_data_dir
+                            )
+                        }
+                    ]
+                }
+            else:
+                print("Training with captions.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": [
+                                {
+                                    "image_dir": args.train_data_dir,
+                                    "metadata_file": args.in_json,
+                                }
+                            ]
+                        }
+                    ]
+                }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        # use arbitrary dataset class
+        module = ".".join(args.dataset_class.split(".")[:-1])
+        dataset_class = args.dataset_class.split(".")[-1]
+        module = importlib.import_module(module)
+        dataset_class = getattr(module, dataset_class)
+        train_dataset_group: train_util.MinimalDataset = dataset_class(
+            tokenizer, args.max_token_length, args.resolution, args.debug_dataset
+        )
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
@@ -185,6 +199,7 @@ def train(args):
             module.merge_to(text_encoder, unet, weights_sd, weight_dtype, accelerator.device if args.lowram else "cpu")
 
         print(f"all weights merged: {', '.join(args.base_weights)}")
+
     # 学習を準備する
     if cache_latents:
         vae.to(accelerator.device, dtype=weight_dtype)
@@ -851,6 +866,12 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         nargs="*",
         help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
+    )
+    parser.add_argument(
+        "--dataset_class",
+        type=str,
+        default=None,
+        help="dataset class for arbitrary dataset / 任意のデータセットのクラス名",
     )
     return parser
 
