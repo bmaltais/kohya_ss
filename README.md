@@ -98,6 +98,14 @@ The following limitations apply:
 If you run on Linux, there is an alternative docker container port with less limitations. You can find the project [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
 ### Linux and macOS
+#### Linux pre-requirements
+
+venv support need to be pre-installed. Can be done on ubuntu 22.04 with `apt install python3.10-venv`
+
+Make sure to use a version of python >= 3.10.6 and < 3.11.0
+
+#### Setup
+
 In the terminal, run
 
 ```bash
