@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import shutil
 import argparse
@@ -82,7 +83,10 @@ def install_requirements(requirements_file):
 
         # Iterate over each line and install the requirements
         for line in lines:
-            install(line)
+            # Remove brackets and their contents from the line using regular expressions
+            # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+            package_name = re.sub(r'\[.*?\]', '', line)
+            install(line, package_name)
 
 
 def main():
