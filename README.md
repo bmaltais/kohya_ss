@@ -356,6 +356,23 @@ This will store a backup file with your current locally installed pip packages a
 * 2023/06/14 (v21.7.8)
 - Add tkinter to dockerised version (thanks to @burdokow)
 - Add option to create caption files from folder names to the `group_images.py` tool.
+- Prodigy optimizer is supported in each training script. It is a member of D-Adaptation and is effective for DyLoRA training. [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585) Please see the PR for details. Thanks to sdbds!
+  - Install the package with `pip install prodigyopt`. Then specify the option like `--optimizer_type="prodigy"`.
+- Arbitrary Dataset is supported in each training script (except XTI). You can use it by defining a Dataset class that returns images and captions.
+  - Prepare a Python script and define a class that inherits `train_util.MinimalDataset`. Then specify the option like `--dataset_class package.module.DatasetClass` in each training script.
+  - Please refer to `MinimalDataset` for implementation. I will prepare a sample later.
+- The following features have been added to the generation script.
+  - Added an option `--highres_fix_disable_control_net` to disable ControlNet in the 2nd stage of Highres. Fix. Please try it if the image is disturbed by some ControlNet such as Canny.
+  - Added Variants similar to sd-dynamic-propmpts in the prompt.
+    - If you specify `{spring|summer|autumn|winter}`, one of them will be randomly selected.
+    - If you specify `{2$$chocolate|vanilla|strawberry}`, two of them will be randomly selected.
+    - If you specify `{1-2$$ and $$chocolate|vanilla|strawberry}`, one or two of them will be randomly selected and connected by ` and `.
+    - You can specify the number of candidates in the range `0-2`. You cannot omit one side like `-2` or `1-`.
+    - It can also be specified for the prompt option.
+    - If you specify `e` or `E`, all candidates will be selected and the prompt will be repeated multiple times (`--images_per_prompt` is ignored). It may be useful for creating X/Y plots.
+    - You can also specify `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`. In this case, 15 prompts will be generated with 5*3.
+    - There is no weighting function.
+- Add pre and posfix to wd14
 * 2023/06/12 (v21.7.7)
 - Add `Print only` button to all training tabs
 - Sort json file vars for easier visual search

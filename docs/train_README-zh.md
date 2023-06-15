@@ -555,9 +555,10 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - DAdaptAdam : 参数同上
     - DAdaptAdaGrad : 参数同上
     - DAdaptAdan : 参数同上
-    - DAdaptAdanIP : 引数は同上
+    - DAdaptAdanIP : 参数同上
     - DAdaptLion : 参数同上
     - DAdaptSGD : 参数同上
+    - Prodigy : https://github.com/konstmish/prodigy
     - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
     - 任何优化器
 

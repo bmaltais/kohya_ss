@@ -3,6 +3,7 @@ import glob
 import os
 import json
 import random
+import sys
 
 from pathlib import Path
 from PIL import Image
@@ -11,6 +12,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
+sys.path.append(os.path.dirname(__file__))
 from blip.blip import blip_decoder
 import library.train_util as train_util
 
