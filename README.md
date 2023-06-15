@@ -140,6 +140,42 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 ## Change History
 
+### 15 Jun. 2023, 2023/06/15
+
+- Prodigy optimizer is supported in each training script. It is a member of D-Adaptation and is effective for DyLoRA training. [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585) Please see the PR for details. Thanks to sdbds!
+  - Install the package with `pip install prodigyopt`. Then specify the option like `--optimizer_type="prodigy"`.
+- Arbitrary Dataset is supported in each training script (except XTI). You can use it by defining a Dataset class that returns images and captions.
+  - Prepare a Python script and define a class that inherits `train_util.MinimalDataset`. Then specify the option like `--dataset_class package.module.DatasetClass` in each training script.
+  - Please refer to `MinimalDataset` for implementation. I will prepare a sample later.
+- The following features have been added to the generation script.
+  - Added an option `--highres_fix_disable_control_net` to disable ControlNet in the 2nd stage of Highres. Fix. Please try it if the image is disturbed by some ControlNet such as Canny.
+  - Added Variants similar to sd-dynamic-propmpts in the prompt.
+    - If you specify `{spring|summer|autumn|winter}`, one of them will be randomly selected.
+    - If you specify `{2$$chocolate|vanilla|strawberry}`, two of them will be randomly selected.
+    - If you specify `{1-2$$ and $$chocolate|vanilla|strawberry}`, one or two of them will be randomly selected and connected by ` and `.
+    - You can specify the number of candidates in the range `0-2`. You cannot omit one side like `-2` or `1-`.
+    - It can also be specified for the prompt option.
+    - If you specify `e` or `E`, all candidates will be selected and the prompt will be repeated multiple times (`--images_per_prompt` is ignored). It may be useful for creating X/Y plots.
+    - You can also specify `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`. In this case, 15 prompts will be generated with 5*3.
+    - There is no weighting function.
+
+- 各学習スクリプトでProdigyオプティマイザがサポートされました。D-Adaptationの仲間でDyLoRAの学習に有効とのことです。 [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585)  詳細はPRをご覧ください。sdbds氏に感謝します。
+  - `pip install prodigyopt` としてパッケージをインストールしてください。また `--optimizer_type="prodigy"` のようにオプションを指定します。
+- 各学習スクリプトで任意のDatasetをサポートしました（XTIを除く）。画像とキャプションを返すDatasetクラスを定義することで、学習スクリプトから利用できます。
+  - Pythonスクリプトを用意し、`train_util.MinimalDataset`を継承するクラスを定義してください。そして各学習スクリプトのオプションで `--dataset_class package.module.DatasetClass` のように指定してください。
+  - 実装方法は `MinimalDataset` を参考にしてください。のちほどサンプルを用意します。
+- 生成スクリプトに以下の機能追加を行いました。
+  - Highres. Fixの2nd stageでControlNetを無効化するオプション `--highres_fix_disable_control_net` を追加しました。Canny等一部のControlNetで画像が乱れる場合にお試しください。
+  - プロンプトでsd-dynamic-propmptsに似たVariantをサポートしました。
+    - `{spring|summer|autumn|winter}` のように指定すると、いずれかがランダムに選択されます。
+    - `{2$$chocolate|vanilla|strawberry}` のように指定すると、いずれか2個がランダムに選択されます。
+    - `{1-2$$ and $$chocolate|vanilla|strawberry}` のように指定すると、1個か2個がランダムに選択され ` and ` で接続されます。
+    - 個数のレンジ指定では`0-2`のように0個も指定可能です。`-2`や`1-`のような片側の省略はできません。
+    - プロンプトオプションに対しても指定可能です。
+    - `{e$$chocolate|vanilla|strawberry}` のように`e`または`E`を指定すると、すべての候補が選択されプロンプトが複数回繰り返されます（`--images_per_prompt`は無視されます）。X/Y plotの作成に便利かもしれません。
+    - `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`のような指定も可能です。この場合、5*3で15回のプロンプトが生成されます。
+    - Weightingの機能はありません。
+
 ### 8 Jun. 2023, 2023/06/08
 
 - Fixed a bug where clip skip did not work when training with weighted captions (`--weighted_captions` specified) and when generating sample images during training.
