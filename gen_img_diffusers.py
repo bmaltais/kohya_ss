@@ -2243,7 +2243,7 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
         for _ in range(repeat_count):
             current = prompt
             for found, replacer in zip(founds, replacers):
-                current = current.replace(found.group(0), replacer()[0])
+                current = current.replace(found.group(0), replacer()[0], 1)
             prompts.append(current)
     else:
         # if enumerating, iterate all combinations for previous prompts
@@ -2256,14 +2256,14 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
                 for current in prompts:
                     replecements = replacer()
                     for replecement in replecements:
-                        new_prompts.append(current.replace(found.group(0), replecement))
+                        new_prompts.append(current.replace(found.group(0), replecement, 1))
                 prompts = new_prompts
 
         for found, replacer in zip(founds, replacers):
             # make random selection for existing prompts
             if found.group(2) is None:
                 for i in range(len(prompts)):
-                    prompts[i] = prompts[i].replace(found.group(0), replacer()[0])
+                    prompts[i] = prompts[i].replace(found.group(0), replacer()[0], 1)
 
     return prompts
 
