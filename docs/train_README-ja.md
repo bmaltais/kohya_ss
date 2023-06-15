@@ -622,6 +622,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - DAdaptAdanIP : 引数は同上
     - DAdaptLion : 引数は同上
     - DAdaptSGD : 引数は同上
+    - Prodigy : https://github.com/konstmish/prodigy
     - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
     - 任意のオプティマイザ
 
