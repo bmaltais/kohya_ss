@@ -2808,6 +2808,38 @@ def get_optimizer(args, trainable_params):
 
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
+    elif optimizer_type == "Prodigy".lower():
+        # Prodigy
+        # check Prodigy is installed
+        try:
+            import prodigyopt
+        except ImportError:
+            raise ImportError("No Prodigy / Prodigy がインストールされていないようです")
+
+        # check lr and lr_count, and print warning
+        actual_lr = lr
+        lr_count = 1
+        if type(trainable_params) == list and type(trainable_params[0]) == dict:
+            lrs = set()
+            actual_lr = trainable_params[0].get("lr", actual_lr)
+            for group in trainable_params:
+                lrs.add(group.get("lr", actual_lr))
+            lr_count = len(lrs)
+
+        if actual_lr <= 0.1:
+            print(
+                f"learning rate is too low. If using Prodigy, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}"
+            )
+            print("recommend option: lr=1.0 / 推奨は1.0です")
+        if lr_count > 1:
+            print(
+                f"when multiple learning rates are specified with Prodigy (e.g. for Text Encoder and U-Net), only the first one will take effect / Prodigyで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
+            )
+
+        print(f"use Prodigy optimizer | {optimizer_kwargs}")
+        optimizer_class = prodigyopt.Prodigy
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+
     elif optimizer_type == "Adafactor".lower():
         # 引数を確認して適宜補正する
         if "relative_step" not in optimizer_kwargs:

@@ -57,7 +57,7 @@ def generate_step_logs(
             logs["lr/textencoder"] = float(lrs[0])
             logs["lr/unet"] = float(lrs[-1])  # may be same to textencoder
 
-        if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value of unet.
+        if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower():  # tracking d*lr value of unet.
             logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]["d"] * lr_scheduler.optimizers[-1].param_groups[0]["lr"]
     else:
         idx = 0
@@ -67,7 +67,7 @@ def generate_step_logs(
 
         for i in range(idx, len(lrs)):
             logs[f"lr/group{i}"] = float(lrs[i])
-            if args.optimizer_type.lower().startswith("DAdapt".lower()):
+            if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower():
                 logs[f"lr/d*lr/group{i}"] = (
                     lr_scheduler.optimizers[-1].param_groups[i]["d"] * lr_scheduler.optimizers[-1].param_groups[i]["lr"]
                 )
