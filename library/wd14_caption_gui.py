@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, add_pre_postfix
 import os
 
 from library.custom_logging import setup_logging
@@ -23,6 +23,8 @@ def caption_images(
     debug,
     undesired_tags,
     frequency_tags,
+    prefix,
+    postfix,
 ):
     # Check for images_dir_input
     if train_data_dir == '':
@@ -64,6 +66,14 @@ def caption_images(
         os.system(run_cmd)
     else:
         subprocess.run(run_cmd)
+
+    # Add prefix and postfix
+    add_pre_postfix(
+        folder=train_data_dir,
+        caption_file_ext=caption_extension,
+        prefix=prefix,
+        postfix=postfix,
+    )
 
     log.info('...captioning done')
 
@@ -108,6 +118,19 @@ def gradio_wd14_caption_gui_tab(headless=False):
             placeholder='(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`.',
             interactive=True,
         )
+
+        with gr.Row():
+            prefix = gr.Textbox(
+                label='Prefix to add to WD14 caption',
+                placeholder='(Optional)',
+                interactive=True,
+            )
+
+            postfix = gr.Textbox(
+                label='Postfix to add to WD14 caption',
+                placeholder='(Optional)',
+                interactive=True,
+            )
 
         with gr.Row():
             replace_underscores = gr.Checkbox(
@@ -189,6 +212,8 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 debug,
                 undesired_tags,
                 frequency_tags,
+                prefix,
+                postfix,
             ],
             show_progress=False,
         )
