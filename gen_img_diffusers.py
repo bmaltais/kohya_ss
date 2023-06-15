@@ -3170,10 +3170,10 @@ def main(args):
             raw_prompts = handle_dynamic_prompt_variants(raw_prompt, args.images_per_prompt)
 
             # repeat prompt
-            for prompt_index in range(args.images_per_prompt if len(raw_prompts) == 1 else len(raw_prompts)):
-                raw_prompt = raw_prompts[prompt_index] if len(raw_prompts) > 1 else raw_prompts[0]
+            for pi in range(args.images_per_prompt if len(raw_prompts) == 1 else len(raw_prompts)):
+                raw_prompt = raw_prompts[pi] if len(raw_prompts) > 1 else raw_prompts[0]
 
-                if prompt_index == 0 or len(raw_prompts) > 1:
+                if pi == 0 or len(raw_prompts) > 1:
                     # parse prompt: if prompt is not changed, skip parsing
                     width = args.W
                     height = args.H
