@@ -13,6 +13,7 @@ huggingface-hub==0.13.3
 lion-pytorch==0.0.6
 lycoris_lora==0.1.6
 opencv-python==4.7.0.68
+prodigyopt==1.0
 pytorch-lightning==1.9.0
 rich==13.4.1
 safetensors==0.2.6

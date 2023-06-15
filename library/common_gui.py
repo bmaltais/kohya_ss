@@ -800,6 +800,7 @@ def gradio_training(
                 'DAdaptSGD',
                 'Lion',
                 'Lion8bit',
+                'Prodigy',
                 'SGDNesterov',
                 'SGDNesterov8bit',
             ],
