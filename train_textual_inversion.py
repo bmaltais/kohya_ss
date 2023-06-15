@@ -153,43 +153,46 @@ def train(args):
     print(f"create embeddings for {args.num_vectors_per_token} tokens, for {args.token_string}")
 
     # データセットを準備する
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False))
-    if args.dataset_config is not None:
-        print(f"Load dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "reg_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            print(
-                "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False))
+        if args.dataset_config is not None:
+            print(f"Load dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "reg_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                print(
+                    "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        use_dreambooth_method = args.in_json is None
-        if use_dreambooth_method:
-            print("Use DreamBooth method.")
-            user_config = {
-                "datasets": [
-                    {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
-                ]
-            }
         else:
-            print("Train with captions.")
-            user_config = {
-                "datasets": [
-                    {
-                        "subsets": [
-                            {
-                                "image_dir": args.train_data_dir,
-                                "metadata_file": args.in_json,
-                            }
-                        ]
-                    }
-                ]
-            }
+            use_dreambooth_method = args.in_json is None
+            if use_dreambooth_method:
+                print("Use DreamBooth method.")
+                user_config = {
+                    "datasets": [
+                        {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
+                    ]
+                }
+            else:
+                print("Train with captions.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": [
+                                {
+                                    "image_dir": args.train_data_dir,
+                                    "metadata_file": args.in_json,
+                                }
+                            ]
+                        }
+                    ]
+                }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)

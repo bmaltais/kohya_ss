@@ -135,13 +135,7 @@ def train(args):
         train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
     else:
         # use arbitrary dataset class
-        module = ".".join(args.dataset_class.split(".")[:-1])
-        dataset_class = args.dataset_class.split(".")[-1]
-        module = importlib.import_module(module)
-        dataset_class = getattr(module, dataset_class)
-        train_dataset_group: train_util.MinimalDataset = dataset_class(
-            tokenizer, args.max_token_length, args.resolution, args.debug_dataset
-        )
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
@@ -866,12 +860,6 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         nargs="*",
         help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
-    )
-    parser.add_argument(
-        "--dataset_class",
-        type=str,
-        default=None,
-        help="dataset class for arbitrary dataset / 任意のデータセットのクラス名",
     )
     return parser
 

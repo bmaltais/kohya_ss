@@ -42,33 +42,37 @@ def train(args):
 
     tokenizer = train_util.load_tokenizer(args)
 
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(False, True, True))
-    if args.dataset_config is not None:
-        print(f"Load dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            print(
-                "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    # データセットを準備する
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(False, True, True))
+        if args.dataset_config is not None:
+            print(f"Load dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                print(
+                    "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        user_config = {
-            "datasets": [
-                {
-                    "subsets": [
-                        {
-                            "image_dir": args.train_data_dir,
-                            "metadata_file": args.in_json,
-                        }
-                    ]
-                }
-            ]
-        }
+        else:
+            user_config = {
+                "datasets": [
+                    {
+                        "subsets": [
+                            {
+                                "image_dir": args.train_data_dir,
+                                "metadata_file": args.in_json,
+                            }
+                        ]
+                    }
+                ]
+            }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
