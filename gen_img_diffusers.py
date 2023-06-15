@@ -2180,12 +2180,14 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
     enumerating = False
     replacers = []
     for found in founds:
+        # if "e$$" is found, enumerate all variants
         found_enumerating = found.group(2) is not None
         enumerating = enumerating or found_enumerating
 
-        separater = ", " if found.group(6) is None else found.group(6)
+        separator = ", " if found.group(6) is None else found.group(6)
         variants = found.group(7).split("|")
 
+        # parse count range
         count_range = found.group(4)
         if count_range is None:
             count_range = [1, 1]
@@ -2206,7 +2208,7 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
                 count_range[1] = len(variants)
 
         if found_enumerating:
-            # make all combinations
+            # make function to enumerate all combinations
             def make_replacer_enum(vari, cr, sep):
                 def replacer():
                     values = []
@@ -2217,9 +2219,9 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
 
                 return replacer
 
-            replacers.append(make_replacer_enum(variants, count_range, separater))
+            replacers.append(make_replacer_enum(variants, count_range, separator))
         else:
-            # make random combinations
+            # make function to choose random combinations
             def make_replacer_single(vari, cr, sep):
                 def replacer():
                     count = random.randint(cr[0], cr[1])
@@ -2228,10 +2230,11 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
 
                 return replacer
 
-            replacers.append(make_replacer_single(variants, count_range, separater))
+            replacers.append(make_replacer_single(variants, count_range, separator))
 
     # make each prompt
-    if not enumerating:
+    if not enumerating: 
+        # if not enumerating, repeat the prompt, replace each variant randomly
         prompts = []
         for _ in range(repeat_count):
             current = prompt
@@ -2239,16 +2242,21 @@ def handle_dynamic_prompt_variants(prompt, repeat_count):
                 current = current.replace(found.group(0), replacer()[0])
             prompts.append(current)
     else:
+        # if enumerating, iterate all combinations for previous prompts
         prompts = [prompt]
+
         for found, replacer in zip(founds, replacers):
-            if found.group(2) is not None:  # enumerating
+            if found.group(2) is not None:
+                # make all combinations for existing prompts
                 new_prompts = []
                 for current in prompts:
                     replecements = replacer()
                     for replecement in replecements:
                         new_prompts.append(current.replace(found.group(0), replecement))
                 prompts = new_prompts
+        
         for found, replacer in zip(founds, replacers):
+            # make random selection for existing prompts
             if found.group(2) is None:
                 for i in range(len(prompts)):
                     prompts[i] = prompts[i].replace(found.group(0), replacer()[0])
@@ -3166,7 +3174,8 @@ def main(args):
             else:
                 raw_prompt = prompt_list[prompt_index]
 
-            # sd-dynamic-prompts like variants: count is 1 or images_per_prompt or arbitrary
+            # sd-dynamic-prompts like variants:
+            # count is 1 (not dynamic) or images_per_prompt (no enumeration) or arbitrary (enumeration)
             raw_prompts = handle_dynamic_prompt_variants(raw_prompt, args.images_per_prompt)
 
             # repeat prompt
