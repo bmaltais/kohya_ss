@@ -96,6 +96,9 @@ def train(args):
         print(
             "sample_every_n_steps and sample_every_n_epochs are not supported in this script currently / sample_every_n_stepsとsample_every_n_epochsは現在このスクリプトではサポートされていません"
         )
+    assert (
+        args.dataset_class is None
+    ), "dataset_class is not supported in this script currently / dataset_classは現在このスクリプトではサポートされていません"
 
     cache_latents = args.cache_latents
 
@@ -520,7 +523,9 @@ def train(args):
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
-                if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value
+                if (
+                    args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower()
+                ):  # tracking d*lr value
                     logs["lr/d*lr"] = (
                         lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
                     )
