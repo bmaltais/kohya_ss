@@ -13,7 +13,7 @@ gradio==3.32.0; sys_platform != 'darwin'
 huggingface-hub==0.13.3; sys_platform == 'darwin'
 huggingface-hub==0.13.3; sys_platform != 'darwin'
 lion-pytorch==0.0.6
-lycoris_lora==0.1.6
+lycoris_lora==0.1.7.dev4
 opencv-python==4.7.0.68
 prodigyopt==1.0
 pytorch-lightning==1.9.0
