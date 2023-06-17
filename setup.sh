@@ -240,10 +240,9 @@ install_python_dependencies() {
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
   case "$OSTYPE" in
-  "linux-gnu"*) pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 \
-    --extra-index-url https://download.pytorch.org/whl/cu116 >&3 &&
-    pip install -U -I --no-deps \
-      https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/linux/xformers-0.0.14.dev0-cp310-cp310-linux_x86_64.whl >&3 ;;
+  "linux-gnu"*) pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
+    --extra-index-url https://download.pytorch.org/whl/cu118 >&3 &&
+    pip install -U -I xformers==0.0.20 >&3 ;;
   "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
     -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
   "cygwin")

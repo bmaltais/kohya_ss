@@ -11,13 +11,15 @@ log = setup_logging()
 
 class ImageProcessor:
 
-    def __init__(self, input_folder, output_folder, group_size, include_subfolders, do_not_copy_other_files, pad):
+    def __init__(self, input_folder, output_folder, group_size, include_subfolders, do_not_copy_other_files, pad, caption, caption_ext):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.group_size = group_size
         self.include_subfolders = include_subfolders
         self.do_not_copy_other_files = do_not_copy_other_files
         self.pad = pad
+        self.caption = caption
+        self.caption_ext = caption_ext
         self.image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 
     def get_image_paths(self):
@@ -40,8 +42,12 @@ class ImageProcessor:
         if len(group) > 0:
             aspect_ratios = self.get_aspect_ratios(group)
             avg_aspect_ratio = np.mean(aspect_ratios)
-            cropped_images = self.crop_images(group, avg_aspect_ratio)
-            self.resize_and_save_images(cropped_images, group_index)
+            if self.pad:
+                padded_images = self.pad_images(group, avg_aspect_ratio)
+                self.resize_and_save_images(padded_images, group_index, group)
+            else:
+                cropped_images = self.crop_images(group, avg_aspect_ratio)
+                self.resize_and_save_images(cropped_images, group_index, group)
             if not self.do_not_copy_other_files:
                 self.copy_other_files(group, group_index)
 
@@ -78,15 +84,29 @@ class ImageProcessor:
             img = img.crop((0, top, img.width, bottom))
         return img
 
-    def resize_and_save_images(self, cropped_images, group_index):
+    def resize_and_save_images(self, cropped_images, group_index, source_paths):
         max_width = max(img.width for img in cropped_images)
         max_height = max(img.height for img in cropped_images)
         for j, img in enumerate(cropped_images):
             img = img.resize((max_width, max_height))
             os.makedirs(self.output_folder, exist_ok=True)
-            output_path = os.path.join(self.output_folder, f"group-{group_index+1}-image-{j+1}.jpg")
+            original_filename = os.path.basename(source_paths[j])
+            filename_without_ext = os.path.splitext(original_filename)[0]
+            output_path = os.path.join(self.output_folder, f"group-{group_index+1}-{filename_without_ext}.jpg")
             log.info(f"  Saving processed image to {output_path}")
             img.convert('RGB').save(output_path)
+            
+            if self.caption:
+                self.create_caption_file(source_paths[j], group_index, filename_without_ext)
+
+    def create_caption_file(self, source_path, group_index, caption_filename):
+        dirpath = os.path.dirname(source_path)
+        caption = os.path.basename(dirpath).split('_')[-1]
+        caption_filename = caption_filename + self.caption_ext
+        caption_path = os.path.join(self.output_folder, f"group-{group_index+1}-{caption_filename}")
+        with open(caption_path, 'w') as f:
+            f.write(caption)
+
 
     def copy_other_files(self, group, group_index):
         for j, path in enumerate(group):
@@ -112,10 +132,10 @@ class ImageProcessor:
             avg_aspect_ratio = np.mean(aspect_ratios)
             if self.pad:
                 padded_images = self.pad_images(group, avg_aspect_ratio)
-                self.resize_and_save_images(padded_images, group_index)
+                self.resize_and_save_images(padded_images, group_index, group)
             else:
                 cropped_images = self.crop_images(group, avg_aspect_ratio)
-                self.resize_and_save_images(cropped_images, group_index)
+                self.resize_and_save_images(cropped_images, group_index, group)
             if not self.do_not_copy_other_files:
                 self.copy_other_files(group, group_index)
 
@@ -150,10 +170,12 @@ def main():
     parser.add_argument('--include_subfolders', action='store_true', help='Include subfolders in search for images')
     parser.add_argument('--do_not_copy_other_files', '--no_copy', dest='do_not_copy_other_files', action='store_true', help='Do not copy other files with the same name as images')
     parser.add_argument('--pad', action='store_true', help='Pad images instead of cropping them')
+    parser.add_argument('--caption', action='store_true', help='Create a caption file for each image')
+    parser.add_argument('--caption_ext', type=str, default='.txt', help='Extension for the caption file')
 
     args = parser.parse_args()
 
-    processor = ImageProcessor(args.input_folder, args.output_folder, args.group_size, args.include_subfolders, args.do_not_copy_other_files, args.pad)
+    processor = ImageProcessor(args.input_folder, args.output_folder, args.group_size, args.include_subfolders, args.do_not_copy_other_files, args.pad, args.caption, args.caption_ext)
     processor.process_images()
 
 if __name__ == "__main__":

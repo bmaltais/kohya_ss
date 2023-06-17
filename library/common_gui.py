@@ -800,6 +800,7 @@ def gradio_training(
                 'DAdaptSGD',
                 'Lion',
                 'Lion8bit',
+                'Prodigy',
                 'SGDNesterov',
                 'SGDNesterov8bit',
             ],
@@ -1302,8 +1303,10 @@ def verify_image_folder_pattern(folder_path):
     ]
 
     # Check if all sub-folders match the pattern
-    if len(matching_subfolders) != len(os.listdir(folder_path)):
-        log.error(f"Not all images folders have proper name patterns in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
+    filenames = [filename for filename in os.listdir(folder_path) if not filename.startswith('.')]
+    if len(matching_subfolders) != len(filenames):
+        log.error(f"Not all image folders have proper name patterns <numbre>_<text> in {folder_path}. Please follow the folder structure documentation found at docs/image_folder_structure.md ...")
+        log.error(f"Only folders are allowed in {folder_path}...")
         return False
 
     # Check if no sub-folders exist
