@@ -36,7 +36,6 @@ from torch.optim import Optimizer
 from torchvision import transforms
 from transformers import CLIPTokenizer
 import transformers
-import diffusers
 from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION
 from diffusers import (
     StableDiffusionPipeline,
@@ -52,6 +51,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
 )
+from library.original_unet import UNet2DConditionModel
 from huggingface_hub import hf_hub_download
 import albumentations as albu
 import numpy as np
@@ -65,6 +65,7 @@ import library.model_util as model_util
 import library.huggingface_util as huggingface_util
 from library.attention_processors import FlashAttnProcessor
 from library.hypernetwork import replace_attentions_for_hypernetwork
+from library.original_unet import UNet2DConditionModel
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -1828,6 +1829,76 @@ def glob_images_pathlib(dir_path, recursive):
     return image_paths
 
 
+class MinimalDataset(BaseDataset):
+    def __init__(self, tokenizer, max_token_length, resolution, debug_dataset=False):
+        super().__init__(tokenizer, max_token_length, resolution, debug_dataset)
+
+        self.num_train_images = 0  # update in subclass
+        self.num_reg_images = 0  # update in subclass
+        self.datasets = [self]
+        self.batch_size = 1  # update in subclass
+
+        self.subsets = [self]
+        self.num_repeats = 1  # update in subclass if needed
+        self.img_count = 1  # update in subclass if needed
+        self.bucket_info = {}
+        self.is_reg = False
+        self.image_dir = "dummy"  # for metadata
+
+    def is_latent_cacheable(self) -> bool:
+        return False
+
+    def __len__(self):
+        raise NotImplementedError
+
+    # override to avoid shuffling buckets
+    def set_current_epoch(self, epoch):
+        self.current_epoch = epoch
+
+    def __getitem__(self, idx):
+        r"""
+        The subclass may have image_data for debug_dataset, which is a dict of ImageInfo objects.
+
+        Returns: example like this:
+
+            for i in range(batch_size):
+                image_key = ...  # whatever hashable
+                image_keys.append(image_key)
+
+                image = ...  # PIL Image
+                img_tensor = self.image_transforms(img)
+                images.append(img_tensor)
+
+                caption = ...  # str
+                input_ids = self.get_input_ids(caption)
+                input_ids_list.append(input_ids)
+
+                captions.append(caption)
+
+            images = torch.stack(images, dim=0)
+            input_ids_list = torch.stack(input_ids_list, dim=0)
+            example = {
+                "images": images,
+                "input_ids": input_ids_list,
+                "captions": captions,   # for debug_dataset
+                "latents": None,
+                "image_keys": image_keys,   # for debug_dataset
+                "loss_weights": torch.ones(batch_size, dtype=torch.float32),
+            }
+            return example
+        """
+        raise NotImplementedError
+
+
+def load_arbitrary_dataset(args, tokenizer) -> MinimalDataset:
+    module = ".".join(args.dataset_class.split(".")[:-1])
+    dataset_class = args.dataset_class.split(".")[-1]
+    module = importlib.import_module(module)
+    dataset_class = getattr(module, dataset_class)
+    train_dataset_group: MinimalDataset = dataset_class(tokenizer, args.max_token_length, args.resolution, args.debug_dataset)
+    return train_dataset_group
+
+
 # endregion
 
 # region モジュール入れ替え部
@@ -1941,59 +2012,73 @@ def get_git_revision_hash() -> str:
 
 
 
-def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers):
-    replace_attentions_for_hypernetwork()
-    # unet is not used currently, but it is here for future use
-    unet.enable_xformers_memory_efficient_attention()
-    return
+# def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers):
+#     replace_attentions_for_hypernetwork()
+#     # unet is not used currently, but it is here for future use
+#     unet.enable_xformers_memory_efficient_attention()
+#     return
+#     if mem_eff_attn:
+#         unet.set_attn_processor(FlashAttnProcessor())
+#     elif xformers:
+#         unet.enable_xformers_memory_efficient_attention()
+
+
+# def replace_unet_cross_attn_to_xformers():
+#     print("CrossAttention.forward has been replaced to enable xformers.")
+#     try:
+#         import xformers.ops
+#     except ImportError:
+#         raise ImportError("No xformers / xformersがインストールされていないようです")
+
+#     def forward_xformers(self, x, context=None, mask=None):
+#         h = self.heads
+#         q_in = self.to_q(x)
+
+#         context = default(context, x)
+#         context = context.to(x.dtype)
+
+#         if hasattr(self, "hypernetwork") and self.hypernetwork is not None:
+#             context_k, context_v = self.hypernetwork.forward(x, context)
+#             context_k = context_k.to(x.dtype)
+#             context_v = context_v.to(x.dtype)
+#         else:
+#             context_k = context
+#             context_v = context
+
+#         k_in = self.to_k(context_k)
+#         v_in = self.to_v(context_v)
+
+#         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b n h d", h=h), (q_in, k_in, v_in))
+#         del q_in, k_in, v_in
+
+#         q = q.contiguous()
+#         k = k.contiguous()
+#         v = v.contiguous()
+#         out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)  # 最適なのを選んでくれる
+
+#         out = rearrange(out, "b n h d -> b n (h d)", h=h)
+
+#         # diffusers 0.7.0~
+#         out = self.to_out[0](out)
+#         out = self.to_out[1](out)
+#         return out
+
+#     diffusers.models.attention.CrossAttention.forward = forward_xformers
+def replace_unet_modules(unet:UNet2DConditionModel, mem_eff_attn, xformers, sdpa):
     if mem_eff_attn:
-        unet.set_attn_processor(FlashAttnProcessor())
+        print("Enable memory efficient attention for U-Net")
+        unet.set_use_memory_efficient_attention(False, True)
     elif xformers:
-        unet.enable_xformers_memory_efficient_attention()
+        print("Enable xformers for U-Net")
+        try:
+            import xformers.ops
+        except ImportError:
+            raise ImportError("No xformers / xformersがインストールされていないようです")
 
-
-def replace_unet_cross_attn_to_xformers():
-    print("CrossAttention.forward has been replaced to enable xformers.")
-    try:
-        import xformers.ops
-    except ImportError:
-        raise ImportError("No xformers / xformersがインストールされていないようです")
-
-    def forward_xformers(self, x, context=None, mask=None):
-        h = self.heads
-        q_in = self.to_q(x)
-
-        context = default(context, x)
-        context = context.to(x.dtype)
-
-        if hasattr(self, "hypernetwork") and self.hypernetwork is not None:
-            context_k, context_v = self.hypernetwork.forward(x, context)
-            context_k = context_k.to(x.dtype)
-            context_v = context_v.to(x.dtype)
-        else:
-            context_k = context
-            context_v = context
-
-        k_in = self.to_k(context_k)
-        v_in = self.to_v(context_v)
-
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b n h d", h=h), (q_in, k_in, v_in))
-        del q_in, k_in, v_in
-
-        q = q.contiguous()
-        k = k.contiguous()
-        v = v.contiguous()
-        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)  # 最適なのを選んでくれる
-
-        out = rearrange(out, "b n h d -> b n (h d)", h=h)
-
-        # diffusers 0.7.0~
-        out = self.to_out[0](out)
-        out = self.to_out[1](out)
-        return out
-
-    diffusers.models.attention.CrossAttention.forward = forward_xformers
-
+        unet.set_use_memory_efficient_attention(True, False)
+    elif sdpa:
+        print("Enable SDPA for U-Net")
+        unet.set_use_sdpa(True)
 
 """
 def replace_vae_modules(vae: diffusers.models.AutoencoderKL, mem_eff_attn, xformers):
@@ -2242,6 +2327,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="use memory efficient attention for CrossAttention / CrossAttentionに省メモリ版attentionを使う",
     )
     parser.add_argument("--xformers", action="store_true", help="use xformers for CrossAttention / CrossAttentionにxformersを使う")
+    parser.add_argument("--sdpa", action="store_true", help="use sdpa for CrossAttention (requires PyTorch 2.0) / CrossAttentionにsdpaを使う（PyTorch 2.0が必要）")
     parser.add_argument(
         "--vae", type=str, default=None, help="path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ"
     )
@@ -2428,6 +2514,11 @@ def verify_training_args(args: argparse.Namespace):
     if args.adaptive_noise_scale is not None and args.noise_offset is None:
         raise ValueError("adaptive_noise_scale requires noise_offset / adaptive_noise_scaleを使用するにはnoise_offsetが必要です")
 
+    if args.scale_v_pred_loss_like_noise_pred and not args.v_parameterization:
+        raise ValueError(
+            "scale_v_pred_loss_like_noise_pred can be enabled only with v_parameterization / scale_v_pred_loss_like_noise_predはv_parameterizationが有効なときのみ有効にできます"
+        )
+
 
 def add_dataset_arguments(
     parser: argparse.ArgumentParser, support_dreambooth: bool, support_caption: bool, support_caption_dropout: bool
@@ -2506,12 +2597,18 @@ def add_dataset_arguments(
         default=1,
         help="start learning at N tags (token means comma separated strinfloatgs) / タグ数をN個から増やしながら学習する",
     )
-
     parser.add_argument(
         "--token_warmup_step",
         type=float,
         default=0,
         help="tag length reaches maximum on N steps (or N*max_train_steps if N<1) / N（N<1ならN*max_train_steps）ステップでタグ長が最大になる。デフォルトは0（最初から最大）",
+    )
+
+    parser.add_argument(
+        "--dataset_class",
+        type=str,
+        default=None,
+        help="dataset class for arbitrary dataset (package.module.Class) / 任意のデータセットを用いるときのクラス名 (package.module.Class)",
     )
 
     if support_caption_dropout:
@@ -2788,15 +2885,7 @@ def get_optimizer(args, trainable_params):
         optimizer_class = torch.optim.SGD
         optimizer = optimizer_class(trainable_params, lr=lr, nesterov=True, **optimizer_kwargs)
 
-    elif optimizer_type.startswith("DAdapt".lower()):
-        # DAdaptation family
-        # check dadaptation is installed
-        try:
-            import dadaptation
-            import dadaptation.experimental as experimental
-        except ImportError:
-            raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
-
+    elif optimizer_type.startswith("DAdapt".lower()) or optimizer_type == "Prodigy".lower():
         # check lr and lr_count, and print warning
         actual_lr = lr
         lr_count = 1
@@ -2809,40 +2898,60 @@ def get_optimizer(args, trainable_params):
 
         if actual_lr <= 0.1:
             print(
-                f"learning rate is too low. If using dadaptation, set learning rate around 1.0 / 学習率が低すぎるようです。1.0前後の値を指定してください: lr={actual_lr}"
+                f"learning rate is too low. If using D-Adaptation or Prodigy, set learning rate around 1.0 / 学習率が低すぎるようです。D-AdaptationまたはProdigyの使用時は1.0前後の値を指定してください: lr={actual_lr}"
             )
             print("recommend option: lr=1.0 / 推奨は1.0です")
         if lr_count > 1:
             print(
-                f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-Adaptationで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
+                f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-AdaptationまたはProdigyで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
             )
 
-        # set optimizer
-        if optimizer_type == "DAdaptation".lower() or optimizer_type == "DAdaptAdamPreprint".lower():
-            optimizer_class = experimental.DAdaptAdamPreprint
-            print(f"use D-Adaptation AdamPreprint optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptAdaGrad".lower():
-            optimizer_class = dadaptation.DAdaptAdaGrad
-            print(f"use D-Adaptation AdaGrad optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptAdam".lower():
-            optimizer_class = dadaptation.DAdaptAdam
-            print(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptAdan".lower():
-            optimizer_class = dadaptation.DAdaptAdan
-            print(f"use D-Adaptation Adan optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptAdanIP".lower():
-            optimizer_class = experimental.DAdaptAdanIP
-            print(f"use D-Adaptation AdanIP optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptLion".lower():
-            optimizer_class = dadaptation.DAdaptLion
-            print(f"use D-Adaptation Lion optimizer | {optimizer_kwargs}")
-        elif optimizer_type == "DAdaptSGD".lower():
-            optimizer_class = dadaptation.DAdaptSGD
-            print(f"use D-Adaptation SGD optimizer | {optimizer_kwargs}")
-        else:
-            raise ValueError(f"Unknown optimizer type: {optimizer_type}")
+        if optimizer_type.startswith("DAdapt".lower()):
+            # DAdaptation family
+            # check dadaptation is installed
+            try:
+                import dadaptation
+                import dadaptation.experimental as experimental
+            except ImportError:
+                raise ImportError("No dadaptation / dadaptation がインストールされていないようです")
 
-        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+            # set optimizer
+            if optimizer_type == "DAdaptation".lower() or optimizer_type == "DAdaptAdamPreprint".lower():
+                optimizer_class = experimental.DAdaptAdamPreprint
+                print(f"use D-Adaptation AdamPreprint optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptAdaGrad".lower():
+                optimizer_class = dadaptation.DAdaptAdaGrad
+                print(f"use D-Adaptation AdaGrad optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptAdam".lower():
+                optimizer_class = dadaptation.DAdaptAdam
+                print(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptAdan".lower():
+                optimizer_class = dadaptation.DAdaptAdan
+                print(f"use D-Adaptation Adan optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptAdanIP".lower():
+                optimizer_class = experimental.DAdaptAdanIP
+                print(f"use D-Adaptation AdanIP optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptLion".lower():
+                optimizer_class = dadaptation.DAdaptLion
+                print(f"use D-Adaptation Lion optimizer | {optimizer_kwargs}")
+            elif optimizer_type == "DAdaptSGD".lower():
+                optimizer_class = dadaptation.DAdaptSGD
+                print(f"use D-Adaptation SGD optimizer | {optimizer_kwargs}")
+            else:
+                raise ValueError(f"Unknown optimizer type: {optimizer_type}")
+
+            optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+        else:
+            # Prodigy
+            # check Prodigy is installed
+            try:
+                import prodigyopt
+            except ImportError:
+                raise ImportError("No Prodigy / Prodigy がインストールされていないようです")
+
+            print(f"use Prodigy optimizer | {optimizer_kwargs}")
+            optimizer_class = prodigyopt.Prodigy
+            optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "Adafactor".lower():
         # 引数を確認して適宜補正する
@@ -3093,23 +3202,9 @@ def prepare_accelerator(args: argparse.Namespace):
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         mixed_precision=args.mixed_precision,
         log_with=log_with,
-        logging_dir=logging_dir,
+        project_dir=logging_dir,
     )
-
-    # accelerateの互換性問題を解決する
-    accelerator_0_15 = True
-    try:
-        accelerator.unwrap_model("dummy", True)
-        print("Using accelerator 0.15.0 or above.")
-    except TypeError:
-        accelerator_0_15 = False
-
-    def unwrap_model(model):
-        if accelerator_0_15:
-            return accelerator.unwrap_model(model, True)
-        return accelerator.unwrap_model(model)
-
-    return accelerator, unwrap_model
+    return accelerator
 
 
 def prepare_dtype(args: argparse.Namespace):
@@ -3146,10 +3241,25 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
             print(
                 f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
             )
+            raise ex
         text_encoder = pipe.text_encoder
         vae = pipe.vae
         unet = pipe.unet
         del pipe
+
+        # Diffusers U-Net to original U-Net
+        # TODO *.ckpt/*.safetensorsのv2と同じ形式にここで変換すると良さそう
+        # print(f"unet config: {unet.config}")
+        original_unet = UNet2DConditionModel(
+            unet.config.sample_size,
+            unet.config.attention_head_dim,
+            unet.config.cross_attention_dim,
+            unet.config.use_linear_projection,
+            unet.config.upcast_attention,
+        )
+        original_unet.load_state_dict(unet.state_dict())
+        unet = original_unet
+        print("U-Net converted to original U-Net")
 
     # VAEを読み込む
     if args.vae is not None:
@@ -3580,6 +3690,7 @@ def sample_images(
         requires_safety_checker=False,
         clip_skip=args.clip_skip,
     )
+    pipeline.clip_skip = args.clip_skip     # Pipelineのコンストラクタにckip_skipを追加できないので後から設定する
     pipeline.to(device)
 
     save_dir = args.output_dir + "/sample"

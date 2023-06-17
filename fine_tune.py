@@ -19,7 +19,14 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, get_weighted_text_embeddings, pyramid_noise_like, apply_noise_offset
+from library.custom_train_functions import (
+    apply_snr_weight,
+    get_weighted_text_embeddings,
+    prepare_scheduler_for_custom_training,
+    pyramid_noise_like,
+    apply_noise_offset,
+    scale_v_prediction_loss_like_noise_prediction,
+)
 
 
 def train(args):
@@ -33,33 +40,37 @@ def train(args):
 
     tokenizer = train_util.load_tokenizer(args)
 
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(False, True, True))
-    if args.dataset_config is not None:
-        print(f"Load dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            print(
-                "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    # データセットを準備する
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(False, True, True))
+        if args.dataset_config is not None:
+            print(f"Load dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                print(
+                    "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        user_config = {
-            "datasets": [
-                {
-                    "subsets": [
-                        {
-                            "image_dir": args.train_data_dir,
-                            "metadata_file": args.in_json,
-                        }
-                    ]
-                }
-            ]
-        }
+        else:
+            user_config = {
+                "datasets": [
+                    {
+                        "subsets": [
+                            {
+                                "image_dir": args.train_data_dir,
+                                "metadata_file": args.in_json,
+                            }
+                        ]
+                    }
+                ]
+            }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
@@ -82,7 +93,7 @@ def train(args):
 
     # acceleratorを準備する
     print("prepare accelerator")
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -132,7 +143,7 @@ def train(args):
         # Windows版のxformersはfloatで学習できないのでxformersを使わない設定も可能にしておく必要がある
         accelerator.print("Disable Diffusers' xformers")
         set_diffusers_xformers_flag(unet, False)
-        train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+        train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
 
     # 学習を準備する
     if cache_latents:
@@ -259,6 +270,7 @@ def train(args):
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
+    prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
 
     if accelerator.is_main_process:
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name)
@@ -325,11 +337,16 @@ def train(args):
                 else:
                     target = noise
 
-                if args.min_snr_gamma:
-                    # do not mean over batch dimension for snr weight
+                if args.min_snr_gamma or args.scale_v_pred_loss_like_noise_pred:
+                    # do not mean over batch dimension for snr weight or scale v-pred loss
                     loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
                     loss = loss.mean([1, 2, 3])
-                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+
+                    if args.min_snr_gamma:
+                        loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    if args.scale_v_pred_loss_like_noise_pred:
+                        loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
+
                     loss = loss.mean()  # mean over batch dimension
                 else:
                     loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="mean")
@@ -370,15 +387,15 @@ def train(args):
                             epoch,
                             num_train_epochs,
                             global_step,
-                            unwrap_model(text_encoder),
-                            unwrap_model(unet),
+                            accelerator.unwrap_model(text_encoder),
+                            accelerator.unwrap_model(unet),
                             vae,
                         )
 
             current_loss = loss.detach().item()  # 平均なのでbatch sizeは関係ないはず
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
-                if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value
+                if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy":  # tracking d*lr value
                     logs["lr/d*lr"] = (
                         lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
                     )
@@ -413,8 +430,8 @@ def train(args):
                     epoch,
                     num_train_epochs,
                     global_step,
-                    unwrap_model(text_encoder),
-                    unwrap_model(unet),
+                    accelerator.unwrap_model(text_encoder),
+                    accelerator.unwrap_model(unet),
                     vae,
                 )
 
@@ -422,8 +439,8 @@ def train(args):
 
     is_main_process = accelerator.is_main_process
     if is_main_process:
-        unet = unwrap_model(unet)
-        text_encoder = unwrap_model(text_encoder)
+        unet = accelerator.unwrap_model(unet)
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     accelerator.end_training()
 

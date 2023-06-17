@@ -27,9 +27,10 @@ import library.custom_train_functions as custom_train_functions
 from library.custom_train_functions import (
     apply_snr_weight,
     get_weighted_text_embeddings,
+    prepare_scheduler_for_custom_training,
     pyramid_noise_like,
     apply_noise_offset,
-    max_norm,
+    scale_v_prediction_loss_like_noise_prediction,
 )
 
 
@@ -55,7 +56,7 @@ def generate_step_logs(
             logs["lr/textencoder"] = float(lrs[0])
             logs["lr/unet"] = float(lrs[-1])  # may be same to textencoder
 
-        if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value of unet.
+        if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower():  # tracking d*lr value of unet.
             logs["lr/d*lr"] = lr_scheduler.optimizers[-1].param_groups[0]["d"] * lr_scheduler.optimizers[-1].param_groups[0]["lr"]
     else:
         idx = 0
@@ -65,7 +66,7 @@ def generate_step_logs(
 
         for i in range(idx, len(lrs)):
             logs[f"lr/group{i}"] = float(lrs[i])
-            if args.optimizer_type.lower().startswith("DAdapt".lower()):
+            if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower():
                 logs[f"lr/d*lr/group{i}"] = (
                     lr_scheduler.optimizers[-1].param_groups[i]["d"] * lr_scheduler.optimizers[-1].param_groups[i]["lr"]
                 )
@@ -90,42 +91,50 @@ def train(args):
     tokenizer = train_util.load_tokenizer(args)
 
     # データセットを準備する
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
-    if use_user_config:
-        print(f"Loading dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "reg_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            print(
-                "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, True))
+        if use_user_config:
+            print(f"Loading dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "reg_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                print(
+                    "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        if use_dreambooth_method:
-            print("Using DreamBooth method.")
-            user_config = {
-                "datasets": [
-                    {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
-                ]
-            }
         else:
-            print("Training with captions.")
-            user_config = {
-                "datasets": [
-                    {
-                        "subsets": [
-                            {
-                                "image_dir": args.train_data_dir,
-                                "metadata_file": args.in_json,
-                            }
-                        ]
-                    }
-                ]
-            }
+            if use_dreambooth_method:
+                print("Using DreamBooth method.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(
+                                args.train_data_dir, args.reg_data_dir
+                            )
+                        }
+                    ]
+                }
+            else:
+                print("Training with captions.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": [
+                                {
+                                    "image_dir": args.train_data_dir,
+                                    "metadata_file": args.in_json,
+                                }
+                            ]
+                        }
+                    ]
+                }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        # use arbitrary dataset class
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
@@ -148,7 +157,7 @@ def train(args):
 
     # acceleratorを準備する
     print("preparing accelerator")
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
     is_main_process = accelerator.is_main_process
 
     # mixed precisionに対応した型を用意しておき適宜castする
@@ -158,7 +167,7 @@ def train(args):
     text_encoder, vae, unet, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
     # モデルに xformers とか memory efficient attention を組み込む
-    train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+    train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
 
     # 差分追加学習のためにモデルを読み込む
     import sys
@@ -211,13 +220,18 @@ def train(args):
     else:
         # LyCORIS will work with this...
         network = network_module.create_network(
-            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, dropout=args.network_dropout, **net_kwargs
+            1.0, args.network_dim, args.network_alpha, vae, text_encoder, unet, neuron_dropout=args.network_dropout, **net_kwargs
         )
     if network is None:
         return
 
     if hasattr(network, "prepare_network"):
         network.prepare_network(args)
+    if args.scale_weight_norms and not hasattr(network, "apply_max_norm_regularization"):
+        print(
+            "warning: scale_weight_norms is specified but the network does not support it / scale_weight_normsが指定されていますが、ネットワークが対応していません"
+        )
+        args.scale_weight_norms = False
 
     train_unet = not args.network_train_text_encoder_only
     train_text_encoder = not args.network_train_unet_only
@@ -315,7 +329,7 @@ def train(args):
 
     network.prepare_grad_etc(text_encoder, unet)
 
-    if not cache_latents:
+    if not cache_latents:  # キャッシュしない場合はVAEを使うのでVAEを準備する
         vae.requires_grad_(False)
         vae.eval()
         vae.to(accelerator.device, dtype=weight_dtype)
@@ -552,6 +566,8 @@ def train(args):
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
+    prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
+
     if accelerator.is_main_process:
         accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name)
 
@@ -655,6 +671,8 @@ def train(args):
 
                 if args.min_snr_gamma:
                     loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                if args.scale_v_pred_loss_like_noise_pred:
+                    loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -668,7 +686,9 @@ def train(args):
                 optimizer.zero_grad(set_to_none=True)
 
             if args.scale_weight_norms:
-                keys_scaled, mean_norm, maximum_norm = max_norm(network.state_dict(), args.scale_weight_norms, accelerator.device)
+                keys_scaled, mean_norm, maximum_norm = network.apply_max_norm_regularization(
+                    args.scale_weight_norms, accelerator.device
+                )
                 max_mean_logs = {"Keys Scaled": keys_scaled, "Average key norm": mean_norm}
             else:
                 keys_scaled, mean_norm, maximum_norm = None, None, None
@@ -687,7 +707,7 @@ def train(args):
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
                         ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
-                        save_model(ckpt_name, unwrap_model(network), global_step, epoch)
+                        save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch)
 
                         if args.save_state:
                             train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
@@ -709,7 +729,7 @@ def train(args):
             progress_bar.set_postfix(**logs)
 
             if args.scale_weight_norms:
-                progress_bar.set_postfix(**max_mean_logs)
+                progress_bar.set_postfix(**{**max_mean_logs, **logs})
 
             if args.logging_dir is not None:
                 logs = generate_step_logs(args, current_loss, avr_loss, lr_scheduler, keys_scaled, mean_norm, maximum_norm)
@@ -729,7 +749,7 @@ def train(args):
             saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
             if is_main_process and saving:
                 ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
-                save_model(ckpt_name, unwrap_model(network), global_step, epoch + 1)
+                save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch + 1)
 
                 remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
                 if remove_epoch_no is not None:
@@ -747,7 +767,7 @@ def train(args):
     metadata["ss_training_finished_at"] = str(time.time())
 
     if is_main_process:
-        network = unwrap_model(network)
+        network = accelerator.unwrap_model(network)
 
     accelerator.end_training()
 
@@ -837,7 +857,6 @@ def setup_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
     )
-
     return parser
 
 

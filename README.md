@@ -75,8 +75,6 @@ cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_set
 accelerate config
 ```
 
-update: ``python -m venv venv`` is seemed to be safer than ``python -m venv --system-site-packages venv`` (some user have packages in global python).
-
 Answers to accelerate config:
 
 ```txt
@@ -93,6 +91,30 @@ note: Some user reports ``ValueError: fp16 mixed precision requires a GPU`` is o
 ``What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:`` 
 
 (Single GPU with id `0` will be used.)
+
+### Experimental: Use PyTorch 2.0
+
+In this case, you need to install PyTorch 2.0 and xformers 0.0.20. Instead of the above, please type the following:
+
+```powershell
+git clone https://github.com/kohya-ss/sd-scripts.git
+cd sd-scripts
+
+python -m venv venv
+.\venv\Scripts\activate
+
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118
+pip install --upgrade -r requirements.txt
+pip install xformers==0.0.20
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+
+accelerate config
+```
+
+Answers to accelerate config should be the same as above.
 
 ### about PyTorch and xformers
 
@@ -139,6 +161,98 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 [BLIP](https://github.com/salesforce/BLIP): BSD-3-Clause
 
 ## Change History
+
+### 15 Jun. 2023, 2023/06/15
+
+- Prodigy optimizer is supported in each training script. It is a member of D-Adaptation and is effective for DyLoRA training. [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585) Please see the PR for details. Thanks to sdbds!
+  - Install the package with `pip install prodigyopt`. Then specify the option like `--optimizer_type="prodigy"`.
+- Arbitrary Dataset is supported in each training script (except XTI). You can use it by defining a Dataset class that returns images and captions.
+  - Prepare a Python script and define a class that inherits `train_util.MinimalDataset`. Then specify the option like `--dataset_class package.module.DatasetClass` in each training script.
+  - Please refer to `MinimalDataset` for implementation. I will prepare a sample later.
+- The following features have been added to the generation script.
+  - Added an option `--highres_fix_disable_control_net` to disable ControlNet in the 2nd stage of Highres. Fix. Please try it if the image is disturbed by some ControlNet such as Canny.
+  - Added Variants similar to sd-dynamic-propmpts in the prompt.
+    - If you specify `{spring|summer|autumn|winter}`, one of them will be randomly selected.
+    - If you specify `{2$$chocolate|vanilla|strawberry}`, two of them will be randomly selected.
+    - If you specify `{1-2$$ and $$chocolate|vanilla|strawberry}`, one or two of them will be randomly selected and connected by ` and `.
+    - You can specify the number of candidates in the range `0-2`. You cannot omit one side like `-2` or `1-`.
+    - It can also be specified for the prompt option.
+    - If you specify `e` or `E`, all candidates will be selected and the prompt will be repeated multiple times (`--images_per_prompt` is ignored). It may be useful for creating X/Y plots.
+    - You can also specify `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`. In this case, 15 prompts will be generated with 5*3.
+    - There is no weighting function.
+
+- 各学習スクリプトでProdigyオプティマイザがサポートされました。D-Adaptationの仲間でDyLoRAの学習に有効とのことです。 [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585)  詳細はPRをご覧ください。sdbds氏に感謝します。
+  - `pip install prodigyopt` としてパッケージをインストールしてください。また `--optimizer_type="prodigy"` のようにオプションを指定します。
+- 各学習スクリプトで任意のDatasetをサポートしました（XTIを除く）。画像とキャプションを返すDatasetクラスを定義することで、学習スクリプトから利用できます。
+  - Pythonスクリプトを用意し、`train_util.MinimalDataset`を継承するクラスを定義してください。そして各学習スクリプトのオプションで `--dataset_class package.module.DatasetClass` のように指定してください。
+  - 実装方法は `MinimalDataset` を参考にしてください。のちほどサンプルを用意します。
+- 生成スクリプトに以下の機能追加を行いました。
+  - Highres. Fixの2nd stageでControlNetを無効化するオプション `--highres_fix_disable_control_net` を追加しました。Canny等一部のControlNetで画像が乱れる場合にお試しください。
+  - プロンプトでsd-dynamic-propmptsに似たVariantをサポートしました。
+    - `{spring|summer|autumn|winter}` のように指定すると、いずれかがランダムに選択されます。
+    - `{2$$chocolate|vanilla|strawberry}` のように指定すると、いずれか2個がランダムに選択されます。
+    - `{1-2$$ and $$chocolate|vanilla|strawberry}` のように指定すると、1個か2個がランダムに選択され ` and ` で接続されます。
+    - 個数のレンジ指定では`0-2`のように0個も指定可能です。`-2`や`1-`のような片側の省略はできません。
+    - プロンプトオプションに対しても指定可能です。
+    - `{e$$chocolate|vanilla|strawberry}` のように`e`または`E`を指定すると、すべての候補が選択されプロンプトが複数回繰り返されます（`--images_per_prompt`は無視されます）。X/Y plotの作成に便利かもしれません。
+    - `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`のような指定も可能です。この場合、5*3で15回のプロンプトが生成されます。
+    - Weightingの機能はありません。
+
+### 8 Jun. 2023, 2023/06/08
+
+- Fixed a bug where clip skip did not work when training with weighted captions (`--weighted_captions` specified) and when generating sample images during training.
+- 重みづけキャプションでの学習時（`--weighted_captions`指定時）および学習中のサンプル画像生成時にclip skipが機能しない不具合を修正しました。
+
+### 6 Jun. 2023, 2023/06/06
+
+- Fix `train_network.py` to probably work with older versions of LyCORIS.
+- `gen_img_diffusers.py` now supports `BREAK` syntax.
+- `train_network.py`がLyCORISの以前のバージョンでも恐らく動作するよう修正しました。
+- `gen_img_diffusers.py` で `BREAK` 構文をサポートしました。
+
+### 3 Jun. 2023, 2023/06/03
+
+- Max Norm Regularization is now available in `train_network.py`. [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
+  - Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.
+  - Specify as `--scale_weight_norms=1.0`. It seems good to try from `1.0`.
+  - The networks other than LoRA in this repository (such as LyCORIS) do not support this option.
+
+- Three types of dropout have been added to `train_network.py` and LoRA network.
+  - Dropout is a technique to suppress overfitting and improve network performance by randomly setting some of the network outputs to 0.
+  - `--network_dropout` is a normal dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Proposed in [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
+    - `--network_dropout=0.1` specifies the dropout probability to `0.1`.
+    - Note that the specification method is different from LyCORIS.
+  - For LoRA network, `--network_args` can specify `rank_dropout` to dropout each rank with specified probability. Also `module_dropout` can be specified to dropout each module with specified probability.
+    - Specify as `--network_args "rank_dropout=0.2" "module_dropout=0.1"`.
+  - `--network_dropout`, `rank_dropout`, and `module_dropout` can be specified at the same time.
+  - Values of 0.1 to 0.3 may be good to try. Values greater than 0.5 should not be specified.
+  - `rank_dropout` and `module_dropout` are original techniques of this repository. Their effectiveness has not been verified yet.
+  - The networks other than LoRA in this repository (such as LyCORIS) do not support these options.
+
+- Added an option `--scale_v_pred_loss_like_noise_pred` to scale v-prediction loss like noise prediction in each training script.
+  - By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.
+  - See [this article](https://xrg.hatenablog.com/entry/2023/06/02/202418) by xrg for details (written in Japanese). Thanks to xrg for the great suggestion!
+
+- Max Norm Regularizationが`train_network.py`で使えるようになりました。[PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) AI-Casanova氏に感謝します。
+  - Max Norm Regularizationは、ネットワークの重みのノルムを制限することで、ネットワークの学習を安定させる手法です。LoRAの過学習の抑制、他のLoRAと併用した時の安定性の向上が期待できるかもしれません。詳細はPRを参照してください。
+  - `--scale_weight_norms=1.0`のように `--scale_weight_norms` で指定してください。`1.0`から試すと良いようです。
+  - LyCORIS等、当リポジトリ以外のネットワークは現時点では未対応です。
+
+- `train_network.py` およびLoRAに計三種類のdropoutを追加しました。
+  - dropoutはネットワークの一部の出力をランダムに0にすることで、過学習の抑制、ネットワークの性能向上等を図る手法です。
+  - `--network_dropout` はニューロン単位の通常のdropoutです。LoRAの場合、downの出力に対して適用されます。[PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) で提案されました。AI-Casanova氏に感謝します。
+    - `--network_dropout=0.1` などとすることで、dropoutの確率を指定できます。
+    - LyCORISとは指定方法が異なりますのでご注意ください。
+  - LoRAの場合、`--network_args`に`rank_dropout`を指定することで各rankを指定確率でdropoutします。また同じくLoRAの場合、`--network_args`に`module_dropout`を指定することで各モジュールを指定確率でdropoutします。
+    - `--network_args "rank_dropout=0.2" "module_dropout=0.1"` のように指定します。
+  - `--network_dropout`、`rank_dropout` 、 `module_dropout` は同時に指定できます。
+  - それぞれの値は0.1~0.3程度から試してみると良いかもしれません。0.5を超える値は指定しない方が良いでしょう。
+  - `rank_dropout`および`module_dropout`は当リポジトリ独自の手法です。有効性の検証はまだ行っていません。
+  - これらのdropoutはLyCORIS等、当リポジトリ以外のネットワークは現時点では未対応です。
+
+- 各学習スクリプトにv-prediction lossをnoise predictionと同様の値にスケールするオプション`--scale_v_pred_loss_like_noise_pred`を追加しました。
+  - タイムステップに応じてlossをスケールすることで、 大域的なノイズの予測と局所的なノイズの予測の重みが同じになり、ディテールの改善が期待できるかもしれません。
+  - 詳細はxrg氏のこちらの記事をご参照ください：[noise_predictionモデルとv_predictionモデルの損失 - 勾配降下党青年局](https://xrg.hatenablog.com/entry/2023/06/02/202418) xrg氏の素晴らしい記事に感謝します。
 
 ### 31 May 2023, 2023/05/31
 

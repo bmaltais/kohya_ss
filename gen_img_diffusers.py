@@ -46,6 +46,7 @@ VGG(
 )
 """
 
+import itertools
 import json
 from typing import Any, List, NamedTuple, Optional, Tuple, Union, Callable
 import glob
@@ -78,11 +79,10 @@ from diffusers import (
     HeunDiscreteScheduler,
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
-    UNet2DConditionModel,
+    # UNet2DConditionModel,
     StableDiffusionPipeline,
 )
 from einops import rearrange
-from torch import einsum
 from tqdm import tqdm
 from torchvision import transforms
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPModel, CLIPTextConfig
@@ -95,14 +95,10 @@ import library.train_util as train_util
 from networks.lora import LoRANetwork
 import tools.original_control_net as original_control_net
 from tools.original_control_net import ControlNetInfo
+from library.original_unet import UNet2DConditionModel
+from library.original_unet import FlashAttentionFunction
 
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
-
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う
-
-DEFAULT_TOKEN_LENGTH = 75
 
 # scheduler:
 SCHEDULER_LINEAR_START = 0.00085
@@ -135,336 +131,42 @@ USE_CUTOUTS = False
 高速化のためのモジュール入れ替え
 """
 
-# FlashAttentionを使うCrossAttention
-# based on https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/memory_efficient_attention_pytorch/flash_attention.py
-# LICENSE MIT https://github.com/lucidrains/memory-efficient-attention-pytorch/blob/main/LICENSE
 
-# constants
+def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers, sdpa):
+    if mem_eff_attn:
+        print("Enable memory efficient attention for U-Net")
 
-EPSILON = 1e-6
+        # これはDiffusersのU-Netではなく自前のU-Netなので置き換えなくても良い
+        unet.set_use_memory_efficient_attention(False, True)
+    elif xformers:
+        print("Enable xformers for U-Net")
+        try:
+            import xformers.ops
+        except ImportError:
+            raise ImportError("No xformers / xformersがインストールされていないようです")
 
-# helper functions
-
-
-def exists(val):
-    return val is not None
-
-
-def default(val, d):
-    return val if exists(val) else d
-
-
-# flash attention forwards and backwards
-
-# https://arxiv.org/abs/2205.14135
-
-
-class FlashAttentionFunction(torch.autograd.Function):
-    @staticmethod
-    @torch.no_grad()
-    def forward(ctx, q, k, v, mask, causal, q_bucket_size, k_bucket_size):
-        """Algorithm 2 in the paper"""
-
-        device = q.device
-        dtype = q.dtype
-        max_neg_value = -torch.finfo(q.dtype).max
-        qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-        o = torch.zeros_like(q)
-        all_row_sums = torch.zeros((*q.shape[:-1], 1), dtype=dtype, device=device)
-        all_row_maxes = torch.full((*q.shape[:-1], 1), max_neg_value, dtype=dtype, device=device)
-
-        scale = q.shape[-1] ** -0.5
-
-        if not exists(mask):
-            mask = (None,) * math.ceil(q.shape[-2] / q_bucket_size)
-        else:
-            mask = rearrange(mask, "b n -> b 1 1 n")
-            mask = mask.split(q_bucket_size, dim=-1)
-
-        row_splits = zip(
-            q.split(q_bucket_size, dim=-2),
-            o.split(q_bucket_size, dim=-2),
-            mask,
-            all_row_sums.split(q_bucket_size, dim=-2),
-            all_row_maxes.split(q_bucket_size, dim=-2),
-        )
-
-        for ind, (qc, oc, row_mask, row_sums, row_maxes) in enumerate(row_splits):
-            q_start_index = ind * q_bucket_size - qk_len_diff
-
-            col_splits = zip(
-                k.split(k_bucket_size, dim=-2),
-                v.split(k_bucket_size, dim=-2),
-            )
-
-            for k_ind, (kc, vc) in enumerate(col_splits):
-                k_start_index = k_ind * k_bucket_size
-
-                attn_weights = einsum("... i d, ... j d -> ... i j", qc, kc) * scale
-
-                if exists(row_mask):
-                    attn_weights.masked_fill_(~row_mask, max_neg_value)
-
-                if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-                    causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool, device=device).triu(
-                        q_start_index - k_start_index + 1
-                    )
-                    attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-                block_row_maxes = attn_weights.amax(dim=-1, keepdims=True)
-                attn_weights -= block_row_maxes
-                exp_weights = torch.exp(attn_weights)
-
-                if exists(row_mask):
-                    exp_weights.masked_fill_(~row_mask, 0.0)
-
-                block_row_sums = exp_weights.sum(dim=-1, keepdims=True).clamp(min=EPSILON)
-
-                new_row_maxes = torch.maximum(block_row_maxes, row_maxes)
-
-                exp_values = einsum("... i j, ... j d -> ... i d", exp_weights, vc)
-
-                exp_row_max_diff = torch.exp(row_maxes - new_row_maxes)
-                exp_block_row_max_diff = torch.exp(block_row_maxes - new_row_maxes)
-
-                new_row_sums = exp_row_max_diff * row_sums + exp_block_row_max_diff * block_row_sums
-
-                oc.mul_((row_sums / new_row_sums) * exp_row_max_diff).add_((exp_block_row_max_diff / new_row_sums) * exp_values)
-
-                row_maxes.copy_(new_row_maxes)
-                row_sums.copy_(new_row_sums)
-
-        ctx.args = (causal, scale, mask, q_bucket_size, k_bucket_size)
-        ctx.save_for_backward(q, k, v, o, all_row_sums, all_row_maxes)
-
-        return o
-
-    @staticmethod
-    @torch.no_grad()
-    def backward(ctx, do):
-        """Algorithm 4 in the paper"""
-
-        causal, scale, mask, q_bucket_size, k_bucket_size = ctx.args
-        q, k, v, o, l, m = ctx.saved_tensors
-
-        device = q.device
-
-        max_neg_value = -torch.finfo(q.dtype).max
-        qk_len_diff = max(k.shape[-2] - q.shape[-2], 0)
-
-        dq = torch.zeros_like(q)
-        dk = torch.zeros_like(k)
-        dv = torch.zeros_like(v)
-
-        row_splits = zip(
-            q.split(q_bucket_size, dim=-2),
-            o.split(q_bucket_size, dim=-2),
-            do.split(q_bucket_size, dim=-2),
-            mask,
-            l.split(q_bucket_size, dim=-2),
-            m.split(q_bucket_size, dim=-2),
-            dq.split(q_bucket_size, dim=-2),
-        )
-
-        for ind, (qc, oc, doc, row_mask, lc, mc, dqc) in enumerate(row_splits):
-            q_start_index = ind * q_bucket_size - qk_len_diff
-
-            col_splits = zip(
-                k.split(k_bucket_size, dim=-2),
-                v.split(k_bucket_size, dim=-2),
-                dk.split(k_bucket_size, dim=-2),
-                dv.split(k_bucket_size, dim=-2),
-            )
-
-            for k_ind, (kc, vc, dkc, dvc) in enumerate(col_splits):
-                k_start_index = k_ind * k_bucket_size
-
-                attn_weights = einsum("... i d, ... j d -> ... i j", qc, kc) * scale
-
-                if causal and q_start_index < (k_start_index + k_bucket_size - 1):
-                    causal_mask = torch.ones((qc.shape[-2], kc.shape[-2]), dtype=torch.bool, device=device).triu(
-                        q_start_index - k_start_index + 1
-                    )
-                    attn_weights.masked_fill_(causal_mask, max_neg_value)
-
-                exp_attn_weights = torch.exp(attn_weights - mc)
-
-                if exists(row_mask):
-                    exp_attn_weights.masked_fill_(~row_mask, 0.0)
-
-                p = exp_attn_weights / lc
-
-                dv_chunk = einsum("... i j, ... i d -> ... j d", p, doc)
-                dp = einsum("... i d, ... j d -> ... i j", doc, vc)
-
-                D = (doc * oc).sum(dim=-1, keepdims=True)
-                ds = p * scale * (dp - D)
-
-                dq_chunk = einsum("... i j, ... j d -> ... i d", ds, kc)
-                dk_chunk = einsum("... i j, ... i d -> ... j d", ds, qc)
-
-                dqc.add_(dq_chunk)
-                dkc.add_(dk_chunk)
-                dvc.add_(dv_chunk)
-
-        return dq, dk, dv, None, None, None, None
+        unet.set_use_memory_efficient_attention(True, False)
+    elif sdpa:
+        print("Enable SDPA for U-Net")
+        unet.set_use_memory_efficient_attention(False, False)
+        unet.set_use_sdpa(True)
 
 
 # TODO common train_util.py
-def replace_unet_modules(unet: diffusers.models.unet_2d_condition.UNet2DConditionModel, mem_eff_attn, xformers):
-    if mem_eff_attn:
-        replace_unet_cross_attn_to_memory_efficient()
-    elif xformers:
-        replace_unet_cross_attn_to_xformers()
-
-
-def replace_unet_cross_attn_to_memory_efficient():
-    print("CrossAttention.forward has been replaced to FlashAttention (not xformers) and NAI style Hypernetwork")
-    flash_func = FlashAttentionFunction
-
-    def forward_flash_attn(self, x, context=None, mask=None):
-        q_bucket_size = 512
-        k_bucket_size = 1024
-
-        h = self.heads
-        q = self.to_q(x)
-
-        context = context if context is not None else x
-        context = context.to(x.dtype)
-
-        if hasattr(self, "hypernetwork") and self.hypernetwork is not None:
-            context_k, context_v = self.hypernetwork.forward(x, context)
-            context_k = context_k.to(x.dtype)
-            context_v = context_v.to(x.dtype)
-        else:
-            context_k = context
-            context_v = context
-
-        k = self.to_k(context_k)
-        v = self.to_v(context_v)
-        del context, x
-
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h), (q, k, v))
-
-        out = flash_func.apply(q, k, v, mask, False, q_bucket_size, k_bucket_size)
-
-        out = rearrange(out, "b h n d -> b n (h d)")
-
-        # diffusers 0.7.0~
-        out = self.to_out[0](out)
-        out = self.to_out[1](out)
-        return out
-
-    diffusers.models.attention.CrossAttention.forward = forward_flash_attn
-
-
-def replace_unet_cross_attn_to_xformers():
-    print("CrossAttention.forward has been replaced to enable xformers and NAI style Hypernetwork")
-    try:
-        import xformers.ops
-    except ImportError:
-        raise ImportError("No xformers / xformersがインストールされていないようです")
-
-    def forward_xformers(self, x, context=None, mask=None):
-        h = self.heads
-        q_in = self.to_q(x)
-
-        context = default(context, x)
-        context = context.to(x.dtype)
-
-        if hasattr(self, "hypernetwork") and self.hypernetwork is not None:
-            context_k, context_v = self.hypernetwork.forward(x, context)
-            context_k = context_k.to(x.dtype)
-            context_v = context_v.to(x.dtype)
-        else:
-            context_k = context
-            context_v = context
-
-        k_in = self.to_k(context_k)
-        v_in = self.to_v(context_v)
-
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b n h d", h=h), (q_in, k_in, v_in))
-        del q_in, k_in, v_in
-
-        q = q.contiguous()
-        k = k.contiguous()
-        v = v.contiguous()
-        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)  # 最適なのを選んでくれる
-
-        out = rearrange(out, "b n h d -> b n (h d)", h=h)
-
-        # diffusers 0.7.0~
-        out = self.to_out[0](out)
-        out = self.to_out[1](out)
-        return out
-
-    diffusers.models.attention.CrossAttention.forward = forward_xformers
-
-
-def replace_vae_modules(vae: diffusers.models.AutoencoderKL, mem_eff_attn, xformers):
+def replace_vae_modules(vae: diffusers.models.AutoencoderKL, mem_eff_attn, xformers, sdpa):
     if mem_eff_attn:
         replace_vae_attn_to_memory_efficient()
     elif xformers:
-        # とりあえずDiffusersのxformersを使う。AttentionがあるのはMidBlockのみ
-        print("Use Diffusers xformers for VAE")
-        vae.set_use_memory_efficient_attention_xformers(True)
+        replace_vae_attn_to_xformers()
+    elif sdpa:
+        replace_vae_attn_to_sdpa()
 
-    """
-    # VAEがbfloat16でメモリ消費が大きい問題を解決する
-    upsamplers = []
-    for block in vae.decoder.up_blocks:
-        if block.upsamplers is not None:
-            upsamplers.extend(block.upsamplers)
-
-    def forward_upsample(_self, hidden_states, output_size=None):
-        assert hidden_states.shape[1] == _self.channels
-        if _self.use_conv_transpose:
-            return _self.conv(hidden_states)
-
-        dtype = hidden_states.dtype
-        if dtype == torch.bfloat16:
-            assert output_size is None
-            # repeat_interleaveはすごく遅いが、回数はあまり呼ばれないので許容する
-            hidden_states = hidden_states.repeat_interleave(2, dim=-1)
-            hidden_states = hidden_states.repeat_interleave(2, dim=-2)
-        else:
-            if hidden_states.shape[0] >= 64:
-                hidden_states = hidden_states.contiguous()
-
-            # if `output_size` is passed we force the interpolation output
-            # size and do not make use of `scale_factor=2`
-            if output_size is None:
-                hidden_states = torch.nn.functional.interpolate(hidden_states, scale_factor=2.0, mode="nearest")
-            else:
-                hidden_states = torch.nn.functional.interpolate(hidden_states, size=output_size, mode="nearest")
-
-        if _self.use_conv:
-            if _self.name == "conv":
-                hidden_states = _self.conv(hidden_states)
-            else:
-                hidden_states = _self.Conv2d_0(hidden_states)
-        return hidden_states
-
-    # replace upsamplers
-    for upsampler in upsamplers:
-        # make new scope
-        def make_replacer(upsampler):
-            def forward(hidden_states, output_size=None):
-                return forward_upsample(upsampler, hidden_states, output_size)
-
-            return forward
-
-        upsampler.forward = make_replacer(upsampler)
-"""
-    
 
 def replace_vae_attn_to_memory_efficient():
-    print("AttentionBlock.forward has been replaced to FlashAttention (not xformers)")
+    print("VAE Attention.forward has been replaced to FlashAttention (not xformers)")
     flash_func = FlashAttentionFunction
 
-    def forward_flash_attn(self, hidden_states):
-        print("forward_flash_attn")
+    def forward_flash_attn(self, hidden_states, **kwargs):
         q_bucket_size = 512
         k_bucket_size = 1024
 
@@ -477,12 +179,12 @@ def replace_vae_attn_to_memory_efficient():
         hidden_states = hidden_states.view(batch, channel, height * width).transpose(1, 2)
 
         # proj to q, k, v
-        query_proj = self.query(hidden_states)
-        key_proj = self.key(hidden_states)
-        value_proj = self.value(hidden_states)
+        query_proj = self.to_q(hidden_states)
+        key_proj = self.to_k(hidden_states)
+        value_proj = self.to_v(hidden_states)
 
         query_proj, key_proj, value_proj = map(
-            lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.num_heads), (query_proj, key_proj, value_proj)
+            lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), (query_proj, key_proj, value_proj)
         )
 
         out = flash_func.apply(query_proj, key_proj, value_proj, None, False, q_bucket_size, k_bucket_size)
@@ -490,14 +192,140 @@ def replace_vae_attn_to_memory_efficient():
         out = rearrange(out, "b h n d -> b n (h d)")
 
         # compute next hidden_states
-        hidden_states = self.proj_attn(hidden_states)
+        # linear proj
+        hidden_states = self.to_out[0](hidden_states)
+        # dropout
+        hidden_states = self.to_out[1](hidden_states)
+
         hidden_states = hidden_states.transpose(-1, -2).reshape(batch, channel, height, width)
 
         # res connect and rescale
         hidden_states = (hidden_states + residual) / self.rescale_output_factor
         return hidden_states
 
-    diffusers.models.attention.AttentionBlock.forward = forward_flash_attn
+    def forward_flash_attn_0_14(self, hidden_states, **kwargs):
+        if not hasattr(self, "to_q"):
+            self.to_q = self.query
+            self.to_k = self.key
+            self.to_v = self.value
+            self.to_out = [self.proj_attn, torch.nn.Identity()]
+            self.heads = self.num_heads
+        return forward_flash_attn(self, hidden_states, **kwargs)
+
+    if diffusers.__version__ < "0.15.0":
+        diffusers.models.attention.AttentionBlock.forward = forward_flash_attn_0_14
+    else:
+        diffusers.models.attention_processor.Attention.forward = forward_flash_attn
+
+
+def replace_vae_attn_to_xformers():
+    print("VAE: Attention.forward has been replaced to xformers")
+    import xformers.ops
+
+    def forward_xformers(self, hidden_states, **kwargs):
+        residual = hidden_states
+        batch, channel, height, width = hidden_states.shape
+
+        # norm
+        hidden_states = self.group_norm(hidden_states)
+
+        hidden_states = hidden_states.view(batch, channel, height * width).transpose(1, 2)
+
+        # proj to q, k, v
+        query_proj = self.to_q(hidden_states)
+        key_proj = self.to_k(hidden_states)
+        value_proj = self.to_v(hidden_states)
+
+        query_proj, key_proj, value_proj = map(
+            lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), (query_proj, key_proj, value_proj)
+        )
+
+        query_proj = query_proj.contiguous()
+        key_proj = key_proj.contiguous()
+        value_proj = value_proj.contiguous()
+        out = xformers.ops.memory_efficient_attention(query_proj, key_proj, value_proj, attn_bias=None)
+
+        out = rearrange(out, "b h n d -> b n (h d)")
+
+        # compute next hidden_states
+        # linear proj
+        hidden_states = self.to_out[0](hidden_states)
+        # dropout
+        hidden_states = self.to_out[1](hidden_states)
+
+        hidden_states = hidden_states.transpose(-1, -2).reshape(batch, channel, height, width)
+
+        # res connect and rescale
+        hidden_states = (hidden_states + residual) / self.rescale_output_factor
+        return hidden_states
+
+    def forward_xformers_0_14(self, hidden_states, **kwargs):
+        if not hasattr(self, "to_q"):
+            self.to_q = self.query
+            self.to_k = self.key
+            self.to_v = self.value
+            self.to_out = [self.proj_attn, torch.nn.Identity()]
+            self.heads = self.num_heads
+        return forward_xformers(self, hidden_states, **kwargs)
+
+    if diffusers.__version__ < "0.15.0":
+        diffusers.models.attention.AttentionBlock.forward = forward_xformers_0_14
+    else:
+        diffusers.models.attention_processor.Attention.forward = forward_xformers
+
+
+def replace_vae_attn_to_sdpa():
+    print("VAE: Attention.forward has been replaced to sdpa")
+
+    def forward_sdpa(self, hidden_states, **kwargs):
+        residual = hidden_states
+        batch, channel, height, width = hidden_states.shape
+
+        # norm
+        hidden_states = self.group_norm(hidden_states)
+
+        hidden_states = hidden_states.view(batch, channel, height * width).transpose(1, 2)
+
+        # proj to q, k, v
+        query_proj = self.to_q(hidden_states)
+        key_proj = self.to_k(hidden_states)
+        value_proj = self.to_v(hidden_states)
+
+        query_proj, key_proj, value_proj = map(
+            lambda t: rearrange(t, "b n (h d) -> b n h d", h=self.heads), (query_proj, key_proj, value_proj)
+        )
+
+        out = torch.nn.functional.scaled_dot_product_attention(
+            query_proj, key_proj, value_proj, attn_mask=None, dropout_p=0.0, is_causal=False
+        )
+
+        out = rearrange(out, "b n h d -> b n (h d)")
+
+        # compute next hidden_states
+        # linear proj
+        hidden_states = self.to_out[0](hidden_states)
+        # dropout
+        hidden_states = self.to_out[1](hidden_states)
+
+        hidden_states = hidden_states.transpose(-1, -2).reshape(batch, channel, height, width)
+
+        # res connect and rescale
+        hidden_states = (hidden_states + residual) / self.rescale_output_factor
+        return hidden_states
+
+    def forward_sdpa_0_14(self, hidden_states, **kwargs):
+        if not hasattr(self, "to_q"):
+            self.to_q = self.query
+            self.to_k = self.key
+            self.to_v = self.value
+            self.to_out = [self.proj_attn, torch.nn.Identity()]
+            self.heads = self.num_heads
+        return forward_sdpa(self, hidden_states, **kwargs)
+
+    if diffusers.__version__ < "0.15.0":
+        diffusers.models.attention.AttentionBlock.forward = forward_sdpa_0_14
+    else:
+        diffusers.models.attention_processor.Attention.forward = forward_sdpa
 
 
 # endregion
@@ -614,10 +442,14 @@ class PipelineLike:
 
         # ControlNet
         self.control_nets: List[ControlNetInfo] = []
+        self.control_net_enabled = True  # control_netsが空ならTrueでもFalseでもControlNetは動作しない
 
     # Textual Inversion
     def add_token_replacement(self, target_token_id, rep_token_ids):
         self.token_replacements[target_token_id] = rep_token_ids
+
+    def set_enable_control_net(self, en: bool):
+        self.control_net_enabled = en
 
     def replace_token(self, tokens, layer=None):
         new_tokens = []
@@ -1111,7 +943,7 @@ class PipelineLike:
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
             # predict the noise residual
-            if self.control_nets:
+            if self.control_nets and self.control_net_enabled:
                 if reginonal_network:
                     num_sub_and_neg_prompts = len(text_embeddings) // batch_size
                     text_emb_last = text_embeddings[num_sub_and_neg_prompts - 2 :: num_sub_and_neg_prompts]  # last subprompt
@@ -1795,6 +1627,9 @@ def parse_prompt_attention(text):
         for p in range(start_position, len(res)):
             res[p][1] *= multiplier
 
+    # keep break as separate token
+    text = text.replace("BREAK", "\\BREAK\\")
+
     for m in re_attention.finditer(text):
         text = m.group(0)
         weight = m.group(1)
@@ -1826,7 +1661,7 @@ def parse_prompt_attention(text):
     # merge runs of identical weights
     i = 0
     while i + 1 < len(res):
-        if res[i][1] == res[i + 1][1]:
+        if res[i][1] == res[i + 1][1] and res[i][0].strip() != "BREAK" and res[i + 1][0].strip() != "BREAK":
             res[i][0] += res[i + 1][0]
             res.pop(i + 1)
         else:
@@ -1843,11 +1678,25 @@ def get_prompts_with_weights(pipe: PipelineLike, prompt: List[str], max_length: 
     tokens = []
     weights = []
     truncated = False
+
     for text in prompt:
         texts_and_weights = parse_prompt_attention(text)
         text_token = []
         text_weight = []
         for word, weight in texts_and_weights:
+            if word.strip() == "BREAK":
+                # pad until next multiple of tokenizer's max token length
+                pad_len = pipe.tokenizer.model_max_length - (len(text_token) % pipe.tokenizer.model_max_length)
+                print(f"BREAK pad_len: {pad_len}")
+                for i in range(pad_len):
+                    # v2のときEOSをつけるべきかどうかわからないぜ
+                    # if i == 0:
+                    #     text_token.append(pipe.tokenizer.eos_token_id)
+                    # else:
+                    text_token.append(pipe.tokenizer.pad_token_id)
+                    text_weight.append(1.0)
+                continue
+
             # tokenize and discard the starting and the ending token
             token = pipe.tokenizer(word).input_ids[1:-1]
 
@@ -2142,6 +1991,110 @@ def preprocess_mask(mask):
     return mask
 
 
+# regular expression for dynamic prompt:
+# starts and ends with "{" and "}"
+# contains at least one variant divided by "|"
+# optional framgments divided by "$$" at start
+# if the first fragment is "E" or "e", enumerate all variants
+# if the second fragment is a number or two numbers, repeat the variants in the range
+# if the third fragment is a string, use it as a separator
+
+RE_DYNAMIC_PROMPT = re.compile(r"\{((e|E)\$\$)?(([\d\-]+)\$\$)?(([^\|\}]+?)\$\$)?(.+?((\|).+?)*?)\}")
+
+
+def handle_dynamic_prompt_variants(prompt, repeat_count):
+    founds = list(RE_DYNAMIC_PROMPT.finditer(prompt))
+    if not founds:
+        return [prompt]
+
+    # make each replacement for each variant
+    enumerating = False
+    replacers = []
+    for found in founds:
+        # if "e$$" is found, enumerate all variants
+        found_enumerating = found.group(2) is not None
+        enumerating = enumerating or found_enumerating
+
+        separator = ", " if found.group(6) is None else found.group(6)
+        variants = found.group(7).split("|")
+
+        # parse count range
+        count_range = found.group(4)
+        if count_range is None:
+            count_range = [1, 1]
+        else:
+            count_range = count_range.split("-")
+            if len(count_range) == 1:
+                count_range = [int(count_range[0]), int(count_range[0])]
+            elif len(count_range) == 2:
+                count_range = [int(count_range[0]), int(count_range[1])]
+            else:
+                print(f"invalid count range: {count_range}")
+                count_range = [1, 1]
+            if count_range[0] > count_range[1]:
+                count_range = [count_range[1], count_range[0]]
+            if count_range[0] < 0:
+                count_range[0] = 0
+            if count_range[1] > len(variants):
+                count_range[1] = len(variants)
+
+        if found_enumerating:
+            # make function to enumerate all combinations
+            def make_replacer_enum(vari, cr, sep):
+                def replacer():
+                    values = []
+                    for count in range(cr[0], cr[1] + 1):
+                        for comb in itertools.combinations(vari, count):
+                            values.append(sep.join(comb))
+                    return values
+
+                return replacer
+
+            replacers.append(make_replacer_enum(variants, count_range, separator))
+        else:
+            # make function to choose random combinations
+            def make_replacer_single(vari, cr, sep):
+                def replacer():
+                    count = random.randint(cr[0], cr[1])
+                    comb = random.sample(vari, count)
+                    return [sep.join(comb)]
+
+                return replacer
+
+            replacers.append(make_replacer_single(variants, count_range, separator))
+
+    # make each prompt
+    if not enumerating:
+        # if not enumerating, repeat the prompt, replace each variant randomly
+        prompts = []
+        for _ in range(repeat_count):
+            current = prompt
+            for found, replacer in zip(founds, replacers):
+                current = current.replace(found.group(0), replacer()[0], 1)
+            prompts.append(current)
+    else:
+        # if enumerating, iterate all combinations for previous prompts
+        prompts = [prompt]
+
+        for found, replacer in zip(founds, replacers):
+            if found.group(2) is not None:
+                # make all combinations for existing prompts
+                new_prompts = []
+                for current in prompts:
+                    replecements = replacer()
+                    for replecement in replecements:
+                        new_prompts.append(current.replace(found.group(0), replecement, 1))
+                prompts = new_prompts
+
+        for found, replacer in zip(founds, replacers):
+            # make random selection for existing prompts
+            if found.group(2) is None:
+                for i in range(len(prompts)):
+                    prompts[i] = prompts[i].replace(found.group(0), replacer()[0], 1)
+
+    return prompts
+
+
 # endregion
 
 
@@ -2216,6 +2169,17 @@ def main(args):
         tokenizer = loading_pipe.tokenizer
         del loading_pipe
 
+        # Diffusers U-Net to original U-Net
+        original_unet = UNet2DConditionModel(
+            unet.config.sample_size,
+            unet.config.attention_head_dim,
+            unet.config.cross_attention_dim,
+            unet.config.use_linear_projection,
+            unet.config.upcast_attention,
+        )
+        original_unet.load_state_dict(unet.state_dict())
+        unet = original_unet
+
     # VAEを読み込む
     if args.vae is not None:
         vae = model_util.load_vae(args.vae, dtype)
@@ -2240,8 +2204,9 @@ def main(args):
 
     # xformers、Hypernetwork対応
     if not args.diffusers_xformers:
-        replace_unet_modules(unet, not args.xformers, args.xformers)
-        replace_vae_modules(vae, not args.xformers, args.xformers)
+        mem_eff = not (args.xformers or args.sdpa)
+        replace_unet_modules(unet, mem_eff, args.xformers, args.sdpa)
+        replace_vae_modules(vae, mem_eff, args.xformers, args.sdpa)
 
     # tokenizerを読み込む
     print("loading tokenizer")
@@ -2759,6 +2724,7 @@ def main(args):
 
     # seed指定時はseedを決めておく
     if args.seed is not None:
+        # dynamic promptを使うと足りなくなる→images_per_promptを適当に大きくしておいてもらう
         random.seed(args.seed)
         predefined_seeds = [random.randint(0, 0x7FFFFFFF) for _ in range(args.n_iter * len(prompt_list) * args.images_per_prompt)]
         if len(predefined_seeds) == 1:
@@ -2810,6 +2776,8 @@ def main(args):
                         ext.num_sub_prompts,
                     )
                     batch_1st.append(BatchData(is_1st_latent, base, ext_1st))
+
+                pipe.set_enable_control_net(True)  # 1st stageではControlNetを有効にする
                 images_1st = process_batch(batch_1st, True, True)
 
                 # 2nd stageのバッチを作成して以下処理する
@@ -2852,6 +2820,9 @@ def main(args):
                     bd_2nd = BatchData(False, BatchDataBase(*bd.base[0:3], bd.base.seed + 1, image, None, *bd.base[6:]), bd.ext)
                     batch_2nd.append(bd_2nd)
                 batch = batch_2nd
+
+                if args.highres_fix_disable_control_net:
+                    pipe.set_enable_control_net(False)  # オプション指定時、2nd stageではControlNetを無効にする
 
             # このバッチの情報を取り出す
             (
@@ -3041,121 +3012,138 @@ def main(args):
                 while not valid:
                     print("\nType prompt:")
                     try:
-                        prompt = input()
+                        raw_prompt = input()
                     except EOFError:
                         break
 
-                    valid = len(prompt.strip().split(" --")[0].strip()) > 0
+                    valid = len(raw_prompt.strip().split(" --")[0].strip()) > 0
                 if not valid:  # EOF, end app
                     break
             else:
-                prompt = prompt_list[prompt_index]
+                raw_prompt = prompt_list[prompt_index]
 
-            # parse prompt
-            width = args.W
-            height = args.H
-            scale = args.scale
-            negative_scale = args.negative_scale
-            steps = args.steps
-            seeds = None
-            strength = 0.8 if args.strength is None else args.strength
-            negative_prompt = ""
-            clip_prompt = None
-            network_muls = None
+            # sd-dynamic-prompts like variants:
+            # count is 1 (not dynamic) or images_per_prompt (no enumeration) or arbitrary (enumeration)
+            raw_prompts = handle_dynamic_prompt_variants(raw_prompt, args.images_per_prompt)
 
-            prompt_args = prompt.strip().split(" --")
-            prompt = prompt_args[0]
-            print(f"prompt {prompt_index+1}/{len(prompt_list)}: {prompt}")
+            # repeat prompt
+            for pi in range(args.images_per_prompt if len(raw_prompts) == 1 else len(raw_prompts)):
+                raw_prompt = raw_prompts[pi] if len(raw_prompts) > 1 else raw_prompts[0]
 
-            for parg in prompt_args[1:]:
-                try:
-                    m = re.match(r"w (\d+)", parg, re.IGNORECASE)
-                    if m:
-                        width = int(m.group(1))
-                        print(f"width: {width}")
-                        continue
+                if pi == 0 or len(raw_prompts) > 1:
+                    # parse prompt: if prompt is not changed, skip parsing
+                    width = args.W
+                    height = args.H
+                    scale = args.scale
+                    negative_scale = args.negative_scale
+                    steps = args.steps
+                    seed = None
+                    seeds = None
+                    strength = 0.8 if args.strength is None else args.strength
+                    negative_prompt = ""
+                    clip_prompt = None
+                    network_muls = None
 
-                    m = re.match(r"h (\d+)", parg, re.IGNORECASE)
-                    if m:
-                        height = int(m.group(1))
-                        print(f"height: {height}")
-                        continue
+                    prompt_args = raw_prompt.strip().split(" --")
+                    prompt = prompt_args[0]
+                    print(f"prompt {prompt_index+1}/{len(prompt_list)}: {prompt}")
 
-                    m = re.match(r"s (\d+)", parg, re.IGNORECASE)
-                    if m:  # steps
-                        steps = max(1, min(1000, int(m.group(1))))
-                        print(f"steps: {steps}")
-                        continue
+                    for parg in prompt_args[1:]:
+                        try:
+                            m = re.match(r"w (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                width = int(m.group(1))
+                                print(f"width: {width}")
+                                continue
 
-                    m = re.match(r"d ([\d,]+)", parg, re.IGNORECASE)
-                    if m:  # seed
-                        seeds = [int(d) for d in m.group(1).split(",")]
-                        print(f"seeds: {seeds}")
-                        continue
+                            m = re.match(r"h (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                height = int(m.group(1))
+                                print(f"height: {height}")
+                                continue
 
-                    m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
-                    if m:  # scale
-                        scale = float(m.group(1))
-                        print(f"scale: {scale}")
-                        continue
+                            m = re.match(r"s (\d+)", parg, re.IGNORECASE)
+                            if m:  # steps
+                                steps = max(1, min(1000, int(m.group(1))))
+                                print(f"steps: {steps}")
+                                continue
 
-                    m = re.match(r"nl ([\d\.]+|none|None)", parg, re.IGNORECASE)
-                    if m:  # negative scale
-                        if m.group(1).lower() == "none":
-                            negative_scale = None
-                        else:
-                            negative_scale = float(m.group(1))
-                        print(f"negative scale: {negative_scale}")
-                        continue
+                            m = re.match(r"d ([\d,]+)", parg, re.IGNORECASE)
+                            if m:  # seed
+                                seeds = [int(d) for d in m.group(1).split(",")]
+                                print(f"seeds: {seeds}")
+                                continue
 
-                    m = re.match(r"t ([\d\.]+)", parg, re.IGNORECASE)
-                    if m:  # strength
-                        strength = float(m.group(1))
-                        print(f"strength: {strength}")
-                        continue
+                            m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
+                            if m:  # scale
+                                scale = float(m.group(1))
+                                print(f"scale: {scale}")
+                                continue
 
-                    m = re.match(r"n (.+)", parg, re.IGNORECASE)
-                    if m:  # negative prompt
-                        negative_prompt = m.group(1)
-                        print(f"negative prompt: {negative_prompt}")
-                        continue
+                            m = re.match(r"nl ([\d\.]+|none|None)", parg, re.IGNORECASE)
+                            if m:  # negative scale
+                                if m.group(1).lower() == "none":
+                                    negative_scale = None
+                                else:
+                                    negative_scale = float(m.group(1))
+                                print(f"negative scale: {negative_scale}")
+                                continue
 
-                    m = re.match(r"c (.+)", parg, re.IGNORECASE)
-                    if m:  # clip prompt
-                        clip_prompt = m.group(1)
-                        print(f"clip prompt: {clip_prompt}")
-                        continue
+                            m = re.match(r"t ([\d\.]+)", parg, re.IGNORECASE)
+                            if m:  # strength
+                                strength = float(m.group(1))
+                                print(f"strength: {strength}")
+                                continue
 
-                    m = re.match(r"am ([\d\.\-,]+)", parg, re.IGNORECASE)
-                    if m:  # network multiplies
-                        network_muls = [float(v) for v in m.group(1).split(",")]
-                        while len(network_muls) < len(networks):
-                            network_muls.append(network_muls[-1])
-                        print(f"network mul: {network_muls}")
-                        continue
+                            m = re.match(r"n (.+)", parg, re.IGNORECASE)
+                            if m:  # negative prompt
+                                negative_prompt = m.group(1)
+                                print(f"negative prompt: {negative_prompt}")
+                                continue
 
-                except ValueError as ex:
-                    print(f"Exception in parsing / 解析エラー: {parg}")
-                    print(ex)
+                            m = re.match(r"c (.+)", parg, re.IGNORECASE)
+                            if m:  # clip prompt
+                                clip_prompt = m.group(1)
+                                print(f"clip prompt: {clip_prompt}")
+                                continue
 
-            if seeds is not None:
-                # 数が足りないなら繰り返す
-                if len(seeds) < args.images_per_prompt:
-                    seeds = seeds * int(math.ceil(args.images_per_prompt / len(seeds)))
-                seeds = seeds[: args.images_per_prompt]
-            else:
-                if predefined_seeds is not None:
-                    seeds = predefined_seeds[-args.images_per_prompt :]
-                    predefined_seeds = predefined_seeds[: -args.images_per_prompt]
-                elif args.iter_same_seed:
-                    seeds = [iter_seed] * args.images_per_prompt
+                            m = re.match(r"am ([\d\.\-,]+)", parg, re.IGNORECASE)
+                            if m:  # network multiplies
+                                network_muls = [float(v) for v in m.group(1).split(",")]
+                                while len(network_muls) < len(networks):
+                                    network_muls.append(network_muls[-1])
+                                print(f"network mul: {network_muls}")
+                                continue
+
+                        except ValueError as ex:
+                            print(f"Exception in parsing / 解析エラー: {parg}")
+                            print(ex)
+
+                # prepare seed
+                if seeds is not None:  # given in prompt
+                    # 数が足りないなら前のをそのまま使う
+                    if len(seeds) > 0:
+                        seed = seeds.pop(0)
                 else:
-                    seeds = [random.randint(0, 0x7FFFFFFF) for _ in range(args.images_per_prompt)]
-                if args.interactive:
-                    print(f"seed: {seeds}")
+                    if predefined_seeds is not None:
+                        if len(predefined_seeds) > 0:
+                            seed = predefined_seeds.pop(0)
+                        else:
+                            print("predefined seeds are exhausted")
+                            seed = None
+                    elif args.iter_same_seed:
+                        seeds = iter_seed
+                    else:
+                        seed = None  # 前のを消す
 
-            init_image = mask_image = guide_image = None
-            for seed in seeds:  # images_per_promptの数だけ
+                if seed is None:
+                    seed = random.randint(0, 0x7FFFFFFF)
+                if args.interactive:
+                    print(f"seed: {seed}")
+
+                # prepare init image, guide image and mask
+                init_image = mask_image = guide_image = None
+
                 # 同一イメージを使うとき、本当はlatentに変換しておくと無駄がないが面倒なのでとりあえず毎回処理する
                 if init_images is not None:
                     init_image = init_images[global_step % len(init_images)]
@@ -3334,6 +3322,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fp16", action="store_true", help="use fp16 / fp16を指定し省メモリ化する")
     parser.add_argument("--bf16", action="store_true", help="use bfloat16 / bfloat16を指定し省メモリ化する")
     parser.add_argument("--xformers", action="store_true", help="use xformers / xformersを使用し高速化する")
+    parser.add_argument("--sdpa", action="store_true", help="use sdpa in PyTorch 2 / sdpa")
     parser.add_argument(
         "--diffusers_xformers",
         action="store_true",
@@ -3436,6 +3425,11 @@ def setup_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="additional argmuments for upscaler (key=value) / upscalerへの追加の引数",
+    )
+    parser.add_argument(
+        "--highres_fix_disable_control_net",
+        action="store_true",
+        help="disable ControlNet for highres fix / highres fixでControlNetを使わない",
     )
 
     parser.add_argument(

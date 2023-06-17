@@ -4,9 +4,11 @@
 import math
 import os
 import torch
+import diffusers
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig, logging
-from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline, UNet2DConditionModel
+from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline  # , UNet2DConditionModel
 from safetensors.torch import load_file, save_file
+from library.original_unet import UNet2DConditionModel
 
 # DiffUsers版StableDiffusionのモデルパラメータ
 NUM_TRAIN_TIMESTEPS = 1000
@@ -126,17 +128,30 @@ def renew_vae_attention_paths(old_list, n_shave_prefix_segments=0):
         new_item = new_item.replace("norm.weight", "group_norm.weight")
         new_item = new_item.replace("norm.bias", "group_norm.bias")
 
-        new_item = new_item.replace("q.weight", "query.weight")
-        new_item = new_item.replace("q.bias", "query.bias")
+        if diffusers.__version__ < "0.17.0":
+            new_item = new_item.replace("q.weight", "query.weight")
+            new_item = new_item.replace("q.bias", "query.bias")
 
-        new_item = new_item.replace("k.weight", "key.weight")
-        new_item = new_item.replace("k.bias", "key.bias")
+            new_item = new_item.replace("k.weight", "key.weight")
+            new_item = new_item.replace("k.bias", "key.bias")
 
-        new_item = new_item.replace("v.weight", "value.weight")
-        new_item = new_item.replace("v.bias", "value.bias")
+            new_item = new_item.replace("v.weight", "value.weight")
+            new_item = new_item.replace("v.bias", "value.bias")
 
-        new_item = new_item.replace("proj_out.weight", "proj_attn.weight")
-        new_item = new_item.replace("proj_out.bias", "proj_attn.bias")
+            new_item = new_item.replace("proj_out.weight", "proj_attn.weight")
+            new_item = new_item.replace("proj_out.bias", "proj_attn.bias")
+        else:
+            new_item = new_item.replace("q.weight", "to_q.weight")
+            new_item = new_item.replace("q.bias", "to_q.bias")
+
+            new_item = new_item.replace("k.weight", "to_k.weight")
+            new_item = new_item.replace("k.bias", "to_k.bias")
+
+            new_item = new_item.replace("v.weight", "to_v.weight")
+            new_item = new_item.replace("v.bias", "to_v.bias")
+
+            new_item = new_item.replace("proj_out.weight", "to_out.0.weight")
+            new_item = new_item.replace("proj_out.bias", "to_out.0.bias")
 
         new_item = shave_segments(new_item, n_shave_prefix_segments=n_shave_prefix_segments)
 
@@ -191,8 +206,16 @@ def assign_to_checkpoint(
                 new_path = new_path.replace(replacement["old"], replacement["new"])
 
         # proj_attn.weight has to be converted from conv 1D to linear
-        if "proj_attn.weight" in new_path:
-            checkpoint[new_path] = old_checkpoint[path["old"]][:, :, 0]
+        reshaping = False
+        if diffusers.__version__ < "0.17.0":
+            if "proj_attn.weight" in new_path:
+                reshaping = True
+        else:
+            if ".attentions." in new_path and ".0.to_" in new_path and old_checkpoint[path["old"]].ndim > 2:
+                reshaping = True
+
+        if reshaping:
+            checkpoint[new_path] = old_checkpoint[path["old"]][:, :, 0, 0]
         else:
             checkpoint[new_path] = old_checkpoint[path["old"]]
 
@@ -361,7 +384,7 @@ def convert_ldm_unet_checkpoint(v2, checkpoint, config):
 
     # SDのv2では1*1のconv2dがlinearに変わっている
     # 誤って Diffusers 側を conv2d のままにしてしまったので、変換必要
-    if v2 and not config.get('use_linear_projection', False):
+    if v2 and not config.get("use_linear_projection", False):
         linear_transformer_to_conv(new_checkpoint)
 
     return new_checkpoint
@@ -877,14 +900,24 @@ def convert_vae_state_dict(vae_state_dict):
         sd_mid_res_prefix = f"mid.block_{i+1}."
         vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
-    vae_conversion_map_attn = [
-        # (stable-diffusion, HF Diffusers)
-        ("norm.", "group_norm."),
-        ("q.", "query."),
-        ("k.", "key."),
-        ("v.", "value."),
-        ("proj_out.", "proj_attn."),
-    ]
+    if diffusers.__version__ < "0.17.0":
+        vae_conversion_map_attn = [
+            # (stable-diffusion, HF Diffusers)
+            ("norm.", "group_norm."),
+            ("q.", "query."),
+            ("k.", "key."),
+            ("v.", "value."),
+            ("proj_out.", "proj_attn."),
+        ]
+    else:
+        vae_conversion_map_attn = [
+            # (stable-diffusion, HF Diffusers)
+            ("norm.", "group_norm."),
+            ("q.", "to_q."),
+            ("k.", "to_k."),
+            ("v.", "to_v."),
+            ("proj_out.", "to_out.0."),
+        ]
 
     mapping = {k: k for k in vae_state_dict.keys()}
     for k, v in mapping.items():
@@ -901,7 +934,7 @@ def convert_vae_state_dict(vae_state_dict):
     for k, v in new_state_dict.items():
         for weight_name in weights_to_convert:
             if f"mid.attn_1.{weight_name}.weight" in k:
-                # print(f"Reshaping {k} for SD format")
+                # print(f"Reshaping {k} for SD format: shape {v.shape} -> {v.shape} x 1 x 1")
                 new_state_dict[k] = reshape_weight_for_sd(v)
 
     return new_state_dict
@@ -998,10 +1031,31 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, device="cpu", dt
     else:
         converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
 
-        logging.set_verbosity_error()  # don't show annoying warning
-        text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
-        logging.set_verbosity_warning()
-
+        # logging.set_verbosity_error()  # don't show annoying warning
+        # text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
+        # logging.set_verbosity_warning()
+        # print(f"config: {text_model.config}")
+        cfg = CLIPTextConfig(
+            vocab_size=49408,
+            hidden_size=768,
+            intermediate_size=3072,
+            num_hidden_layers=12,
+            num_attention_heads=12,
+            max_position_embeddings=77,
+            hidden_act="quick_gelu",
+            layer_norm_eps=1e-05,
+            dropout=0.0,
+            attention_dropout=0.0,
+            initializer_range=0.02,
+            initializer_factor=1.0,
+            pad_token_id=1,
+            bos_token_id=0,
+            eos_token_id=2,
+            model_type="clip_text_model",
+            projection_dim=768,
+            torch_dtype="float32",
+        )
+        text_model = CLIPTextModel._from_config(cfg)
         info = text_model.load_state_dict(converted_text_encoder_checkpoint)
     print("loading text encoder:", info)
 

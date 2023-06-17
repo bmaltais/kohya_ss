@@ -17,7 +17,13 @@ from library.config_util import (
     BlueprintGenerator,
 )
 import library.custom_train_functions as custom_train_functions
-from library.custom_train_functions import apply_snr_weight, pyramid_noise_like, apply_noise_offset
+from library.custom_train_functions import (
+    apply_snr_weight,
+    prepare_scheduler_for_custom_training,
+    pyramid_noise_like,
+    apply_noise_offset,
+    scale_v_prediction_loss_like_noise_prediction,
+)
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -89,7 +95,7 @@ def train(args):
 
     # acceleratorを準備する
     print("prepare accelerator")
-    accelerator, unwrap_model = train_util.prepare_accelerator(args)
+    accelerator = train_util.prepare_accelerator(args)
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
@@ -144,43 +150,46 @@ def train(args):
     accelerator.print(f"create embeddings for {args.num_vectors_per_token} tokens, for {args.token_string}")
 
     # データセットを準備する
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False))
-    if args.dataset_config is not None:
-        accelerator.print(f"Load dataset config from {args.dataset_config}")
-        user_config = config_util.load_user_config(args.dataset_config)
-        ignored = ["train_data_dir", "reg_data_dir", "in_json"]
-        if any(getattr(args, attr) is not None for attr in ignored):
-            accelerator.print(
-                "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
-                    ", ".join(ignored)
+    if args.dataset_class is None:
+        blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False))
+        if args.dataset_config is not None:
+            accelerator.print(f"Load dataset config from {args.dataset_config}")
+            user_config = config_util.load_user_config(args.dataset_config)
+            ignored = ["train_data_dir", "reg_data_dir", "in_json"]
+            if any(getattr(args, attr) is not None for attr in ignored):
+                accelerator.print(
+                    "ignore following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
+                        ", ".join(ignored)
+                    )
                 )
-            )
-    else:
-        use_dreambooth_method = args.in_json is None
-        if use_dreambooth_method:
-            accelerator.print("Use DreamBooth method.")
-            user_config = {
-                "datasets": [
-                    {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
-                ]
-            }
         else:
-            accelerator.print("Train with captions.")
-            user_config = {
-                "datasets": [
-                    {
-                        "subsets": [
-                            {
-                                "image_dir": args.train_data_dir,
-                                "metadata_file": args.in_json,
-                            }
-                        ]
-                    }
-                ]
-            }
+            use_dreambooth_method = args.in_json is None
+            if use_dreambooth_method:
+                accelerator.print("Use DreamBooth method.")
+                user_config = {
+                    "datasets": [
+                        {"subsets": config_util.generate_dreambooth_subsets_config_by_subdirs(args.train_data_dir, args.reg_data_dir)}
+                    ]
+                }
+            else:
+                print("Train with captions.")
+                user_config = {
+                    "datasets": [
+                        {
+                            "subsets": [
+                                {
+                                    "image_dir": args.train_data_dir,
+                                    "metadata_file": args.in_json,
+                                }
+                            ]
+                        }
+                    ]
+                }
 
-    blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
-    train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+        blueprint = blueprint_generator.generate(user_config, args, tokenizer=tokenizer)
+        train_dataset_group = config_util.generate_dataset_group_by_blueprint(blueprint.dataset_group)
+    else:
+        train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizer)
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
@@ -222,7 +231,7 @@ def train(args):
         ), "when caching latents, either color_aug or random_crop cannot be used / latentをキャッシュするときはcolor_augとrandom_cropは使えません"
 
     # モデルに xformers とか memory efficient attention を組み込む
-    train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers)
+    train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
 
     # 学習を準備する
     if cache_latents:
@@ -282,7 +291,7 @@ def train(args):
 
     index_no_updates = torch.arange(len(tokenizer)) < token_ids[0]
     # accelerator.print(len(index_no_updates), torch.sum(index_no_updates))
-    orig_embeds_params = unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
+    orig_embeds_params = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight.data.detach().clone()
 
     # Freeze all parameters except for the token embeddings in text encoder
     text_encoder.requires_grad_(True)
@@ -335,6 +344,7 @@ def train(args):
     noise_scheduler = DDPMScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
     )
+    prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
 
     if accelerator.is_main_process:
         accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
@@ -409,11 +419,13 @@ def train(args):
                 loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
                 loss = loss.mean([1, 2, 3])
 
-                if args.min_snr_gamma:
-                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
-
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                 loss = loss * loss_weights
+
+                if args.min_snr_gamma:
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                if args.scale_v_pred_loss_like_noise_pred:
+                    loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -428,7 +440,7 @@ def train(args):
 
                 # Let's make sure we don't update any embedding weights besides the newly added token
                 with torch.no_grad():
-                    unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
+                    accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[index_no_updates] = orig_embeds_params[
                         index_no_updates
                     ]
 
@@ -445,7 +457,9 @@ def train(args):
                 if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
-                        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+                        updated_embs = (
+                            accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+                        )
 
                         ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
                         save_model(ckpt_name, updated_embs, global_step, epoch)
@@ -461,7 +475,7 @@ def train(args):
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
                 logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
-                if args.optimizer_type.lower().startswith("DAdapt".lower()):  # tracking d*lr value
+                if args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower():  # tracking d*lr value
                     logs["lr/d*lr"] = (
                         lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
                     )
@@ -481,7 +495,7 @@ def train(args):
 
         accelerator.wait_for_everyone()
 
-        updated_embs = unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
+        updated_embs = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[token_ids].data.detach().clone()
 
         if args.save_every_n_epochs is not None:
             saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
@@ -505,7 +519,7 @@ def train(args):
 
     is_main_process = accelerator.is_main_process
     if is_main_process:
-        text_encoder = unwrap_model(text_encoder)
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     accelerator.end_training()
 
