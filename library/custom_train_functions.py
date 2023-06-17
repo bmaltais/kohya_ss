@@ -22,7 +22,7 @@ def prepare_scheduler_for_custom_training(noise_scheduler, device):
 def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
     snr = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])
     gamma_over_snr = torch.div(torch.ones_like(snr) * gamma, snr)
-    snr_weight = torch.minimum(gamma_over_snr, torch.ones_like(gamma_over_snr)).float()  # from paper
+    snr_weight = torch.minimum(gamma_over_snr, torch.ones_like(gamma_over_snr)).float().to(loss.device)  # from paper
     loss = loss * snr_weight
     return loss
 
