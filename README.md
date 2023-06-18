@@ -353,6 +353,8 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/18 (v21.7.9)
+- Implement temporary fix for validation of image dataset. Will no longer stop execution but will let training continue... this is changed to avoid stopping training on false positive... yet still raise awaireness that something might be wrong with the image dataset structure.
 * 2023/06/14 (v21.7.8)
 - Add tkinter to dockerised version (thanks to @burdokow)
 - Add option to create caption files from folder names to the `group_images.py` tool.
