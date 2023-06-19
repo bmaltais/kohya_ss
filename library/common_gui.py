@@ -1287,7 +1287,7 @@ def run_cmd_advanced_training(**kwargs):
     return run_cmd
 
 def verify_image_folder_pattern(folder_path):
-    false_response = True # temporarilly set to true to prevent stopping training in case of false positive
+    false_response = True # temporarily set to true to prevent stopping training in case of false positive
     true_response = True
 
     # Check if the folder exists
