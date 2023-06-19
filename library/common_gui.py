@@ -1289,27 +1289,33 @@ def run_cmd_advanced_training(**kwargs):
 def verify_image_folder_pattern(folder_path):
     false_response = True # temporarilly set to true to prevent stopping training in case of false positive
     true_response = True
-    
+
     # Check if the folder exists
     if not os.path.isdir(folder_path):
         log.error(f"The provided path '{folder_path}' is not a valid folder. Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return false_response
 
     # Create a regular expression pattern to match the required sub-folder names
+    # The pattern should start with one or more digits (\d+) followed by an underscore (_)
+    # After the underscore, it should match one or more word characters (\w+), which can be letters, numbers, or underscores
+    # Example of a valid pattern matching name: 123_example_folder
     pattern = r'^\d+_\w+'
 
-    # Get the list of sub-folders matching the pattern
-    matching_subfolders = [
-        subfolder
+    # Get the list of sub-folders in the directory
+    subfolders = [
+        os.path.join(folder_path, subfolder)
         for subfolder in os.listdir(folder_path)
-        if os.path.isdir(os.path.join(folder_path, subfolder)) and re.match(pattern, subfolder)
+        if os.path.isdir(os.path.join(folder_path, subfolder))
     ]
 
-    # Check if all sub-folders match the pattern
-    filenames = [filename for filename in os.listdir(folder_path) if not filename.startswith('.')]
-    if len(matching_subfolders) != len(filenames):
-        log.error(f"Not all image folders have proper name patterns <numbre>_<text> in {folder_path}. Please follow the folder structure documentation found at docs/image_folder_structure.md ...")
-        log.error(f"Only folders are allowed in {folder_path}...")
+    # Check the pattern of each sub-folder
+    matching_subfolders = [subfolder for subfolder in subfolders if re.match(pattern, os.path.basename(subfolder))]
+
+    # Print non-matching sub-folders
+    non_matching_subfolders = set(subfolders) - set(matching_subfolders)
+    if non_matching_subfolders:
+        log.error(f"The following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}")
+        log.error(f"Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return false_response
 
     # Check if no sub-folders exist
