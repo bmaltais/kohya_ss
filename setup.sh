@@ -486,24 +486,26 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      if [ "$root" = true ]; then
-        apt update -y >&3 && apt install -y python3-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
+      # if [ "$root" = true ]; then
+        echo "This script needs to be run as root to install missing python3-tk packages. Asking for sudo level access..."
+        sudo apt update -y >&3 && sudo apt install -y python3-tk >&3
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
     else
       echo "Python TK found! Skipping install!"
     fi
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     echo "Redhat or Redhat base detected."
     if ! rpm -qa | grep -qi python3-tkinter; then
-      if [ "$root" = true ]; then
-        dnf install python3-tkinter -y >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
+      # if [ "$root" = true ]; then
+        echo "This script needs to be run as root to install missing python3-tk packages. Asking for sudo level access..."
+        sudo dnf install python3-tkinter -y >&3
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
     fi
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     echo "Arch Linux or Arch base detected."
