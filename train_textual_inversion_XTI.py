@@ -189,7 +189,7 @@ def train(args):
     print(f"create embeddings for {args.num_vectors_per_token} tokens, for {args.token_string}")
 
     # データセットを準備する
-    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False))
+    blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False, False))
     if args.dataset_config is not None:
         print(f"Load dataset config from {args.dataset_config}")
         user_config = config_util.load_user_config(args.dataset_config)

@@ -584,6 +584,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--support_dreambooth", action="store_true")
   parser.add_argument("--support_finetuning", action="store_true")
+  parser.add_argument("--support_controlnet", action="store_true")
   parser.add_argument("--support_dropout", action="store_true")
   parser.add_argument("dataset_config")
   config_args, remain = parser.parse_known_args()
@@ -602,7 +603,7 @@ if __name__ == "__main__":
   print("\n[user_config]")
   print(user_config)
 
-  sanitizer = ConfigSanitizer(config_args.support_dreambooth, config_args.support_finetuning, config_args.support_dropout)
+  sanitizer = ConfigSanitizer(config_args.support_dreambooth, config_args.support_finetuning, config_args.support_controlnet, config_args.support_dropout)
   sanitized_user_config = sanitizer.sanitize_user_config(user_config)
 
   print("\n[sanitized_user_config]")
