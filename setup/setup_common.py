@@ -350,7 +350,7 @@ def install(
 
 
 def install_requirements(requirements_file):
-    log.info(f'Verifying requirements from {requirements_file}...')
+    log.info(f'Verifying requirements against {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:
         # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
         lines = [
@@ -416,24 +416,6 @@ def check_python(ignore=True, skip_git=False):
 def delete_file(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)
-
-
-def install_requirements(requirements_file):
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
-
-    log.info('Verifying requirements')
-    with open(requirements_file, 'r', encoding='utf8') as f:
-        lines = [
-            line.strip()
-            for line in f.readlines()
-            if line.strip() != ''
-            and not line.startswith('#')
-            and line is not None
-        ]
-        for line in lines:
-            install(line)
 
 
 def write_to_file(file_path, content):

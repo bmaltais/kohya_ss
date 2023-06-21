@@ -4,10 +4,6 @@ import sys
 import shutil
 import argparse
 import setup_common
-from library.custom_logging import setup_logging
-
-# Set up logging
-log = setup_logging()
 
 # Get the absolute path of the current file's directory (Kohua_SS project directory)
 project_directory = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +15,11 @@ if "setup" in project_directory:
 
 # Add the project directory to the beginning of the Python search path
 sys.path.insert(0, project_directory)
+
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
 
 def check_torch():
     # Check for nVidia toolkit or AMD toolkit
@@ -87,7 +88,6 @@ def main():
 
     if not args.requirements:
         if check_torch() == 1:
-            log.info('Using ')
             setup_common.install_requirements('requirements_windows_torch1.txt')
         else:
             setup_common.install_requirements('requirements_windows_torch2.txt')
