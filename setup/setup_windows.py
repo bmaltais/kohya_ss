@@ -1,5 +1,6 @@
 import subprocess
 import os
+import re
 import sys
 import filecmp
 import logging
@@ -302,6 +303,10 @@ def installed(package, friendly: str = None):
     #
     # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
     #
+    
+    # Remove brackets and their contents from the line using regular expressions
+    # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    package = re.sub(r'\[.*?\]', '', package)
 
     ok = True
     try:
@@ -510,7 +515,7 @@ def install_kohya_ss_torch1():
 
     if check_torch() == 2:
         input(
-            f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
+            f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit enter to continue...{RESET_COLOR}'
         )
         return
 
@@ -596,7 +601,7 @@ def main_menu():
         elif choice == '3':
             run_cmd('accelerate config')
         elif choice == '4':
-            subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
+            subprocess.Popen('start cmd /k .\gui.bat --inbrowser', shell=True) # /k keep the terminal open on quit. /c would close the terminal instead
         elif choice == '5':
             print('Quitting the program.')
             break
