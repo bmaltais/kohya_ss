@@ -236,16 +236,16 @@ install_python_dependencies() {
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip >&3
+  pip install --upgrade pip
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
   case "$OSTYPE" in
   "linux-gnu"*) pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
-    --extra-index-url https://download.pytorch.org/whl/cu118 >&3 &&
-    pip install -U -I xformers==0.0.20 >&3 ;;
+    --extra-index-url https://download.pytorch.org/whl/cu118 &&
+    pip install --upgrade xformers==0.0.20 ;;
   "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
+    -f https://download.pytorch.org/whl/cpu/torch_stable.html ;;
   "cygwin")
     :
     ;;
@@ -256,7 +256,7 @@ install_python_dependencies() {
 
   if [ "$RUNPOD" = true ]; then
     echo "Installing tenssort."
-    pip install tensorrt >&3
+    pip install tensorrt
   fi
 
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
@@ -283,9 +283,9 @@ install_python_dependencies() {
   fi
 
   if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+    python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
   else
-    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+    python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
   fi
 
   echo "Removing the temp requirements file."
