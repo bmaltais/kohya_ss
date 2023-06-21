@@ -4,7 +4,6 @@
 
 # Set the required package versions here.
 # They will be appended to the requirements_unix.txt file in the installation directory.
-TENSORFLOW_VERSION="2.12.0"
 TENSORFLOW_MACOS_VERSION="2.12.0"
 TENSORFLOW_METAL_VERSION="0.8.0"
 
@@ -264,9 +263,16 @@ install_python_dependencies() {
 
   #This will copy our requirements_unix.txt file out and make the khoya_ss lib a dynamic location then cleanup.
   local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
-  echo "Copying $DIR/requirements_unix.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_unix.txt" >"$TEMP_REQUIREMENTS_FILE"
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Copying $DIR/requirements_unix.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
+  else
+    echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
+  fi
 
   # This will check if macOS is running then determine if M1+ or Intel CPU.
   # It will append the appropriate packages to the requirements_unix.txt file.
@@ -276,9 +282,6 @@ install_python_dependencies() {
     if [[ "$(uname -m)" == "arm64" ]]; then
       echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
       echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    # Check if the processor is Intel (x86_64)
-    # elif [[ "$(uname -m)" == "x86_64" ]]; then
-      # echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
     fi
   fi
 
