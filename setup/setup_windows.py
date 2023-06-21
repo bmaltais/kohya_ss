@@ -1,14 +1,9 @@
 import subprocess
 import os
-import re
-import sys
 import filecmp
 import logging
 import shutil
 import sysconfig
-import datetime
-import platform
-import pkg_resources
 import setup_common
 
 errors = 0  # Define the 'errors' variable before using it

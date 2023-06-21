@@ -13,10 +13,6 @@ import pkg_resources
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
 
-# ANSI escape code for yellow color
-YELLOW = '\033[93m'
-RESET_COLOR = '\033[0m'
-
 # setup console and file logging
 def setup_logging(clean=False):
     #
