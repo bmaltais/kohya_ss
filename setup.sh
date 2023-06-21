@@ -3,7 +3,6 @@
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
 # Set the required package versions here.
-# They will be appended to the requirements_unix.txt file in the installation directory.
 TENSORFLOW_MACOS_VERSION="2.12.0"
 TENSORFLOW_METAL_VERSION="0.8.0"
 
@@ -483,7 +482,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   echo "Raw detected distro string: $distro" >&4
   echo "Raw detected distro family string: $family" >&4
 
-  echo "Installing Python TK if not found on the system."
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
