@@ -349,6 +349,27 @@ def install(
         pip(f'install --upgrade {package}', ignore=ignore)
 
 
+def install_requirements(requirements_file):
+    log.info('Verifying requirements')
+    with open(requirements_file, 'r', encoding='utf8') as f:
+        # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
+        lines = [
+            line.strip()
+            for line in f.readlines()
+            if line.strip() != ''
+            and not line.startswith('#')
+            and line is not None
+            and not line.startswith('.')
+        ]
+
+        # Iterate over each line and install the requirements
+        for line in lines:
+            # Remove brackets and their contents from the line using regular expressions
+            # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+            package_name = re.sub(r'\[.*?\]', '', line)
+            install(line, package_name)
+
+
 def ensure_base_requirements():
     try:
         import rich   # pylint: disable=unused-import
