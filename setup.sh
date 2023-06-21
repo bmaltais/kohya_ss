@@ -277,8 +277,8 @@ install_python_dependencies() {
       echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
       echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
     # Check if the processor is Intel (x86_64)
-    elif [[ "$(uname -m)" == "x86_64" ]]; then
-      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
+    # elif [[ "$(uname -m)" == "x86_64" ]]; then
+      # echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
     fi
   fi
 
@@ -488,8 +488,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
       # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "sudo apt update -y >&3 && sudo apt install -y python3-tk >&3"
+        echo "This script needs you to install the missing python3-tk packages. Please install with:"
+        echo " "
+        echo "sudo apt update -y && sudo apt install -y python3-tk"
         exit 1
       # else
       #   echo "This script needs to be run as root or via sudo to install packages."
