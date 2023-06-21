@@ -26,7 +26,7 @@ RUN python3 -m pip install wheel
 ## RUN python3 -m pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
 
 # Install requirements
-COPY requirements_unix.txt setup.py ./
+COPY requirements_unix.txt ./setup/setup.py ./
 RUN python3 -m pip install --use-pep517 -r requirements_unix.txt xformers
 
 # Replace pillow with pillow-simd
