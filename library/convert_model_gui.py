@@ -174,6 +174,10 @@ def gradio_convert_model_tab(headless=False):
         gr.Markdown(
             'This utility can be used to convert from one stable diffusion model format to another.'
         )
+        
+        model_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
+        model_ext_name = gr.Textbox(value='Model types', visible=False)
+        
         with gr.Row():
             source_model_input = gr.Textbox(
                 label='Source model',
@@ -198,7 +202,7 @@ def gradio_convert_model_tab(headless=False):
             )
             button_source_model_file.click(
                 get_file_path,
-                inputs=[source_model_input],
+                inputs=[source_model_input, model_ext, model_ext_name],
                 outputs=source_model_input,
                 show_progress=False,
             )
