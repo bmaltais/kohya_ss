@@ -4,7 +4,7 @@ import sys
 import shutil
 import argparse
 import subprocess
-from setup.setup_windows import check_repo_version
+from setup_windows import check_repo_version
 
 # Get the absolute path of the current file's directory (Kohua_SS project directory)
 project_directory = os.path.dirname(os.path.abspath(__file__))
