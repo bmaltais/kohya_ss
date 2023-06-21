@@ -99,58 +99,58 @@ def sync_bits_and_bytes_files():
 
 
 def install_kohya_ss_torch1():
-    check_repo_version()
-    check_python()
+    setup_common.check_repo_version()
+    setup_common.check_python()
 
     # Upgrade pip if needed
-    install('--upgrade pip')
+    setup_common.install('--upgrade pip')
 
-    if check_torch() == 2:
+    if setup_common.check_torch() == 2:
         input(
             f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit enter to continue...{RESET_COLOR}'
         )
         return
 
-    install(
+    setup_common.install(
         'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
         'torch torchvision'
     )
-    install(
+    setup_common.install(
         'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
         'xformers-0.0.14'
     )
-    install_requirements('requirements_windows_torch1.txt')
+    setup_common.install_requirements('requirements_windows_torch1.txt')
     sync_bits_and_bytes_files()
-    configure_accelerate()
+    setup_common.configure_accelerate()
     # run_cmd(f'accelerate config')
 
 
 def install_kohya_ss_torch2():
-    check_repo_version()
-    check_python()
+    setup_common.check_repo_version()
+    setup_common.check_python()
 
     # Upgrade pip if needed
-    install('--upgrade pip')
+    setup_common.install('--upgrade pip')
 
-    if check_torch() == 1:
+    if setup_common.check_torch() == 1:
         input(
             f'{YELLOW}\nTorch 1 is already installed in the venv. To install Torch 2 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
         )
         return
 
-    install(
+    setup_common.install(
         'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
         'torch torchvision'
     )
-    install_requirements('requirements_windows_torch2.txt')
+    setup_common.install_requirements('requirements_windows_torch2.txt')
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
     sync_bits_and_bytes_files()
-    configure_accelerate()
+    setup_common.configure_accelerate()
     # run_cmd(f'accelerate config')
 
 
 def main_menu():
-    clear_screen()
+    setup_common.clear_screen()
     while True:
         print('\nKohya_ss GUI setup menu:\n')
         print('1. Install kohya_ss gui')
@@ -183,7 +183,7 @@ def main_menu():
         elif choice == '2':
             cudann_install()
         elif choice == '3':
-            run_cmd('accelerate config')
+            setup_common.run_cmd('accelerate config')
         elif choice == '4':
             subprocess.Popen('start cmd /k .\gui.bat --inbrowser', shell=True) # /k keep the terminal open on quit. /c would close the terminal instead
         elif choice == '5':
@@ -194,6 +194,6 @@ def main_menu():
 
 
 if __name__ == '__main__':
-    ensure_base_requirements()
-    setup_logging()
+    setup_common.ensure_base_requirements()
+    setup_common.setup_logging()
     main_menu()
