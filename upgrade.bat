@@ -13,4 +13,4 @@ git pull
 call .\venv\Scripts\activate.bat
 
 :: Validate requirements
-python.exe .\tools\validate_requirements.py
+python.exe .\setup\validate_requirements.py

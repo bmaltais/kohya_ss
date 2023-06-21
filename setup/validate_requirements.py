@@ -3,14 +3,14 @@ import re
 import sys
 import shutil
 import argparse
-from setup_windows import install, check_repo_version
+import setup_common
 
 # Get the absolute path of the current file's directory (Kohua_SS project directory)
 project_directory = os.path.dirname(os.path.abspath(__file__))
 
-# Check if the "tools" directory is present in the project_directory
-if "tools" in project_directory:
-    # If the "tools" directory is present, move one level up to the parent directory
+# Check if the "setup" directory is present in the project_directory
+if "setup" in project_directory:
+    # If the "setup" directory is present, move one level up to the parent directory
     project_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Add the project directory to the beginning of the Python search path
@@ -20,7 +20,6 @@ from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
 
 def check_torch():
     # Check for nVidia toolkit or AMD toolkit
@@ -72,29 +71,8 @@ def check_torch():
         sys.exit(1)
 
 
-def install_requirements(requirements_file):
-    log.info('Verifying requirements')
-    with open(requirements_file, 'r', encoding='utf8') as f:
-        # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
-        lines = [
-            line.strip()
-            for line in f.readlines()
-            if line.strip() != ''
-            and not line.startswith('#')
-            and line is not None
-            and not line.startswith('.')
-        ]
-
-        # Iterate over each line and install the requirements
-        for line in lines:
-            # Remove brackets and their contents from the line using regular expressions
-            # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
-            package_name = re.sub(r'\[.*?\]', '', line)
-            install(line, package_name)
-
-
 def main():
-    check_repo_version()
+    setup_common.check_repo_version()
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Validate that requirements are satisfied.'
@@ -109,13 +87,12 @@ def main():
     args = parser.parse_args()
 
     if not args.requirements:
-        # Check Torch
         if check_torch() == 1:
-            install_requirements('requirements_windows_torch1.txt')
+            setup_common.install_requirements('requirements_windows_torch1.txt')
         else:
-            install_requirements('requirements_windows_torch2.txt')
+            setup_common.install_requirements('requirements_windows_torch2.txt')
     else:
-        install_requirements(args.requirements)
+        setup_common.install_requirements(args.requirements)
 
 
 if __name__ == '__main__':

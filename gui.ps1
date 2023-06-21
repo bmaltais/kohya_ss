@@ -29,10 +29,10 @@ if ($pipOutput) {
 $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 
 # Debug info about system
-# python.exe .\tools\debug_info.py
+# python.exe .\setup\debug_info.py
 
 # Validate the requirements and store the exit code
-python.exe .\tools\validate_requirements.py
+python.exe .\setup\validate_requirements.py
 
 # If the exit code is 0, read arguments from gui_parameters.txt (if it exists)
 # and run the kohya_gui.py script with the command-line arguments

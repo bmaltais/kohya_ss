@@ -3,8 +3,6 @@
 # This file will be the host environment setup file for all operating systems other than base Windows.
 
 # Set the required package versions here.
-# They will be appended to the requirements_unix.txt file in the installation directory.
-TENSORFLOW_VERSION="2.12.0"
 TENSORFLOW_MACOS_VERSION="2.12.0"
 TENSORFLOW_METAL_VERSION="0.8.0"
 
@@ -90,7 +88,7 @@ GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
-SKIP_GIT_UPDATE=false
+SKIP_GIT_UPDATE=true
 SKIP_GUI=false
 
 while getopts ":vb:d:g:inprus-:" opt; do
@@ -100,6 +98,7 @@ while getopts ":vb:d:g:inprus-:" opt; do
     OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
+  
   case $opt in
   b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
@@ -194,28 +193,34 @@ size_available() {
 
 # The expected usage is create_symlinks symlink target_file
 create_symlinks() {
+  local symlink="$1"
+  local target_file="$2"
+
   echo "Checking symlinks now."
-  # Next line checks for valid symlink
-  if [ -L "$1" ]; then
+
+  # Check if the symlink exists
+  if [ -L "$symlink" ]; then
     # Check if the linked file exists and points to the expected file
-    if [ -e "$1" ] && [ "$(readlink "$1")" == "$2" ]; then
-      echo "$(basename "$1") symlink looks fine. Skipping."
+    if [ -e "$symlink" ] && [ "$(readlink "$symlink")" == "$target_file" ]; then
+      echo "$(basename "$symlink") symlink looks fine. Skipping."
     else
-      if [ -f "$2" ]; then
-        echo "Broken symlink detected. Recreating $(basename "$1")."
-        rm "$1" &&
-          ln -s "$2" "$1"
+      if [ -f "$target_file" ]; then
+        echo "Broken symlink detected. Recreating $(basename "$symlink")."
+        rm "$symlink" && ln -s "$target_file" "$symlink"
       else
-        echo "$2 does not exist. Nothing to link."
+        echo "$target_file does not exist. Nothing to link."
       fi
     fi
   else
-    echo "Linking $(basename "$1")."
-    ln -s "$2" "$1"
+    echo "Linking $(basename "$symlink")."
+    ln -s "$target_file" "$symlink"
   fi
 }
 
+
 install_python_dependencies() {
+  local TEMP_REQUIREMENTS_FILE
+
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
   if ! inDocker; then
@@ -235,61 +240,55 @@ install_python_dependencies() {
 
   # Updating pip if there is one
   echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip >&3
+  pip install --upgrade pip
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
+
   case "$OSTYPE" in
-  "linux-gnu"*) pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
-    --extra-index-url https://download.pytorch.org/whl/cu118 >&3 &&
-    pip install -U -I xformers==0.0.20 >&3 ;;
-  "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html >&3 ;;
-  "cygwin")
-    :
-    ;;
-  "msys")
-    :
-    ;;
+    "linux-gnu"*)
+      pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
+        --extra-index-url https://download.pytorch.org/whl/cu118
+      pip install --upgrade xformers==0.0.20
+      ;;
+    "darwin"*)
+      pip install torch==2.0.0 torchvision==0.15.1 \
+        -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      # Check if the processor is Apple Silicon (arm64)
+      if [[ "$(uname -m)" == "arm64" ]]; then
+        pip install tensorflow-metal=="$TENSORFLOW_MACOS_VERSION"
+      else
+        pip install tensorflow-macos=="$TENSORFLOW_METAL_VERSION"
+      fi
+      ;;
   esac
 
   if [ "$RUNPOD" = true ]; then
     echo "Installing tenssort."
-    pip install tensorrt >&3
+    pip install tensorrt
   fi
 
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements_unix.txt file out and make the khoya_ss lib a dynamic location then cleanup.
-  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
-  echo "Copying $DIR/requirements_unix.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_unix.txt" >"$TEMP_REQUIREMENTS_FILE"
+  # Create a temporary requirements file
+  TEMP_REQUIREMENTS_FILE=$(mktemp)
 
-  # This will check if macOS is running then determine if M1+ or Intel CPU.
-  # It will append the appropriate packages to the requirements_unix.txt file.
-  # Other OSs won't be affected and the version variables are at the top of this file.
-  if [[ "$(uname)" == "Darwin" ]]; then
-    # Check if the processor is Apple Silicon (arm64)
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    # Check if the processor is Intel (x86_64)
-    elif [[ "$(uname -m)" == "x86_64" ]]; then
-      echo "tensorflow==$TENSORFLOW_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    fi
-  fi
-
-  if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
   else
-    python -m pip install --use-pep517 --upgrade -r "$TEMP_REQUIREMENTS_FILE" >&3
+    echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
   fi
 
-  echo "Removing the temp requirements file."
-  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
-    rm -f "$TEMP_REQUIREMENTS_FILE"
+  # Install the Python dependencies from the temporary requirements file
+  if [ $VERBOSITY == 2 ]; then
+    python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
+  else
+    python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
   fi
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
@@ -301,6 +300,7 @@ install_python_dependencies() {
     fi
   fi
 }
+
 
 # Attempt to non-interactively install a default accelerate config file unless specified otherwise.
 # Documentation for order of precedence locations for configuration file for automated installation:
@@ -482,48 +482,62 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   echo "Raw detected distro string: $distro" >&4
   echo "Raw detected distro family string: $family" >&4
 
-  echo "Installing Python TK if not found on the system."
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      if [ "$root" = true ]; then
-        apt update -y >&3 && apt install -y python3-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
+      # if [ "$root" = true ]; then
+        echo "This script needs you to install the missing python3-tk packages. Please install with:"
+        echo " "
+        echo "sudo apt update -y && sudo apt install -y python3-tk"
         exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
     else
-      echo "Python TK found! Skipping install!"
+      echo "Python TK found..."
     fi
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     echo "Redhat or Redhat base detected."
     if ! rpm -qa | grep -qi python3-tkinter; then
-      if [ "$root" = true ]; then
-        dnf install python3-tkinter -y >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
+      # if [ "$root" = true ]; then
+        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+        echo "sudo dnf install python3-tkinter -y >&3"
         exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
+    else
+      echo "Python TK found..."
     fi
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     echo "Arch Linux or Arch base detected."
     if ! pacman -Qi tk >/dev/null; then
-      if [ "$root" = true ]; then
-        pacman --noconfirm -S tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
+      # if [ "$root" = true ]; then
+        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+        echo "pacman --noconfirm -S tk >&3"
         exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
+    else
+      echo "Python TK found..."
     fi
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
     echo "OpenSUSE detected."
     if ! rpm -qa | grep -qi python-tk; then
-      if [ "$root" = true ]; then
-        zypper install -y python-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
+      # if [ "$root" = true ]; then
+        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+        echo "zypper install -y python-tk >&3"
         exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
+    else
+      echo "Python TK found..."
     fi
   elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
     if [ "$distro" = "None" ]; then

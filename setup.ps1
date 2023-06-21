@@ -17,11 +17,11 @@ $null = New-Item -ItemType Directory -Force -Path ".\logs\setup"
 & .\venv\Scripts\deactivate.bat
 
 # Calling external python program to check for local modules
-& .\venv\Scripts\python.exe .\tools\check_local_modules.py
+& .\venv\Scripts\python.exe .\setup\check_local_modules.py
 
 & .\venv\Scripts\activate.bat
 
-& .\venv\Scripts\python.exe .\tools\setup_windows.py
+& .\venv\Scripts\python.exe .\setup\setup_windows.py
 
 # Deactivate the virtual environment
 & .\venv\Scripts\deactivate.bat

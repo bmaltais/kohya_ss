@@ -102,6 +102,8 @@ If you run on Linux, there is an alternative docker container port with less lim
 
 venv support need to be pre-installed. Can be done on ubuntu 22.04 with `apt install python3.10-venv`
 
+For Linux, make sure to install the cudaNN drivers following the instructions from: `https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64`
+
 Make sure to use a version of python >= 3.10.6 and < 3.11.0
 
 #### Setup
