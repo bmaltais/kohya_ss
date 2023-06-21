@@ -350,7 +350,7 @@ def install(
 
 
 def install_requirements(requirements_file):
-    log.info('Verifying requirements')
+    log.info(f'Verifying requirements from {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:
         # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
         lines = [
