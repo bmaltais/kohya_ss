@@ -194,28 +194,34 @@ size_available() {
 
 # The expected usage is create_symlinks symlink target_file
 create_symlinks() {
+  local symlink="$1"
+  local target_file="$2"
+
   echo "Checking symlinks now."
-  # Next line checks for valid symlink
-  if [ -L "$1" ]; then
+
+  # Check if the symlink exists
+  if [ -L "$symlink" ]; then
     # Check if the linked file exists and points to the expected file
-    if [ -e "$1" ] && [ "$(readlink "$1")" == "$2" ]; then
-      echo "$(basename "$1") symlink looks fine. Skipping."
+    if [ -e "$symlink" ] && [ "$(readlink "$symlink")" == "$target_file" ]; then
+      echo "$(basename "$symlink") symlink looks fine. Skipping."
     else
-      if [ -f "$2" ]; then
-        echo "Broken symlink detected. Recreating $(basename "$1")."
-        rm "$1" &&
-          ln -s "$2" "$1"
+      if [ -f "$target_file" ]; then
+        echo "Broken symlink detected. Recreating $(basename "$symlink")."
+        rm "$symlink" && ln -s "$target_file" "$symlink"
       else
-        echo "$2 does not exist. Nothing to link."
+        echo "$target_file does not exist. Nothing to link."
       fi
     fi
   else
-    echo "Linking $(basename "$1")."
-    ln -s "$2" "$1"
+    echo "Linking $(basename "$symlink")."
+    ln -s "$target_file" "$symlink"
   fi
 }
 
+
 install_python_dependencies() {
+  local TEMP_REQUIREMENTS_FILE
+
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
   if ! inDocker; then
@@ -239,18 +245,23 @@ install_python_dependencies() {
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
+
   case "$OSTYPE" in
-  "linux-gnu"*) pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
-    --extra-index-url https://download.pytorch.org/whl/cu118 &&
-    pip install --upgrade xformers==0.0.20 ;;
-  "darwin"*) pip install torch==2.0.0 torchvision==0.15.1 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html ;;
-  "cygwin")
-    :
-    ;;
-  "msys")
-    :
-    ;;
+    "linux-gnu"*)
+      pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
+        --extra-index-url https://download.pytorch.org/whl/cu118
+      pip install --upgrade xformers==0.0.20
+      ;;
+    "darwin"*)
+      pip install torch==2.0.0 torchvision==0.15.1 \
+        -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      # Check if the processor is Apple Silicon (arm64)
+      if [[ "$(uname -m)" == "arm64" ]]; then
+        pip install tensorflow-metal=="$TENSORFLOW_MACOS_VERSION"
+      else
+        pip install tensorflow-macos=="$TENSORFLOW_METAL_VERSION"
+      fi
+      ;;
   esac
 
   if [ "$RUNPOD" = true ]; then
@@ -261,39 +272,24 @@ install_python_dependencies() {
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
-  #This will copy our requirements_unix.txt file out and make the khoya_ss lib a dynamic location then cleanup.
-  local TEMP_REQUIREMENTS_FILE="$DIR/requirements_tmp_for_setup.txt"
+  # Create a temporary requirements file
+  TEMP_REQUIREMENTS_FILE=$(mktemp)
 
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Copying $DIR/requirements_unix.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
     echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
     awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
   else
     echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
     echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
   fi
 
-  # This will check if macOS is running then determine if M1+ or Intel CPU.
-  # It will append the appropriate packages to the requirements_unix.txt file.
-  # Other OSs won't be affected and the version variables are at the top of this file.
-  if [[ "$(uname)" == "Darwin" ]]; then
-    # Check if the processor is Apple Silicon (arm64)
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      echo "tensorflow-macos==$TENSORFLOW_MACOS_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-      echo "tensorflow-metal==$TENSORFLOW_METAL_VERSION" >>"$TEMP_REQUIREMENTS_FILE"
-    fi
-  fi
-
+  # Install the Python dependencies from the temporary requirements file
   if [ $VERBOSITY == 2 ]; then
     python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
   else
     python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  fi
-
-  echo "Removing the temp requirements file."
-  if [ -f "$TEMP_REQUIREMENTS_FILE" ]; then
-    rm -f "$TEMP_REQUIREMENTS_FILE"
   fi
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
@@ -305,6 +301,7 @@ install_python_dependencies() {
     fi
   fi
 }
+
 
 # Attempt to non-interactively install a default accelerate config file unless specified otherwise.
 # Documentation for order of precedence locations for configuration file for automated installation:
