@@ -90,7 +90,7 @@ GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 INTERACTIVE=false
 PUBLIC=false
 SKIP_SPACE_CHECK=false
-SKIP_GIT_UPDATE=false
+SKIP_GIT_UPDATE=true
 SKIP_GUI=false
 
 while getopts ":vb:d:g:inprus-:" opt; do
@@ -100,6 +100,7 @@ while getopts ":vb:d:g:inprus-:" opt; do
     OPTARG="${OPTARG#$opt}" # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"    # if long option argument, remove assigning `=`
   fi
+  
   case $opt in
   b | branch) BRANCH="$OPTARG" ;;
   d | dir) DIR="$OPTARG" ;;
@@ -494,7 +495,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       #   exit 1
       # fi
     else
-      echo "Python TK found! Skipping install!"
+      echo "Python TK found..."
     fi
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     echo "Redhat or Redhat base detected."
@@ -510,22 +511,24 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     echo "Arch Linux or Arch base detected."
     if ! pacman -Qi tk >/dev/null; then
-      if [ "$root" = true ]; then
+      # if [ "$root" = true ]; then
+        echo "This script needs to be run as root to install missing python3-tk packages. Asking for sudo level access..."
         pacman --noconfirm -S tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
     fi
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
     echo "OpenSUSE detected."
     if ! rpm -qa | grep -qi python-tk; then
-      if [ "$root" = true ]; then
+      # if [ "$root" = true ]; then
+        echo "This script needs to be run as root to install missing python3-tk packages. Asking for sudo level access..."
         zypper install -y python-tk >&3
-      else
-        echo "This script needs to be run as root or via sudo to install packages."
-        exit 1
-      fi
+      # else
+      #   echo "This script needs to be run as root or via sudo to install packages."
+      #   exit 1
+      # fi
     fi
   elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
     if [ "$distro" = "None" ]; then
