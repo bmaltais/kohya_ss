@@ -1,24 +1,19 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "kohya_ss"
-version = "1.0.3"
-description = "A GUI wrapper for kohya-ss SD scipts enabling LoRA training with an easy-to-use web application."
-authors = [
-    {name = "bmaltais", email = "bernard@ducourier.com"},
-]
-readme = "README.md"
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-license = "Apache-2.0"
+name = "library"
+version = "1.0.3"
+description = "Libraries required to run kohya_ss GUI"
+authors = ["Bernard Maltais <bernard@ducourier.com>"]
+license = "Apache-2.0" # Apache Software License
 
-[tool.setuptools.packages.find]
-where = ["library"] # We have to explicitly tell build tools where to look
+[[tool.poetry.source]]
+name = "library"
+path = "library"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+
+[tool.poetry.dev-dependencies]
