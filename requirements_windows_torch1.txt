@@ -2,6 +2,7 @@
 tensorboard==2.10.1
 tensorflow==2.10.1
 accelerate==0.15.0
+-r requirements.txt
 
 # albumentations==1.3.0
 # altair==4.2.2
