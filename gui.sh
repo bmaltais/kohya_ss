@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Need RUNPOD to have a default value before first access
+RUNPOD=false
+if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
+  RUNPOD=true
+fi
+
 # If it is run with the sudo command, get the complete LD_LIBRARY_PATH environment variable of the system and assign it to the current environment,
 # because it will be used later.
 if [ -n "$SUDO_USER" ] || [ -n "$SUDO_COMMAND" ]; then
@@ -13,8 +19,10 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 # Step into GUI local directory
 cd "$SCRIPT_DIR" || exit 1
 
-# Activate the virtual environment
-source "$SCRIPT_DIR/venv/bin/activate" || exit 1
+if [ "$RUNPOD" = false ]; then
+    # Activate the virtual environment
+    source "$SCRIPT_DIR/venv/bin/activate" || exit 1
+fi
 
 # Check if LD_LIBRARY_PATH environment variable exists
 if [[ -z "${LD_LIBRARY_PATH}" ]]; then
@@ -37,7 +45,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_macos_amd64.txt"
     fi
 else
-    REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+    if [ "$RUNPOD" = true ]; then
+        REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+    else
+        REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_runpod.txt"
+    fi
 fi
 
 # Validate the requirements and run the script if successful
