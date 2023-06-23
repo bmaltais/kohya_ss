@@ -30,10 +30,15 @@ def cudann_install():
                 dest_file = os.path.join(cudnn_dest, file)
                 # if dest file exists, check if it's different
                 if os.path.exists(dest_file):
+                    if not filecmp.cmp(src_file, dest_file, shallow=False):
+                        shutil.copy2(src_file, cudnn_dest)
+                else:
                     shutil.copy2(src_file, cudnn_dest)
             log.info('Copied CUDNN 8.6 files to destination')
+        else:
+            log.warning(f'Destination directory {cudnn_dest} does not exist')
     else:
-        log.error(f'Installation Failed: "{cudnn_src}" could not be found. ')
+        log.error(f'Installation Failed: "{cudnn_src}" could not be found.')
 
 
 def sync_bits_and_bytes_files():
@@ -106,17 +111,17 @@ def install_kohya_ss_torch1():
         )
         return
 
-    setup_common.install(
-        'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
-        'torch torchvision'
-    )
-    setup_common.install(
-        'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
-        'xformers-0.0.14'
-    )
-    setup_common.install_requirements('requirements_windows_torch1.txt')
+    # setup_common.install(
+    #     'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
+    #     'torch torchvision'
+    # )
+    # setup_common.install(
+    #     'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
+    #     'xformers-0.0.14'
+    # )
+    setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=False)
     sync_bits_and_bytes_files()
-    setup_common.configure_accelerate()
+    setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
 
@@ -133,14 +138,14 @@ def install_kohya_ss_torch2():
         )
         return
 
-    setup_common.install(
-        'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
-        'torch torchvision'
-    )
-    setup_common.install_requirements('requirements_windows_torch2.txt')
+    # setup_common.install(
+    #     'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
+    #     'torch torchvision'
+    # )
+    setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=False)
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
     sync_bits_and_bytes_files()
-    setup_common.configure_accelerate()
+    setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
 
@@ -149,10 +154,11 @@ def main_menu():
     while True:
         print('\nKohya_ss GUI setup menu:\n')
         print('1. Install kohya_ss gui')
-        print('2. Install cudann files')
-        print('3. Manually configure accelerate')
-        print('4. Start Kohya_ss GUI in browser')
-        print('5. Quit')
+        print('2. (Optional) Install cudann files')
+        print('3. (Optional) Install bitsandbytes-windows')
+        print('4. (Optional) Manually configure accelerate')
+        print('5. (Optional) Start Kohya_ss GUI in browser')
+        print('6. Quit')
 
         choice = input('\nEnter your choice: ')
         print('')
@@ -178,10 +184,12 @@ def main_menu():
         elif choice == '2':
             cudann_install()
         elif choice == '3':
-            setup_common.run_cmd('accelerate config')
+            setup_common.install('--upgrade bitsandbytes-windows', reinstall=True)
         elif choice == '4':
-            subprocess.Popen('start cmd /k .\gui.bat --inbrowser', shell=True) # /k keep the terminal open on quit. /c would close the terminal instead
+            setup_common.run_cmd('accelerate config')
         elif choice == '5':
+            subprocess.Popen('start cmd /k .\gui.bat --inbrowser', shell=True) # /k keep the terminal open on quit. /c would close the terminal instead
+        elif choice == '6':
             print('Quitting the program.')
             break
         else:

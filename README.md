@@ -355,6 +355,10 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/23 (v21.7.11)
+- This is a significant update to how setup work across different platform. It might be causing issues... especially for linux env like runpod. If you encounter problems please report them in the issues so I can try to address them. You can revert to the previous release with `git checkout v21.7.10`
+
+The setup solution is now much more modulat and will simplify requirements support across different environments... hoping this will make it easier to run on different OS.
 * 2023/06/19 (v21.7.10)
 - Quick fix for linux GUI startup where it would try to install darwin requirements on top of linux. Ugly fix but work. Hopefulle some linux user will improve via a PR.
 * 2023/06/18 (v21.7.9)

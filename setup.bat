@@ -24,7 +24,7 @@ python .\setup\check_local_modules.py
 
 call .\venv\Scripts\activate.bat
 
-python .\setup\setup_windows.py
+cmd /k python .\setup\setup_windows.py
 
 :: Deactivate the virtual environment
 call .\venv\Scripts\deactivate.bat

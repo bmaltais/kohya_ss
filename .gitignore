@@ -20,3 +20,4 @@ test/logs
 test/*.json
 test/ft
 requirements_tmp_for_setup.txt
+0.13.3
