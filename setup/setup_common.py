@@ -109,9 +109,10 @@ def configure_accelerate():
     )
 
     if not os.path.exists(source_accelerate_config_file):
-        log.info(
+        log.debug(
             f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
         )
+        run_cmd('accelerate config')
     
     log.debug(
         f'Source accelerate config location: {source_accelerate_config_file}'
@@ -159,15 +160,15 @@ def configure_accelerate():
                 f'Copied accelerate config file to: {target_config_location}'
             )
         else:
-            run_cmd('accelerate config')
             log.debug(
                 'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
             )
+            run_cmd('accelerate config')
     else:
-        run_cmd('accelerate config')
         log.debug(
             'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
         )
+        run_cmd('accelerate config')
 
 
 def check_torch():
@@ -413,7 +414,7 @@ def ensure_base_requirements():
 
 def run_cmd(run_cmd):
     try:
-        subprocess.run(run_cmd, check=True)
+        subprocess.run(run_cmd, shell=True, check=False, env=os.environ)
     except subprocess.CalledProcessError as e:
         print(f'Error occurred while running command: {run_cmd}')
         print(f'Error: {e}')
