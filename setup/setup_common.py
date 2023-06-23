@@ -88,7 +88,7 @@ def setup_logging(clean=False):
     log.addHandler(rh)
 
 
-def configure_accelerate():
+def configure_accelerate(run_accelerate=False):
     #
     # This function was taken and adapted from code written by jstayco
     #
@@ -109,10 +109,12 @@ def configure_accelerate():
     )
 
     if not os.path.exists(source_accelerate_config_file):
-        log.debug(
-            f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
-        )
-        run_cmd('accelerate config')
+        if run_accelerate:
+            run_cmd('accelerate config')
+        else:
+            log.info(
+                f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
+            )
     
     log.debug(
         f'Source accelerate config location: {source_accelerate_config_file}'
@@ -160,15 +162,19 @@ def configure_accelerate():
                 f'Copied accelerate config file to: {target_config_location}'
             )
         else:
-            log.debug(
+            if run_accelerate:
+                run_cmd('accelerate config')
+            else:
+                log.info(
+                    'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
+                )
+    else:
+        if run_accelerate:
+            run_cmd('accelerate config')
+        else:
+            log.info(
                 'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
             )
-            run_cmd('accelerate config')
-    else:
-        log.debug(
-            'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
-        )
-        run_cmd('accelerate config')
 
 
 def check_torch():
