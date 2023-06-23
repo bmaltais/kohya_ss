@@ -262,11 +262,6 @@ install_python_dependencies() {
       ;;
   esac
 
-  if [ "$RUNPOD" = true ]; then
-    echo "Installing tenssort."
-    pip install tensorrt
-  fi
-
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
 
