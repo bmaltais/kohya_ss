@@ -485,9 +485,13 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
       # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:"
+        echo "This script needs YOU to install the missing python3-tk packages. Please install with:"
         echo " "
-        echo "sudo apt update -y && sudo apt install -y python3-tk"
+        if [ "$RUNPOD" = true ]; then
+          bash apt update -y && apt install -y python3-tk
+        else
+          echo "sudo apt update -y && sudo apt install -y python3-tk"
+        fi
         exit 1
       # else
       #   echo "This script needs to be run as root or via sudo to install packages."
