@@ -359,15 +359,22 @@ def install_requirements(requirements_file):
             if line.strip() != ''
             and not line.startswith('#')
             and line is not None
-            and not line.startswith('.')
+            # and not line.startswith('.')
         ]
 
         # Iterate over each line and install the requirements
         for line in lines:
-            # Remove brackets and their contents from the line using regular expressions
-            # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
-            package_name = re.sub(r'\[.*?\]', '', line)
-            install(line, package_name)
+            # Check if the line starts with '-r' to include another requirements file
+            if line.startswith('-r'):
+                # Get the path to the included requirements file
+                included_file = line[2:].strip()
+                # Expand the included requirements file recursively
+                install_requirements(included_file)
+            else:
+                # Remove brackets and their contents from the line using regular expressions
+                # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+                package_name = re.sub(r'\[.*?\]', '', line)
+                install(line, package_name)
 
 
 def ensure_base_requirements():
