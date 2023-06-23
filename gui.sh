@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+# Checks to see if variable is set and non-empty.
+# This is defined first, so we can use the function for some default variable values
+env_var_exists() {
+  if [[ -n "${!1}" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # Need RUNPOD to have a default value before first access
 RUNPOD=false
 if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
