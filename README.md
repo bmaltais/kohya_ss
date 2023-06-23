@@ -106,6 +106,8 @@ For Linux, make sure to install the cudaNN drivers following the instructions fr
 
 Make sure to use a version of python >= 3.10.6 and < 3.11.0
 
+On WSL2, make sure to `export LD_LIBRARY_PATH=/usr/lib/wsl/lib/` or else AdamW8bit will not work.
+
 #### Setup
 
 In the terminal, run
