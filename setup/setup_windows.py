@@ -30,10 +30,15 @@ def cudann_install():
                 dest_file = os.path.join(cudnn_dest, file)
                 # if dest file exists, check if it's different
                 if os.path.exists(dest_file):
+                    if not filecmp.cmp(src_file, dest_file, shallow=False):
+                        shutil.copy2(src_file, cudnn_dest)
+                else:
                     shutil.copy2(src_file, cudnn_dest)
             log.info('Copied CUDNN 8.6 files to destination')
+        else:
+            log.warning(f'Destination directory {cudnn_dest} does not exist')
     else:
-        log.error(f'Installation Failed: "{cudnn_src}" could not be found. ')
+        log.error(f'Installation Failed: "{cudnn_src}" could not be found.')
 
 
 def sync_bits_and_bytes_files():
@@ -106,17 +111,17 @@ def install_kohya_ss_torch1():
         )
         return
 
-    setup_common.install(
-        'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
-        'torch torchvision'
-    )
-    setup_common.install(
-        'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
-        'xformers-0.0.14'
-    )
-    setup_common.install_requirements('requirements_windows_torch1.txt')
+    # setup_common.install(
+    #     'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
+    #     'torch torchvision'
+    # )
+    # setup_common.install(
+    #     'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
+    #     'xformers-0.0.14'
+    # )
+    setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=False)
     sync_bits_and_bytes_files()
-    setup_common.configure_accelerate()
+    setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
 
@@ -133,14 +138,14 @@ def install_kohya_ss_torch2():
         )
         return
 
-    setup_common.install(
-        'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
-        'torch torchvision'
-    )
-    setup_common.install_requirements('requirements_windows_torch2.txt')
+    # setup_common.install(
+    #     'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
+    #     'torch torchvision'
+    # )
+    setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=False)
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
     sync_bits_and_bytes_files()
-    setup_common.configure_accelerate()
+    setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
 

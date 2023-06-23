@@ -86,13 +86,15 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Debug on')
     args = parser.parse_args()
 
-    if not args.requirements:
-        if check_torch() == 1:
-            setup_common.install_requirements('requirements_windows_torch1.txt')
-        else:
-            setup_common.install_requirements('requirements_windows_torch2.txt')
+    torch_ver = check_torch()
+    
+    if args.requirements:
+        setup_common.install_requirements(args.requirements, check_no_verify_flag=True)
     else:
-        setup_common.install_requirements(args.requirements)
+        if torch_ver == 1:
+            setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=True)
+        else:
+            setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=True)
 
 
 if __name__ == '__main__':
