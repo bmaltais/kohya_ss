@@ -16,7 +16,7 @@ def install_kohya_ss(platform_requirements_file):
 
     # Upgrade pip if needed
     setup_common.install('--upgrade pip')
-    setup_common.install_requirements(platform_requirements_file, verify=False)
+    setup_common.install_requirements(platform_requirements_file, check_no_verify_flag=False)
     # setup_common.configure_accelerate()
     # run_cmd(f'accelerate config')
 

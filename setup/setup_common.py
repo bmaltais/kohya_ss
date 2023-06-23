@@ -251,7 +251,7 @@ def git(arg: str, folder: str = None, ignore: bool = False):
         errors += 1
         log.error(f'Error running git: {folder} / {arg}')
         if 'or stash them' in txt:
-            log.error(f'Local changes detected: check log for details: {log_file}')
+            log.error(f'Local changes detected: check log for details...')
         log.debug(f'Git output: {txt}')
     return txt
 
@@ -361,14 +361,14 @@ def process_requirements_line(line):
     install(line, package_name)
 
 
-def install_requirements(requirements_file, verify=False):
-    if verify:
+def install_requirements(requirements_file, check_no_verify_flag=False):
+    if check_no_verify_flag:
         log.info(f'Verifying modules instalation status from {requirements_file}...')
     else:
         log.info(f'Installing modules from {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:
         # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
-        if verify:
+        if check_no_verify_flag:
             lines = [
                 line.strip()
                 for line in f.readlines()
@@ -393,7 +393,7 @@ def install_requirements(requirements_file, verify=False):
                 # Get the path to the included requirements file
                 included_file = line[2:].strip()
                 # Expand the included requirements file recursively
-                install_requirements(included_file, verify=verify)
+                install_requirements(included_file, check_no_verify_flag=check_no_verify_flag)
             else:
                 process_requirements_line(line)
 
