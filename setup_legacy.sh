@@ -239,21 +239,26 @@ install_python_dependencies() {
   fi
 
   # Updating pip if there is one
-  # echo "Checking for pip updates before Python operations."
-  # pip install --upgrade pip
+  echo "Checking for pip updates before Python operations."
+  pip install --upgrade pip
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
 
   case "$OSTYPE" in
-    "lin"*)
-      python "$SCRIPT_DIR/setup/setup_linux.py"
+    "linux-gnu"*)
+      pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 \
+        --extra-index-url https://download.pytorch.org/whl/cu118
+      pip install --upgrade xformers==0.0.20
       ;;
     "darwin"*)
+      pip install torch==2.0.0 torchvision==0.15.1 \
+        -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      # Check if the processor is Apple Silicon (arm64)
       if [[ "$(uname -m)" == "arm64" ]]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py requirements_macos_arm64.txt"
+        pip install tensorflow-metal=="$TENSORFLOW_MACOS_VERSION"
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py requirements_macos_amd64.txt"
+        pip install tensorflow-macos=="$TENSORFLOW_METAL_VERSION"
       fi
       ;;
   esac
@@ -267,24 +272,24 @@ install_python_dependencies() {
   # pip install pydevd-pycharm~=223.8836.43
 
   # Create a temporary requirements file
-  # TEMP_REQUIREMENTS_FILE=$(mktemp)
+  TEMP_REQUIREMENTS_FILE=$(mktemp)
 
-  # if [[ "$OSTYPE" == "darwin"* ]]; then
-  #   echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
-  # else
-  #   echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
-  # fi
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
+  else
+    echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
+    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
+  fi
 
-  # # Install the Python dependencies from the temporary requirements file
-  # if [ $VERBOSITY == 2 ]; then
-  #   python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  # else
-  #   python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  # fi
+  # Install the Python dependencies from the temporary requirements file
+  if [ $VERBOSITY == 2 ]; then
+    python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
+  else
+    python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
+  fi
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
     if command -v deactivate >/dev/null; then

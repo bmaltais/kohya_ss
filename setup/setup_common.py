@@ -257,7 +257,7 @@ def git(arg: str, folder: str = None, ignore: bool = False):
 
 
 def pip(arg: str, ignore: bool = False, quiet: bool = False):
-    arg = arg.replace('>=', '==')
+    # arg = arg.replace('>=', '==')
     if not quiet:
         log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
     log.debug(f"Running pip: {arg}")
@@ -280,10 +280,9 @@ def installed(package, friendly: str = None):
     #
     
     # Remove brackets and their contents from the line using regular expressions
-    # eg diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
     package = re.sub(r'\[.*?\]', '', package)
 
-    ok = True
     try:
         if friendly:
             pkgs = friendly.split()
@@ -295,38 +294,40 @@ def installed(package, friendly: str = None):
             ]
             pkgs = [
                 p.split('/')[-1] for p in pkgs
-            ]   # get only package name if installing from url
+            ]   # get only package name if installing from URL
+        
         for pkg in pkgs:
             if '>=' in pkg:
-                p = pkg.split('>=')
+                pkg_name, pkg_version = [x.strip() for x in pkg.split('>=')]
             elif '==' in pkg:
-                p = pkg.split('==')
+                pkg_name, pkg_version = [x.strip() for x in pkg.split('==')]
             else:
-                p = [pkg]
-            spec = pkg_resources.working_set.by_key.get(
-                p[0], None
-            )   # more reliable than importlib
+                pkg_name, pkg_version = pkg.strip(), None
+
+            spec = pkg_resources.working_set.by_key.get(pkg_name, None)
             if spec is None:
-                spec = pkg_resources.working_set.by_key.get(
-                    p[0].lower(), None
-                )   # check name variations
+                spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
             if spec is None:
-                spec = pkg_resources.working_set.by_key.get(
-                    p[0].replace('_', '-'), None
-                )   # check name variations
-            ok = ok and spec is not None
-            if ok:
-                version = pkg_resources.get_distribution(p[0]).version
-                log.debug(f'Package version found: {p[0]} {version}')
-                if len(p) > 1:
-                    ok = ok and version == p[1]
+                spec = pkg_resources.working_set.by_key.get(pkg_name.replace('_', '-'), None)
+
+            if spec is not None:
+                version = pkg_resources.get_distribution(pkg_name).version
+                log.debug(f'Package version found: {pkg_name} {version}')
+
+                if pkg_version is not None:
+                    if '>=' in pkg:
+                        ok = version >= pkg_version
+                    else:
+                        ok = version == pkg_version
+
                     if not ok:
-                        log.warning(
-                            f'Package wrong version: {p[0]} {version} required {p[1]}'
-                        )
+                        log.warning(f'Package wrong version: {pkg_name} {version} required {pkg_version}')
+                        return False
             else:
-                log.debug(f'Package version not found: {p[0]}')
-        return ok
+                log.debug(f'Package version not found: {pkg_name}')
+                return False
+
+        return True
     except ModuleNotFoundError:
         log.debug(f'Package not installed: {pkgs}')
         return False
@@ -342,11 +343,15 @@ def install(
     ignore: bool = False,
     reinstall: bool = False,
 ):
+    # Remove anything after '#' in the package variable
+    package = package.split('#')[0].strip()
+
     if reinstall:
         global quick_allowed   # pylint: disable=global-statement
         quick_allowed = False
     if reinstall or not installed(package, friendly):
         pip(f'install --upgrade {package}', ignore=ignore)
+
 
 
 def process_requirements_line(line):
@@ -357,7 +362,10 @@ def process_requirements_line(line):
 
 
 def install_requirements(requirements_file, verify=False):
-    log.info(f'Verifying requirements against {requirements_file}...')
+    if verify:
+        log.info(f'Verifying modules instalation status from {requirements_file}...')
+    else:
+        log.info(f'Installing modules from {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:
         # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
         if verify:
@@ -384,9 +392,8 @@ def install_requirements(requirements_file, verify=False):
             if line.startswith('-r'):
                 # Get the path to the included requirements file
                 included_file = line[2:].strip()
-                log.info(f'Verifying requirements against {included_file}...')
                 # Expand the included requirements file recursively
-                install_requirements(included_file)
+                install_requirements(included_file, verify=verify)
             else:
                 process_requirements_line(line)
 

@@ -24,4 +24,4 @@ transformers==4.26.0
 voluptuous==0.13.1
 wandb==0.15.0
 # for kohya_ss library
-.
+-e . # no_verify leave this to specify not checking this a verification stage

@@ -16,13 +16,14 @@ def install_kohya_ss(platform_requirements_file):
 
     # Upgrade pip if needed
     setup_common.install('--upgrade pip')
-
-    setup_common.install_requirements(platform_requirements_file)
+    setup_common.install_requirements(platform_requirements_file, verify=False)
     # setup_common.configure_accelerate()
     # run_cmd(f'accelerate config')
 
 
 def main_menu(platform_requirements_file):
+    log.info("Installing python dependencies. This could take a few minutes as it downloads files.")
+    log.info("If this operation ever runs too long, you can rerun this script in verbose mode to check.")
     install_kohya_ss(platform_requirements_file)
 
 
