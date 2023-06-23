@@ -18,9 +18,15 @@ source "$SCRIPT_DIR/venv/bin/activate" || exit 1
 
 # Check if LD_LIBRARY_PATH environment variable exists
 if [[ -z "${LD_LIBRARY_PATH}" ]]; then
-    echo "Warning: LD_LIBRARY_PATH environment variable is not set."
-    echo "Certain functionalities like 8bit based optimizers may not work correctly."
-    echo "Please ensure that the required libraries are properly configured."
+    # Set the ANSI escape sequence for yellow text
+    YELLOW='\033[0;33m'
+    # Set the ANSI escape sequence to reset text color
+    RESET='\033[0m'
+    
+    echo -e "${YELLOW}Warning: LD_LIBRARY_PATH environment variable is not set.${RESET}"
+    echo -e "${YELLOW}Certain functionalities may not work correctly.${RESET}"
+    echo -e "${YELLOW}Please ensure that the required libraries are properly configured.${RESET}"
+    echo -e " "
 fi
 
 # Determine the requirements file based on the system
