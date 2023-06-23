@@ -267,24 +267,24 @@ install_python_dependencies() {
   # pip install pydevd-pycharm~=223.8836.43
 
   # Create a temporary requirements file
-  TEMP_REQUIREMENTS_FILE=$(mktemp)
+  # TEMP_REQUIREMENTS_FILE=$(mktemp)
 
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
-    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
-  else
-    echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
-    echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-    awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
-  fi
+  # if [[ "$OSTYPE" == "darwin"* ]]; then
+  #   echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
+  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
+  # else
+  #   echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
+  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
+  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
+  # fi
 
-  # Install the Python dependencies from the temporary requirements file
-  if [ $VERBOSITY == 2 ]; then
-    python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  else
-    python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  fi
+  # # Install the Python dependencies from the temporary requirements file
+  # if [ $VERBOSITY == 2 ]; then
+  #   python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
+  # else
+  #   python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
+  # fi
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
     if command -v deactivate >/dev/null; then
