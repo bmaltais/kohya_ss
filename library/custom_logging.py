@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+import sys
 
 from rich.theme import Theme
 from rich.logging import RichHandler
@@ -23,7 +24,10 @@ def setup_logging(clean=False, debug=False):
     except:
         pass
     
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s', filename='setup.log', filemode='a', encoding='utf-8', force=True)
+    if sys.version_info >= (3, 9):
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s', filename='setup.log', filemode='a', encoding='utf-8', force=True)
+    else:
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s | %(levelname)s | %(pathname)s | %(message)s', filename='setup.log', filemode='a', force=True)
     
     console = Console(log_time=True, log_time_format='%H:%M:%S-%f', theme=Theme({
         "traceback.border": "black",

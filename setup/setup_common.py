@@ -1,5 +1,6 @@
 import subprocess
 import os
+import re
 import sys
 import filecmp
 import logging
@@ -11,10 +12,6 @@ import pkg_resources
 
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
-
-# ANSI escape code for yellow color
-YELLOW = '\033[93m'
-RESET_COLOR = '\033[0m'
 
 # setup console and file logging
 def setup_logging(clean=False):
@@ -91,7 +88,7 @@ def setup_logging(clean=False):
     log.addHandler(rh)
 
 
-def configure_accelerate():
+def configure_accelerate(run_accelerate=False):
     #
     # This function was taken and adapted from code written by jstayco
     #
@@ -112,9 +109,12 @@ def configure_accelerate():
     )
 
     if not os.path.exists(source_accelerate_config_file):
-        log.info(
-            f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
-        )
+        if run_accelerate:
+            run_cmd('accelerate config')
+        else:
+            log.error(
+                f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
+            )
     
     log.debug(
         f'Source accelerate config location: {source_accelerate_config_file}'
@@ -158,13 +158,23 @@ def configure_accelerate():
             shutil.copyfile(
                 source_accelerate_config_file, target_config_location
             )
-            log.debug(
+            log.info(
                 f'Copied accelerate config file to: {target_config_location}'
             )
+        else:
+            if run_accelerate:
+                run_cmd('accelerate config')
+            else:
+                log.error(
+                    'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
+                )
     else:
-        log.info(
-            'Could not place the accelerate configuration file. Please configure manually with: accelerate config.'
-        )
+        if run_accelerate:
+            run_cmd('accelerate config')
+        else:
+            log.error(
+                'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
+            )
 
 
 def check_torch():
@@ -254,34 +264,13 @@ def git(arg: str, folder: str = None, ignore: bool = False):
         errors += 1
         log.error(f'Error running git: {folder} / {arg}')
         if 'or stash them' in txt:
-            log.error(f'Local changes detected: check log for details: {log_file}')
+            log.error(f'Local changes detected: check log for details...')
         log.debug(f'Git output: {txt}')
     return txt
 
-def cudann_install():
-    cudnn_src = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), '..\cudnn_windows'
-    )
-    cudnn_dest = os.path.join(sysconfig.get_paths()['purelib'], 'torch', 'lib')
-
-    log.info(f'Checking for CUDNN files in {cudnn_dest}...')
-    if os.path.exists(cudnn_src):
-        if os.path.exists(cudnn_dest):
-            # check for different files
-            filecmp.clear_cache()
-            for file in os.listdir(cudnn_src):
-                src_file = os.path.join(cudnn_src, file)
-                dest_file = os.path.join(cudnn_dest, file)
-                # if dest file exists, check if it's different
-                if os.path.exists(dest_file):
-                    shutil.copy2(src_file, cudnn_dest)
-            log.info('Copied CUDNN 8.6 files to destination')
-    else:
-        log.error(f'Installation Failed: "{cudnn_src}" could not be found. ')
-
 
 def pip(arg: str, ignore: bool = False, quiet: bool = False):
-    arg = arg.replace('>=', '==')
+    # arg = arg.replace('>=', '==')
     if not quiet:
         log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
     log.debug(f"Running pip: {arg}")
@@ -302,8 +291,11 @@ def installed(package, friendly: str = None):
     #
     # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
     #
+    
+    # Remove brackets and their contents from the line using regular expressions
+    # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    package = re.sub(r'\[.*?\]', '', package)
 
-    ok = True
     try:
         if friendly:
             pkgs = friendly.split()
@@ -315,38 +307,40 @@ def installed(package, friendly: str = None):
             ]
             pkgs = [
                 p.split('/')[-1] for p in pkgs
-            ]   # get only package name if installing from url
+            ]   # get only package name if installing from URL
+        
         for pkg in pkgs:
             if '>=' in pkg:
-                p = pkg.split('>=')
+                pkg_name, pkg_version = [x.strip() for x in pkg.split('>=')]
             elif '==' in pkg:
-                p = pkg.split('==')
+                pkg_name, pkg_version = [x.strip() for x in pkg.split('==')]
             else:
-                p = [pkg]
-            spec = pkg_resources.working_set.by_key.get(
-                p[0], None
-            )   # more reliable than importlib
+                pkg_name, pkg_version = pkg.strip(), None
+
+            spec = pkg_resources.working_set.by_key.get(pkg_name, None)
             if spec is None:
-                spec = pkg_resources.working_set.by_key.get(
-                    p[0].lower(), None
-                )   # check name variations
+                spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
             if spec is None:
-                spec = pkg_resources.working_set.by_key.get(
-                    p[0].replace('_', '-'), None
-                )   # check name variations
-            ok = ok and spec is not None
-            if ok:
-                version = pkg_resources.get_distribution(p[0]).version
-                log.debug(f'Package version found: {p[0]} {version}')
-                if len(p) > 1:
-                    ok = ok and version == p[1]
+                spec = pkg_resources.working_set.by_key.get(pkg_name.replace('_', '-'), None)
+
+            if spec is not None:
+                version = pkg_resources.get_distribution(pkg_name).version
+                log.debug(f'Package version found: {pkg_name} {version}')
+
+                if pkg_version is not None:
+                    if '>=' in pkg:
+                        ok = version >= pkg_version
+                    else:
+                        ok = version == pkg_version
+
                     if not ok:
-                        log.warning(
-                            f'Package wrong version: {p[0]} {version} required {p[1]}'
-                        )
+                        log.warning(f'Package wrong version: {pkg_name} {version} required {pkg_version}')
+                        return False
             else:
-                log.debug(f'Package version not found: {p[0]}')
-        return ok
+                log.debug(f'Package version not found: {pkg_name}')
+                return False
+
+        return True
     except ModuleNotFoundError:
         log.debug(f'Package not installed: {pkgs}')
         return False
@@ -362,11 +356,59 @@ def install(
     ignore: bool = False,
     reinstall: bool = False,
 ):
+    # Remove anything after '#' in the package variable
+    package = package.split('#')[0].strip()
+
     if reinstall:
         global quick_allowed   # pylint: disable=global-statement
         quick_allowed = False
     if reinstall or not installed(package, friendly):
         pip(f'install --upgrade {package}', ignore=ignore)
+
+
+
+def process_requirements_line(line):
+    # Remove brackets and their contents from the line using regular expressions
+    # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    package_name = re.sub(r'\[.*?\]', '', line)
+    install(line, package_name)
+
+
+def install_requirements(requirements_file, check_no_verify_flag=False):
+    if check_no_verify_flag:
+        log.info(f'Verifying modules instalation status from {requirements_file}...')
+    else:
+        log.info(f'Installing modules from {requirements_file}...')
+    with open(requirements_file, 'r', encoding='utf8') as f:
+        # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
+        if check_no_verify_flag:
+            lines = [
+                line.strip()
+                for line in f.readlines()
+                if line.strip() != ''
+                and not line.startswith('#')
+                and line is not None
+                and 'no_verify' not in line
+            ]
+        else:
+            lines = [
+                line.strip()
+                for line in f.readlines()
+                if line.strip() != ''
+                and not line.startswith('#')
+                and line is not None
+            ]
+
+        # Iterate over each line and install the requirements
+        for line in lines:
+            # Check if the line starts with '-r' to include another requirements file
+            if line.startswith('-r'):
+                # Get the path to the included requirements file
+                included_file = line[2:].strip()
+                # Expand the included requirements file recursively
+                install_requirements(included_file, check_no_verify_flag=check_no_verify_flag)
+            else:
+                process_requirements_line(line)
 
 
 def ensure_base_requirements():
@@ -378,7 +420,7 @@ def ensure_base_requirements():
 
 def run_cmd(run_cmd):
     try:
-        subprocess.run(run_cmd, check=True)
+        subprocess.run(run_cmd, shell=True, check=False, env=os.environ)
     except subprocess.CalledProcessError as e:
         print(f'Error occurred while running command: {run_cmd}')
         print(f'Error: {e}')
@@ -417,24 +459,6 @@ def delete_file(file_path):
         os.remove(file_path)
 
 
-def install_requirements(requirements_file):
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
-
-    log.info('Verifying requirements')
-    with open(requirements_file, 'r', encoding='utf8') as f:
-        lines = [
-            line.strip()
-            for line in f.readlines()
-            if line.strip() != ''
-            and not line.startswith('#')
-            and line is not None
-        ]
-        for line in lines:
-            install(line)
-
-
 def write_to_file(file_path, content):
     try:
         with open(file_path, 'w') as file:
@@ -444,114 +468,6 @@ def write_to_file(file_path, content):
         print(f'Error: {e}')
 
 
-def sync_bits_and_bytes_files():
-    import filecmp
-
-    """
-    Check for "different" bitsandbytes Files and copy only if necessary.
-    This function is specific for Windows OS.
-    """
-
-    # Only execute on Windows
-    if os.name != 'nt':
-        print('This function is only applicable to Windows OS.')
-        return
-
-    try:
-        log.info(f'Copying bitsandbytes files...')
-        # Define source and destination directories
-        source_dir = os.path.join(os.getcwd(), 'bitsandbytes_windows')
-
-        dest_dir_base = os.path.join(
-            sysconfig.get_paths()['purelib'], 'bitsandbytes'
-        )
-
-        # Clear file comparison cache
-        filecmp.clear_cache()
-
-        # Iterate over each file in source directory
-        for file in os.listdir(source_dir):
-            source_file_path = os.path.join(source_dir, file)
-
-            # Decide the destination directory based on file name
-            if file in ('main.py', 'paths.py'):
-                dest_dir = os.path.join(dest_dir_base, 'cuda_setup')
-            else:
-                dest_dir = dest_dir_base
-
-            dest_file_path = os.path.join(dest_dir, file)
-
-            # Compare the source file with the destination file
-            if os.path.exists(dest_file_path) and filecmp.cmp(
-                source_file_path, dest_file_path
-            ):
-                log.debug(
-                    f'Skipping {source_file_path} as it already exists in {dest_dir}'
-                )
-            else:
-                # Copy file from source to destination, maintaining original file's metadata
-                log.debug(f'Copy {source_file_path} to {dest_dir}')
-                shutil.copy2(source_file_path, dest_dir)
-
-    except FileNotFoundError as fnf_error:
-        log.error(f'File not found error: {fnf_error}')
-    except PermissionError as perm_error:
-        log.error(f'Permission error: {perm_error}')
-    except Exception as e:
-        log.error(f'An unexpected error occurred: {e}')
-
-
-def install_kohya_ss_torch1():
-    check_repo_version()
-    check_python()
-
-    # Upgrade pip if needed
-    install('--upgrade pip')
-
-    if check_torch() == 2:
-        input(
-            f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
-        )
-        return
-
-    install(
-        'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
-        'torch torchvision'
-    )
-    install(
-        'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
-        'xformers-0.0.14'
-    )
-    install_requirements('requirements_windows_torch1.txt')
-    sync_bits_and_bytes_files()
-    configure_accelerate()
-    # run_cmd(f'accelerate config')
-
-
-def install_kohya_ss_torch2():
-    check_repo_version()
-    check_python()
-
-    # Upgrade pip if needed
-    install('--upgrade pip')
-
-    if check_torch() == 1:
-        input(
-            f'{YELLOW}\nTorch 1 is already installed in the venv. To install Torch 2 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
-        )
-        return
-
-    install(
-        'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
-        'torch torchvision'
-    )
-    install_requirements('requirements_windows_torch2.txt')
-    # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
-    sync_bits_and_bytes_files()
-    configure_accelerate()
-    # run_cmd(f'accelerate config')
-
-
 def clear_screen():
     # Check the current operating system to execute the correct clear screen command
     if os.name == 'nt':  # If the operating system is Windows
@@ -559,52 +475,3 @@ def clear_screen():
     else:  # If the operating system is Linux or Mac
         os.system('clear')
 
-
-def main_menu():
-    clear_screen()
-    while True:
-        print('\nKohya_ss GUI setup menu:\n')
-        print('1. Install kohya_ss gui')
-        print('2. Install cudann files')
-        print('3. Manually configure accelerate')
-        print('4. Start Kohya_ss GUI in browser')
-        print('5. Quit')
-
-        choice = input('\nEnter your choice: ')
-        print('')
-
-        if choice == '1':
-            while True:
-                print('1. Torch 1')
-                print('2. Torch 2')
-                print('3. Cancel')
-                choice_torch = input('\nEnter your choice: ')
-                print('')
-
-                if choice_torch == '1':
-                    install_kohya_ss_torch1()
-                    break
-                elif choice_torch == '2':
-                    install_kohya_ss_torch2()
-                    break
-                elif choice_torch == '3':
-                    break
-                else:
-                    print('Invalid choice. Please enter a number between 1-3.')
-        elif choice == '2':
-            cudann_install()
-        elif choice == '3':
-            run_cmd('accelerate config')
-        elif choice == '4':
-            subprocess.Popen('start cmd /c .\gui.bat --inbrowser', shell=True)
-        elif choice == '5':
-            print('Quitting the program.')
-            break
-        else:
-            print('Invalid choice. Please enter a number between 1-5.')
-
-
-if __name__ == '__main__':
-    ensure_base_requirements()
-    setup_logging()
-    main_menu()

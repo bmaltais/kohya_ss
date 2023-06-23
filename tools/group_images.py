@@ -20,7 +20,7 @@ class ImageProcessor:
         self.pad = pad
         self.caption = caption
         self.caption_ext = caption_ext
-        self.image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
+        self.image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.tiff')
 
     def get_image_paths(self):
         images = []
