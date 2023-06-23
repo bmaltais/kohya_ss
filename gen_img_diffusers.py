@@ -3294,6 +3294,9 @@ def main(args):
                             seed = None
                     elif args.iter_same_seed:
                         seeds = iter_seed
+                    else:
+                        seed = None  # 前のを消す
+
                 if seed is None:
                     seed = random.randint(0, 0x7FFFFFFF)
                 if args.interactive:

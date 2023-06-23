@@ -20,11 +20,11 @@ mkdir ".\logs\setup" > nul 2>&1
 call .\venv\Scripts\deactivate.bat
 
 :: Calling external python program to check for local modules
-python .\tools\check_local_modules.py
+python .\setup\check_local_modules.py
 
 call .\venv\Scripts\activate.bat
 
-python .\tools\setup_windows.py
+python .\setup\setup_windows.py
 
 :: Deactivate the virtual environment
 call .\venv\Scripts\deactivate.bat

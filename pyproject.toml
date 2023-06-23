@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "library"
+version = "1.0.3"
+description = "Libraries required to run kohya_ss GUI"
+authors = ["Bernard Maltais <bernard@ducourier.com>"]
+license = "Apache-2.0" # Apache Software License
+
+[[tool.poetry.source]]
+name = "library"
+path = "library"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+
+[tool.poetry.dev-dependencies]

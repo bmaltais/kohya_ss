@@ -102,6 +102,8 @@ If you run on Linux, there is an alternative docker container port with less lim
 
 venv support need to be pre-installed. Can be done on ubuntu 22.04 with `apt install python3.10-venv`
 
+For Linux, make sure to install the cudaNN drivers following the instructions from: `https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64`
+
 Make sure to use a version of python >= 3.10.6 and < 3.11.0
 
 #### Setup
@@ -353,6 +355,10 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/19 (v21.7.10)
+- Quick fix for linux GUI startup where it would try to install darwin requirements on top of linux. Ugly fix but work. Hopefulle some linux user will improve via a PR.
+* 2023/06/18 (v21.7.9)
+- Implement temporary fix for validation of image dataset. Will no longer stop execution but will let training continue... this is changed to avoid stopping training on false positive... yet still raise awaireness that something might be wrong with the image dataset structure.
 * 2023/06/14 (v21.7.8)
 - Add tkinter to dockerised version (thanks to @burdokow)
 - Add option to create caption files from folder names to the `group_images.py` tool.

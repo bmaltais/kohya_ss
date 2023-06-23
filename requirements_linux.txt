@@ -8,10 +8,8 @@ easygui==0.98.3
 einops==0.6.0
 fairscale==0.4.13
 ftfy==6.1.1
-gradio==3.23.0; sys_platform == 'darwin'
-gradio==3.32.0; sys_platform != 'darwin'
-huggingface-hub==0.13.3; sys_platform == 'darwin'
-huggingface-hub==0.13.3; sys_platform != 'darwin'
+gradio==3.32.0
+huggingface-hub==0.13.3
 lion-pytorch==0.0.6
 lycoris_lora==0.1.7.dev4
 opencv-python==4.7.0.68
@@ -19,9 +17,8 @@ prodigyopt==1.0
 pytorch-lightning==1.9.0
 rich==13.4.1
 safetensors==0.2.6
-tensorboard==2.10.1 ; sys_platform != 'darwin'
-tensorboard==2.12.1 ; sys_platform == 'darwin'
-tensorflow==2.10.1; sys_platform != 'darwin'
+tensorboard==2.12.1
+tensorflow==2.12.0
 timm==0.6.12
 tk==0.1.0
 toml==0.10.2
