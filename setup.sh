@@ -567,22 +567,22 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
     libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
 
-    echo "Checking symlinks now."
-    create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
-    create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
-    create_symlinks "$libcudart_symlink" "$libcudart_target"
+    # echo "Checking symlinks now."
+    # create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
+    # create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
+    # create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
-    fi
+    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
+    # else
+    #   echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
+    # fi
 
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
-    fi
+    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    # else
+    #   echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
+    # fi
 
     configure_accelerate
 
@@ -590,19 +590,19 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     if [ "$SKIP_GUI" = false ]; then
       if command -v bash >/dev/null; then
         if [ "$PUBLIC" = false ]; then
-          bash "$DIR"/gui.sh
+          bash "$DIR"/gui.sh --headless
           exit 0
         else
-          bash "$DIR"/gui.sh --share
+          bash "$DIR"/gui.sh --headless --share
           exit 0
         fi
       else
         # This shouldn't happen, but we're going to try to help.
         if [ "$PUBLIC" = false ]; then
-          sh "$DIR"/gui.sh
+          sh "$DIR"/gui.sh --headless
           exit 0
         else
-          sh "$DIR"/gui.sh --share
+          sh "$DIR"/gui.sh --headless --share
           exit 0
         fi
       fi
