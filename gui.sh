@@ -16,6 +16,13 @@ cd "$SCRIPT_DIR" || exit 1
 # Activate the virtual environment
 source "$SCRIPT_DIR/venv/bin/activate" || exit 1
 
+# Check if LD_LIBRARY_PATH environment variable exists
+if [[ -z "${LD_LIBRARY_PATH}" ]]; then
+    echo "Warning: LD_LIBRARY_PATH environment variable is not set."
+    echo "Certain functionalities like 8bit based optimizers may not work correctly."
+    echo "Please ensure that the required libraries are properly configured."
+fi
+
 # Determine the requirements file based on the system
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ "$(uname -m)" == "arm64" ]]; then
