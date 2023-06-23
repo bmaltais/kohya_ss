@@ -414,7 +414,7 @@ update_kohya_ss() {
 }
 
 # Start OS-specific detection and work
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [[ "$OSTYPE" == "lin"* ]]; then
   # Check if root or sudo
   root=false
   if [ "$EUID" = 0 ]; then
