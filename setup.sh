@@ -56,7 +56,7 @@ SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 
 # Variables defined before the getopts loop, so we have sane default values.
 # Default installation locations based on OS and environment
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [[ "$OSTYPE" == "lin"* ]]; then
   if [ "$RUNPOD" = true ]; then
     DIR="/workspace/kohya_ss"
   elif [ -d "$SCRIPT_DIR/.git" ]; then
@@ -247,7 +247,11 @@ install_python_dependencies() {
 
   case "$OSTYPE" in
     "lin"*)
-      python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+      if [ "$RUNPOD" = true ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+      else
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+      fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
