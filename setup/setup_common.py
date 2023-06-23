@@ -155,12 +155,18 @@ def configure_accelerate():
             shutil.copyfile(
                 source_accelerate_config_file, target_config_location
             )
-            log.debug(
+            log.info(
                 f'Copied accelerate config file to: {target_config_location}'
             )
+        else:
+            run_cmd('accelerate config')
+            log.debug(
+                'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
+            )
     else:
-        log.info(
-            'Could not place the accelerate configuration file. Please configure manually with: accelerate config.'
+        run_cmd('accelerate config')
+        log.debug(
+            'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
         )
 
 
