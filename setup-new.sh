@@ -239,8 +239,8 @@ install_python_dependencies() {
   fi
 
   # Updating pip if there is one
-  echo "Checking for pip updates before Python operations."
-  pip install --upgrade pip
+  # echo "Checking for pip updates before Python operations."
+  # pip install --upgrade pip
 
   echo "Installing python dependencies. This could take a few minutes as it downloads files."
   echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
