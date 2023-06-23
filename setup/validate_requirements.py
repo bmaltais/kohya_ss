@@ -92,7 +92,7 @@ def main():
         else:
             setup_common.install_requirements('requirements_windows_torch2.txt')
     else:
-        setup_common.install_requirements(args.requirements)
+        setup_common.install_requirements(args.requirements, verify=True)
 
 
 if __name__ == '__main__':

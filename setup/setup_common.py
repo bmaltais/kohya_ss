@@ -349,18 +349,34 @@ def install(
         pip(f'install --upgrade {package}', ignore=ignore)
 
 
-def install_requirements(requirements_file):
+def process_requirements_line(line):
+    # Remove brackets and their contents from the line using regular expressions
+    # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    package_name = re.sub(r'\[.*?\]', '', line)
+    install(line, package_name)
+
+
+def install_requirements(requirements_file, verify=False):
     log.info(f'Verifying requirements against {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:
         # Read lines from the requirements file, strip whitespace, and filter out empty lines, comments, and lines starting with '.'
-        lines = [
-            line.strip()
-            for line in f.readlines()
-            if line.strip() != ''
-            and not line.startswith('#')
-            and line is not None
-            # and not line.startswith('.')
-        ]
+        if verify:
+            lines = [
+                line.strip()
+                for line in f.readlines()
+                if line.strip() != ''
+                and not line.startswith('#')
+                and line is not None
+                and 'no_verify' not in line
+            ]
+        else:
+            lines = [
+                line.strip()
+                for line in f.readlines()
+                if line.strip() != ''
+                and not line.startswith('#')
+                and line is not None
+            ]
 
         # Iterate over each line and install the requirements
         for line in lines:
@@ -368,13 +384,11 @@ def install_requirements(requirements_file):
             if line.startswith('-r'):
                 # Get the path to the included requirements file
                 included_file = line[2:].strip()
+                log.info(f'Verifying requirements against {included_file}...')
                 # Expand the included requirements file recursively
                 install_requirements(included_file)
             else:
-                # Remove brackets and their contents from the line using regular expressions
-                # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
-                package_name = re.sub(r'\[.*?\]', '', line)
-                install(line, package_name)
+                process_requirements_line(line)
 
 
 def ensure_base_requirements():
