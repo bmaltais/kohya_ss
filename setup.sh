@@ -56,7 +56,7 @@ SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 
 # Variables defined before the getopts loop, so we have sane default values.
 # Default installation locations based on OS and environment
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [[ "$OSTYPE" == "lin"* ]]; then
   if [ "$RUNPOD" = true ]; then
     DIR="/workspace/kohya_ss"
   elif [ -d "$SCRIPT_DIR/.git" ]; then
@@ -247,7 +247,11 @@ install_python_dependencies() {
 
   case "$OSTYPE" in
     "lin"*)
-      python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+      if [ "$RUNPOD" = true ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+      else
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+      fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
@@ -257,11 +261,6 @@ install_python_dependencies() {
       fi
       ;;
   esac
-
-  if [ "$RUNPOD" = true ]; then
-    echo "Installing tenssort."
-    pip install tensorrt
-  fi
 
   # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
   # pip install pydevd-pycharm~=223.8836.43
@@ -481,9 +480,13 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     echo "Ubuntu detected."
     if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
       # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:"
+        echo "This script needs YOU to install the missing python3-tk packages. Please install with:"
         echo " "
-        echo "sudo apt update -y && sudo apt install -y python3-tk"
+        if [ "$RUNPOD" = true ]; then
+          bash apt update -y && apt install -y python3-tk
+        else
+          echo "sudo apt update -y && sudo apt install -y python3-tk"
+        fi
         exit 1
       # else
       #   echo "This script needs to be run as root or via sudo to install packages."
@@ -564,22 +567,22 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
     libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
 
-    echo "Checking symlinks now."
-    create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
-    create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
-    create_symlinks "$libcudart_symlink" "$libcudart_target"
+    # echo "Checking symlinks now."
+    # create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
+    # create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
+    # create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
-    fi
+    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
+    # else
+    #   echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
+    # fi
 
-    if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
-    else
-      echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
-    fi
+    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    # else
+    #   echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
+    # fi
 
     configure_accelerate
 
@@ -587,19 +590,19 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     if [ "$SKIP_GUI" = false ]; then
       if command -v bash >/dev/null; then
         if [ "$PUBLIC" = false ]; then
-          bash "$DIR"/gui.sh
+          bash "$DIR"/gui.sh --headless
           exit 0
         else
-          bash "$DIR"/gui.sh --share
+          bash "$DIR"/gui.sh --headless --share
           exit 0
         fi
       else
         # This shouldn't happen, but we're going to try to help.
         if [ "$PUBLIC" = false ]; then
-          sh "$DIR"/gui.sh
+          sh "$DIR"/gui.sh --headless
           exit 0
         else
-          sh "$DIR"/gui.sh --share
+          sh "$DIR"/gui.sh --headless --share
           exit 0
         fi
       fi

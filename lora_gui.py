@@ -1293,7 +1293,15 @@ def lora_tab(
                     'decompose_both': ({'LyCORIS/LoKr'}, gr.Slider),
                     'train_on_input': ({'LyCORIS/iA3'}, gr.Slider),
                     'scale_weight_norms': (
-                        {'Kohya DyLoRA', 'Kohya LoCon'},
+                        {
+                            'LoCon',
+                            'Kohya DyLoRA',
+                            'Kohya LoCon',
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoCon',
+                            'LyCORIS/LoKr',
+                        },
                         gr.Slider,
                     ),
                     'network_dropout': (

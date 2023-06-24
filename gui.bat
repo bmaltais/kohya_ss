@@ -1,4 +1,5 @@
 @echo off
+
 :: Deactivate the virtual environment
 call .\venv\Scripts\deactivate.bat
 
@@ -14,5 +15,12 @@ python.exe .\setup\validate_requirements.py
 
 :: If the exit code is 0, run the kohya_gui.py script with the command-line arguments
 if %errorlevel% equ 0 (
-    cmd /k python.exe kohya_gui.py %*
+    REM Check if the batch was started via double-click
+    IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (
+        REM echo This script was started by double clicking.
+        cmd /k python.exe kohya_gui.py %*
+    ) ELSE (
+        REM echo This script was started from a command prompt.
+        python.exe kohya_gui.py %*
+    )
 )

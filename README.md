@@ -71,7 +71,17 @@ These dependencies are taken care of via `setup.sh` in the installation section.
 ## Installation
 
 ### Runpod
-Follow the instructions found in this discussion: https://github.com/bmaltais/kohya_ss/discussions/379
+- Select the pytorch 2.0.1 template
+- ssh into the runpod
+
+```
+cd /workspace
+git clone https://github.com/bmaltais/kohya_ss.git
+git checkout dev2
+./setup.sh -p
+```
+
+Connect to the public URL displayed
 
 ### Docker
 Docker is supported on Windows and Linux distributions. However this method currently only supports Nvidia GPUs. 
@@ -102,9 +112,11 @@ If you run on Linux, there is an alternative docker container port with less lim
 
 venv support need to be pre-installed. Can be done on ubuntu 22.04 with `apt install python3.10-venv`
 
-For Linux, make sure to install the cudaNN drivers following the instructions from: `https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64`
+Install the cudaNN drivers following the instructions from: `https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64`
 
-Make sure to use a version of python >= 3.10.6 and < 3.11.0
+Use a version of python >= 3.10.6 and < 3.11.0
+
+On WSL2, make sure to `export LD_LIBRARY_PATH=/usr/lib/wsl/lib/` or else AdamW8bit will not work.
 
 #### Setup
 
@@ -172,11 +184,6 @@ cd kohya_ss
 .\setup.bat
 ```
 
-If this is a 1st install answer No when asked `Do you want to uninstall previous versions of torch and associated files before installing`.
-
-
-Then configure accelerate with the same answers as in the MacOS instructions when prompted.
-
 ### Optional: CUDNN 8.6
 
 This step is optional but can improve the learning speed for NVIDIA 30X0/40X0 owners. It allows for larger training batch size and faster training speed.
@@ -198,26 +205,20 @@ Once the commands have completed successfully you should be ready to use the new
 ## Upgrading
 
 The following commands will work from the root directory of the project if you'd prefer to not run scripts.
-These commands will work on any OS.
-```bash
-git pull
-
-.\venv\Scripts\activate
-
-pip install --use-pep517 --upgrade -r requirements.txt
-```
 
 ### Windows Upgrade
 When a new release comes out, you can upgrade your repo with the following commands in the root directory:
 
 ```powershell
-upgrade.bat
+git pull
+.\setup.bat
 ```
 
 ### Linux and macOS Upgrade
 You can cd into the root directory and simply run
 
 ```bash
+git pull
 # Refresh and update everything
 ./setup.sh
 
@@ -281,13 +282,7 @@ You can find the train network solution specific here: [Train network README](tr
 
 ## LoRA
 
-Training a LoRA currently uses the `train_network.py` code. You can create a LoRA network by using the all-in-one `gui.cmd` or by running the dedicated LoRA training GUI with:
-
-```
-.\venv\Scripts\activate
-
-python lora_gui.py
-```
+Training a LoRA currently uses the `train_network.py` code. You can create a LoRA network by using the all-in-one gui.
 
 Once you have created the LoRA network, you can generate images via auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
 
@@ -355,6 +350,9 @@ This will store a backup file with your current locally installed pip packages a
 
 ## Change History
 
+* 2023/06/24 (v21.7.12)
+- Significantly improved the setup process on all platforms
+- Better support for runpod
 * 2023/06/23 (v21.7.11)
 - This is a significant update to how setup work across different platform. It might be causing issues... especially for linux env like runpod. If you encounter problems please report them in the issues so I can try to address them. You can revert to the previous release with `git checkout v21.7.10`
 

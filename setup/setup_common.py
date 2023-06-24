@@ -112,7 +112,7 @@ def configure_accelerate(run_accelerate=False):
         if run_accelerate:
             run_cmd('accelerate config')
         else:
-            log.error(
+            log.warning(
                 f'Could not find the accelerate configuration file in {source_accelerate_config_file}. Please configure accelerate manually by runningthe option in the menu.'
             )
     
@@ -165,14 +165,14 @@ def configure_accelerate(run_accelerate=False):
             if run_accelerate:
                 run_cmd('accelerate config')
             else:
-                log.error(
+                log.warning(
                     'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
                 )
     else:
         if run_accelerate:
             run_cmd('accelerate config')
         else:
-            log.error(
+            log.warning(
                 'Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config.'
             )
 
