@@ -92,18 +92,19 @@ class ImageProcessor:
             os.makedirs(self.output_folder, exist_ok=True)
             original_filename = os.path.basename(source_paths[j])
             filename_without_ext = os.path.splitext(original_filename)[0]
-            output_path = os.path.join(self.output_folder, f"group-{group_index+1}-{filename_without_ext}.jpg")
+            final_file_name = f"group-{group_index+1}-{j+1}-{filename_without_ext}"
+            output_path = os.path.join(self.output_folder, f"{final_file_name}.jpg")
             log.info(f"  Saving processed image to {output_path}")
-            img.convert('RGB').save(output_path)
+            img.convert('RGB').save(output_path, quality=100)
             
             if self.caption:
-                self.create_caption_file(source_paths[j], group_index, filename_without_ext)
+                self.create_caption_file(source_paths[j], group_index, final_file_name)
 
     def create_caption_file(self, source_path, group_index, caption_filename):
         dirpath = os.path.dirname(source_path)
         caption = os.path.basename(dirpath).split('_')[-1]
         caption_filename = caption_filename + self.caption_ext
-        caption_path = os.path.join(self.output_folder, f"group-{group_index+1}-{caption_filename}")
+        caption_path = os.path.join(self.output_folder, caption_filename)
         with open(caption_path, 'w') as f:
             f.write(caption)
 
@@ -117,7 +118,7 @@ class ImageProcessor:
                     continue
                 basename, ext = os.path.splitext(filename)
                 if basename == original_basename and ext != original_ext:
-                    shutil.copy2(os.path.join(dirpath, filename), os.path.join(self.output_folder, f"group-{group_index+1}-image-{j+1}{ext}"))
+                    shutil.copy2(os.path.join(dirpath, filename), os.path.join(self.output_folder, f"group-{group_index+1}-{j+1}-{filename}"))
 
     def process_images(self):
         images = self.get_image_paths()

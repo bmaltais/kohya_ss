@@ -3,7 +3,6 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
-
 from library.custom_logging import setup_logging
 
 # Set up logging
@@ -24,21 +23,19 @@ def caption_images(
     prefix,
     postfix,
 ):
-    # Check for caption_text_input
-    # if caption_text_input == "":
-    #     msgbox("Caption text is missing...")
-    #     return
-
-    # Check for images_dir_input
+    # Check if the image folder is provided
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
 
+    # Check if the caption file extension is provided
     if caption_file_ext == '':
         msgbox('Please provide an extension for the caption files.')
         return
 
     log.info(f'Captioning files in {train_data_dir}...')
+
+    # Construct the command to run
     run_cmd = f'{PYTHON} "finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
@@ -79,7 +76,7 @@ def caption_images(
 def gradio_blip_caption_gui_tab(headless=False):
     with gr.Tab('BLIP Captioning'):
         gr.Markdown(
-            'This utility will use BLIP to caption files for each images in a folder.'
+            'This utility uses BLIP to caption files for each image in a folder.'
         )
         with gr.Row():
             train_data_dir = gr.Textbox(
@@ -98,7 +95,7 @@ def gradio_blip_caption_gui_tab(headless=False):
         with gr.Row():
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extention for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file, e.g., .caption, .txt',
                 value='.txt',
                 interactive=True,
             )
