@@ -1468,6 +1468,8 @@ class UNet2DConditionModel(nn.Module):
         encoder_hidden_states: torch.Tensor,
         class_labels: Optional[torch.Tensor] = None,
         return_dict: bool = True,
+        down_block_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
+        mid_block_additional_residual: Optional[torch.Tensor] = None,
     ) -> Union[Dict, Tuple]:
         r"""
         Args:
@@ -1533,8 +1535,19 @@ class UNet2DConditionModel(nn.Module):
 
             down_block_res_samples += res_samples
 
+        # skip connectionにControlNetの出力を追加する
+        if down_block_additional_residuals is not None:
+            down_block_res_samples = list(down_block_res_samples)
+            for i in range(len(down_block_res_samples)):
+                down_block_res_samples[i] += down_block_additional_residuals[i]
+            down_block_res_samples = tuple(down_block_res_samples)
+
         # 4. mid
         sample = self.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
+
+        # ControlNetの出力を追加する
+        if mid_block_additional_residual is not None:
+            sample += mid_block_additional_residual
 
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
