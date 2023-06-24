@@ -1,28 +1,32 @@
-# Pull sd-scripts update in a local branch
+## Updating a Local Branch with the Latest sd-scripts Changes
 
-For reference for anyone that would like to pull the latest from kohya/sd-scripts, you can:
+To update your local branch with the most recent changes from kohya/sd-scripts, follow these steps:
 
-`git remote add sd-scripts https://github.com/kohya-ss/sd-scripts.git`
+1. Add sd-scripts as an alternative remote by executing the following command:
 
-to add it as an alternative remote, then when you want to update:
+   ```
+   git remote add sd-scripts https://github.com/kohya-ss/sd-scripts.git
+   ```
 
-```
-git checkout dev
-git pull sd-scripts main
-```
+2. When you wish to perform an update, execute the following commands:
 
-or, if you want the absolute latest and potentially broken code:
+   ```
+   git checkout dev
+   git pull sd-scripts main
+   ```
 
-```
-git checkout dev
-git pull sd-scripts dev
-```
+   Alternatively, if you want to obtain the latest code, even if it may be unstable:
 
-You'll probably get a conflict for the Readme, but you can get around it with:
+   ```
+   git checkout dev
+   git pull sd-scripts dev
+   ```
 
-```
-git add README.md
-git merge --continue
-```
+3. If you encounter a conflict with the Readme file, you can resolve it by taking the following steps:
 
-which will probably open a text editor for a commit message, but you can just save and close that and you should be good to go. If there are more merge conflicts than that, you now have a potential learning experience and chance for personal growth.
+   ```
+   git add README.md
+   git merge --continue
+   ```
+
+   This may open a text editor for a commit message, but you can simply save and close it to proceed. Following these steps should resolve the conflict. If you encounter additional merge conflicts, consider them as valuable learning opportunities for personal growth.
