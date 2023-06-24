@@ -21,5 +21,7 @@ huggingface-hub==0.14.1
 # fairscale==0.4.13
 # for WD14 captioning
 # tensorflow==2.10.1
+# open clip for SDXL
+open-clip-torch==2.20.0
 # for kohya_ss library
-.
+-e .
