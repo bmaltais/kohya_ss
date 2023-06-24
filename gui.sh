@@ -29,9 +29,10 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 # Step into GUI local directory
 cd "$SCRIPT_DIR" || exit 1
 
-if [ "$RUNPOD" = false ]; then
-    # Activate the virtual environment
+if [ -d "$SCRIPT_DIR/venv" ]; then
     source "$SCRIPT_DIR/venv/bin/activate" || exit 1
+else
+    echo "venv folder does not exist. Not activating..."
 fi
 
 # Check if LD_LIBRARY_PATH environment variable exists
