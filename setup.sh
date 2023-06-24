@@ -223,6 +223,11 @@ install_python_dependencies() {
 
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
+  
+  if [ "$RUNPOD" = true ]; then
+    python3 -m venv "$DIR/venv"
+  fi
+
   if ! inDocker; then
     if command -v python3.10 >/dev/null; then
       python3.10 -m venv "$DIR/venv"
