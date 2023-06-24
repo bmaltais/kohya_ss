@@ -333,7 +333,7 @@ configure_accelerate() {
     else
       echo "Could not place the accelerate configuration file. Please configure manually."
       sleep 2
-      accelerate config
+      bash accelerate config
     fi
   fi
 }
@@ -558,21 +558,21 @@ if [[ "$OSTYPE" == "lin"* ]]; then
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
-    if inDocker; then
-      # We get the site-packages from python itself, then cut the string, so no other code changes required.
-      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
-    fi
+    # if inDocker; then
+    #   # We get the site-packages from python itself, then cut the string, so no other code changes required.
+    #   VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    #   VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
+    # fi
 
-    # Symlink paths
-    libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
-    libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
-    libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
+    # # Symlink paths
+    # libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
+    # libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
+    # libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
 
-    #Target file paths
-    libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
-    libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
-    libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
+    # #Target file paths
+    # libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
+    # libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
+    # libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
 
     # echo "Checking symlinks now."
     # create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
