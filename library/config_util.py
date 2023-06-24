@@ -79,7 +79,7 @@ class ControlNetSubsetParams(BaseSubsetParams):
 
 @dataclass
 class BaseDatasetParams:
-  tokenizer: CLIPTokenizer = None
+  tokenizer: Union[CLIPTokenizer, List[CLIPTokenizer]] = None
   max_token_length: int = None
   resolution: Optional[Tuple[int, int]] = None
   debug_dataset: bool = False
