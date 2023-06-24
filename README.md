@@ -2,42 +2,36 @@
 
 This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
-### Table of Contents
+## Table of Contents
 
-- [Tutorials](#tutorials)
-* [Training guide - common](./docs/train_README-ja.md) : data preparation, options etc... 
-  * [Chinese version](./docs/train_README-zh.md)
-  * [Dataset config](./docs/config_README-ja.md) 
-  * [DreamBooth training guide](./docs/train_db_README-ja.md)
-  * [Step by Step fine-tuning guide](./docs/fine_tune_README_ja.md):
-  * [Training LoRA](./docs/train_network_README-ja.md)
-  * [training Textual Inversion](./docs/train_ti_README-ja.md)
-  * [Image generation](./docs/gen_img_README-ja.md)
-  * [Model conversion](https://note.com/kohya_ss/n/n374f316fe4ad)
-- [Required Dependencies](#required-dependencies)
-  - [Linux/macOS](#linux-and-macos-dependencies)
-- [Installation](#installation)
-    - [Docker](#docker)
-    - [Linux/macOS](#linux-and-macos)
-      - [Default Install Locations](#install-location)
-    - [Windows](#windows)
-    - [CUDNN 8.6](#optional--cudnn-86)
-- [Upgrading](#upgrading)
-  - [Windows](#windows-upgrade)
-  - [Linux/macOS](#linux-and-macos-upgrade)
-- [Launching the GUI](#starting-gui-service)
-  - [Windows](#launching-the-gui-on-windows)
-  - [Linux/macOS](#launching-the-gui-on-linux-and-macos)
-  - [Direct Launch via Python Script](#launching-the-gui-directly-using-kohyaguipy)
-- [Dreambooth](#dreambooth)
-- [Finetune](#finetune)
-- [Train Network](#train-network)
-- [LoRA](#lora)
-- [Troubleshooting](#troubleshooting)
-  - [Page File Limit](#page-file-limit)
-  - [No module called tkinter](#no-module-called-tkinter)
-  - [FileNotFoundError](#filenotfounderror)
-- [Change History](#change-history)
+1. [Tutorials](#tutorials)
+2. [Installation](#installation)
+   1. [Windows](#windows)
+      1. [Windows Pre-requirements](#windows-pre-requirements)
+      2. [Setup](#setup)
+      3. [Optional: CUDNN 8.6](#optional-cudnn-86)
+   2. [Linux and macOS](#linux-and-macos)
+      1. [Linux Pre-requirements](#linux-pre-requirements)
+      2. [Setup](#setup-1)
+      3. [Install Location](#install-location)
+   3. [Runpod](#runpod)
+   4. [Docker](#docker)
+3. [Upgrading](#upgrading)
+   1. [Windows Upgrade](#windows-upgrade)
+   2. [Linux and macOS Upgrade](#linux-and-macos-upgrade)
+4. [Starting GUI Service](#starting-gui-service)
+   1. [Launching the GUI on Windows](#launching-the-gui-on-windows)
+   2. [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+5. [Dreambooth](#dreambooth)
+6. [Finetune](#finetune)
+7. [Train Network](#train-network)
+8. [LoRA](#lora)
+9. [Sample image generation during training](#sample-image-generation-during-training)
+10. [Troubleshooting](#troubleshooting)
+   1. [Page File Limit](#page-file-limit)
+   2. [No module called tkinter](#no-module-called-tkinter)
+   3. [FileNotFoundError](#filenotfounderror)
+11. [Change History](#change-history)
 
 ## Tutorials
 
@@ -55,57 +49,61 @@ Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable D
 
 Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](https://www.youtube.com/watch?v=3uzCNrQao3o):
 
-[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
+[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www
+
+.youtube.com/watch?v=3uzCNrQao3o)
 
 ## Installation
-### Runpod
-To install the necessary components for Runpod, please follow these steps:
 
-1. Select the pytorch 2.0.1 template.
+### Windows
 
-2. SSH into the Runpod.
+#### Windows Pre-requirements
 
-3. In the terminal, navigate to the `/workspace` directory.
+To install the necessary dependencies on a Windows system, follow these steps:
 
-4. Clone the repository by running the following command:
+1. Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe).
+   - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
+
+2. Install [Git](https://git-scm.com/download/win).
+
+3. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+
+#### Setup
+
+To set up the project, follow these steps:
+
+1. Open a terminal and navigate to the desired installation directory.
+
+2. Clone the repository by running the following command:
    ```
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
-5. Run the setup script with the `-p` option:
+3. Change into the `kohya_ss` directory:
    ```
-   ./setup.sh -p
-   ```
-
-6. Connect to the public URL displayed after the installation process is completed.
-
-### Docker
-If you prefer to use Docker, please follow the instructions below:
-
-1. Ensure that you have Git and Docker installed on your Windows or Linux system.
-
-2. Open your OS shell (Command Prompt or Terminal) and run the following commands:
-
-   ```bash
-   git clone https://github.com/bmaltais/kohya_ss.git
    cd kohya_ss
-   docker compose build
-   docker compose run --service-ports kohya-ss-gui
    ```
 
-   Note: The initial run may take up to 20 minutes to complete.
+4. Run the setup script by executing the following command:
+   ```
+   .\setup.bat
+   ```
 
-   Please be aware of the following limitations when using Docker:
+#### Optional: CUDNN 8.6
 
-   - All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
-   - The file picker feature is not functional. You need to manually set the folder path and config file path.
-   - Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
-   - There is no built-in auto-update support. To update the system, you must run update scripts outside of Docker and rebuild using `docker compose build`.
+The following steps are optional but can improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
 
-   If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
+Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on GitHub due to file size limitations. You can download them [here](https://github.com/bmaltais/python-library/raw/main/cudnn_windows.zip) to boost sample generation speed (almost 50% on a 4090 GPU). After downloading the ZIP file, follow the installation steps below:
+
+1. Unzip the downloaded file and place the `cudnn_windows` folder in the root directory of the `kohya_ss` repository.
+
+2. Run .\setup.bat and select the option to install cudann.
 
 ### Linux and macOS
-#### Linux pre-requirements
+
+#### Linux Pre-requirements
+
+To install the necessary dependencies on a Linux system, ensure that you fulfill the following requirements:
 
 - Ensure that `venv` support is pre-installed. You can install it on Ubuntu 22.04 using the command:
   ```
@@ -116,9 +114,7 @@ If you prefer to use Docker, please follow the instructions below:
 
 - Make sure you have Python version 3.10.6 or higher (but lower than 3.11.0) installed on your system.
 
-- If you are using WSL2, set the `LD_LIBRARY_PATH` environment variable by executing
-
- the following command:
+- If you are using WSL2, set the `LD_LIBRARY_PATH` environment variable by executing the following command:
   ```
   export LD_LIBRARY_PATH=/usr/lib/wsl/lib/
   ```
@@ -147,11 +143,13 @@ To set up the project on Linux or macOS, perform the following steps:
 5. Run the setup script by executing the following command:
    ```
    ./setup.sh
+
+
    ```
 
    Note: If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
 
-#### Install location
+#### Install Location
 
 The default installation location on Linux is the directory where the script is located. If a previous installation is detected in that location, the setup will proceed there. Otherwise, the installation will fall back to `/opt/kohya_ss`. If `/opt` is not writable, the fallback location will be `$HOME/kohya_ss`. Finally, if none of the previous options are viable, the installation will be performed in the current directory.
 
@@ -159,49 +157,53 @@ For macOS and other non-Linux systems, the installation process will attempt to 
 
 If you choose to use the interactive mode, the default values for the accelerate configuration screen will be "This machine," "None," and "No" for the remaining questions. These default answers are the same as the Windows installation.
 
-### Windows
-#### Windows pre-requirements
+### Runpod
 
-To install the required dependencies on a Windows system, please follow the steps below:
+To install the necessary components for Runpod, follow these steps:
 
-1. Install [Python 3.10](https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe).
+1. Select the pytorch 2.0.1 template.
 
-   - During the installation process, make sure to select the option to add Python to the 'PATH' environment variable.
+2. SSH into the Runpod.
 
-2. Install [Git](https://git-scm.com/download/win).
+3. In the terminal, navigate to the `/workspace` directory.
 
-3. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-
-#### Setup
-
-1. Open a terminal and navigate to the desired installation directory.
-
-2. Clone the repository by running the following command:
+4. Clone the repository by running the following command:
    ```
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
-3. Change into the `kohya_ss` directory:
+5. Run the setup script with the `-p` option:
    ```
+   ./setup.sh -p
+   ```
+
+6. Connect to the public URL displayed after the installation process is completed.
+
+### Docker
+
+If you prefer to use Docker, follow the instructions below:
+
+1. Ensure that you have Git and Docker installed on your Windows or Linux system.
+
+2. Open your OS shell (Command Prompt or Terminal) and run the following commands:
+
+   ```bash
+   git clone https://github.com/bmaltais/kohya_ss.git
    cd kohya_ss
+   docker compose build
+   docker compose run --service-ports kohya-ss-gui
    ```
 
-4. Run the setup script by executing the following command:
-   ```
-   .\setup.bat
-   ```
+   Note: The initial run may take up to 20 minutes to complete.
 
-#### Optional: CUDNN 8.6
+   Please be aware of the following limitations when using Docker:
 
-The following steps are optional but can improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+   - All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
+   - The file picker feature is not functional. You need to manually set the folder path and config file path.
+   - Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
+   - There is no built-in auto-update support. To update the system, you must run update scripts outside of Docker and rebuild using `docker compose build`.
 
-Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on GitHub due to file size limitations. You can download them [here](https://github.com/bmaltais/python-library/raw/main/cudnn_windows.zip) to boost sample generation speed (almost 50% on a 4090 GPU). After
-
- downloading the ZIP file, follow the installation steps below:
-
-1. Unzip the downloaded file and place the `cudnn_windows` folder in the root directory of the `kohya_ss` repository.
-
-2. Run .\setup.bat and select the option to install cudann
+   If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
 ## Upgrading
 
@@ -225,7 +227,9 @@ If a new release becomes available, you can upgrade your repository by running t
 
 To upgrade your installation on Linux or macOS, follow these steps:
 
-1. Open a terminal and navigate to the root directory of the project.
+1. Open a terminal and navigate to the root
+
+ directory of the project.
 
 2. Pull the latest changes from the repository:
    ```bash
@@ -252,7 +256,7 @@ To launch the GUI service, you can use the provided scripts or run the `kohya_gu
 
 ### Launching the GUI on Windows
 
-TOn Windows, you can use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
+On Windows, you can use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
 
 ```powershell
 gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share
@@ -264,8 +268,7 @@ or
 gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-
-## Launching the GUI on Linux and macOS
+### Launching the GUI on Linux and macOS
 
 To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
 
@@ -293,35 +296,38 @@ Once you have created the LoRA network, you can generate images using auto1111 b
 
 The following are the names of LoRA types used in this repository:
 
-1. __LoRA-LierLa__: LoRA for Linear layers and Conv2d layers with a 1x1 kernel.
+1. LoRA-LierLa: LoRA for Linear layers and Conv2d layers with a 1x1 kernel.
 
-2. __LoRA-C3Lier__: LoRA for Conv2d layers with a 3x3 kernel, in addition to 1.
+2. LoRA-C3Lier: LoRA for Conv2d layers with a 3x3 kernel, in addition to LoRA-LierLa.
 
 LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network argument). You can use LoRA-LierLa with our extension for AUTOMATIC1111's Web UI or the built-in LoRA feature of the Web UI.
 
 To use LoRA-C3Lier with the Web UI, please use our extension.
 
 ## Sample image generation during training
-A prompt file might look like this, for example
+
+A prompt file might look like this, for example:
 
 ```
 # prompt 1
-masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
 
 # prompt 2
-masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+
+
+masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy, bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
 ```
 
-  Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following options can be used:
 
-  * `--n` Negative prompt up to the next option.
-  * `--w` Specifies the width of the generated image.
-  * `--h` Specifies the height of the generated image.
-  * `--d` Specifies the seed of the generated image.
-  * `--l` Specifies the CFG scale of the generated image.
-  * `--s` Specifies the number of steps in the generation.
+- `--n`: Negative prompt up to the next option.
+- `--w`: Specifies the width of the generated image.
+- `--h`: Specifies the height of the generated image.
+- `--d`: Specifies the seed of the generated image.
+- `--l`: Specifies the CFG scale of the generated image.
+- `--s`: Specifies the number of steps in the generation.
 
-  The prompt weighting such as `( )` and `[ ]` are working.
+The prompt weighting such as `( )` and `[ ]` are working.
 
 ## Troubleshooting
 
@@ -351,9 +357,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/24 (v21.7.12)
-- Significantly improved the setup process on all platforms
-- Better support for runpod
+- 2023/06/24 (v21.7.12)
+  - Significantly improved the setup process on all platforms
+  - Better support for runpod
 * 2023/06/23 (v21.7.11)
 - This is a significant update to how setup work across different platform. It might be causing issues... especially for linux env like runpod. If you encounter problems please report them in the issues so I can try to address them. You can revert to the previous release with `git checkout v21.7.10`
 
