@@ -45,6 +45,8 @@ if [[ -z "${LD_LIBRARY_PATH}" ]]; then
     echo -e "${YELLOW}Certain functionalities may not work correctly.${RESET}"
     echo -e "${YELLOW}Please ensure that the required libraries are properly configured.${RESET}"
     echo -e " "
+    echo -e "${YELLOW}If you use WSL2 you may want to: export LD_LIBRARY_PATH=/usr/lib/wsl/lib/${RESET}"
+    echo -e " "
 fi
 
 # Determine the requirements file based on the system
