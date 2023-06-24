@@ -120,7 +120,7 @@ def install_kohya_ss_torch1():
     #     'xformers-0.0.14'
     # )
     setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=False)
-    # sync_bits_and_bytes_files()
+    sync_bits_and_bytes_files()
     setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
@@ -144,7 +144,7 @@ def install_kohya_ss_torch2():
     # )
     setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=False)
     # install('https://huggingface.co/r4ziel/xformers_pre_built/resolve/main/triton-2.0.0-cp310-cp310-win_amd64.whl', 'triton', reinstall=reinstall)
-    # sync_bits_and_bytes_files()
+    sync_bits_and_bytes_files()
     setup_common.configure_accelerate(run_accelerate=True)
     # run_cmd(f'accelerate config')
 
