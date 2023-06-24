@@ -55,7 +55,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_macos_amd64.txt"
     fi
 else
-    if [ "$RUNPOD" = true ]; then
+    if [ "$RUNPOD" = false ]; then
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
     else
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_runpod.txt"
