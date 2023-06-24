@@ -484,6 +484,8 @@ if [[ "$OSTYPE" == "lin"* ]]; then
         echo " "
         if [ "$RUNPOD" = true ]; then
           bash apt update -y && apt install -y python3-tk
+          bash python -m venv venv
+          source "$DIR/venv/bin/activate"
         else
           echo "sudo apt update -y && sudo apt install -y python3-tk"
         fi
