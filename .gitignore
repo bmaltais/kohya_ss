@@ -1,23 +1,44 @@
+# Python
 venv
 __pycache__
-cudnn_windows
-.vscode
 *.egg-info
 build
 wd14_tagger_model
+
+# IDE and Editor specific
+.vscode
+
+# CUDNN for Windows
+cudnn_windows
+
+# Cache and temporary files
+.cache
 .DS_Store
+
+# Scripts and executables
 locon
 gui-user.bat
 gui-user.ps1
-.vscode
+
+# Version control
+SmilingWolf
 wandb
+
+# Setup and logs
 setup.log
 logs
-SmilingWolf
+
+# Miscellaneous
 uninstall.txt
+
+# Test files
 test/output
 test/logs
 test/*.json
 test/ft
+
+# Temporary requirements
 requirements_tmp_for_setup.txt
+
+# Version specific
 0.13.3
