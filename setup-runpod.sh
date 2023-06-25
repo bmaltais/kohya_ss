@@ -7,6 +7,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 echo "Installing tk and python3.10-venv..."
 apt update -y && apt install -y python3-tk python3.10-venv
 
+# Install required libcudnn release 8.7.0.84-1
+echo "Installing required libcudnn release 8.7.0.84-1..."
+apt install -y libcudnn8=8.7.0.84-1+cuda11.8 libcudnn8-dev=8.7.0.84-1+cuda11.8 --allow-change-held-packages
+
 # Check if the venv folder doesn't exist
 if [ ! -d "$SCRIPT_DIR/venv" ]; then
     echo "Creating venv..."

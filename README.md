@@ -157,22 +157,26 @@ If you choose to use the interactive mode, the default values for the accelerate
 
 ### Runpod
 
-To install the necessary components for Runpod, follow these steps:
+To install the necessary components for Runpod and run it, follow these steps:
 
-1. Select the pytorch 2.0.1 template.
+1. Select the pytorch 2.0.1 template. This is important. Other templates may not work.
 
 2. SSH into the Runpod.
 
-3. In the terminal, navigate to the `/workspace` directory.
-
-4. Clone the repository by running the following command:
+3. Clone the repository by running the following command:
    ```
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
-5. Run the setup script with the `-p` option:
+4. Run the setup script:
    ```
-   ./setup.sh -p
+   cd kohya_ss
+   ./setup-runpod.sh
+   ```
+
+5. Run the gui with:
+   ```
+   ./gui.sh --share --headless
    ```
 
 6. Connect to the public URL displayed after the installation process is completed.
