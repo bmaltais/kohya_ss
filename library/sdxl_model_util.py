@@ -6,6 +6,10 @@ from library import model_util
 from library import sdxl_original_unet
 
 
+VAE_SCALE_FACTOR = 0.13025
+MODEL_VERSION_SDXL_BASE_V0_9 = "sdxl_base_v0-9"
+
+
 def convert_sdxl_text_encoder_2_checkpoint(checkpoint, max_length):
     SDXL_KEY_PREFIX = "conditioner.embedders.1.model."
 
@@ -76,8 +80,8 @@ def convert_sdxl_text_encoder_2_checkpoint(checkpoint, max_length):
     return new_sd, text_projection, logit_scale
 
 
-def load_models_from_sdxl_checkpoint(model_type, ckpt_path, map_location):
-    # model_type is reserved to future use
+def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
+    # model_version is reserved for future use
 
     # Load the state dict
     if model_util.is_safetensors(ckpt_path):
