@@ -23,5 +23,6 @@ python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requireme
 
 # Configure accelerate
 echo "Configuring accelerate..."
+mkdir -p "/root/.cache/huggingface/accelerate"
 cp "$SCRIPT_DIR/config_files/accelerate/runpod.yaml" "/root/.cache/huggingface/accelerate/default_config.yaml"
-echo "To manually configure accelerate run: $SCRIPT_DIR/venv/bin/activate"
+# echo "To manually configure accelerate run: $SCRIPT_DIR/venv/bin/activate"
