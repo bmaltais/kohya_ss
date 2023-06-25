@@ -29,9 +29,10 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 # Step into GUI local directory
 cd "$SCRIPT_DIR" || exit 1
 
-if [ "$RUNPOD" = false ]; then
-    # Activate the virtual environment
+if [ -d "$SCRIPT_DIR/venv" ]; then
     source "$SCRIPT_DIR/venv/bin/activate" || exit 1
+else
+    echo "venv folder does not exist. Not activating..."
 fi
 
 # Check if LD_LIBRARY_PATH environment variable exists
@@ -44,6 +45,8 @@ if [[ -z "${LD_LIBRARY_PATH}" ]]; then
     echo -e "${YELLOW}Warning: LD_LIBRARY_PATH environment variable is not set.${RESET}"
     echo -e "${YELLOW}Certain functionalities may not work correctly.${RESET}"
     echo -e "${YELLOW}Please ensure that the required libraries are properly configured.${RESET}"
+    echo -e " "
+    echo -e "${YELLOW}If you use WSL2 you may want to: export LD_LIBRARY_PATH=/usr/lib/wsl/lib/${RESET}"
     echo -e " "
 fi
 
