@@ -21,6 +21,6 @@ fairscale==0.4.13
 # for WD14 captioning
 # tensorflow<2.11
 tensorflow==2.10.1
-huggingface-hub==0.13.3
+huggingface-hub==0.15.1
 # for kohya_ss library
 .
