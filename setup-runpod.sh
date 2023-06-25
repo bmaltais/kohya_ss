@@ -6,12 +6,12 @@ SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 # Check if the venv folder doesn't exist
 if [ ! -d "$SCRIPT_DIR/venv" ]; then
     echo "Creating venv..."
-    python3 -m venv venv
+    python3 -m venv "$SCRIPT_DIR/venv"
 fi
 
 # Install tk
 echo "Install tk..."
-apt update -y && apt install -y python3-tk
+apt update -y && apt install -y python3-tk python3.10-venv
 
 # Activate the virtual environment
 echo "Activate venv..."
