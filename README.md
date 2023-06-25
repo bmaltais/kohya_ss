@@ -165,6 +165,7 @@ To install the necessary components for Runpod and run it, follow these steps:
 
 3. Clone the repository by running the following command:
    ```
+   cd /workspace
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
