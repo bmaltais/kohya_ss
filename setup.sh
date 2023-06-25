@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
-# This file will be the host environment setup file for all operating systems other than base Windows.
-
-# Set the required package versions here.
-TENSORFLOW_MACOS_VERSION="2.12.0"
-TENSORFLOW_METAL_VERSION="0.8.0"
-
+# Function to display help information
 display_help() {
   cat <<EOF
 Kohya_SS Installation Script for POSIX operating systems.
@@ -35,8 +30,7 @@ Options:
 EOF
 }
 
-# Checks to see if variable is set and non-empty.
-# This is defined first, so we can use the function for some default variable values
+# Helper function to check if variable is set and non-empty
 env_var_exists() {
   if [[ -n "${!1}" ]]; then
     return 0
@@ -45,13 +39,13 @@ env_var_exists() {
   fi
 }
 
-# Need RUNPOD to have a default value before first access
+# Check if RUNPOD variable should be set
 RUNPOD=false
 if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then
   RUNPOD=true
 fi
 
-# This gets the directory the script is run from so pathing can work relative to the script where needed.
+# Directory of the script
 SCRIPT_DIR="$(cd -- $(dirname -- "$0") && pwd)"
 
 # Variables defined before the getopts loop, so we have sane default values.
@@ -80,9 +74,7 @@ else
   fi
 fi
 
-VERBOSITY=2    #Start counting at 2 so that any increase to this will result in a minimum of file descriptor 3.  You should leave this alone.
-MAXVERBOSITY=6 #The highest verbosity we use / allow to be displayed.  Feel free to adjust.
-
+# Variables
 BRANCH="master"
 GIT_REPO="https://github.com/bmaltais/kohya_ss.git"
 INTERACTIVE=false
@@ -90,6 +82,222 @@ PUBLIC=false
 SKIP_SPACE_CHECK=false
 SKIP_GIT_UPDATE=true
 SKIP_GUI=false
+VERBOSITY=2
+MAXVERBOSITY=6
+DIR=""
+PARENT_DIR=""
+VENV_DIR=""
+
+# Function to get the distro name
+get_distro_name() {
+  local line
+  if [ -f /etc/os-release ]; then
+    # We search for the line starting with ID=
+    # Then we remove the ID= prefix to get the name itself
+    line="$(grep -Ei '^ID=' /etc/os-release)"
+    echo "Raw detected os-release distro line: $line" >&5
+    line=${line##*=}
+    echo "$line"
+    return 0
+  elif command -v python >/dev/null; then
+    line="$(python -mplatform)"
+    echo "$line"
+    return 0
+  elif command -v python3 >/dev/null; then
+    line="$(python3 -mplatform)"
+    echo "$line"
+    return 0
+  else
+    line="None"
+    echo "$line"
+    return 1
+  fi
+}
+
+# Function to get the distro family
+get_distro_family() {
+  local line
+  if [ -f /etc/os-release ]; then
+    if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
+      line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
+      echo "Raw detected os-release distro family line: $line" >&5
+      line=${line##*=}
+      echo "$line"
+      return 0
+    else
+      line="None"
+      echo "$line"
+      return 1
+    fi
+  else
+    line="None"
+    echo "$line"
+    return 1
+  fi
+}
+
+# Function to check available storage space
+check_storage_space() {
+  if [ "$SKIP_SPACE_CHECK" = false ]; then
+    if [ "$(size_available)" -lt 10 ]; then
+      echo "You have less than 10Gb of free space. This installation may fail."
+      MSGTIMEOUT=10 # In seconds
+      MESSAGE="Continuing in..."
+      echo "Press control-c to cancel the installation."
+      for ((i = MSGTIMEOUT; i >= 0; i--)); do
+        printf "\r${MESSAGE} %ss. " "${i}"
+        sleep 1
+      done
+    fi
+  fi
+}
+
+# Function to create symlinks
+create_symlinks() {
+  local symlink="$1"
+  local target_file="$2"
+
+  echo "Checking symlinks now."
+
+  # Check if the symlink exists
+  if [ -L "$symlink" ]; then
+    # Check if the linked file exists and points to the expected file
+    if [ -e "$symlink" ] && [ "$(readlink "$symlink")" == "$target_file" ]; then
+      echo "$(basename "$symlink") symlink looks fine. Skipping."
+    else
+      if [ -f "$target_file" ]; then
+        echo "Broken symlink detected. Recreating $(basename "$symlink")."
+        rm "$symlink" && ln -s "$target_file" "$symlink"
+      else
+        echo "$target_file does not exist. Nothing to link."
+      fi
+    fi
+  else
+    echo "Linking $(basename "$symlink")."
+    ln -s "$target_file" "$symlink"
+  fi
+}
+
+# Function to install Python dependencies
+install_python_dependencies() {
+  local TEMP_REQUIREMENTS_FILE
+
+  # Switch to local virtual env
+  echo "Switching to virtual Python environment."
+  if ! inDocker; then
+    if command -v python3.10 >/dev/null; then
+      python3.10 -m venv "$DIR/venv"
+    elif command -v python3 >/dev/null; then
+      python3 -m venv "$DIR/venv"
+    else
+      echo "Valid python3 or python3.10 binary not found."
+      echo "Cannot proceed with the python steps."
+      return 1
+    fi
+
+    # Activate the virtual environment
+    source "$DIR/venv/bin/activate"
+  fi
+
+  case "$OSTYPE" in
+    "lin"*)
+      if [ "$RUNPOD" = true ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+      else
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+      fi
+      ;;
+    "darwin"*)
+      if [[ "$(uname -m)" == "arm64" ]]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt
+      else
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt
+      fi
+      ;;
+  esac
+
+  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
+    if command -v deactivate >/dev/null; then
+      echo "Exiting Python virtual environment."
+      deactivate
+    else
+      echo "deactivate command not found. Could still be in the Python virtual environment."
+    fi
+  fi
+}
+
+# Function to configure accelerate
+configure_accelerate() {
+  echo "Source accelerate config location: $DIR/config_files/accelerate/default_config.yaml" >&3
+  if [ "$INTERACTIVE" = true ]; then
+    accelerate config
+  else
+    if env_var_exists HF_HOME; then
+      if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
+        mkdir -p "$HF_HOME/accelerate/" &&
+          echo "Target accelerate config location: $HF_HOME/accelerate/default_config.yaml" >&3
+        cp "$DIR/config_files/accelerate/default_config.yaml" "$HF_HOME/accelerate/default_config.yaml" &&
+          echo "Copied accelerate config file to: $HF_HOME/accelerate/default_config.yaml"
+      fi
+    elif env_var_exists XDG_CACHE_HOME; then
+      if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
+        mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
+          echo "Target accelerate config location: $XDG_CACHE_HOME/accelerate/default_config.yaml" >&3
+        cp "$DIR/config_files/accelerate/default_config.yaml" "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml" &&
+          echo "Copied accelerate config file to: $XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
+      fi
+    elif env_var_exists HOME; then
+      if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
+        mkdir -p "$HOME/.cache/huggingface/accelerate" &&
+          echo "Target accelerate config location: $HOME/accelerate/default_config.yaml" >&3
+        cp "$DIR/config_files/accelerate/default_config.yaml" "$HOME/.cache/huggingface/accelerate/default_config.yaml" &&
+          echo "Copying accelerate config file to: $HOME/.cache/huggingface/accelerate/default_config.yaml"
+      fi
+    else
+      echo "Could not place the accelerate configuration file. Please configure manually."
+      sleep 2
+      accelerate config
+    fi
+  fi
+}
+
+# Function to update Kohya_SS repo
+update_kohya_ss() {
+  if [ "$SKIP_GIT_UPDATE" = false ]; then
+    if command -v git >/dev/null; then
+      # First, we make sure there are no changes that need to be made in git, so no work is lost.
+      if [ "$(git -C "$DIR" status --porcelain=v1 2>/dev/null | wc -l)" -gt 0 ] &&
+        echo "These files need to be committed or discarded: " >&4 &&
+        git -C "$DIR" status >&4; then
+        echo "There are changes that need to be committed or discarded in the repo in $DIR."
+        echo "Commit those changes or run this script with -n to skip git operations entirely."
+        exit 1
+      fi
+
+      echo "Attempting to clone $GIT_REPO."
+      if [ ! -d "$DIR/.git" ]; then
+        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
+        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
+        git -C "$DIR" switch "$BRANCH" >&4
+      else
+        echo "git repo detected. Attempting to update repository instead."
+        echo "Updating: $GIT_REPO"
+        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
+        if ! git -C "$DIR" switch "$BRANCH" >&4; then
+          echo "Branch $BRANCH did not exist. Creating it." >&4
+          git -C "$DIR" switch -c "$BRANCH" >&4
+        fi
+      fi
+    else
+      echo "You need to install git."
+      echo "Rerun this after installing git or run this script with -n to skip the git operations."
+    fi
+  else
+    echo "Skipping git operations."
+  fi
+}
+
+# Section: Command-line options parsing
 
 while getopts ":vb:d:g:inprus-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
@@ -191,169 +399,6 @@ size_available() {
   echo "$FREESPACEINGB"
 }
 
-# The expected usage is create_symlinks symlink target_file
-create_symlinks() {
-  local symlink="$1"
-  local target_file="$2"
-
-  echo "Checking symlinks now."
-
-  # Check if the symlink exists
-  if [ -L "$symlink" ]; then
-    # Check if the linked file exists and points to the expected file
-    if [ -e "$symlink" ] && [ "$(readlink "$symlink")" == "$target_file" ]; then
-      echo "$(basename "$symlink") symlink looks fine. Skipping."
-    else
-      if [ -f "$target_file" ]; then
-        echo "Broken symlink detected. Recreating $(basename "$symlink")."
-        rm "$symlink" && ln -s "$target_file" "$symlink"
-      else
-        echo "$target_file does not exist. Nothing to link."
-      fi
-    fi
-  else
-    echo "Linking $(basename "$symlink")."
-    ln -s "$target_file" "$symlink"
-  fi
-}
-
-
-install_python_dependencies() {
-  local TEMP_REQUIREMENTS_FILE
-
-  # Switch to local virtual env
-  echo "Switching to virtual Python environment."
-  
-  if [ "$RUNPOD" = true ]; then
-    python3 -m venv "$DIR/venv"
-  fi
-
-  if ! inDocker; then
-    if command -v python3.10 >/dev/null; then
-      python3.10 -m venv "$DIR/venv"
-    elif command -v python3 >/dev/null; then
-      python3 -m venv "$DIR/venv"
-    else
-      echo "Valid python3 or python3.10 binary not found."
-      echo "Cannot proceed with the python steps."
-      return 1
-    fi
-
-    # Activate the virtual environment
-    source "$DIR/venv/bin/activate"
-  fi
-
-  # Updating pip if there is one
-  # echo "Checking for pip updates before Python operations."
-  # pip install --upgrade pip
-
-  # echo "Installing python dependencies. This could take a few minutes as it downloads files."
-  # echo "If this operation ever runs too long, you can rerun this script in verbose mode to check."
-
-  case "$OSTYPE" in
-    "lin"*)
-      if [ "$RUNPOD" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
-      else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
-      fi
-      ;;
-    "darwin"*)
-      if [[ "$(uname -m)" == "arm64" ]]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt
-      else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt
-      fi
-      ;;
-  esac
-
-  # DEBUG ONLY (Update this version number to whatever PyCharm recommends)
-  # pip install pydevd-pycharm~=223.8836.43
-
-  # Create a temporary requirements file
-  # TEMP_REQUIREMENTS_FILE=$(mktemp)
-
-  # if [[ "$OSTYPE" == "darwin"* ]]; then
-  #   echo "Copying $DIR/requirements_macos.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_macos.txt" >"$TEMP_REQUIREMENTS_FILE"
-  # else
-  #   echo "Copying $DIR/requirements_linux.txt to $TEMP_REQUIREMENTS_FILE" >&3
-  #   echo "Replacing the . for lib to our DIR variable in $TEMP_REQUIREMENTS_FILE." >&3
-  #   awk -v dir="$DIR" '/#.*kohya_ss.*library/{print; getline; sub(/^\.$/, dir)}1' "$DIR/requirements_linux.txt" >"$TEMP_REQUIREMENTS_FILE"
-  # fi
-
-  # # Install the Python dependencies from the temporary requirements file
-  # if [ $VERBOSITY == 2 ]; then
-  #   python -m pip install --quiet --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  # else
-  #   python -m pip install --upgrade -r "$TEMP_REQUIREMENTS_FILE"
-  # fi
-
-  if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
-    if command -v deactivate >/dev/null; then
-      echo "Exiting Python virtual environment."
-      deactivate
-    else
-      echo "deactivate command not found. Could still be in the Python virtual environment."
-    fi
-  fi
-}
-
-
-# Attempt to non-interactively install a default accelerate config file unless specified otherwise.
-# Documentation for order of precedence locations for configuration file for automated installation:
-# https://huggingface.co/docs/accelerate/basic_tutorials/launch#custom-configurations
-configure_accelerate() {
-  echo "Source accelerate config location: $DIR/config_files/accelerate/default_config.yaml" >&3
-  if [ "$INTERACTIVE" = true ]; then
-    accelerate config
-  else
-    if env_var_exists HF_HOME; then
-      if [ ! -f "$HF_HOME/accelerate/default_config.yaml" ]; then
-        mkdir -p "$HF_HOME/accelerate/" &&
-          echo "Target accelerate config location: $HF_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HF_HOME/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $HF_HOME/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists XDG_CACHE_HOME; then
-      if [ ! -f "$XDG_CACHE_HOME/huggingface/accelerate" ]; then
-        mkdir -p "$XDG_CACHE_HOME/huggingface/accelerate" &&
-          echo "Target accelerate config location: $XDG_CACHE_HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml" &&
-          echo "Copied accelerate config file to: $XDG_CACHE_HOME/huggingface/accelerate/default_config.yaml"
-      fi
-    elif env_var_exists HOME; then
-      if [ ! -f "$HOME/.cache/huggingface/accelerate" ]; then
-        mkdir -p "$HOME/.cache/huggingface/accelerate" &&
-          echo "Target accelerate config location: $HOME/accelerate/default_config.yaml" >&3
-        cp "$DIR/config_files/accelerate/default_config.yaml" "$HOME/.cache/huggingface/accelerate/default_config.yaml" &&
-          echo "Copying accelerate config file to: $HOME/.cache/huggingface/accelerate/default_config.yaml"
-      fi
-    else
-      echo "Could not place the accelerate configuration file. Please configure manually."
-      sleep 2
-      bash accelerate config
-    fi
-  fi
-}
-
-# Offer a warning and opportunity to cancel the installation if < 10Gb of Free Space detected
-check_storage_space() {
-  if [ "$SKIP_SPACE_CHECK" = false ]; then
-    if [ "$(size_available)" -lt 10 ]; then
-      echo "You have less than 10Gb of free space. This installation may fail."
-      MSGTIMEOUT=10 # In seconds
-      MESSAGE="Continuing in..."
-      echo "Press control-c to cancel the installation."
-      for ((i = MSGTIMEOUT; i >= 0; i--)); do
-        printf "\r${MESSAGE} %ss. " "${i}"
-        sleep 1
-      done
-    fi
-  fi
-}
-
 isContainerOrPod() {
   local cgroup=/proc/1/cgroup
   test -f $cgroup && (grep -qE ':cpuset:/(docker|kubepods)' $cgroup || grep -q ':/docker/' $cgroup)
@@ -376,42 +421,6 @@ inDocker() {
   fi
 }
 
-# These are the git operations that will run to update or clone the repo
-update_kohya_ss() {
-  if [ "$SKIP_GIT_UPDATE" = false ]; then
-    if command -v git >/dev/null; then
-      # First, we make sure there are no changes that need to be made in git, so no work is lost.
-      if [ "$(git -C "$DIR" status --porcelain=v1 2>/dev/null | wc -l)" -gt 0 ] &&
-        echo "These files need to be committed or discarded: " >&4 &&
-        git -C "$DIR" status >&4; then
-        echo "There are changes that need to be committed or discarded in the repo in $DIR."
-        echo "Commit those changes or run this script with -n to skip git operations entirely."
-        exit 1
-      fi
-
-      echo "Attempting to clone $GIT_REPO."
-      if [ ! -d "$DIR/.git" ]; then
-        echo "Cloning and switching to $GIT_REPO:$BRANCH" >&4
-        git -C "$PARENT_DIR" clone -b "$BRANCH" "$GIT_REPO" "$(basename "$DIR")" >&3
-        git -C "$DIR" switch "$BRANCH" >&4
-      else
-        echo "git repo detected. Attempting to update repository instead."
-        echo "Updating: $GIT_REPO"
-        git -C "$DIR" pull "$GIT_REPO" "$BRANCH" >&3
-        if ! git -C "$DIR" switch "$BRANCH" >&4; then
-          echo "Branch $BRANCH did not exist. Creating it." >&4
-          git -C "$DIR" switch -c "$BRANCH" >&4
-        fi
-      fi
-    else
-      echo "You need to install git."
-      echo "Rerun this after installing git or run this script with -n to skip the git operations."
-    fi
-  else
-    echo "Skipping git operations."
-  fi
-}
-
 # Start OS-specific detection and work
 if [[ "$OSTYPE" == "lin"* ]]; then
   # Check if root or sudo
@@ -423,55 +432,6 @@ if [[ "$OSTYPE" == "lin"* ]]; then
   elif [ "$UID" = 0 ]; then
     root=true
   fi
-
-  get_distro_name() {
-    local line
-    if [ -f /etc/os-release ]; then
-      # We search for the line starting with ID=
-      # Then we remove the ID= prefix to get the name itself
-      line="$(grep -Ei '^ID=' /etc/os-release)"
-      echo "Raw detected os-release distro line: $line" >&5
-      line=${line##*=}
-      echo "$line"
-      return 0
-    elif command -v python >/dev/null; then
-      line="$(python -mplatform)"
-      echo "$line"
-      return 0
-    elif command -v python3 >/dev/null; then
-      line="$(python3 -mplatform)"
-      echo "$line"
-      return 0
-    else
-      line="None"
-      echo "$line"
-      return 1
-    fi
-  }
-
-  # We search for the line starting with ID_LIKE=
-  # Then we remove the ID_LIKE= prefix to get the name itself
-  # This is the "type" of distro. For example, Ubuntu returns "debian".
-  get_distro_family() {
-    local line
-    if [ -f /etc/os-release ]; then
-      if grep -Eiq '^ID_LIKE=' /etc/os-release >/dev/null; then
-        line="$(grep -Ei '^ID_LIKE=' /etc/os-release)"
-        echo "Raw detected os-release distro family line: $line" >&5
-        line=${line##*=}
-        echo "$line"
-        return 0
-      else
-        line="None"
-        echo "$line"
-        return 1
-      fi
-    else
-      line="None"
-      echo "$line"
-      return 1
-    fi
-  }
 
   check_storage_space
   update_kohya_ss
@@ -489,8 +449,6 @@ if [[ "$OSTYPE" == "lin"* ]]; then
         echo " "
         if [ "$RUNPOD" = true ]; then
           bash apt update -y && apt install -y python3-tk
-          bash python -m venv venv
-          source "$DIR/venv/bin/activate"
         else
           echo "sudo apt update -y && sudo apt install -y python3-tk"
         fi
@@ -558,21 +516,21 @@ if [[ "$OSTYPE" == "lin"* ]]; then
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
-    # if inDocker; then
-    #   # We get the site-packages from python itself, then cut the string, so no other code changes required.
-    #   VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-    #   VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
-    # fi
+    if inDocker; then
+      # We get the site-packages from python itself, then cut the string, so no other code changes required.
+      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
+    fi
 
-    # # Symlink paths
-    # libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
-    # libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
-    # libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
+    # Symlink paths
+    libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
+    libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
+    libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
 
-    # #Target file paths
-    # libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
-    # libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
-    # libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
+    #Target file paths
+    libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
+    libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
+    libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
 
     # echo "Checking symlinks now."
     # create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
