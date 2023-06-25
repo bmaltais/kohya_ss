@@ -19,3 +19,7 @@ source "$SCRIPT_DIR/venv/bin/activate" || exit 1
 
 # Run setup_linux.py script with platform requirements
 python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+
+# Configure accelerate
+echo "Accelerate config..."
+accelerate config
