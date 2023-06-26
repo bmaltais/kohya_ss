@@ -18,6 +18,38 @@ This repository contains the scripts for:
 
 __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__ Thank you for great work!!! 
 
+## About SDXL training
+
+The feature of SDXL training is now available in sdxl branch as an experimental feature. 
+
+Summary of the feature:
+
+- `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`.
+- `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
+- Both scripts has following additional options:
+  - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
+  - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
+
+### Tips for SDXL training
+
+- The default resolution of SDXL is 1024x1024.
+- The fine-tuning can be done with 24GB GPU memory with the batch size of 1.
+  - Train U-Net only.
+  - Use gradient checkpointing.
+  - Use `--cache_text_encoder_outputs` option and caching latents.
+  - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
+- The LoRA training can be done with 12GB GPU memory.
+- `--train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
+
+Example of the optimizer settings for Adafactor with the fixed learning rate:
+```
+optimizer_type = "adafactor"
+optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
+lr_scheduler = "constant_with_warmup"
+lr_warmup_steps = 100
+learning_rate = 4e-7 # SDXL original learning rate
+```
+
 ## About requirements.txt
 
 These files do not contain requirements for PyTorch. Because the versions of them depend on your environment. Please install PyTorch at first (see installation guide below.) 
