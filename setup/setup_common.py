@@ -415,7 +415,7 @@ def ensure_base_requirements():
     try:
         import rich   # pylint: disable=unused-import
     except ImportError:
-        install('rich', 'rich')
+        install('--upgrade rich', 'rich')
 
 
 def run_cmd(run_cmd):
