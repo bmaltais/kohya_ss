@@ -375,7 +375,7 @@ def verify_sdxl_training_args(args: argparse.Namespace):
             args.noise_offset = DEFAULT_NOISE_OFFSET
         elif args.noise_offset != DEFAULT_NOISE_OFFSET:
             print(
-                f"Waring: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET} / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されています"
+                f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET} / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されています"
             )
         print(f"noise_offset is set to {args.noise_offset} / noise_offsetが{args.noise_offset}に設定されました")
 

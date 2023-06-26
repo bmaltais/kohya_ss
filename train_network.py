@@ -98,7 +98,7 @@ class NetworkTrainer:
         return False
 
     def cache_text_encoder_outputs_if_needed(
-        self, args, accelerator, uner, vae, tokenizers, text_encoders, data_loader, weight_dtype
+        self, args, accelerator, unet, vae, tokenizers, text_encoders, data_loader, weight_dtype
     ):
         for t_enc in text_encoders:
             t_enc.to(accelerator.device)
