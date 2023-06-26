@@ -207,6 +207,7 @@ class NetworkTrainer:
 
         # mixed precisionに対応した型を用意しておき適宜castする
         weight_dtype, save_dtype = train_util.prepare_dtype(args)
+        vae_dtype = torch.float32 if args.no_half_vae else weight_dtype
 
         # モデルを読み込む
         model_version, text_encoder, vae, unet = self.load_target_model(args, weight_dtype, accelerator)
@@ -216,6 +217,7 @@ class NetworkTrainer:
 
         # モデルに xformers とか memory efficient attention を組み込む
         train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
+        vae.set_use_memory_efficient_attention_xformers(args.xformers)
 
         # 差分追加学習のためにモデルを読み込む
         sys.path.append(os.path.dirname(__file__))
@@ -241,7 +243,7 @@ class NetworkTrainer:
 
         # 学習を準備する
         if cache_latents:
-            vae.to(accelerator.device, dtype=weight_dtype)
+            vae.to(accelerator.device, dtype=vae_dtype)
             vae.requires_grad_(False)
             vae.eval()
             with torch.no_grad():
@@ -415,7 +417,7 @@ class NetworkTrainer:
         if not cache_latents:  # キャッシュしない場合はVAEを使うのでVAEを準備する
             vae.requires_grad_(False)
             vae.eval()
-            vae.to(accelerator.device, dtype=weight_dtype)
+            vae.to(accelerator.device, dtype=vae_dtype)
 
         # 必要ならテキストエンコーダーの出力をキャッシュする: Text Encoderはcpuまたはgpuへ移される
         self.cache_text_encoder_outputs_if_needed(
@@ -721,7 +723,12 @@ class NetworkTrainer:
                             latents = batch["latents"].to(accelerator.device)
                         else:
                             # latentに変換
-                            latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
+                            latents = vae.encode(batch["images"].to(dtype=vae_dtype)).latent_dist.sample()
+
+                            # NaNが含まれていれば警告を表示し0に置き換える
+                            if torch.any(torch.isnan(latents)):
+                                accelerator.print("NaN found in latents, replacing with zeros")
+                                latents = torch.where(torch.isnan(latents), torch.zeros_like(latents), latents)
                         latents = latents * self.vae_scale_factor
                     b_size = latents.shape[0]
 
@@ -863,9 +870,7 @@ class NetworkTrainer:
                     if args.save_state:
                         train_util.save_and_remove_state_on_epoch_end(args, accelerator, epoch + 1)
 
-            self.sample_images(
-                accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet
-            )
+            self.sample_images(accelerator, args, epoch + 1, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
             # end of epoch
 
@@ -960,6 +965,11 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         nargs="*",
         help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
+    )
+    parser.add_argument(
+        "--no_half_vae",
+        action="store_true",
+        help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
     )
     return parser
 

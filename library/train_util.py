@@ -906,6 +906,11 @@ class BaseDataset(torch.utils.data.Dataset):
 
             latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
 
+            # check NaN
+            for info, latents1 in zip(batch, latents):
+                if torch.isnan(latents1).any():
+                    raise RuntimeError(f"NaN detected in latents: {info.absolute_path}")
+
             for info, latent in zip(batch, latents):
                 if cache_to_disk:
                     np.savez(
