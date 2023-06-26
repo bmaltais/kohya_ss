@@ -31,3 +31,7 @@ mkdir -p "/root/.cache/huggingface/accelerate"
 cp "$SCRIPT_DIR/config_files/accelerate/runpod.yaml" "/root/.cache/huggingface/accelerate/default_config.yaml"
 
 echo "Installation completed... You can start the gui with ./gui.sh --share --headless"
+
+# Deactivate the virtual environment
+echo "Deactivating venv..."
+deactivate
