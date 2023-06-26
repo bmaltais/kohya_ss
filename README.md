@@ -180,9 +180,16 @@ To install the necessary components for Runpod and run it, follow these steps:
    ./gui.sh --share --headless
    ```
 
+   or with this if you expose 7860 directly via the runpod configuration
+
+   ```
+   ./gui.sh --listen=0.0.0.0 --headless
+   ```
+
 6. Connect to the public URL displayed after the installation process is completed.
 
 ### Docker
+#### Local docker build
 
 If you prefer to use Docker, follow the instructions below:
 
@@ -207,6 +214,13 @@ If you prefer to use Docker, follow the instructions below:
    - There is no built-in auto-update support. To update the system, you must run update scripts outside of Docker and rebuild using `docker compose build`.
 
    If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
+
+#### ashleykleynhans runpod docker builds
+
+You may want to use the following Dockerfile repos to build the  images:
+
+Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
+Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
 
 ## Upgrading
 
