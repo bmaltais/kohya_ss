@@ -266,25 +266,27 @@ def git(arg: str, folder: str = None, ignore: bool = False):
         if 'or stash them' in txt:
             log.error(f'Local changes detected: check log for details...')
         log.debug(f'Git output: {txt}')
-    return txt
 
 
-def pip(arg: str, ignore: bool = False, quiet: bool = False):
+def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool = False):
     # arg = arg.replace('>=', '==')
     if not quiet:
         log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
     log.debug(f"Running pip: {arg}")
-    result = subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    txt = result.stdout.decode(encoding="utf8", errors="ignore")
-    if len(result.stderr) > 0:
-        txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
-    txt = txt.strip()
-    if result.returncode != 0 and not ignore:
-        global errors # pylint: disable=global-statement
-        errors += 1
-        log.error(f'Error running pip: {arg}')
-        log.debug(f'Pip output: {txt}')
-    return txt
+    if show_stdout:
+        subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ)
+    else:
+        result = subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        txt = result.stdout.decode(encoding="utf8", errors="ignore")
+        if len(result.stderr) > 0:
+            txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
+        txt = txt.strip()
+        if result.returncode != 0 and not ignore:
+            global errors # pylint: disable=global-statement
+            errors += 1
+            log.error(f'Error running pip: {arg}')
+            log.debug(f'Pip output: {txt}')
+        return txt
 
 
 def installed(package, friendly: str = None):
@@ -355,6 +357,7 @@ def install(
     friendly: str = None,
     ignore: bool = False,
     reinstall: bool = False,
+    show_stdout: bool = False,
 ):
     # Remove anything after '#' in the package variable
     package = package.split('#')[0].strip()
@@ -363,18 +366,18 @@ def install(
         global quick_allowed   # pylint: disable=global-statement
         quick_allowed = False
     if reinstall or not installed(package, friendly):
-        pip(f'install --upgrade {package}', ignore=ignore)
+        pip(f'install --upgrade {package}', ignore=ignore, show_stdout=show_stdout)
 
 
 
-def process_requirements_line(line):
+def process_requirements_line(line, show_stdout: bool = False):
     # Remove brackets and their contents from the line using regular expressions
     # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
     package_name = re.sub(r'\[.*?\]', '', line)
-    install(line, package_name)
+    install(line, package_name, show_stdout=show_stdout)
 
 
-def install_requirements(requirements_file, check_no_verify_flag=False):
+def install_requirements(requirements_file, check_no_verify_flag=False, show_stdout: bool = False):
     if check_no_verify_flag:
         log.info(f'Verifying modules instalation status from {requirements_file}...')
     else:
@@ -406,9 +409,9 @@ def install_requirements(requirements_file, check_no_verify_flag=False):
                 # Get the path to the included requirements file
                 included_file = line[2:].strip()
                 # Expand the included requirements file recursively
-                install_requirements(included_file, check_no_verify_flag=check_no_verify_flag)
+                install_requirements(included_file, check_no_verify_flag=check_no_verify_flag, show_stdout=show_stdout)
             else:
-                process_requirements_line(line)
+                process_requirements_line(line, show_stdout=show_stdout)
 
 
 def ensure_base_requirements():

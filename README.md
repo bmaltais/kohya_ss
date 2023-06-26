@@ -157,27 +157,39 @@ If you choose to use the interactive mode, the default values for the accelerate
 
 ### Runpod
 
-To install the necessary components for Runpod, follow these steps:
+To install the necessary components for Runpod and run it, follow these steps:
 
-1. Select the pytorch 2.0.1 template.
+1. Select the pytorch 2.0.1 template. This is important. Other templates may not work.
 
 2. SSH into the Runpod.
 
-3. In the terminal, navigate to the `/workspace` directory.
-
-4. Clone the repository by running the following command:
+3. Clone the repository by running the following command:
    ```
+   cd /workspace
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
-5. Run the setup script with the `-p` option:
+4. Run the setup script:
    ```
-   ./setup.sh -p
+   cd kohya_ss
+   ./setup-runpod.sh
+   ```
+
+5. Run the gui with:
+   ```
+   ./gui.sh --share --headless
+   ```
+
+   or with this if you expose 7860 directly via the runpod configuration
+
+   ```
+   ./gui.sh --listen=0.0.0.0 --headless
    ```
 
 6. Connect to the public URL displayed after the installation process is completed.
 
 ### Docker
+#### Local docker build
 
 If you prefer to use Docker, follow the instructions below:
 
@@ -202,6 +214,13 @@ If you prefer to use Docker, follow the instructions below:
    - There is no built-in auto-update support. To update the system, you must run update scripts outside of Docker and rebuild using `docker compose build`.
 
    If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
+
+#### ashleykleynhans runpod docker builds
+
+You may want to use the following Dockerfile repos to build the images:
+
+   - Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
+   - Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
 
 ## Upgrading
 
@@ -355,7 +374,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-- 2023/06/24 (v21.7.12)
+* 2023/06/25 (v21.7.13)
+  - Improve runpod installation
+* 2023/06/24 (v21.7.12)
   - Significantly improved the setup process on all platforms
   - Better support for runpod
 * 2023/06/23 (v21.7.11)
