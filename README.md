@@ -141,8 +141,6 @@ To set up the project on Linux or macOS, perform the following steps:
 5. Run the setup script by executing the following command:
    ```
    ./setup.sh
-
-
    ```
 
    Note: If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
@@ -156,10 +154,11 @@ For macOS and other non-Linux systems, the installation process will attempt to 
 If you choose to use the interactive mode, the default values for the accelerate configuration screen will be "This machine," "None," and "No" for the remaining questions. These default answers are the same as the Windows installation.
 
 ### Runpod
+#### Manual installation
 
-To install the necessary components for Runpod and run it, follow these steps:
+To install the necessary components for Runpod and run kohya_ss, follow these steps:
 
-1. Select the pytorch 2.0.1 template. This is important. Other templates may not work.
+1. Select the Runpod pytorch 2.0.1 template. This is important. Other templates may not work.
 
 2. SSH into the Runpod.
 
@@ -187,6 +186,17 @@ To install the necessary components for Runpod and run it, follow these steps:
    ```
 
 6. Connect to the public URL displayed after the installation process is completed.
+
+#### Pre-built Runpod template
+
+To run from a pre-built Runpod template you can:
+
+1. Open the Runpod template by clicking on https://runpod.io/gsc?template=ya6013lj5a&ref=w18gds2n
+
+2. Deploy the template on the desired host
+
+3. Once deployed connect to the Runpod on HTTP 3010 to connect to kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
+
 
 ### Docker
 #### Local docker build
@@ -330,8 +340,6 @@ A prompt file might look like this, for example:
 masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
 
 # prompt 2
-
-
 masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy, bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
 ```
 

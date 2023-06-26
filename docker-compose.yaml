@@ -6,7 +6,7 @@ services:
     build:
       context: .
     ports:
-      - 127.0.0.1:7860:7860
+      - 127.0.0.1:3000:3000
     tty: true
     ipc: host
     environment:
@@ -28,5 +28,4 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['0']
-              capabilities: [gpu]
+              device_ids: ['all']
