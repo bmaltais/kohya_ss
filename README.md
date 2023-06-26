@@ -217,10 +217,10 @@ If you prefer to use Docker, follow the instructions below:
 
 #### ashleykleynhans runpod docker builds
 
-You may want to use the following Dockerfile repos to build the  images:
+You may want to use the following Dockerfile repos to build the images:
 
-Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
-Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
+   - Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
+   - Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
 
 ## Upgrading
 
@@ -374,7 +374,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-- 2023/06/24 (v21.7.12)
+* 2023/06/25 (v21.7.13)
+  - Improve runpod installation
+* 2023/06/24 (v21.7.12)
   - Significantly improved the setup process on all platforms
   - Better support for runpod
 * 2023/06/23 (v21.7.11)
