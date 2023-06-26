@@ -374,7 +374,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-- 2023/06/24 (v21.7.12)
+* 2023/06/25 (v21.7.13)
+  - Improve runpod installation
+* 2023/06/24 (v21.7.12)
   - Significantly improved the setup process on all platforms
   - Better support for runpod
 * 2023/06/23 (v21.7.11)
