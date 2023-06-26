@@ -30,12 +30,19 @@ def UI(**kwargs):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             log.info('Load CSS...')
             css += file.read() + '\n'
+            
+    if os.path.exists('./.release'):
+        with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
+            release= file.read()
 
     interface = gr.Blocks(
-        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+        css=css, title=f'Kohya_ss GUI {release}', theme=gr.themes.Default()
     )
 
     with interface:
+        gr.Markdown(
+            f'kohya_ss GUI release {release}'
+        )
         with gr.Tab('Dreambooth'):
             (
                 train_data_dir_input,

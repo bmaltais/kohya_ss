@@ -374,8 +374,21 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/25 (v21.7.13)
+* 2023/06/26 (v21.7.16)
   - Improve runpod installation
+  - Add release info to GUI
+  - Sunc with sd-script repo
+* 2023/06/25 (v21.7.15)
+  - Improve runpod installation
+* 2023/06/24 (v21.7.14)
+  - To address training errors caused by the global revert of bitsandbytes-windows for Windows users, I recommend the following steps:
+
+Delete the venv folder.
+Execute the setup.bat file by running .\setup.bat
+
+By following these instructions, Windows users can effectively undo the problematic bitsandbytes module and resolve the training errors.
+* 2023/06/24 (v21.7.13)
+  - Emergency fix for accelerate version that was bumped for other platforms than windows torch 2
 * 2023/06/24 (v21.7.12)
   - Significantly improved the setup process on all platforms
   - Better support for runpod
@@ -385,108 +398,3 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 The setup solution is now much more modulat and will simplify requirements support across different environments... hoping this will make it easier to run on different OS.
 * 2023/06/19 (v21.7.10)
 - Quick fix for linux GUI startup where it would try to install darwin requirements on top of linux. Ugly fix but work. Hopefulle some linux user will improve via a PR.
-* 2023/06/18 (v21.7.9)
-- Implement temporary fix for validation of image dataset. Will no longer stop execution but will let training continue... this is changed to avoid stopping training on false positive... yet still raise awaireness that something might be wrong with the image dataset structure.
-* 2023/06/14 (v21.7.8)
-- Add tkinter to dockerised version (thanks to @burdokow)
-- Add option to create caption files from folder names to the `group_images.py` tool.
-- Prodigy optimizer is supported in each training script. It is a member of D-Adaptation and is effective for DyLoRA training. [PR #585](https://github.com/kohya-ss/sd-scripts/pull/585) Please see the PR for details. Thanks to sdbds!
-  - Install the package with `pip install prodigyopt`. Then specify the option like `--optimizer_type="prodigy"`.
-- Arbitrary Dataset is supported in each training script (except XTI). You can use it by defining a Dataset class that returns images and captions.
-  - Prepare a Python script and define a class that inherits `train_util.MinimalDataset`. Then specify the option like `--dataset_class package.module.DatasetClass` in each training script.
-  - Please refer to `MinimalDataset` for implementation. I will prepare a sample later.
-- The following features have been added to the generation script.
-  - Added an option `--highres_fix_disable_control_net` to disable ControlNet in the 2nd stage of Highres. Fix. Please try it if the image is disturbed by some ControlNet such as Canny.
-  - Added Variants similar to sd-dynamic-propmpts in the prompt.
-    - If you specify `{spring|summer|autumn|winter}`, one of them will be randomly selected.
-    - If you specify `{2$$chocolate|vanilla|strawberry}`, two of them will be randomly selected.
-    - If you specify `{1-2$$ and $$chocolate|vanilla|strawberry}`, one or two of them will be randomly selected and connected by ` and `.
-    - You can specify the number of candidates in the range `0-2`. You cannot omit one side like `-2` or `1-`.
-    - It can also be specified for the prompt option.
-    - If you specify `e` or `E`, all candidates will be selected and the prompt will be repeated multiple times (`--images_per_prompt` is ignored). It may be useful for creating X/Y plots.
-    - You can also specify `--am {e$$0.2|0.4|0.6|0.8|1.0},{e$$0.4|0.7|1.0} --d 1234`. In this case, 15 prompts will be generated with 5*3.
-    - There is no weighting function.
-- Add pre and posfix to wd14
-* 2023/06/12 (v21.7.7)
-- Add `Print only` button to all training tabs
-- Sort json file vars for easier visual search
-- Fixed a bug where clip skip did not work when training with weighted captions (`--weighted_captions` specified) and when generating sample images during training.
-- Add verification and reporting of bad dataset folder name structure for DB, LoRA and TI training.
-- Some docker build fix.
-* 2023/06/06 (v21.7.6)
-- Small UI improvements
-- Fix `train_network.py` to probably work with older versions of LyCORIS.
-- `gen_img_diffusers.py` now supports `BREAK` syntax.
-- Add Lycoris iA3, LoKr and DyLoRA support to the UI
-- Upgrade LuCORIS python module to 0.1.6
-* 2023/06/05 (v21 7.5)
-- Fix reported issue with LoHA: https://github.com/bmaltais/kohya_ss/issues/922
-* 2023/06/05 (v21.7.4)
-- Add manual accelerate config option
-- Remove the ability to switch between torch 1 and 2 as it was causing errors with the venv
-* 2023/06/04 (v21.7.3)
-- Add accelerate configuration from file
-- Fix issue with torch uninstallation resulting in Error sometimes
-- Fix broken link to cudann files
-* 2023/06/04 (v21.7.2)
-- Improve handling of legacy installations
-* 2023/06/04 (v21.7.1)
-- This is mostly an update to the whole setup method for kohya_ss. I got fedup with all the issues from the batch file method and leveraged the great work of vladimandic to improve the whole setup experience.
-
-There is now a new menu in setup.bat that will appear:
-
-```
-Kohya_ss GUI setup menu:
-
-0. Cleanup the venv
-1. Install kohya_ss gui [torch 1]
-2. Install kohya_ss gui [torch 2]
-3. Start GUI in browser
-4. Quit
-
-Enter your choice:
-```
-
-The only obscure option might be option 0. This will help cleanup a corrupted venv without having to delete de folder. This van be really usefull for cases where nothing is working anymore and you should re-install from scratch. Just run the venv cleanup then select the version of kohya_ss GUI you want to instal (torch1 or 2).
-
-You can also start the GUI right from the setup menu using option 3.
-
-After pulling a new version you can either re-run `setup.bat` and install the version you want... or just run `gui.bat` and it will update the python modules as required.
-
-Hope this is useful.
-
-* 2023/06/04 (v21.7.0)
-- Max Norm Regularization is now available in `train_network.py`. [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
-  - Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.
-  - Specify as `--scale_weight_norms=1.0`. It seems good to try from `1.0`.
-  - The networks other than LoRA in this repository (such as LyCORIS) do not support this option.
-
-- Three types of dropout have been added to `train_network.py` and LoRA network.
-  - Dropout is a technique to suppress overfitting and improve network performance by randomly setting some of the network outputs to 0.
-  - `--network_dropout` is a normal dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Proposed in [PR #545](https://github.com/kohya-ss/sd-scripts/pull/545) Thanks to AI-Casanova!
-    - `--network_dropout=0.1` specifies the dropout probability to `0.1`.
-    - Note that the specification method is different from LyCORIS.
-  - For LoRA network, `--network_args` can specify `rank_dropout` to dropout each rank with specified probability. Also `module_dropout` can be specified to dropout each module with specified probability.
-    - Specify as `--network_args "rank_dropout=0.2" "module_dropout=0.1"`.
-  - `--network_dropout`, `rank_dropout`, and `module_dropout` can be specified at the same time.
-  - Values of 0.1 to 0.3 may be good to try. Values greater than 0.5 should not be specified.
-  - `rank_dropout` and `module_dropout` are original techniques of this repository. Their effectiveness has not been verified yet.
-  - The networks other than LoRA in this repository (such as LyCORIS) do not support these options.
-  
-- Added an option `--scale_v_pred_loss_like_noise_pred` to scale v-prediction loss like noise prediction in each training script.
-  - By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.
-  - See [this article](https://xrg.hatenablog.com/entry/2023/06/02/202418) by xrg for details (written in Japanese). Thanks to xrg for the great suggestion!
-
-* 2023/06/03 (v21.6.5)
-- Fix dreambooth issue with new logging
-- Update setup and upgrade scripts
-- Adding test folder
-
-* 2023/05/28 (v21.5.15)
-- Show warning when image caption file does not exist during training. [PR #533](https://github.com/kohya-ss/sd-scripts/pull/533) Thanks to TingTingin!
-  - Warning is also displayed when using class+identifier dataset. Please ignore if it is intended.
-- `train_network.py` now supports merging network weights before training. [PR #542](https://github.com/kohya-ss/sd-scripts/pull/542) Thanks to u-haru!
-  - `--base_weights` option specifies LoRA or other model files (multiple files are allowed) to merge.
-  - `--base_weights_multiplier` option specifies multiplier of the weights to merge (multiple values are allowed). If omitted or less than `base_weights`, 1.0 is used.
-  - This is useful for incremental learning. See PR for details.
-- Show warning and continue training when uploading to HuggingFace fails.
