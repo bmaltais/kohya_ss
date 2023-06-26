@@ -217,10 +217,10 @@ If you prefer to use Docker, follow the instructions below:
 
 #### ashleykleynhans runpod docker builds
 
-You may want to use the following Dockerfile repos to build the  images:
+You may want to use the following Dockerfile repos to build the images:
 
-Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
-Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
+   - Standalone Kohya_ss template: https://github.com/ashleykleynhans/kohya-docker
+   - Auto1111 + Kohya_ss GUI template: https://github.com/ashleykleynhans/stable-diffusion-docker
 
 ## Upgrading
 
