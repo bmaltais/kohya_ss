@@ -30,6 +30,8 @@ Summary of the feature:
   - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
   - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
 
+`requirements.txt` is updated to support SDXL training. 
+
 ### Tips for SDXL training
 
 - The default resolution of SDXL is 1024x1024.
@@ -40,6 +42,7 @@ Summary of the feature:
   - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
 - The LoRA training can be done with 12GB GPU memory.
 - `--train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
+- PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
 
 Example of the optimizer settings for Adafactor with the fixed learning rate:
 ```
@@ -54,7 +57,7 @@ learning_rate = 4e-7 # SDXL original learning rate
 
 These files do not contain requirements for PyTorch. Because the versions of them depend on your environment. Please install PyTorch at first (see installation guide below.) 
 
-The scripts are tested with PyTorch 1.12.1 and 1.13.0, Diffusers 0.10.2.
+The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
 
 ## Links to how-to-use documents
 
