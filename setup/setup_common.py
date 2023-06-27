@@ -233,19 +233,13 @@ def check_torch():
 
 # report current version of code
 def check_repo_version(): # pylint: disable=unused-argument
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
-    
-    if not os.path.exists('.git'):
-        log.error('Not a git repository')
-        return
-    # status = git('status')
-    # if 'branch' not in status:
-    #    log.error('Cannot get git repository status')
-    #    sys.exit(1)
-    ver = git('log -1 --pretty=format:"%h %ad"')
-    log.info(f'Version: {ver}')
+    if os.path.exists('.release'):
+        with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
+            release= file.read()
+        
+        log.info(f'Version: {release}')
+    else:
+        log.debug('Could not read release...')
     
 # execute git command
 def git(arg: str, folder: str = None, ignore: bool = False):
@@ -418,7 +412,7 @@ def ensure_base_requirements():
     try:
         import rich   # pylint: disable=unused-import
     except ImportError:
-        install('rich', 'rich')
+        install('--upgrade rich', 'rich')
 
 
 def run_cmd(run_cmd):
