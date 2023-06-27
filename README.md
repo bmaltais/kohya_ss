@@ -386,6 +386,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Improve runpod installation
   - Add release info to GUI
   - Sunc with sd-script repo
+  - Backrev bitsandbytes 0.39.1 on Linux to 0.35.0 because it was giving bad results
 * 2023/06/25 (v21.7.15)
   - Improve runpod installation
 * 2023/06/24 (v21.7.14)
