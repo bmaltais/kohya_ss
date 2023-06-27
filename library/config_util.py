@@ -262,11 +262,11 @@ class ConfigSanitizer:
       {"subsets": [self.cn_subset_schema]},
     )
 
-    if support_dreambooth and support_finetuning and support_controlnet:
+    if support_dreambooth and support_finetuning:
       def validate_flex_dataset(dataset_config: dict):
         subsets_config = dataset_config.get("subsets", [])
 
-        if all(["conditioning_data_dir" in subset for subset in subsets_config]):
+        if support_controlnet and all(["conditioning_data_dir" in subset for subset in subsets_config]):
           return Schema(self.cn_dataset_schema)(dataset_config)
         # check dataset meets FT style
         # NOTE: all FT subsets should have "metadata_file"
@@ -347,6 +347,7 @@ class BlueprintGenerator:
 
   # runtime_params is for parameters which is only configurable on runtime, such as tokenizer
   def generate(self, user_config: dict, argparse_namespace: argparse.Namespace, **runtime_params) -> Blueprint:
+    print(user_config)
     sanitized_user_config = self.sanitizer.sanitize_user_config(user_config)
     sanitized_argparse_namespace = self.sanitizer.sanitize_argparse_namespace(argparse_namespace)
 
