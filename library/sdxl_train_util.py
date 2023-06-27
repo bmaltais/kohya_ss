@@ -28,7 +28,6 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
                 text_encoder2,
                 vae,
                 unet,
-                text_projection,
                 logit_scale,
                 ckpt_info,
             ) = _load_target_model(args, model_version, weight_dtype, accelerator.device if args.lowram else "cpu")
@@ -46,7 +45,7 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
 
     text_encoder1, text_encoder2, unet = train_util.transform_models_if_DDP([text_encoder1, text_encoder2, unet])
 
-    return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, text_projection, logit_scale, ckpt_info
+    return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
 
 
 def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtype, device="cpu"):
@@ -64,7 +63,6 @@ def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtyp
         text_encoder2,
         vae,
         unet,
-        text_projection,
         logit_scale,
         ckpt_info,
     ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
@@ -74,7 +72,7 @@ def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtyp
         vae = model_util.load_vae(args.vae, weight_dtype)
         print("additional VAE loaded")
 
-    return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, text_projection, logit_scale, ckpt_info
+    return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
 
 
 class WrapperTokenizer:
@@ -138,7 +136,7 @@ def get_hidden_states(
     # text_encoder2
     enc_out = text_encoder2(input_ids2, output_hidden_states=True, return_dict=True)
     hidden_states2 = enc_out["hidden_states"][-2]  # penuultimate layer
-    pool2 = enc_out["pooler_output"]
+    pool2 = enc_out["text_embeds"]
 
     if args.max_token_length is not None:
         # bs*3, 77, 768 or 1024
@@ -218,7 +216,6 @@ def save_sd_model_on_train_end(
     text_encoder2,
     unet,
     vae,
-    text_projection,
     logit_scale,
     ckpt_info,
 ):
@@ -232,7 +229,6 @@ def save_sd_model_on_train_end(
             global_step,
             ckpt_info,
             vae,
-            text_projection,
             logit_scale,
             save_dtype,
         )
@@ -262,7 +258,6 @@ def save_sd_model_on_epoch_end_or_stepwise(
     text_encoder2,
     unet,
     vae,
-    text_projection,
     logit_scale,
     ckpt_info,
 ):
@@ -276,7 +271,6 @@ def save_sd_model_on_epoch_end_or_stepwise(
             global_step,
             ckpt_info,
             vae,
-            text_projection,
             logit_scale,
             save_dtype,
         )
