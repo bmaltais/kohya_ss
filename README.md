@@ -305,15 +305,15 @@ gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 
 ## Dreambooth
 
-For specific instructions on using the Dreambooth solution, please refer to the [Dreambooth README](train_db_README.md).
+For specific instructions on using the Dreambooth solution, please refer to the [Dreambooth README](https://github.com/bmaltais/kohya_ss/blob/master/train_db_README.md).
 
 ## Finetune
 
-For specific instructions on using the Finetune solution, please refer to the [Finetune README](fine_tune_README.md).
+For specific instructions on using the Finetune solution, please refer to the [Finetune README](https://github.com/bmaltais/kohya_ss/blob/master/fine_tune_README.md).
 
 ## Train Network
 
-For specific instructions on training a network, please refer to the [Train network README](train_network_README.md).
+For specific instructions on training a network, please refer to the [Train network README](https://github.com/bmaltais/kohya_ss/blob/master/train_network_README.md).
 
 ## LoRA
 
@@ -382,28 +382,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/26 (v21.7.16)
-  - Improve runpod installation
-  - Add release info to GUI
-  - Sunc with sd-script repo
-  - Backrev bitsandbytes 0.39.1 on Linux to 0.35.0 because it was giving bad results
-* 2023/06/25 (v21.7.15)
-  - Improve runpod installation
-* 2023/06/24 (v21.7.14)
-  - To address training errors caused by the global revert of bitsandbytes-windows for Windows users, I recommend the following steps:
-
-Delete the venv folder.
-Execute the setup.bat file by running .\setup.bat
-
-By following these instructions, Windows users can effectively undo the problematic bitsandbytes module and resolve the training errors.
-* 2023/06/24 (v21.7.13)
-  - Emergency fix for accelerate version that was bumped for other platforms than windows torch 2
-* 2023/06/24 (v21.7.12)
-  - Significantly improved the setup process on all platforms
-  - Better support for runpod
-* 2023/06/23 (v21.7.11)
-- This is a significant update to how setup work across different platform. It might be causing issues... especially for linux env like runpod. If you encounter problems please report them in the issues so I can try to address them. You can revert to the previous release with `git checkout v21.7.10`
-
-The setup solution is now much more modulat and will simplify requirements support across different environments... hoping this will make it easier to run on different OS.
-* 2023/06/19 (v21.7.10)
-- Quick fix for linux GUI startup where it would try to install darwin requirements on top of linux. Ugly fix but work. Hopefulle some linux user will improve via a PR.
+* 2023/06/267 (v21.7.17)
+  - Move release ingo to new `About` tab
