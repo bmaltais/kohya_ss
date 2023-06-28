@@ -1163,7 +1163,7 @@ def lora_tab(
                 label='iA3 train on input',
             )
 
-        with gr.Row():
+        with gr.Row() as LoRA_dim_alpha:
             network_dim = gr.Slider(
                 minimum=1,
                 maximum=1024,
@@ -1247,13 +1247,24 @@ def lora_tab(
                 log.info('LoRA type changed...')
 
                 visibility_and_gr_types = {
+                    'LoRA_dim_alpha': (
+                        {
+                            'Kohya DyLoRA',
+                            'Kohya LoCon',
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/LoCon',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoKr',
+                            'Standard',
+                        },
+                        gr.Row,
+                    ),
                     'LoCon_row': (
                         {
                             'LoCon',
                             'Kohya DyLoRA',
                             'Kohya LoCon',
                             'LyCORIS/DyLoRA',
-                            'LyCORIS/iA3',
                             'LyCORIS/LoHa',
                             'LyCORIS/LoKr',
                             'LyCORIS/LoCon',
@@ -1489,6 +1500,7 @@ def lora_tab(
             update_LoRA_settings,
             inputs=[LoRA_type],
             outputs=[
+                LoRA_dim_alpha,
                 LoCon_row,
                 kohya_advanced_lora,
                 kohya_dylora,
