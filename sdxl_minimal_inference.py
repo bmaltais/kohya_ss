@@ -169,7 +169,7 @@ if __name__ == "__main__":
         beta_schedule=SCHEDLER_SCHEDULE,
     )
 
-    def generate_image(text, negative_text, seed=None):
+    def generate_image(prompt, negative_prompt, seed=None):
         # 将来的にサイズ情報も変えられるようにする / Make it possible to change the size information in the future
         # prepare embedding
         with torch.no_grad():
@@ -295,7 +295,7 @@ if __name__ == "__main__":
             img.save(os.path.join(args.output_dir, f"image_{timestamp}_{i:03d}.png"))
 
     if not args.interactive:
-        generate_image(args.prompt, args.negative_prompt, args.seed)
+        generate_image(args.prompt, args.negative_prompt, seed)
     else:
         # loop for interactive
         while True:
