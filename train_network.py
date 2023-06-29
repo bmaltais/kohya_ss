@@ -83,7 +83,7 @@ class NetworkTrainer:
 
         return logs
 
-    def assert_extra_args(self, args):
+    def assert_extra_args(self, args, train_dataset_group):
         pass
 
     def load_target_model(self, args, weight_dtype, accelerator):
