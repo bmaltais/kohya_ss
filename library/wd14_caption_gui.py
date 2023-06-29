@@ -25,6 +25,7 @@ def caption_images(
     frequency_tags,
     prefix,
     postfix,
+    model_dir,
 ):
     # Check for images_dir_input
     if train_data_dir == '':
@@ -37,6 +38,10 @@ def caption_images(
 
     log.info(f'Captioning files in {train_data_dir}...')
     run_cmd = f'accelerate launch "./finetune/tag_images_by_wd14_tagger.py"'
+
+    if model_dir:
+        run_cmd += f' --model_dir={model_dir}'
+
     run_cmd += f' --batch_size={int(batch_size)}'
     run_cmd += f' --general_threshold={general_threshold}'
     run_cmd += f' --character_threshold={character_threshold}'
@@ -83,7 +88,7 @@ def caption_images(
 ###
 
 
-def gradio_wd14_caption_gui_tab(headless=False):
+def gradio_wd14_caption_gui_tab(headless=False, model_dir=None):
     with gr.Tab('WD14 Captioning'):
         gr.Markdown(
             'This utility will use WD14 to caption files for each images in a folder.'

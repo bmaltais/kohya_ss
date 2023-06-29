@@ -3010,8 +3010,8 @@ def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
 def load_tokenizer(args: argparse.Namespace):
     print("prepare tokenizer")
     original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
-    if args.modelbase:
-        local_path = f"{args.modelbase}/{original_path}"
+    if args.model_dir:
+        local_path = f"{args.model_dir}/{original_path}"
         if os.path.exists(local_path):
             original_path = local_path
 

@@ -87,7 +87,7 @@ def resize_lora(
 
 def gradio_resize_lora_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Resize LoRA'):
         gr.Markdown('This utility can resize a LoRA.')

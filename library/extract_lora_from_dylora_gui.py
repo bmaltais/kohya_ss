@@ -59,7 +59,7 @@ def extract_dylora(
 
 def gradio_extract_dylora_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Extract DyLoRA'):
         gr.Markdown(

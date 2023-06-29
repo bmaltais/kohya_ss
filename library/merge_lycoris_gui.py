@@ -58,7 +58,7 @@ def merge_lycoris(
 
 def gradio_merge_lycoris_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Merge LyCORIS'):
         gr.Markdown(

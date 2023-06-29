@@ -103,7 +103,7 @@ def merge_lora(
 
 def gradio_merge_lora_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Merge LoRA'):
         gr.Markdown(

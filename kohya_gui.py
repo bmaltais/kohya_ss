@@ -24,8 +24,8 @@ def UI(**kwargs):
     css = ''
 
     headless = kwargs.get('headless', False)
-    modelbase = kwargs.get('modelbase')
-    log.info(f'headless: {headless}, modelbase: {modelbase}')
+    model_dir = kwargs.get('model_dir')
+    log.info(f'headless: {headless}, model_dir: {model_dir}')
 
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
@@ -52,22 +52,22 @@ def UI(**kwargs):
                 logging_dir_input,
             ) = dreambooth_tab(
                 headless=headless,
-                modelbase=modelbase,
+                model_dir=model_dir,
             )
         with gr.Tab('Dreambooth LoRA'):
             lora_tab(
                 headless=headless,
-                modelbase=modelbase,
+                model_dir=model_dir,
             )
         with gr.Tab('Dreambooth TI'):
             ti_tab(
                 headless=headless,
-                modelbase=modelbase,
+                model_dir=model_dir,
             )
         with gr.Tab('Finetune'):
             finetune_tab(
                 headless=headless,
-                modelbase=modelbase,
+                model_dir=model_dir,
             )
         with gr.Tab('Utilities'):
             utilities_tab(
@@ -77,32 +77,32 @@ def UI(**kwargs):
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
                 headless=headless,
-                modelbase=modelbase,
+                model_dir=model_dir,
             )
             with gr.Tab('LoRA'):
                 gradio_extract_dylora_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
                 gradio_extract_lora_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
                 gradio_extract_lycoris_locon_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
                 gradio_merge_lora_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
                 gradio_merge_lycoris_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
                 gradio_resize_lora_tab(
                     headless=headless,
-                    modelbase=modelbase,
+                    model_dir=model_dir,
                 )
 
     # Show the interface
@@ -157,7 +157,7 @@ if __name__ == '__main__':
         '--headless', action='store_true', help='Is the server headless'
     )
     parser.add_argument(
-        '--modelbase', type=str, default='', help='Base path for model'
+        '--model_dir', type=str, default='', help='Base path for model'
     )
 
     args = parser.parse_args()
@@ -170,5 +170,5 @@ if __name__ == '__main__':
         share=args.share,
         listen=args.listen,
         headless=args.headless,
-        modelbase=args.modelbase,
+        model_dir=args.model_dir,
     )

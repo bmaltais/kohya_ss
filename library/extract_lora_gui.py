@@ -78,7 +78,7 @@ def extract_lora(
 
 def gradio_extract_lora_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Extract LoRA'):
         gr.Markdown(

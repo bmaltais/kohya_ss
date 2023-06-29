@@ -126,7 +126,7 @@ def update_mode(mode):
 
 def gradio_extract_lycoris_locon_tab(
         headless=False,
-        modelbase=None,
+        model_dir=None,
 ):
     with gr.Tab('Extract LyCORIS LoCON'):
         gr.Markdown(

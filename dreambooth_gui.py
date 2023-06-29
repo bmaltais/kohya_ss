@@ -129,7 +129,7 @@ def save_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
-    modelbase,
+    model_dir,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -352,7 +352,7 @@ def train_model(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
-    modelbase,
+    model_dir,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training Dreambooth...')
@@ -506,8 +506,8 @@ def train_model(
     log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
-    if modelbase:
-        run_cmd += f' --modelbase={modelbase}'
+    if model_dir:
+        run_cmd += f' --model_dir={model_dir}'
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -646,7 +646,7 @@ def dreambooth_tab(
     output_dir=gr.Textbox(),
     logging_dir=gr.Textbox(),
     headless=False,
-    modelbase=None,
+    model_dir=None,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -958,7 +958,7 @@ def dreambooth_tab(
         use_wandb,
         wandb_api_key,
         scale_v_pred_loss_like_noise_pred,
-        modelbase,
+        model_dir,
     ]
 
     button_open_config.click(
