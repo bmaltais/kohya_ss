@@ -861,6 +861,9 @@ def setup_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="multiplier for network weights to merge into the model before training / 学習前にあらかじめモデルにマージするnetworkの重みの倍率",
     )
+
+    parser.add_argument("--modelbase", type=str, default=None, help="local model location")
+
     return parser
 
 

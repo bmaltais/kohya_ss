@@ -57,7 +57,10 @@ def extract_dylora(
 ###
 
 
-def gradio_extract_dylora_tab(headless=False):
+def gradio_extract_dylora_tab(
+        headless=False,
+        modelbase=None,
+):
     with gr.Tab('Extract DyLoRA'):
         gr.Markdown(
             'This utility can extract a DyLoRA network from a finetuned model.'

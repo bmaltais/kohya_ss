@@ -56,7 +56,10 @@ def merge_lycoris(
 ###
 
 
-def gradio_merge_lycoris_tab(headless=False):
+def gradio_merge_lycoris_tab(
+        headless=False,
+        modelbase=None,
+):
     with gr.Tab('Merge LyCORIS'):
         gr.Markdown(
             'This utility can merge a LyCORIS model into a SD checkpoint.'

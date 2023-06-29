@@ -76,7 +76,10 @@ def extract_lora(
 ###
 
 
-def gradio_extract_lora_tab(headless=False):
+def gradio_extract_lora_tab(
+        headless=False,
+        modelbase=None,
+):
     with gr.Tab('Extract LoRA'):
         gr.Markdown(
             'This utility can extract a LoRA network from a finetuned model.'

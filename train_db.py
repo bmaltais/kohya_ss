@@ -474,6 +474,8 @@ def setup_parser() -> argparse.ArgumentParser:
         help="steps to stop text encoder training, -1 for no training / Text Encoderの学習を止めるステップ数、-1で最初から学習しない",
     )
 
+    parser.add_argument("--modelbase", type=str, default=None, help="local model location")
+
     return parser
 
 

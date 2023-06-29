@@ -63,10 +63,7 @@ import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
 import library.huggingface_util as huggingface_util
-
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
+from config import TOKENIZER_PATH, V2_STABLE_DIFFUSION_PATH
 
 # checkpointファイル名
 EPOCH_STATE_NAME = "{}-{:06d}-state"
@@ -3013,6 +3010,10 @@ def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
 def load_tokenizer(args: argparse.Namespace):
     print("prepare tokenizer")
     original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
+    if args.modelbase:
+        local_path = f"{args.modelbase}/{original_path}"
+        if os.path.exists(local_path):
+            original_path = local_path
 
     tokenizer: CLIPTokenizer = None
     if args.tokenizer_cache_dir:

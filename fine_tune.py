@@ -473,6 +473,8 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--diffusers_xformers", action="store_true", help="use xformers by diffusers / Diffusersでxformersを使用する")
     parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
 
+    parser.add_argument("--modelbase", type=str, default=None, help="local model location")
+
     return parser
 
 

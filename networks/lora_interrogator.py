@@ -9,9 +9,7 @@ import torch
 
 import library.model_util as model_util
 import lora
-
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う
+from library.config import TOKENIZER_PATH, V2_STABLE_DIFFUSION_PATH
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

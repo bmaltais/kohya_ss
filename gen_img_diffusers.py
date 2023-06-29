@@ -99,10 +99,6 @@ from tools.original_control_net import ControlNetInfo
 
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
 
-# Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
-V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う
-
 DEFAULT_TOKEN_LENGTH = 75
 
 # scheduler:

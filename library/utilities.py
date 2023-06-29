@@ -21,7 +21,8 @@ def utilities_tab(
     logging_dir_input=gr.Textbox(),
     enable_copy_info_button=bool(False),
     enable_dreambooth_tab=True,
-    headless=False
+    headless=False,
+    modelbase=None,
 ):
     with gr.Tab('Captioning'):
         gradio_basic_caption_gui_tab(headless=headless)

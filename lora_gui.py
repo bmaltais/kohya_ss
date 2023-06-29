@@ -453,6 +453,7 @@ def train_model(
     network_dropout,
     rank_dropout,
     module_dropout,
+    modelbase,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -639,6 +640,8 @@ def train_model(
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_network.py"'
 
+    if modelbase:
+        run_cmd += f' --modelbase={modelbase}'
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -955,6 +958,7 @@ def lora_tab(
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
     headless=False,
+    modelbase=None,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -1642,6 +1646,7 @@ def lora_tab(
         network_dropout,
         rank_dropout,
         module_dropout,
+        modelbase,
     ]
 
     button_open_config.click(
