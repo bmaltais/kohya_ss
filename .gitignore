@@ -42,3 +42,7 @@ requirements_tmp_for_setup.txt
 
 # Version specific
 0.13.3
+
+.idea
+alternatives
+x86_64-linux-gnu
