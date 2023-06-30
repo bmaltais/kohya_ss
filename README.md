@@ -80,11 +80,8 @@ learning_rate = 4e-7 # SDXL original learning rate
 
 [![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
 
-<<<<<<< HEAD
 Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
-=======
 The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
->>>>>>> 227a62e4c4d3c3c5269a244328609ce2da96ebda
 
 [![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
 

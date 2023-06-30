@@ -477,13 +477,14 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
 
 def set_pretrained_model_name_or_path_input(
-    model_list, pretrained_model_name_or_path, v2, v_parameterization
+    model_list, pretrained_model_name_or_path, v2, v_parameterization, sdxl
 ):
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
     if str(model_list) in V2_BASE_MODELS:
         log.info('SD v2 model detected. Setting --v2 parameter')
         v2 = True
         v_parameterization = False
+        sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
     # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
@@ -493,11 +494,13 @@ def set_pretrained_model_name_or_path_input(
         )
         v2 = True
         v_parameterization = True
+        sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
     if str(model_list) in V1_MODELS:
         v2 = False
         v_parameterization = False
+        sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
     if model_list == 'custom':
@@ -509,7 +512,8 @@ def set_pretrained_model_name_or_path_input(
             pretrained_model_name_or_path = ''
             v2 = False
             v_parameterization = False
-    return model_list, pretrained_model_name_or_path, v2, v_parameterization
+            sdxl = False
+    return model_list, pretrained_model_name_or_path, v2, sdxl
 
 
 def set_v2_checkbox(model_list, v2, v_parameterization):
@@ -535,6 +539,7 @@ def set_model_list(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
+    sdxl
 ):
 
     if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
@@ -542,7 +547,7 @@ def set_model_list(
     else:
         model_list = pretrained_model_name_or_path
 
-    return model_list, v2, v_parameterization
+    return model_list, v2, v_parameterization, sdxl
 
 
 ###
@@ -655,6 +660,9 @@ def gradio_source_model(
             v_parameterization = gr.Checkbox(
                 label='v_parameterization', value=False
             )
+            sdxl = gr.Checkbox(
+                label='SDXL Model', value=False
+            )
             v2.change(
                 set_v2_checkbox,
                 inputs=[model_list, v2, v_parameterization],
@@ -674,12 +682,14 @@ def gradio_source_model(
                 pretrained_model_name_or_path,
                 v2,
                 v_parameterization,
+                sdxl,
             ],
             outputs=[
                 model_list,
                 pretrained_model_name_or_path,
                 v2,
                 v_parameterization,
+                sdxl,
             ],
             show_progress=False,
         )
@@ -691,11 +701,13 @@ def gradio_source_model(
                 pretrained_model_name_or_path,
                 v2,
                 v_parameterization,
+                sdxl,
             ],
             outputs=[
                 model_list,
                 v2,
                 v_parameterization,
+                sdxl,
             ],
             show_progress=False,
         )
@@ -703,6 +715,7 @@ def gradio_source_model(
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
+        sdxl,
         save_model_as,
         model_list,
     )

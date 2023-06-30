@@ -51,7 +51,7 @@ def save_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -174,7 +174,7 @@ def open_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -285,7 +285,7 @@ def train_model(
     print_only,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -473,7 +473,12 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "./fine_tune.py"'
+    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
+    if sdxl:
+        run_cmd += f' "./sdxl_train.py"'
+    else:
+        run_cmd += f' "./fine_tune.py"'
+        
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -626,6 +631,7 @@ def finetune_tab(headless=False):
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
+        sdxl,
         save_model_as,
         model_list,
     ) = gradio_source_model(headless=headless)
@@ -852,6 +858,7 @@ def finetune_tab(headless=False):
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
+        sdxl,
         train_dir,
         image_folder,
         output_dir,

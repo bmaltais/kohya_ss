@@ -59,7 +59,7 @@ def save_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -181,7 +181,7 @@ def open_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -291,7 +291,7 @@ def train_model(
     print_only,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization,
+    v_parameterization, sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -424,6 +424,10 @@ def train_model(
     if check_if_model_exist(
         output_name, output_dir, save_model_as, headless_bool
     ):
+        return
+    
+    if sdxl:
+        output_message(msg='TI training is not compatible with an SDXL model.', headless=headless_bool)
         return
 
     # if float(noise_offset) > 0 and (
@@ -681,6 +685,7 @@ def ti_tab(
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
+        sdxl,
         save_model_as,
         model_list,
     ) = gradio_source_model(
@@ -955,6 +960,7 @@ def ti_tab(
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
+        sdxl,
         logging_dir,
         train_data_dir,
         reg_data_dir,
