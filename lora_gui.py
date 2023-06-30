@@ -211,6 +211,7 @@ def save_configuration(
 
 def open_configuration(
     ask_for_file,
+    apply_preset,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -312,11 +313,25 @@ def open_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
+    training_preset
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
 
     ask_for_file = True if ask_for_file.get('label') == 'True' else False
+    apply_preset = True if apply_preset.get('label') == 'True' else False
+    
+    # Check if we are "applying" a preset or a config
+    if apply_preset:
+        log.info(f'Applying preset {training_preset}...')
+        file_path = f'./presets/lora/{training_preset}.json'
+    else:
+        # If not applying a preset, set the `training_preset` field to an empty string
+        # Find the index of the `training_preset` parameter using the `index()` method
+        training_preset_index = parameters.index(("training_preset", training_preset))
+
+        # Update the value of `training_preset` by directly assigning an empty string value
+        parameters[training_preset_index] = ("training_preset", "")
 
     original_file_path = file_path
 
@@ -324,22 +339,28 @@ def open_configuration(
         file_path = get_file_path(file_path)
 
     if not file_path == '' and not file_path == None:
-        # load variables from JSON file
+        # Load variables from JSON file
         with open(file_path, 'r') as f:
             my_data = json.load(f)
             log.info('Loading config...')
 
-            # Update values to fix deprecated use_8bit_adam checkbox, set appropriate optimizer if it is set to True, etc.
+            # Update values to fix deprecated options, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
     else:
-        file_path = original_file_path  # In case a file_path was provided and the user decide to cancel the open action
+        file_path = original_file_path  # In case a file_path was provided and the user decides to cancel the open action
         my_data = {}
 
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'file_path']:
-            values.append(my_data.get(key, value))
+        if not key in ['ask_for_file', 'apply_preset', 'file_path']:
+            json_value = my_data.get(key)
+            if isinstance(json_value, str) and json_value == '':
+                # If the JSON value is an empty string, use the default value
+                values.append(value)
+            else:
+                # Otherwise, use the JSON value if not None, otherwise use the default value
+                values.append(json_value if json_value is not None else value)
 
     # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
@@ -1069,6 +1090,17 @@ def lora_tab(
             outputs=[logging_dir],
         )
     with gr.Tab('Training parameters'):
+        def list_presets(path):
+            json_files = []
+            for file in os.listdir(path):
+                if file.endswith(".json"):
+                    json_files.append(os.path.splitext(file)[0])
+            return json_files
+        with gr.Row():
+            training_preset = gr.Dropdown(
+                label='Presets',
+                choices=list_presets('./presets/lora'),
+            )
         with gr.Row():
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
@@ -1658,15 +1690,22 @@ def lora_tab(
 
     button_open_config.click(
         open_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list + [LoCon_row],
+        inputs=[dummy_db_true, dummy_db_false, config_file_name] + settings_list + [training_preset],
+        outputs=[config_file_name] + settings_list + [training_preset, LoCon_row],
         show_progress=False,
     )
 
     button_load_config.click(
         open_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list + [LoCon_row],
+        inputs=[dummy_db_false, dummy_db_false, config_file_name] + settings_list + [training_preset],
+        outputs=[config_file_name] + settings_list + [training_preset, LoCon_row],
+        show_progress=False,
+    )
+    
+    training_preset.input(
+        open_configuration,
+        inputs=[dummy_db_false, dummy_db_true, config_file_name] + settings_list + [training_preset],
+        outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
         show_progress=False,
     )
 
