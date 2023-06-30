@@ -1096,11 +1096,10 @@ def lora_tab(
                 if file.endswith(".json"):
                     json_files.append(os.path.splitext(file)[0])
             return json_files
-        with gr.Row():
-            training_preset = gr.Dropdown(
-                label='Presets',
-                choices=list_presets('./presets/lora'),
-            )
+        training_preset = gr.Dropdown(
+            label='Presets',
+            choices=list_presets('./presets/lora'), elem_id="myDropdown"
+        )
         with gr.Row():
             LoRA_type = gr.Dropdown(
                 label='LoRA type',
