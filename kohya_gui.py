@@ -30,14 +30,14 @@ def UI(**kwargs):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
             log.info('Load CSS...')
             css += file.read() + '\n'
-            
+
     if os.path.exists('./.release'):
         with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
-            release= file.read()
-            
+            release = file.read()
+
     if os.path.exists('./README.md'):
         with open(os.path.join('./README.md'), 'r', encoding='utf8') as file:
-            README= file.read()
+            README = file.read()
 
     interface = gr.Blocks(
         css=css, title=f'Kohya_ss GUI {release}', theme=gr.themes.Default()
@@ -73,18 +73,18 @@ def UI(**kwargs):
                 gradio_merge_lora_tab(headless=headless)
                 gradio_merge_lycoris_tab(headless=headless)
                 gradio_resize_lora_tab(headless=headless)
-        with gr.Tab('About'):  
+        with gr.Tab('About'):
             gr.Markdown(f'kohya_ss GUI release {release}')
             with gr.Tab('README'):
                 gr.Markdown(README)
-                
-        htmlStr = f'''
+
+        htmlStr = f"""
         <html>
             <body>
                 <div class="ver-class">{release}</div>
             </body>
         </html>
-        '''
+        """
         gr.HTML(htmlStr)
     # Show the interface
     launch_kwargs = {}

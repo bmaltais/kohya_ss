@@ -59,7 +59,8 @@ def save_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -176,7 +177,8 @@ def open_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -281,7 +283,8 @@ def train_model(
     print_only,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -374,7 +377,7 @@ def train_model(
             msg='Image folder does not exist', headless=headless_bool
         )
         return
-    
+
     if not verify_image_folder_pattern(train_data_dir):
         return
 
@@ -385,7 +388,7 @@ def train_model(
                 headless=headless_bool,
             )
             return
-        
+
         if not verify_image_folder_pattern(reg_data_dir):
             return
 
@@ -399,9 +402,12 @@ def train_model(
         output_name, output_dir, save_model_as, headless=headless_bool
     ):
         return
-    
+
     if sdxl:
-        output_message(msg='TI training is not compatible with an SDXL model.', headless=headless_bool)
+        output_message(
+            msg='TI training is not compatible with an SDXL model.',
+            headless=headless_bool,
+        )
         return
 
     if optimizer == 'Adafactor' and lr_warmup != '0':

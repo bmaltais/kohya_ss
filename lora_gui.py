@@ -69,7 +69,8 @@ def save_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -215,7 +216,8 @@ def open_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -313,14 +315,14 @@ def open_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
-    training_preset
+    training_preset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
 
     ask_for_file = True if ask_for_file.get('label') == 'True' else False
     apply_preset = True if apply_preset.get('label') == 'True' else False
-    
+
     # Check if we are "applying" a preset or a config
     if apply_preset:
         log.info(f'Applying preset {training_preset}...')
@@ -328,10 +330,12 @@ def open_configuration(
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
-        training_preset_index = parameters.index(("training_preset", training_preset))
+        training_preset_index = parameters.index(
+            ('training_preset', training_preset)
+        )
 
         # Update the value of `training_preset` by directly assigning an empty string value
-        parameters[training_preset_index] = ("training_preset", "")
+        parameters[training_preset_index] = ('training_preset', '')
 
     original_file_path = file_path
 
@@ -376,7 +380,8 @@ def train_model(
     print_only,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -496,7 +501,7 @@ def train_model(
             msg='Image folder does not exist', headless=headless_bool
         )
         return
-    
+
     if not verify_image_folder_pattern(train_data_dir):
         return
 
@@ -507,7 +512,7 @@ def train_model(
                 headless=headless_bool,
             )
             return
-        
+
         if not verify_image_folder_pattern(reg_data_dir):
             return
 
@@ -1095,15 +1100,18 @@ def lora_tab(
             outputs=[logging_dir],
         )
     with gr.Tab('Training parameters'):
+
         def list_presets(path):
             json_files = []
             for file in os.listdir(path):
-                if file.endswith(".json"):
+                if file.endswith('.json'):
                     json_files.append(os.path.splitext(file)[0])
             return json_files
+
         training_preset = gr.Dropdown(
             label='Presets',
-            choices=list_presets('./presets/lora'), elem_id="myDropdown"
+            choices=list_presets('./presets/lora'),
+            elem_id='myDropdown',
         )
         with gr.Row():
             LoRA_type = gr.Dropdown(
@@ -1695,21 +1703,31 @@ def lora_tab(
 
     button_open_config.click(
         open_configuration,
-        inputs=[dummy_db_true, dummy_db_false, config_file_name] + settings_list + [training_preset],
-        outputs=[config_file_name] + settings_list + [training_preset, LoCon_row],
+        inputs=[dummy_db_true, dummy_db_false, config_file_name]
+        + settings_list
+        + [training_preset],
+        outputs=[config_file_name]
+        + settings_list
+        + [training_preset, LoCon_row],
         show_progress=False,
     )
 
     button_load_config.click(
         open_configuration,
-        inputs=[dummy_db_false, dummy_db_false, config_file_name] + settings_list + [training_preset],
-        outputs=[config_file_name] + settings_list + [training_preset, LoCon_row],
+        inputs=[dummy_db_false, dummy_db_false, config_file_name]
+        + settings_list
+        + [training_preset],
+        outputs=[config_file_name]
+        + settings_list
+        + [training_preset, LoCon_row],
         show_progress=False,
     )
-    
+
     training_preset.input(
         open_configuration,
-        inputs=[dummy_db_false, dummy_db_true, config_file_name] + settings_list + [training_preset],
+        inputs=[dummy_db_false, dummy_db_true, config_file_name]
+        + settings_list
+        + [training_preset],
         outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
         show_progress=False,
     )

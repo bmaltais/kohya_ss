@@ -51,7 +51,8 @@ def save_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -174,7 +175,8 @@ def open_configuration(
     file_path,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -285,7 +287,8 @@ def train_model(
     print_only,
     pretrained_model_name_or_path,
     v2,
-    v_parameterization, sdxl,
+    v_parameterization,
+    sdxl,
     train_dir,
     image_folder,
     output_dir,
@@ -478,7 +481,7 @@ def train_model(
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./fine_tune.py"'
-        
+
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:

@@ -35,8 +35,13 @@ V1_MODELS = [
     'runwayml/stable-diffusion-v1-5',
 ]
 
+# define a list of substrings to search for SDXL base models
+SDXL_MODELS = [
+    'stabilityai/stable-diffusion-SDXL-base',
+]
+
 # define a list of substrings to search for
-ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
+ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDXL_MODELS
 
 ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
@@ -479,7 +484,15 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 def set_pretrained_model_name_or_path_input(
     model_list, pretrained_model_name_or_path, v2, v_parameterization, sdxl
 ):
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
+    # Check if the given model_list is in the list of SDXL models
+    if str(model_list) in SDXL_MODELS:
+        log.info('SDXL model detected. Setting parameters')
+        v2 = True
+        v_parameterization = True
+        sdxl = True
+        pretrained_model_name_or_path = str(model_list)
+
+    # Check if the given model_list is in the list of V2 base models
     if str(model_list) in V2_BASE_MODELS:
         log.info('SD v2 model detected. Setting --v2 parameter')
         v2 = True
@@ -487,7 +500,7 @@ def set_pretrained_model_name_or_path_input(
         sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
+    # Check if the given model_list is in the list of V parameterization models
     if str(model_list) in V_PARAMETERIZATION_MODELS:
         log.info(
             'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
@@ -497,13 +510,16 @@ def set_pretrained_model_name_or_path_input(
         sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
+    # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
         v2 = False
         v_parameterization = False
         sdxl = False
         pretrained_model_name_or_path = str(model_list)
 
+    # Check if the model_list is set to 'custom'
     if model_list == 'custom':
+        # Check if the pretrained_model_name_or_path is in any of the model lists
         if (
             str(pretrained_model_name_or_path) in V1_MODELS
             or str(pretrained_model_name_or_path) in V2_BASE_MODELS
@@ -513,25 +529,58 @@ def set_pretrained_model_name_or_path_input(
             v2 = False
             v_parameterization = False
             sdxl = False
-    return model_list, pretrained_model_name_or_path, v2, sdxl
+
+    # Return the updated variables
+    return model_list, pretrained_model_name_or_path, v2, v_parameterization, sdxl
 
 
-def set_v2_checkbox(model_list, v2, v_parameterization):
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
+def set_v2_checkbox(model_list, v2, v_parameterization, sdxl):
+    
+    if str(model_list) in SDXL_MODELS:
+        if not v2:
+            log.info(f'v2 can\'t be deselected because this {str(model_list)} is considered a v2 model...')
+            v2 = True
+        if not v_parameterization:
+            log.info(f'v_parameterization can\'t be deselected because {str(model_list)} require v parameterization...')
+            v_parameterization = True
+        if not sdxl:
+            log.info(f'sdxl can\'t be deselected because {str(model_list)} is an sdxl model...')
+            sdxl = True
+            
     if str(model_list) in V2_BASE_MODELS:
-        v2 = True
-        v_parameterization = False
+        if not v2:
+            log.info(f'v2 can\'t be deselected because this {str(model_list)} is a v2 model...')
+            v2 = True
+        if v_parameterization:
+            log.info(f'v_parameterization can\'t be selected because {str(model_list)} does not support v parameterization...')
+            v_parameterization = False
+        if sdxl:
+            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+            sdxl = False
 
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
     if str(model_list) in V_PARAMETERIZATION_MODELS:
-        v2 = True
-        v_parameterization = True
+        if not v2:
+            log.info(f'v2 can\'t be deselected because this {str(model_list)} supports v parameterization...')
+            v2 = True
+        if not v_parameterization:
+            log.info(f'v_parameterization can\'t be deselected because {str(model_list)} supports v parameterization...')
+            v_parameterization = True
+        if sdxl:
+            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+            sdxl = False
 
     if str(model_list) in V1_MODELS:
-        v2 = False
-        v_parameterization = False
+        if v2:
+            log.info(f'v2 can\'t be selected because this {str(model_list)} is a v1 model...')
+            v2 = False
+        if v_parameterization:
+            log.info(f'v_parameterization can\'t be selected because {str(model_list)} is a v1 model...')
+            v_parameterization = False
+        if sdxl:
+            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+            sdxl = False
 
-    return v2, v_parameterization
+    return v2, v_parameterization, sdxl
 
 
 def set_model_list(
@@ -665,14 +714,20 @@ def gradio_source_model(
             )
             v2.change(
                 set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization],
-                outputs=[v2, v_parameterization],
+                inputs=[model_list, v2, v_parameterization, sdxl],
+                outputs=[v2, v_parameterization, sdxl],
                 show_progress=False,
             )
             v_parameterization.change(
                 set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization],
-                outputs=[v2, v_parameterization],
+                inputs=[model_list, v2, v_parameterization, sdxl],
+                outputs=[v2, v_parameterization, sdxl],
+                show_progress=False,
+            )
+            sdxl.change(
+                set_v2_checkbox,
+                inputs=[model_list, v2, v_parameterization, sdxl],
+                outputs=[v2, v_parameterization, sdxl],
                 show_progress=False,
             )
         model_list.change(
