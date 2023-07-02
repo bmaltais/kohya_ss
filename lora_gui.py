@@ -1120,7 +1120,7 @@ def lora_tab(
                     if file.endswith('.json'):
                         json_files.append(os.path.splitext(file)[0])
                 return json_files
-
+            
             training_preset = gr.Dropdown(
                 label='Presets',
                 choices=list_presets('./presets/lora'),
@@ -1225,14 +1225,17 @@ def lora_tab(
                     value=False,
                     label='Use CP decomposition',
                     info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+                    visible=False,
                 )
                 decompose_both = gr.Checkbox(
                     value=False,
                     label='LoKr decompose both',
+                    visible=False,
                 )
                 train_on_input = gr.Checkbox(
                     value=False,
                     label='iA3 train on input',
+                    visible=False,
                 )
 
             with gr.Row() as LoRA_dim_alpha:
@@ -1371,10 +1374,10 @@ def lora_tab(
                                 'LyCORIS/LoCon',
                                 'LyCORIS/LoKr',
                             },
-                            gr.Slider,
+                            gr.Checkbox,
                         ),
-                        'decompose_both': ({'LyCORIS/LoKr'}, gr.Slider),
-                        'train_on_input': ({'LyCORIS/iA3'}, gr.Slider),
+                        'decompose_both': ({'LyCORIS/LoKr'}, gr.Checkbox),
+                        'train_on_input': ({'LyCORIS/iA3'}, gr.Checkbox),
                         'scale_weight_norms': (
                             {
                                 'LoCon',
@@ -1384,6 +1387,7 @@ def lora_tab(
                                 'LyCORIS/LoHa',
                                 'LyCORIS/LoCon',
                                 'LyCORIS/LoKr',
+                                'Standard',
                             },
                             gr.Slider,
                         ),
@@ -1396,15 +1400,18 @@ def lora_tab(
                                 'LyCORIS/LoHa',
                                 'LyCORIS/LoCon',
                                 'LyCORIS/LoKr',
+                                'Standard',
                             },
                             gr.Slider,
                         ),
                         'rank_dropout': (
-                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                'Standard',},
                             gr.Slider,
                         ),
                         'module_dropout': (
-                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                'Standard',},
                             gr.Slider,
                         ),
                     }

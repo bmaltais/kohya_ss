@@ -634,7 +634,7 @@ def gradio_config(headless=False):
                 interactive=True,
             )
             button_load_config = gr.Button('Load 💾', elem_id='open_folder')
-            config_file_name.change(
+            config_file_name.blur(
                 remove_doublequote,
                 inputs=[config_file_name],
                 outputs=[config_file_name],
