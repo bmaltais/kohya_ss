@@ -168,6 +168,8 @@ def save_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
+    cache_text_encoder_outputs,
+    no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -315,6 +317,8 @@ def open_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
+    cache_text_encoder_outputs,
+    no_half_vae,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -479,6 +483,8 @@ def train_model(
     network_dropout,
     rank_dropout,
     module_dropout,
+    cache_text_encoder_outputs,
+    no_half_vae,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -875,6 +881,12 @@ def train_model(
 
     if network_dropout > 0.0:
         run_cmd += f' --network_dropout="{network_dropout}"'
+        
+    if cache_text_encoder_outputs:
+        run_cmd += f' --cache_text_encoder_outputs'
+        
+    if no_half_vae:
+        run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -1183,6 +1195,18 @@ def lora_tab(
                 label='Unet learning rate',
                 value='0.0001',
                 info='Optional',
+            )
+            
+        with gr.Row() as sdxl_row:
+            cache_text_encoder_outputs = gr.Checkbox(
+                label='(SDXL) Cache text encoder outputs',
+                info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
+                value=False
+            )
+            no_half_vae = gr.Checkbox(
+                label='(SDXL) No half VAE',
+                info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
+                value=False
             )
         with gr.Row():
             factor = gr.Slider(
@@ -1699,6 +1723,8 @@ def lora_tab(
         network_dropout,
         rank_dropout,
         module_dropout,
+        cache_text_encoder_outputs,
+        no_half_vae,
     ]
 
     button_open_config.click(

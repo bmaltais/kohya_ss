@@ -420,5 +420,8 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/267 (v21.7.17)
-  - Move release ingo to new `About` tab
+* 2023/06/267 (v21.8.0)
+  - Add support for training SDXL models
+  - Update version of LyCORIS to 1.8.0
+  - Merge sd-scripts code update for SDXL and various other fixes.
+  - Improve how Source model preset work

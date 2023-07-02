@@ -19,12 +19,14 @@ document_symbol = '\U0001F4C4'   # 📄
 
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
+    'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
     'stabilityai/stable-diffusion-2-1-base',
     'stabilityai/stable-diffusion-2-base',
 ]
 
 # define a list of substrings to search for v_parameterization models
 V_PARAMETERIZATION_MODELS = [
+    'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
     'stabilityai/stable-diffusion-2-1',
     'stabilityai/stable-diffusion-2',
 ]
@@ -37,7 +39,8 @@ V1_MODELS = [
 
 # define a list of substrings to search for SDXL base models
 SDXL_MODELS = [
-    'stabilityai/stable-diffusion-SDXL-base',
+    'stabilityai/stable-diffusion-xl-base-0.9',
+    'stabilityai/stable-diffusion-xl-refiner-0.9'
 ]
 
 # define a list of substrings to search for
@@ -482,121 +485,130 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
 
 def set_pretrained_model_name_or_path_input(
-    model_list, pretrained_model_name_or_path, v2, v_parameterization, sdxl
+    model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 ):
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
-        log.info('SDXL model detected. Setting parameters')
-        v2 = True
-        v_parameterization = True
-        sdxl = True
-        pretrained_model_name_or_path = str(model_list)
+        log.info('SDXL model selected. Setting --v2, --v_parameterization and sdxl parameters')
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        sdxl = gr.Checkbox.update(value=True, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
     # Check if the given model_list is in the list of V2 base models
     if str(model_list) in V2_BASE_MODELS:
-        log.info('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-        sdxl = False
-        pretrained_model_name_or_path = str(model_list)
+        log.info('SD v2 base model selected. Setting --v2 parameter')
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
     # Check if the given model_list is in the list of V parameterization models
     if str(model_list) in V_PARAMETERIZATION_MODELS:
         log.info(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
+            'SD v2 model selected. Setting --v2 and --v_parameterization parameters'
         )
-        v2 = True
-        v_parameterization = True
-        sdxl = False
-        pretrained_model_name_or_path = str(model_list)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
     # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
-        v2 = False
-        v_parameterization = False
-        sdxl = False
-        pretrained_model_name_or_path = str(model_list)
+        log.info(
+            'SD v1.4 model selected.'
+        )
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
     # Check if the model_list is set to 'custom'
     if model_list == 'custom':
-        # Check if the pretrained_model_name_or_path is in any of the model lists
-        if (
-            str(pretrained_model_name_or_path) in V1_MODELS
-            or str(pretrained_model_name_or_path) in V2_BASE_MODELS
-            or str(pretrained_model_name_or_path) in V_PARAMETERIZATION_MODELS
-        ):
-            pretrained_model_name_or_path = ''
-            v2 = False
-            v_parameterization = False
-            sdxl = False
-
-    # Return the updated variables
-    return model_list, pretrained_model_name_or_path, v2, v_parameterization, sdxl
+        v2 = gr.Checkbox.update(visible=True)
+        v_parameterization = gr.Checkbox.update(visible=True)
+        sdxl = gr.Checkbox.update(visible=True)
+        pretrained_model_name_or_path = gr.Textbox.update(visible=True)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=True)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=True)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
 
-def set_v2_checkbox(model_list, v2, v_parameterization, sdxl):
+# def set_v2_checkbox(model_list, v2, v_parameterization, sdxl):
     
-    if str(model_list) in SDXL_MODELS:
-        if not v2:
-            log.info(f'v2 can\'t be deselected because this {str(model_list)} is considered a v2 model...')
-            v2 = True
-        if not v_parameterization:
-            log.info(f'v_parameterization can\'t be deselected because {str(model_list)} require v parameterization...')
-            v_parameterization = True
-        if not sdxl:
-            log.info(f'sdxl can\'t be deselected because {str(model_list)} is an sdxl model...')
-            sdxl = True
+#     if str(model_list) in SDXL_MODELS:
+#         if not v2:
+#             log.info(f'v2 can\'t be deselected because this {str(model_list)} is considered a v2 model...')
+#             v2 = True
+#         if not v_parameterization:
+#             log.info(f'v_parameterization can\'t be deselected because {str(model_list)} require v parameterization...')
+#             v_parameterization = True
+#         if not sdxl:
+#             log.info(f'sdxl can\'t be deselected because {str(model_list)} is an sdxl model...')
+#             sdxl = True
             
-    if str(model_list) in V2_BASE_MODELS:
-        if not v2:
-            log.info(f'v2 can\'t be deselected because this {str(model_list)} is a v2 model...')
-            v2 = True
-        if v_parameterization:
-            log.info(f'v_parameterization can\'t be selected because {str(model_list)} does not support v parameterization...')
-            v_parameterization = False
-        if sdxl:
-            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-            sdxl = False
+#     if str(model_list) in V2_BASE_MODELS:
+#         if not v2:
+#             log.info(f'v2 can\'t be deselected because this {str(model_list)} is a v2 model...')
+#             v2 = True
+#         if v_parameterization:
+#             log.info(f'v_parameterization can\'t be selected because {str(model_list)} does not support v parameterization...')
+#             v_parameterization = False
+#         if sdxl:
+#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+#             sdxl = False
 
-    if str(model_list) in V_PARAMETERIZATION_MODELS:
-        if not v2:
-            log.info(f'v2 can\'t be deselected because this {str(model_list)} supports v parameterization...')
-            v2 = True
-        if not v_parameterization:
-            log.info(f'v_parameterization can\'t be deselected because {str(model_list)} supports v parameterization...')
-            v_parameterization = True
-        if sdxl:
-            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-            sdxl = False
+#     if str(model_list) in V_PARAMETERIZATION_MODELS:
+#         if not v2:
+#             log.info(f'v2 can\'t be deselected because this {str(model_list)} supports v parameterization...')
+#             v2 = True
+#         if not v_parameterization:
+#             log.info(f'v_parameterization can\'t be deselected because {str(model_list)} supports v parameterization...')
+#             v_parameterization = True
+#         if sdxl:
+#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+#             sdxl = False
 
-    if str(model_list) in V1_MODELS:
-        if v2:
-            log.info(f'v2 can\'t be selected because this {str(model_list)} is a v1 model...')
-            v2 = False
-        if v_parameterization:
-            log.info(f'v_parameterization can\'t be selected because {str(model_list)} is a v1 model...')
-            v_parameterization = False
-        if sdxl:
-            log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-            sdxl = False
+#     if str(model_list) in V1_MODELS:
+#         if v2:
+#             log.info(f'v2 can\'t be selected because this {str(model_list)} is a v1 model...')
+#             v2 = False
+#         if v_parameterization:
+#             log.info(f'v_parameterization can\'t be selected because {str(model_list)} is a v1 model...')
+#             v_parameterization = False
+#         if sdxl:
+#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
+#             sdxl = False
 
-    return v2, v_parameterization, sdxl
+#     return v2, v_parameterization, sdxl
 
 
-def set_model_list(
-    model_list,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-    sdxl
-):
+# def set_model_list(
+#     model_list,
+#     pretrained_model_name_or_path,
+#     v2,
+#     v_parameterization,
+#     sdxl
+# ):
 
-    if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
-        model_list = 'custom'
-    else:
-        model_list = pretrained_model_name_or_path
+#     if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
+#         model_list = 'custom'
+#     else:
+#         model_list = pretrained_model_name_or_path
 
-    return model_list, v2, v_parameterization, sdxl
+#     return model_list, v2, v_parameterization, sdxl
 
 
 ###
@@ -642,7 +654,7 @@ def get_pretrained_model_name_or_path_file(
     pretrained_model_name_or_path = get_any_file_path(
         pretrained_model_name_or_path
     )
-    set_model_list(model_list, pretrained_model_name_or_path)
+    # set_model_list(model_list, pretrained_model_name_or_path)
 
 
 def gradio_source_model(
@@ -658,39 +670,16 @@ def gradio_source_model(
     with gr.Tab('Source model'):
         # Define the input elements
         with gr.Row():
-            pretrained_model_name_or_path = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
-                value='runwayml/stable-diffusion-v1-5',
-            )
-            pretrained_model_name_or_path_file = gr.Button(
-                document_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            pretrained_model_name_or_path_file.click(
-                get_any_file_path,
-                inputs=pretrained_model_name_or_path,
-                outputs=pretrained_model_name_or_path,
-                show_progress=False,
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path,
-                inputs=pretrained_model_name_or_path,
-                outputs=pretrained_model_name_or_path,
-                show_progress=False,
-            )
             model_list = gr.Dropdown(
                 label='Model Quick Pick',
                 choices=[
                     'custom',
+                    'stabilityai/stable-diffusion-xl-base-0.9',
+                    'stabilityai/stable-diffusion-xl-refiner-0.9',
+                    'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
                     'stabilityai/stable-diffusion-2-1-base',
                     'stabilityai/stable-diffusion-2-base',
+                    'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
                     'stabilityai/stable-diffusion-2-1',
                     'stabilityai/stable-diffusion-2',
                     'runwayml/stable-diffusion-v1-5',
@@ -703,38 +692,67 @@ def gradio_source_model(
                 choices=save_model_as_choices,
                 value='safetensors',
             )
-
         with gr.Row():
-            v2 = gr.Checkbox(label='v2', value=False)
+            pretrained_model_name_or_path = gr.Textbox(
+                label='Pretrained model name or path',
+                placeholder='enter the path to custom model or name of pretrained model',
+                value='runwayml/stable-diffusion-v1-5',
+                visible=(False and not headless),
+            )
+            pretrained_model_name_or_path_file = gr.Button(
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(False and not headless),
+            )
+            pretrained_model_name_or_path_file.click(
+                get_any_file_path,
+                inputs=pretrained_model_name_or_path,
+                outputs=pretrained_model_name_or_path,
+                show_progress=False,
+            )
+            pretrained_model_name_or_path_folder = gr.Button(
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(False and not headless),
+            )
+            pretrained_model_name_or_path_folder.click(
+                get_folder_path,
+                inputs=pretrained_model_name_or_path,
+                outputs=pretrained_model_name_or_path,
+                show_progress=False,
+            )
+            v2 = gr.Checkbox(label='v2', value=False, visible=False)
             v_parameterization = gr.Checkbox(
-                label='v_parameterization', value=False
+                label='v_parameterization', value=False, visible=False
             )
             sdxl = gr.Checkbox(
-                label='SDXL Model', value=False
+                label='SDXL Model', value=False, visible=False
             )
-            v2.change(
-                set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization, sdxl],
-                outputs=[v2, v_parameterization, sdxl],
-                show_progress=False,
-            )
-            v_parameterization.change(
-                set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization, sdxl],
-                outputs=[v2, v_parameterization, sdxl],
-                show_progress=False,
-            )
-            sdxl.change(
-                set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization, sdxl],
-                outputs=[v2, v_parameterization, sdxl],
-                show_progress=False,
-            )
+            # v2.change(
+            #     set_v2_checkbox,
+            #     inputs=[model_list, v2, v_parameterization, sdxl],
+            #     outputs=[v2, v_parameterization, sdxl],
+            #     show_progress=False,
+            # )
+            # v_parameterization.change(
+            #     set_v2_checkbox,
+            #     inputs=[model_list, v2, v_parameterization, sdxl],
+            #     outputs=[v2, v_parameterization, sdxl],
+            #     show_progress=False,
+            # )
+            # sdxl.change(
+            #     set_v2_checkbox,
+            #     inputs=[model_list, v2, v_parameterization, sdxl],
+            #     outputs=[v2, v_parameterization, sdxl],
+            #     show_progress=False,
+            # )
         model_list.change(
             set_pretrained_model_name_or_path_input,
             inputs=[
                 model_list,
                 pretrained_model_name_or_path,
+                pretrained_model_name_or_path_file,
+                pretrained_model_name_or_path_folder,
                 v2,
                 v_parameterization,
                 sdxl,
@@ -742,6 +760,8 @@ def gradio_source_model(
             outputs=[
                 model_list,
                 pretrained_model_name_or_path,
+                pretrained_model_name_or_path_file,
+                pretrained_model_name_or_path_folder,
                 v2,
                 v_parameterization,
                 sdxl,
@@ -749,23 +769,23 @@ def gradio_source_model(
             show_progress=False,
         )
         # Update the model list and parameters when user click outside the button or field
-        pretrained_model_name_or_path.change(
-            set_model_list,
-            inputs=[
-                model_list,
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-                sdxl,
-            ],
-            outputs=[
-                model_list,
-                v2,
-                v_parameterization,
-                sdxl,
-            ],
-            show_progress=False,
-        )
+        # pretrained_model_name_or_path.change(
+        #     set_model_list,
+        #     inputs=[
+        #         model_list,
+        #         pretrained_model_name_or_path,
+        #         v2,
+        #         v_parameterization,
+        #         sdxl,
+        #     ],
+        #     outputs=[
+        #         model_list,
+        #         v2,
+        #         v_parameterization,
+        #         sdxl,
+        #     ],
+        #     show_progress=False,
+        # )
     return (
         pretrained_model_name_or_path,
         v2,
