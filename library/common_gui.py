@@ -489,9 +489,9 @@ def set_pretrained_model_name_or_path_input(
 ):
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
-        log.info('SDXL model selected. Setting --v2, --v_parameterization and sdxl parameters')
-        v2 = gr.Checkbox.update(value=True, visible=False)
-        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        log.info('SDXL model selected. Setting sdxl parameters')
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=True, visible=False)
         pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
         pretrained_model_name_or_path_file = gr.Button.update(visible=False)

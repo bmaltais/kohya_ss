@@ -1002,168 +1002,622 @@ def lora_tab(
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    gr.Markdown(
-        'Train a custom model using kohya train network LoRA python code...'
-    )
-    (
-        button_open_config,
-        button_save_config,
-        button_save_as_config,
-        config_file_name,
-        button_load_config,
-    ) = gradio_config(headless=headless)
-
-    (
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl_checkbox,
-        save_model_as,
-        model_list,
-    ) = gradio_source_model(
-        save_model_as_choices=[
-            'ckpt',
-            'safetensors',
-        ],
-        headless=headless,
-    )
-
-    with gr.Tab('Folders'):
-        with gr.Row():
-            train_data_dir = gr.Textbox(
-                label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
-            )
-            train_data_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            train_data_dir_folder.click(
-                get_folder_path,
-                outputs=train_data_dir,
-                show_progress=False,
-            )
-            reg_data_dir = gr.Textbox(
-                label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
-            )
-            reg_data_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            reg_data_dir_folder.click(
-                get_folder_path,
-                outputs=reg_data_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_dir = gr.Textbox(
-                label='Output folder',
-                placeholder='Folder to output trained model',
-            )
-            output_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            output_dir_folder.click(
-                get_folder_path,
-                outputs=output_dir,
-                show_progress=False,
-            )
-            logging_dir = gr.Textbox(
-                label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
-            )
-            logging_dir_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            logging_dir_folder.click(
-                get_folder_path,
-                outputs=logging_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_name = gr.Textbox(
-                label='Model output name',
-                placeholder='(Name of the model to output)',
-                value='last',
-                interactive=True,
-            )
-            training_comment = gr.Textbox(
-                label='Training comment',
-                placeholder='(Optional) Add training comment to be included in metadata',
-                interactive=True,
-            )
-        train_data_dir.change(
-            remove_doublequote,
-            inputs=[train_data_dir],
-            outputs=[train_data_dir],
+    with gr.Tab('Training'):
+        gr.Markdown(
+            'Train a custom model using kohya train network LoRA python code...'
         )
-        reg_data_dir.change(
-            remove_doublequote,
-            inputs=[reg_data_dir],
-            outputs=[reg_data_dir],
-        )
-        output_dir.change(
-            remove_doublequote,
-            inputs=[output_dir],
-            outputs=[output_dir],
-        )
-        logging_dir.change(
-            remove_doublequote,
-            inputs=[logging_dir],
-            outputs=[logging_dir],
-        )
-    with gr.Tab('Training parameters'):
-
-        def list_presets(path):
-            json_files = []
-            for file in os.listdir(path):
-                if file.endswith('.json'):
-                    json_files.append(os.path.splitext(file)[0])
-            return json_files
-
-        training_preset = gr.Dropdown(
-            label='Presets',
-            choices=list_presets('./presets/lora'),
-            elem_id='myDropdown',
-        )
-        with gr.Row():
-            LoRA_type = gr.Dropdown(
-                label='LoRA type',
-                choices=[
-                    'Kohya DyLoRA',
-                    'Kohya LoCon',
-                    'LyCORIS/DyLoRA',
-                    'LyCORIS/iA3',
-                    'LyCORIS/LoCon',
-                    'LyCORIS/LoHa',
-                    'LyCORIS/LoKr',
-                    'Standard',
-                ],
-                value='Standard',
-            )
-            with gr.Box():
-                with gr.Row():
-                    lora_network_weights = gr.Textbox(
-                        label='LoRA network weights',
-                        placeholder='(Optional)',
-                        info='Path to an existing LoRA network weights to resume training from',
-                    )
-                    lora_network_weights_file = gr.Button(
-                        document_symbol,
-                        elem_id='open_folder_small',
-                        visible=(not headless),
-                    )
-                    lora_network_weights_file.click(
-                        get_any_file_path,
-                        inputs=[lora_network_weights],
-                        outputs=lora_network_weights,
-                        show_progress=False,
-                    )
-                    dim_from_weights = gr.Checkbox(
-                        label='DIM from weights',
-                        value=False,
-                        info='Automatically determine the dim(rank) from the weight file.',
-                    )
         (
+            button_open_config,
+            button_save_config,
+            button_save_as_config,
+            config_file_name,
+            button_load_config,
+        ) = gradio_config(headless=headless)
+
+        (
+            pretrained_model_name_or_path,
+            v2,
+            v_parameterization,
+            sdxl_checkbox,
+            save_model_as,
+            model_list,
+        ) = gradio_source_model(
+            save_model_as_choices=[
+                'ckpt',
+                'safetensors',
+            ],
+            headless=headless,
+        )
+
+        with gr.Tab('Folders'):
+            with gr.Row():
+                train_data_dir = gr.Textbox(
+                    label='Image folder',
+                    placeholder='Folder where the training folders containing the images are located',
+                )
+                train_data_dir_folder = gr.Button(
+                    '📂', elem_id='open_folder_small', visible=(not headless)
+                )
+                train_data_dir_folder.click(
+                    get_folder_path,
+                    outputs=train_data_dir,
+                    show_progress=False,
+                )
+                reg_data_dir = gr.Textbox(
+                    label='Regularisation folder',
+                    placeholder='(Optional) Folder where where the regularization folders containing the images are located',
+                )
+                reg_data_dir_folder = gr.Button(
+                    '📂', elem_id='open_folder_small', visible=(not headless)
+                )
+                reg_data_dir_folder.click(
+                    get_folder_path,
+                    outputs=reg_data_dir,
+                    show_progress=False,
+                )
+            with gr.Row():
+                output_dir = gr.Textbox(
+                    label='Output folder',
+                    placeholder='Folder to output trained model',
+                )
+                output_dir_folder = gr.Button(
+                    '📂', elem_id='open_folder_small', visible=(not headless)
+                )
+                output_dir_folder.click(
+                    get_folder_path,
+                    outputs=output_dir,
+                    show_progress=False,
+                )
+                logging_dir = gr.Textbox(
+                    label='Logging folder',
+                    placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                )
+                logging_dir_folder = gr.Button(
+                    '📂', elem_id='open_folder_small', visible=(not headless)
+                )
+                logging_dir_folder.click(
+                    get_folder_path,
+                    outputs=logging_dir,
+                    show_progress=False,
+                )
+            with gr.Row():
+                output_name = gr.Textbox(
+                    label='Model output name',
+                    placeholder='(Name of the model to output)',
+                    value='last',
+                    interactive=True,
+                )
+                training_comment = gr.Textbox(
+                    label='Training comment',
+                    placeholder='(Optional) Add training comment to be included in metadata',
+                    interactive=True,
+                )
+            train_data_dir.change(
+                remove_doublequote,
+                inputs=[train_data_dir],
+                outputs=[train_data_dir],
+            )
+            reg_data_dir.change(
+                remove_doublequote,
+                inputs=[reg_data_dir],
+                outputs=[reg_data_dir],
+            )
+            output_dir.change(
+                remove_doublequote,
+                inputs=[output_dir],
+                outputs=[output_dir],
+            )
+            logging_dir.change(
+                remove_doublequote,
+                inputs=[logging_dir],
+                outputs=[logging_dir],
+            )
+        with gr.Tab('Parameters'):
+
+            def list_presets(path):
+                json_files = []
+                for file in os.listdir(path):
+                    if file.endswith('.json'):
+                        json_files.append(os.path.splitext(file)[0])
+                return json_files
+
+            training_preset = gr.Dropdown(
+                label='Presets',
+                choices=list_presets('./presets/lora'),
+                elem_id='myDropdown',
+            )
+            with gr.Row():
+                LoRA_type = gr.Dropdown(
+                    label='LoRA type',
+                    choices=[
+                        'Kohya DyLoRA',
+                        'Kohya LoCon',
+                        'LyCORIS/DyLoRA',
+                        'LyCORIS/iA3',
+                        'LyCORIS/LoCon',
+                        'LyCORIS/LoHa',
+                        'LyCORIS/LoKr',
+                        'Standard',
+                    ],
+                    value='Standard',
+                )
+                with gr.Box():
+                    with gr.Row():
+                        lora_network_weights = gr.Textbox(
+                            label='LoRA network weights',
+                            placeholder='(Optional)',
+                            info='Path to an existing LoRA network weights to resume training from',
+                        )
+                        lora_network_weights_file = gr.Button(
+                            document_symbol,
+                            elem_id='open_folder_small',
+                            visible=(not headless),
+                        )
+                        lora_network_weights_file.click(
+                            get_any_file_path,
+                            inputs=[lora_network_weights],
+                            outputs=lora_network_weights,
+                            show_progress=False,
+                        )
+                        dim_from_weights = gr.Checkbox(
+                            label='DIM from weights',
+                            value=False,
+                            info='Automatically determine the dim(rank) from the weight file.',
+                        )
+            (
+                learning_rate,
+                lr_scheduler,
+                lr_warmup,
+                train_batch_size,
+                epoch,
+                save_every_n_epochs,
+                mixed_precision,
+                save_precision,
+                num_cpu_threads_per_process,
+                seed,
+                caption_extension,
+                cache_latents,
+                cache_latents_to_disk,
+                optimizer,
+                optimizer_args,
+            ) = gradio_training(
+                learning_rate_value='0.0001',
+                lr_scheduler_value='cosine',
+                lr_warmup_value='10',
+            )
+
+            with gr.Row():
+                text_encoder_lr = gr.Number(
+                    label='Text Encoder learning rate',
+                    value='5e-5',
+                    info='Optional',
+                )
+                unet_lr = gr.Number(
+                    label='Unet learning rate',
+                    value='0.0001',
+                    info='Optional',
+                )
+            # SDXL parameters
+            with gr.Row(visible=False) as sdxl_row:
+                sdxl_cache_text_encoder_outputs = gr.Checkbox(
+                    label='(SDXL) Cache text encoder outputs',
+                    info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
+                    value=False
+                )
+                sdxl_no_half_vae = gr.Checkbox(
+                    label='(SDXL) No half VAE',
+                    info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
+                    value=False
+                )
+                
+                sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
+                
+            with gr.Row():
+                factor = gr.Slider(
+                    label='LoKr factor',
+                    value=-1,
+                    minimum=-1,
+                    maximum=64,
+                    step=1,
+                    visible=False,
+                )
+                use_cp = gr.Checkbox(
+                    value=False,
+                    label='Use CP decomposition',
+                    info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+                )
+                decompose_both = gr.Checkbox(
+                    value=False,
+                    label='LoKr decompose both',
+                )
+                train_on_input = gr.Checkbox(
+                    value=False,
+                    label='iA3 train on input',
+                )
+
+            with gr.Row() as LoRA_dim_alpha:
+                network_dim = gr.Slider(
+                    minimum=1,
+                    maximum=1024,
+                    label='Network Rank (Dimension)',
+                    value=8,
+                    step=1,
+                    interactive=True,
+                )
+                network_alpha = gr.Slider(
+                    minimum=0.1,
+                    maximum=1024,
+                    label='Network Alpha',
+                    value=1,
+                    step=0.1,
+                    interactive=True,
+                    info='alpha for LoRA weight scaling',
+                )
+            with gr.Row(visible=False) as LoCon_row:
+
+                # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
+                conv_dim = gr.Slider(
+                    minimum=1,
+                    maximum=512,
+                    value=1,
+                    step=1,
+                    label='Convolution Rank (Dimension)',
+                )
+                conv_alpha = gr.Slider(
+                    minimum=0.1,
+                    maximum=512,
+                    value=1,
+                    step=0.1,
+                    label='Convolution Alpha',
+                )
+            with gr.Row():
+                scale_weight_norms = gr.Slider(
+                    label='Scale weight norms',
+                    value=0,
+                    minimum=0,
+                    maximum=1,
+                    step=0.01,
+                    info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
+                    interactive=True,
+                )
+                network_dropout = gr.Slider(
+                    label='Network dropout',
+                    value=0,
+                    minimum=0,
+                    maximum=1,
+                    step=0.01,
+                    info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+                )
+                rank_dropout = gr.Slider(
+                    label='Rank dropout',
+                    value=0,
+                    minimum=0,
+                    maximum=1,
+                    step=0.01,
+                    info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                )
+                module_dropout = gr.Slider(
+                    label='Module dropout',
+                    value=0.0,
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                )
+            with gr.Row(visible=False) as kohya_dylora:
+                unit = gr.Slider(
+                    minimum=1,
+                    maximum=64,
+                    label='DyLoRA Unit / Block size',
+                    value=1,
+                    step=1,
+                    interactive=True,
+                )
+
+                # Show or hide LoCon conv settings depending on LoRA type selection
+                def update_LoRA_settings(LoRA_type):
+                    log.info('LoRA type changed...')
+
+                    visibility_and_gr_types = {
+                        'LoRA_dim_alpha': (
+                            {
+                                'Kohya DyLoRA',
+                                'Kohya LoCon',
+                                'LyCORIS/DyLoRA',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoKr',
+                                'Standard',
+                            },
+                            gr.Row,
+                        ),
+                        'LoCon_row': (
+                            {
+                                'LoCon',
+                                'Kohya DyLoRA',
+                                'Kohya LoCon',
+                                'LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoKr',
+                                'LyCORIS/LoCon',
+                            },
+                            gr.Row,
+                        ),
+                        'kohya_advanced_lora': (
+                            {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Row,
+                        ),
+                        'kohya_dylora': (
+                            {'Kohya DyLoRA', 'LyCORIS/DyLoRA'},
+                            gr.Row,
+                        ),
+                        'lora_network_weights': (
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Textbox,
+                        ),
+                        'lora_network_weights_file': (
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Button,
+                        ),
+                        'dim_from_weights': (
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Checkbox,
+                        ),
+                        'factor': ({'LyCORIS/LoKr'}, gr.Slider),
+                        'use_cp': (
+                            {
+                                'LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',
+                            },
+                            gr.Slider,
+                        ),
+                        'decompose_both': ({'LyCORIS/LoKr'}, gr.Slider),
+                        'train_on_input': ({'LyCORIS/iA3'}, gr.Slider),
+                        'scale_weight_norms': (
+                            {
+                                'LoCon',
+                                'Kohya DyLoRA',
+                                'Kohya LoCon',
+                                'LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',
+                            },
+                            gr.Slider,
+                        ),
+                        'network_dropout': (
+                            {
+                                'LoCon',
+                                'Kohya DyLoRA',
+                                'Kohya LoCon',
+                                'LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',
+                            },
+                            gr.Slider,
+                        ),
+                        'rank_dropout': (
+                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Slider,
+                        ),
+                        'module_dropout': (
+                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            gr.Slider,
+                        ),
+                    }
+
+                    results = []
+                    for attr, (
+                        visibility,
+                        gr_type,
+                    ) in visibility_and_gr_types.items():
+                        visible = LoRA_type in visibility
+                        results.append(gr_type.update(visible=visible))
+
+                    return tuple(results)
+
+            with gr.Row():
+                max_resolution = gr.Textbox(
+                    label='Max resolution',
+                    value='512,512',
+                    placeholder='512,512',
+                    info='The maximum resolution of dataset images. W,H',
+                )
+                stop_text_encoder_training = gr.Slider(
+                    minimum=0,
+                    maximum=100,
+                    value=0,
+                    step=1,
+                    label='Stop text encoder training',
+                    info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
+                )
+                enable_bucket = gr.Checkbox(
+                    label='Enable buckets',
+                    value=True,
+                    info='Allow non similar resolution dataset images to be trained on.',
+                )
+
+            with gr.Accordion('Advanced Configuration', open=False):
+                with gr.Row(visible=True) as kohya_advanced_lora:
+                    with gr.Tab(label='Weights'):
+                        with gr.Row(visible=True):
+                            down_lr_weight = gr.Textbox(
+                                label='Down LR weights',
+                                placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                                info='Specify the learning rate weight of the down blocks of U-Net.',
+                            )
+                            mid_lr_weight = gr.Textbox(
+                                label='Mid LR weights',
+                                placeholder='(Optional) eg: 0.5',
+                                info='Specify the learning rate weight of the mid block of U-Net.',
+                            )
+                            up_lr_weight = gr.Textbox(
+                                label='Up LR weights',
+                                placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
+                                info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.',
+                            )
+                            block_lr_zero_threshold = gr.Textbox(
+                                label='Blocks LR zero threshold',
+                                placeholder='(Optional) eg: 0.1',
+                                info='If the weight is not more than this value, the LoRA module is not created. The default is 0.',
+                            )
+                    with gr.Tab(label='Blocks'):
+                        with gr.Row(visible=True):
+                            block_dims = gr.Textbox(
+                                label='Block dims',
+                                placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                                info='Specify the dim (rank) of each block. Specify 25 numbers.',
+                            )
+                            block_alphas = gr.Textbox(
+                                label='Block alphas',
+                                placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                                info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.',
+                            )
+                    with gr.Tab(label='Conv'):
+                        with gr.Row(visible=True):
+                            conv_dims = gr.Textbox(
+                                label='Conv dims',
+                                placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                                info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
+                            )
+                            conv_alphas = gr.Textbox(
+                                label='Conv alphas',
+                                placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
+                                info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
+                            )
+                with gr.Row():
+                    no_token_padding = gr.Checkbox(
+                        label='No token padding', value=False
+                    )
+                    gradient_accumulation_steps = gr.Slider(
+                        label='Gradient accumulate steps',
+                        value='1',
+                        minimum=1,
+                        maximum=128,
+                        step=1,
+                    )
+                    weighted_captions = gr.Checkbox(
+                        label='Weighted captions',
+                        value=False,
+                        info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
+                    )
+                with gr.Row():
+                    prior_loss_weight = gr.Number(
+                        label='Prior loss weight', value=1.0
+                    )
+                    lr_scheduler_num_cycles = gr.Textbox(
+                        label='LR number of cycles',
+                        placeholder='(Optional) For Cosine with restart and polynomial only',
+                    )
+
+                    lr_scheduler_power = gr.Textbox(
+                        label='LR power',
+                        placeholder='(Optional) For Cosine with restart and polynomial only',
+                    )
+
+                (
+                    # use_8bit_adam,
+                    xformers,
+                    full_fp16,
+                    gradient_checkpointing,
+                    shuffle_caption,
+                    color_aug,
+                    flip_aug,
+                    clip_skip,
+                    mem_eff_attn,
+                    save_state,
+                    resume,
+                    max_token_length,
+                    max_train_epochs,
+                    max_data_loader_n_workers,
+                    keep_tokens,
+                    persistent_data_loader_workers,
+                    bucket_no_upscale,
+                    random_crop,
+                    bucket_reso_steps,
+                    caption_dropout_every_n_epochs,
+                    caption_dropout_rate,
+                    noise_offset_type,
+                    noise_offset,
+                    adaptive_noise_scale,
+                    multires_noise_iterations,
+                    multires_noise_discount,
+                    additional_parameters,
+                    vae_batch_size,
+                    min_snr_gamma,
+                    save_every_n_steps,
+                    save_last_n_steps,
+                    save_last_n_steps_state,
+                    use_wandb,
+                    wandb_api_key,
+                    scale_v_pred_loss_like_noise_pred,
+                ) = gradio_advanced_training(headless=headless)
+                color_aug.change(
+                    color_aug_changed,
+                    inputs=[color_aug],
+                    outputs=[cache_latents],
+                )
+
+            (
+                sample_every_n_steps,
+                sample_every_n_epochs,
+                sample_sampler,
+                sample_prompts,
+            ) = sample_gradio_config()
+
+            LoRA_type.change(
+                update_LoRA_settings,
+                inputs=[LoRA_type],
+                outputs=[
+                    LoRA_dim_alpha,
+                    LoCon_row,
+                    kohya_advanced_lora,
+                    kohya_dylora,
+                    lora_network_weights,
+                    lora_network_weights_file,
+                    dim_from_weights,
+                    factor,
+                    use_cp,
+                    decompose_both,
+                    train_on_input,
+                    scale_weight_norms,
+                    network_dropout,
+                    rank_dropout,
+                    module_dropout,
+                ],
+            )
+
+        button_run = gr.Button('Train model', variant='primary')
+
+        button_print = gr.Button('Print training command')
+
+        # Setup gradio tensorboard buttons
+        button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+
+        button_start_tensorboard.click(
+            start_tensorboard,
+            inputs=logging_dir,
+            show_progress=False,
+        )
+
+        button_stop_tensorboard.click(
+            stop_tensorboard,
+            show_progress=False,
+        )
+
+        settings_list = [
+            pretrained_model_name_or_path,
+            v2,
+            v_parameterization,
+            sdxl_checkbox,
+            logging_dir,
+            train_data_dir,
+            reg_data_dir,
+            output_dir,
+            max_resolution,
             learning_rate,
             lr_scheduler,
             lr_warmup,
@@ -1172,426 +1626,154 @@ def lora_tab(
             save_every_n_epochs,
             mixed_precision,
             save_precision,
-            num_cpu_threads_per_process,
             seed,
-            caption_extension,
+            num_cpu_threads_per_process,
             cache_latents,
             cache_latents_to_disk,
+            caption_extension,
+            enable_bucket,
+            gradient_checkpointing,
+            full_fp16,
+            no_token_padding,
+            stop_text_encoder_training,
+            # use_8bit_adam,
+            xformers,
+            save_model_as,
+            shuffle_caption,
+            save_state,
+            resume,
+            prior_loss_weight,
+            text_encoder_lr,
+            unet_lr,
+            network_dim,
+            lora_network_weights,
+            dim_from_weights,
+            color_aug,
+            flip_aug,
+            clip_skip,
+            gradient_accumulation_steps,
+            mem_eff_attn,
+            output_name,
+            model_list,
+            max_token_length,
+            max_train_epochs,
+            max_data_loader_n_workers,
+            network_alpha,
+            training_comment,
+            keep_tokens,
+            lr_scheduler_num_cycles,
+            lr_scheduler_power,
+            persistent_data_loader_workers,
+            bucket_no_upscale,
+            random_crop,
+            bucket_reso_steps,
+            caption_dropout_every_n_epochs,
+            caption_dropout_rate,
             optimizer,
             optimizer_args,
-        ) = gradio_training(
-            learning_rate_value='0.0001',
-            lr_scheduler_value='cosine',
-            lr_warmup_value='10',
-        )
-
-        with gr.Row():
-            text_encoder_lr = gr.Number(
-                label='Text Encoder learning rate',
-                value='5e-5',
-                info='Optional',
-            )
-            unet_lr = gr.Number(
-                label='Unet learning rate',
-                value='0.0001',
-                info='Optional',
-            )
-        # SDXL parameters
-        with gr.Row(visible=False) as sdxl_row:
-            sdxl_cache_text_encoder_outputs = gr.Checkbox(
-                label='(SDXL) Cache text encoder outputs',
-                info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
-                value=False
-            )
-            sdxl_no_half_vae = gr.Checkbox(
-                label='(SDXL) No half VAE',
-                info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
-                value=False
-            )
-            
-            sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
-            
-        with gr.Row():
-            factor = gr.Slider(
-                label='LoKr factor',
-                value=-1,
-                minimum=-1,
-                maximum=64,
-                step=1,
-                visible=False,
-            )
-            use_cp = gr.Checkbox(
-                value=False,
-                label='Use CP decomposition',
-                info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
-            )
-            decompose_both = gr.Checkbox(
-                value=False,
-                label='LoKr decompose both',
-            )
-            train_on_input = gr.Checkbox(
-                value=False,
-                label='iA3 train on input',
-            )
-
-        with gr.Row() as LoRA_dim_alpha:
-            network_dim = gr.Slider(
-                minimum=1,
-                maximum=1024,
-                label='Network Rank (Dimension)',
-                value=8,
-                step=1,
-                interactive=True,
-            )
-            network_alpha = gr.Slider(
-                minimum=0.1,
-                maximum=1024,
-                label='Network Alpha',
-                value=1,
-                step=0.1,
-                interactive=True,
-                info='alpha for LoRA weight scaling',
-            )
-        with gr.Row(visible=False) as LoCon_row:
-
-            # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
-            conv_dim = gr.Slider(
-                minimum=1,
-                maximum=512,
-                value=1,
-                step=1,
-                label='Convolution Rank (Dimension)',
-            )
-            conv_alpha = gr.Slider(
-                minimum=0.1,
-                maximum=512,
-                value=1,
-                step=0.1,
-                label='Convolution Alpha',
-            )
-        with gr.Row():
-            scale_weight_norms = gr.Slider(
-                label='Scale weight norms',
-                value=0,
-                minimum=0,
-                maximum=1,
-                step=0.01,
-                info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
-                interactive=True,
-            )
-            network_dropout = gr.Slider(
-                label='Network dropout',
-                value=0,
-                minimum=0,
-                maximum=1,
-                step=0.01,
-                info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
-            )
-            rank_dropout = gr.Slider(
-                label='Rank dropout',
-                value=0,
-                minimum=0,
-                maximum=1,
-                step=0.01,
-                info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-            )
-            module_dropout = gr.Slider(
-                label='Module dropout',
-                value=0.0,
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-            )
-        with gr.Row(visible=False) as kohya_dylora:
-            unit = gr.Slider(
-                minimum=1,
-                maximum=64,
-                label='DyLoRA Unit / Block size',
-                value=1,
-                step=1,
-                interactive=True,
-            )
-
-            # Show or hide LoCon conv settings depending on LoRA type selection
-            def update_LoRA_settings(LoRA_type):
-                log.info('LoRA type changed...')
-
-                visibility_and_gr_types = {
-                    'LoRA_dim_alpha': (
-                        {
-                            'Kohya DyLoRA',
-                            'Kohya LoCon',
-                            'LyCORIS/DyLoRA',
-                            'LyCORIS/LoCon',
-                            'LyCORIS/LoHa',
-                            'LyCORIS/LoKr',
-                            'Standard',
-                        },
-                        gr.Row,
-                    ),
-                    'LoCon_row': (
-                        {
-                            'LoCon',
-                            'Kohya DyLoRA',
-                            'Kohya LoCon',
-                            'LyCORIS/DyLoRA',
-                            'LyCORIS/LoHa',
-                            'LyCORIS/LoKr',
-                            'LyCORIS/LoCon',
-                        },
-                        gr.Row,
-                    ),
-                    'kohya_advanced_lora': (
-                        {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Row,
-                    ),
-                    'kohya_dylora': (
-                        {'Kohya DyLoRA', 'LyCORIS/DyLoRA'},
-                        gr.Row,
-                    ),
-                    'lora_network_weights': (
-                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Textbox,
-                    ),
-                    'lora_network_weights_file': (
-                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Button,
-                    ),
-                    'dim_from_weights': (
-                        {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Checkbox,
-                    ),
-                    'factor': ({'LyCORIS/LoKr'}, gr.Slider),
-                    'use_cp': (
-                        {
-                            'LyCORIS/DyLoRA',
-                            'LyCORIS/LoHa',
-                            'LyCORIS/LoCon',
-                            'LyCORIS/LoKr',
-                        },
-                        gr.Slider,
-                    ),
-                    'decompose_both': ({'LyCORIS/LoKr'}, gr.Slider),
-                    'train_on_input': ({'LyCORIS/iA3'}, gr.Slider),
-                    'scale_weight_norms': (
-                        {
-                            'LoCon',
-                            'Kohya DyLoRA',
-                            'Kohya LoCon',
-                            'LyCORIS/DyLoRA',
-                            'LyCORIS/LoHa',
-                            'LyCORIS/LoCon',
-                            'LyCORIS/LoKr',
-                        },
-                        gr.Slider,
-                    ),
-                    'network_dropout': (
-                        {
-                            'LoCon',
-                            'Kohya DyLoRA',
-                            'Kohya LoCon',
-                            'LyCORIS/DyLoRA',
-                            'LyCORIS/LoHa',
-                            'LyCORIS/LoCon',
-                            'LyCORIS/LoKr',
-                        },
-                        gr.Slider,
-                    ),
-                    'rank_dropout': (
-                        {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Slider,
-                    ),
-                    'module_dropout': (
-                        {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
-                        gr.Slider,
-                    ),
-                }
-
-                results = []
-                for attr, (
-                    visibility,
-                    gr_type,
-                ) in visibility_and_gr_types.items():
-                    visible = LoRA_type in visibility
-                    results.append(gr_type.update(visible=visible))
-
-                return tuple(results)
-
-        with gr.Row():
-            max_resolution = gr.Textbox(
-                label='Max resolution',
-                value='512,512',
-                placeholder='512,512',
-                info='The maximum resolution of dataset images. W,H',
-            )
-            stop_text_encoder_training = gr.Slider(
-                minimum=0,
-                maximum=100,
-                value=0,
-                step=1,
-                label='Stop text encoder training',
-                info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
-            )
-            enable_bucket = gr.Checkbox(
-                label='Enable buckets',
-                value=True,
-                info='Allow non similar resolution dataset images to be trained on.',
-            )
-
-        with gr.Accordion('Advanced Configuration', open=False):
-            with gr.Row(visible=True) as kohya_advanced_lora:
-                with gr.Tab(label='Weights'):
-                    with gr.Row(visible=True):
-                        down_lr_weight = gr.Textbox(
-                            label='Down LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
-                            info='Specify the learning rate weight of the down blocks of U-Net.',
-                        )
-                        mid_lr_weight = gr.Textbox(
-                            label='Mid LR weights',
-                            placeholder='(Optional) eg: 0.5',
-                            info='Specify the learning rate weight of the mid block of U-Net.',
-                        )
-                        up_lr_weight = gr.Textbox(
-                            label='Up LR weights',
-                            placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
-                            info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.',
-                        )
-                        block_lr_zero_threshold = gr.Textbox(
-                            label='Blocks LR zero threshold',
-                            placeholder='(Optional) eg: 0.1',
-                            info='If the weight is not more than this value, the LoRA module is not created. The default is 0.',
-                        )
-                with gr.Tab(label='Blocks'):
-                    with gr.Row(visible=True):
-                        block_dims = gr.Textbox(
-                            label='Block dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the dim (rank) of each block. Specify 25 numbers.',
-                        )
-                        block_alphas = gr.Textbox(
-                            label='Block alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.',
-                        )
-                with gr.Tab(label='Conv'):
-                    with gr.Row(visible=True):
-                        conv_dims = gr.Textbox(
-                            label='Conv dims',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
-                        )
-                        conv_alphas = gr.Textbox(
-                            label='Conv alphas',
-                            placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
-                        )
-            with gr.Row():
-                no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
-                )
-                gradient_accumulation_steps = gr.Slider(
-                    label='Gradient accumulate steps',
-                    value='1',
-                    minimum=1,
-                    maximum=128,
-                    step=1,
-                )
-                weighted_captions = gr.Checkbox(
-                    label='Weighted captions',
-                    value=False,
-                    info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
-                )
-            with gr.Row():
-                prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
-                )
-                lr_scheduler_num_cycles = gr.Textbox(
-                    label='LR number of cycles',
-                    placeholder='(Optional) For Cosine with restart and polynomial only',
-                )
-
-                lr_scheduler_power = gr.Textbox(
-                    label='LR power',
-                    placeholder='(Optional) For Cosine with restart and polynomial only',
-                )
-
-            (
-                # use_8bit_adam,
-                xformers,
-                full_fp16,
-                gradient_checkpointing,
-                shuffle_caption,
-                color_aug,
-                flip_aug,
-                clip_skip,
-                mem_eff_attn,
-                save_state,
-                resume,
-                max_token_length,
-                max_train_epochs,
-                max_data_loader_n_workers,
-                keep_tokens,
-                persistent_data_loader_workers,
-                bucket_no_upscale,
-                random_crop,
-                bucket_reso_steps,
-                caption_dropout_every_n_epochs,
-                caption_dropout_rate,
-                noise_offset_type,
-                noise_offset,
-                adaptive_noise_scale,
-                multires_noise_iterations,
-                multires_noise_discount,
-                additional_parameters,
-                vae_batch_size,
-                min_snr_gamma,
-                save_every_n_steps,
-                save_last_n_steps,
-                save_last_n_steps_state,
-                use_wandb,
-                wandb_api_key,
-                scale_v_pred_loss_like_noise_pred,
-            ) = gradio_advanced_training(headless=headless)
-            color_aug.change(
-                color_aug_changed,
-                inputs=[color_aug],
-                outputs=[cache_latents],
-            )
-
-        (
+            noise_offset_type,
+            noise_offset,
+            adaptive_noise_scale,
+            multires_noise_iterations,
+            multires_noise_discount,
+            LoRA_type,
+            factor,
+            use_cp,
+            decompose_both,
+            train_on_input,
+            conv_dim,
+            conv_alpha,
             sample_every_n_steps,
             sample_every_n_epochs,
             sample_sampler,
             sample_prompts,
-        ) = sample_gradio_config()
+            additional_parameters,
+            vae_batch_size,
+            min_snr_gamma,
+            down_lr_weight,
+            mid_lr_weight,
+            up_lr_weight,
+            block_lr_zero_threshold,
+            block_dims,
+            block_alphas,
+            conv_dims,
+            conv_alphas,
+            weighted_captions,
+            unit,
+            save_every_n_steps,
+            save_last_n_steps,
+            save_last_n_steps_state,
+            use_wandb,
+            wandb_api_key,
+            scale_v_pred_loss_like_noise_pred,
+            scale_weight_norms,
+            network_dropout,
+            rank_dropout,
+            module_dropout,
+            sdxl_cache_text_encoder_outputs,
+            sdxl_no_half_vae,
+        ]
 
-        LoRA_type.change(
-            update_LoRA_settings,
-            inputs=[LoRA_type],
-            outputs=[
-                LoRA_dim_alpha,
-                LoCon_row,
-                kohya_advanced_lora,
-                kohya_dylora,
-                lora_network_weights,
-                lora_network_weights_file,
-                dim_from_weights,
-                factor,
-                use_cp,
-                decompose_both,
-                train_on_input,
-                scale_weight_norms,
-                network_dropout,
-                rank_dropout,
-                module_dropout,
-            ],
+        button_open_config.click(
+            open_configuration,
+            inputs=[dummy_db_true, dummy_db_false, config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[config_file_name]
+            + settings_list
+            + [training_preset, LoCon_row],
+            show_progress=False,
         )
 
+        button_load_config.click(
+            open_configuration,
+            inputs=[dummy_db_false, dummy_db_false, config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[config_file_name]
+            + settings_list
+            + [training_preset, LoCon_row],
+            show_progress=False,
+        )
+
+        training_preset.input(
+            open_configuration,
+            inputs=[dummy_db_false, dummy_db_true, config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
+            show_progress=False,
+        )
+
+        button_save_config.click(
+            save_configuration,
+            inputs=[dummy_db_false, config_file_name] + settings_list,
+            outputs=[config_file_name],
+            show_progress=False,
+        )
+
+        button_save_as_config.click(
+            save_configuration,
+            inputs=[dummy_db_true, config_file_name] + settings_list,
+            outputs=[config_file_name],
+            show_progress=False,
+        )
+
+        button_run.click(
+            train_model,
+            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            show_progress=False,
+        )
+
+        button_print.click(
+            train_model,
+            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            show_progress=False,
+        )
+        
     with gr.Tab('Tools'):
         gr.Markdown(
-            'This section provide Dreambooth tools to help setup your dataset...'
+            'This section provide LoRA tools to help setup your dataset...'
         )
         gradio_dreambooth_folder_creation_tab(
             train_data_dir_input=train_data_dir,
@@ -1614,187 +1796,6 @@ def lora_tab(
             with open(os.path.join('./docs/LoRA/top_level.md'), 'r', encoding='utf8') as file:
                 guides_top_level = file.read() + '\n'
         gr.Markdown(guides_top_level)
-
-    button_run = gr.Button('Train model', variant='primary')
-
-    button_print = gr.Button('Print training command')
-
-    # Setup gradio tensorboard buttons
-    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
-
-    button_start_tensorboard.click(
-        start_tensorboard,
-        inputs=logging_dir,
-        show_progress=False,
-    )
-
-    button_stop_tensorboard.click(
-        stop_tensorboard,
-        show_progress=False,
-    )
-
-    settings_list = [
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl_checkbox,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        max_resolution,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        cache_latents,
-        cache_latents_to_disk,
-        caption_extension,
-        enable_bucket,
-        gradient_checkpointing,
-        full_fp16,
-        no_token_padding,
-        stop_text_encoder_training,
-        # use_8bit_adam,
-        xformers,
-        save_model_as,
-        shuffle_caption,
-        save_state,
-        resume,
-        prior_loss_weight,
-        text_encoder_lr,
-        unet_lr,
-        network_dim,
-        lora_network_weights,
-        dim_from_weights,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        gradient_accumulation_steps,
-        mem_eff_attn,
-        output_name,
-        model_list,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        network_alpha,
-        training_comment,
-        keep_tokens,
-        lr_scheduler_num_cycles,
-        lr_scheduler_power,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset_type,
-        noise_offset,
-        adaptive_noise_scale,
-        multires_noise_iterations,
-        multires_noise_discount,
-        LoRA_type,
-        factor,
-        use_cp,
-        decompose_both,
-        train_on_input,
-        conv_dim,
-        conv_alpha,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
-        min_snr_gamma,
-        down_lr_weight,
-        mid_lr_weight,
-        up_lr_weight,
-        block_lr_zero_threshold,
-        block_dims,
-        block_alphas,
-        conv_dims,
-        conv_alphas,
-        weighted_captions,
-        unit,
-        save_every_n_steps,
-        save_last_n_steps,
-        save_last_n_steps_state,
-        use_wandb,
-        wandb_api_key,
-        scale_v_pred_loss_like_noise_pred,
-        scale_weight_norms,
-        network_dropout,
-        rank_dropout,
-        module_dropout,
-        sdxl_cache_text_encoder_outputs,
-        sdxl_no_half_vae,
-    ]
-
-    button_open_config.click(
-        open_configuration,
-        inputs=[dummy_db_true, dummy_db_false, config_file_name]
-        + settings_list
-        + [training_preset],
-        outputs=[config_file_name]
-        + settings_list
-        + [training_preset, LoCon_row],
-        show_progress=False,
-    )
-
-    button_load_config.click(
-        open_configuration,
-        inputs=[dummy_db_false, dummy_db_false, config_file_name]
-        + settings_list
-        + [training_preset],
-        outputs=[config_file_name]
-        + settings_list
-        + [training_preset, LoCon_row],
-        show_progress=False,
-    )
-
-    training_preset.input(
-        open_configuration,
-        inputs=[dummy_db_false, dummy_db_true, config_file_name]
-        + settings_list
-        + [training_preset],
-        outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
-        show_progress=False,
-    )
-
-    button_save_config.click(
-        save_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name],
-        show_progress=False,
-    )
-
-    button_save_as_config.click(
-        save_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name],
-        show_progress=False,
-    )
-
-    button_run.click(
-        train_model,
-        inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-        show_progress=False,
-    )
-
-    button_print.click(
-        train_model,
-        inputs=[dummy_headless] + [dummy_db_true] + settings_list,
-        show_progress=False,
-    )
 
     return (
         train_data_dir,

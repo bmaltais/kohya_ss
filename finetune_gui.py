@@ -52,7 +52,7 @@ def save_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    sdxl,
+    sdxl_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -128,6 +128,8 @@ def save_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -176,7 +178,7 @@ def open_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    sdxl,
+    sdxl_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -252,6 +254,8 @@ def open_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -288,7 +292,7 @@ def train_model(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    sdxl,
+    sdxl_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -364,6 +368,8 @@ def train_model(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start Finetuning...')
@@ -477,7 +483,7 @@ def train_model(
     log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
     run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
-    if sdxl:
+    if sdxl_checkbox:
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./fine_tune.py"'
@@ -521,6 +527,12 @@ def train_model(
         run_cmd += f' --output_name="{output_name}"'
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
+        
+    if sdxl_cache_text_encoder_outputs:
+        run_cmd += f' --cache_text_encoder_outputs'
+        
+    if sdxl_no_half_vae:
+        run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -634,7 +646,7 @@ def finetune_tab(headless=False):
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
-        sdxl,
+        sdxl_checkbox,
         save_model_as,
         model_list,
     ) = gradio_source_model(headless=headless)
@@ -780,6 +792,22 @@ def finetune_tab(headless=False):
             optimizer,
             optimizer_args,
         ) = gradio_training(learning_rate_value='1e-5')
+        
+        # SDXL parameters
+        with gr.Row(visible=False) as sdxl_row:
+            sdxl_cache_text_encoder_outputs = gr.Checkbox(
+                label='(SDXL) Cache text encoder outputs',
+                info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
+                value=False
+            )
+            sdxl_no_half_vae = gr.Checkbox(
+                label='(SDXL) No half VAE',
+                info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
+                value=False
+            )
+            
+            sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
+        
         with gr.Row():
             dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
             train_text_encoder = gr.Checkbox(
@@ -861,7 +889,7 @@ def finetune_tab(headless=False):
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
-        sdxl,
+        sdxl_checkbox,
         train_dir,
         image_folder,
         output_dir,
@@ -937,6 +965,8 @@ def finetune_tab(headless=False):
         use_wandb,
         wandb_api_key,
         scale_v_pred_loss_like_noise_pred,
+        sdxl_cache_text_encoder_outputs,
+        sdxl_no_half_vae,
     ]
 
     button_run.click(

@@ -51,11 +51,11 @@ def UI(**kwargs):
                 output_dir_input,
                 logging_dir_input,
             ) = dreambooth_tab(headless=headless)
-        with gr.Tab('Dreambooth LoRA'):
+        with gr.Tab('LoRA'):
             lora_tab(headless=headless)
-        with gr.Tab('Dreambooth TI'):
+        with gr.Tab('Textual Inversion'):
             ti_tab(headless=headless)
-        with gr.Tab('Finetune'):
+        with gr.Tab('Finetuning'):
             finetune_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
