@@ -168,8 +168,8 @@ def save_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
-    cache_text_encoder_outputs,
-    no_half_vae,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -317,8 +317,8 @@ def open_configuration(
     network_dropout,
     rank_dropout,
     module_dropout,
-    cache_text_encoder_outputs,
-    no_half_vae,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -483,8 +483,8 @@ def train_model(
     network_dropout,
     rank_dropout,
     module_dropout,
-    cache_text_encoder_outputs,
-    no_half_vae,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -882,10 +882,10 @@ def train_model(
     if network_dropout > 0.0:
         run_cmd += f' --network_dropout="{network_dropout}"'
         
-    if cache_text_encoder_outputs:
+    if sdxl_cache_text_encoder_outputs:
         run_cmd += f' --cache_text_encoder_outputs'
         
-    if no_half_vae:
+    if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
@@ -1017,7 +1017,7 @@ def lora_tab(
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
-        sdxl,
+        sdxl_checkbox,
         save_model_as,
         model_list,
     ) = gradio_source_model(
@@ -1198,18 +1198,18 @@ def lora_tab(
             )
         # SDXL parameters
         with gr.Row(visible=False) as sdxl_row:
-            cache_text_encoder_outputs = gr.Checkbox(
+            sdxl_cache_text_encoder_outputs = gr.Checkbox(
                 label='(SDXL) Cache text encoder outputs',
                 info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
                 value=False
             )
-            no_half_vae = gr.Checkbox(
+            sdxl_no_half_vae = gr.Checkbox(
                 label='(SDXL) No half VAE',
                 info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
                 value=False
             )
             
-            sdxl.change(lambda sdxl: gr.Row.update(visible=sdxl), inputs=[sdxl], outputs=[sdxl_row])
+            sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
             
         with gr.Row():
             factor = gr.Slider(
@@ -1605,6 +1605,15 @@ def lora_tab(
         gradio_svd_merge_lora_tab(headless=headless)
         gradio_resize_lora_tab(headless=headless)
         gradio_verify_lora_tab(headless=headless)
+        
+    with gr.Tab('Guides'):
+        gr.Markdown(
+            'This section provide Various LoRA guides and information...'
+        )
+        if os.path.exists('./docs/LoRA/top_level.md'):
+            with open(os.path.join('./docs/LoRA/top_level.md'), 'r', encoding='utf8') as file:
+                guides_top_level = file.read() + '\n'
+        gr.Markdown(guides_top_level)
 
     button_run = gr.Button('Train model', variant='primary')
 
@@ -1628,7 +1637,7 @@ def lora_tab(
         pretrained_model_name_or_path,
         v2,
         v_parameterization,
-        sdxl,
+        sdxl_checkbox,
         logging_dir,
         train_data_dir,
         reg_data_dir,
@@ -1726,8 +1735,8 @@ def lora_tab(
         network_dropout,
         rank_dropout,
         module_dropout,
-        cache_text_encoder_outputs,
-        no_half_vae,
+        sdxl_cache_text_encoder_outputs,
+        sdxl_no_half_vae,
     ]
 
     button_open_config.click(
