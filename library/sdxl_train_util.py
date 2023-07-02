@@ -9,6 +9,7 @@ from tqdm import tqdm
 from transformers import CLIPTokenizer
 import open_clip
 from library import model_util, sdxl_model_util, train_util
+from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeightingPipeline
 
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 
@@ -87,13 +88,22 @@ class WrapperTokenizer:
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         return self.tokenize(*args, **kwds)
 
-    def tokenize(self, text, padding, truncation, max_length, return_tensors):
-        assert padding == "max_length"
-        assert truncation == True
-        assert return_tensors == "pt"
-        input_ids = open_clip.tokenize(text, context_length=max_length)
-        return SimpleNamespace(**{"input_ids": input_ids})
+    def tokenize(self, text, padding=False, truncation=None, max_length=None, return_tensors=None):
+        if padding == "max_length":
+            # for training
+            assert max_length is not None
+            assert truncation == True
+            assert return_tensors == "pt"
+            input_ids = open_clip.tokenize(text, context_length=max_length)
+            return SimpleNamespace(**{"input_ids": input_ids})
 
+        # for weighted prompt
+        input_ids = open_clip.tokenize(text, context_length=self.model_max_length)
+
+        # find eos
+        eos_index = (input_ids == self.eos_token_id).nonzero()[0].max()  # max index of each batch
+        input_ids = input_ids[:, : eos_index + 1]  # include eos
+        return SimpleNamespace(**{"input_ids": input_ids})
 
 def load_tokenizers(args: argparse.Namespace):
     print("prepare tokenizers")
@@ -381,3 +391,7 @@ def verify_sdxl_training_args(args: argparse.Namespace):
     assert (
         not args.weighted_captions
     ), "weighted_captions cannot be enabled in SDXL training currently / SDXL学習では今のところweighted_captionsを有効にすることはできません"
+
+
+def sample_images(*args, **kwargs):
+    return train_util.sample_images_common(SdxlStableDiffusionLongPromptWeightingPipeline, *args, **kwargs)
