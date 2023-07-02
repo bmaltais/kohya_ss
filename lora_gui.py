@@ -363,12 +363,12 @@ def open_configuration(
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ['ask_for_file', 'apply_preset', 'file_path']:
             json_value = my_data.get(key)
-            if isinstance(json_value, str) and json_value == '':
-                # If the JSON value is an empty string, use the default value
-                values.append(value)
-            else:
-                # Otherwise, use the JSON value if not None, otherwise use the default value
-                values.append(json_value if json_value is not None else value)
+            # if isinstance(json_value, str) and json_value == '':
+            #     # If the JSON value is an empty string, use the default value
+            #     values.append(value)
+            # else:
+            # Otherwise, use the JSON value if not None, otherwise use the default value
+            values.append(json_value if json_value is not None else value)
 
     # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
     if my_data.get('LoRA_type', 'Standard') == 'LoCon':
@@ -1196,8 +1196,8 @@ def lora_tab(
                 value='0.0001',
                 info='Optional',
             )
-            
-        with gr.Row() as sdxl_row:
+        # SDXL parameters
+        with gr.Row(visible=False) as sdxl_row:
             cache_text_encoder_outputs = gr.Checkbox(
                 label='(SDXL) Cache text encoder outputs',
                 info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
@@ -1208,6 +1208,9 @@ def lora_tab(
                 info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
                 value=False
             )
+            
+            sdxl.change(lambda sdxl: gr.Row.update(visible=sdxl), inputs=[sdxl], outputs=[sdxl_row])
+            
         with gr.Row():
             factor = gr.Slider(
                 label='LoKr factor',
