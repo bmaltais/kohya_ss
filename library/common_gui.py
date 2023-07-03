@@ -1100,6 +1100,24 @@ def gradio_advanced_training(headless=False):
         )
     
     with gr.Row():
+        min_timestep = gr.Slider(
+            label='Min Timestep',
+            value=0,
+            step=1,
+            minimum=0,
+            maximum=1000,
+            info='Values greater than 0 will make the model more img2img focussed'
+        )
+        max_timestep = gr.Slider(
+            label='Max Timestep',
+            value=1000,
+            step=1,
+            minimum=0,
+            maximum=1000,
+            info='Values lower than 1000 will make the model more img2img focussed',
+        )
+    
+    with gr.Row():
         noise_offset_type = gr.Dropdown(
             label='Noise offset type',
             choices=[
@@ -1233,6 +1251,8 @@ def gradio_advanced_training(headless=False):
         use_wandb,
         wandb_api_key,
         scale_v_pred_loss_like_noise_pred,
+        min_timestep,
+        max_timestep,
     )
 
 
@@ -1293,6 +1313,14 @@ def run_cmd_advanced_training(**kwargs):
     min_snr_gamma = int(kwargs.get("min_snr_gamma", 0))
     if min_snr_gamma >= 1:
         run_cmd += f' --min_snr_gamma={min_snr_gamma}'
+        
+    min_timestep = int(kwargs.get("min_timestep", 0))
+    if min_timestep > 0:
+        run_cmd += f' --min_timestep={min_timestep}'
+        
+    max_timestep = int(kwargs.get("max_timestep", 1000))
+    if max_timestep < 1000:
+        run_cmd += f' --max_timestep={max_timestep}'
     
     save_state = kwargs.get('save_state')
     if save_state:
@@ -1431,22 +1459,22 @@ class SDXLParameters:
                     info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
                     value=False
                 )
-                self.sdxl_min_timestep = gr.Slider(
-                    label='Min Timestep',
-                    value=0,
-                    step=1,
-                    minimum=0,
-                    maximum=1000,
-                    info='Train U-Net with different timesteps'
-                )
-                self.sdxl_max_timestep = gr.Slider(
-                    label='Max Timestep',
-                    value=1000,
-                    step=1,
-                    minimum=0,
-                    maximum=1000,
-                    info='Train U-Net with different timesteps',
-                )
+                # self.sdxl_min_timestep = gr.Slider(
+                #     label='Min Timestep',
+                #     value=0,
+                #     step=1,
+                #     minimum=0,
+                #     maximum=1000,
+                #     info='Train U-Net with different timesteps'
+                # )
+                # self.sdxl_max_timestep = gr.Slider(
+                #     label='Max Timestep',
+                #     value=1000,
+                #     step=1,
+                #     minimum=0,
+                #     maximum=1000,
+                #     info='Train U-Net with different timesteps',
+                # )
 
         # def timestep_minimum(value):
         #     if value < 0:

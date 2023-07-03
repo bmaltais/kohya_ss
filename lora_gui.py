@@ -171,8 +171,8 @@ def save_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
-    sdxl_min_timestep,
-    sdxl_max_timestep,
+    min_timestep,
+    max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -322,8 +322,8 @@ def open_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
-    sdxl_min_timestep,
-    sdxl_max_timestep,
+    min_timestep,
+    max_timestep,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -490,8 +490,8 @@ def train_model(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
-    sdxl_min_timestep,
-    sdxl_max_timestep,
+    min_timestep,
+    max_timestep,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -894,12 +894,6 @@ def train_model(
         
     if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
-        
-    if sdxl_min_timestep > 0:
-        run_cmd += f' --min_timestep={sdxl_min_timestep}'
-    
-    if not sdxl_max_timestep == 1000:
-        run_cmd += f' --max_timestep={sdxl_max_timestep}'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -954,6 +948,8 @@ def train_model(
         use_wandb=use_wandb,
         wandb_api_key=wandb_api_key,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
+        min_timestep=min_timestep,
+        max_timestep=max_timestep,
     )
 
     run_cmd += run_cmd_sample(
@@ -1563,6 +1559,8 @@ def lora_tab(
                     use_wandb,
                     wandb_api_key,
                     scale_v_pred_loss_like_noise_pred,
+                    min_timestep,
+                    max_timestep,
                 ) = gradio_advanced_training(headless=headless)
                 color_aug.change(
                     color_aug_changed,
@@ -1721,8 +1719,8 @@ def lora_tab(
             module_dropout,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
-            sdxl_params.sdxl_min_timestep,
-            sdxl_params.sdxl_max_timestep,
+            min_timestep,
+            max_timestep,
         ]
 
         button_open_config.click(

@@ -135,6 +135,8 @@ def save_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -258,6 +260,8 @@ def open_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -369,6 +373,8 @@ def train_model(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training TI...')
@@ -446,13 +452,13 @@ def train_model(
     #     )
     #     return
 
-    if optimizer == 'Adafactor' and lr_warmup != '0':
-        output_message(
-            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning',
-            headless=headless_bool,
-        )
-        lr_warmup = '0'
+    # if optimizer == 'Adafactor' and lr_warmup != '0':
+    #     output_message(
+    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+    #         title='Warning',
+    #         headless=headless_bool,
+    #     )
+    #     lr_warmup = '0'
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -625,6 +631,8 @@ def train_model(
         use_wandb=use_wandb,
         wandb_api_key=wandb_api_key,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
+        min_timestep=min_timestep,
+        max_timestep=max_timestep,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
@@ -918,6 +926,8 @@ def ti_tab(
                 use_wandb,
                 wandb_api_key,
                 scale_v_pred_loss_like_noise_pred,
+                min_timestep,
+                max_timestep
             ) = gradio_advanced_training(headless=headless)
             color_aug.change(
                 color_aug_changed,
@@ -1041,6 +1051,8 @@ def ti_tab(
         use_wandb,
         wandb_api_key,
         scale_v_pred_loss_like_noise_pred,
+        min_timestep,
+        max_timestep
     ]
 
     button_open_config.click(
