@@ -47,7 +47,7 @@ from library.merge_lora_gui import gradio_merge_lora_tab
 from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
 
@@ -1415,12 +1415,7 @@ def lora_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            (
-                sample_every_n_steps,
-                sample_every_n_epochs,
-                sample_sampler,
-                sample_prompts,
-            ) = sample_gradio_config()
+            sample = SampleImages()
 
             LoRA_type.change(
                 update_LoRA_settings,
@@ -1536,10 +1531,10 @@ def lora_tab(
             train_on_input,
             conv_dim,
             conv_alpha,
-            sample_every_n_steps,
-            sample_every_n_epochs,
-            sample_sampler,
-            sample_prompts,
+            sample.sample_every_n_steps,
+            sample.sample_every_n_epochs,
+            sample.sample_sampler,
+            sample.sample_prompts,
             advanced_training.additional_parameters,
             advanced_training.vae_batch_size,
             advanced_training.min_snr_gamma,

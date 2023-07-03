@@ -27,7 +27,7 @@ from library.tensorboard_gui import (
     stop_tensorboard,
 )
 from library.utilities import utilities_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
 
@@ -792,12 +792,7 @@ def finetune_tab(headless=False):
                     outputs=[basic_training.cache_latents],  # Not applicable to fine_tune.py
                 )
 
-            (
-                sample_every_n_steps,
-                sample_every_n_epochs,
-                sample_sampler,
-                sample_prompts,
-            ) = sample_gradio_config()
+            sample = SampleImages()
 
         button_run = gr.Button('Train model', variant='primary')
 
@@ -881,10 +876,10 @@ def finetune_tab(headless=False):
             advanced_training.adaptive_noise_scale,
             advanced_training.multires_noise_iterations,
             advanced_training.multires_noise_discount,
-            sample_every_n_steps,
-            sample_every_n_epochs,
-            sample_sampler,
-            sample_prompts,
+            sample.sample_every_n_steps,
+            sample.sample_every_n_epochs,
+            sample.sample_sampler,
+            sample.sample_prompts,
             advanced_training.additional_parameters,
             advanced_training.vae_batch_size,
             advanced_training.min_snr_gamma,
