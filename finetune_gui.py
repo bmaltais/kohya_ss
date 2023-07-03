@@ -14,16 +14,14 @@ from library.common_gui import (
     run_cmd_advanced_training,
     gradio_training,
     run_cmd_advanced_training,
-    gradio_config,
     gradio_source_model,
     color_aug_changed,
     run_cmd_training,
-    # set_legacy_8bitadam,
     update_my_data,
     check_if_model_exist,
-    output_message,
     SDXLParameters
 )
+from library.class_configuration_file import ConfigurationFile
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -644,13 +642,8 @@ def finetune_tab(headless=False):
     with gr.Tab('Training'):
         gr.Markdown('Train a custom model using kohya finetune python code...')
 
-        (
-            button_open_config,
-            button_save_config,
-            button_save_as_config,
-            config_file_name,
-            button_load_config,
-        ) = gradio_config(headless=headless)
+        # Setup Configuration Files Gradio
+        config = ConfigurationFile(headless)
 
         (
             pretrained_model_name_or_path,
@@ -983,31 +976,31 @@ def finetune_tab(headless=False):
             show_progress=False,
         )
 
-        button_open_config.click(
+        config.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, config_file_name] + settings_list,
-            outputs=[config_file_name] + settings_list,
+            inputs=[dummy_db_true, config.config_file_name] + settings_list,
+            outputs=[config.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        button_load_config.click(
+        config.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, config_file_name] + settings_list,
-            outputs=[config_file_name] + settings_list,
+            inputs=[dummy_db_false, config.config_file_name] + settings_list,
+            outputs=[config.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        button_save_config.click(
+        config.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config_file_name] + settings_list,
-            outputs=[config_file_name],
+            inputs=[dummy_db_false, config.config_file_name] + settings_list,
+            outputs=[config.config_file_name],
             show_progress=False,
         )
 
-        button_save_as_config.click(
+        config.button_save_as_config.click(
             save_configuration,
-            inputs=[dummy_db_true, config_file_name] + settings_list,
-            outputs=[config_file_name],
+            inputs=[dummy_db_true, config.config_file_name] + settings_list,
+            outputs=[config.config_file_name],
             show_progress=False,
         )
         

@@ -147,16 +147,6 @@ def get_dir_and_file(file_path):
     return (dir_path, file_name)
 
 
-# def has_ext_files(directory, extension):
-#     # Iterate through all the files in the directory
-#     for file in os.listdir(directory):
-#         # If the file name ends with extension, return True
-#         if file.endswith(extension):
-#             return True
-#     # If no extension files were found, return False
-#     return False
-
-
 def get_file_path(
     file_path='', default_extension='.json', extension_name='Config files'
 ):
@@ -227,19 +217,6 @@ def remove_doublequote(file_path):
         file_path = file_path.replace('"', '')
 
     return file_path
-
-
-# def set_legacy_8bitadam(optimizer, use_8bit_adam):
-#     if optimizer == 'AdamW8bit':
-#         # use_8bit_adam = True
-#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-#             value=True, interactive=False, visible=True
-#         )
-#     else:
-#         # use_8bit_adam = False
-#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-#             value=False, interactive=False, visible=True
-#         )
 
 
 def get_folder_path(folder_path=''):
@@ -546,108 +523,10 @@ def set_pretrained_model_name_or_path_input(
         return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
 
-# def set_v2_checkbox(model_list, v2, v_parameterization, sdxl):
-    
-#     if str(model_list) in SDXL_MODELS:
-#         if not v2:
-#             log.info(f'v2 can\'t be deselected because this {str(model_list)} is considered a v2 model...')
-#             v2 = True
-#         if not v_parameterization:
-#             log.info(f'v_parameterization can\'t be deselected because {str(model_list)} require v parameterization...')
-#             v_parameterization = True
-#         if not sdxl:
-#             log.info(f'sdxl can\'t be deselected because {str(model_list)} is an sdxl model...')
-#             sdxl = True
-            
-#     if str(model_list) in V2_BASE_MODELS:
-#         if not v2:
-#             log.info(f'v2 can\'t be deselected because this {str(model_list)} is a v2 model...')
-#             v2 = True
-#         if v_parameterization:
-#             log.info(f'v_parameterization can\'t be selected because {str(model_list)} does not support v parameterization...')
-#             v_parameterization = False
-#         if sdxl:
-#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-#             sdxl = False
-
-#     if str(model_list) in V_PARAMETERIZATION_MODELS:
-#         if not v2:
-#             log.info(f'v2 can\'t be deselected because this {str(model_list)} supports v parameterization...')
-#             v2 = True
-#         if not v_parameterization:
-#             log.info(f'v_parameterization can\'t be deselected because {str(model_list)} supports v parameterization...')
-#             v_parameterization = True
-#         if sdxl:
-#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-#             sdxl = False
-
-#     if str(model_list) in V1_MODELS:
-#         if v2:
-#             log.info(f'v2 can\'t be selected because this {str(model_list)} is a v1 model...')
-#             v2 = False
-#         if v_parameterization:
-#             log.info(f'v_parameterization can\'t be selected because {str(model_list)} is a v1 model...')
-#             v_parameterization = False
-#         if sdxl:
-#             log.info(f'sdxl can\'t be selected because {str(model_list)} is not an sdxl model...')
-#             sdxl = False
-
-#     return v2, v_parameterization, sdxl
-
-
-# def set_model_list(
-#     model_list,
-#     pretrained_model_name_or_path,
-#     v2,
-#     v_parameterization,
-#     sdxl
-# ):
-
-#     if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
-#         model_list = 'custom'
-#     else:
-#         model_list = pretrained_model_name_or_path
-
-#     return model_list, v2, v_parameterization, sdxl
-
-
 ###
 ### Gradio common GUI section
 ###
-
-
-def gradio_config(headless=False):
-    with gr.Accordion('Configuration file', open=False):
-        with gr.Row():
-            button_open_config = gr.Button(
-                'Open 📂', elem_id='open_folder', visible=(not headless)
-            )
-            button_save_config = gr.Button(
-                'Save 💾', elem_id='open_folder', visible=(not headless)
-            )
-            button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder', visible=(not headless)
-            )
-            config_file_name = gr.Textbox(
-                label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
-                interactive=True,
-            )
-            button_load_config = gr.Button('Load 💾', elem_id='open_folder')
-            config_file_name.blur(
-                remove_doublequote,
-                inputs=[config_file_name],
-                outputs=[config_file_name],
-            )
-    return (
-        button_open_config,
-        button_save_config,
-        button_save_as_config,
-        config_file_name,
-        button_load_config,
-    )
-
-
+ 
 def get_pretrained_model_name_or_path_file(
     model_list, pretrained_model_name_or_path
 ):
@@ -728,24 +607,7 @@ def gradio_source_model(
             sdxl = gr.Checkbox(
                 label='SDXL Model', value=False, visible=False
             )
-            # v2.change(
-            #     set_v2_checkbox,
-            #     inputs=[model_list, v2, v_parameterization, sdxl],
-            #     outputs=[v2, v_parameterization, sdxl],
-            #     show_progress=False,
-            # )
-            # v_parameterization.change(
-            #     set_v2_checkbox,
-            #     inputs=[model_list, v2, v_parameterization, sdxl],
-            #     outputs=[v2, v_parameterization, sdxl],
-            #     show_progress=False,
-            # )
-            # sdxl.change(
-            #     set_v2_checkbox,
-            #     inputs=[model_list, v2, v_parameterization, sdxl],
-            #     outputs=[v2, v_parameterization, sdxl],
-            #     show_progress=False,
-            # )
+
         model_list.change(
             set_pretrained_model_name_or_path_input,
             inputs=[
@@ -768,24 +630,7 @@ def gradio_source_model(
             ],
             show_progress=False,
         )
-        # Update the model list and parameters when user click outside the button or field
-        # pretrained_model_name_or_path.change(
-        #     set_model_list,
-        #     inputs=[
-        #         model_list,
-        #         pretrained_model_name_or_path,
-        #         v2,
-        #         v_parameterization,
-        #         sdxl,
-        #     ],
-        #     outputs=[
-        #         model_list,
-        #         v2,
-        #         v_parameterization,
-        #         sdxl,
-        #     ],
-        #     show_progress=False,
-        # )
+
     return (
         pretrained_model_name_or_path,
         v2,
@@ -1459,29 +1304,5 @@ class SDXLParameters:
                     info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
                     value=False
                 )
-                # self.sdxl_min_timestep = gr.Slider(
-                #     label='Min Timestep',
-                #     value=0,
-                #     step=1,
-                #     minimum=0,
-                #     maximum=1000,
-                #     info='Train U-Net with different timesteps'
-                # )
-                # self.sdxl_max_timestep = gr.Slider(
-                #     label='Max Timestep',
-                #     value=1000,
-                #     step=1,
-                #     minimum=0,
-                #     maximum=1000,
-                #     info='Train U-Net with different timesteps',
-                # )
-
-        # def timestep_minimum(value):
-        #     if value < 0:
-        #         value = 0
-        #     return gr.Number.update(value=value)
-
-        # self.sdxl_min_timestep.blur(timestep_minimum, inputs=[self.sdxl_min_timestep], outputs=[self.sdxl_min_timestep])
-        # self.sdxl_max_timestep.blur(timestep_minimum, inputs=[self.sdxl_max_timestep], outputs=[self.sdxl_max_timestep])
 
         self.sdxl_checkbox.change(lambda sdxl_checkbox: gr.Accordion.update(visible=sdxl_checkbox), inputs=[self.sdxl_checkbox], outputs=[self.sdxl_row])
