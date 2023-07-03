@@ -1,18 +1,57 @@
 import gradio as gr
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, get_any_file_path
 
 class AdvancedTraining:
     def __init__(
         self,
         headless=False,
+        finetuning: bool = False
     ):
         self.headless = headless
+        self.finetuning = finetuning
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (gr.Group.update(visible=True), gr.Group.update(visible=False))
             else:
                 return (gr.Group.update(visible=False), gr.Group.update(visible=True))
-            
+
+        with gr.Row(visible=not finetuning):
+            self.no_token_padding = gr.Checkbox(
+                label='No token padding', value=False
+            )
+            self.gradient_accumulation_steps = gr.Number(
+                label='Gradient accumulate steps', value='1'
+            )
+            self.weighted_captions = gr.Checkbox(
+                label='Weighted captions', value=False
+            )
+        with gr.Row(visible=not finetuning):
+            self.prior_loss_weight = gr.Number(
+                label='Prior loss weight', value=1.0
+            )
+            self.vae = gr.Textbox(
+                label='VAE',
+                placeholder='(Optiona) path to checkpoint of vae to replace for training',
+            )
+            self.vae_button = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
+            self.vae_button.click(
+                get_any_file_path,
+                outputs=self.vae,
+                show_progress=False,
+            )
+        with gr.Row(visible=not finetuning):
+            self.lr_scheduler_num_cycles = gr.Textbox(
+                label='LR number of cycles',
+                placeholder='(Optional) For Cosine with restart and polynomial only',
+            )
+
+            self.lr_scheduler_power = gr.Textbox(
+                label='LR power',
+                placeholder='(Optional) For Cosine with restart and polynomial only',
+            )
+
         with gr.Row():
             self.additional_parameters = gr.Textbox(
                 label='Additional parameters',

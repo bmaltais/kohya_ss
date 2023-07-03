@@ -785,7 +785,7 @@ def finetune_tab(headless=False):
                     gradient_accumulation_steps = gr.Number(
                         label='Gradient accumulate steps', value='1'
                     )
-                advanced_training = AdvancedTraining(headless=headless)
+                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],

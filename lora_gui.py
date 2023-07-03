@@ -1357,36 +1357,6 @@ def lora_tab(
                                 placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
                                 info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
                             )
-                with gr.Row():
-                    no_token_padding = gr.Checkbox(
-                        label='No token padding', value=False
-                    )
-                    gradient_accumulation_steps = gr.Slider(
-                        label='Gradient accumulate steps',
-                        value='1',
-                        minimum=1,
-                        maximum=128,
-                        step=1,
-                    )
-                    weighted_captions = gr.Checkbox(
-                        label='Weighted captions',
-                        value=False,
-                        info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
-                    )
-                with gr.Row():
-                    prior_loss_weight = gr.Number(
-                        label='Prior loss weight', value=1.0
-                    )
-                    lr_scheduler_num_cycles = gr.Textbox(
-                        label='LR number of cycles',
-                        placeholder='(Optional) For Cosine with restart and polynomial only',
-                    )
-
-                    lr_scheduler_power = gr.Textbox(
-                        label='LR power',
-                        placeholder='(Optional) For Cosine with restart and polynomial only',
-                    )
-
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -1462,14 +1432,14 @@ def lora_tab(
             basic_training.enable_bucket,
             advanced_training.gradient_checkpointing,
             advanced_training.full_fp16,
-            no_token_padding,
+            advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
             advanced_training.xformers,
             source_model.save_model_as,
             advanced_training.shuffle_caption,
             advanced_training.save_state,
             advanced_training.resume,
-            prior_loss_weight,
+            advanced_training.prior_loss_weight,
             text_encoder_lr,
             unet_lr,
             network_dim,
@@ -1478,7 +1448,7 @@ def lora_tab(
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
-            gradient_accumulation_steps,
+            advanced_training.gradient_accumulation_steps,
             advanced_training.mem_eff_attn,
             folders.output_name,
             source_model.model_list,
@@ -1488,8 +1458,8 @@ def lora_tab(
             network_alpha,
             folders.training_comment,
             advanced_training.keep_tokens,
-            lr_scheduler_num_cycles,
-            lr_scheduler_power,
+            advanced_training.lr_scheduler_num_cycles,
+            advanced_training.lr_scheduler_power,
             advanced_training.persistent_data_loader_workers,
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
@@ -1525,7 +1495,7 @@ def lora_tab(
             block_alphas,
             conv_dims,
             conv_alphas,
-            weighted_captions,
+            advanced_training.weighted_captions,
             unit,
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,

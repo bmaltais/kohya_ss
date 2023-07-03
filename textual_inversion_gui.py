@@ -736,29 +736,6 @@ def ti_tab(
             lr_warmup_value='10',
         )
         with gr.Accordion('Advanced Configuration', open=False):
-            with gr.Row():
-                no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
-                )
-                gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
-                )
-            with gr.Row():
-                prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
-                )
-                vae = gr.Textbox(
-                    label='VAE',
-                    placeholder='(Optiona) path to checkpoint of vae to replace for training',
-                )
-                vae_button = gr.Button(
-                    '📂', elem_id='open_folder_small', visible=(not headless)
-                )
-                vae_button.click(
-                    get_any_file_path,
-                    outputs=vae,
-                    show_progress=False,
-                )
             advanced_training = AdvancedTraining(headless=headless)
             advanced_training.color_aug.change(
                 color_aug_changed,
@@ -824,24 +801,24 @@ def ti_tab(
         basic_training.enable_bucket,
         advanced_training.gradient_checkpointing,
         advanced_training.full_fp16,
-        no_token_padding,
+        advanced_training.no_token_padding,
         basic_training.stop_text_encoder_training,
         advanced_training.xformers,
         source_model.save_model_as,
         advanced_training.shuffle_caption,
         advanced_training.save_state,
         advanced_training.resume,
-        prior_loss_weight,
+        advanced_training.prior_loss_weight,
         advanced_training.color_aug,
         advanced_training.flip_aug,
         advanced_training.clip_skip,
-        vae,
+        advanced_training.vae,
         folders.output_name,
         advanced_training.max_token_length,
         advanced_training.max_train_epochs,
         advanced_training.max_data_loader_n_workers,
         advanced_training.mem_eff_attn,
-        gradient_accumulation_steps,
+        advanced_training.gradient_accumulation_steps,
         source_model.model_list,
         token_string,
         init_word,
