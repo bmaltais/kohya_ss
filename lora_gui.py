@@ -24,7 +24,6 @@ from library.common_gui import (
     save_inference_file,
     gradio_advanced_training,
     run_cmd_advanced_training,
-    gradio_training,
     run_cmd_training,
     update_my_data,
     check_if_model_exist,
@@ -34,6 +33,7 @@ from library.common_gui import (
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
+from library.class_basic_training import BasicTraining
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
@@ -1161,23 +1161,7 @@ def lora_tab(
                             value=False,
                             info='Automatically determine the dim(rank) from the weight file.',
                         )
-            (
-                learning_rate,
-                lr_scheduler,
-                lr_warmup,
-                train_batch_size,
-                epoch,
-                save_every_n_epochs,
-                mixed_precision,
-                save_precision,
-                num_cpu_threads_per_process,
-                seed,
-                caption_extension,
-                cache_latents,
-                cache_latents_to_disk,
-                optimizer,
-                optimizer_args,
-            ) = gradio_training(
+            basic_training = BasicTraining(
                 learning_rate_value='0.0001',
                 lr_scheduler_value='cosine',
                 lr_warmup_value='10',
@@ -1553,7 +1537,7 @@ def lora_tab(
                 color_aug.change(
                     color_aug_changed,
                     inputs=[color_aug],
-                    outputs=[cache_latents],
+                    outputs=[basic_training.cache_latents],
                 )
 
             (
@@ -1613,19 +1597,19 @@ def lora_tab(
             reg_data_dir,
             output_dir,
             max_resolution,
-            learning_rate,
-            lr_scheduler,
-            lr_warmup,
-            train_batch_size,
-            epoch,
-            save_every_n_epochs,
-            mixed_precision,
-            save_precision,
-            seed,
-            num_cpu_threads_per_process,
-            cache_latents,
-            cache_latents_to_disk,
-            caption_extension,
+            basic_training.learning_rate,
+            basic_training.lr_scheduler,
+            basic_training.lr_warmup,
+            basic_training.train_batch_size,
+            basic_training.epoch,
+            basic_training.save_every_n_epochs,
+            basic_training.mixed_precision,
+            basic_training.save_precision,
+            basic_training.seed,
+            basic_training.num_cpu_threads_per_process,
+            basic_training.cache_latents,
+            basic_training.cache_latents_to_disk,
+            basic_training.caption_extension,
             enable_bucket,
             gradient_checkpointing,
             full_fp16,
@@ -1663,8 +1647,8 @@ def lora_tab(
             bucket_reso_steps,
             caption_dropout_every_n_epochs,
             caption_dropout_rate,
-            optimizer,
-            optimizer_args,
+            basic_training.optimizer,
+            basic_training.optimizer_args,
             noise_offset_type,
             noise_offset,
             adaptive_noise_scale,

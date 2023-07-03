@@ -12,8 +12,6 @@ from library.common_gui import (
     save_inference_file,
     gradio_advanced_training,
     run_cmd_advanced_training,
-    gradio_training,
-    run_cmd_advanced_training,
     color_aug_changed,
     run_cmd_training,
     update_my_data,
@@ -22,6 +20,7 @@ from library.common_gui import (
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
+from library.class_basic_training import BasicTraining
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -771,23 +770,7 @@ def finetune_tab(headless=False):
                         label='Weighted captions', value=False
                     )
         with gr.Tab('Parameters'):
-            (
-                learning_rate,
-                lr_scheduler,
-                lr_warmup,
-                train_batch_size,
-                epoch,
-                save_every_n_epochs,
-                mixed_precision,
-                save_precision,
-                num_cpu_threads_per_process,
-                seed,
-                caption_extension,
-                cache_latents,
-                cache_latents_to_disk,
-                optimizer,
-                optimizer_args,
-            ) = gradio_training(learning_rate_value='1e-5')
+            basic_training = BasicTraining(learning_rate_value='1e-5')
             
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
@@ -844,7 +827,7 @@ def finetune_tab(headless=False):
                 color_aug.change(
                     color_aug_changed,
                     inputs=[color_aug],
-                    outputs=[cache_latents],  # Not applicable to fine_tune.py
+                    outputs=[basic_training.cache_latents],  # Not applicable to fine_tune.py
                 )
 
             (
@@ -888,23 +871,22 @@ def finetune_tab(headless=False):
             caption_metadata_filename,
             latent_metadata_filename,
             full_path,
-            learning_rate,
-            lr_scheduler,
-            lr_warmup,
+            basic_training.learning_rate,
+            basic_training.lr_scheduler,
+            basic_training.lr_warmup,
             dataset_repeats,
-            train_batch_size,
-            epoch,
-            save_every_n_epochs,
-            mixed_precision,
-            save_precision,
-            seed,
-            num_cpu_threads_per_process,
+            basic_training.train_batch_size,
+            basic_training.epoch,
+            basic_training.save_every_n_epochs,
+            basic_training.mixed_precision,
+            basic_training.save_precision,
+            basic_training.seed,
+            basic_training.num_cpu_threads_per_process,
             train_text_encoder,
             create_caption,
             create_buckets,
             source_model.save_model_as,
-            caption_extension,
-            # use_8bit_adam,
+            basic_training.caption_extension,
             xformers,
             clip_skip,
             save_state,
@@ -920,8 +902,8 @@ def finetune_tab(headless=False):
             full_fp16,
             color_aug,
             source_model.model_list,
-            cache_latents,
-            cache_latents_to_disk,
+            basic_training.cache_latents,
+            basic_training.cache_latents_to_disk,
             use_latent_files,
             keep_tokens,
             persistent_data_loader_workers,
@@ -930,8 +912,8 @@ def finetune_tab(headless=False):
             bucket_reso_steps,
             caption_dropout_every_n_epochs,
             caption_dropout_rate,
-            optimizer,
-            optimizer_args,
+            basic_training.optimizer,
+            basic_training.optimizer_args,
             noise_offset_type,
             noise_offset,
             adaptive_noise_scale,
