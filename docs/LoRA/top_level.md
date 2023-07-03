@@ -1,4 +1,4 @@
-# LoRA Development Resource Guide
+# LoRA Resource Guide
 
 This guide is a resource compilation to facilitate the development of robust LoRA models.
 

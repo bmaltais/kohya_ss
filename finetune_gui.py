@@ -632,382 +632,393 @@ def finetune_tab(headless=False):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    gr.Markdown('Train a custom model using kohya finetune python code...')
+    with gr.Tab('Training'):
+        gr.Markdown('Train a custom model using kohya finetune python code...')
 
-    (
-        button_open_config,
-        button_save_config,
-        button_save_as_config,
-        config_file_name,
-        button_load_config,
-    ) = gradio_config(headless=headless)
-
-    (
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl_checkbox,
-        save_model_as,
-        model_list,
-    ) = gradio_source_model(headless=headless)
-
-    with gr.Tab('Folders'):
-        with gr.Row():
-            train_dir = gr.Textbox(
-                label='Training config folder',
-                placeholder='folder where the training configuration files will be saved',
-            )
-            train_dir_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            train_dir_folder.click(
-                get_folder_path,
-                outputs=train_dir,
-                show_progress=False,
-            )
-
-            image_folder = gr.Textbox(
-                label='Training Image folder',
-                placeholder='folder where the training images are located',
-            )
-            image_folder_input_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            image_folder_input_folder.click(
-                get_folder_path,
-                outputs=image_folder,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_dir = gr.Textbox(
-                label='Model output folder',
-                placeholder='folder where the model will be saved',
-            )
-            output_dir_input_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            output_dir_input_folder.click(
-                get_folder_path,
-                outputs=output_dir,
-                show_progress=False,
-            )
-
-            logging_dir = gr.Textbox(
-                label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
-            )
-            logging_dir_input_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            logging_dir_input_folder.click(
-                get_folder_path,
-                outputs=logging_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_name = gr.Textbox(
-                label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
-                interactive=True,
-            )
-        train_dir.change(
-            remove_doublequote,
-            inputs=[train_dir],
-            outputs=[train_dir],
-        )
-        image_folder.change(
-            remove_doublequote,
-            inputs=[image_folder],
-            outputs=[image_folder],
-        )
-        output_dir.change(
-            remove_doublequote,
-            inputs=[output_dir],
-            outputs=[output_dir],
-        )
-    with gr.Tab('Dataset preparation'):
-        with gr.Row():
-            max_resolution = gr.Textbox(
-                label='Resolution (width,height)', value='512,512'
-            )
-            min_bucket_reso = gr.Textbox(
-                label='Min bucket resolution', value='256'
-            )
-            max_bucket_reso = gr.Textbox(
-                label='Max bucket resolution', value='1024'
-            )
-            batch_size = gr.Textbox(label='Batch size', value='1')
-        with gr.Row():
-            create_caption = gr.Checkbox(
-                label='Generate caption metadata', value=True
-            )
-            create_buckets = gr.Checkbox(
-                label='Generate image buckets metadata', value=True
-            )
-            use_latent_files = gr.Dropdown(
-                label='Use latent files',
-                choices=[
-                    'No',
-                    'Yes',
-                ],
-                value='Yes',
-            )
-        with gr.Accordion('Advanced parameters', open=False):
-            with gr.Row():
-                caption_metadata_filename = gr.Textbox(
-                    label='Caption metadata filename', value='meta_cap.json'
-                )
-                latent_metadata_filename = gr.Textbox(
-                    label='Latent metadata filename', value='meta_lat.json'
-                )
-            with gr.Row():
-                full_path = gr.Checkbox(label='Use full path', value=True)
-                weighted_captions = gr.Checkbox(
-                    label='Weighted captions', value=False
-                )
-    with gr.Tab('Training parameters'):
         (
+            button_open_config,
+            button_save_config,
+            button_save_as_config,
+            config_file_name,
+            button_load_config,
+        ) = gradio_config(headless=headless)
+
+        (
+            pretrained_model_name_or_path,
+            v2,
+            v_parameterization,
+            sdxl_checkbox,
+            save_model_as,
+            model_list,
+        ) = gradio_source_model(headless=headless)
+
+        with gr.Tab('Folders'):
+            with gr.Row():
+                train_dir = gr.Textbox(
+                    label='Training config folder',
+                    placeholder='folder where the training configuration files will be saved',
+                )
+                train_dir_folder = gr.Button(
+                    folder_symbol,
+                    elem_id='open_folder_small',
+                    visible=(not headless),
+                )
+                train_dir_folder.click(
+                    get_folder_path,
+                    outputs=train_dir,
+                    show_progress=False,
+                )
+
+                image_folder = gr.Textbox(
+                    label='Training Image folder',
+                    placeholder='folder where the training images are located',
+                )
+                image_folder_input_folder = gr.Button(
+                    folder_symbol,
+                    elem_id='open_folder_small',
+                    visible=(not headless),
+                )
+                image_folder_input_folder.click(
+                    get_folder_path,
+                    outputs=image_folder,
+                    show_progress=False,
+                )
+            with gr.Row():
+                output_dir = gr.Textbox(
+                    label='Model output folder',
+                    placeholder='folder where the model will be saved',
+                )
+                output_dir_input_folder = gr.Button(
+                    folder_symbol,
+                    elem_id='open_folder_small',
+                    visible=(not headless),
+                )
+                output_dir_input_folder.click(
+                    get_folder_path,
+                    outputs=output_dir,
+                    show_progress=False,
+                )
+
+                logging_dir = gr.Textbox(
+                    label='Logging folder',
+                    placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                )
+                logging_dir_input_folder = gr.Button(
+                    folder_symbol,
+                    elem_id='open_folder_small',
+                    visible=(not headless),
+                )
+                logging_dir_input_folder.click(
+                    get_folder_path,
+                    outputs=logging_dir,
+                    show_progress=False,
+                )
+            with gr.Row():
+                output_name = gr.Textbox(
+                    label='Model output name',
+                    placeholder='Name of the model to output',
+                    value='last',
+                    interactive=True,
+                )
+            train_dir.change(
+                remove_doublequote,
+                inputs=[train_dir],
+                outputs=[train_dir],
+            )
+            image_folder.change(
+                remove_doublequote,
+                inputs=[image_folder],
+                outputs=[image_folder],
+            )
+            output_dir.change(
+                remove_doublequote,
+                inputs=[output_dir],
+                outputs=[output_dir],
+            )
+        with gr.Tab('Dataset preparation'):
+            with gr.Row():
+                max_resolution = gr.Textbox(
+                    label='Resolution (width,height)', value='512,512'
+                )
+                min_bucket_reso = gr.Textbox(
+                    label='Min bucket resolution', value='256'
+                )
+                max_bucket_reso = gr.Textbox(
+                    label='Max bucket resolution', value='1024'
+                )
+                batch_size = gr.Textbox(label='Batch size', value='1')
+            with gr.Row():
+                create_caption = gr.Checkbox(
+                    label='Generate caption metadata', value=True
+                )
+                create_buckets = gr.Checkbox(
+                    label='Generate image buckets metadata', value=True
+                )
+                use_latent_files = gr.Dropdown(
+                    label='Use latent files',
+                    choices=[
+                        'No',
+                        'Yes',
+                    ],
+                    value='Yes',
+                )
+            with gr.Accordion('Advanced parameters', open=False):
+                with gr.Row():
+                    caption_metadata_filename = gr.Textbox(
+                        label='Caption metadata filename', value='meta_cap.json'
+                    )
+                    latent_metadata_filename = gr.Textbox(
+                        label='Latent metadata filename', value='meta_lat.json'
+                    )
+                with gr.Row():
+                    full_path = gr.Checkbox(label='Use full path', value=True)
+                    weighted_captions = gr.Checkbox(
+                        label='Weighted captions', value=False
+                    )
+        with gr.Tab('Parameters'):
+            (
+                learning_rate,
+                lr_scheduler,
+                lr_warmup,
+                train_batch_size,
+                epoch,
+                save_every_n_epochs,
+                mixed_precision,
+                save_precision,
+                num_cpu_threads_per_process,
+                seed,
+                caption_extension,
+                cache_latents,
+                cache_latents_to_disk,
+                optimizer,
+                optimizer_args,
+            ) = gradio_training(learning_rate_value='1e-5')
+            
+            # SDXL parameters
+            with gr.Row(visible=False) as sdxl_row:
+                sdxl_cache_text_encoder_outputs = gr.Checkbox(
+                    label='(SDXL) Cache text encoder outputs',
+                    info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
+                    value=False
+                )
+                sdxl_no_half_vae = gr.Checkbox(
+                    label='(SDXL) No half VAE',
+                    info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
+                    value=False
+                )
+                
+                sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
+            
+            with gr.Row():
+                dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
+                train_text_encoder = gr.Checkbox(
+                    label='Train text encoder', value=True
+                )
+            with gr.Accordion('Advanced parameters', open=False):
+                with gr.Row():
+                    gradient_accumulation_steps = gr.Number(
+                        label='Gradient accumulate steps', value='1'
+                    )
+                (
+                    # use_8bit_adam,
+                    xformers,
+                    full_fp16,
+                    gradient_checkpointing,
+                    shuffle_caption,
+                    color_aug,
+                    flip_aug,
+                    clip_skip,
+                    mem_eff_attn,
+                    save_state,
+                    resume,
+                    max_token_length,
+                    max_train_epochs,
+                    max_data_loader_n_workers,
+                    keep_tokens,
+                    persistent_data_loader_workers,
+                    bucket_no_upscale,
+                    random_crop,
+                    bucket_reso_steps,
+                    caption_dropout_every_n_epochs,
+                    caption_dropout_rate,
+                    noise_offset_type,
+                    noise_offset,
+                    adaptive_noise_scale,
+                    multires_noise_iterations,
+                    multires_noise_discount,
+                    additional_parameters,
+                    vae_batch_size,
+                    min_snr_gamma,
+                    save_every_n_steps,
+                    save_last_n_steps,
+                    save_last_n_steps_state,
+                    use_wandb,
+                    wandb_api_key,
+                    scale_v_pred_loss_like_noise_pred,
+                ) = gradio_advanced_training(headless=headless)
+                color_aug.change(
+                    color_aug_changed,
+                    inputs=[color_aug],
+                    outputs=[cache_latents],  # Not applicable to fine_tune.py
+                )
+
+            (
+                sample_every_n_steps,
+                sample_every_n_epochs,
+                sample_sampler,
+                sample_prompts,
+            ) = sample_gradio_config()
+
+        button_run = gr.Button('Train model', variant='primary')
+
+        button_print = gr.Button('Print training command')
+
+        # Setup gradio tensorboard buttons
+        button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+
+        button_start_tensorboard.click(
+            start_tensorboard,
+            inputs=logging_dir,
+        )
+
+        button_stop_tensorboard.click(
+            stop_tensorboard,
+            show_progress=False,
+        )
+
+        settings_list = [
+            pretrained_model_name_or_path,
+            v2,
+            v_parameterization,
+            sdxl_checkbox,
+            train_dir,
+            image_folder,
+            output_dir,
+            logging_dir,
+            max_resolution,
+            min_bucket_reso,
+            max_bucket_reso,
+            batch_size,
+            flip_aug,
+            caption_metadata_filename,
+            latent_metadata_filename,
+            full_path,
             learning_rate,
             lr_scheduler,
             lr_warmup,
+            dataset_repeats,
             train_batch_size,
             epoch,
             save_every_n_epochs,
             mixed_precision,
             save_precision,
-            num_cpu_threads_per_process,
             seed,
+            num_cpu_threads_per_process,
+            train_text_encoder,
+            create_caption,
+            create_buckets,
+            save_model_as,
             caption_extension,
+            # use_8bit_adam,
+            xformers,
+            clip_skip,
+            save_state,
+            resume,
+            gradient_checkpointing,
+            gradient_accumulation_steps,
+            mem_eff_attn,
+            shuffle_caption,
+            output_name,
+            max_token_length,
+            max_train_epochs,
+            max_data_loader_n_workers,
+            full_fp16,
+            color_aug,
+            model_list,
             cache_latents,
             cache_latents_to_disk,
+            use_latent_files,
+            keep_tokens,
+            persistent_data_loader_workers,
+            bucket_no_upscale,
+            random_crop,
+            bucket_reso_steps,
+            caption_dropout_every_n_epochs,
+            caption_dropout_rate,
             optimizer,
             optimizer_args,
-        ) = gradio_training(learning_rate_value='1e-5')
-        
-        # SDXL parameters
-        with gr.Row(visible=False) as sdxl_row:
-            sdxl_cache_text_encoder_outputs = gr.Checkbox(
-                label='(SDXL) Cache text encoder outputs',
-                info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
-                value=False
-            )
-            sdxl_no_half_vae = gr.Checkbox(
-                label='(SDXL) No half VAE',
-                info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
-                value=False
-            )
-            
-            sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
-        
-        with gr.Row():
-            dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
-            train_text_encoder = gr.Checkbox(
-                label='Train text encoder', value=True
-            )
-        with gr.Accordion('Advanced parameters', open=False):
-            with gr.Row():
-                gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
-                )
-            (
-                # use_8bit_adam,
-                xformers,
-                full_fp16,
-                gradient_checkpointing,
-                shuffle_caption,
-                color_aug,
-                flip_aug,
-                clip_skip,
-                mem_eff_attn,
-                save_state,
-                resume,
-                max_token_length,
-                max_train_epochs,
-                max_data_loader_n_workers,
-                keep_tokens,
-                persistent_data_loader_workers,
-                bucket_no_upscale,
-                random_crop,
-                bucket_reso_steps,
-                caption_dropout_every_n_epochs,
-                caption_dropout_rate,
-                noise_offset_type,
-                noise_offset,
-                adaptive_noise_scale,
-                multires_noise_iterations,
-                multires_noise_discount,
-                additional_parameters,
-                vae_batch_size,
-                min_snr_gamma,
-                save_every_n_steps,
-                save_last_n_steps,
-                save_last_n_steps_state,
-                use_wandb,
-                wandb_api_key,
-                scale_v_pred_loss_like_noise_pred,
-            ) = gradio_advanced_training(headless=headless)
-            color_aug.change(
-                color_aug_changed,
-                inputs=[color_aug],
-                outputs=[cache_latents],  # Not applicable to fine_tune.py
-            )
-
-        (
+            noise_offset_type,
+            noise_offset,
+            adaptive_noise_scale,
+            multires_noise_iterations,
+            multires_noise_discount,
             sample_every_n_steps,
             sample_every_n_epochs,
             sample_sampler,
             sample_prompts,
-        ) = sample_gradio_config()
+            additional_parameters,
+            vae_batch_size,
+            min_snr_gamma,
+            weighted_captions,
+            save_every_n_steps,
+            save_last_n_steps,
+            save_last_n_steps_state,
+            use_wandb,
+            wandb_api_key,
+            scale_v_pred_loss_like_noise_pred,
+            sdxl_cache_text_encoder_outputs,
+            sdxl_no_half_vae,
+        ]
 
-    button_run = gr.Button('Train model', variant='primary')
+        button_run.click(
+            train_model,
+            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            show_progress=False,
+        )
 
-    button_print = gr.Button('Print training command')
+        button_print.click(
+            train_model,
+            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            show_progress=False,
+        )
 
-    # Setup gradio tensorboard buttons
-    button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+        button_open_config.click(
+            open_configuration,
+            inputs=[dummy_db_true, config_file_name] + settings_list,
+            outputs=[config_file_name] + settings_list,
+            show_progress=False,
+        )
 
-    button_start_tensorboard.click(
-        start_tensorboard,
-        inputs=logging_dir,
-    )
+        button_load_config.click(
+            open_configuration,
+            inputs=[dummy_db_false, config_file_name] + settings_list,
+            outputs=[config_file_name] + settings_list,
+            show_progress=False,
+        )
 
-    button_stop_tensorboard.click(
-        stop_tensorboard,
-        show_progress=False,
-    )
+        button_save_config.click(
+            save_configuration,
+            inputs=[dummy_db_false, config_file_name] + settings_list,
+            outputs=[config_file_name],
+            show_progress=False,
+        )
 
-    settings_list = [
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl_checkbox,
-        train_dir,
-        image_folder,
-        output_dir,
-        logging_dir,
-        max_resolution,
-        min_bucket_reso,
-        max_bucket_reso,
-        batch_size,
-        flip_aug,
-        caption_metadata_filename,
-        latent_metadata_filename,
-        full_path,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        dataset_repeats,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        train_text_encoder,
-        create_caption,
-        create_buckets,
-        save_model_as,
-        caption_extension,
-        # use_8bit_adam,
-        xformers,
-        clip_skip,
-        save_state,
-        resume,
-        gradient_checkpointing,
-        gradient_accumulation_steps,
-        mem_eff_attn,
-        shuffle_caption,
-        output_name,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        full_fp16,
-        color_aug,
-        model_list,
-        cache_latents,
-        cache_latents_to_disk,
-        use_latent_files,
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset_type,
-        noise_offset,
-        adaptive_noise_scale,
-        multires_noise_iterations,
-        multires_noise_discount,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
-        min_snr_gamma,
-        weighted_captions,
-        save_every_n_steps,
-        save_last_n_steps,
-        save_last_n_steps_state,
-        use_wandb,
-        wandb_api_key,
-        scale_v_pred_loss_like_noise_pred,
-        sdxl_cache_text_encoder_outputs,
-        sdxl_no_half_vae,
-    ]
-
-    button_run.click(
-        train_model,
-        inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-        show_progress=False,
-    )
-
-    button_print.click(
-        train_model,
-        inputs=[dummy_headless] + [dummy_db_true] + settings_list,
-        show_progress=False,
-    )
-
-    button_open_config.click(
-        open_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list,
-        show_progress=False,
-    )
-
-    button_load_config.click(
-        open_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list,
-        show_progress=False,
-    )
-
-    button_save_config.click(
-        save_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name],
-        show_progress=False,
-    )
-
-    button_save_as_config.click(
-        save_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name],
-        show_progress=False,
-    )
+        button_save_as_config.click(
+            save_configuration,
+            inputs=[dummy_db_true, config_file_name] + settings_list,
+            outputs=[config_file_name],
+            show_progress=False,
+        )
+        
+    with gr.Tab('Guides'):
+        gr.Markdown(
+            'This section provide Various Finetuning guides and information...'
+        )
+        top_level_path = './docs/Finetuning/top_level.md'
+        if os.path.exists(top_level_path):
+            with open(os.path.join(top_level_path), 'r', encoding='utf8') as file:
+                guides_top_level = file.read() + '\n'
+        gr.Markdown(guides_top_level)
 
 
 def UI(**kwargs):
