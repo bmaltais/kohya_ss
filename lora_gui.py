@@ -28,12 +28,12 @@ from library.common_gui import (
     check_if_model_exist,
     output_message,
     verify_image_folder_pattern,
-    SDXLParameters
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
+from library.class_sdxl_parameters import SDXLParameters
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )

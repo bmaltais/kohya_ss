@@ -14,13 +14,13 @@ from library.common_gui import (
     color_aug_changed,
     run_cmd_training,
     update_my_data,
-    check_if_model_exist,
-    SDXLParameters
+    check_if_model_exist
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
+from library.class_sdxl_parameters import SDXLParameters
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
