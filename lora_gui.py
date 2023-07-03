@@ -33,6 +33,7 @@ from library.common_gui import (
     check_if_model_exist,
     output_message,
     verify_image_folder_pattern,
+    SDXLParameters
 )
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -170,6 +171,8 @@ def save_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    sdxl_min_timestep,
+    sdxl_max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -319,6 +322,8 @@ def open_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    sdxl_min_timestep,
+    sdxl_max_timestep,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -485,6 +490,8 @@ def train_model(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    sdxl_min_timestep,
+    sdxl_max_timestep,
 ):
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -570,13 +577,13 @@ def train_model(
     ):
         return
 
-    if optimizer == 'Adafactor' and lr_warmup != '0':
-        output_message(
-            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning',
-            headless=headless_bool,
-        )
-        lr_warmup = '0'
+    # if optimizer == 'Adafactor' and lr_warmup != '0':
+    #     output_message(
+    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+    #         title='Warning',
+    #         headless=headless_bool,
+    #     )
+    #     lr_warmup = '0'
 
     # If string is empty set string to 0.
     if text_encoder_lr == '':
@@ -887,6 +894,12 @@ def train_model(
         
     if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
+        
+    if sdxl_min_timestep > 0:
+        run_cmd += f' --min_timestep={sdxl_min_timestep}'
+    
+    if not sdxl_max_timestep == 1000:
+        run_cmd += f' --max_timestep={sdxl_max_timestep}'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -1197,20 +1210,9 @@ def lora_tab(
                     value='0.0001',
                     info='Optional',
                 )
-            # SDXL parameters
-            with gr.Row(visible=False) as sdxl_row:
-                sdxl_cache_text_encoder_outputs = gr.Checkbox(
-                    label='(SDXL) Cache text encoder outputs',
-                    info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
-                    value=False
-                )
-                sdxl_no_half_vae = gr.Checkbox(
-                    label='(SDXL) No half VAE',
-                    info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
-                    value=False
-                )
                 
-                sdxl_checkbox.change(lambda sdxl_checkbox: gr.Row.update(visible=sdxl_checkbox), inputs=[sdxl_checkbox], outputs=[sdxl_row])
+            # Add SDXL Parameters
+            sdxl_params = SDXLParameters(sdxl_checkbox)
                 
             with gr.Row():
                 factor = gr.Slider(
@@ -1717,8 +1719,10 @@ def lora_tab(
             network_dropout,
             rank_dropout,
             module_dropout,
-            sdxl_cache_text_encoder_outputs,
-            sdxl_no_half_vae,
+            sdxl_params.sdxl_cache_text_encoder_outputs,
+            sdxl_params.sdxl_no_half_vae,
+            sdxl_params.sdxl_min_timestep,
+            sdxl_params.sdxl_max_timestep,
         ]
 
         button_open_config.click(

@@ -1413,3 +1413,47 @@ def verify_image_folder_pattern(folder_path):
 
     log.info(f'Valid image folder names found in: {folder_path}')
     return true_response
+
+### SDXL Parameters class
+class SDXLParameters:
+    def __init__(self, sdxl_checkbox):
+        self.sdxl_checkbox = sdxl_checkbox
+
+        with gr.Accordion(visible=False, open=True, label='SDXL Specific Parameters') as self.sdxl_row:
+            with gr.Row():
+                self.sdxl_cache_text_encoder_outputs = gr.Checkbox(
+                    label='Cache text encoder outputs',
+                    info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
+                    value=False,
+                )
+                self.sdxl_no_half_vae = gr.Checkbox(
+                    label='No half VAE',
+                    info='Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.',
+                    value=False
+                )
+                self.sdxl_min_timestep = gr.Slider(
+                    label='Min Timestep',
+                    value=0,
+                    step=1,
+                    minimum=0,
+                    maximum=1000,
+                    info='Train U-Net with different timesteps'
+                )
+                self.sdxl_max_timestep = gr.Slider(
+                    label='Max Timestep',
+                    value=1000,
+                    step=1,
+                    minimum=0,
+                    maximum=1000,
+                    info='Train U-Net with different timesteps',
+                )
+
+        # def timestep_minimum(value):
+        #     if value < 0:
+        #         value = 0
+        #     return gr.Number.update(value=value)
+
+        # self.sdxl_min_timestep.blur(timestep_minimum, inputs=[self.sdxl_min_timestep], outputs=[self.sdxl_min_timestep])
+        # self.sdxl_max_timestep.blur(timestep_minimum, inputs=[self.sdxl_max_timestep], outputs=[self.sdxl_max_timestep])
+
+        self.sdxl_checkbox.change(lambda sdxl_checkbox: gr.Accordion.update(visible=sdxl_checkbox), inputs=[self.sdxl_checkbox], outputs=[self.sdxl_row])
