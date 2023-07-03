@@ -25,7 +25,6 @@ from library.common_gui import (
     gradio_advanced_training,
     run_cmd_advanced_training,
     gradio_training,
-    gradio_source_model,
     run_cmd_training,
     update_my_data,
     check_if_model_exist,
@@ -34,6 +33,7 @@ from library.common_gui import (
     SDXLParameters
 )
 from library.class_configuration_file import ConfigurationFile
+from library.class_source_model import SourceModel
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
@@ -1018,14 +1018,7 @@ def lora_tab(
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
-        (
-            pretrained_model_name_or_path,
-            v2,
-            v_parameterization,
-            sdxl_checkbox,
-            save_model_as,
-            model_list,
-        ) = gradio_source_model(
+        source_model = SourceModel(
             save_model_as_choices=[
                 'ckpt',
                 'safetensors',
@@ -1203,7 +1196,7 @@ def lora_tab(
                 )
                 
             # Add SDXL Parameters
-            sdxl_params = SDXLParameters(sdxl_checkbox)
+            sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
                 
             with gr.Row():
                 factor = gr.Slider(
@@ -1611,10 +1604,10 @@ def lora_tab(
         )
 
         settings_list = [
-            pretrained_model_name_or_path,
-            v2,
-            v_parameterization,
-            sdxl_checkbox,
+            source_model.pretrained_model_name_or_path,
+            source_model.v2,
+            source_model.v_parameterization,
+            source_model.sdxl_checkbox,
             logging_dir,
             train_data_dir,
             reg_data_dir,
@@ -1638,9 +1631,8 @@ def lora_tab(
             full_fp16,
             no_token_padding,
             stop_text_encoder_training,
-            # use_8bit_adam,
             xformers,
-            save_model_as,
+            source_model.save_model_as,
             shuffle_caption,
             save_state,
             resume,
@@ -1656,7 +1648,7 @@ def lora_tab(
             gradient_accumulation_steps,
             mem_eff_attn,
             output_name,
-            model_list,
+            source_model.model_list,
             max_token_length,
             max_train_epochs,
             max_data_loader_n_workers,

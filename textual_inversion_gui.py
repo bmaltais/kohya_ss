@@ -22,13 +22,13 @@ from library.common_gui import (
     run_cmd_advanced_training,
     run_cmd_training,
     gradio_training,
-    gradio_source_model,
     update_my_data,
     check_if_model_exist,
     output_message,
     verify_image_folder_pattern,
 )
 from library.class_configuration_file import ConfigurationFile
+from library.class_source_model import SourceModel
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -690,14 +690,7 @@ def ti_tab(
     # Setup Configuration Files Gradio
     config = ConfigurationFile(headless)
 
-    (
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl,
-        save_model_as,
-        model_list,
-    ) = gradio_source_model(
+    source_model = SourceModel(
         save_model_as_choices=[
             'ckpt',
             'safetensors',
@@ -968,10 +961,10 @@ def ti_tab(
     )
 
     settings_list = [
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        sdxl,
+        source_model.pretrained_model_name_or_path,
+        source_model.v2,
+        source_model.v_parameterization,
+        source_model.sdxl_checkbox,
         logging_dir,
         train_data_dir,
         reg_data_dir,
@@ -995,9 +988,8 @@ def ti_tab(
         full_fp16,
         no_token_padding,
         stop_text_encoder_training,
-        # use_8bit_adam,
         xformers,
-        save_model_as,
+        source_model.save_model_as,
         shuffle_caption,
         save_state,
         resume,
@@ -1012,7 +1004,7 @@ def ti_tab(
         max_data_loader_n_workers,
         mem_eff_attn,
         gradient_accumulation_steps,
-        model_list,
+        source_model.model_list,
         token_string,
         init_word,
         num_vectors_per_token,

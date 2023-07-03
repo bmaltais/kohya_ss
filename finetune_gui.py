@@ -14,7 +14,6 @@ from library.common_gui import (
     run_cmd_advanced_training,
     gradio_training,
     run_cmd_advanced_training,
-    gradio_source_model,
     color_aug_changed,
     run_cmd_training,
     update_my_data,
@@ -22,6 +21,7 @@ from library.common_gui import (
     SDXLParameters
 )
 from library.class_configuration_file import ConfigurationFile
+from library.class_source_model import SourceModel
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -645,14 +645,7 @@ def finetune_tab(headless=False):
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
-        (
-            pretrained_model_name_or_path,
-            v2,
-            v_parameterization,
-            sdxl_checkbox,
-            save_model_as,
-            model_list,
-        ) = gradio_source_model(headless=headless)
+        source_model = SourceModel(headless=headless)
 
         with gr.Tab('Folders'):
             with gr.Row():
@@ -797,7 +790,7 @@ def finetune_tab(headless=False):
             ) = gradio_training(learning_rate_value='1e-5')
             
             # Add SDXL Parameters
-            sdxl_params = SDXLParameters(sdxl_checkbox)
+            sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
             
             with gr.Row():
                 dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
@@ -879,10 +872,10 @@ def finetune_tab(headless=False):
         )
 
         settings_list = [
-            pretrained_model_name_or_path,
-            v2,
-            v_parameterization,
-            sdxl_checkbox,
+            source_model.pretrained_model_name_or_path,
+            source_model.v2,
+            source_model.v_parameterization,
+            source_model.sdxl_checkbox,
             train_dir,
             image_folder,
             output_dir,
@@ -909,7 +902,7 @@ def finetune_tab(headless=False):
             train_text_encoder,
             create_caption,
             create_buckets,
-            save_model_as,
+            source_model.save_model_as,
             caption_extension,
             # use_8bit_adam,
             xformers,
@@ -926,7 +919,7 @@ def finetune_tab(headless=False):
             max_data_loader_n_workers,
             full_fp16,
             color_aug,
-            model_list,
+            source_model.model_list,
             cache_latents,
             cache_latents_to_disk,
             use_latent_files,
