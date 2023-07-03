@@ -748,21 +748,11 @@ class NetworkTrainer:
                                 args, accelerator, batch, tokenizers, text_encoders, weight_dtype
                             )
 
-                    # Sample noise that we'll add to the latents
-                    noise = torch.randn_like(latents, device=latents.device)
-                    if args.noise_offset:
-                        noise = apply_noise_offset(latents, noise, args.noise_offset, args.adaptive_noise_scale)
-                    elif args.multires_noise_iterations:
-                        noise = pyramid_noise_like(
-                            noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount
-                        )
-
-                    # Sample a random timestep for each image
-                    timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (b_size,), device=latents.device)
-                    timesteps = timesteps.long()
-                    # Add noise to the latents according to the noise magnitude at each timestep
-                    # (this is the forward diffusion process)
-                    noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+                    # Sample noise, sample a random timestep for each image, and add noise to the latents,
+                    # with noise offset and/or multires noise if specified
+                    noise, noisy_latents, timesteps = train_util.get_noise_noisy_latents_and_timesteps(
+                        args, noise_scheduler, latents
+                    )
 
                     # Predict the noise residual
                     with accelerator.autocast():
