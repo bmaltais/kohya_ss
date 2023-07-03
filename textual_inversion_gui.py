@@ -11,8 +11,6 @@ import subprocess
 import pathlib
 import argparse
 from library.common_gui import (
-    get_folder_path,
-    remove_doublequote,
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
@@ -29,6 +27,7 @@ from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
+from library.class_folders import Folders
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -44,14 +43,6 @@ from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
-# from easygui import msgbox
-
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
-
 
 def save_configuration(
     save_as,
@@ -676,10 +667,6 @@ def train_model(
 
 
 def ti_tab(
-    train_data_dir=gr.Textbox(),
-    reg_data_dir=gr.Textbox(),
-    output_dir=gr.Textbox(),
-    logging_dir=gr.Textbox(),
     headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
@@ -699,84 +686,8 @@ def ti_tab(
     )
 
     with gr.Tab('Folders'):
-        with gr.Row():
-            train_data_dir = gr.Textbox(
-                label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
-            )
-            train_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            train_data_dir_input_folder.click(
-                get_folder_path,
-                outputs=train_data_dir,
-                show_progress=False,
-            )
-            reg_data_dir = gr.Textbox(
-                label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
-            )
-            reg_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            reg_data_dir_input_folder.click(
-                get_folder_path,
-                outputs=reg_data_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_dir = gr.Textbox(
-                label='Model output folder',
-                placeholder='Folder to output trained model',
-            )
-            output_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            output_dir_input_folder.click(
-                get_folder_path,
-                outputs=output_dir,
-                show_progress=False,
-            )
-            logging_dir = gr.Textbox(
-                label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
-            )
-            logging_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            logging_dir_input_folder.click(
-                get_folder_path,
-                outputs=logging_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_name = gr.Textbox(
-                label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
-                interactive=True,
-            )
-        train_data_dir.change(
-            remove_doublequote,
-            inputs=[train_data_dir],
-            outputs=[train_data_dir],
-        )
-        reg_data_dir.change(
-            remove_doublequote,
-            inputs=[reg_data_dir],
-            outputs=[reg_data_dir],
-        )
-        output_dir.change(
-            remove_doublequote,
-            inputs=[output_dir],
-            outputs=[output_dir],
-        )
-        logging_dir.change(
-            remove_doublequote,
-            inputs=[logging_dir],
-            outputs=[logging_dir],
-        )
-    with gr.Tab('Training parameters'):
+        folders = Folders(headless=headless)
+    with gr.Tab('Parameters'):
         with gr.Row():
             weights = gr.Textbox(
                 label='Resume TI training',
@@ -881,10 +792,10 @@ def ti_tab(
             'This section provide Dreambooth tools to help setup your dataset...'
         )
         gradio_dreambooth_folder_creation_tab(
-            train_data_dir_input=train_data_dir,
-            reg_data_dir_input=reg_data_dir,
-            output_dir_input=output_dir,
-            logging_dir_input=logging_dir,
+            train_data_dir_input=folders.train_data_dir,
+            reg_data_dir_input=folders.reg_data_dir,
+            output_dir_input=folders.output_dir,
+            logging_dir_input=folders.logging_dir,
             headless=headless,
         )
 
@@ -897,7 +808,7 @@ def ti_tab(
 
     button_start_tensorboard.click(
         start_tensorboard,
-        inputs=logging_dir,
+        inputs=folders.logging_dir,
         show_progress=False,
     )
 
@@ -911,10 +822,10 @@ def ti_tab(
         source_model.v2,
         source_model.v_parameterization,
         source_model.sdxl_checkbox,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
+        folders.logging_dir,
+        folders.train_data_dir,
+        folders.reg_data_dir,
+        folders.output_dir,
         max_resolution,
         basic_training.learning_rate,
         basic_training.lr_scheduler,
@@ -944,7 +855,7 @@ def ti_tab(
         advanced_training.flip_aug,
         advanced_training.clip_skip,
         vae,
-        output_name,
+        folders.output_name,
         advanced_training.max_token_length,
         advanced_training.max_train_epochs,
         advanced_training.max_data_loader_n_workers,
@@ -1029,10 +940,10 @@ def ti_tab(
     )
 
     return (
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        logging_dir,
+        folders.train_data_dir,
+        folders.reg_data_dir,
+        folders.output_dir,
+        folders.logging_dir,
     )
 
 
