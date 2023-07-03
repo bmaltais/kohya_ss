@@ -735,20 +735,6 @@ def ti_tab(
             lr_scheduler_value='cosine',
             lr_warmup_value='10',
         )
-        with gr.Row():
-            max_resolution = gr.Textbox(
-                label='Max resolution',
-                value='512,512',
-                placeholder='512,512',
-            )
-            stop_text_encoder_training = gr.Slider(
-                minimum=0,
-                maximum=100,
-                value=0,
-                step=1,
-                label='Stop text encoder training',
-            )
-            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
                 no_token_padding = gr.Checkbox(
@@ -821,7 +807,7 @@ def ti_tab(
         folders.train_data_dir,
         folders.reg_data_dir,
         folders.output_dir,
-        max_resolution,
+        basic_training.max_resolution,
         basic_training.learning_rate,
         basic_training.lr_scheduler,
         basic_training.lr_warmup,
@@ -835,11 +821,11 @@ def ti_tab(
         basic_training.cache_latents,
         basic_training.cache_latents_to_disk,
         basic_training.caption_extension,
-        enable_bucket,
+        basic_training.enable_bucket,
         advanced_training.gradient_checkpointing,
         advanced_training.full_fp16,
         no_token_padding,
-        stop_text_encoder_training,
+        basic_training.stop_text_encoder_training,
         advanced_training.xformers,
         source_model.save_model_as,
         advanced_training.shuffle_caption,

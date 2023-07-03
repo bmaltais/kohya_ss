@@ -7,10 +7,12 @@ class BasicTraining:
         learning_rate_value='1e-6',
         lr_scheduler_value='constant',
         lr_warmup_value='0',
+        finetuning: bool = False,
     ):
         self.learning_rate_value = learning_rate_value
         self.lr_scheduler_value = lr_scheduler_value
         self.lr_warmup_value = lr_warmup_value
+        self.finetuning = finetuning
 
         with gr.Row():
             self.train_batch_size = gr.Slider(
@@ -113,3 +115,18 @@ class BasicTraining:
                 label='Optimizer extra arguments',
                 placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
             )
+        if not self.finetuning:
+            with gr.Row():
+                self.max_resolution = gr.Textbox(
+                    label='Max resolution',
+                    value='512,512',
+                    placeholder='512,512',
+                )
+                self.stop_text_encoder_training = gr.Slider(
+                    minimum=-1,
+                    maximum=100,
+                    value=0,
+                    step=1,
+                    label='Stop text encoder training',
+                )
+                self.enable_bucket = gr.Checkbox(label='Enable buckets', value=True)

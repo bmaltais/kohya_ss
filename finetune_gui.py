@@ -770,7 +770,7 @@ def finetune_tab(headless=False):
                         label='Weighted captions', value=False
                     )
         with gr.Tab('Parameters'):
-            basic_training = BasicTraining(learning_rate_value='1e-5')
+            basic_training = BasicTraining(learning_rate_value='1e-5', finetuning=True)
             
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
