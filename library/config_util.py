@@ -347,7 +347,6 @@ class BlueprintGenerator:
 
   # runtime_params is for parameters which is only configurable on runtime, such as tokenizer
   def generate(self, user_config: dict, argparse_namespace: argparse.Namespace, **runtime_params) -> Blueprint:
-    print(user_config)
     sanitized_user_config = self.sanitizer.sanitize_user_config(user_config)
     sanitized_argparse_namespace = self.sanitizer.sanitize_argparse_namespace(argparse_namespace)
 
