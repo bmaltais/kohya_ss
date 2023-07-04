@@ -110,30 +110,6 @@ def gradio_resize_lora_tab(headless=False):
                 show_progress=False,
             )
         with gr.Row():
-            new_rank = gr.Slider(
-                label='Desired LoRA rank',
-                minimum=1,
-                maximum=1024,
-                step=1,
-                value=4,
-                interactive=True,
-            )
-
-        with gr.Row():
-            dynamic_method = gr.Dropdown(
-                choices=['None', 'sv_ratio', 'sv_fro', 'sv_cumulative'],
-                value='sv_fro',
-                label='Dynamic method',
-                interactive=True,
-            )
-            dynamic_param = gr.Textbox(
-                label='Dynamic parameter',
-                value='0.9',
-                interactive=True,
-                placeholder='Value for the dynamic method selected.',
-            )
-            verbose = gr.Checkbox(label='Verbose', value=False)
-        with gr.Row():
             save_to = gr.Textbox(
                 label='Save to',
                 placeholder='path for the LoRA file to save...',
@@ -150,6 +126,30 @@ def gradio_resize_lora_tab(headless=False):
                 outputs=save_to,
                 show_progress=False,
             )
+        with gr.Row():
+            new_rank = gr.Slider(
+                label='Desired LoRA rank',
+                minimum=1,
+                maximum=1024,
+                step=1,
+                value=4,
+                interactive=True,
+            )
+            dynamic_method = gr.Dropdown(
+                choices=['None', 'sv_ratio', 'sv_fro', 'sv_cumulative'],
+                value='sv_fro',
+                label='Dynamic method',
+                interactive=True,
+            )
+            dynamic_param = gr.Textbox(
+                label='Dynamic parameter',
+                value='0.9',
+                interactive=True,
+                placeholder='Value for the dynamic method selected.',
+            )
+        with gr.Row():
+            
+            verbose = gr.Checkbox(label='Verbose', value=True)
             save_precision = gr.Dropdown(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],

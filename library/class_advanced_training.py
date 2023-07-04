@@ -135,7 +135,7 @@ class AdvancedTraining:
                 step=1,
                 minimum=0,
                 maximum=1000,
-                info='Values greater than 0 will make the model more img2img focussed'
+                info='Values greater than 0 will make the model more img2img focussed. 0 = image only'
             )
             self.max_timestep = gr.Slider(
                 label='Max Timestep',
@@ -143,7 +143,7 @@ class AdvancedTraining:
                 step=1,
                 minimum=0,
                 maximum=1000,
-                info='Values lower than 1000 will make the model more img2img focussed',
+                info='Values lower than 1000 will make the model more img2img focussed. 1000 = noise only',
             )
         
         with gr.Row():

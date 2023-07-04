@@ -12,7 +12,6 @@ import pathlib
 import argparse
 from library.common_gui import (
     get_file_path,
-    get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
