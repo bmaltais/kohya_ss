@@ -43,7 +43,6 @@
   "mid_lr_weight": "",
   "min_snr_gamma": 10,
   "mixed_precision": "bf16",
-  "model_list": "runwayml/stable-diffusion-v1-5",
   "module_dropout": 0,
   "multires_noise_discount": 0.2,
   "multires_noise_iterations": 8,
