@@ -3720,7 +3720,6 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
     b_size = latents.shape[0]
     min_timestep = 0 if args.min_timestep is None else args.min_timestep
     max_timestep = noise_scheduler.config.num_train_timesteps if args.max_timestep is None else args.max_timestep
-    print(b_size, min_timestep, max_timestep)
 
     timesteps = torch.randint(min_timestep, max_timestep, (b_size,), device=latents.device)
     timesteps = timesteps.long()
