@@ -44,6 +44,9 @@ def convert_sdxl_text_encoder_2_checkpoint(checkpoint, max_length):
             key = key.replace(".token_embedding.weight", ".embeddings.token_embedding.weight")
         elif ".ln_final" in key:
             key = key.replace(".ln_final", ".final_layer_norm")
+        # ckpt from comfy has this key: text_model.encoder.text_model.embeddings.position_ids
+        elif ".embeddings.position_ids" in key:
+            key = None  # remove this key: make position_ids by ourselves
         return key
 
     keys = list(checkpoint.keys())
