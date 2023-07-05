@@ -45,7 +45,7 @@ Summary of the feature:
   - Use `--cache_text_encoder_outputs` option and caching latents.
   - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
 - The LoRA training can be done with 12GB GPU memory.
-- `--train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
+- `--network_train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
 - PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
 
 Example of the optimizer settings for Adafactor with the fixed learning rate:
