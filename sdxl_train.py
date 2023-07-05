@@ -135,7 +135,7 @@ def train(args):
         logit_scale,
         ckpt_info,
     ) = sdxl_train_util.load_target_model(args, accelerator, "sdxl", weight_dtype)
-    logit_scale = logit_scale.to(accelerator.device, dtype=weight_dtype)
+    # logit_scale = logit_scale.to(accelerator.device, dtype=weight_dtype)
 
     # verify load/save model formats
     if load_stable_diffusion_format:
