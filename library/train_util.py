@@ -2023,6 +2023,7 @@ def add_sd_models_arguments(parser: argparse.ArgumentParser):
         default=None,
         help="directory for caching Tokenizer (for offline training) / Tokenizerをキャッシュするディレクトリ（ネット接続なしでの学習のため）",
     )
+    parser.add_argument("--model_dir", type=str, default=None, help="local model location")
 
 
 def add_optimizer_arguments(parser: argparse.ArgumentParser):
@@ -3009,19 +3010,33 @@ def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
 
 def load_tokenizer(args: argparse.Namespace):
     print("prepare tokenizer")
-    original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
-    if args.model_dir:
-        local_path = f"{args.model_dir}/{original_path}"
-        if os.path.exists(local_path):
-            original_path = local_path
 
+    name_or_path = args.pretrained_model_name_or_path
+    original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
     tokenizer: CLIPTokenizer = None
-    if args.tokenizer_cache_dir:
-        local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
-        if os.path.exists(local_tokenizer_path):
+
+    # if model info defined
+    if name_or_path:
+        # check if local cache exists, if not, use the default (original_path) instead
+        local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, name_or_path.replace("/", "_"))
+        if not os.path.exists(local_tokenizer_path):
+            local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
+        if args.tokenizer_cache_dir:
             print(f"load tokenizer from cache: {local_tokenizer_path}")
             tokenizer = CLIPTokenizer.from_pretrained(local_tokenizer_path)  # same for v1 and v2
 
+        # reset the original path by model info in param
+        original_path = name_or_path
+
+    # if local model path defined
+    elif args.model_dir:
+        # check if the local model exists
+        local_path = f"{args.model_dir}/{original_path}"
+        # if so, use the local model file
+        if os.path.exists(local_path):
+            original_path = local_path
+
+    # if the tokenizer didn't init (by cache), load the local model file or download the remote model for init
     if tokenizer is None:
         if args.v2:
             tokenizer = CLIPTokenizer.from_pretrained(original_path, subfolder="tokenizer")

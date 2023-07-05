@@ -673,8 +673,6 @@ def setup_parser() -> argparse.ArgumentParser:
         help="ignore caption and use default templates for stype / キャプションは使わずデフォルトのスタイル用テンプレートで学習する",
     )
 
-    parser.add_argument("--model_dir", type=str, default=None, help="local model location")
-
     return parser
 
 
