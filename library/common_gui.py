@@ -564,7 +564,7 @@ def gradio_config(headless=False):
             )
             config_file_name = gr.Textbox(
                 label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
+                placeholder="输入配置文件的路径或使用上面的'打开'按钮选择它...",
                 interactive=True,
             )
             button_load_config = gr.Button('Load 💾', elem_id='open_folder')
@@ -608,6 +608,7 @@ def gradio_source_model(
                 label='Pretrained model name or path',
                 placeholder='enter the path to custom model or name of pretrained model',
                 value='runwayml/stable-diffusion-v1-5',
+                info='输入预训练模型的名称或路径。这可以是存储在远程服务器上的公开模型名称，或者是本地计算机上的模型文件路径'
             )
             pretrained_model_name_or_path_file = gr.Button(
                 document_symbol,
@@ -643,11 +644,13 @@ def gradio_source_model(
                     'CompVis/stable-diffusion-v1-4',
                 ],
                 value='runwayml/stable-diffusion-v1-5',
+                info='选择预训练模型的快速选择。这可以是存储在远程服务器上的公开模型名称，或者是本地计算机上的模型文件路径'
             )
             save_model_as = gr.Dropdown(
                 label='Save trained model as',
                 choices=save_model_as_choices,
                 value='safetensors',
+                info='选择训练模型的保存方式。如果选择与源模型相同，则将覆盖源模型'
             )
 
         with gr.Row():
@@ -720,14 +723,15 @@ def gradio_training(
             label='Train batch size',
             value=1,
             step=1,
+            info='训练批次大小。如果您的显卡内存不足，可以尝试减小此值'
         )
-        epoch = gr.Number(label='Epoch', value=1, precision=0)
+        epoch = gr.Number(label='Epoch', value=1, precision=0,info='训练的轮数')
         save_every_n_epochs = gr.Number(
-            label='Save every N epochs', value=1, precision=0
+            label='Save every N epochs', value=1, precision=0,info='每N轮保存一次模型'
         )
         caption_extension = gr.Textbox(
             label='Caption Extension',
-            placeholder='(Optional) Extension for caption files. default: .caption',
+            placeholder='(可选) 标题文件的扩展名。默认为.caption'
         )
     with gr.Row():
         mixed_precision = gr.Dropdown(
@@ -738,6 +742,7 @@ def gradio_training(
                 'bf16',
             ],
             value='fp16',
+            info='当我们在训练神经网络时，我们通常需要大量的计算，这可能需要很高的计算精度。但在许多情况下，我们并不总是需要那么高的精度，例如当我们进行一些简单的运算时，或者在早期的训练阶段。在这些情况下，我们可以使用较低的精度（如fp16或bf16），这可以减少我们的内存需求，加快我们的计算速度，并可能在某些情况下提高我们的模型性能。然而，这并不总是最好的选择，因为使用较低的精度可能会导致数值不稳定性问题，特别是在需要高精度的计算中。因此，如果你选择了"no"，那就意味着你没有启用混合精度训练，所有的计算都会以全精度（通常是float32）进行'
         )
         save_precision = gr.Dropdown(
             label='Save precision',
@@ -747,6 +752,7 @@ def gradio_training(
                 'bf16',
             ],
             value='fp16',
+            info='这个选项决定了你保存模型时使用的精度。通常情况下，我们会希望保存模型时使用全精度，以确保我们的模型性能。然而，使用全精度保存模型会占用大量的存储空间。因此，如果你的存储空间有限，你可以选择使用较低的精度（如fp16或bf16）来保存你的模型。这可以大大减少模型的存储大小，但可能会牺牲一些模型性能。'
         )
         num_cpu_threads_per_process = gr.Slider(
             minimum=1,
@@ -754,15 +760,19 @@ def gradio_training(
             step=1,
             label='Number of CPU threads per core',
             value=2,
+            info='每个核心的CPU线程数。如果您的CPU支持，可以尝试使用此选项来加快训练速度'
         )
-        seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234')
+        seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234',
+                          info='随机种子。如果您想要重现您的训练结果，可以尝试使用此选项')
         cache_latents = gr.Checkbox(label='Cache latents', value=True)
         cache_latents_to_disk = gr.Checkbox(
-            label='Cache latents to disk', value=False
+            label='Cache latents to disk', value=False,
+            info='将潜在变量缓存到磁盘。如果您的显卡内存不足，可以尝试使用此选项'
         )
     with gr.Row():
         learning_rate = gr.Number(
-            label='Learning rate', value=learning_rate_value
+            label='Learning rate', value=learning_rate_value,
+            info='学习率是机器学习中的一个超参数，它决定了模型在训练过程中参数更新的速度。学习率过高，可能导致训练过程震荡不收敛；学习率过低，训练过程可能会过慢。对于大多数优化算法，理想的学习率通常需要通过实验来确定。在一些情况下，你可能会希望使用适应性学习率，这意味着学习率会在训练过程中自动调整。'
         )
         lr_scheduler = gr.Dropdown(
             label='LR Scheduler',
@@ -776,6 +786,7 @@ def gradio_training(
                 'polynomial',
             ],
             value=lr_scheduler_value,
+            info='学习率调度器是一种用于调整学习率的策略。随着训练的进行，我们可能希望逐渐减小学习率。这是因为在训练的开始，模型离最优解还很远，此时可以使用较大的学习率进行快速学习；而当模型接近最优解时，我们希望使用较小的学习率进行细致的调整。学习率调度器就是实现这个策略的工具，它会根据预定的策略（例如，每n步降低学习率）来动态地调整学习率。'
         )
         lr_warmup = gr.Slider(
             label='LR warmup (% of steps)',
@@ -783,6 +794,7 @@ def gradio_training(
             minimum=0,
             maximum=100,
             step=1,
+            info='学习率预热是一种训练策略，训练初期采用较小的学习率，逐渐提升到预设的学习率。其目的是避免训练初期，模型对数据的拟合过快而错过全局最优解。该选项允许用户设定预热阶段占总训练步数的比例。'
         )
         optimizer = gr.Dropdown(
             label='Optimizer',
@@ -806,11 +818,20 @@ def gradio_training(
             ],
             value='AdamW8bit',
             interactive=True,
+            info='''优化器用于在训练过程中更新和调整模型参数以减小模型误差。不同的优化器适用于不同类型的任务和模型。例如：
+            AdamW：AdamW是优化器Adam的改进版本，它更准确地处理了权重衰减。通常，对于多种类型的深度学习任务（包括图像分类、自然语言处理等），AdamW都是一个相对稳定、表现良好的选择。
+            AdamW8bit：这是AdamW的一个变体，它使用了较少的比特（8比特）进行计算，这可以减小内存使用并加速计算。它适用于那些对内存有严格限制或需要更快训练速度的情况
+            Adafactor：Adafactor是一种类似Adam的优化器，但内存需求更小。它主要用于大型语言模型训练，例如Transformer。
+            DAdapt系列的优化器：这些优化器可以自动调整学习率，适应不同的训练阶段。这些优化器在处理需要应对训练不稳定性和噪声的复杂问题时表现良好。
+            Lion和Lion8bit：Lion是一种先进的优化器，可以自动调整学习率。如果你正在训练一个复杂的模型，并且希望让优化器尽可能地自动调整学习率，那么Lion可能是个好选择。
+            Prodigy：这是一种先进的优化器，专为训练大型模型设计。如果你在训练一个大型模型，并希望优化器能够自动地调整学习率以适应训练的不同阶段，Prodigy可能是一个很好的选择。
+            SGDNesterov和SGDNesterov8bit：这是随机梯度下降（SGD）优化器的一个变体，SGD优化器常用于深度学习模型的训练，包括CNN、RNN等。Nesterov动量可以加速训练过程。在内存充足、计算资源充足的情况下，SGDNesterov优化器常常是训练深度模型的首选。'''
         )
     with gr.Row():
         optimizer_args = gr.Textbox(
             label='Optimizer extra arguments',
-            placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
+            # placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
+            placeholder='优化器的额外参数。如果您不确定如何设置这些参数，可以尝试使用默认值'
         )
     return (
         learning_rate,
@@ -938,33 +959,39 @@ def gradio_advanced_training(headless=False):
     with gr.Row():
         additional_parameters = gr.Textbox(
             label='Additional parameters',
-            placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
+            # placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
+            placeholder='用于提供GUI无法处理的额外参数。例如：--some_parameters "value"',        
         )
     with gr.Row():
         save_every_n_steps = gr.Number(
             label='Save every N steps',
             value=0,
             precision=0,
-            info='(Optional) The model is saved every specified steps',
+            # info='(Optional) The model is saved every specified steps',
+            info='（可选）模型将在每个指定步骤保存',
         )
         save_last_n_steps = gr.Number(
             label='Save last N steps',
             value=0,
             precision=0,
-            info='(Optional) Save only the specified number of models (old models will be deleted)',
+            # info='(Optional) Save only the specified number of models (old models will be deleted)',
+            info='（可选）仅保存指定数量的模型（旧模型将被删除）',
         )
         save_last_n_steps_state = gr.Number(
             label='Save last N states',
             value=0,
             precision=0,
-            info='(Optional) Save only the specified number of states (old models will be deleted)',
+            # info='(Optional) Save only the specified number of states (old models will be deleted)',
+            info='（可选）仅保存指定数量的状态（旧模型将被删除）',
         )
     with gr.Row():
         keep_tokens = gr.Slider(
-            label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
+            label='Keep n tokens', value='0', minimum=0, maximum=32, step=1,
+            info='（可选）随机打乱caption时，保留前N个不变（逗号分隔）',
         )
         clip_skip = gr.Slider(
-            label='Clip skip', value='1', minimum=1, maximum=12, step=1
+            label='Clip skip', value='1', minimum=1, maximum=12, step=1,
+            info='（可选）跳过训练的步骤数',
         )
         max_token_length = gr.Dropdown(
             label='Max Token Length',
@@ -974,46 +1001,59 @@ def gradio_advanced_training(headless=False):
                 '225',
             ],
             value='75',
+            info='（可选）最大令牌长度。这可以提高训练速度，但可能会导致模型性能下降',
         )
         full_fp16 = gr.Checkbox(
-            label='Full fp16 training (experimental)', value=False
+            label='Full fp16 training (experimental)', value=False,
+            info='（实验性）使用fp16进行完整的训练。这可以提高训练速度，但可能会导致模型性能下降',
         )
     with gr.Row():
         gradient_checkpointing = gr.Checkbox(
-            label='Gradient checkpointing', value=False
+            label='Gradient checkpointing', value=False,
+            info='(实验性) 使用梯度检查点来减少内存使用',
         )
-        shuffle_caption = gr.Checkbox(label='Shuffle caption', value=False)
+        shuffle_caption = gr.Checkbox(label='Shuffle caption', value=False,
+            info='随机对caption进行排序',)
         persistent_data_loader_workers = gr.Checkbox(
-            label='Persistent data loader', value=False
+            label='Persistent data loader', value=False,
+            info='在训练过程中，持续使用数据加载器，而不是在每个epoch中重新创建数据加载器。这可以提高训练速度，但是可能会导致内存泄漏',
         )
         mem_eff_attn = gr.Checkbox(
-            label='Memory efficient attention', value=False
+            label='Memory efficient attention', value=False,
+            info='使用内存效率的注意力，以减少内存使用',
         )
     with gr.Row():
         # This use_8bit_adam element should be removed in a future release as it is no longer used
         # use_8bit_adam = gr.Checkbox(
         #     label='Use 8bit adam', value=False, visible=False
         # )
-        xformers = gr.Checkbox(label='Use xformers', value=True)
-        color_aug = gr.Checkbox(label='Color augmentation', value=False)
-        flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
+        xformers = gr.Checkbox(label='Use xformers', value=True,
+                               info='使用xformers库，而不是原始的transformers库')
+        color_aug = gr.Checkbox(label='Color augmentation', value=False,
+                                info='通过改变图像的颜色来增加数据的多样性，以提高模型的泛化能力')
+        flip_aug = gr.Checkbox(label='Flip augmentation', value=False,info='通过翻转图像来增加数据的多样性，以提高模型的泛化能力')
         min_snr_gamma = gr.Slider(
-            label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1
+            label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1,
+            info='最小的信噪比伽马值，用于在训练过程中对图像进行噪声增强',
         )
     with gr.Row():
         bucket_no_upscale = gr.Checkbox(
-            label="Don't upscale bucket resolution", value=True
+            label="Don't upscale bucket resolution", value=True,
+            info='不要在训练过程中提高bucket的分辨率，这可以减少内存使用',
         )
         bucket_reso_steps = gr.Slider(
-            label='Bucket resolution steps', value=64, minimum=1, maximum=128
+            label='Bucket resolution steps', value=64, minimum=1, maximum=128,
+            info='在训练过程中，每个epoch提高bucket的分辨率的步数',
         )
         random_crop = gr.Checkbox(
-            label='Random crop instead of center crop', value=False
+            label='Random crop instead of center crop', value=False,
+            info='在训练过程中，使用随机裁剪而不是中心裁剪',
         )
     
     with gr.Row():
         noise_offset_type = gr.Dropdown(
             label='Noise offset type',
+            info='使用的噪声偏移类型。默认为原始类型，但对于某些模型，多分辨率类型可能更好。这是实验性的，可选的。',
             choices=[
                 'Original',
                 'Multires',
@@ -1027,7 +1067,7 @@ def gradio_advanced_training(headless=False):
                 minimum=0,
                 maximum=1,
                 step=0.01,
-                info='recommended values are 0.05 - 0.15',
+                info='噪声强度。增大这个值，可以增加模型训练中的随机性，可能会使模型更加健壮，但也可能会引入过多的噪声，影响模型的精度。推荐的值在0.05到0.15之间',
             )
             adaptive_noise_scale = gr.Slider(
                 label='Adaptive noise scale',
@@ -1035,7 +1075,7 @@ def gradio_advanced_training(headless=False):
                 minimum=-1,
                 maximum=1,
                 step=0.001,
-                info='(Experimental, Optional) Since the latent is close to a normal distribution, it may be a good idea to specify a value around 1/10 the noise offset.',
+                info='用于调整噪声的规模。由于潜在变量（模型内部表示数据的方式）通常接近正态分布，因此可能会选择一个接近噪声偏移1/10的值。这样可以保证噪声不会太大，也不会太小，以便模型能够有效地学习',
             )
         with gr.Row(visible=False) as noise_offset_multires:
             multires_noise_iterations = gr.Slider(
@@ -1044,7 +1084,7 @@ def gradio_advanced_training(headless=False):
                 minimum=0,
                 maximum=64,
                 step=1,
-                info='enable multires noise (recommended values are 6-10)',
+                info='多分辨率噪声的次数。多分辨率噪声意味着在不同的细节级别（如高频细节和低频细节）上添加不同的噪声。推荐的值在6到10之间',
             )
             multires_noise_discount = gr.Slider(
                 label='Multires noise discount',
@@ -1052,7 +1092,8 @@ def gradio_advanced_training(headless=False):
                 minimum=0,
                 maximum=1,
                 step=0.01,
-                info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+                info='调整多分辨率噪声影响的参数。数值越大，噪声在细节级别上的影响越大。对于小型数据集，建议设置较小的值（如0.1到0.3），这可能是因为小型数据集可能更容易受到噪声的影响',
+            
             )
         noise_offset_type.change(
             noise_offset_type_change,
@@ -1061,19 +1102,23 @@ def gradio_advanced_training(headless=False):
         )
     with gr.Row():
         caption_dropout_every_n_epochs = gr.Number(
-            label='Dropout caption every n epochs', value=0
+            label='Dropout caption every n epochs', value=0,
+            info='在训练过程中，每隔n个epoch，随机删除caption中的单词。这可以提高模型的泛化能力，但是可能会降低模型的精度',
         )
         caption_dropout_rate = gr.Slider(
-            label='Rate of caption dropout', value=0, minimum=0, maximum=1
+            label='Rate of caption dropout', value=0, minimum=0, maximum=1,
+            info='caption中单词被删除的概率',
         )
         vae_batch_size = gr.Slider(
-            label='VAE batch size', minimum=0, maximum=32, value=0, step=1
+            label='VAE batch size', minimum=0, maximum=32, value=0, step=1,
+            info='VAE的batch size。如果设置为0，则不使用VAE',
         )
     with gr.Row():
-        save_state = gr.Checkbox(label='Save training state', value=False)
+        save_state = gr.Checkbox(label='Save training state', value=False,info='如果被勾选，将保存训练状态，以便在训练过程中恢复')
         resume = gr.Textbox(
             label='Resume from saved training state',
             placeholder='path to "last-state" state folder to resume from',
+            info='如果设置了这个参数，模型将从上次保存的状态中恢复训练',
         )
         resume_button = gr.Button(
             '📂', elem_id='open_folder_small', visible=(not headless)
@@ -1086,28 +1131,30 @@ def gradio_advanced_training(headless=False):
         max_train_epochs = gr.Textbox(
             label='Max train epoch',
             placeholder='(Optional) Override number of epoch',
+            info='训练最大周期数(epoch)。每个epoch代表模型看完一次全部的训练数据。',
         )
         max_data_loader_n_workers = gr.Textbox(
             label='Max num workers for DataLoader',
             placeholder='(Optional) Override number of epoch. Default: 8',
             value='0',
+            info='数据加载的最大工作线程数。在PyTorch中，DataLoader可以并行地加载数据，这个数值设定了同时工作的线程数，以便更快地加载数据。默认值是8',
         )
     with gr.Row():
         wandb_api_key = gr.Textbox(
             label='WANDB API Key',
             value='',
             placeholder='(Optional)',
-            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login',
+            info='Weights & Biases（WANDB）API密钥。Weights & Biases是一个机器学习项目的实验跟踪和可视化工具。用户需要在WANDB网站生成自己的API密钥，然后输入到这个选项里: https://wandb.ai/login',
         )
         use_wandb = gr.Checkbox(
             label='WANDB Logging',
             value=False,
-            info='If unchecked, tensorboard will be used as the default for logging.',
+            info='如果被勾选，将使用Weights & Biases进行日志记录。如果没有勾选，将使用TensorBoard作为默认的日志记录工具',
         )
         scale_v_pred_loss_like_noise_pred = gr.Checkbox(
             label='Scale v prediction loss',
             value=False,
-            info='Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.',
+            info='只对SD v2模型有效。如果被勾选，将根据时间步长来调整预测损失，使得全局噪声预测和局部噪声预测的权重相同，从而可能期待提高细节的改进',
         )
     return (
         # use_8bit_adam,

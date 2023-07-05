@@ -695,7 +695,7 @@ def ti_tab(
         with gr.Row():
             train_data_dir = gr.Textbox(
                 label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
+                placeholder='设置包含训练图像的文件夹的路径。'
             )
             train_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -707,7 +707,7 @@ def ti_tab(
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
+                placeholder='(可选) 设置包含正则化图像的文件夹的路径。'
             )
             reg_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -720,7 +720,7 @@ def ti_tab(
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Model output folder',
-                placeholder='Folder to output trained model',
+                placeholder='设置输出训练模型的文件夹的路径。'
             )
             output_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -732,7 +732,7 @@ def ti_tab(
             )
             logging_dir = gr.Textbox(
                 label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                placeholder='(可选) 设置输出TensorBoard日志的文件夹的路径',
             )
             logging_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -745,8 +745,7 @@ def ti_tab(
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
+                placeholder='设置输出模型的名称',
                 interactive=True,
             )
         train_data_dir.change(
@@ -838,6 +837,7 @@ def ti_tab(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
+                info='数据集图像的最大分辨率。W,H',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -850,14 +850,17 @@ def ti_tab(
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
                 no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
+                    label='No token padding', value=False,
+                    info='如果勾选这个选项，那么在处理文本数据时，模型将不会在句子后面添加额外的"padding" tokens来使所有的句子都有相同的长度。这个选项可以让训练过程更加高效，但可能会影响模型的表现'
                 )
                 gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
+                    label='Gradient accumulate steps', value='1',
+                    info='这个选项让你可以设置模型每隔多少步进行一次梯度的更新。如果设置为1，那么模型将在每一步都更新梯度；如果设置为10，那么模型将在每10步更新一次梯度。通过调整这个选项，你可以控制训练过程的速度和精度。'
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
+                    label='Prior loss weight', value=1.0,
+                    info='这个选项让你可以设置"prior loss"的权重。"prior loss"是一种衡量模型生成的图像和目标图像之间差异的指标，通过调整这个权重，你可以控制模型对生成图像的质量和原始图像的相似度的追求。'
                 )
                 vae = gr.Textbox(
                     label='VAE',

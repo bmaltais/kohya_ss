@@ -114,7 +114,7 @@ def gradio_group_images_gui_tab(headless=False):
             
             caption_ext = gr.Textbox(
                 label='Caption Extension',
-                placeholder='Caption file extension (e.g., .txt)',
+                placeholder='字幕文件扩展名（例如，.txt）',
                 value='.txt',
                 interactive=True,
             )

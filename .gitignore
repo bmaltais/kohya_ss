@@ -40,5 +40,8 @@ test/ft
 # Temporary requirements
 requirements_tmp_for_setup.txt
 
+runwayml
+huggingface
+
 # Version specific
 0.13.3

@@ -649,7 +649,7 @@ def finetune_tab(headless=False):
 
             image_folder = gr.Textbox(
                 label='Training Image folder',
-                placeholder='folder where the training images are located',
+                placeholder='设置包含训练图像的文件夹的路径。'
             )
             image_folder_input_folder = gr.Button(
                 folder_symbol,
@@ -664,7 +664,7 @@ def finetune_tab(headless=False):
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Model output folder',
-                placeholder='folder where the model will be saved',
+                placeholder='设置输出训练模型的文件夹的路径。',
             )
             output_dir_input_folder = gr.Button(
                 folder_symbol,
@@ -679,7 +679,7 @@ def finetune_tab(headless=False):
 
             logging_dir = gr.Textbox(
                 label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                placeholder='(可选) 设置输出TensorBoard日志的文件夹的路径',
             )
             logging_dir_input_folder = gr.Button(
                 folder_symbol,
@@ -694,8 +694,7 @@ def finetune_tab(headless=False):
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
+                placeholder='设置输出模型的名称',
                 interactive=True,
             )
         train_dir.change(

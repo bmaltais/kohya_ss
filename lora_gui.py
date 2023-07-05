@@ -989,7 +989,7 @@ def lora_tab(
         with gr.Row():
             train_data_dir = gr.Textbox(
                 label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
+                placeholder='设置包含训练图像的文件夹的路径。'
             )
             train_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -1001,7 +1001,7 @@ def lora_tab(
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
+                placeholder='(可选) 设置包含正则化图像的文件夹的路径。'
             )
             reg_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -1014,7 +1014,7 @@ def lora_tab(
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Output folder',
-                placeholder='Folder to output trained model',
+                placeholder='设置输出训练模型的文件夹的路径。'
             )
             output_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -1026,7 +1026,7 @@ def lora_tab(
             )
             logging_dir = gr.Textbox(
                 label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                placeholder='(可选) 设置输出TensorBoard日志的文件夹的路径',
             )
             logging_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -1039,13 +1039,13 @@ def lora_tab(
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='(Name of the model to output)',
-                value='last',
+                placeholder='设置输出模型的名称',
                 interactive=True,
             )
             training_comment = gr.Textbox(
                 label='Training comment',
-                placeholder='(Optional) Add training comment to be included in metadata',
+                # placeholder='(Optional) Add training comment to be included in metadata',
+                placeholder='（可选）添加要包含在元数据中的训练注释',
                 interactive=True,
             )
         train_data_dir.change(
@@ -1088,8 +1088,9 @@ def lora_tab(
                 with gr.Row():
                     lora_network_weights = gr.Textbox(
                         label='LoRA network weights',
-                        placeholder='(Optional)',
-                        info='Path to an existing LoRA network weights to resume training from',
+                        placeholder='(可选)',
+                        # info='Path to an existing LoRA network weights to resume training from',
+                        info='从现有的LoRA网络继续训练，填写文件的路径',
                     )
                     lora_network_weights_file = gr.Button(
                         document_symbol,
@@ -1105,7 +1106,8 @@ def lora_tab(
                     dim_from_weights = gr.Checkbox(
                         label='DIM from weights',
                         value=False,
-                        info='Automatically determine the dim(rank) from the weight file.',
+                        # info='Automatically determine the dim(rank) from the weight file.',
+                        info='从权重文件自动确定dim（rank）。',
                     )
         (
             learning_rate,
@@ -1133,12 +1135,12 @@ def lora_tab(
             text_encoder_lr = gr.Number(
                 label='Text Encoder learning rate',
                 value='5e-5',
-                info='Optional',
+                info='文本编码器的学习率',
             )
             unet_lr = gr.Number(
                 label='Unet learning rate',
                 value='0.0001',
-                info='Optional',
+                info='Unet模型的学习率',
             )
         with gr.Row():
             factor = gr.Slider(
@@ -1148,19 +1150,23 @@ def lora_tab(
                 maximum=64,
                 step=1,
                 visible=False,
+                info='LoKr的因子，用于控制优化的程度',
             )
             use_cp = gr.Checkbox(
                 value=False,
                 label='Use CP decomposition',
-                info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+                # info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+                info='一种两步方法，利用张量分解和微调来加速大型神经网络中的卷积层，从而显着提高CPU速度，同时降低精度。',
             )
             decompose_both = gr.Checkbox(
                 value=False,
                 label='LoKr decompose both',
+                info='LoKr分解两个卷积层,可能会带来更好的优化效果，但也可能增加计算复杂度',
             )
             train_on_input = gr.Checkbox(
                 value=False,
                 label='iA3 train on input',
+                info='iA3在输入上训练,可能会带来更好的效果',
             )
 
         with gr.Row():
@@ -1171,6 +1177,7 @@ def lora_tab(
                 value=8,
                 step=1,
                 interactive=True,
+                info='数值越大表示表现力越强，但需要更多的内存和时间来训练。而且不要盲目增加此数值'
             )
             network_alpha = gr.Slider(
                 minimum=0.1,
@@ -1179,7 +1186,8 @@ def lora_tab(
                 value=1,
                 step=0.1,
                 interactive=True,
-                info='alpha for LoRA weight scaling',
+                # info='alpha for LoRA weight scaling',
+                info='指定用于防止下溢并稳定训练的alpha值。如果与`Network Rank (Dimension)`指定相同的值，则将获得与以前版本相同的行为',
             )
         with gr.Row(visible=False) as LoCon_row:
 
@@ -1190,6 +1198,7 @@ def lora_tab(
                 value=1,
                 step=1,
                 label='Convolution Rank (Dimension)',
+                info='这是用于设置卷积的维度（也称为秩）的滑动条。卷积的维度是卷积的复杂度的度量，维度越高，卷积的复杂度越大，模型的表示能力越强，但同时训练和运算的代价也越大'
             )
             conv_alpha = gr.Slider(
                 minimum=0.1,
@@ -1197,6 +1206,7 @@ def lora_tab(
                 value=1,
                 step=0.1,
                 label='Convolution Alpha',
+                info='LoCon权重缩放的alpha',
             )
         with gr.Row():
             scale_weight_norms = gr.Slider(
@@ -1205,7 +1215,8 @@ def lora_tab(
                 minimum=0,
                 maximum=1,
                 step=0.01,
-                info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
+                # info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR for details.',
+                info='最大规范正则化是一种通过限制网络权重的范数来稳定网络训练的技术。当与其他LoRA一起使用时，它可能有效地抑制LoRA的过拟合并提高稳定性。有关详细信息，请参见PR。',
                 interactive=True,
             )
             network_dropout = gr.Slider(
@@ -1214,7 +1225,8 @@ def lora_tab(
                 minimum=0,
                 maximum=1,
                 step=0.01,
-                info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+                # info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+                info='是神经元级别的正常概率丢失。在LoRA的情况下，它被应用于下降的输出。推荐范围0.1到0.5',
             )
             rank_dropout = gr.Slider(
                 label='Rank dropout',
@@ -1222,7 +1234,8 @@ def lora_tab(
                 minimum=0,
                 maximum=1,
                 step=0.01,
-                info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                # info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                info='可以指定`rank_dropout`以以指定的概率丢弃每个秩。推荐范围0.1到0.3',
             )
             module_dropout = gr.Slider(
                 label='Module dropout',
@@ -1230,7 +1243,8 @@ def lora_tab(
                 minimum=0.0,
                 maximum=1.0,
                 step=0.01,
-                info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                # info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                info='可以指定`module_dropout`以以指定的概率丢弃每个秩。推荐范围0.1到0.3',
             )
         with gr.Row(visible=False) as kohya_dylora:
             unit = gr.Slider(
@@ -1240,6 +1254,7 @@ def lora_tab(
                 value=1,
                 step=1,
                 interactive=True,
+                info='DyLoRA的单元/块大小',
             )
 
             # Show or hide LoCon conv settings depending on LoRA type selection
@@ -1341,7 +1356,8 @@ def lora_tab(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
-                info='The maximum resolution of dataset images. W,H',
+                # info='The maximum resolution of dataset images. W,H',
+                info='数据集图像的最大分辨率。W,H',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=0,
@@ -1349,12 +1365,14 @@ def lora_tab(
                 value=0,
                 step=1,
                 label='Stop text encoder training',
-                info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
+                # info='After what % of steps should the text encoder stop being trained. 0 = train for all steps.',
+                info='在多少步骤后，文本编码器应停止训练。 0 =训练所有步骤。',
             )
             enable_bucket = gr.Checkbox(
                 label='Enable buckets',
                 value=True,
-                info='Allow non similar resolution dataset images to be trained on.',
+                # info='Allow non similar resolution dataset images to be trained on.',
+                info='允许对非相似分辨率的数据集图像进行训练。',
             )
 
         with gr.Accordion('Advanced Configuration', open=False):
@@ -1364,50 +1382,59 @@ def lora_tab(
                         down_lr_weight = gr.Textbox(
                             label='Down LR weights',
                             placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
-                            info='Specify the learning rate weight of the down blocks of U-Net.',
+                            # info='Specify the learning rate weight of the down blocks of U-Net.',
+                            info='指定U-Net的下块的学习率权重。',
                         )
                         mid_lr_weight = gr.Textbox(
                             label='Mid LR weights',
                             placeholder='(Optional) eg: 0.5',
-                            info='Specify the learning rate weight of the mid block of U-Net.',
+                            # info='Specify the learning rate weight of the mid block of U-Net.',
+                            info='指定U-Net的中块的学习率权重。',
                         )
                         up_lr_weight = gr.Textbox(
                             label='Up LR weights',
                             placeholder='(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1',
-                            info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.',
+                            # info='Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.',
+                            info='指定U-Net的上块的学习率权重。与down_lr_weight相同。',
                         )
                         block_lr_zero_threshold = gr.Textbox(
                             label='Blocks LR zero threshold',
                             placeholder='(Optional) eg: 0.1',
-                            info='If the weight is not more than this value, the LoRA module is not created. The default is 0.',
+                            # info='If the weight is not more than this value, the LoRA module is not created. The default is 0.',
+                            info='如果权重不超过此值，则不会创建LoRA模块。默认值为0。',
                         )
                 with gr.Tab(label='Blocks'):
                     with gr.Row(visible=True):
                         block_dims = gr.Textbox(
                             label='Block dims',
                             placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the dim (rank) of each block. Specify 25 numbers.',
+                            # info='Specify the dim (rank) of each block. Specify 25 numbers.',
+                            info='指定每个块的dim（rank）。指定25个数字。',
                         )
                         block_alphas = gr.Textbox(
                             label='Block alphas',
                             placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.',
+                            # info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.',
+                            info='指定每个块的alpha。与block_dims一样指定25个数字。如果省略，则使用network_alpha的值。',
                         )
                 with gr.Tab(label='Conv'):
                     with gr.Row(visible=True):
                         conv_dims = gr.Textbox(
                             label='Conv dims',
                             placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
+                            # info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
+                            info='将LoRA扩展到Conv2d 3x3并指定每个块的dim（rank）。指定25个数字。',
                         )
                         conv_alphas = gr.Textbox(
                             label='Conv alphas',
                             placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                            info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
+                            # info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
+                            info='将LoRA扩展到Conv2d 3x3时，指定每个块的alpha。指定25个数字。如果省略，则使用conv_alpha的值。',
                         )
             with gr.Row():
                 no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
+                    label='No token padding', value=False,
+                    info='如果勾选这个选项，那么在处理文本数据时，模型将不会在句子后面添加额外的"padding" tokens来使所有的句子都有相同的长度。这个选项可以让训练过程更加高效，但可能会影响模型的表现'
                 )
                 gradient_accumulation_steps = gr.Slider(
                     label='Gradient accumulate steps',
@@ -1415,24 +1442,29 @@ def lora_tab(
                     minimum=1,
                     maximum=128,
                     step=1,
+                    info='这个选项让你可以设置模型每隔多少步进行一次梯度的更新。如果设置为1，那么模型将在每一步都更新梯度；如果设置为10，那么模型将在每10步更新一次梯度。通过调整这个选项，你可以控制训练过程的速度和精度。'
                 )
                 weighted_captions = gr.Checkbox(
                     label='Weighted captions',
                     value=False,
-                    info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
+                    # info='Enable weighted captions in the standard style (token:1.3). No commas inside parens, or shuffle/dropout may break the decoder.',
+                    info='在标准样式中启用加权标题（token:1.3）。括号内没有逗号，否则shuffle/dropout可能会破坏解码器。',
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
+                    label='Prior loss weight', value=1.0,
+                    info='这个选项让你可以设置"prior loss"的权重。"prior loss"是一种衡量模型生成的图像和目标图像之间差异的指标，通过调整这个权重，你可以控制模型对生成图像的质量和原始图像的相似度的追求。'
                 )
                 lr_scheduler_num_cycles = gr.Textbox(
                     label='LR number of cycles',
-                    placeholder='(Optional) For Cosine with restart and polynomial only',
+                    # placeholder='(Optional) For Cosine with restart and polynomial only',
+                    placeholder='(可选) 仅用于余弦和多项式重启',
                 )
 
                 lr_scheduler_power = gr.Textbox(
                     label='LR power',
-                    placeholder='(Optional) For Cosine with restart and polynomial only',
+                    # placeholder='(Optional) For Cosine with restart and polynomial only',
+                    placeholder='(可选) 仅用于余弦和多项式重启',
                 )
 
             (

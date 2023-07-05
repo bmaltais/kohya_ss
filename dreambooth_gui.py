@@ -667,7 +667,7 @@ def dreambooth_tab(
         with gr.Row():
             train_data_dir = gr.Textbox(
                 label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
+                placeholder='设置包含训练图像的文件夹的路径。'
             )
             train_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -679,7 +679,7 @@ def dreambooth_tab(
             )
             reg_data_dir = gr.Textbox(
                 label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
+                placeholder='(可选) 设置包含正则化图像的文件夹的路径。'
             )
             reg_data_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -692,7 +692,7 @@ def dreambooth_tab(
         with gr.Row():
             output_dir = gr.Textbox(
                 label='Model output folder',
-                placeholder='Folder to output trained model',
+                placeholder='设置输出训练模型的文件夹的路径。'
             )
             output_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -700,7 +700,7 @@ def dreambooth_tab(
             output_dir_input_folder.click(get_folder_path, outputs=output_dir)
             logging_dir = gr.Textbox(
                 label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                placeholder='(可选) 设置输出TensorBoard日志的文件夹的路径'
             )
             logging_dir_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -713,8 +713,7 @@ def dreambooth_tab(
         with gr.Row():
             output_name = gr.Textbox(
                 label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
+                placeholder='设置输出模型的名称',
                 interactive=True,
             )
         train_data_dir.change(
@@ -764,6 +763,7 @@ def dreambooth_tab(
                 label='Max resolution',
                 value='512,512',
                 placeholder='512,512',
+                info='数据集图像的最大分辨率。W,H',
             )
             stop_text_encoder_training = gr.Slider(
                 minimum=-1,
@@ -771,26 +771,33 @@ def dreambooth_tab(
                 value=0,
                 step=1,
                 label='Stop text encoder training',
+                info='这个滑动条可以让你设置在训练过程中何时停止更新文本编码器的权重。如果设置为0，那么在整个训练过程中文本编码器的权重都将被更新；如果设置为50，那么在训练的前50%的步骤中文本编码器的权重将被更新，后50%的步骤中文本编码器的权重将不再更新。'
             )
-            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            enable_bucket = gr.Checkbox(label='Enable buckets', value=True,
+                                        info='这个复选框可以让你决定是否启用"buckets"。在训练过程中，模型将数据分成不同的"buckets"，每个"bucket"中的数据有相似的特性（例如，句子长度），这样可以提高训练的效率。')
         with gr.Accordion('Advanced Configuration', open=False):
             with gr.Row():
                 no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
+                    label='No token padding', value=False,
+                    info='如果勾选这个选项，那么在处理文本数据时，模型将不会在句子后面添加额外的"padding" tokens来使所有的句子都有相同的长度。这个选项可以让训练过程更加高效，但可能会影响模型的表现'
                 )
                 gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
+                    label='Gradient accumulate steps', value='1',
+                    info='这个选项让你可以设置模型每隔多少步进行一次梯度的更新。如果设置为1，那么模型将在每一步都更新梯度；如果设置为10，那么模型将在每10步更新一次梯度。通过调整这个选项，你可以控制训练过程的速度和精度。'
                 )
                 weighted_captions = gr.Checkbox(
-                    label='Weighted captions', value=False
+                    label='Weighted captions', value=False,
+                    info='在标准样式中启用加权标题（token:1.3）。括号内没有逗号，否则shuffle/dropout可能会破坏解码器。',
                 )
             with gr.Row():
                 prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
+                    label='Prior loss weight', value=1.0,
+                    info='这个选项让你可以设置"prior loss"的权重。"prior loss"是一种衡量模型生成的图像和目标图像之间差异的指标，通过调整这个权重，你可以控制模型对生成图像的质量和原始图像的相似度的追求。'
                 )
                 vae = gr.Textbox(
                     label='VAE',
                     placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                    info='这个选项让你可以提供一个预训练的变分自编码器（VAE）的模型路径。如果提供了这个路径，那么在训练过程中，模型将使用这个预训练的VAE，而不是从零开始训练一个新的VAE。'
                 )
                 vae_button = gr.Button(
                     '📂', elem_id='open_folder_small', visible=(not headless)

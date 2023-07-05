@@ -41,7 +41,7 @@ def UI(**kwargs):
 
     with interface:
         gr.Markdown(
-            f'kohya_ss GUI release {release}'
+            f'kohya_ss GUI release {release} 汉化版 by Mr_JD_87（微信）'
         )
         with gr.Tab('Dreambooth'):
             (
