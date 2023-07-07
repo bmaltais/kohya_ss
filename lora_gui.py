@@ -858,7 +858,7 @@ def train_model(
 
     run_cmd += f' --network_dim={network_dim}'
 
-    if LoRA_type not in ['LyCORIS/LoCon', 'LyCORIS/LoHa']:
+    if LoRA_type not in ['LyCORIS/LoCon']:
         if not lora_network_weights == '':
             run_cmd += f' --network_weights="{lora_network_weights}"'
         if dim_from_weights:
@@ -1143,17 +1143,17 @@ def lora_tab(
 
                 # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
                 conv_dim = gr.Slider(
-                    minimum=1,
+                    minimum=0,
                     maximum=512,
                     value=1,
                     step=1,
                     label='Convolution Rank (Dimension)',
                 )
                 conv_alpha = gr.Slider(
-                    minimum=0.1,
+                    minimum=0,
                     maximum=512,
                     value=1,
-                    step=0.1,
+                    step=1,
                     label='Convolution Alpha',
                 )
             with gr.Row():
@@ -1238,15 +1238,24 @@ def lora_tab(
                             gr.Row,
                         ),
                         'lora_network_weights': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',},
                             gr.Textbox,
                         ),
                         'lora_network_weights_file': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',},
                             gr.Button,
                         ),
                         'dim_from_weights': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon'},
+                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                'LyCORIS/LoHa',
+                                'LyCORIS/LoCon',
+                                'LyCORIS/LoKr',},
                             gr.Checkbox,
                         ),
                         'factor': ({'LyCORIS/LoKr'}, gr.Slider),
