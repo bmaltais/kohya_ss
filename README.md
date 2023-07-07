@@ -432,3 +432,4 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Improve how Source model preset work
   - New min/max timesteps parameters
   - Transformed a lot of the Gradio GUI code into class for easier updates/maintenance
+  - Make save button visible in headless mode. https://github.com/bmaltais/kohya_ss/issues/1125

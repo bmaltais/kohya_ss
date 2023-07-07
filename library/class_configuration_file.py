@@ -10,7 +10,7 @@ class ConfigurationFile:
                     'Open 📂', elem_id='open_folder', visible=(not self.headless)
                 )
                 self.button_save_config = gr.Button(
-                    'Save 💾', elem_id='open_folder', visible=(not self.headless)
+                    'Save 💾', elem_id='open_folder',
                 )
                 self.button_save_as_config = gr.Button(
                     'Save as... 💾', elem_id='open_folder', visible=(not self.headless)
