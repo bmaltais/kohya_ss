@@ -25,7 +25,7 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 Summary of the feature:
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
-  - __`prepare_buckets_latents.py` does not support SDXL fine-tuning. Please use DreamBooth dataset, or the metadata without bucketing.__
+  - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
 - `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
 - Both scripts has following additional options:
   - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
@@ -39,7 +39,7 @@ Summary of the feature:
 ### Tips for SDXL training
 
 - The default resolution of SDXL is 1024x1024.
-- The fine-tuning can be done with 24GB GPU memory with the batch size of 1.
+- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended:
   - Train U-Net only.
   - Use gradient checkpointing.
   - Use `--cache_text_encoder_outputs` option and caching latents.
