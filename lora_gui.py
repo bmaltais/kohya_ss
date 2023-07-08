@@ -1116,7 +1116,7 @@ def lora_tab(
                 )
                 network_alpha = gr.Slider(
                     minimum=0.1,
-                    maximum=1024,
+                    maximum=20000,
                     label='Network Alpha',
                     value=1,
                     step=0.1,
