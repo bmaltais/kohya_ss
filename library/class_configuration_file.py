@@ -1,6 +1,7 @@
 import gradio as gr
 from .common_gui import remove_doublequote
 
+
 class ConfigurationFile:
     def __init__(self, headless=False):
         self.headless = headless
@@ -26,3 +27,4 @@ class ConfigurationFile:
                     inputs=[self.config_file_name],
                     outputs=[self.config_file_name],
                 )
+                

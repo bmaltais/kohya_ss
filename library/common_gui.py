@@ -6,8 +6,10 @@ import gradio as gr
 import easygui
 import shutil
 import sys
+import json
 
 from library.custom_logging import setup_logging
+from datetime import datetime
 
 # Set up logging
 log = setup_logging()
@@ -821,3 +823,14 @@ def verify_image_folder_pattern(folder_path):
     log.info(f'Valid image folder names found in: {folder_path}')
     return true_response
 
+def SaveConfigFile(parameters, file_path: str, exclusion = ['file_path', 'save_as', 'headless', 'print_only']):
+    # Return the values of the variables as a dictionary
+    variables = {
+        name: value
+        for name, value in sorted(parameters, key=lambda x: x[0])
+        if name not in exclusion
+    }
+
+    # Save the data to the selected file
+    with open(file_path, 'w') as file:
+        json.dump(variables, file, indent=2)

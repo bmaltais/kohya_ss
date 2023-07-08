@@ -5,6 +5,7 @@ import os
 import subprocess
 import pathlib
 import argparse
+from datetime import datetime
 from library.common_gui import (
     get_folder_path,
     get_file_path,
@@ -14,7 +15,8 @@ from library.common_gui import (
     color_aug_changed,
     run_cmd_training,
     update_my_data,
-    check_if_model_exist
+    check_if_model_exist,
+    SaveConfigFile,
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -151,13 +153,6 @@ def save_configuration(
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
-    # Return the values of the variables as a dictionary
-    variables = {
-        name: value
-        for name, value in sorted(parameters, key=lambda x: x[0])
-        if name not in ['file_path', 'save_as']
-    }
-
     # Extract the destination directory from the file path
     destination_directory = os.path.dirname(file_path)
 
@@ -165,9 +160,7 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    # Save the data to the selected file
-    with open(file_path, 'w') as file:
-        json.dump(variables, file, indent=2)
+    SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as'])
 
     return file_path
 
@@ -375,6 +368,9 @@ def train_model(
     min_timestep,
     max_timestep,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+    
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start Finetuning...')
 
@@ -609,6 +605,15 @@ def train_model(
         )
         log.info(run_cmd)
     else:
+        # Saving config file for model
+        current_datetime = datetime.now()
+        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
+        file_path = os.path.join(output_dir, f'{output_name}_{formatted_datetime}.json')
+        
+        log.info(f'Saving training config to {file_path}...')
+
+        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as', 'headless', 'print_only'])
+        
         log.info(run_cmd)
 
         # Run the command
