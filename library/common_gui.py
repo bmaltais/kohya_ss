@@ -131,15 +131,16 @@ def update_my_data(my_data):
         my_data['LoRA_type'] = 'LyCORIS/LoCon'
 
     # Update model save choices due to changes for LoRA and TI training
-    if (
-        my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
-    ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
-        message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
-        if my_data.get('LoRA_type'):
-            log.info(message.format('LoRA'))
-        if my_data.get('num_vectors_per_token'):
-            log.info(message.format('TI'))
-        my_data['save_model_as'] = 'safetensors'
+    if 'save_model_as' in my_data:
+        if (
+            my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
+        ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
+            message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
+            if my_data.get('LoRA_type'):
+                log.info(message.format('LoRA'))
+            if my_data.get('num_vectors_per_token'):
+                log.info(message.format('TI'))
+            my_data['save_model_as'] = 'safetensors'
 
     return my_data
 
