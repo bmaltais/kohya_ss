@@ -89,6 +89,12 @@ STEP_DIFFUSERS_DIR_NAME = "{}-step{:08d}"
 
 IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]
 
+try:
+    import pillow_avif
+    IMAGE_EXTENSIONS.extend([".avif", ".AVIF"])
+except:
+    pass
+
 
 class ImageInfo:
     def __init__(self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str) -> None:
