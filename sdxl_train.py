@@ -5,6 +5,7 @@ import gc
 import math
 import os
 from multiprocessing import Value
+import toml
 
 from tqdm import tqdm
 import torch
@@ -350,7 +351,10 @@ def train(args):
     prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name)
+        init_kwargs = {}
+        if args.log_tracker_config is not None:
+            init_kwargs = toml.load(args.log_tracker_config)
+        accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
     for epoch in range(num_train_epochs):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")

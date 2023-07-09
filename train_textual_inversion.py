@@ -3,6 +3,7 @@ import gc
 import math
 import os
 from multiprocessing import Value
+import toml
 
 from tqdm import tqdm
 import torch
@@ -493,7 +494,10 @@ class TextualInversionTrainer:
         prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
 
         if accelerator.is_main_process:
-            accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
+            init_kwargs = {}
+            if args.log_tracker_config is not None:
+                init_kwargs = toml.load(args.log_tracker_config)
+            accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
         # function for saving/removing
         def save_model(ckpt_name, embs_list, steps, epoch_no, force_sync_upload=False):
