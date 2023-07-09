@@ -182,7 +182,7 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
 
     converted_sd, logit_scale = convert_sdxl_text_encoder_2_checkpoint(te2_sd, max_length=77)
     info2 = text_model2.load_state_dict(converted_sd)
-    print("text encoder2:", info2)
+    print("text encoder 2:", info2)
 
     # prepare vae
     print("building VAE")
