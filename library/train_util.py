@@ -2422,6 +2422,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--mixed_precision", type=str, default="no", choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度"
     )
     parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
+    parser.add_argument("--full_bf16", action="store_true", help="bf16 training including gradients / 勾配も含めてbf16で学習する")
     parser.add_argument(
         "--clip_skip",
         type=int,
