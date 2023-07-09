@@ -255,6 +255,11 @@ class NetworkTrainer:
 
             accelerator.wait_for_everyone()
 
+        # 必要ならテキストエンコーダーの出力をキャッシュする: Text Encoderはcpuまたはgpuへ移される
+        self.cache_text_encoder_outputs_if_needed(
+            args, accelerator, unet, vae, tokenizers, text_encoders, train_dataset_group, weight_dtype
+        )
+
         # prepare network
         net_kwargs = {}
         if args.network_args is not None:
@@ -418,11 +423,6 @@ class NetworkTrainer:
             vae.requires_grad_(False)
             vae.eval()
             vae.to(accelerator.device, dtype=vae_dtype)
-
-        # 必要ならテキストエンコーダーの出力をキャッシュする: Text Encoderはcpuまたはgpuへ移される
-        self.cache_text_encoder_outputs_if_needed(
-            args, accelerator, unet, vae, tokenizers, text_encoders, train_dataloader, weight_dtype
-        )
 
         # 実験的機能：勾配も含めたfp16学習を行う　PyTorchにパッチを当ててfp16でのgrad scaleを有効にする
         if args.full_fp16:

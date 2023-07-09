@@ -25,7 +25,10 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 Summary of the feature:
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
-  - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
+  - `--full_bf16` option is added. This option enables the full bfloat16 training. This option is useful to reduce the GPU memory usage.
+    - However, bitsandbytes==0.35 doesn't seem to support this. Please use a newer version of bitsandbytes or another optimizer.
+    - I cannot find bitsandbytes>0.35.0 that works correctly on Windows.
+- `prepare_buckets_latents.py` now supports SDXL fine-tuning.
 - `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
 - Both scripts has following additional options:
   - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
@@ -64,6 +67,7 @@ learning_rate = 4e-7 # SDXL original learning rate
 - [ ] Support Textual Inversion training.
 - [ ] Support `--weighted_captions` option.
 - [ ] Change `--output_config` option to continue the training.
+- [ ] Extend `--full_bf16` for all the scripts.
 
 ## About requirements.txt
 
