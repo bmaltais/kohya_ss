@@ -37,7 +37,6 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       continue
 
     # Load image
-    # img = cv2.imread(os.path.join(src_img_folder, filename))
     image = Image.open(os.path.join(src_img_folder, filename))
     if not image.mode == "RGB":
       image = image.convert("RGB")
@@ -50,6 +49,17 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
 
       # Calculate current number of pixels
       current_pixels = img.shape[0] * img.shape[1]
+
+      # Calculate current resolution
+      current_resolution = (img.shape[0], img.shape[1])
+      
+      # Calculate target resolution
+      target_resolution = (int(max_resolution.split("x")[0]), int(max_resolution.split("x")[1]))
+
+      # Skip to the next image if the current resolution is less than the target resolution
+      if current_resolution[0] < target_resolution[0] or current_resolution[1] < target_resolution[1]:
+        print(f"Skipped image: {filename} as its resolution is smaller than target resolution")
+        continue
 
       # Check if the image needs resizing
       if current_pixels > max_pixels:

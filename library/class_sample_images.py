@@ -18,7 +18,6 @@ document_symbol = '\U0001F4C4'   # 📄
 ### Gradio common sampler GUI section
 ###
 
-
 def sample_gradio_config():
     with gr.Accordion('Sample images config', open=False):
         with gr.Row():
@@ -70,8 +69,7 @@ def sample_gradio_config():
         sample_sampler,
         sample_prompts,
     )
-
-
+    
 def run_cmd_sample(
     sample_every_n_steps,
     sample_every_n_epochs,
@@ -104,4 +102,55 @@ def run_cmd_sample(
     if not sample_every_n_steps == 0:
         run_cmd += f' --sample_every_n_steps="{sample_every_n_steps}"'
 
-    return run_cmd
+    return run_cmd    
+
+
+class SampleImages:
+    def __init__(
+        self,
+    ):
+        with gr.Accordion('Sample images config', open=False):
+            with gr.Row():
+                self.sample_every_n_steps = gr.Number(
+                    label='Sample every n steps',
+                    value=0,
+                    precision=0,
+                    interactive=True,
+                )
+                self.sample_every_n_epochs = gr.Number(
+                    label='Sample every n epochs',
+                    value=0,
+                    precision=0,
+                    interactive=True,
+                )
+                self.sample_sampler = gr.Dropdown(
+                    label='Sample sampler',
+                    choices=[
+                        'ddim',
+                        'pndm',
+                        'lms',
+                        'euler',
+                        'euler_a',
+                        'heun',
+                        'dpm_2',
+                        'dpm_2_a',
+                        'dpmsolver',
+                        'dpmsolver++',
+                        'dpmsingle',
+                        'k_lms',
+                        'k_euler',
+                        'k_euler_a',
+                        'k_dpm_2',
+                        'k_dpm_2_a',
+                    ],
+                    value='euler_a',
+                    interactive=True,
+                )
+            with gr.Row():
+                self.sample_prompts = gr.Textbox(
+                    lines=5,
+                    label='Sample prompts',
+                    interactive=True,
+                    placeholder='masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28',
+                )
+                
