@@ -34,12 +34,18 @@ def collate_fn_remove_corrupted(batch):
     return batch
 
 
-def get_latents(vae, images, weight_dtype):
-    img_tensors = [IMAGE_TRANSFORMS(image) for image in images]
+def get_latents(vae, key_and_images, weight_dtype):
+    img_tensors = [IMAGE_TRANSFORMS(image) for _, image in key_and_images]
     img_tensors = torch.stack(img_tensors)
     img_tensors = img_tensors.to(DEVICE, weight_dtype)
     with torch.no_grad():
-        latents = vae.encode(img_tensors).latent_dist.sample().float().to("cpu").numpy()
+        latents = vae.encode(img_tensors).latent_dist.sample()
+        
+    # check NaN
+    for (key, _), latents1 in zip(key_and_images, latents):
+        if torch.isnan(latents1).any():
+            raise ValueError(f"NaN detected in latents of {key}")
+
     return latents
 
 
@@ -107,24 +113,26 @@ def main(args):
     def process_batch(is_last):
         for bucket in bucket_manager.buckets:
             if (is_last and len(bucket) > 0) or len(bucket) >= args.batch_size:
-                latents = get_latents(vae, [img for _, img in bucket], weight_dtype)
+                latents = get_latents(vae, [(key, img) for key, img, _, _ in bucket], weight_dtype)
                 assert (
                     latents.shape[2] == bucket[0][1].shape[0] // 8 and latents.shape[3] == bucket[0][1].shape[1] // 8
                 ), f"latent shape {latents.shape}, {bucket[0][1].shape}"
 
-                for (image_key, _), latent in zip(bucket, latents):
+                for (image_key, _, original_size, crop_left_top), latent in zip(bucket, latents):
                     npz_file_name = get_npz_filename_wo_ext(args.train_data_dir, image_key, args.full_path, False, args.recursive)
-                    np.savez(npz_file_name, latent)
+                    train_util.save_latents_to_disk(npz_file_name, latent, original_size, crop_left_top)
 
                 # flip
                 if args.flip_aug:
-                    latents = get_latents(vae, [img[:, ::-1].copy() for _, img in bucket], weight_dtype)  # copyがないとTensor変換できない
+                    latents = get_latents(
+                        vae, [(key, img[:, ::-1].copy()) for key, img, _, _ in bucket], weight_dtype
+                    )  # copyがないとTensor変換できない
 
-                    for (image_key, _), latent in zip(bucket, latents):
+                    for (image_key, _, original_size, crop_left_top), latent in zip(bucket, latents):
                         npz_file_name = get_npz_filename_wo_ext(
                             args.train_data_dir, image_key, args.full_path, True, args.recursive
                         )
-                        np.savez(npz_file_name, latent)
+                        train_util.save_latents_to_disk(npz_file_name, latent, original_size, crop_left_top)
                 else:
                     # remove existing flipped npz
                     for image_key, _ in bucket:
@@ -194,7 +202,7 @@ def main(args):
             resized_size[0] >= reso[0] and resized_size[1] >= reso[1]
         ), f"internal error resized size is small: {resized_size}, {reso}"
 
-        # 既に存在するファイルがあればshapeを確認して同じならskipする
+        # 既に存在するファイルがあればshape等を確認して同じならskipする
         if args.skip_existing:
             npz_files = [get_npz_filename_wo_ext(args.train_data_dir, image_key, args.full_path, False, args.recursive) + ".npz"]
             if args.flip_aug:
@@ -208,8 +216,12 @@ def main(args):
                     found = False
                     break
 
-                dat = np.load(npz_file)["arr_0"]
-                if dat.shape[1] != reso[1] // 8 or dat.shape[2] != reso[0] // 8:  # latentsのshapeを確認
+                latents, _, _ = train_util.load_latents_from_disk(npz_file)
+                if latents is None:  # old version
+                    found = False
+                    break
+
+                if latents.shape[1] != reso[1] // 8 or latents.shape[2] != reso[0] // 8:  # latentsのshapeを確認
                     found = False
                     break
             if found:
@@ -221,13 +233,21 @@ def main(args):
         if resized_size[0] != image.shape[1] or resized_size[1] != image.shape[0]:  # リサイズ処理が必要？
             image = cv2.resize(image, resized_size, interpolation=cv2.INTER_AREA)
 
+        trim_left = 0
         if resized_size[0] > reso[0]:
             trim_size = resized_size[0] - reso[0]
             image = image[:, trim_size // 2 : trim_size // 2 + reso[0]]
+            trim_left = trim_size // 2
 
+        trim_top = 0
         if resized_size[1] > reso[1]:
             trim_size = resized_size[1] - reso[1]
             image = image[trim_size // 2 : trim_size // 2 + reso[1]]
+            trim_top = trim_size // 2
+
+        original_size_wh = (resized_size[0], resized_size[1])
+        # target_size_wh = (reso[0], reso[1])
+        crop_left_top = (trim_left, trim_top)
 
         assert (
             image.shape[0] == reso[1] and image.shape[1] == reso[0]
@@ -237,7 +257,7 @@ def main(args):
         # cv2.imwrite(f"r:\\test\\img_{len(img_ar_errors)}.jpg", image[:, :, ::-1])
 
         # バッチへ追加
-        bucket_manager.add_image(reso, (image_key, image))
+        bucket_manager.add_image(reso, (image_key, image, original_size_wh, crop_left_top))
 
         # バッチを推論するか判定して推論する
         process_batch(False)

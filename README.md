@@ -1,6 +1,8 @@
 # Kohya's GUI
 
-This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
+This repository mostly provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts)... but support for Linux OS is also provided through community contributions. Macos is not great at the moment.
+
+The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
 ## Table of Contents
 
@@ -40,10 +42,51 @@ This repository provides a Windows-focused Gradio GUI for [Kohya's Stable Diffus
 [![LoRA Part 1 Tutorial](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
 
 [How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
+### About SDXL training
+
+The feature of SDXL training is now available in sdxl branch as an experimental feature. 
+
+Summary of the feature:
+
+- `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
+  - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
+- `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
+- Both scripts has following additional options:
+  - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
+  - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
+- The image generation during training is now available. However, the VAE for SDXL seems to produce NaNs in some cases when using `fp16`. The images will be black. Currently, the NaNs cannot be avoided even with `--no_half_vae` option. It works with `bf16` or without mixed precision.
+- `--weighted_captions` option is not supported yet.
+- `--min_timestep` and `--max_timestep` options are added to each training script. These options can be used to train U-Net with different timesteps. The default values are 0 and 1000.
+
+`requirements.txt` is updated to support SDXL training. 
+
+#### Tips for SDXL training
+
+- The default resolution of SDXL is 1024x1024.
+- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended:
+  - Train U-Net only.
+  - Use gradient checkpointing.
+  - Use `--cache_text_encoder_outputs` option and caching latents.
+  - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
+- The LoRA training can be done with 12GB GPU memory.
+- `--network_train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
+- PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
+
+Example of the optimizer settings for Adafactor with the fixed learning rate:
+```
+optimizer_type = "adafactor"
+optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
+lr_scheduler = "constant_with_warmup"
+lr_warmup_steps = 100
+learning_rate = 4e-7 # SDXL original learning rate
+```
+
+## About requirements.txt
 
 [![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
 
 Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
+The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
 
 [![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
 
@@ -382,5 +425,11 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/267 (v21.7.17)
-  - Move release ingo to new `About` tab
+* 2023/06/267 (v21.8.0)
+  - Add support for training SDXL models
+  - Update version of LyCORIS to 1.8.0
+  - Merge sd-scripts code update for SDXL and various other fixes.
+  - Improve how Source model preset work
+  - New min/max timesteps parameters
+  - Transformed a lot of the Gradio GUI code into class for easier updates/maintenance
+  - Make save button visible in headless mode. https://github.com/bmaltais/kohya_ss/issues/1125

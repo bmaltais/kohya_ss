@@ -33,7 +33,7 @@ uninstall.txt
 
 # Test files
 test/output
-test/logs
+test/log*
 test/*.json
 test/ft
 
@@ -42,3 +42,6 @@ requirements_tmp_for_setup.txt
 
 # Version specific
 0.13.3
+
+*.npz
+presets/*/user_presets/*

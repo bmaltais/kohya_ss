@@ -26,3 +26,9 @@
     text-align: right;
     padding-right: 1em;
 }
+
+#myDropdown {
+    height: auto;
+    width: 33%;
+    flex-grow: 0;
+}

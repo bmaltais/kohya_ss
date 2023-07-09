@@ -10,26 +10,26 @@ import os
 import subprocess
 import pathlib
 import argparse
+from datetime import datetime
 from library.common_gui import (
-    get_folder_path,
-    remove_doublequote,
     get_file_path,
-    get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
     save_inference_file,
-    gradio_advanced_training,
     run_cmd_advanced_training,
     run_cmd_training,
-    gradio_training,
-    gradio_config,
-    gradio_source_model,
-    # set_legacy_8bitadam,
     update_my_data,
     check_if_model_exist,
     output_message,
     verify_image_folder_pattern,
+    SaveConfigFile,
+    save_to_file
 )
+from library.class_configuration_file import ConfigurationFile
+from library.class_source_model import SourceModel
+from library.class_basic_training import BasicTraining
+from library.class_advanced_training import AdvancedTraining
+from library.class_folders import Folders
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -39,19 +39,12 @@ from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from library.utilities import utilities_tab
-from library.sampler_gui import sample_gradio_config, run_cmd_sample
+from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
-# from easygui import msgbox
-
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
 
 
 def save_configuration(
@@ -60,6 +53,7 @@ def save_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -129,6 +123,8 @@ def save_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -145,17 +141,8 @@ def save_configuration(
         if file_path == None or file_path == '':
             file_path = get_saveasfile_path(file_path)
 
-    # log.info(file_path)
-
     if file_path == None or file_path == '':
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
-
-    # Return the values of the variables as a dictionary
-    variables = {
-        name: value
-        for name, value in sorted(parameters, key=lambda x: x[0])
-        if name not in ['file_path', 'save_as']
-    }
 
     # Extract the destination directory from the file path
     destination_directory = os.path.dirname(file_path)
@@ -164,9 +151,7 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    # Save the data to the selected file
-    with open(file_path, 'w') as file:
-        json.dump(variables, file, indent=2)
+    SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as'])
 
     return file_path
 
@@ -177,6 +162,7 @@ def open_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -246,6 +232,8 @@ def open_configuration(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -282,6 +270,7 @@ def train_model(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
+    sdxl,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -351,7 +340,12 @@ def train_model(
     use_wandb,
     wandb_api_key,
     scale_v_pred_loss_like_noise_pred,
+    min_timestep,
+    max_timestep,
 ):
+    # Get list of function parameters and values
+    parameters = list(locals().items())
+    
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training Dreambooth...')
 
@@ -374,7 +368,7 @@ def train_model(
             msg='Image folder does not exist', headless=headless_bool
         )
         return
-    
+
     if not verify_image_folder_pattern(train_data_dir):
         return
 
@@ -385,7 +379,7 @@ def train_model(
                 headless=headless_bool,
             )
             return
-        
+
         if not verify_image_folder_pattern(reg_data_dir):
             return
 
@@ -400,13 +394,20 @@ def train_model(
     ):
         return
 
-    if optimizer == 'Adafactor' and lr_warmup != '0':
+    if sdxl:
         output_message(
-            msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-            title='Warning',
+            msg='TI training is not compatible with an SDXL model.',
             headless=headless_bool,
         )
-        lr_warmup = '0'
+        return
+
+    # if optimizer == 'Adafactor' and lr_warmup != '0':
+    #     output_message(
+    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
+    #         title='Warning',
+    #         headless=headless_bool,
+    #     )
+    #     lr_warmup = '0'
 
     # Get a list of all subfolders in train_data_dir, excluding hidden folders
     subfolders = [
@@ -580,7 +581,6 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -602,6 +602,8 @@ def train_model(
         use_wandb=use_wandb,
         wandb_api_key=wandb_api_key,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
+        min_timestep=min_timestep,
+        max_timestep=max_timestep,
     )
 
     run_cmd += run_cmd_sample(
@@ -616,8 +618,19 @@ def train_model(
         log.warning(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
-        log.info(run_cmd)
+        print(run_cmd)
+        
+        save_to_file(run_cmd)
     else:
+        # Saving config file for model
+        current_datetime = datetime.now()
+        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
+        file_path = os.path.join(output_dir, f'{output_name}_{formatted_datetime}.json')
+        
+        log.info(f'Saving training config to {file_path}...')
+
+        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as', 'headless', 'print_only'])
+        
         log.info(run_cmd)
 
         # Run the command
@@ -637,228 +650,49 @@ def train_model(
 
 
 def dreambooth_tab(
-    train_data_dir=gr.Textbox(),
-    reg_data_dir=gr.Textbox(),
-    output_dir=gr.Textbox(),
-    logging_dir=gr.Textbox(),
+    # train_data_dir=gr.Textbox(),
+    # reg_data_dir=gr.Textbox(),
+    # output_dir=gr.Textbox(),
+    # logging_dir=gr.Textbox(),
     headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
     gr.Markdown('Train a custom model using kohya dreambooth python code...')
-    (
-        button_open_config,
-        button_save_config,
-        button_save_as_config,
-        config_file_name,
-        button_load_config,
-    ) = gradio_config(headless=headless)
-
-    (
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        save_model_as,
-        model_list,
-    ) = gradio_source_model(headless=headless)
+    
+    # Setup Configuration Files Gradio
+    config = ConfigurationFile(headless)
+    
+    source_model = SourceModel(headless=headless)
 
     with gr.Tab('Folders'):
-        with gr.Row():
-            train_data_dir = gr.Textbox(
-                label='Image folder',
-                placeholder='Folder where the training folders containing the images are located',
-            )
-            train_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            train_data_dir_input_folder.click(
-                get_folder_path,
-                outputs=train_data_dir,
-                show_progress=False,
-            )
-            reg_data_dir = gr.Textbox(
-                label='Regularisation folder',
-                placeholder='(Optional) Folder where where the regularization folders containing the images are located',
-            )
-            reg_data_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            reg_data_dir_input_folder.click(
-                get_folder_path,
-                outputs=reg_data_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_dir = gr.Textbox(
-                label='Model output folder',
-                placeholder='Folder to output trained model',
-            )
-            output_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            output_dir_input_folder.click(get_folder_path, outputs=output_dir)
-            logging_dir = gr.Textbox(
-                label='Logging folder',
-                placeholder='Optional: enable logging and output TensorBoard log to this folder',
-            )
-            logging_dir_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            logging_dir_input_folder.click(
-                get_folder_path,
-                outputs=logging_dir,
-                show_progress=False,
-            )
-        with gr.Row():
-            output_name = gr.Textbox(
-                label='Model output name',
-                placeholder='Name of the model to output',
-                value='last',
-                interactive=True,
-            )
-        train_data_dir.change(
-            remove_doublequote,
-            inputs=[train_data_dir],
-            outputs=[train_data_dir],
-        )
-        reg_data_dir.change(
-            remove_doublequote,
-            inputs=[reg_data_dir],
-            outputs=[reg_data_dir],
-        )
-        output_dir.change(
-            remove_doublequote,
-            inputs=[output_dir],
-            outputs=[output_dir],
-        )
-        logging_dir.change(
-            remove_doublequote,
-            inputs=[logging_dir],
-            outputs=[logging_dir],
-        )
-    with gr.Tab('Training parameters'):
-        (
-            learning_rate,
-            lr_scheduler,
-            lr_warmup,
-            train_batch_size,
-            epoch,
-            save_every_n_epochs,
-            mixed_precision,
-            save_precision,
-            num_cpu_threads_per_process,
-            seed,
-            caption_extension,
-            cache_latents,
-            cache_latents_to_disk,
-            optimizer,
-            optimizer_args,
-        ) = gradio_training(
+        folders = Folders(headless=headless)
+    with gr.Tab('Parameters'):
+        basic_training = BasicTraining(
             learning_rate_value='1e-5',
             lr_scheduler_value='cosine',
             lr_warmup_value='10',
         )
-        with gr.Row():
-            max_resolution = gr.Textbox(
-                label='Max resolution',
-                value='512,512',
-                placeholder='512,512',
-            )
-            stop_text_encoder_training = gr.Slider(
-                minimum=-1,
-                maximum=100,
-                value=0,
-                step=1,
-                label='Stop text encoder training',
-            )
-            enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
         with gr.Accordion('Advanced Configuration', open=False):
-            with gr.Row():
-                no_token_padding = gr.Checkbox(
-                    label='No token padding', value=False
-                )
-                gradient_accumulation_steps = gr.Number(
-                    label='Gradient accumulate steps', value='1'
-                )
-                weighted_captions = gr.Checkbox(
-                    label='Weighted captions', value=False
-                )
-            with gr.Row():
-                prior_loss_weight = gr.Number(
-                    label='Prior loss weight', value=1.0
-                )
-                vae = gr.Textbox(
-                    label='VAE',
-                    placeholder='(Optiona) path to checkpoint of vae to replace for training',
-                )
-                vae_button = gr.Button(
-                    '📂', elem_id='open_folder_small', visible=(not headless)
-                )
-                vae_button.click(
-                    get_any_file_path,
-                    outputs=vae,
-                    show_progress=False,
-                )
-            (
-                # use_8bit_adam,
-                xformers,
-                full_fp16,
-                gradient_checkpointing,
-                shuffle_caption,
-                color_aug,
-                flip_aug,
-                clip_skip,
-                mem_eff_attn,
-                save_state,
-                resume,
-                max_token_length,
-                max_train_epochs,
-                max_data_loader_n_workers,
-                keep_tokens,
-                persistent_data_loader_workers,
-                bucket_no_upscale,
-                random_crop,
-                bucket_reso_steps,
-                caption_dropout_every_n_epochs,
-                caption_dropout_rate,
-                noise_offset_type,
-                noise_offset,
-                adaptive_noise_scale,
-                multires_noise_iterations,
-                multires_noise_discount,
-                additional_parameters,
-                vae_batch_size,
-                min_snr_gamma,
-                save_every_n_steps,
-                save_last_n_steps,
-                save_last_n_steps_state,
-                use_wandb,
-                wandb_api_key,
-                scale_v_pred_loss_like_noise_pred,
-            ) = gradio_advanced_training(headless=headless)
-            color_aug.change(
+            advanced_training = AdvancedTraining(headless=headless)
+            advanced_training.color_aug.change(
                 color_aug_changed,
-                inputs=[color_aug],
-                outputs=[cache_latents],
+                inputs=[advanced_training.color_aug],
+                outputs=[basic_training.cache_latents],
             )
 
-        (
-            sample_every_n_steps,
-            sample_every_n_epochs,
-            sample_sampler,
-            sample_prompts,
-        ) = sample_gradio_config()
+        sample = SampleImages()
 
     with gr.Tab('Tools'):
         gr.Markdown(
             'This section provide Dreambooth tools to help setup your dataset...'
         )
         gradio_dreambooth_folder_creation_tab(
-            train_data_dir_input=train_data_dir,
-            reg_data_dir_input=reg_data_dir,
-            output_dir_input=output_dir,
-            logging_dir_input=logging_dir,
+            train_data_dir_input=folders.train_data_dir,
+            reg_data_dir_input=folders.reg_data_dir,
+            output_dir_input=folders.output_dir,
+            logging_dir_input=folders.logging_dir,
             headless=headless,
         )
 
@@ -871,7 +705,7 @@ def dreambooth_tab(
 
     button_start_tensorboard.click(
         start_tensorboard,
-        inputs=logging_dir,
+        inputs=folders.logging_dir,
         show_progress=False,
     )
 
@@ -881,105 +715,107 @@ def dreambooth_tab(
     )
 
     settings_list = [
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        logging_dir,
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        max_resolution,
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        seed,
-        num_cpu_threads_per_process,
-        cache_latents,
-        cache_latents_to_disk,
-        caption_extension,
-        enable_bucket,
-        gradient_checkpointing,
-        full_fp16,
-        no_token_padding,
-        stop_text_encoder_training,
-        # use_8bit_adam,
-        xformers,
-        save_model_as,
-        shuffle_caption,
-        save_state,
-        resume,
-        prior_loss_weight,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        vae,
-        output_name,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        mem_eff_attn,
-        gradient_accumulation_steps,
-        model_list,
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        optimizer,
-        optimizer_args,
-        noise_offset_type,
-        noise_offset,
-        adaptive_noise_scale,
-        multires_noise_iterations,
-        multires_noise_discount,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        additional_parameters,
-        vae_batch_size,
-        min_snr_gamma,
-        weighted_captions,
-        save_every_n_steps,
-        save_last_n_steps,
-        save_last_n_steps_state,
-        use_wandb,
-        wandb_api_key,
-        scale_v_pred_loss_like_noise_pred,
+        source_model.pretrained_model_name_or_path,
+        source_model.v2,
+        source_model.v_parameterization,
+        source_model.sdxl_checkbox,
+        folders.logging_dir,
+        folders.train_data_dir,
+        folders.reg_data_dir,
+        folders.output_dir,
+        basic_training.max_resolution,
+        basic_training.learning_rate,
+        basic_training.lr_scheduler,
+        basic_training.lr_warmup,
+        basic_training.train_batch_size,
+        basic_training.epoch,
+        basic_training.save_every_n_epochs,
+        basic_training.mixed_precision,
+        basic_training.save_precision,
+        basic_training.seed,
+        basic_training.num_cpu_threads_per_process,
+        basic_training.cache_latents,
+        basic_training.cache_latents_to_disk,
+        basic_training.caption_extension,
+        basic_training.enable_bucket,
+        advanced_training.gradient_checkpointing,
+        advanced_training.full_fp16,
+        advanced_training.no_token_padding,
+        basic_training.stop_text_encoder_training,
+        advanced_training.xformers,
+        source_model.save_model_as,
+        advanced_training.shuffle_caption,
+        advanced_training.save_state,
+        advanced_training.resume,
+        advanced_training.prior_loss_weight,
+        advanced_training.color_aug,
+        advanced_training.flip_aug,
+        advanced_training.clip_skip,
+        advanced_training.vae,
+        folders.output_name,
+        advanced_training.max_token_length,
+        advanced_training.max_train_epochs,
+        advanced_training.max_data_loader_n_workers,
+        advanced_training.mem_eff_attn,
+        advanced_training.gradient_accumulation_steps,
+        source_model.model_list,
+        advanced_training.keep_tokens,
+        advanced_training.persistent_data_loader_workers,
+        advanced_training.bucket_no_upscale,
+        advanced_training.random_crop,
+        advanced_training.bucket_reso_steps,
+        advanced_training.caption_dropout_every_n_epochs,
+        advanced_training.caption_dropout_rate,
+        basic_training.optimizer,
+        basic_training.optimizer_args,
+        advanced_training.noise_offset_type,
+        advanced_training.noise_offset,
+        advanced_training.adaptive_noise_scale,
+        advanced_training.multires_noise_iterations,
+        advanced_training.multires_noise_discount,
+        sample.sample_every_n_steps,
+        sample.sample_every_n_epochs,
+        sample.sample_sampler,
+        sample.sample_prompts,
+        advanced_training.additional_parameters,
+        advanced_training.vae_batch_size,
+        advanced_training.min_snr_gamma,
+        advanced_training.weighted_captions,
+        advanced_training.save_every_n_steps,
+        advanced_training.save_last_n_steps,
+        advanced_training.save_last_n_steps_state,
+        advanced_training.use_wandb,
+        advanced_training.wandb_api_key,
+        advanced_training.scale_v_pred_loss_like_noise_pred,
+        advanced_training.min_timestep,
+        advanced_training.max_timestep,
     ]
 
-    button_open_config.click(
+    config.button_open_config.click(
         open_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list,
+        inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        outputs=[config.config_file_name] + settings_list,
         show_progress=False,
     )
 
-    button_load_config.click(
+    config.button_load_config.click(
         open_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name] + settings_list,
+        inputs=[dummy_db_false, config.config_file_name] + settings_list,
+        outputs=[config.config_file_name] + settings_list,
         show_progress=False,
     )
 
-    button_save_config.click(
+    config.button_save_config.click(
         save_configuration,
-        inputs=[dummy_db_false, config_file_name] + settings_list,
-        outputs=[config_file_name],
+        inputs=[dummy_db_false, config.config_file_name] + settings_list,
+        outputs=[config.config_file_name],
         show_progress=False,
     )
 
-    button_save_as_config.click(
+    config.button_save_as_config.click(
         save_configuration,
-        inputs=[dummy_db_true, config_file_name] + settings_list,
-        outputs=[config_file_name],
+        inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        outputs=[config.config_file_name],
         show_progress=False,
     )
 
@@ -996,10 +832,10 @@ def dreambooth_tab(
     )
 
     return (
-        train_data_dir,
-        reg_data_dir,
-        output_dir,
-        logging_dir,
+        folders.train_data_dir,
+        folders.reg_data_dir,
+        folders.output_dir,
+        folders.logging_dir,
     )
 
 
