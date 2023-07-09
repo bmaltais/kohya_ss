@@ -21,7 +21,7 @@ def start_tensorboard(logging_dir):
         msgbox(msg='Error: log folder is empty')
         return
 
-    run_cmd = [f'{TENSORBOARD}', '--logdir', f'{logging_dir}']
+    run_cmd = [f'{TENSORBOARD}', '--logdir', f'{logging_dir}', '--host', '0.0.0.0', '--port', '6006']
 
     log.info(run_cmd)
     if tensorboard_proc is not None:
@@ -34,14 +34,15 @@ def start_tensorboard(logging_dir):
     log.info('Starting tensorboard...')
     tensorboard_proc = subprocess.Popen(run_cmd)
 
-    # Wait for some time to allow TensorBoard to start up
-    time.sleep(5)
+    if os.name == 'posix' and len(os.environ.get('DISPLAY'))>0:
+        # Wait for some time to allow TensorBoard to start up
+        time.sleep(5)
 
-    # Open the TensorBoard URL in the default browser
-    log.info('Opening tensorboard url in browser...')
-    import webbrowser
+        # Open the TensorBoard URL in the default browser
+        log.info('Opening tensorboard url in browser...')
+        import webbrowser
 
-    webbrowser.open('http://localhost:6006')
+        webbrowser.open('http://localhost:6006')
 
 
 def stop_tensorboard():
