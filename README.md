@@ -65,6 +65,7 @@ learning_rate = 4e-7 # SDXL original learning rate
 ### TODO
 
 - [ ] Support Textual Inversion training.
+- [ ] Support conversion of Diffusers SDXL models.
 - [ ] Support `--weighted_captions` option.
 - [ ] Change `--output_config` option to continue the training.
 - [ ] Extend `--full_bf16` for all the scripts.
