@@ -1010,14 +1010,23 @@ def lora_tab(
 
             def list_presets(path):
                 json_files = []
+                
                 for file in os.listdir(path):
                     if file.endswith('.json'):
                         json_files.append(os.path.splitext(file)[0])
+                        
+                user_presets_path = os.path.join(path, 'user_presets')
+                if os.path.isdir(user_presets_path):
+                    for file in os.listdir(user_presets_path):
+                        if file.endswith('.json'):
+                            preset_name = os.path.splitext(file)[0]
+                            json_files.append(os.path.join('user_presets', preset_name))
+                
                 return json_files
             
             training_preset = gr.Dropdown(
                 label='Presets',
-                choices=list_presets('./presets/lora'),
+                choices=list_presets('./presets/gui/lora'),
                 elem_id='myDropdown',
             )
             with gr.Row():
