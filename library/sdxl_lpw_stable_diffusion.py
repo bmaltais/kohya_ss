@@ -974,11 +974,11 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
         if do_classifier_free_guidance:
             text_embeddings = torch.cat(text_embeddings_list, dim=2)
             uncond_embeddings = torch.cat(uncond_embeddings_list, dim=2)
-            text_embedding = torch.cat([text_embeddings, uncond_embeddings]).to(dtype)
+            text_embedding = torch.cat([uncond_embeddings, text_embeddings]).to(dtype)
 
             cond_vector = torch.cat([text_pool, embs], dim=1)
             uncond_vector = torch.cat([uncond_pool, embs], dim=1)
-            vector_embedding = torch.cat([cond_vector, uncond_vector]).to(dtype)
+            vector_embedding = torch.cat([uncond_vector, cond_vector]).to(dtype)
         else:
             text_embedding = torch.cat(text_embeddings_list, dim=2).to(dtype)
             vector_embedding = torch.cat([text_pool, embs], dim=1).to(dtype)
