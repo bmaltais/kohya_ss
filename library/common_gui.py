@@ -835,3 +835,8 @@ def SaveConfigFile(parameters, file_path: str, exclusion = ['file_path', 'save_a
     # Save the data to the selected file
     with open(file_path, 'w') as file:
         json.dump(variables, file, indent=2)
+        
+def save_to_file(content):
+    file_path = 'logs/print_command.txt'
+    with open(file_path, 'a') as file:
+        file.write(content + '\n')

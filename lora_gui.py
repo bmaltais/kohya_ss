@@ -24,6 +24,7 @@ from library.common_gui import (
     output_message,
     verify_image_folder_pattern,
     SaveConfigFile,
+    save_to_file
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -949,6 +950,8 @@ def train_model(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
         print(run_cmd)
+        
+        save_to_file(run_cmd)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
