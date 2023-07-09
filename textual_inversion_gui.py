@@ -641,7 +641,7 @@ def train_model(
         log.warning(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
-        log.info(run_cmd)
+        print(run_cmd)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
