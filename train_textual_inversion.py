@@ -94,7 +94,7 @@ class TextualInversionTrainer:
 
     def assert_token_string(self, token_string, tokenizers):
         pass
-    
+
     def get_text_cond(self, args, accelerator, batch, tokenizers, text_encoders, weight_dtype):
         with torch.enable_grad():
             input_ids = batch["input_ids"].to(accelerator.device)
@@ -311,7 +311,7 @@ class TextualInversionTrainer:
 
         # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
         if use_template:
-            accelerator.print("use template for training captions. is object: {args.use_object_template}")
+            accelerator.print(f"use template for training captions. is object: {args.use_object_template}")
             templates = imagenet_templates_small if args.use_object_template else imagenet_style_templates_small
             replace_to = " ".join(token_strings)
             captions = []
