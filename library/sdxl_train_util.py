@@ -98,12 +98,15 @@ class WrapperTokenizer:
             return SimpleNamespace(**{"input_ids": input_ids})
 
         # for weighted prompt
-        input_ids = open_clip.tokenize(text, context_length=self.model_max_length)
+        assert isinstance(text, str), f"input must be str: {text}"
+
+        input_ids = open_clip.tokenize(text, context_length=self.model_max_length)[0]  # tokenizer returns list
 
         # find eos
-        eos_index = (input_ids == self.eos_token_id).nonzero()[0].max()  # max index of each batch
-        input_ids = input_ids[:, : eos_index + 1]  # include eos
+        eos_index = (input_ids == self.eos_token_id).nonzero().max()
+        input_ids = input_ids[: eos_index + 1]  # include eos
         return SimpleNamespace(**{"input_ids": input_ids})
+
 
 def load_tokenizers(args: argparse.Namespace):
     print("prepare tokenizers")
@@ -316,7 +319,7 @@ def save_sd_model_on_epoch_end_or_stepwise(
 
 # TextEncoderの出力をキャッシュする
 # weight_dtypeを指定するとText Encoderそのもの、およひ出力がweight_dtypeになる
-def cache_text_encoder_outputs(args, accelerator, tokenizers, text_encoders, data_loader, weight_dtype):
+def cache_text_encoder_outputs(args, accelerator, tokenizers, text_encoders, dataset, weight_dtype):
     print("caching text encoder outputs")
 
     tokenizer1, tokenizer2 = tokenizers
@@ -329,9 +332,9 @@ def cache_text_encoder_outputs(args, accelerator, tokenizers, text_encoders, dat
 
     text_encoder1_cache = {}
     text_encoder2_cache = {}
-    for batch in tqdm(data_loader):
-        input_ids1_batch = batch["input_ids"]
-        input_ids2_batch = batch["input_ids2"]
+    for batch in tqdm(dataset):
+        input_ids1_batch = batch["input_ids"].to(accelerator.device)
+        input_ids2_batch = batch["input_ids2"].to(accelerator.device)
 
         # split batch to avoid OOM
         # TODO specify batch size by args

@@ -89,6 +89,13 @@ STEP_DIFFUSERS_DIR_NAME = "{}-step{:08d}"
 
 IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]
 
+try:
+    import pillow_avif
+
+    IMAGE_EXTENSIONS.extend([".avif", ".AVIF"])
+except:
+    pass
+
 
 class ImageInfo:
     def __init__(self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str) -> None:
@@ -847,16 +854,11 @@ class BaseDataset(torch.utils.data.Dataset):
         # split by resolution
         batches = []
         batch = []
-        for info in image_infos:
+        print("checking cache validity...")
+        for info in tqdm(image_infos):
             subset = self.image_to_subset[info.image_key]
 
-            if info.latents_npz is not None:
-                info.latents, info.latents_original_size, info.latents_crop_left_top = self.load_latents_from_npz(info, False)
-                info.latents = torch.FloatTensor(info.latents)
-
-                info.latents_flipped, _, _ = self.load_latents_from_npz(info, True)  # might be None
-                if info.latents_flipped is not None:
-                    info.latents_flipped = torch.FloatTensor(info.latents_flipped)
+            if info.latents_npz is not None:  # fine tuning dataset
                 continue
 
             # check disk cache exists and size of latents
@@ -2416,6 +2418,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--mixed_precision", type=str, default="no", choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度"
     )
     parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
+    parser.add_argument("--full_bf16", action="store_true", help="bf16 training including gradients / 勾配も含めてbf16で学習する")
     parser.add_argument(
         "--clip_skip",
         type=int,
