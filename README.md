@@ -25,18 +25,31 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 Summary of the feature:
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
-  - `--full_bf16` option is added. This option enables the full bfloat16 training. This option is useful to reduce the GPU memory usage.
+  - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
+    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage. 
     - However, bitsandbytes==0.35 doesn't seem to support this. Please use a newer version of bitsandbytes or another optimizer.
     - I cannot find bitsandbytes>0.35.0 that works correctly on Windows.
+    - In addition, the full bfloat16 training might be unstable. Please use it at your own risk.
 - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
 - `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
 - Both scripts has following additional options:
   - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
   - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
 - The image generation during training is now available. However, the VAE for SDXL seems to produce NaNs in some cases when using `fp16`. The images will be black. Currently, the NaNs cannot be avoided even with `--no_half_vae` option. It works with `bf16` or without mixed precision.
-- `--weighted_captions` option is not supported yet.
+
+- `--weighted_captions` option is not supported yet for both scripts.
 - `--min_timestep` and `--max_timestep` options are added to each training script. These options can be used to train U-Net with different timesteps. The default values are 0 and 1000.
+
+- `sdxl_train_textual_inversion.py` is a script for Textual Inversion training for SDXL. The usage is almost the same as `train_textual_inversion.py`.
+  - `--cache_text_encoder_outputs` is not supported.
+  - `token_string` must be alphabet only currently, due to the limitation of the open-clip tokenizer.
+  - There are two options for captions:
+    1. Training with captions. All captions must include the token string. The token string is replaced with multiple tokens.
+    2. Use `--use_object_template` or `--use_style_template` option. The captions are generated from the template. The existing captions are ignored.
+  - See below for the format of the embeddings.
+  
 - `sdxl_gen_img.py` is added. This script can be used to generate images with SDXL, including LoRA. See the help message for the usage.
+  - Textual Inversion is supported, but the name for the embeds in the caption becomes alphabet only. For example, `neg_hand_v1.safetensors` can be activated with `neghandv`.
 
 `requirements.txt` is updated to support SDXL training. 
 
@@ -54,7 +67,7 @@ Summary of the feature:
 - `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
 
 Example of the optimizer settings for Adafactor with the fixed learning rate:
-```
+```toml
 optimizer_type = "adafactor"
 optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
 lr_scheduler = "constant_with_warmup"
@@ -62,13 +75,22 @@ lr_warmup_steps = 100
 learning_rate = 4e-7 # SDXL original learning rate
 ```
 
+### Format of Textual Inversion embeddings
+
+```python
+from safetensors.torch import save_file
+
+state_dict = {"clip_g": embs_for_text_encoder_1280, "clip_l": embs_for_text_encoder_768}
+save_file(state_dict, file)
+```
+
 ### TODO
 
-- [ ] Support Textual Inversion training.
 - [ ] Support conversion of Diffusers SDXL models.
 - [ ] Support `--weighted_captions` option.
 - [ ] Change `--output_config` option to continue the training.
 - [ ] Extend `--full_bf16` for all the scripts.
+- [x] Support Textual Inversion training.
 
 ## About requirements.txt
 
