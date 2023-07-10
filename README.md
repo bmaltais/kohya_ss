@@ -425,11 +425,6 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/06/267 (v21.8.0)
-  - Add support for training SDXL models
-  - Update version of LyCORIS to 1.8.0
-  - Merge sd-scripts code update for SDXL and various other fixes.
-  - Improve how Source model preset work
-  - New min/max timesteps parameters
-  - Transformed a lot of the Gradio GUI code into class for easier updates/maintenance
-  - Make save button visible in headless mode. https://github.com/bmaltais/kohya_ss/issues/1125
+* 2023/07/10 (v21.8.1)
+  - Let Tensorboard works in docker #1137
+  - Fix for accelerate issue

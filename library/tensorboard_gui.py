@@ -34,15 +34,14 @@ def start_tensorboard(logging_dir):
     log.info('Starting tensorboard...')
     tensorboard_proc = subprocess.Popen(run_cmd)
 
-    if os.name == 'posix' and len(os.environ.get('DISPLAY'))>0:
-        # Wait for some time to allow TensorBoard to start up
-        time.sleep(5)
+    # Wait for some time to allow TensorBoard to start up
+    time.sleep(5)
 
-        # Open the TensorBoard URL in the default browser
-        log.info('Opening tensorboard url in browser...')
-        import webbrowser
+    # Open the TensorBoard URL in the default browser
+    log.info('Opening tensorboard url in browser...')
+    import webbrowser
 
-        webbrowser.open('http://localhost:6006')
+    webbrowser.open('http://localhost:6006')
 
 
 def stop_tensorboard():
