@@ -7,6 +7,8 @@ services:
       context: .
     ports:
       - 127.0.0.1:3000:3000
+      - 7860:7860
+      - 6006:6006
     tty: true
     ipc: host
     environment:
