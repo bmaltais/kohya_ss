@@ -234,7 +234,7 @@ def train(args):
 
     # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
     if use_template:
-        print("use template for training captions. is object: {args.use_object_template}")
+        print(f"use template for training captions. is object: {args.use_object_template}")
         templates = imagenet_templates_small if args.use_object_template else imagenet_style_templates_small
         replace_to = " ".join(token_strings)
         captions = []

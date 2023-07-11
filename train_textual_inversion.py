@@ -94,7 +94,7 @@ class TextualInversionTrainer:
 
     def assert_token_string(self, token_string, tokenizers):
         pass
-    
+
     def get_text_cond(self, args, accelerator, batch, tokenizers, text_encoders, weight_dtype):
         with torch.enable_grad():
             input_ids = batch["input_ids"].to(accelerator.device)
@@ -173,6 +173,7 @@ class TextualInversionTrainer:
 
         # mixed precisionに対応した型を用意しておき適宜castする
         weight_dtype, save_dtype = train_util.prepare_dtype(args)
+        vae_dtype = torch.float32 if args.no_half_vae else weight_dtype
 
         # モデルを読み込む
         model_version, text_encoder_or_list, vae, unet = self.load_target_model(args, weight_dtype, accelerator)
@@ -311,7 +312,7 @@ class TextualInversionTrainer:
 
         # make captions: tokenstring tokenstring1 tokenstring2 ...tokenstringn という文字列に書き換える超乱暴な実装
         if use_template:
-            accelerator.print("use template for training captions. is object: {args.use_object_template}")
+            accelerator.print(f"use template for training captions. is object: {args.use_object_template}")
             templates = imagenet_templates_small if args.use_object_template else imagenet_style_templates_small
             replace_to = " ".join(token_strings)
             captions = []
@@ -351,7 +352,7 @@ class TextualInversionTrainer:
 
         # 学習を準備する
         if cache_latents:
-            vae.to(accelerator.device, dtype=weight_dtype)
+            vae.to(accelerator.device, dtype=vae_dtype)
             vae.requires_grad_(False)
             vae.eval()
             with torch.no_grad():
@@ -447,10 +448,10 @@ class TextualInversionTrainer:
         else:
             unet.eval()
 
-        if not cache_latents:
+        if not cache_latents:  # キャッシュしない場合はVAEを使うのでVAEを準備する
             vae.requires_grad_(False)
             vae.eval()
-            vae.to(accelerator.device, dtype=weight_dtype)
+            vae.to(accelerator.device, dtype=vae_dtype)
 
         # 実験的機能：勾配も含めたfp16学習を行う　PyTorchにパッチを当ててfp16でのgrad scaleを有効にする
         if args.full_fp16:
@@ -529,7 +530,7 @@ class TextualInversionTrainer:
                             latents = batch["latents"].to(accelerator.device)
                         else:
                             # latentに変換
-                            latents = vae.encode(batch["images"].to(dtype=weight_dtype)).latent_dist.sample()
+                            latents = vae.encode(batch["images"].to(dtype=vae_dtype)).latent_dist.sample()
                         latents = latents * self.vae_scale_factor
 
                     # Get the text embedding for conditioning
@@ -743,6 +744,11 @@ def setup_parser() -> argparse.ArgumentParser:
         "--use_style_template",
         action="store_true",
         help="ignore caption and use default templates for stype / キャプションは使わずデフォルトのスタイル用テンプレートで学習する",
+    )
+    parser.add_argument(
+        "--no_half_vae",
+        action="store_true",
+        help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
     )
 
     return parser
