@@ -460,7 +460,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/10 (v21.8.1)
+* 2023/07/11 (v21.8.1)
   - Let Tensorboard works in docker #1137
   - Fix for accelerate issue
   - Add SDXL TI training support
