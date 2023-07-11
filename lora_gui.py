@@ -32,21 +32,14 @@ from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_sdxl_parameters import SDXLParameters
 from library.class_folders import Folders
-from library.dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
-from library.verify_lora_gui import gradio_verify_lora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
+from library.class_lora_tab import LoRATools
 
 from library.custom_logging import setup_logging
 
@@ -1576,21 +1569,7 @@ def lora_tab(
         )
         
     with gr.Tab('Tools'):
-        gr.Markdown(
-            'This section provide LoRA tools to help setup your dataset...'
-        )
-        gradio_dreambooth_folder_creation_tab(
-            train_data_dir_input=folders.train_data_dir,
-            reg_data_dir_input=folders.reg_data_dir,
-            output_dir_input=folders.output_dir,
-            logging_dir_input=folders.logging_dir,
-            headless=headless,
-        )
-        gradio_dataset_balancing_tab(headless=headless)
-        gradio_merge_lora_tab(headless=headless)
-        gradio_svd_merge_lora_tab(headless=headless)
-        gradio_resize_lora_tab(headless=headless)
-        gradio_verify_lora_tab(headless=headless)
+        lora_tools = LoRATools(folders=folders, headless=headless)
         
     with gr.Tab('Guides'):
         gr.Markdown(

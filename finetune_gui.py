@@ -78,6 +78,7 @@ def save_configuration(
     seed,
     num_cpu_threads_per_process,
     train_text_encoder,
+    full_bf16,
     create_caption,
     create_buckets,
     save_model_as,
@@ -197,6 +198,7 @@ def open_configuration(
     seed,
     num_cpu_threads_per_process,
     train_text_encoder,
+    full_bf16,
     create_caption,
     create_buckets,
     save_model_as,
@@ -313,6 +315,7 @@ def train_model(
     seed,
     num_cpu_threads_per_process,
     train_text_encoder,
+    full_bf16,
     generate_caption_database,
     generate_image_buckets,
     save_model_as,
@@ -495,6 +498,8 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
+    if full_bf16:
+        run_cmd += ' --full_bf16'
     if weighted_captions:
         run_cmd += ' --weighted_captions'
     run_cmd += (
@@ -788,6 +793,9 @@ def finetune_tab(headless=False):
                 train_text_encoder = gr.Checkbox(
                     label='Train text encoder', value=True
                 )
+                full_bf16 = gr.Checkbox(
+                    label='Full bf16', value = False
+                )
             with gr.Accordion('Advanced parameters', open=False):
                 with gr.Row():
                     gradient_accumulation_steps = gr.Number(
@@ -848,6 +856,7 @@ def finetune_tab(headless=False):
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             train_text_encoder,
+            full_bf16,
             create_caption,
             create_buckets,
             source_model.save_model_as,
