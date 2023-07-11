@@ -922,7 +922,7 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
             if up1 is not None:
                 uncond_pool = up1
 
-        dtype = text_embeddings_list[0].dtype
+        dtype = self.unet.dtype
 
         # 4. Preprocess image and mask
         if isinstance(image, PIL.Image.Image):
