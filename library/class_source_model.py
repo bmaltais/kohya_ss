@@ -33,8 +33,8 @@ class SourceModel:
                     label='Model Quick Pick',
                     choices=[
                         'custom',
-                        'stabilityai/stable-diffusion-xl-base-0.9',
-                        'stabilityai/stable-diffusion-xl-refiner-0.9',
+                        # 'stabilityai/stable-diffusion-xl-base-0.9',
+                        # 'stabilityai/stable-diffusion-xl-refiner-0.9',
                         'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
                         'stabilityai/stable-diffusion-2-1-base',
                         'stabilityai/stable-diffusion-2-base',

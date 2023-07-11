@@ -36,6 +36,11 @@ def svd_merge_lora(
     new_conv_rank,
     device,
 ):
+    # Check if the output file already exists
+    if os.path.isfile(save_to):
+        print(f"Output file '{save_to}' already exists. Aborting.")
+        return
+    
     # Check if the ratio total is equal to one. If not mormalise to 1
     total_ratio = ratio_a + ratio_b + ratio_c + ratio_d
     if total_ratio != 1:
@@ -78,7 +83,7 @@ def svd_merge_lora(
         run_cmd_ratios += f' {ratio_d}'
 
     run_cmd += run_cmd_models
-    run_cmd += run_cmd_ratiosacti
+    run_cmd += run_cmd_ratios
     run_cmd += f' --device {device}'
     run_cmd += f' --new_rank "{new_rank}"'
     run_cmd += f' --new_conv_rank "{new_conv_rank}"'
