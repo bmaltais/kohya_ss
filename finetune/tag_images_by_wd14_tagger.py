@@ -14,6 +14,7 @@ from pathlib import Path
 
 import library.train_util as train_util
 
+import fnmatch
 # from wd14 tagger
 IMAGE_SIZE = 448
 
@@ -139,6 +140,7 @@ def main(args):
             combined_tags = []
             general_tag_text = ""
             character_tag_text = ""
+            #remove undesired
             for i, p in enumerate(prob[4:]):
                 if i < len(general_tags) and p >= args.general_threshold:
                     tag_name = general_tags[i]
@@ -158,6 +160,8 @@ def main(args):
                         tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
                         character_tag_text += ", " + tag_name
                         combined_tags.append(tag_name)
+                        
+
 
             # 先頭のカンマを取る
             if len(general_tag_text) > 0:
@@ -165,6 +169,18 @@ def main(args):
             if len(character_tag_text) > 0:
                 character_tag_text = character_tag_text[2:]
 
+            #loop over undesired for wildcards
+            undesired_matches = []
+            for i in undesired_tags:
+                filtered = fnmatch.filter(combined_tags,i)
+                if len(filtered) >0:
+                    undesired_matches.append(filtered[0])
+
+            #correct tag frequency post-wildcard removal
+            combined_tags = np.setxor1d(list(combined_tags), undesired_matches)
+            for i in undesired_matches:
+                tag_freq.pop(i)
+            
             tag_text = ", ".join(combined_tags)
 
             with open(os.path.splitext(image_path)[0] + args.caption_extension, "wt", encoding="utf-8") as f:

@@ -115,7 +115,7 @@ def gradio_wd14_caption_gui_tab(headless=False):
 
         undesired_tags = gr.Textbox(
             label='Undesired tags',
-            placeholder='(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`.',
+            placeholder='(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`. ? and * wildcards supported, e.g. `1*` to remove 1girl,1boy,etc',
             interactive=True,
         )
 
