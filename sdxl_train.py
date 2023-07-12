@@ -362,8 +362,7 @@ def train(args):
         loss_total = 0
         for step, batch in enumerate(train_dataloader):
             current_step.value = global_step
-            # with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
-            if True:
+            with accelerator.accumulate(training_models[0]):  # 複数モデルに対応していない模様だがとりあえずこうしておく
                 if "latents" in batch and batch["latents"] is not None:
                     latents = batch["latents"].to(accelerator.device).to(dtype=weight_dtype)
                 else:
