@@ -8,7 +8,8 @@ import torch
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 import open_clip
-from library import model_util, sdxl_model_util, train_util
+from diffusers import StableDiffusionXLPipeline
+from library import model_util, sdxl_model_util, train_util, sdxl_original_unet
 from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeightingPipeline
 
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
@@ -50,23 +51,54 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
 
 
 def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtype, device="cpu"):
-    # only supports StableDiffusion
     name_or_path = args.pretrained_model_name_or_path
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
-    assert (
-        load_stable_diffusion_format
-    ), f"only supports StableDiffusion format for SDXL / SDXLではStableDiffusion形式のみサポートしています: {name_or_path}"
 
-    print(f"load StableDiffusion checkpoint: {name_or_path}")
-    (
-        text_encoder1,
-        text_encoder2,
-        vae,
-        unet,
-        logit_scale,
-        ckpt_info,
-    ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
+    if load_stable_diffusion_format:
+        print(f"load StableDiffusion checkpoint: {name_or_path}")
+        (
+            text_encoder1,
+            text_encoder2,
+            vae,
+            unet,
+            logit_scale,
+            ckpt_info,
+        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
+    else:
+        # Diffusers model is loaded to CPU
+        variant = "fp16" if weight_dtype == torch.float16 else None
+        print(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
+        try:
+            try:
+                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=variant, tokenizer=None)
+            except EnvironmentError as ex:
+                if variant is not None:
+                    print("try to load fp32 model")
+                    pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=None, tokenizer=None)
+                else:
+                    raise ex
+        except EnvironmentError as ex:
+            print(
+                f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
+            )
+            raise ex
+
+        text_encoder1 = pipe.text_encoder
+        text_encoder2 = pipe.text_encoder_2
+        vae = pipe.vae
+        unet = pipe.unet
+        del pipe
+
+        # Diffusers U-Net to original U-Net
+        original_unet = sdxl_original_unet.SdxlUNet2DConditionModel()
+        state_dict = sdxl_model_util.convert_diffusers_unet_state_dict_to_sdxl(unet.state_dict())
+        original_unet.load_state_dict(state_dict)
+        unet = original_unet
+        print("U-Net converted to original U-Net")
+
+        logit_scale = None
+        ckpt_info = None
 
     # VAEを読み込む
     if args.vae is not None:
@@ -296,7 +328,16 @@ def save_sd_model_on_train_end(
         )
 
     def diffusers_saver(out_dir):
-        raise NotImplementedError("diffusers_saver is not implemented")
+        sdxl_model_util.save_diffusers_checkpoint(
+            out_dir,
+            text_encoder1,
+            text_encoder2,
+            unet,
+            src_path,
+            vae,
+            use_safetensors=use_safetensors,
+            save_dtype=save_dtype,
+        )
 
     train_util.save_sd_model_on_train_end_common(
         args, save_stable_diffusion_format, use_safetensors, epoch, global_step, sd_saver, diffusers_saver
@@ -338,7 +379,16 @@ def save_sd_model_on_epoch_end_or_stepwise(
         )
 
     def diffusers_saver(out_dir):
-        raise NotImplementedError("diffusers_saver is not implemented")
+        sdxl_model_util.save_diffusers_checkpoint(
+            out_dir,
+            text_encoder1,
+            text_encoder2,
+            unet,
+            src_path,
+            vae,
+            use_safetensors=use_safetensors,
+            save_dtype=save_dtype,
+        )
 
     train_util.save_sd_model_on_epoch_end_or_stepwise_common(
         args,
