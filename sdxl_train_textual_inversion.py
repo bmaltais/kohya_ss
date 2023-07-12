@@ -115,8 +115,8 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         else:
             data = torch.load(file, map_location="cpu")
 
-        emb_l = data.get("clib_l", None)  # ViT-L text encoder 1
-        emb_g = data.get("clib_g", None)  # BiG-G text encoder 2
+        emb_l = data.get("clip_l", None)  # ViT-L text encoder 1
+        emb_g = data.get("clip_g", None)  # BiG-G text encoder 2
 
         assert (
             emb_l is not None or emb_g is not None
