@@ -1005,6 +1005,7 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
 
             # predict the noise residual
             noise_pred = self.unet(latent_model_input, t, text_embedding, vector_embedding)
+            noise_pred = noise_pred.to(dtype) # U-Net changes dtype in LoRA training
 
             # perform guidance
             if do_classifier_free_guidance:
