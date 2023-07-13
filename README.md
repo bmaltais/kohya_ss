@@ -1,2 +1,2 @@
-# microsoft
+# microsoft Colab
 # by Rungniwat
