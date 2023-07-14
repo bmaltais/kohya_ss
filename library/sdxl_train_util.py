@@ -8,10 +8,12 @@ import torch
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 import open_clip
-from library import model_util, sdxl_model_util, train_util
+from diffusers import StableDiffusionXLPipeline
+from library import model_util, sdxl_model_util, train_util, sdxl_original_unet
 from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeightingPipeline
 
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
+TOKENIZER1_PATH = "openai/clip-vit-large-patch14"
+TOKENIZER2_PATH = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
 DEFAULT_NOISE_OFFSET = 0.0357
 
@@ -50,23 +52,54 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
 
 
 def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtype, device="cpu"):
-    # only supports StableDiffusion
     name_or_path = args.pretrained_model_name_or_path
     name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
-    assert (
-        load_stable_diffusion_format
-    ), f"only supports StableDiffusion format for SDXL / SDXLではStableDiffusion形式のみサポートしています: {name_or_path}"
 
-    print(f"load StableDiffusion checkpoint: {name_or_path}")
-    (
-        text_encoder1,
-        text_encoder2,
-        vae,
-        unet,
-        logit_scale,
-        ckpt_info,
-    ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
+    if load_stable_diffusion_format:
+        print(f"load StableDiffusion checkpoint: {name_or_path}")
+        (
+            text_encoder1,
+            text_encoder2,
+            vae,
+            unet,
+            logit_scale,
+            ckpt_info,
+        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
+    else:
+        # Diffusers model is loaded to CPU
+        variant = "fp16" if weight_dtype == torch.float16 else None
+        print(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
+        try:
+            try:
+                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=variant, tokenizer=None)
+            except EnvironmentError as ex:
+                if variant is not None:
+                    print("try to load fp32 model")
+                    pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=None, tokenizer=None)
+                else:
+                    raise ex
+        except EnvironmentError as ex:
+            print(
+                f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
+            )
+            raise ex
+
+        text_encoder1 = pipe.text_encoder
+        text_encoder2 = pipe.text_encoder_2
+        vae = pipe.vae
+        unet = pipe.unet
+        del pipe
+
+        # Diffusers U-Net to original U-Net
+        original_unet = sdxl_original_unet.SdxlUNet2DConditionModel()
+        state_dict = sdxl_model_util.convert_diffusers_unet_state_dict_to_sdxl(unet.state_dict())
+        original_unet.load_state_dict(state_dict)
+        unet = original_unet
+        print("U-Net converted to original U-Net")
+
+        logit_scale = None
+        ckpt_info = None
 
     # VAEを読み込む
     if args.vae is not None:
@@ -76,101 +109,32 @@ def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtyp
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
 
 
-class WrapperTokenizer:
-    # open clipのtokenizerをHuggingFaceのtokenizerと同じ形で使えるようにする
-    # make open clip tokenizer compatible with HuggingFace tokenizer
-    def __init__(self):
-        open_clip_tokenizer = open_clip.tokenizer._tokenizer
-        self.model_max_length = 77
-        self.bos_token_id = open_clip_tokenizer.all_special_ids[0]
-        self.eos_token_id = open_clip_tokenizer.all_special_ids[1]
-        self.pad_token_id = 0  # 結果から推定している assumption from result
-
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        return self.tokenize(*args, **kwds)
-
-    def tokenize(self, text, padding=False, truncation=None, max_length=None, return_tensors=None):
-        if padding == "max_length":
-            # for training
-            assert max_length is not None
-            assert truncation == True
-            assert return_tensors == "pt"
-            input_ids = open_clip.tokenize(text, context_length=max_length)
-            return SimpleNamespace(**{"input_ids": input_ids})
-
-        # for weighted prompt
-        assert isinstance(text, str), f"input must be str: {text}"
-
-        input_ids = open_clip.tokenize(text, context_length=self.model_max_length)[0]  # tokenizer returns list
-
-        # find eos
-        eos_index = (input_ids == self.eos_token_id).nonzero().max()
-        input_ids = input_ids[: eos_index + 1]  # include eos
-        return SimpleNamespace(**{"input_ids": input_ids})
-
-    # for Textual Inversion
-    # わりと面倒くさいな……これWeb UIとかでどうするんだろう / this is a bit annoying... how to do this in Web UI?
-
-    def encode(self, text, add_special_tokens=False):
-        assert not add_special_tokens
-        input_ids = open_clip.tokenizer._tokenizer.encode(text)
-        return input_ids
-
-    def add_tokens(self, new_tokens):
-        tokens_to_add = []
-        for token in new_tokens:
-            token = token.lower()
-            if token + "</w>" not in open_clip.tokenizer._tokenizer.encoder:
-                tokens_to_add.append(token)
-
-        # open clipのtokenizerに直接追加する / add tokens to open clip tokenizer
-        for token in tokens_to_add:
-            open_clip.tokenizer._tokenizer.encoder[token + "</w>"] = len(open_clip.tokenizer._tokenizer.encoder)
-            open_clip.tokenizer._tokenizer.decoder[len(open_clip.tokenizer._tokenizer.decoder)] = token + "</w>"
-            open_clip.tokenizer._tokenizer.vocab_size += 1
-
-            # open clipのtokenizerのcacheに直接設定することで、bpeとかいうやつに含まれていなくてもtokenizeできるようにする
-            # めちゃくちゃ乱暴なので、open clipのtokenizerの仕様が変わったら動かなくなる
-            # set cache of open clip tokenizer directly to enable tokenization even if the token is not included in bpe
-            # this is very rough, so it will not work if the specification of open clip tokenizer changes
-            open_clip.tokenizer._tokenizer.cache[token] = token + "</w>"
-
-        return len(tokens_to_add)
-
-    def convert_tokens_to_ids(self, tokens):
-        input_ids = [open_clip.tokenizer._tokenizer.encoder[token + "</w>"] for token in tokens]
-        return input_ids
-
-    def __len__(self):
-        return open_clip.tokenizer._tokenizer.vocab_size
-
-
 def load_tokenizers(args: argparse.Namespace):
     print("prepare tokenizers")
-    original_path = TOKENIZER_PATH
 
-    tokenizer1: CLIPTokenizer = None
-    if args.tokenizer_cache_dir:
-        local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
-        if os.path.exists(local_tokenizer_path):
-            print(f"load tokenizer from cache: {local_tokenizer_path}")
-            tokenizer1 = CLIPTokenizer.from_pretrained(local_tokenizer_path)
+    original_paths = [TOKENIZER1_PATH, TOKENIZER2_PATH]
+    tokeniers = []
+    for original_path in original_paths:
+        tokenizer: CLIPTokenizer = None
+        if args.tokenizer_cache_dir:
+            local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
+            if os.path.exists(local_tokenizer_path):
+                print(f"load tokenizer from cache: {local_tokenizer_path}")
+                tokenizer = CLIPTokenizer.from_pretrained(local_tokenizer_path)
 
-    if tokenizer1 is None:
-        tokenizer1 = CLIPTokenizer.from_pretrained(original_path)
+        if tokenizer is None:
+            tokenizer = CLIPTokenizer.from_pretrained(original_path)
 
-    if args.tokenizer_cache_dir and not os.path.exists(local_tokenizer_path):
-        print(f"save Tokenizer to cache: {local_tokenizer_path}")
-        tokenizer1.save_pretrained(local_tokenizer_path)
+        if args.tokenizer_cache_dir and not os.path.exists(local_tokenizer_path):
+            print(f"save Tokenizer to cache: {local_tokenizer_path}")
+            tokenizer.save_pretrained(local_tokenizer_path)
+
+        tokeniers.append(tokenizer)
 
     if hasattr(args, "max_token_length") and args.max_token_length is not None:
         print(f"update token length: {args.max_token_length}")
 
-    # tokenizer2 is from open_clip
-    # TODO caching
-    tokenizer2 = WrapperTokenizer()
-
-    return [tokenizer1, tokenizer2]
+    return tokeniers
 
 
 def get_hidden_states(
@@ -296,7 +260,16 @@ def save_sd_model_on_train_end(
         )
 
     def diffusers_saver(out_dir):
-        raise NotImplementedError("diffusers_saver is not implemented")
+        sdxl_model_util.save_diffusers_checkpoint(
+            out_dir,
+            text_encoder1,
+            text_encoder2,
+            unet,
+            src_path,
+            vae,
+            use_safetensors=use_safetensors,
+            save_dtype=save_dtype,
+        )
 
     train_util.save_sd_model_on_train_end_common(
         args, save_stable_diffusion_format, use_safetensors, epoch, global_step, sd_saver, diffusers_saver
@@ -338,7 +311,16 @@ def save_sd_model_on_epoch_end_or_stepwise(
         )
 
     def diffusers_saver(out_dir):
-        raise NotImplementedError("diffusers_saver is not implemented")
+        sdxl_model_util.save_diffusers_checkpoint(
+            out_dir,
+            text_encoder1,
+            text_encoder2,
+            unet,
+            src_path,
+            vae,
+            use_safetensors=use_safetensors,
+            save_dtype=save_dtype,
+        )
 
     train_util.save_sd_model_on_epoch_end_or_stepwise_common(
         args,

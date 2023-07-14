@@ -39,18 +39,6 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         tokenizer = sdxl_train_util.load_tokenizers(args)
         return tokenizer
 
-    def assert_token_string(self, token_string, tokenizers):
-        # tokenizer 1 is seems to be ok
-
-        # count words for token string: regular expression from open_clip
-        pat = regex.compile(r"""'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+""", regex.IGNORECASE)
-        words = regex.findall(pat, token_string)
-        word_count = len(words)
-        assert word_count == 1, (
-            f"token string {token_string} contain {word_count} words, please don't use digits, punctuation, or special characters"
-            + f" / トークン文字列 {token_string} には{word_count}個の単語が含まれています。数字、句読点、特殊文字は使用しないでください"
-        )
-
     def get_text_cond(self, args, accelerator, batch, tokenizers, text_encoders, weight_dtype):
         input_ids1 = batch["input_ids"]
         input_ids2 = batch["input_ids2"]
