@@ -114,7 +114,7 @@ def load_tokenizers(args: argparse.Namespace):
 
     original_paths = [TOKENIZER1_PATH, TOKENIZER2_PATH]
     tokeniers = []
-    for original_path in original_paths:
+    for i, original_path in enumerate(original_paths):
         tokenizer: CLIPTokenizer = None
         if args.tokenizer_cache_dir:
             local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
@@ -128,6 +128,9 @@ def load_tokenizers(args: argparse.Namespace):
         if args.tokenizer_cache_dir and not os.path.exists(local_tokenizer_path):
             print(f"save Tokenizer to cache: {local_tokenizer_path}")
             tokenizer.save_pretrained(local_tokenizer_path)
+
+        if i == 1:
+            tokenizer.pad_token_id = 0  # fix pad token id to make same as open clip tokenizer
 
         tokeniers.append(tokenizer)
 
