@@ -1005,7 +1005,7 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
 
             # predict the noise residual
             noise_pred = self.unet(latent_model_input, t, text_embedding, vector_embedding)
-            noise_pred = noise_pred.to(dtype) # U-Net changes dtype in LoRA training
+            noise_pred = noise_pred.to(dtype)  # U-Net changes dtype in LoRA training
 
             # perform guidance
             if do_classifier_free_guidance:
@@ -1027,20 +1027,13 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
                 if is_cancelled_callback is not None and is_cancelled_callback():
                     return None
 
+        return latents
+
+    def latents_to_image(self, latents):
         # 9. Post-processing
-        image = self.decode_latents(latents.to(torch.float32))
-
-        # 10. Run safety checker
-        image, has_nsfw_concept = image, None  #  self.run_safety_checker(image, device, text_embeddings.dtype)
-
-        # 11. Convert to PIL
-        if output_type == "pil":
-            image = self.numpy_to_pil(image)
-
-        if not return_dict:
-            return image, has_nsfw_concept
-
-        return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept)
+        image = self.decode_latents(latents.to(self.vae.dtype))
+        image = self.numpy_to_pil(image)
+        return image
 
     # copy from pil_utils.py
     def numpy_to_pil(self, images: np.ndarray) -> Image.Image:
