@@ -24,6 +24,12 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 
 Summary of the feature:
 
+- `tools/cache_latents.py` is added. This script can be used to cache the latents in advance. 
+  - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
+  - Please launch the script as follows:
+    `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
+  - This script should work with multi-GPU, but it is not tested in my environment.
+
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
   - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
     - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage. 
