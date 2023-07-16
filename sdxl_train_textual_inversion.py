@@ -45,8 +45,8 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         with torch.enable_grad():
             input_ids1 = input_ids1.to(accelerator.device)
             input_ids2 = input_ids2.to(accelerator.device)
-            encoder_hidden_states1, encoder_hidden_states2, pool2 = sdxl_train_util.get_hidden_states(
-                args,
+            encoder_hidden_states1, encoder_hidden_states2, pool2 = train_util.get_hidden_states_sdxl(
+                args.max_token_length,
                 input_ids1,
                 input_ids2,
                 tokenizers[0],
