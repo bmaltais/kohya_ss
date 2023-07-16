@@ -24,11 +24,14 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 
 Summary of the feature:
 
-- `tools/cache_latents.py` is added. This script can be used to cache the latents in advance. 
+- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
   - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
   - Please launch the script as follows:
     `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
   - This script should work with multi-GPU, but it is not tested in my environment.
+
+- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance. 
+  - The options are almost the same as `cache_latents.py' and `sdxl_train.py'. See the help message for the usage.
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
   - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
@@ -39,9 +42,9 @@ Summary of the feature:
 - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
 - `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
 - Both scripts has following additional options:
-  - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
+  - `--cache_text_encoder_outputs` and `--cache_text_encoder_outputs_to_disk`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
   - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
-- The image generation during training is now available. However, the VAE for SDXL seems to produce NaNs in some cases when using `fp16`. The images will be black. Currently, the NaNs cannot be avoided even with `--no_half_vae` option. It works with `bf16` or without mixed precision.
+- The image generation during training is now available. `--no_half_vae` option also works to avoid black images.
 
 - `--weighted_captions` option is not supported yet for both scripts.
 - `--min_timestep` and `--max_timestep` options are added to each training script. These options can be used to train U-Net with different timesteps. The default values are 0 and 1000.
