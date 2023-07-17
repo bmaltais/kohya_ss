@@ -42,6 +42,7 @@ The GUI allows you to set the training parameters and generate and run the requi
 [![LoRA Part 1 Tutorial](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
 
 [How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
@@ -469,10 +470,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/11 (v21.8.2)
-  - Let Tensorboard works in docker #1137
-  - Fix for accelerate issue
-  - Add SDXL TI training support
-  - Rework gui for common layout
-  - More LoRA tools to class
-  - Add no_half_vae option to TI
+* 2023/07/11 (v21.8.3)
+  - Update to latest sd-scripts sdxl code base
+  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
+  - Add min and max resolution parameter for buckets
