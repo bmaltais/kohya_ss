@@ -431,7 +431,7 @@ class LoRANetwork(torch.nn.Module):
         print(f"weights are restored")
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
-        # conver SDXL Stability AI's state dict to Diffusers' based state dict
+        # convert SDXL Stability AI's state dict to Diffusers' based state dict
         map_keys = list(UNET_CONVERSION_MAP.keys()) # prefix of U-Net modules
         map_keys.sort()
         for key in list(state_dict.keys()):

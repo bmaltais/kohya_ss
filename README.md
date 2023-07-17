@@ -12,7 +12,7 @@ This repository contains the scripts for:
 * DreamBooth training, including U-Net and Text Encoder
 * Fine-tuning (native training), including U-Net and Text Encoder
 * LoRA training
-* Texutl Inversion training
+* Texutal Inversion training
 * Image generation
 * Model conversion (supports 1.x and 2.x, Stable Diffision ckpt/safetensors and Diffusers)
 
