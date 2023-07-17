@@ -77,6 +77,8 @@ def save_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -186,6 +188,8 @@ def open_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -294,6 +298,8 @@ def train_model(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training_pct,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -510,7 +516,7 @@ def train_model(
     if v_parameterization:
         run_cmd += ' --v_parameterization'
     if enable_bucket:
-        run_cmd += ' --enable_bucket'
+        run_cmd += f' --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
     if weighted_captions:
@@ -744,6 +750,8 @@ def dreambooth_tab(
             advanced_training.full_fp16,
             advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
+            basic_training.min_bucket_reso,
+            basic_training.max_bucket_reso,
             advanced_training.xformers,
             source_model.save_model_as,
             advanced_training.shuffle_caption,
