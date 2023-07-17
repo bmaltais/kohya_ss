@@ -2141,6 +2141,8 @@ def cache_batch_latents(
             info.latents = latent
             if flip_aug:
                 info.latents_flipped = flipped_latent
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 def cache_batch_text_encoder_outputs(
