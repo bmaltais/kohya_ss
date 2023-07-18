@@ -43,6 +43,17 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 [How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
 
+[![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
+
+Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
+The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
+
+[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
+
+Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](https://www.youtube.com/watch?v=3uzCNrQao3o):
+
+[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
@@ -109,35 +120,18 @@ lr_warmup_steps = 100
 learning_rate = 4e-7 # SDXL original learning rate
 ```
 
-### Format of Textual Inversion embeddings
+## 🦒 Colab
 
-```python
-from safetensors.torch import save_file
+🚦 WIP 🚦
 
-state_dict = {"clip_g": embs_for_text_encoder_1280, "clip_l": embs_for_text_encoder_768}
-save_file(state_dict, file)
-```
+This colab notebook is not done nor maintained by me but it does appear to work quite well. You can find the source at: https://github.com/camenduru/kohya_ss-colab
 
-### TODO
+Many thanks to camendutu for the great contribution. Please report issues with the colab on his repo.
 
-- [ ] Support conversion of Diffusers SDXL models.
-- [ ] Support `--weighted_captions` option.
-- [ ] Change `--output_config` option to continue the training.
-- [ ] Extend `--full_bf16` for all the scripts.
-- [x] Support Textual Inversion training.
+| Colab | Info
+| --- | --- |
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_colab
 
-## About requirements.txt
-
-[![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
-
-Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
-The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
-
-[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
-
-Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](https://www.youtube.com/watch?v=3uzCNrQao3o):
-
-[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
 
 ## Installation
 
@@ -470,7 +464,8 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/11 (v21.8.3)
+* 2023/07/18 (v21.8.3)
   - Update to latest sd-scripts sdxl code base
   - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
   - Add min and max resolution parameter for buckets
+  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab
