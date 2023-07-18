@@ -1605,18 +1605,14 @@ def main(args):
             num_vectors_per_token = embeds1.size()[0]
             token_string = os.path.splitext(os.path.basename(embeds_file))[0]
 
-            # remove non-alphabet characters to avoid splitting by tokenizer
-            # TODO make random alphabet string
-            token_string = "".join([c for c in token_string if c.isalpha()])  
-            
-            token_strings = [token_string] + [f"{token_string}{chr(ord('a') + i)}" for i in range(num_vectors_per_token - 1)]
+            token_strings = [token_string] + [f"{token_string}{i+1}" for i in range(num_vectors_per_token - 1)]
 
             # add new word to tokenizer, count is num_vectors_per_token
             num_added_tokens1 = tokenizer1.add_tokens(token_strings)
             num_added_tokens2 = tokenizer2.add_tokens(token_strings)
             assert num_added_tokens1 == num_vectors_per_token and num_added_tokens2 == num_vectors_per_token, (
-                f"tokenizer has same word to token string (filename). characters except alphabet are removed: {embeds_file}"
-                + f" / 指定した名前（ファイル名）のトークンが既に存在します。アルファベット以外の文字は削除されます: {embeds_file}"
+                f"tokenizer has same word to token string (filename): {embeds_file}"
+                + f" / 指定した名前（ファイル名）のトークンが既に存在します: {embeds_file}"
             )
 
             token_ids1 = tokenizer1.convert_tokens_to_ids(token_strings)

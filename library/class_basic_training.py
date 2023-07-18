@@ -128,4 +128,8 @@ class BasicTraining:
                 step=1,
                 label='Stop text encoder training',
             )
+        with gr.Row(visible=not finetuning):
             self.enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
+            self.min_bucket_reso = gr.Slider(label='Minimum bucket resolution', value=256, minimum=64, maximum=4096, step=64, info='Minimum size in pixel a bucket can be (>= 64)')
+            self.max_bucket_reso = gr.Slider(label='Maximum bucket resolution', value=2048, minimum=64, maximum=4096, step=64, info='Maximum size in pixel a bucket can be (>= 64)')
+            

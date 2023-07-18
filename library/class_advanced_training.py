@@ -31,7 +31,7 @@ class AdvancedTraining:
             )
             self.vae = gr.Textbox(
                 label='VAE',
-                placeholder='(Optiona) path to checkpoint of vae to replace for training',
+                placeholder='(Optional) path to checkpoint of vae to replace for training',
             )
             self.vae_button = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -71,7 +71,7 @@ class AdvancedTraining:
                 info='(Optional) Save only the specified number of models (old models will be deleted)',
             )
             self.save_last_n_steps_state = gr.Number(
-                label='Save last N states',
+                label='Save last N steps state',
                 value=0,
                 precision=0,
                 info='(Optional) Save only the specified number of states (old models will be deleted)',

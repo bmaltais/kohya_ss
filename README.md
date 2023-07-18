@@ -6,34 +6,44 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 ## Table of Contents
 
-1. [Tutorials](#tutorials)
-2. [Installation](#installation)
-   1. [Windows](#windows)
-      1. [Windows Pre-requirements](#windows-pre-requirements)
-      2. [Setup](#setup)
-      3. [Optional: CUDNN 8.6](#optional-cudnn-86)
-   2. [Linux and macOS](#linux-and-macos)
-      1. [Linux Pre-requirements](#linux-pre-requirements)
-      2. [Setup](#setup-1)
-      3. [Install Location](#install-location)
-   3. [Runpod](#runpod)
-   4. [Docker](#docker)
-3. [Upgrading](#upgrading)
-   1. [Windows Upgrade](#windows-upgrade)
-   2. [Linux and macOS Upgrade](#linux-and-macos-upgrade)
-4. [Starting GUI Service](#starting-gui-service)
-   1. [Launching the GUI on Windows](#launching-the-gui-on-windows)
-   2. [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
-5. [Dreambooth](#dreambooth)
-6. [Finetune](#finetune)
-7. [Train Network](#train-network)
-8. [LoRA](#lora)
-9. [Sample image generation during training](#sample-image-generation-during-training)
-10. [Troubleshooting](#troubleshooting)
-   1. [Page File Limit](#page-file-limit)
-   2. [No module called tkinter](#no-module-called-tkinter)
-   3. [FileNotFoundError](#filenotfounderror)
-11. [Change History](#change-history)
+- [Kohya's GUI](#kohyas-gui)
+  - [Table of Contents](#table-of-contents)
+  - [Tutorials](#tutorials)
+    - [About SDXL training](#about-sdxl-training)
+      - [Tips for SDXL training](#tips-for-sdxl-training)
+  - [🦒 Colab](#-colab)
+  - [Installation](#installation)
+    - [Windows](#windows)
+      - [Windows Pre-requirements](#windows-pre-requirements)
+      - [Setup](#setup)
+      - [Optional: CUDNN 8.6](#optional-cudnn-86)
+    - [Linux and macOS](#linux-and-macos)
+      - [Linux Pre-requirements](#linux-pre-requirements)
+      - [Setup](#setup-1)
+      - [Install Location](#install-location)
+    - [Runpod](#runpod)
+      - [Manual installation](#manual-installation)
+      - [Pre-built Runpod template](#pre-built-runpod-template)
+    - [Docker](#docker)
+      - [Local docker build](#local-docker-build)
+      - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
+  - [Upgrading](#upgrading)
+    - [Windows Upgrade](#windows-upgrade)
+    - [Linux and macOS Upgrade](#linux-and-macos-upgrade)
+  - [Starting GUI Service](#starting-gui-service)
+    - [Launching the GUI on Windows](#launching-the-gui-on-windows)
+    - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+  - [Dreambooth](#dreambooth)
+  - [Finetune](#finetune)
+  - [Train Network](#train-network)
+  - [LoRA](#lora)
+  - [Sample image generation during training](#sample-image-generation-during-training)
+  - [Troubleshooting](#troubleshooting)
+    - [Page File Limit](#page-file-limit)
+    - [No module called tkinter](#no-module-called-tkinter)
+    - [FileNotFoundError](#filenotfounderror)
+  - [Change History](#change-history)
+
 
 ## Tutorials
 
@@ -42,11 +52,32 @@ The GUI allows you to set the training parameters and generate and run the requi
 [![LoRA Part 1 Tutorial](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
 
 [How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
+
+[![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
+
+Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
+The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
+
+[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
+
+Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](https://www.youtube.com/watch?v=3uzCNrQao3o):
+
+[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
 Summary of the feature:
+
+- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
+  - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
+  - Please launch the script as follows:
+    `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
+  - This script should work with multi-GPU, but it is not tested in my environment.
+
+- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance. 
+  - The options are almost the same as `cache_latents.py' and `sdxl_train.py'. See the help message for the usage.
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
   - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
@@ -57,9 +88,9 @@ Summary of the feature:
 - `prepare_buckets_latents.py` now supports SDXL fine-tuning.
 - `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
 - Both scripts has following additional options:
-  - `--cache_text_encoder_outputs`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
+  - `--cache_text_encoder_outputs` and `--cache_text_encoder_outputs_to_disk`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
   - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
-- The image generation during training is now available. However, the VAE for SDXL seems to produce NaNs in some cases when using `fp16`. The images will be black. Currently, the NaNs cannot be avoided even with `--no_half_vae` option. It works with `bf16` or without mixed precision.
+- The image generation during training is now available. `--no_half_vae` option also works to avoid black images.
 
 - `--weighted_captions` option is not supported yet for both scripts.
 - `--min_timestep` and `--max_timestep` options are added to each training script. These options can be used to train U-Net with different timesteps. The default values are 0 and 1000.
@@ -99,35 +130,18 @@ lr_warmup_steps = 100
 learning_rate = 4e-7 # SDXL original learning rate
 ```
 
-### Format of Textual Inversion embeddings
+## 🦒 Colab
 
-```python
-from safetensors.torch import save_file
+🚦 WIP 🚦
 
-state_dict = {"clip_g": embs_for_text_encoder_1280, "clip_l": embs_for_text_encoder_768}
-save_file(state_dict, file)
-```
+This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: https://github.com/camenduru/kohya_ss-colab.
 
-### TODO
+I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
-- [ ] Support conversion of Diffusers SDXL models.
-- [ ] Support `--weighted_captions` option.
-- [ ] Change `--output_config` option to continue the training.
-- [ ] Extend `--full_bf16` for all the scripts.
-- [x] Support Textual Inversion training.
+| Colab                                                                                                                                                                          | Info                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
 
-## About requirements.txt
-
-[![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
-
-Newer Tutorial: [Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://www.youtube.com/watch?v=TpuDOsuKIBo):
-The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
-
-[![Newer Tutorial: Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training](https://user-images.githubusercontent.com/19240467/235306147-85dd8126-f397-406b-83f2-368927fa0281.png)](https://www.youtube.com/watch?v=TpuDOsuKIBo)
-
-Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](https://www.youtube.com/watch?v=3uzCNrQao3o):
-
-[![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
 
 ## Installation
 
@@ -460,10 +474,8 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/11 (v21.8.2)
-  - Let Tensorboard works in docker #1137
-  - Fix for accelerate issue
-  - Add SDXL TI training support
-  - Rework gui for common layout
-  - More LoRA tools to class
-  - Add no_half_vae option to TI
+* 2023/07/18 (v21.8.3)
+  - Update to latest sd-scripts sdxl code base
+  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
+  - Add min and max resolution parameter for buckets
+  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab

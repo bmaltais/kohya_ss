@@ -79,6 +79,8 @@ def save_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -155,6 +157,7 @@ def save_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    full_bf16,
     min_timestep,
     max_timestep,
 ):
@@ -221,6 +224,8 @@ def open_configuration(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -297,6 +302,7 @@ def open_configuration(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    full_bf16,
     min_timestep,
     max_timestep,
     training_preset,
@@ -389,6 +395,8 @@ def train_model(
     full_fp16,
     no_token_padding,
     stop_text_encoder_training_pct,
+    min_bucket_reso,
+    max_bucket_reso,
     # use_8bit_adam,
     xformers,
     save_model_as,
@@ -465,6 +473,7 @@ def train_model(
     module_dropout,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
+    full_bf16,
     min_timestep,
     max_timestep,
 ):
@@ -665,7 +674,7 @@ def train_model(
     if v_parameterization:
         run_cmd += ' --v_parameterization'
     if enable_bucket:
-        run_cmd += ' --enable_bucket'
+        run_cmd += f' --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}'
     if no_token_padding:
         run_cmd += ' --no_token_padding'
     if weighted_captions:
@@ -872,6 +881,9 @@ def train_model(
         
     if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
+        
+    if full_bf16:
+        run_cmd += f' --full_bf16'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -1082,7 +1094,7 @@ def lora_tab(
                 )
                 
             # Add SDXL Parameters
-            sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+            sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_full_bf16=True)
                 
             with gr.Row():
                 factor = gr.Slider(
@@ -1121,7 +1133,7 @@ def lora_tab(
                 )
                 network_alpha = gr.Slider(
                     minimum=0.1,
-                    maximum=20000,
+                    maximum=1024,
                     label='Network Alpha',
                     value=1,
                     step=0.1,
@@ -1432,6 +1444,8 @@ def lora_tab(
             advanced_training.full_fp16,
             advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
+            basic_training.min_bucket_reso,
+            basic_training.max_bucket_reso,
             advanced_training.xformers,
             source_model.save_model_as,
             advanced_training.shuffle_caption,
@@ -1507,6 +1521,7 @@ def lora_tab(
             module_dropout,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
+            sdxl_params.full_bf16,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
         ]
