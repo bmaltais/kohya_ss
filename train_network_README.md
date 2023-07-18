@@ -8,9 +8,9 @@
 
 ## A Note about Trained Models
 
-Cloneofsimo's repository and d8ahazard's [Drebooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_drebooth_extension) are currently incompatible. Because we are doing some enhancements (see below).
+Cloneofsimo's repository and d8ahazard's [Dreambooth Extension for Stable-Diffusion-WebUI](https://github.com/d8ahazard/sd_dreambooth_extension) are currently incompatible. Because we are doing some enhancements (see below).
 
-When generating images with WebUI, etc., merge the learned LoRA model with the learning source Stable Diffusion model in advance with the script in this repository, or click here [Extention for WebUI] (https://github .com/kohya-ss/sd-webui-additional-networks).
+When generating images with WebUI, etc., merge the learned LoRA model with the learning source Stable Diffusion model in advance with the script in this repository, or click here [Extention for WebUI](https://github.com/kohya-ss/sd-webui-additional-networks).
 
 ## Learning method
 
@@ -22,7 +22,7 @@ Both methods can be learned in much the same way as existing scripts. We will di
 
 ### Using the DreamBooth Method
 
-Please refer to [DreamBooth guide](./train_db_README-en.md) and prepare the data.
+Please refer to [DreamBooth guide](https://github.com/bmaltais/kohya_ss/blob/master/train_db_README.md) and prepare the data.
 
 Specify train_network.py instead of train_db.py when training.
 
@@ -30,7 +30,7 @@ Almost all options are available (except Stable Diffusion model save related), b
 
 ### When to use captions
 
-Please refer to [fine-tuning guide](./fine_tune_README_en.md) and perform each step.
+Please refer to [fine-tuning guide](https://github.com/bmaltais/kohya_ss/blob/master/fine_tune_README.md) and perform each step.
 
 Specify train_network.py instead of fine_tune.py when training. Almost all options (except for model saving) can be used as is.
 
