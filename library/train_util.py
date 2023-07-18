@@ -2751,6 +2751,11 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="add `latent mean absolute value * this value` to noise_offset (disabled if None, default) / latentの平均値の絶対値 * この値をnoise_offsetに加算する（Noneの場合は無効、デフォルト）",
     )
     parser.add_argument(
+        "--zero_terminal_snr",
+        action="store_true",
+        help="fix noise scheduler betas to enforce zero terminal SNR / noise schedulerのbetasを修正して、zero terminal SNRを強制する",
+    )
+    parser.add_argument(
         "--min_timestep",
         type=int,
         default=None,
@@ -2825,7 +2830,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
 
 def verify_training_args(args: argparse.Namespace):
     if args.v_parameterization and not args.v2:
-        print("v_parameterization should be with v2 / v1でv_parameterizationを使用することは想定されていません")
+        print("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
     if args.v2 and args.clip_skip is not None:
         print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
@@ -2854,6 +2859,12 @@ def verify_training_args(args: argparse.Namespace):
     if args.scale_v_pred_loss_like_noise_pred and not args.v_parameterization:
         raise ValueError(
             "scale_v_pred_loss_like_noise_pred can be enabled only with v_parameterization / scale_v_pred_loss_like_noise_predはv_parameterizationが有効なときのみ有効にできます"
+        )
+
+    if args.zero_terminal_snr and not args.v_parameterization:
+        print(
+            f"zero_terminal_snr is enabled, but v_parameterization is not enabled. training will be unexpected"
+            + " / zero_terminal_snrが有効ですが、v_parameterizationが有効ではありません。学習結果は想定外になる可能性があります"
         )
 
 
