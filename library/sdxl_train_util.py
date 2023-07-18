@@ -343,9 +343,10 @@ def add_sdxl_training_arguments(parser: argparse.ArgumentParser):
 
 
 def verify_sdxl_training_args(args: argparse.Namespace):
-    assert (
-        not args.v2 and not args.v_parameterization
-    ), "v2 or v_parameterization cannot be enabled in SDXL training / SDXL学習ではv2とv_parameterizationを有効にすることはできません"
+    assert not args.v2, "v2 cannot be enabled in SDXL training / SDXL学習ではv2を有効にすることはできません"
+    if args.v_parameterization:
+        print("v_parameterization will be unexpected / SDXL学習ではv_parameterizationは想定外の動作になります")
+
     if args.clip_skip is not None:
         print("clip_skip will be unexpected / SDXL学習ではclip_skipは動作しません")
 
