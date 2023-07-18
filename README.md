@@ -6,34 +6,44 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 ## Table of Contents
 
-1. [Tutorials](#tutorials)
-2. [Installation](#installation)
-   1. [Windows](#windows)
-      1. [Windows Pre-requirements](#windows-pre-requirements)
-      2. [Setup](#setup)
-      3. [Optional: CUDNN 8.6](#optional-cudnn-86)
-   2. [Linux and macOS](#linux-and-macos)
-      1. [Linux Pre-requirements](#linux-pre-requirements)
-      2. [Setup](#setup-1)
-      3. [Install Location](#install-location)
-   3. [Runpod](#runpod)
-   4. [Docker](#docker)
-3. [Upgrading](#upgrading)
-   1. [Windows Upgrade](#windows-upgrade)
-   2. [Linux and macOS Upgrade](#linux-and-macos-upgrade)
-4. [Starting GUI Service](#starting-gui-service)
-   1. [Launching the GUI on Windows](#launching-the-gui-on-windows)
-   2. [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
-5. [Dreambooth](#dreambooth)
-6. [Finetune](#finetune)
-7. [Train Network](#train-network)
-8. [LoRA](#lora)
-9. [Sample image generation during training](#sample-image-generation-during-training)
-10. [Troubleshooting](#troubleshooting)
-   1. [Page File Limit](#page-file-limit)
-   2. [No module called tkinter](#no-module-called-tkinter)
-   3. [FileNotFoundError](#filenotfounderror)
-11. [Change History](#change-history)
+- [Kohya's GUI](#kohyas-gui)
+  - [Table of Contents](#table-of-contents)
+  - [Tutorials](#tutorials)
+    - [About SDXL training](#about-sdxl-training)
+      - [Tips for SDXL training](#tips-for-sdxl-training)
+  - [🦒 Colab](#-colab)
+  - [Installation](#installation)
+    - [Windows](#windows)
+      - [Windows Pre-requirements](#windows-pre-requirements)
+      - [Setup](#setup)
+      - [Optional: CUDNN 8.6](#optional-cudnn-86)
+    - [Linux and macOS](#linux-and-macos)
+      - [Linux Pre-requirements](#linux-pre-requirements)
+      - [Setup](#setup-1)
+      - [Install Location](#install-location)
+    - [Runpod](#runpod)
+      - [Manual installation](#manual-installation)
+      - [Pre-built Runpod template](#pre-built-runpod-template)
+    - [Docker](#docker)
+      - [Local docker build](#local-docker-build)
+      - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
+  - [Upgrading](#upgrading)
+    - [Windows Upgrade](#windows-upgrade)
+    - [Linux and macOS Upgrade](#linux-and-macos-upgrade)
+  - [Starting GUI Service](#starting-gui-service)
+    - [Launching the GUI on Windows](#launching-the-gui-on-windows)
+    - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+  - [Dreambooth](#dreambooth)
+  - [Finetune](#finetune)
+  - [Train Network](#train-network)
+  - [LoRA](#lora)
+  - [Sample image generation during training](#sample-image-generation-during-training)
+  - [Troubleshooting](#troubleshooting)
+    - [Page File Limit](#page-file-limit)
+    - [No module called tkinter](#no-module-called-tkinter)
+    - [FileNotFoundError](#filenotfounderror)
+  - [Change History](#change-history)
+
 
 ## Tutorials
 
@@ -124,13 +134,13 @@ learning_rate = 4e-7 # SDXL original learning rate
 
 🚦 WIP 🚦
 
-This colab notebook is not done nor maintained by me but it does appear to work quite well. You can find the source at: https://github.com/camenduru/kohya_ss-colab
+This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: https://github.com/camenduru/kohya_ss-colab.
 
-Many thanks to camendutu for the great contribution. Please report issues with the colab on his repo.
+I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
-| Colab | Info
-| --- | --- |
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_colab
+| Colab                                                                                                                                                                          | Info                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
 
 
 ## Installation
