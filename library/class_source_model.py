@@ -80,6 +80,7 @@ class SourceModel:
                     outputs=self.pretrained_model_name_or_path,
                     show_progress=False,
                 )
+            with gr.Row():
                 self.v2 = gr.Checkbox(label='v2', value=False, visible=False)
                 self.v_parameterization = gr.Checkbox(
                     label='v_parameterization', value=False, visible=False

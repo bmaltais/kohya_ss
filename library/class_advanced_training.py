@@ -41,16 +41,6 @@ class AdvancedTraining:
                 outputs=self.vae,
                 show_progress=False,
             )
-        with gr.Row(visible=not finetuning):
-            self.lr_scheduler_num_cycles = gr.Textbox(
-                label='LR number of cycles',
-                placeholder='(Optional) For Cosine with restart and polynomial only',
-            )
-
-            self.lr_scheduler_power = gr.Textbox(
-                label='LR power',
-                placeholder='(Optional) For Cosine with restart and polynomial only',
-            )
 
         with gr.Row():
             self.additional_parameters = gr.Textbox(
