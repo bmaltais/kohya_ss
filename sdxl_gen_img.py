@@ -2159,13 +2159,13 @@ def main(args):
                             m = re.match(r"ow (\d+)", parg, re.IGNORECASE)
                             if m:
                                 original_width = int(m.group(1))
-                                print(f"original width: {width}")
+                                print(f"original width: {original_width}")
                                 continue
 
                             m = re.match(r"oh (\d+)", parg, re.IGNORECASE)
                             if m:
                                 original_height = int(m.group(1))
-                                print(f"original height: {height}")
+                                print(f"original height: {original_height}")
                                 continue
 
                             m = re.match(r"ct (\d+)", parg, re.IGNORECASE)
