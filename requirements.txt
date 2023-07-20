@@ -14,7 +14,7 @@ altair==4.2.2
 easygui==0.98.3
 toml==0.10.2
 voluptuous==0.13.1
-huggingface-hub==0.14.1
+huggingface-hub==0.15.1
 # for BLIP captioning
 # requests==2.28.2
 # timm==0.6.12
