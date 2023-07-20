@@ -8,6 +8,7 @@ import random
 import time
 import json
 from multiprocessing import Value
+import toml
 
 from tqdm import tqdm
 import torch
@@ -682,7 +683,10 @@ class NetworkTrainer:
             custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
         if accelerator.is_main_process:
-            accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name)
+            init_kwargs = {}
+            if args.log_tracker_config is not None:
+                init_kwargs = toml.load(args.log_tracker_config)
+            accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
         loss_list = []
         loss_total = 0.0
