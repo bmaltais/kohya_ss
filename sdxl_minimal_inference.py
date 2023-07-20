@@ -146,7 +146,8 @@ if __name__ == "__main__":
     text_model2.eval()
 
     unet.set_use_memory_efficient_attention(True, False)
-    vae.set_use_memory_efficient_attention_xformers(True)
+    if torch.__version__ >= "2.0.0": # PyTorch 2.0.0 以上対応のxformersなら以下が使える
+        vae.set_use_memory_efficient_attention_xformers(True)
 
     # Tokenizers
     tokenizer1 = CLIPTokenizer.from_pretrained(text_encoder_1_name)

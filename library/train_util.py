@@ -1104,9 +1104,9 @@ class BaseDataset(torch.utils.data.Dataset):
                 # crop_ltrb[2] is right, so target_size[0] - crop_ltrb[2] is left in flipped image
                 crop_left_top = (target_size[0] - crop_ltrb[2], crop_ltrb[1])
 
-            original_sizes_hw.append((original_size[1], original_size[0]))
-            crop_top_lefts.append((crop_left_top[1], crop_left_top[0]))
-            target_sizes_hw.append((target_size[1], target_size[0]))
+            original_sizes_hw.append((int(original_size[1]), int(original_size[0])))
+            crop_top_lefts.append((int(crop_left_top[1]), int(crop_left_top[0])))
+            target_sizes_hw.append((int(target_size[1]), int(target_size[0])))
             flippeds.append(flipped)
 
             # captionとtext encoder outputを処理する
