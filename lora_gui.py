@@ -24,7 +24,8 @@ from library.common_gui import (
     output_message,
     verify_image_folder_pattern,
     SaveConfigFile,
-    save_to_file
+    save_to_file,
+    check_duplicate_filenames
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -495,6 +496,9 @@ def train_model(
             msg='Image folder path is missing', headless=headless_bool
         )
         return
+    
+    # Check if there are files with the same filename but different image extension... warn the user if it is the case.
+    check_duplicate_filenames(train_data_dir)
 
     if not os.path.exists(train_data_dir):
         output_message(
@@ -1117,7 +1121,7 @@ def lora_tab(
                     visible=False,
                 )
                 train_on_input = gr.Checkbox(
-                    value=False,
+                    value=True,
                     label='iA3 train on input',
                     visible=False,
                 )

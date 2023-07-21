@@ -165,7 +165,7 @@ def main_menu():
 
         if choice == '1':
             while True:
-                print('1. Torch 1 (legacy)')
+                print('1. Torch 1 (legacy, no longer supported. Will be removed in v21.9.x)')
                 print('2. Torch 2 (recommended)')
                 print('3. Cancel')
                 choice_torch = input('\nEnter your choice: ')

@@ -840,3 +840,20 @@ def save_to_file(content):
     file_path = 'logs/print_command.txt'
     with open(file_path, 'a') as file:
         file.write(content + '\n')
+        
+def check_duplicate_filenames(folder_path, image_extension = ['.gif', '.png', '.jpg', '.jpeg', '.webp']):
+    log.info('Checking for duplicate image filenames in training data directory...')
+    for root, dirs, files in os.walk(folder_path):
+        filenames = {}
+        for file in files:
+            filename, extension = os.path.splitext(file)
+            if extension.lower() in image_extension:
+                full_path = os.path.join(root, file)
+                if filename in filenames:
+                    existing_path = filenames[filename]
+                    if existing_path != full_path:
+                        print(f"Warning: Same filename '{filename}' with different image extension found. This will cause training issues. Rename one of the file.")
+                        print(f"Existing file: {existing_path}")
+                        print(f"Current file: {full_path}")
+                else:
+                    filenames[filename] = full_path
