@@ -23,6 +23,10 @@ class BasicTraining:
                 step=1,
             )
             self.epoch = gr.Number(label='Epoch', value=1, precision=0)
+            self.max_train_epochs = gr.Textbox(
+                label='Max train epoch',
+                placeholder='(Optional) Enforce number of epoch',
+            )
             self.save_every_n_epochs = gr.Number(
                 label='Save every N epochs', value=1, precision=0
             )

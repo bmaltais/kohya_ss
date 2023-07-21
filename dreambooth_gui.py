@@ -776,7 +776,7 @@ def dreambooth_tab(
             advanced_training.vae,
             folders.output_name,
             advanced_training.max_token_length,
-            advanced_training.max_train_epochs,
+            basic_training.max_train_epochs,
             advanced_training.max_data_loader_n_workers,
             advanced_training.mem_eff_attn,
             advanced_training.gradient_accumulation_steps,

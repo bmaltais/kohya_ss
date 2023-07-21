@@ -1469,7 +1469,7 @@ def lora_tab(
             folders.output_name,
             source_model.model_list,
             advanced_training.max_token_length,
-            advanced_training.max_train_epochs,
+            basic_training.max_train_epochs,
             advanced_training.max_data_loader_n_workers,
             network_alpha,
             folders.training_comment,

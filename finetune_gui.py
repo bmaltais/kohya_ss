@@ -871,7 +871,7 @@ def finetune_tab(headless=False):
             advanced_training.shuffle_caption,
             output_name,
             advanced_training.max_token_length,
-            advanced_training.max_train_epochs,
+            basic_training.max_train_epochs,
             advanced_training.max_data_loader_n_workers,
             advanced_training.full_fp16,
             advanced_training.color_aug,
