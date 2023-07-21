@@ -56,12 +56,12 @@ class SourceModel:
                     label='Pretrained model name or path',
                     placeholder='enter the path to custom model or name of pretrained model',
                     value='runwayml/stable-diffusion-v1-5',
-                    visible=(False and not headless),
+                    visible=(not headless),
                 )
                 self.pretrained_model_name_or_path_file = gr.Button(
                     document_symbol,
                     elem_id='open_folder_small',
-                    visible=(False and not headless),
+                    visible=(not headless),
                 )
                 self.pretrained_model_name_or_path_file.click(
                     get_any_file_path,
@@ -72,7 +72,7 @@ class SourceModel:
                 self.pretrained_model_name_or_path_folder = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
-                    visible=(False and not headless),
+                    visible=(not headless),
                 )
                 self.pretrained_model_name_or_path_folder.click(
                     get_folder_path,
