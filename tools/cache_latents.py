@@ -104,7 +104,8 @@ def cache_to_disk(args: argparse.Namespace) -> None:
     else:
         _, vae, _, _ = train_util.load_target_model(args, weight_dtype, accelerator)
 
-    vae.set_use_memory_efficient_attention_xformers(args.xformers)
+    if torch.__version__ >= "2.0.0": # PyTorch 2.0.0 以上対応のxformersなら以下が使える
+        vae.set_use_memory_efficient_attention_xformers(args.xformers)
     vae.to(accelerator.device, dtype=vae_dtype)
     vae.requires_grad_(False)
     vae.eval()

@@ -388,7 +388,10 @@ def train(args):
         custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
     if accelerator.is_main_process:
-        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name)
+        init_kwargs = {}
+        if args.log_tracker_config is not None:
+            init_kwargs = toml.load(args.log_tracker_config)
+        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
     # function for saving/removing
     def save_model(ckpt_name, embs, steps, epoch_no, force_sync_upload=False):

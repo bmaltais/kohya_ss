@@ -8,6 +8,7 @@ import random
 import time
 import json
 from multiprocessing import Value
+import toml
 
 from tqdm import tqdm
 import torch
@@ -217,7 +218,8 @@ class NetworkTrainer:
 
         # モデルに xformers とか memory efficient attention を組み込む
         train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
-        vae.set_use_memory_efficient_attention_xformers(args.xformers)
+        if torch.__version__ >= "2.0.0": # PyTorch 2.0.0 以上対応のxformersなら以下が使える
+            vae.set_use_memory_efficient_attention_xformers(args.xformers)
 
         # 差分追加学習のためにモデルを読み込む
         sys.path.append(os.path.dirname(__file__))
@@ -399,6 +401,8 @@ class NetworkTrainer:
                     text_encoder, network, optimizer, train_dataloader, lr_scheduler
                 )
                 text_encoders = [text_encoder]
+
+            unet.to(accelerator.device, dtype=weight_dtype) # move to device because unet is not prepared by accelerator
         else:
             network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 network, optimizer, train_dataloader, lr_scheduler
@@ -681,7 +685,10 @@ class NetworkTrainer:
             custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
         if accelerator.is_main_process:
-            accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name)
+            init_kwargs = {}
+            if args.log_tracker_config is not None:
+                init_kwargs = toml.load(args.log_tracker_config)
+            accelerator.init_trackers("network_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
         loss_list = []
         loss_total = 0.0
