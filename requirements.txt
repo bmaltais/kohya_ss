@@ -15,6 +15,8 @@ easygui==0.98.3
 toml==0.10.2
 voluptuous==0.13.1
 huggingface-hub==0.15.1
+# for loading Diffusers' SDXL
+invisible-watermark==0.2.0 
 # for BLIP captioning
 # requests==2.28.2
 # timm==0.6.12
