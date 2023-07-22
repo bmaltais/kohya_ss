@@ -984,14 +984,14 @@ def train_model(
         # Run the command
         executor.execute_command(run_cmd=run_cmd)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(
-                output_dir, v2, v_parameterization, output_name
-            )
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(
+        #         output_dir, v2, v_parameterization, output_name
+        #     )
 
 
 def lora_tab(

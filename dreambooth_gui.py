@@ -30,6 +30,7 @@ from library.class_source_model import SourceModel
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_folders import Folders
+from library.class_command_executor import CommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -45,6 +46,9 @@ from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
+
+# Setup command executor
+executor = CommandExecutor()
 
 
 def save_configuration(
@@ -652,10 +656,8 @@ def train_model(
         log.info(run_cmd)
 
         # Run the command
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        
+        executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
         last_dir = pathlib.Path(f'{output_dir}/{output_name}')
@@ -716,7 +718,10 @@ def dreambooth_tab(
                 headless=headless,
             )
 
-        button_run = gr.Button('Train model', variant='primary')
+        with gr.Row():
+            button_run = gr.Button('Start training', variant='primary')
+            
+            button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
@@ -847,6 +852,10 @@ def dreambooth_tab(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
+        )
+        
+        button_stop_training.click(
+            executor.kill_command
         )
 
         button_print.click(
