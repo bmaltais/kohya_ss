@@ -545,9 +545,12 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     -- 指定优化器类型。您可以指定
     - AdamW : [torch.optim.AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
     - 与过去版本中未指定选项时相同
-    - AdamW8bit : 同上
+    - AdamW8bit : 参数同上
+    - PagedAdamW8bit : 参数同上
     - 与过去版本中指定的 --use_8bit_adam 相同
     - Lion : https://github.com/lucidrains/lion-pytorch
+    - Lion8bit : 参数同上
+    - PagedLion8bit : 参数同上
     - 与过去版本中指定的 --use_lion_optimizer 相同
     - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
     - SGDNesterov8bit : 参数同上
