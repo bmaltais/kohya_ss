@@ -755,8 +755,7 @@ def run_cmd_advanced_training(**kwargs):
     noise_offset_type = kwargs.get('noise_offset_type', 'Original')
     if noise_offset_type == 'Original':
         noise_offset = float(kwargs.get("noise_offset", 0))
-        if noise_offset > 0:
-            run_cmd += f' --noise_offset={noise_offset}'
+        run_cmd += f' --noise_offset={noise_offset}'
         
         adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
         if adaptive_noise_scale != 0 and noise_offset > 0:

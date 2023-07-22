@@ -480,3 +480,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Relocate LR number of cycles and LR power options
   - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
   - Fix issue with conv_block_dims and conv_block_alphas
+  - Fix 0 noise offset issue
+  - Implement Stop training button on LoRA
