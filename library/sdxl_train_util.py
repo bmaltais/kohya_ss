@@ -5,6 +5,8 @@ import os
 from types import SimpleNamespace
 from typing import Any
 import torch
+from accelerate import init_empty_weights
+from accelerate.utils.modeling import set_module_tensor_to_device
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 import open_clip
@@ -92,10 +94,11 @@ def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtyp
         del pipe
 
         # Diffusers U-Net to original U-Net
-        original_unet = sdxl_original_unet.SdxlUNet2DConditionModel()
         state_dict = sdxl_model_util.convert_diffusers_unet_state_dict_to_sdxl(unet.state_dict())
-        original_unet.load_state_dict(state_dict)
-        unet = original_unet
+        with init_empty_weights():
+            unet = sdxl_original_unet.SdxlUNet2DConditionModel()
+        for k in list(state_dict.keys()):
+            set_module_tensor_to_device(unet, k, device, value=state_dict.pop(k))
         print("U-Net converted to original U-Net")
 
         logit_scale = None

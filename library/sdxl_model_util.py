@@ -1,4 +1,6 @@
 import torch
+from accelerate import init_empty_weights
+from accelerate.utils.modeling import set_module_tensor_to_device
 from safetensors.torch import load_file, save_file
 from transformers import CLIPTextModel, CLIPTextConfig, CLIPTextModelWithProjection, CLIPTokenizer
 from diffusers import AutoencoderKL, EulerDiscreteScheduler, StableDiffusionXLPipeline, UNet2DConditionModel
@@ -156,16 +158,15 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
 
     # U-Net
     print("building U-Net")
-    unet = sdxl_original_unet.SdxlUNet2DConditionModel()
+    with init_empty_weights():
+        unet = sdxl_original_unet.SdxlUNet2DConditionModel()
 
     print("loading U-Net from checkpoint")
-    unet_sd = {}
     for k in list(state_dict.keys()):
         if k.startswith("model.diffusion_model."):
-            unet_sd[k.replace("model.diffusion_model.", "")] = state_dict.pop(k)
-    info = unet.load_state_dict(unet_sd)
-    print("U-Net: ", info)
-    del unet_sd
+            set_module_tensor_to_device(unet, k.replace("model.diffusion_model.", ""), map_location, value=state_dict.pop(k))
+    # TODO: catch missing_keys and unexpected_keys with _IncompatibleKeys
+    # print("U-Net: ", info)
 
     # Text Encoders
     print("building text encoders")
