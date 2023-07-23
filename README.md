@@ -33,6 +33,8 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Starting GUI Service](#starting-gui-service)
     - [Launching the GUI on Windows](#launching-the-gui-on-windows)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+    - [Optional: Use PagedAdamW8bit and PagedLion8bit](#optional-use-pagedadamw8bit-and-pagedlion8bit)
+  - [Upgrade](#upgrade)
   - [Dreambooth](#dreambooth)
   - [Finetune](#finetune)
   - [Train Network](#train-network)
@@ -392,6 +394,17 @@ gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ### Launching the GUI on Linux and macOS
 
 To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
+### Optional: Use PagedAdamW8bit and PagedLion8bit
+
+For PagedAdamW8bit and PagedLion8bit, you need to upgrade `bitsandbytes` to 0.39.0 or later. Uninstall `bitsandbytes`, and for Windows, install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
+
+```powershell
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
+```
+
+For upgrading, upgrade this repo with `pip install .`, and upgrade necessary packages manually.
+
+## Upgrade
 
 ```bash
 gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
