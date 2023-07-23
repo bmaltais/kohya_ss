@@ -1,7 +1,7 @@
 import torch
 from safetensors.torch import load_file, save_file
 from transformers import CLIPTextModel, CLIPTextConfig, CLIPTextModelWithProjection, CLIPTokenizer
-from diffusers import AutoencoderKL, EulerDiscreteScheduler, StableDiffusionXLPipeline, UNet2DConditionModel
+from diffusers import AutoencoderKL, EulerDiscreteScheduler, UNet2DConditionModel
 from library import model_util
 from library import sdxl_original_unet
 
@@ -486,6 +486,8 @@ def save_stable_diffusion_checkpoint(
 def save_diffusers_checkpoint(
     output_dir, text_encoder1, text_encoder2, unet, pretrained_model_name_or_path, vae=None, use_safetensors=False, save_dtype=None
 ):
+    from diffusers import StableDiffusionXLPipeline
+
     # convert U-Net
     unet_sd = unet.state_dict()
     du_unet_sd = convert_sdxl_unet_state_dict_to_diffusers(unet_sd)
