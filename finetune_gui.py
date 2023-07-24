@@ -423,8 +423,13 @@ def train_model(
             run_cmd += f' --full_path'
 
         log.info(run_cmd)
-        
-        executor.execute_command(run_cmd=run_cmd)
+
+        if not print_only_bool:
+            # Run the command
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
@@ -447,7 +452,10 @@ def train_model(
 
         if not print_only_bool:
             # Run the command
-            executor.execute_command(run_cmd=run_cmd)
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     image_num = len(
         [
