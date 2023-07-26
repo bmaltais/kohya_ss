@@ -495,3 +495,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Fix issue with conv_block_dims and conv_block_alphas
   - Fix 0 noise offset issue
   - Implement Stop training button on LoRA
+  - Add support to extract LoRA from SDXL finetuned models
+  - Add support for PagedAdamW8bit and PagedLion8bit optimizer. Those require a new version of bitsandbytes so success on some systems may vary. I had to uninstall all my nvidia drivers and othe cuda toolkit install, delete all cuda variable references and re-install cuda toolkit v11.8.0 to get things to work... so not super easy.
