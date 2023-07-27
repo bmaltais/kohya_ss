@@ -64,6 +64,10 @@ Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](ht
 
 [![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
 
+First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models](https://youtu.be/AY6DMBCIZ3A):
+
+[![First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/mG0CvKAzb8o29nr5ye0Br.png)](https://youtu.be/AY6DMBCIZ3A)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
@@ -483,3 +487,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Fix 0 noise offset issue
   - Implement Stop training button on LoRA and other training tabs
   - Update LyCORIS network release to fix an issue with the LoCon extraction.
+
+* 2023/07/18 (v21.8.3)
+  - Update to latest sd-scripts sdxl code base
+  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
+  - Add min and max resolution parameter for buckets
+  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab
