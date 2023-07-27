@@ -476,7 +476,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/18 (v21.8.4)
+* 2023/07/27 (v21.8.4)
   - Relocate LR number of cycles and LR power options
   - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
   - Fix issue with conv_block_dims and conv_block_alphas
