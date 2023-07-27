@@ -16,7 +16,7 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
 
     def assert_extra_args(self, args, train_dataset_group):
         super().assert_extra_args(args, train_dataset_group)
-        sdxl_train_util.verify_sdxl_training_args(args)
+        sdxl_train_util.verify_sdxl_training_args(args, supportTextEncoderCaching=False)
 
     def load_target_model(self, args, weight_dtype, accelerator):
         (
@@ -103,8 +103,8 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         else:
             data = torch.load(file, map_location="cpu")
 
-        emb_l = data.get("clib_l", None)  # ViT-L text encoder 1
-        emb_g = data.get("clib_g", None)  # BiG-G text encoder 2
+        emb_l = data.get("clip_l", None)  # ViT-L text encoder 1
+        emb_g = data.get("clip_g", None)  # BiG-G text encoder 2
 
         assert (
             emb_l is not None or emb_g is not None

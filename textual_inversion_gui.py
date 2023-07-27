@@ -31,6 +31,7 @@ from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_folders import Folders
 from library.class_sdxl_parameters import SDXLParameters
+from library.class_command_executor import CommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -46,6 +47,9 @@ from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
+
+# Setup command executor
+executor = CommandExecutor()
 
 def save_configuration(
     save_as,
@@ -104,6 +108,8 @@ def save_configuration(
     weights,
     template,
     keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -223,6 +229,8 @@ def open_configuration(
     weights,
     template,
     keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -339,6 +347,8 @@ def train_model(
     weights,
     template,
     keep_tokens,
+    lr_scheduler_num_cycles,
+    lr_scheduler_power,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -561,6 +571,12 @@ def train_model(
         run_cmd += f' --vae="{vae}"'
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
+    if not lr_scheduler_num_cycles == '':
+        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
+    else:
+        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
+    if not lr_scheduler_power == '':
+        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
     if not max_train_epochs == '':
@@ -669,10 +685,8 @@ def train_model(
         log.info(run_cmd)
 
         # Run the command
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        
+        executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
         last_dir = pathlib.Path(f'{output_dir}/{output_name}')
@@ -781,7 +795,10 @@ def ti_tab(
                 headless=headless,
             )
 
-        button_run = gr.Button('Train model', variant='primary')
+        with gr.Row():
+            button_run = gr.Button('Start training', variant='primary')
+            
+            button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
@@ -841,7 +858,7 @@ def ti_tab(
             advanced_training.vae,
             folders.output_name,
             advanced_training.max_token_length,
-            advanced_training.max_train_epochs,
+            basic_training.max_train_epochs,
             advanced_training.max_data_loader_n_workers,
             advanced_training.mem_eff_attn,
             advanced_training.gradient_accumulation_steps,
@@ -853,6 +870,8 @@ def ti_tab(
             weights,
             template,
             advanced_training.keep_tokens,
+            basic_training.lr_scheduler_num_cycles,
+            basic_training.lr_scheduler_power,
             advanced_training.persistent_data_loader_workers,
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
@@ -916,6 +935,10 @@ def ti_tab(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
+        )
+        
+        button_stop_training.click(
+            executor.kill_command
         )
 
         button_print.click(

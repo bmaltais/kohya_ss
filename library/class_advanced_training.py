@@ -41,16 +41,6 @@ class AdvancedTraining:
                 outputs=self.vae,
                 show_progress=False,
             )
-        with gr.Row(visible=not finetuning):
-            self.lr_scheduler_num_cycles = gr.Textbox(
-                label='LR number of cycles',
-                placeholder='(Optional) For Cosine with restart and polynomial only',
-            )
-
-            self.lr_scheduler_power = gr.Textbox(
-                label='LR power',
-                placeholder='(Optional) For Cosine with restart and polynomial only',
-            )
 
         with gr.Row():
             self.additional_parameters = gr.Textbox(
@@ -218,10 +208,10 @@ class AdvancedTraining:
                 outputs=self.resume,
                 show_progress=False,
             )
-            self.max_train_epochs = gr.Textbox(
-                label='Max train epoch',
-                placeholder='(Optional) Override number of epoch',
-            )
+            # self.max_train_epochs = gr.Textbox(
+            #     label='Max train epoch',
+            #     placeholder='(Optional) Override number of epoch',
+            # )
             self.max_data_loader_n_workers = gr.Textbox(
                 label='Max num workers for DataLoader',
                 placeholder='(Optional) Override number of epoch. Default: 8',

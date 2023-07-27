@@ -8,10 +8,12 @@ einops==0.6.0
 fairscale==0.4.13
 ftfy==6.1.1
 gradio==3.36.1
-huggingface-hub>=0.14.1
+huggingface-hub==0.15.1
 lion-pytorch==0.0.6
-lycoris_lora==1.8.0.dev9
-# lycoris_lora==1.7.2
+lycoris_lora==1.8.1
+# for loading Diffusers' SDXL
+invisible-watermark==0.2.0
+# open clip for SDXL
 open-clip-torch==2.20.0
 opencv-python==4.7.0.68
 prodigyopt==1.0

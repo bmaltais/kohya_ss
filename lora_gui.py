@@ -8,6 +8,7 @@ import json
 import math
 import os
 import subprocess
+import psutil
 import pathlib
 import argparse
 from datetime import datetime
@@ -24,7 +25,8 @@ from library.common_gui import (
     output_message,
     verify_image_folder_pattern,
     SaveConfigFile,
-    save_to_file
+    save_to_file,
+    check_duplicate_filenames
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -32,6 +34,7 @@ from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_sdxl_parameters import SDXLParameters
 from library.class_folders import Folders
+from library.class_command_executor import CommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -46,8 +49,14 @@ from library.custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
-document_symbol = '\U0001F4C4'   # 📄
+# Setup command executor
+executor = CommandExecutor()
 
+button_run = gr.Button('Start training', variant='primary')
+            
+button_stop_training = gr.Button('Stop training')
+
+document_symbol = '\U0001F4C4'   # 📄
 
 def save_configuration(
     save_as,
@@ -141,8 +150,8 @@ def save_configuration(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    conv_dims,
-    conv_alphas,
+    conv_block_dims,
+    conv_block_alphas,
     weighted_captions,
     unit,
     save_every_n_steps,
@@ -286,8 +295,8 @@ def open_configuration(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    conv_dims,
-    conv_alphas,
+    conv_block_dims,
+    conv_block_alphas,
     weighted_captions,
     unit,
     save_every_n_steps,
@@ -457,8 +466,8 @@ def train_model(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    conv_dims,
-    conv_alphas,
+    conv_block_dims,
+    conv_block_alphas,
     weighted_captions,
     unit,
     save_every_n_steps,
@@ -479,6 +488,7 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    global command_running
     
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
@@ -495,6 +505,9 @@ def train_model(
             msg='Image folder path is missing', headless=headless_bool
         )
         return
+    
+    # Check if there are files with the same filename but different image extension... warn the user if it is the case.
+    check_duplicate_filenames(train_data_dir)
 
     if not os.path.exists(train_data_dir):
         output_message(
@@ -776,8 +789,8 @@ def train_model(
             'block_lr_zero_threshold',
             'block_dims',
             'block_alphas',
-            'conv_dims',
-            'conv_alphas',
+            'conv_block_dims',
+            'conv_block_alphas',
             'rank_dropout',
             'module_dropout',
         ]
@@ -810,8 +823,8 @@ def train_model(
             'block_lr_zero_threshold',
             'block_dims',
             'block_alphas',
-            'conv_dims',
-            'conv_alphas',
+            'conv_block_dims',
+            'conv_block_alphas',
             'rank_dropout',
             'module_dropout',
             'unit',
@@ -969,19 +982,16 @@ def train_model(
         
         log.info(run_cmd)
         # Run the command
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        executor.execute_command(run_cmd=run_cmd)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(f'{output_dir}/{output_name}')
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(
-                output_dir, v2, v_parameterization, output_name
-            )
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(
+        #         output_dir, v2, v_parameterization, output_name
+        #     )
 
 
 def lora_tab(
@@ -1117,7 +1127,7 @@ def lora_tab(
                     visible=False,
                 )
                 train_on_input = gr.Checkbox(
-                    value=False,
+                    value=True,
                     label='iA3 train on input',
                     visible=False,
                 )
@@ -1357,12 +1367,12 @@ def lora_tab(
                             )
                     with gr.Tab(label='Conv'):
                         with gr.Row(visible=True):
-                            conv_dims = gr.Textbox(
+                            conv_block_dims = gr.Textbox(
                                 label='Conv dims',
                                 placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
-                                info='Expand LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
+                                info='Extend LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.',
                             )
-                            conv_alphas = gr.Textbox(
+                            conv_block_alphas = gr.Textbox(
                                 label='Conv alphas',
                                 placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
                                 info='Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.',
@@ -1398,7 +1408,10 @@ def lora_tab(
                 ],
             )
 
-        button_run = gr.Button('Train model', variant='primary')
+        with gr.Row():
+            button_run = gr.Button('Start training', variant='primary')
+            
+            button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
@@ -1465,13 +1478,13 @@ def lora_tab(
             folders.output_name,
             source_model.model_list,
             advanced_training.max_token_length,
-            advanced_training.max_train_epochs,
+            basic_training.max_train_epochs,
             advanced_training.max_data_loader_n_workers,
             network_alpha,
             folders.training_comment,
             advanced_training.keep_tokens,
-            advanced_training.lr_scheduler_num_cycles,
-            advanced_training.lr_scheduler_power,
+            basic_training.lr_scheduler_num_cycles,
+            basic_training.lr_scheduler_power,
             advanced_training.persistent_data_loader_workers,
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
@@ -1505,8 +1518,8 @@ def lora_tab(
             block_lr_zero_threshold,
             block_dims,
             block_alphas,
-            conv_dims,
-            conv_alphas,
+            conv_block_dims,
+            conv_block_alphas,
             advanced_training.weighted_captions,
             unit,
             advanced_training.save_every_n_steps,
@@ -1575,6 +1588,10 @@ def lora_tab(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
+        )
+        
+        button_stop_training.click(
+            executor.kill_command
         )
 
         button_print.click(

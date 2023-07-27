@@ -183,6 +183,8 @@ To set up the project, follow these steps:
    .\setup.bat
    ```
 
+   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. Tfe amount of VRAM on your GPU does not have an impact on the values used.
+
 #### Optional: CUDNN 8.6
 
 The following steps are optional but can improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
@@ -477,6 +479,14 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
    After uninstalling the local packages, redo the installation steps within the `kohya_ss` virtual environment.
 
 ## Change History
+
+* 2023/07/27 (v21.8.4)
+  - Relocate LR number of cycles and LR power options
+  - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
+  - Fix issue with conv_block_dims and conv_block_alphas
+  - Fix 0 noise offset issue
+  - Implement Stop training button on LoRA and other training tabs
+  - Update LyCORIS network release to fix an issue with the LoCon extraction.
 
 * 2023/07/18 (v21.8.3)
   - Update to latest sd-scripts sdxl code base
