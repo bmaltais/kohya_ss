@@ -481,4 +481,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
   - Fix issue with conv_block_dims and conv_block_alphas
   - Fix 0 noise offset issue
-  - Implement Stop training button on LoRA
+  - Implement Stop training button on LoRA and other training tabs
+  - Update LyCORIS network release to fix an issue with the LoCon extraction.
