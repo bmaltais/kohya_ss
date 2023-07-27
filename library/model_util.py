@@ -1027,7 +1027,7 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, device="cpu", dt
             transformers_version="4.25.0.dev0",
         )
         text_model = CLIPTextModel._from_config(cfg)
-        info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+        info = text_model.load_state_dict(converted_text_encoder_checkpoint, strict=False)
     else:
         converted_text_encoder_checkpoint = convert_ldm_clip_checkpoint_v1(state_dict)
 
@@ -1056,7 +1056,7 @@ def load_models_from_stable_diffusion_checkpoint(v2, ckpt_path, device="cpu", dt
             torch_dtype="float32",
         )
         text_model = CLIPTextModel._from_config(cfg)
-        info = text_model.load_state_dict(converted_text_encoder_checkpoint)
+        info = text_model.load_state_dict(converted_text_encoder_checkpoint, strict=False)
     print("loading text encoder:", info)
 
     return text_model, vae, unet
