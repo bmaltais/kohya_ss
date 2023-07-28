@@ -162,6 +162,7 @@ def _load_state_dict(model, state_dict, device, dtype=None):
 
 def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dtype=None):
     # model_version is reserved for future use
+    # dtype is reserved for full_fp16/bf16 intergration
 
     # Load the state dict
     if model_util.is_safetensors(ckpt_path):
@@ -194,7 +195,7 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
     for k in list(state_dict.keys()):
         if k.startswith("model.diffusion_model."):
             unet_sd[k.replace("model.diffusion_model.", "")] = state_dict.pop(k)
-    info = _load_state_dict(unet, unet_sd, device=map_location, dtype=dtype)
+    info = _load_state_dict(unet, unet_sd, device=map_location)
     print("U-Net: ", info)
 
     # Text Encoders
