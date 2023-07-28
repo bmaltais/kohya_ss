@@ -162,7 +162,7 @@ def _load_state_dict(model, state_dict, device, dtype=None):
 
 def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dtype=None):
     # model_version is reserved for future use
-    # dtype is reserved for full_fp16/bf16 intergration
+    # dtype is reserved for full_fp16/bf16 integration
 
     # Load the state dict
     if model_util.is_safetensors(ckpt_path):
