@@ -65,8 +65,8 @@ import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
 import library.huggingface_util as huggingface_util
-from library.attention_processors import FlashAttnProcessor
-from library.hypernetwork import replace_attentions_for_hypernetwork
+# from library.attention_processors import FlashAttnProcessor
+# from library.hypernetwork import replace_attentions_for_hypernetwork
 from library.original_unet import UNet2DConditionModel
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
@@ -1884,8 +1884,7 @@ def load_latents_from_disk(
 ) -> Tuple[Optional[torch.Tensor], Optional[List[int]], Optional[List[int]], Optional[torch.Tensor]]:
     npz = np.load(npz_path)
     if "latents" not in npz:
-        print(f"error: npz is old format. please re-generate {npz_path}")
-        return None, None, None, None
+        raise ValueError(f"error: npz is old format. please re-generate {npz_path}")
 
     latents = npz["latents"]
     original_size = npz["original_size"].tolist()

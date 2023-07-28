@@ -204,7 +204,7 @@ def merge(args):
             ckpt_info,
         ) = sdxl_model_util.load_models_from_sdxl_checkpoint(sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.sd_model, "cpu")
 
-        merge_to_sd_model(text_model2, text_model2, unet, args.models, args.ratios, merge_dtype)
+        merge_to_sd_model(text_model1, text_model2, unet, args.models, args.ratios, merge_dtype)
 
         print(f"saving SD model to: {args.save_to}")
         sdxl_model_util.save_stable_diffusion_checkpoint(
