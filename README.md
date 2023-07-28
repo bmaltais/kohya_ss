@@ -66,6 +66,10 @@ Newer Tutorial: [How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO](ht
 
 [![How To Install And Use Kohya LoRA GUI / Web UI on RunPod IO With Stable Diffusion & Automatic1111](https://github-production-user-asset-6210df.s3.amazonaws.com/19240467/238678226-0c9c3f7d-c308-4793-b790-999fdc271372.png)](https://www.youtube.com/watch?v=3uzCNrQao3o)
 
+First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models](https://youtu.be/AY6DMBCIZ3A):
+
+[![First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/mG0CvKAzb8o29nr5ye0Br.png)](https://youtu.be/AY6DMBCIZ3A)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
@@ -489,7 +493,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/18 (v21.8.4)
+* 2023/07/27 (v21.8.4)
   - Relocate LR number of cycles and LR power options
   - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
   - Fix issue with conv_block_dims and conv_block_alphas
@@ -497,3 +501,10 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Implement Stop training button on LoRA
   - Add support to extract LoRA from SDXL finetuned models
   - Add support for PagedAdamW8bit and PagedLion8bit optimizer. Those require a new version of bitsandbytes so success on some systems may vary. I had to uninstall all my nvidia drivers and othe cuda toolkit install, delete all cuda variable references and re-install cuda toolkit v11.8.0 to get things to work... so not super easy.
+  - Update LyCORIS network release to fix an issue with the LoCon extraction.
+
+* 2023/07/18 (v21.8.3)
+  - Update to latest sd-scripts sdxl code base
+  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
+  - Add min and max resolution parameter for buckets
+  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab
