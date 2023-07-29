@@ -107,6 +107,8 @@ class BasicTraining:
                     'DAdaptSGD',
                     'Lion',
                     'Lion8bit',
+                    "PagedAdamW8bit",
+                    "PagedLion8bit",
                     'Prodigy',
                     'SGDNesterov',
                     'SGDNesterov8bit',

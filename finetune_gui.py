@@ -89,6 +89,7 @@ def save_configuration(
     caption_extension,
     # use_8bit_adam,
     xformers,
+    sdpa,
     clip_skip,
     save_state,
     resume,
@@ -209,6 +210,7 @@ def open_configuration(
     caption_extension,
     # use_8bit_adam,
     xformers,
+    sdpa,
     clip_skip,
     save_state,
     resume,
@@ -326,6 +328,7 @@ def train_model(
     caption_extension,
     # use_8bit_adam,
     xformers,
+    sdpa,
     clip_skip,
     save_state,
     resume,
@@ -423,8 +426,13 @@ def train_model(
             run_cmd += f' --full_path'
 
         log.info(run_cmd)
-        
-        executor.execute_command(run_cmd=run_cmd)
+
+        if not print_only_bool:
+            # Run the command
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
@@ -447,7 +455,10 @@ def train_model(
 
         if not print_only_bool:
             # Run the command
-            executor.execute_command(run_cmd=run_cmd)
+            if os.name == 'posix':
+                os.system(run_cmd)
+            else:
+                subprocess.run(run_cmd)
 
     image_num = len(
         [
@@ -567,6 +578,7 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
+        spda=sdpa,
         # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
@@ -858,6 +870,7 @@ def finetune_tab(headless=False):
             source_model.save_model_as,
             basic_training.caption_extension,
             advanced_training.xformers,
+            advanced_training.sdpa,
             advanced_training.clip_skip,
             advanced_training.save_state,
             advanced_training.resume,

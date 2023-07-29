@@ -12,10 +12,8 @@ import library.model_util as model_util
 import library.sdxl_model_util as sdxl_model_util
 import lora
 
-
-CLAMP_QUANTILE = 0.99
-MIN_DIFF = 1e-4
-
+# CLAMP_QUANTILE = 1
+# MIN_DIFF = 1e-2
 
 def save_to_file(file_name, model, state_dict, dtype):
     if dtype is not None:
@@ -91,9 +89,9 @@ def svd(args):
         diff = module_t.weight - module_o.weight
 
         # Text Encoder might be same
-        if not text_encoder_different and torch.max(torch.abs(diff)) > MIN_DIFF:
+        if not text_encoder_different and torch.max(torch.abs(diff)) > args.min_diff:
             text_encoder_different = True
-            print(f"Text encoder is different. {torch.max(torch.abs(diff))} > {MIN_DIFF}")
+            print(f"Text encoder is different. {torch.max(torch.abs(diff))} > {args.min_diff}")
 
         diff = diff.float()
         diffs[lora_name] = diff
@@ -149,7 +147,7 @@ def svd(args):
             Vh = Vh[:rank, :]
 
             dist = torch.cat([U.flatten(), Vh.flatten()])
-            hi_val = torch.quantile(dist, CLAMP_QUANTILE)
+            hi_val = torch.quantile(dist, args.clamp_quantile)
             low_val = -hi_val
 
             U = U.clamp(low_val, hi_val)
@@ -243,6 +241,18 @@ def setup_parser() -> argparse.ArgumentParser:
         help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）",
     )
     parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
+    parser.add_argument(
+        "--clamp_quantile",
+        type=float,
+        default=1,
+        help="Quantile clamping value, float, (0-1). Defailt = 1",
+    )
+    parser.add_argument(
+        "--min_diff",
+        type=float,
+        default=1,
+        help="Minimum difference betwen finetuned model and base to consider them different enough to extract, float, (0-1). Defailt = 0.01",
+    )
 
     return parser
 

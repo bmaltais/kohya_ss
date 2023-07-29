@@ -735,6 +735,10 @@ def run_cmd_advanced_training(**kwargs):
     xformers = kwargs.get('xformers')
     if xformers:
         run_cmd += ' --xformers'
+        
+    sdpa = kwargs.get('sdpa')
+    if sdpa:
+        run_cmd += ' --sdpa'
     
     persistent_data_loader_workers = kwargs.get('persistent_data_loader_workers')
     if persistent_data_loader_workers:
@@ -856,3 +860,18 @@ def check_duplicate_filenames(folder_path, image_extension = ['.gif', '.png', '.
                         print(f"Current file: {full_path}")
                 else:
                     filenames[filename] = full_path
+
+def is_file_writable(file_path):
+    if not os.path.exists(file_path):
+        # print(f"File '{file_path}' does not exist.")
+        return True
+
+    try:
+        log.warning(f"File '{file_path}' already exist... it will be overwritten...")
+        # Check if the file can be opened in write mode (which implies it's not open by another process)
+        with open(file_path, 'a'):
+            pass
+        return True
+    except IOError:
+        log.warning(f"File '{file_path}' can't be written to...")
+        return False
