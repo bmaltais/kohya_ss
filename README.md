@@ -8,6 +8,7 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
+- [\<\<\<\<\<\<\< HEAD](#-head)
   - [Tutorials](#tutorials)
     - [About SDXL training](#about-sdxl-training)
       - [Tips for SDXL training](#tips-for-sdxl-training)
@@ -44,6 +45,15 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [FileNotFoundError](#filenotfounderror)
   - [Change History](#change-history)
 
+<<<<<<< HEAD
+=======
+* DreamBooth training, including U-Net and Text Encoder
+* Fine-tuning (native training), including U-Net and Text Encoder
+* LoRA training
+* Textual Inversion training
+* Image generation
+* Model conversion (supports 1.x and 2.x, Stable Diffision ckpt/safetensors and Diffusers)
+>>>>>>> 4072f723c12822e2fa1b2e076cc1f90b8f4e30c9
 
 ## Tutorials
 
@@ -480,16 +490,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/07/27 (v21.8.4)
-  - Relocate LR number of cycles and LR power options
-  - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
-  - Fix issue with conv_block_dims and conv_block_alphas
-  - Fix 0 noise offset issue
-  - Implement Stop training button on LoRA and other training tabs
-  - Update LyCORIS network release to fix an issue with the LoCon extraction.
-
-* 2023/07/18 (v21.8.3)
-  - Update to latest sd-scripts sdxl code base
-  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
-  - Add min and max resolution parameter for buckets
-  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab
+* 2023/07/29 (v21.8.6)
+  - Merge latest sd-scripts updates.
+* 2023/07/27 (v21.8.5)
+  - Backrev the LyCORIS module version due to bug reports.
