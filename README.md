@@ -109,6 +109,16 @@ pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsa
 
 For upgrading, upgrade this repo with `pip install .`, and upgrade necessary packages manually.
 
+### Optional: Use PagedAdamW8bit and PagedLion8bit
+
+For PagedAdamW8bit and PagedLion8bit, you need to upgrade `bitsandbytes` to 0.39.0 or later. Uninstall `bitsandbytes`, and for Windows, install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
+
+```powershell
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
+```
+
+For upgrading, upgrade this repo with `pip install .`, and upgrade necessary packages manually.
+
 ## Upgrade
 
 When a new release comes out you can upgrade your repo with the following command:
