@@ -125,6 +125,16 @@ pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsa
 
 アップグレード時には`pip install .`でこのリポジトリを更新し、必要に応じて他のパッケージもアップグレードしてください。
 
+### オプション：PagedAdamW8bitとPagedLion8bitを使う
+
+PagedAdamW8bitとPagedLion8bitを使う場合には`bitsandbytes`を0.39.0以降にアップグレードする必要があります。`bitsandbytes`をアンインストールし、Windows環境では例えば[こちら](https://github.com/jllllll/bitsandbytes-windows-webui)などからWindows版のwhlファイルをインストールしてください。たとえば以下のような手順になります。
+
+```powershell
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
+```
+
+アップグレード時には`pip install .`でこのリポジトリを更新し、必要に応じて他のパッケージもアップグレードしてください。
+
 ## アップグレード
 
 新しいリリースがあった場合、以下のコマンドで更新できます。
