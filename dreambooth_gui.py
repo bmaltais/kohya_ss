@@ -410,12 +410,12 @@ def train_model(
     ):
         return
 
-    if sdxl:
-        output_message(
-            msg='TI training is not compatible with an SDXL model.',
-            headless=headless_bool,
-        )
-        return
+    # if sdxl:
+    #     output_message(
+    #         msg='Dreambooth training is not compatible with SDXL models yet..',
+    #         headless=headless_bool,
+    #     )
+    #     return
 
     # if optimizer == 'Adafactor' and lr_warmup != '0':
     #     output_message(
