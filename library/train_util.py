@@ -2868,6 +2868,11 @@ def verify_training_args(args: argparse.Namespace):
         raise ValueError(
             "scale_v_pred_loss_like_noise_pred can be enabled only with v_parameterization / scale_v_pred_loss_like_noise_predはv_parameterizationが有効なときのみ有効にできます"
         )
+    
+    if args.v_pred_like_loss and args.v_parameterization:
+        raise ValueError(
+            "v_pred_like_loss cannot be enabled with v_parameterization / v_pred_like_lossはv_parameterizationが有効なときには有効にできません"
+        )
 
     if args.zero_terminal_snr and not args.v_parameterization:
         print(
