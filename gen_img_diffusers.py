@@ -2963,6 +2963,8 @@ def main(args):
             for i, (image, prompt, negative_prompts, seed, clip_prompt) in enumerate(
                 zip(images, prompts, negative_prompts, seeds, clip_prompts)
             ):
+                if highres_fix:
+                    seed -= 1  # record original seed
                 metadata = PngInfo()
                 metadata.add_text("prompt", prompt)
                 metadata.add_text("seed", str(seed))
