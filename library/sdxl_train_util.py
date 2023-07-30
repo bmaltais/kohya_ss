@@ -4,6 +4,7 @@ import math
 import os
 from typing import Optional
 import torch
+from accelerate import init_empty_weights
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 from library import model_util, sdxl_model_util, train_util, sdxl_original_unet
@@ -66,7 +67,7 @@ def _load_target_model(name_or_path: str, vae_path: Optional[str], model_version
             unet,
             logit_scale,
             ckpt_info,
-        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
+        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device, weight_dtype)
     else:
         # Diffusers model is loaded to CPU
         from diffusers import StableDiffusionXLPipeline
@@ -75,7 +76,7 @@ def _load_target_model(name_or_path: str, vae_path: Optional[str], model_version
         print(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
         try:
             try:
-                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=variant, tokenizer=None)
+                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, torch_dtype=weight_dtype, variant=variant, tokenizer=None)
             except EnvironmentError as ex:
                 if variant is not None:
                     print("try to load fp32 model")
@@ -95,10 +96,10 @@ def _load_target_model(name_or_path: str, vae_path: Optional[str], model_version
         del pipe
 
         # Diffusers U-Net to original U-Net
-        original_unet = sdxl_original_unet.SdxlUNet2DConditionModel()
         state_dict = sdxl_model_util.convert_diffusers_unet_state_dict_to_sdxl(unet.state_dict())
-        original_unet.load_state_dict(state_dict)
-        unet = original_unet
+        with init_empty_weights():
+            unet = sdxl_original_unet.SdxlUNet2DConditionModel()
+        sdxl_model_util._load_state_dict(unet, state_dict, device=device)
         print("U-Net converted to original U-Net")
 
         logit_scale = None
