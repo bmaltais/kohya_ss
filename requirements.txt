@@ -6,7 +6,7 @@ albumentations==1.3.0
 opencv-python==4.7.0.68
 einops==0.6.0
 pytorch-lightning==1.9.0
-bitsandbytes==0.35.0
+bitsandbytes==0.39.1
 tensorboard==2.10.1
 safetensors==0.3.1
 # gradio==3.16.2
