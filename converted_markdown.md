@@ -903,7 +903,7 @@ US&client=webapp&u=https://d.hatena.ne.jp/keyword/%25A5%25CB%25A5%25E5%25A1%25BC
 
 このパラメータ値は常に25個の数字を指定しなければいけませんが、LoRAはAttentionブロックを学習対象としているので、Attentionブロックの存在しないIN0、IN3、IN6、IN9、IN10、IN11、OUT0、IN1、IN2に対する設定(1、4、7、11、12、14、15、16番目の数字)は学習時は無視されます。
 
-※上級者向け設定です。こだわりがないなら空欄のままで構いません。ここを指定しない場合は「Network Rank(Dimention)」値と「Network
+※上級者向け設定です。こだわりがないなら空欄のままで構いません。ここを指定しない場合は「Network Rank(Dimension)」値と「Network
 Alpha」値がすべてのブロックに適応されます。
 
 
