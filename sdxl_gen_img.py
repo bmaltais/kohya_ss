@@ -93,7 +93,8 @@ def replace_vae_modules(vae: diffusers.models.AutoencoderKL, mem_eff_attn, xform
     if mem_eff_attn:
         replace_vae_attn_to_memory_efficient()
     elif xformers:
-        replace_vae_attn_to_xformers()
+        # replace_vae_attn_to_xformers() # 解像度によってxformersがエラーを出す？
+        vae.set_use_memory_efficient_attention_xformers(True) # とりあえずこっちを使う
     elif sdpa:
         replace_vae_attn_to_sdpa()
 
