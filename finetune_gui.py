@@ -450,6 +450,9 @@ def train_model(
         #     run_cmd += f' --flip_aug'
         if full_path:
             run_cmd += f' --full_path'
+        if sdxl_no_half_vae:
+            log.info('Using mixed_precision = no because no half vae is selected...')
+            run_cmd += f' --mixed_precision="no"'
 
         log.info(run_cmd)
 
