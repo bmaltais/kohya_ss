@@ -279,7 +279,7 @@ class NetworkTrainer:
                 args.network_dim,
                 args.network_alpha,
                 vae,
-                text_encoder,
+                text_encoder[0] if isinstance(text_encoder, list) else text_encoder,
                 unet,
                 neuron_dropout=args.network_dropout,
                 **net_kwargs,
