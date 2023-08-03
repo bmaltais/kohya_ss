@@ -3791,7 +3791,6 @@ def get_hidden_states_sdxl(
 
     # pool2 = enc_out["text_embeds"]
     pool2 = pool_workaround(text_encoder2, enc_out["last_hidden_state"], input_ids2, tokenizer2.eos_token_id)
-    print(f"original pool2: {enc_out['text_embeds']}, fixed: {pool2}")
 
     # b*n, 77, 768 or 1280 -> b, n*77, 768 or 1280
     n_size = 1 if max_token_length is None else max_token_length // 75
