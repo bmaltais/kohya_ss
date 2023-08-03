@@ -166,6 +166,7 @@ def call_unet_and_control_net(
     sample,
     timestep,
     encoder_hidden_states,
+    encoder_hidden_states_for_control_net,
 ):
     # ControlNet
     # 複数のControlNetの場合は、出力をマージするのではなく交互に適用する
@@ -179,7 +180,7 @@ def call_unet_and_control_net(
 
     guided_hint = guided_hints[cnet_idx]
     guided_hint = guided_hint.repeat((num_latent_input, 1, 1, 1))
-    outs = unet_forward(True, cnet_info.net, cnet_info.unet, guided_hint, None, sample, timestep, encoder_hidden_states)
+    outs = unet_forward(True, cnet_info.net, cnet_info.unet, guided_hint, None, sample, timestep, encoder_hidden_states_for_control_net)
     outs = [o * cnet_info.weight for o in outs]
 
     # U-Net
