@@ -72,6 +72,17 @@ First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusio
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
+Aug 4, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+
+- `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
+- `albumentations` is not required anymore.
+- An issue for pooled output for Textual Inversion training is fixed.
+- `--v_pred_like_loss ratio` option is added. This option adds the loss like v-prediction loss in SDXL training. `0.1` means that the loss is added 10% of the v-prediction loss. The default value is None (disabled).
+  - In v-prediction, the loss is higher in the early timesteps (near the noise). This option can be used to increase the loss in the early timesteps.
+- Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
+- `sdxl_gen_imgs.py` supports batch size > 1.
+- Fix ControlNet to work with attention couple and reginal LoRA in `gen_img_diffusers.py`.
+
 Summary of the feature:
 
 - `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
@@ -115,12 +126,17 @@ Summary of the feature:
 #### Tips for SDXL training
 
 - The default resolution of SDXL is 1024x1024.
-- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended:
+- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended __for the fine-tuning with 24GB GPU memory__:
   - Train U-Net only.
   - Use gradient checkpointing.
   - Use `--cache_text_encoder_outputs` option and caching latents.
   - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
-- The LoRA training can be done with 12GB GPU memory.
+- The LoRA training can be done with 8GB GPU memory (10GB recommended). For reducing the GPU memory usage, the following options are recommended:
+  - Train U-Net only.
+  - Use gradient checkpointing.
+  - Use `--cache_text_encoder_outputs` option and caching latents.
+  - Use one of 8bit optimizers or Adafactor optimizer.
+  - Use lower dim (-8 for 8GB GPU).
 - `--network_train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
 - PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
 - `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
@@ -486,20 +502,3 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Fix finetuning latent caching issue when doing SDXL models in fp16
   - Add SDXL merge lora support. You can now merge LoRAs into an SDXL checkpoint.
   - Add SDPA CrossAttention option to trainers.
-* 2023/07/27 (v21.8.5)
-  - Backrev the LyCORIS module version due to bug reports.
-* 2023/07/27 (v21.8.4)
-  - Relocate LR number of cycles and LR power options
-  - Add missing LR number of cycles and LR power to Dreambooth and TI scripts
-  - Fix issue with conv_block_dims and conv_block_alphas
-  - Fix 0 noise offset issue
-  - Implement Stop training button on LoRA
-  - Add support to extract LoRA from SDXL finetuned models
-  - Add support for PagedAdamW8bit and PagedLion8bit optimizer. Those require a new version of bitsandbytes so success on some systems may vary. I had to uninstall all my nvidia drivers and othe cuda toolkit install, delete all cuda variable references and re-install cuda toolkit v11.8.0 to get things to work... so not super easy.
-  - Update LyCORIS network release to fix an issue with the LoCon extraction.
-
-* 2023/07/18 (v21.8.3)
-  - Update to latest sd-scripts sdxl code base
-  - Fix typo: https://github.com/bmaltais/kohya_ss/issues/1205
-  - Add min and max resolution parameter for buckets
-  - Add colab notebook from https://github.com/camenduru/kohya_ss-colab
