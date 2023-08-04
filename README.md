@@ -22,6 +22,17 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
+Aug 4, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+
+- `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
+- `albumentations` is not required anymore.
+- An issue for pooled output for Textual Inversion training is fixed.
+- `--v_pred_like_loss ratio` option is added. This option adds the loss like v-prediction loss in SDXL training. `0.1` means that the loss is added 10% of the v-prediction loss. The default value is None (disabled).
+  - In v-prediction, the loss is higher in the early timesteps (near the noise). This option can be used to increase the loss in the early timesteps.
+- Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
+- `sdxl_gen_imgs.py` supports batch size > 1.
+- Fix ControlNet to work with attention couple and reginal LoRA in `gen_img_diffusers.py`.
+
 Summary of the feature:
 
 - `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
@@ -65,12 +76,17 @@ Summary of the feature:
 ### Tips for SDXL training
 
 - The default resolution of SDXL is 1024x1024.
-- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended:
+- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended __for the fine-tuning with 24GB GPU memory__:
   - Train U-Net only.
   - Use gradient checkpointing.
   - Use `--cache_text_encoder_outputs` option and caching latents.
   - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
-- The LoRA training can be done with 12GB GPU memory.
+- The LoRA training can be done with 8GB GPU memory (10GB recommended). For reducing the GPU memory usage, the following options are recommended:
+  - Train U-Net only.
+  - Use gradient checkpointing.
+  - Use `--cache_text_encoder_outputs` option and caching latents.
+  - Use one of 8bit optimizers or Adafactor optimizer.
+  - Use lower dim (-8 for 8GB GPU).
 - `--network_train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
 - PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
 - `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
@@ -93,19 +109,11 @@ state_dict = {"clip_g": embs_for_text_encoder_1280, "clip_l": embs_for_text_enco
 save_file(state_dict, file)
 ```
 
-### TODO
-
-- [ ] Support conversion of Diffusers SDXL models.
-- [ ] Support `--weighted_captions` option.
-- [ ] Change `--output_config` option to continue the training.
-- [ ] Extend `--full_bf16` for all the scripts.
-- [x] Support Textual Inversion training.
-
 ## About requirements.txt
 
 These files do not contain requirements for PyTorch. Because the versions of them depend on your environment. Please install PyTorch at first (see installation guide below.) 
 
-The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.17.1.
+The scripts are tested with PyTorch 1.12.1 and 2.0.1, Diffusers 0.18.2.
 
 ## Links to how-to-use documents
 
@@ -151,13 +159,16 @@ pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url http
 pip install --upgrade -r requirements.txt
 pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
 
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
 accelerate config
 ```
 
+__Note:__ Now bitsandbytes is optional. Please install any version of bitsandbytes as needed. Installation instructions are in the following section.
+
+<!-- 
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+-->
 Answers to accelerate config:
 
 ```txt
@@ -190,10 +201,6 @@ pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://dow
 pip install --upgrade -r requirements.txt
 pip install xformers==0.0.20
 
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
 accelerate config
 ```
 
@@ -204,25 +211,42 @@ Answers to accelerate config should be the same as above.
 Other versions of PyTorch and xformers seem to have problems with training.
 If there is no other reason, please install the specified version.
 
-### Optional: Use Lion8bit
+### Optional: Use `bitsandbytes` (8bit optimizer)
 
-For Lion8bit, you need to upgrade `bitsandbytes` to 0.38.0 or later. Uninstall `bitsandbytes`, and for Windows, install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
+For 8bit optimizer, you need to install `bitsandbytes`. For Linux, please install `bitsandbytes` as usual (0.41.1 or later is recommended.)
+
+For Windows, there are several versions of `bitsandbytes`:
+
+- `bitsandbytes` 0.35.0: Stable version. AdamW8bit is available. `full_bf16` is not available.
+- `bitsandbytes` 0.39.1: Lion8bit, PagedAdamW8bit and PagedLion8bit are available. `full_bf16` is available.
+
+Note: `bitsandbytes`above 0.35.0 till 0.41.0 seems to have an issue: https://github.com/TimDettmers/bitsandbytes/issues/659
+
+Follow the instructions below to install `bitsandbytes` for Windows.
+
+### bitsandbytes 0.35.0 for Windows
+
+Open a regular Powershell terminal and type the following inside:
+
+```powershell
+cd sd-scripts
+.\venv\Scripts\activate
+pip install bitsandbytes==0.35.0
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+```
+
+This will install `bitsandbytes` 0.35.0 and copy the necessary files to the `bitsandbytes` directory.
+
+### bitsandbytes 0.39.1 for Windows
+
+Install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
 
 ```powershell
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl
 ```
-
-For upgrading, upgrade this repo with `pip install .`, and upgrade necessary packages manually.
-
-### Optional: Use PagedAdamW8bit and PagedLion8bit
-
-For PagedAdamW8bit and PagedLion8bit, you need to upgrade `bitsandbytes` to 0.39.0 or later. Uninstall `bitsandbytes`, and for Windows, install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
-
-```powershell
-pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
-```
-
-For upgrading, upgrade this repo with `pip install .`, and upgrade necessary packages manually.
 
 ## Upgrade
 
