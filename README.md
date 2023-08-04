@@ -484,6 +484,8 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
   - Merge latest sd-scripts updates.
   - Allow DB training on SDXL models. Unsupported but appear to work.
   - Fix finetuning latent caching issue when doing SDXL models in fp16
+  - Add SDXL merge lora support. You can now merge LoRAs into an SDXL checkpoint.
+  - Add SDPA CrossAttention option to trainers.
 * 2023/07/27 (v21.8.5)
   - Backrev the LyCORIS module version due to bug reports.
 * 2023/07/27 (v21.8.4)

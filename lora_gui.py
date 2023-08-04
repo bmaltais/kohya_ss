@@ -639,8 +639,8 @@ def train_model(
     if reg_data_dir == '':
         reg_factor = 1
     else:
-        log.info(
-            '\033[94mRegularisation images are used... Will double the number of steps required...\033[0m'
+        log.warning(
+            'Regularisation images are used... Will double the number of steps required...'
         )
         reg_factor = 2
 
@@ -1621,59 +1621,65 @@ def lora_tab(
 
 
 def UI(**kwargs):
-    css = ''
+    try:
+        # Your main code goes here
+        while True:
+            css = ''
 
-    headless = kwargs.get('headless', False)
-    log.info(f'headless: {headless}')
+            headless = kwargs.get('headless', False)
+            log.info(f'headless: {headless}')
 
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            log.info('Load CSS...')
-            css += file.read() + '\n'
+            if os.path.exists('./style.css'):
+                with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
+                    log.info('Load CSS...')
+                    css += file.read() + '\n'
 
-    interface = gr.Blocks(
-        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
-    )
-
-    with interface:
-        with gr.Tab('LoRA'):
-            (
-                train_data_dir_input,
-                reg_data_dir_input,
-                output_dir_input,
-                logging_dir_input,
-            ) = lora_tab(headless=headless)
-        with gr.Tab('Utilities'):
-            utilities_tab(
-                train_data_dir_input=train_data_dir_input,
-                reg_data_dir_input=reg_data_dir_input,
-                output_dir_input=output_dir_input,
-                logging_dir_input=logging_dir_input,
-                enable_copy_info_button=True,
-                headless=headless,
+            interface = gr.Blocks(
+                css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
             )
 
-    # Show the interface
-    launch_kwargs = {}
-    username = kwargs.get('username')
-    password = kwargs.get('password')
-    server_port = kwargs.get('server_port', 0)
-    inbrowser = kwargs.get('inbrowser', False)
-    share = kwargs.get('share', False)
-    server_name = kwargs.get('listen')
+            with interface:
+                with gr.Tab('LoRA'):
+                    (
+                        train_data_dir_input,
+                        reg_data_dir_input,
+                        output_dir_input,
+                        logging_dir_input,
+                    ) = lora_tab(headless=headless)
+                with gr.Tab('Utilities'):
+                    utilities_tab(
+                        train_data_dir_input=train_data_dir_input,
+                        reg_data_dir_input=reg_data_dir_input,
+                        output_dir_input=output_dir_input,
+                        logging_dir_input=logging_dir_input,
+                        enable_copy_info_button=True,
+                        headless=headless,
+                    )
 
-    launch_kwargs['server_name'] = server_name
-    if username and password:
-        launch_kwargs['auth'] = (username, password)
-    if server_port > 0:
-        launch_kwargs['server_port'] = server_port
-    if inbrowser:
-        launch_kwargs['inbrowser'] = inbrowser
-    if share:
-        launch_kwargs['share'] = share
-    log.info(launch_kwargs)
-    interface.launch(**launch_kwargs)
+            # Show the interface
+            launch_kwargs = {}
+            username = kwargs.get('username')
+            password = kwargs.get('password')
+            server_port = kwargs.get('server_port', 0)
+            inbrowser = kwargs.get('inbrowser', False)
+            share = kwargs.get('share', False)
+            server_name = kwargs.get('listen')
 
+            launch_kwargs['server_name'] = server_name
+            if username and password:
+                launch_kwargs['auth'] = (username, password)
+            if server_port > 0:
+                launch_kwargs['server_port'] = server_port
+            if inbrowser:
+                launch_kwargs['inbrowser'] = inbrowser
+            if share:
+                launch_kwargs['share'] = share
+            log.info(launch_kwargs)
+            interface.launch(**launch_kwargs)
+    except KeyboardInterrupt:
+        # Code to execute when Ctrl+C is pressed
+        print("You pressed Ctrl+C!")
+    
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)

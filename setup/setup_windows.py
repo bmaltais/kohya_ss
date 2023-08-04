@@ -154,8 +154,8 @@ def main_menu():
     while True:
         print('\nKohya_ss GUI setup menu:\n')
         print('1. Install kohya_ss gui')
-        print('2. (Optional) Install cudann files')
-        print('3. (Optional) Install bitsandbytes-windows')
+        print('2. (Optional) Install cudann files (avoid unless you really need it)')
+        print('3. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)')
         print('4. (Optional) Manually configure accelerate')
         print('5. (Optional) Start Kohya_ss GUI in browser')
         print('6. Quit')

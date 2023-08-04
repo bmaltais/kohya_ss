@@ -45,9 +45,13 @@ def start_tensorboard(logging_dir):
 
 
 def stop_tensorboard():
-    log.info('Stopping tensorboard process...')
-    tensorboard_proc.kill()
-    log.info('...process stopped')
+    if not tensorboard_proc == None:
+        log.info('Stopping tensorboard process...')
+        tensorboard_proc.kill()
+        tensorboard_proc = None
+        log.info('...process stopped')
+    else:
+        log.info('Tensorboard is not running...')
 
 
 def gradio_tensorboard():
