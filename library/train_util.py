@@ -2164,6 +2164,7 @@ def cache_batch_latents(
             if flip_aug:
                 info.latents_flipped = flipped_latent
 
+    # FIXME this slows down caching a lot, specify this as an option
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
