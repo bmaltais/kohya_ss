@@ -213,7 +213,7 @@ if __name__ == "__main__":
                 enc_out = text_model2(tokens, output_hidden_states=True, return_dict=True)
                 text_embedding2_penu = enc_out["hidden_states"][-2]
                 # print("hidden_states2", text_embedding2_penu.shape)
-                text_embedding2_pool = enc_out["text_embeds"]
+                text_embedding2_pool = enc_out["text_embeds"]   # do not support Textual Inversion
 
             # 連結して終了 concat and finish
             text_embedding = torch.cat([text_embedding1, text_embedding2_penu], dim=2)

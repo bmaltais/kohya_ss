@@ -1,13 +1,13 @@
+# Standard library imports
+import os
+import subprocess
+
+# Third-party imports
 import gradio as gr
 from easygui import msgbox
-import subprocess
-import os
-from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
-    get_file_path,
-)
 
+# Local module imports
+from .common_gui import get_saveasfilename_path, get_file_path
 from library.custom_logging import setup_logging
 
 # Set up logging
@@ -40,6 +40,7 @@ def verify_conditions(sd_model, lora_models):
 
 def merge_lora(
     sd_model,
+    sdxl_model,
     lora_a_model,
     lora_b_model,
     lora_c_model,
@@ -67,7 +68,10 @@ def merge_lora(
         if not check_model(model):
             return
 
-    run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
+    if not sd_model:
+        run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
+    else:
+        run_cmd = f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
     if sd_model:
         run_cmd += f' --sd_model "{sd_model}"'
     run_cmd += f' --save_precision {save_precision}'
@@ -130,6 +134,7 @@ def gradio_merge_lora_tab(headless=False):
                 outputs=sd_model,
                 show_progress=False,
             )
+            sdxl_model = gr.Checkbox(label='SDXL model', value=False)
 
         with gr.Row():
             lora_a_model = gr.Textbox(
@@ -275,6 +280,7 @@ def gradio_merge_lora_tab(headless=False):
             merge_lora,
             inputs=[
                 sd_model,
+                sdxl_model,
                 lora_a_model,
                 lora_b_model,
                 lora_c_model,

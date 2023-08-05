@@ -31,9 +31,8 @@ from library.custom_train_functions import (
     apply_snr_weight,
     get_weighted_text_embeddings,
     prepare_scheduler_for_custom_training,
-    pyramid_noise_like,
-    apply_noise_offset,
     scale_v_prediction_loss_like_noise_prediction,
+    add_v_prediction_like_loss,
 )
 
 
@@ -792,6 +791,8 @@ class NetworkTrainer:
                         loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
                     if args.scale_v_pred_loss_like_noise_pred:
                         loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
+                    if args.v_pred_like_loss:
+                        loss = add_v_prediction_like_loss(loss, timesteps, noise_scheduler, args.v_pred_like_loss)
 
                     loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 

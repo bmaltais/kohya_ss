@@ -36,6 +36,9 @@ class Dreambooth:
                 lr_scheduler_value='cosine',
                 lr_warmup_value='10',
             )
+            self.full_bf16 = gr.Checkbox(
+                label='Full bf16', value = False
+            )
             with gr.Accordion('Advanced Configuration', open=False):
                 self.advanced_training = AdvancedTraining(headless=headless)
                 self.advanced_training.color_aug.change(

@@ -95,7 +95,7 @@ class ImageProcessor:
             final_file_name = f"group-{group_index+1}-{j+1}-{filename_without_ext}"
             output_path = os.path.join(self.output_folder, f"{final_file_name}.jpg")
             log.info(f"  Saving processed image to {output_path}")
-            img.convert('RGB').save(output_path, quality=100)
+            img.convert('RGB').save(output_path, quality=70)
             
             if self.caption:
                 self.create_caption_file(source_paths[j], group_index, final_file_name)

@@ -19,8 +19,12 @@ class AdvancedTraining:
             self.no_token_padding = gr.Checkbox(
                 label='No token padding', value=False
             )
-            self.gradient_accumulation_steps = gr.Number(
-                label='Gradient accumulate steps', value='1'
+            self.gradient_accumulation_steps = gr.Slider(
+                label='Gradient accumulate steps', 
+                info='Number of updates steps to accumulate before performing a backward/update pass',
+                value='1',
+                minimum=1, maximum=120,
+                step=1
             )
             self.weighted_captions = gr.Checkbox(
                 label='Weighted captions', value=False
@@ -101,13 +105,15 @@ class AdvancedTraining:
             # use_8bit_adam = gr.Checkbox(
             #     label='Use 8bit adam', value=False, visible=False
             # )
-            self.xformers = gr.Checkbox(label='Use xformers', value=True)
+            # self.xformers = gr.Checkbox(label='Use xformers', value=True, info='Use xformers for CrossAttention')
+            self.xformers = gr.Dropdown(label='CrossAttention', choices=["none", "sdpa", "xformers"], value='xformers')
             self.color_aug = gr.Checkbox(label='Color augmentation', value=False)
             self.flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
             self.min_snr_gamma = gr.Slider(
                 label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1
             )
         with gr.Row():
+            # self.sdpa = gr.Checkbox(label='Use sdpa', value=False, info='Use sdpa for CrossAttention')
             self.bucket_no_upscale = gr.Checkbox(
                 label="Don't upscale bucket resolution", value=True
             )
