@@ -981,7 +981,7 @@ def get_unweighted_text_embeddings(
         text_embeddings = enc_out["hidden_states"][-2]
         pool = enc_out.get("text_embeds", None)  # text encoder 1 doesn't return this
         if pool is not None:
-            pool = train_util.pool_workaround(text_encoder, enc_out["last_hidden_state"], text_input_chunk, eos)
+            pool = train_util.pool_workaround(text_encoder, enc_out["last_hidden_state"], text_input, eos)
     return text_embeddings, pool
 
 
