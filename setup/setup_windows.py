@@ -149,13 +149,22 @@ def install_kohya_ss_torch2():
     # run_cmd(f'accelerate config')
 
 
+def install_bitsandbytes_0_35_0():
+    log.info('Installing bitsandbytes 0.35.0...')
+    setup_common.install('--upgrade bitsandbytes==0.35.0', 'bitsandbytes 0.35.0', reinstall=True)
+    sync_bits_and_bytes_files()
+    
+def install_bitsandbytes_0_41_1():
+    log.info('Installing bitsandbytes 0.41.1...')
+    setup_common.install('--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl', 'bitsandbytes 0.41.1', reinstall=True)
+
 def main_menu():
     setup_common.clear_screen()
     while True:
         print('\nKohya_ss GUI setup menu:\n')
         print('1. Install kohya_ss gui')
         print('2. (Optional) Install cudann files (avoid unless you really need it)')
-        print('3. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)')
+        print('3. (Optional) Install specific bitsandbytes versions')
         print('4. (Optional) Manually configure accelerate')
         print('5. (Optional) Start Kohya_ss GUI in browser')
         print('6. Quit')
@@ -184,7 +193,27 @@ def main_menu():
         elif choice == '2':
             cudann_install()
         elif choice == '3':
-            setup_common.install('--upgrade bitsandbytes-windows', reinstall=True)
+            while True:
+                print('1. (Optional) Force installation of bitsandbytes 0.35.0')
+                print('2. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support')
+                print('3. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)')
+                print('4. Cancel')
+                choice_torch = input('\nEnter your choice: ')
+                print('')
+
+                if choice_torch == '1':
+                    install_bitsandbytes_0_35_0()
+                    break
+                elif choice_torch == '2':
+                    install_bitsandbytes_0_41_1()
+                    break
+                elif choice_torch == '4':
+                    setup_common.install('--upgrade bitsandbytes-windows', reinstall=True)
+                    break
+                elif choice_torch == '4':
+                    break
+                else:
+                    print('Invalid choice. Please enter a number between 1-3.')
         elif choice == '4':
             setup_common.run_cmd('accelerate config')
         elif choice == '5':

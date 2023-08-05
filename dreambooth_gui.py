@@ -79,6 +79,7 @@ def save_configuration(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
@@ -192,6 +193,7 @@ def open_configuration(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
@@ -304,6 +306,7 @@ def train_model(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training_pct,
     min_bucket_reso,
@@ -520,7 +523,13 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
+    # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
+    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
+    if sdxl:
+        run_cmd += f' "./sdxl_train.py"'
+    else:
+        run_cmd += f' "./train_db.py"'
+        
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -551,6 +560,8 @@ def train_model(
     #     run_cmd += f' --resume={resume}'
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f' --prior_loss_weight={prior_loss_weight}'
+    if full_bf16:
+        run_cmd += ' --full_bf16'
     if not vae == '':
         run_cmd += f' --vae="{vae}"'
     if not output_name == '':
@@ -696,6 +707,9 @@ def dreambooth_tab(
                 lr_scheduler_value='cosine',
                 lr_warmup_value='10',
             )
+            full_bf16 = gr.Checkbox(
+                label='Full bf16', value = False
+            )
             with gr.Accordion('Advanced Configuration', open=False):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
@@ -765,6 +779,7 @@ def dreambooth_tab(
             basic_training.enable_bucket,
             advanced_training.gradient_checkpointing,
             advanced_training.full_fp16,
+            full_bf16,
             advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
             basic_training.min_bucket_reso,

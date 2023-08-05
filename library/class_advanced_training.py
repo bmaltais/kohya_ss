@@ -19,8 +19,12 @@ class AdvancedTraining:
             self.no_token_padding = gr.Checkbox(
                 label='No token padding', value=False
             )
-            self.gradient_accumulation_steps = gr.Number(
-                label='Gradient accumulate steps', value='1'
+            self.gradient_accumulation_steps = gr.Slider(
+                label='Gradient accumulate steps', 
+                info='Number of updates steps to accumulate before performing a backward/update pass',
+                value='1',
+                minimum=1, maximum=120,
+                step=1
             )
             self.weighted_captions = gr.Checkbox(
                 label='Weighted captions', value=False
