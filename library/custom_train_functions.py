@@ -18,6 +18,7 @@ def prepare_scheduler_for_custom_training(noise_scheduler, device):
 
     noise_scheduler.all_snr = all_snr.to(device)
 
+
 def fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler):
     # fix beta: zero terminal SNR
     print(f"fix noise scheduler betas: https://arxiv.org/abs/2305.08891")
@@ -55,6 +56,7 @@ def fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler):
     noise_scheduler.alphas = alphas
     noise_scheduler.alphas_cumprod = alphas_cumprod
 
+
 def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
     snr = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])
     gamma_over_snr = torch.div(torch.ones_like(snr) * gamma, snr)
@@ -64,11 +66,24 @@ def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
 
 
 def scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler):
+    scale = get_snr_scale(timesteps, noise_scheduler)
+    loss = loss * scale
+    return loss
+
+
+def get_snr_scale(timesteps, noise_scheduler):
     snr_t = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])  # batch_size
     snr_t = torch.minimum(snr_t, torch.ones_like(snr_t) * 1000)  # if timestep is 0, snr_t is inf, so limit it to 1000
     scale = snr_t / (snr_t + 1)
+    # # show debug info
+    # print(f"timesteps: {timesteps}, snr_t: {snr_t}, scale: {scale}")
+    return scale
 
-    loss = loss * scale
+
+def add_v_prediction_like_loss(loss, timesteps, noise_scheduler, v_pred_like_loss):
+    scale = get_snr_scale(timesteps, noise_scheduler)
+    # print(f"add v-prediction like loss: {v_pred_like_loss}, scale: {scale}, loss: {loss}, time: {timesteps}")
+    loss = loss + loss / scale * v_pred_like_loss
     return loss
 
 
@@ -86,6 +101,12 @@ def add_custom_train_arguments(parser: argparse.ArgumentParser, support_weighted
         "--scale_v_pred_loss_like_noise_pred",
         action="store_true",
         help="scale v-prediction loss like noise prediction loss / v-prediction lossをnoise prediction lossと同じようにスケーリングする",
+    )
+    parser.add_argument(
+        "--v_pred_like_loss",
+        type=float,
+        default=None,
+        help="add v-prediction like loss multiplied by this value / v-prediction lossをこの値をかけたものをlossに加算する",
     )
     if support_weighted_captions:
         parser.add_argument(

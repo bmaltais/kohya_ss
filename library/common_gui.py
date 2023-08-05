@@ -141,6 +141,14 @@ def update_my_data(my_data):
             if my_data.get('num_vectors_per_token'):
                 log.info(message.format('TI'))
             my_data['save_model_as'] = 'safetensors'
+            
+    # Update xformers if it is set to True and is a boolean
+    xformers_value = my_data.get('xformers', None)
+    if isinstance(xformers_value, bool):
+        if xformers_value:
+            my_data['xformers'] = 'xformers'
+        else:
+            my_data['xformers'] = 'none'
 
     return my_data
 
@@ -733,8 +741,14 @@ def run_cmd_advanced_training(**kwargs):
         run_cmd += ' --full_fp16'
     
     xformers = kwargs.get('xformers')
-    if xformers:
+    if xformers == 'xformers':
         run_cmd += ' --xformers'
+    elif xformers == 'sdpa':
+        run_cmd += ' --sdpa'
+        
+    # sdpa = kwargs.get('sdpa')
+    # if sdpa:
+    #     run_cmd += ' --sdpa'
     
     persistent_data_loader_workers = kwargs.get('persistent_data_loader_workers')
     if persistent_data_loader_workers:
@@ -836,9 +850,20 @@ def SaveConfigFile(parameters, file_path: str, exclusion = ['file_path', 'save_a
         json.dump(variables, file, indent=2)
         
 def save_to_file(content):
-    file_path = 'logs/print_command.txt'
-    with open(file_path, 'a') as file:
-        file.write(content + '\n')
+    logs_directory = 'logs'
+    file_path = os.path.join(logs_directory, 'print_command.txt')
+
+    try:
+        # Create the 'logs' directory if it does not exist
+        if not os.path.exists(logs_directory):
+            os.makedirs(logs_directory)
+
+        with open(file_path, 'a') as file:
+            file.write(content + '\n')
+    except IOError as e:
+        print(f"Error: Could not write to file - {e}")
+    except OSError as e:
+        print(f"Error: Could not create 'logs' directory - {e}")
         
 def check_duplicate_filenames(folder_path, image_extension = ['.gif', '.png', '.jpg', '.jpeg', '.webp']):
     log.info('Checking for duplicate image filenames in training data directory...')
@@ -856,3 +881,18 @@ def check_duplicate_filenames(folder_path, image_extension = ['.gif', '.png', '.
                         print(f"Current file: {full_path}")
                 else:
                     filenames[filename] = full_path
+
+def is_file_writable(file_path):
+    if not os.path.exists(file_path):
+        # print(f"File '{file_path}' does not exist.")
+        return True
+
+    try:
+        log.warning(f"File '{file_path}' already exist... it will be overwritten...")
+        # Check if the file can be opened in write mode (which implies it's not open by another process)
+        with open(file_path, 'a'):
+            pass
+        return True
+    except IOError:
+        log.warning(f"File '{file_path}' can't be written to...")
+        return False

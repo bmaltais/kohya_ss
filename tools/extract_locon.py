@@ -1,8 +1,7 @@
-#
-# From: https://raw.githubusercontent.com/KohakuBlueleaf/LoCon/main/extract_locon.py
-#
-
+import os, sys
+sys.path.insert(0, os.getcwd())
 import argparse
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -29,10 +28,14 @@ def get_args():
     parser.add_argument(
         "--mode", 
         help=(
-            'extraction mode, can be "fixed", "threshold", "ratio", "percentile". '
+            'extraction mode, can be "fixed", "threshold", "ratio", "quantile". '
             'If not "fixed", network_dim and conv_dim will be ignored'
         ),
         default='fixed', type=str
+    )
+    parser.add_argument(
+        "--safetensors", help='use safetensors to save locon model',
+        default=True, action="store_true"
     )
     parser.add_argument(
         "--linear_dim", help="network dim for linear layer in fixed mode",
@@ -59,20 +62,34 @@ def get_args():
         default=0., type=float
     )
     parser.add_argument(
-        "--linear_percentile", help="singular value percentile for linear layer percentile mode",
+        "--linear_quantile", help="singular value quantile for linear layer quantile mode",
         default=1., type=float
     )
     parser.add_argument(
-        "--conv_percentile", help="singular value percentile for conv layer percentile mode",
+        "--conv_quantile", help="singular value quantile for conv layer quantile mode",
         default=1., type=float
+    )
+    parser.add_argument(
+        "--use_sparse_bias", help="enable sparse bias",
+        default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--sparsity", help="sparsity for sparse bias",
+        default=0.98, type=float
+    )
+    parser.add_argument(
+        "--disable_cp", help="don't use cp decomposition",
+        default=False, action="store_true"
     )
     return parser.parse_args()
 ARGS = get_args()
 
-from locon.utils import extract_diff
-from locon.kohya_model_utils import load_models_from_stable_diffusion_checkpoint
+
+from lycoris.utils import extract_diff
+from lycoris.kohya.model_utils import load_models_from_stable_diffusion_checkpoint
 
 import torch
+from safetensors.torch import save_file
 
 
 def main():
@@ -84,22 +101,28 @@ def main():
         'fixed': args.linear_dim,
         'threshold': args.linear_threshold,
         'ratio': args.linear_ratio,
-        'percentile': args.linear_percentile,
+        'quantile': args.linear_quantile,
     }[args.mode]
     conv_mode_param = {
         'fixed': args.conv_dim,
         'threshold': args.conv_threshold,
         'ratio': args.conv_ratio,
-        'percentile': args.conv_percentile,
+        'quantile': args.conv_quantile,
     }[args.mode]
     
     state_dict = extract_diff(
         base, db,
         args.mode,
         linear_mode_param, conv_mode_param,
-        args.device
+        args.device, 
+        args.use_sparse_bias, args.sparsity,
+        not args.disable_cp
     )
-    torch.save(state_dict, args.output_name)
+    
+    if args.safetensors:
+        save_file(state_dict, args.output_name)
+    else:
+        torch.save(state_dict, args.output_name)
 
 
 if __name__ == '__main__':
