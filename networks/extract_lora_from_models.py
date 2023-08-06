@@ -61,15 +61,15 @@ def svd(args):
     else:
         print(f"loading original SDXL model : {args.model_org}")
         text_encoder_o1, text_encoder_o2, _, unet_o, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.model_org, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.model_org, "cpu"
         )
         text_encoders_o = [text_encoder_o1, text_encoder_o2]
         print(f"loading original SDXL model : {args.model_tuned}")
         text_encoder_t1, text_encoder_t2, _, unet_t, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.model_tuned, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.model_tuned, "cpu"
         )
         text_encoders_t = [text_encoder_t1, text_encoder_t2]
-        model_version = sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9
+        model_version = sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0
 
     # create LoRA network to extract weights: Use dim (rank) as alpha
     if args.conv_dim is None:
