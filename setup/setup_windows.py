@@ -153,7 +153,11 @@ def install_bitsandbytes_0_35_0():
     log.info('Installing bitsandbytes 0.35.0...')
     setup_common.install('--upgrade bitsandbytes==0.35.0', 'bitsandbytes 0.35.0', reinstall=True)
     sync_bits_and_bytes_files()
-    
+
+def install_bitsandbytes_0_40_1():
+    log.info('Installing bitsandbytes 0.41.1...')
+    setup_common.install('--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.40.1-py3-none-win_amd64.whl', 'bitsandbytes 0.40.1', reinstall=True)
+
 def install_bitsandbytes_0_41_1():
     log.info('Installing bitsandbytes 0.41.1...')
     setup_common.install('--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl', 'bitsandbytes 0.41.1', reinstall=True)
@@ -195,9 +199,10 @@ def main_menu():
         elif choice == '3':
             while True:
                 print('1. (Optional) Force installation of bitsandbytes 0.35.0')
-                print('2. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support')
-                print('3. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)')
-                print('4. Cancel')
+                print('2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results')
+                print('3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support')
+                print('4. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)')
+                print('5. Cancel')
                 choice_torch = input('\nEnter your choice: ')
                 print('')
 
@@ -205,12 +210,15 @@ def main_menu():
                     install_bitsandbytes_0_35_0()
                     break
                 elif choice_torch == '2':
+                    install_bitsandbytes_0_40_1()
+                    break
+                elif choice_torch == '3':
                     install_bitsandbytes_0_41_1()
                     break
                 elif choice_torch == '4':
                     setup_common.install('--upgrade bitsandbytes-windows', reinstall=True)
                     break
-                elif choice_torch == '4':
+                elif choice_torch == '5':
                     break
                 else:
                     print('Invalid choice. Please enter a number between 1-3.')
