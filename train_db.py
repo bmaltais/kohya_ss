@@ -156,10 +156,11 @@ def train(args):
     # 学習に必要なクラスを準備する
     accelerator.print("prepare optimizer, data loader etc.")
     if train_text_encoder:
-        trainable_params = itertools.chain(unet.parameters(), text_encoder.parameters())
+        # wightout list, adamw8bit is crashed
+        trainable_params = list(itertools.chain(unet.parameters(), text_encoder.parameters()))
     else:
         trainable_params = unet.parameters()
-
+    
     _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
     # dataloaderを準備する

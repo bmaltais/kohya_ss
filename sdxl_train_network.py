@@ -8,6 +8,7 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
     def __init__(self):
         super().__init__()
         self.vae_scale_factor = sdxl_model_util.VAE_SCALE_FACTOR
+        self.is_sdxl = True
 
     def assert_extra_args(self, args, train_dataset_group):
         super().assert_extra_args(args, train_dataset_group)
@@ -133,7 +134,6 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
             # assert ((encoder_hidden_states2.to("cpu") - ehs2.to(dtype=weight_dtype)).abs().max() > 1e-2).sum() <= b_size * 2
             # assert ((pool2.to("cpu") - p2.to(dtype=weight_dtype)).abs().max() > 1e-2).sum() <= b_size * 2
             # print("text encoder outputs verified")
-
 
         return encoder_hidden_states1, encoder_hidden_states2, pool2
 

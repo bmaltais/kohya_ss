@@ -468,6 +468,7 @@ def save_stable_diffusion_checkpoint(
     ckpt_info,
     vae,
     logit_scale,
+    metadata,
     save_dtype=None,
 ):
     state_dict = {}
@@ -505,7 +506,7 @@ def save_stable_diffusion_checkpoint(
     new_ckpt["global_step"] = steps
 
     if model_util.is_safetensors(output_file):
-        save_file(state_dict, output_file)
+        save_file(state_dict, output_file, metadata)
     else:
         torch.save(new_ckpt, output_file)
 

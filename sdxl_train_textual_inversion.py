@@ -13,6 +13,7 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
     def __init__(self):
         super().__init__()
         self.vae_scale_factor = sdxl_model_util.VAE_SCALE_FACTOR
+        self.is_sdxl = True
 
     def assert_extra_args(self, args, train_dataset_group):
         super().assert_extra_args(args, train_dataset_group)
@@ -79,7 +80,7 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
             accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet, prompt_replacement
         )
 
-    def save_weights(self, file, updated_embs, save_dtype):
+    def save_weights(self, file, updated_embs, save_dtype, metadata):
         state_dict = {"clip_l": updated_embs[0], "clip_g": updated_embs[1]}
 
         if save_dtype is not None:
@@ -91,7 +92,7 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         if os.path.splitext(file)[1] == ".safetensors":
             from safetensors.torch import save_file
 
-            save_file(state_dict, file)
+            save_file(state_dict, file, metadata)
         else:
             torch.save(state_dict, file)
 
