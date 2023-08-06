@@ -151,7 +151,7 @@ def train(args):
     else:
         save_stable_diffusion_format = args.save_model_as.lower() == "ckpt" or args.save_model_as.lower() == "safetensors"
         use_safetensors = args.use_safetensors or ("safetensors" in args.save_model_as.lower())
-        assert save_stable_diffusion_format, "save_model_as must be ckpt or safetensors / save_model_asはckptかsafetensorsである必要があります"
+        # assert save_stable_diffusion_format, "save_model_as must be ckpt or safetensors / save_model_asはckptかsafetensorsである必要があります"
 
     # Diffusers版のxformers使用フラグを設定する関数
     def set_diffusers_xformers_flag(model, valid):

@@ -72,7 +72,16 @@ First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusio
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 4, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+Aug 6, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+
+- [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
+  - The main items are set automatically. 
+  - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
+  - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
+  - Metadata editor will be available soon.
+- SDXL LoRA has `sdxl_base_v1-0` now  for `ss_base_model_version` metadata item, instead of `v0-9`.
+
+Aug 4, 2023: 
 
 - `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
 - `albumentations` is not required anymore.
