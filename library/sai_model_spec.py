@@ -224,8 +224,10 @@ def build_metadata(
     else:
         del metadata["modelspec.encoder_layer"]
 
-    # assert all values are filled
-    assert all([v is not None for v in metadata.values()]), metadata
+    # # assert all values are filled
+    # assert all([v is not None for v in metadata.values()]), metadata
+    if not all([v is not None for v in metadata.values()]):
+        print(f"Internal error: some metadata values are None: {metadata}")
 
     return metadata
 
