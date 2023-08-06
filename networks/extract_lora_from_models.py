@@ -5,9 +5,11 @@
 import argparse
 import json
 import os
+import time
 import torch
 from safetensors.torch import load_file, save_file
 from tqdm import tqdm
+from library import sai_model_spec
 import library.model_util as model_util
 import library.sdxl_model_util as sdxl_model_util
 import lora
@@ -59,15 +61,15 @@ def svd(args):
     else:
         print(f"loading original SDXL model : {args.model_org}")
         text_encoder_o1, text_encoder_o2, _, unet_o, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.model_org, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.model_org, "cpu"
         )
         text_encoders_o = [text_encoder_o1, text_encoder_o2]
         print(f"loading original SDXL model : {args.model_tuned}")
         text_encoder_t1, text_encoder_t2, _, unet_t, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.model_tuned, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.model_tuned, "cpu"
         )
         text_encoders_t = [text_encoder_t1, text_encoder_t2]
-        model_version = sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9
+        model_version = sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0
 
     # create LoRA network to extract weights: Use dim (rank) as alpha
     if args.conv_dim is None:
@@ -197,6 +199,13 @@ def svd(args):
         "ss_network_args": json.dumps(net_kwargs),
     }
 
+    if not args.no_metadata:
+        title = os.path.splitext(os.path.basename(args.save_to))[0]
+        sai_metadata = sai_model_spec.build_metadata(
+            None, args.v2, args.v_parameterization, False, True, False, time.time(), title=title
+        )
+        metadata.update(sai_metadata)
+
     lora_network_save.save_weights(args.save_to, save_dtype, metadata)
     print(f"LoRA weights are saved to: {args.save_to}")
 
@@ -243,6 +252,12 @@ def setup_parser() -> argparse.ArgumentParser:
         help="dimension (rank) of LoRA for Conv2d-3x3 (default None, disabled) / LoRAのConv2d-3x3の次元数（rank）（デフォルトNone、適用なし）",
     )
     parser.add_argument("--device", type=str, default=None, help="device to use, cuda for GPU / 計算を行うデバイス、cuda でGPUを使う")
+    parser.add_argument(
+        "--no_metadata",
+        action="store_true",
+        help="do not save sai modelspec metadata (minimum ss_metadata for LoRA is saved) / "
+        + "sai modelspecのメタデータを保存しない（LoRAの最低限のss_metadataは保存される）",
+    )
 
     return parser
 

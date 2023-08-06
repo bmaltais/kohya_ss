@@ -10,10 +10,10 @@ from library import sdxl_original_unet
 
 
 VAE_SCALE_FACTOR = 0.13025
-MODEL_VERSION_SDXL_BASE_V0_9 = "sdxl_base_v0-9"
+MODEL_VERSION_SDXL_BASE_V1_0 = "sdxl_base_v1-0"
 
 # Diffusersの設定を読み込むための参照モデル
-DIFFUSERS_REF_MODEL_ID_SDXL = "stabilityai/stable-diffusion-xl-base-0.9"  # アクセス権が必要
+DIFFUSERS_REF_MODEL_ID_SDXL = "stabilityai/stable-diffusion-xl-base-1.0"
 
 DIFFUSERS_SDXL_UNET_CONFIG = {
     "act_fn": "silu",
@@ -468,6 +468,7 @@ def save_stable_diffusion_checkpoint(
     ckpt_info,
     vae,
     logit_scale,
+    metadata,
     save_dtype=None,
 ):
     state_dict = {}
@@ -505,7 +506,7 @@ def save_stable_diffusion_checkpoint(
     new_ckpt["global_step"] = steps
 
     if model_util.is_safetensors(output_file):
-        save_file(state_dict, output_file)
+        save_file(state_dict, output_file, metadata)
     else:
         torch.save(new_ckpt, output_file)
 

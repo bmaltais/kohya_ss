@@ -83,6 +83,7 @@ imagenet_style_templates_small = [
 class TextualInversionTrainer:
     def __init__(self):
         self.vae_scale_factor = 0.18215
+        self.is_sdxl = False
 
     def assert_extra_args(self, args, train_dataset_group):
         pass
@@ -113,7 +114,7 @@ class TextualInversionTrainer:
             accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet, prompt_replacement
         )
 
-    def save_weights(self, file, updated_embs, save_dtype):
+    def save_weights(self, file, updated_embs, save_dtype, metadata):
         state_dict = {"emb_params": updated_embs[0]}
 
         if save_dtype is not None:
@@ -125,7 +126,7 @@ class TextualInversionTrainer:
         if os.path.splitext(file)[1] == ".safetensors":
             from safetensors.torch import save_file
 
-            save_file(state_dict, file)
+            save_file(state_dict, file, metadata)
         else:
             torch.save(state_dict, file)  # can be loaded in Web UI
 
@@ -345,7 +346,7 @@ class TextualInversionTrainer:
 
         # モデルに xformers とか memory efficient attention を組み込む
         train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
-        if torch.__version__ >= "2.0.0": # PyTorch 2.0.0 以上対応のxformersなら以下が使える
+        if torch.__version__ >= "2.0.0":  # PyTorch 2.0.0 以上対応のxformersなら以下が使える
             vae.set_use_memory_efficient_attention_xformers(args.xformers)
 
         # 学習を準備する
@@ -497,7 +498,9 @@ class TextualInversionTrainer:
             init_kwargs = {}
             if args.log_tracker_config is not None:
                 init_kwargs = toml.load(args.log_tracker_config)
-            accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
+            accelerator.init_trackers(
+                "textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs
+            )
 
         # function for saving/removing
         def save_model(ckpt_name, embs_list, steps, epoch_no, force_sync_upload=False):
@@ -505,7 +508,10 @@ class TextualInversionTrainer:
             ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
             accelerator.print(f"\nsaving checkpoint: {ckpt_file}")
-            self.save_weights(ckpt_file, embs_list, save_dtype)
+
+            sai_metadata = train_util.get_sai_model_spec(None, args, self.is_sdxl, False, True)
+
+            self.save_weights(ckpt_file, embs_list, save_dtype, sai_metadata)
             if args.huggingface_repo_id is not None:
                 huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
 

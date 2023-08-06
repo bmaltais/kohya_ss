@@ -1,10 +1,11 @@
 import math
 import argparse
 import os
+import time
 import torch
 from safetensors.torch import load_file, save_file
 from tqdm import tqdm
-from library import sdxl_model_util
+from library import sai_model_spec, sdxl_model_util, train_util
 import library.model_util as model_util
 import lora
 
@@ -12,22 +13,26 @@ import lora
 def load_state_dict(file_name, dtype):
     if os.path.splitext(file_name)[1] == ".safetensors":
         sd = load_file(file_name)
+        metadata = train_util.load_metadata_from_safetensors(file_name)
     else:
         sd = torch.load(file_name, map_location="cpu")
+        metadata = {}
+
     for key in list(sd.keys()):
         if type(sd[key]) == torch.Tensor:
             sd[key] = sd[key].to(dtype)
-    return sd
+
+    return sd, metadata
 
 
-def save_to_file(file_name, model, state_dict, dtype):
+def save_to_file(file_name, model, state_dict, dtype, metadata):
     if dtype is not None:
         for key in list(state_dict.keys()):
             if type(state_dict[key]) == torch.Tensor:
                 state_dict[key] = state_dict[key].to(dtype)
 
     if os.path.splitext(file_name)[1] == ".safetensors":
-        save_file(model, file_name)
+        save_file(model, file_name, metadata=metadata)
     else:
         torch.save(model, file_name)
 
@@ -62,7 +67,7 @@ def merge_to_sd_model(text_encoder1, text_encoder2, unet, models, ratios, merge_
 
     for model, ratio in zip(models, ratios):
         print(f"loading: {model}")
-        lora_sd = load_state_dict(model, merge_dtype)
+        lora_sd, _ = load_state_dict(model, merge_dtype)
 
         print(f"merging...")
         for key in tqdm(lora_sd.keys()):
@@ -113,9 +118,17 @@ def merge_lora_models(models, ratios, merge_dtype):
     base_dims = {}
 
     merged_sd = {}
+    v2 = None
+    base_model = None
     for model, ratio in zip(models, ratios):
         print(f"loading: {model}")
-        lora_sd = load_state_dict(model, merge_dtype)
+        lora_sd, lora_metadata = load_state_dict(model, merge_dtype)
+
+        if lora_metadata is not None:
+            if v2 is None:
+                v2 = lora_metadata.get(train_util.SS_METADATA_KEY_V2, None)  # returns string, SDXLはv2がないのでFalseのはず
+            if base_model is None:
+                base_model = lora_metadata.get(train_util.SS_METADATA_KEY_BASE_MODEL_VERSION, None)
 
         # get alpha and dim
         alphas = {}  # alpha for current model
@@ -172,7 +185,26 @@ def merge_lora_models(models, ratios, merge_dtype):
     print("merged model")
     print(f"dim: {list(set(base_dims.values()))}, alpha: {list(set(base_alphas.values()))}")
 
-    return merged_sd
+    # check all dims are same
+    dims_list = list(set(base_dims.values()))
+    alphas_list = list(set(base_alphas.values()))
+    all_same_dims = True
+    all_same_alphas = True
+    for dims in dims_list:
+        if dims != dims_list[0]:
+            all_same_dims = False
+            break
+    for alphas in alphas_list:
+        if alphas != alphas_list[0]:
+            all_same_alphas = False
+            break
+
+    # build minimum metadata
+    dims = f"{dims_list[0]}" if all_same_dims else "Dynamic"
+    alphas = f"{alphas_list[0]}" if all_same_alphas else "Dynamic"
+    metadata = train_util.build_minimum_network_metadata(v2, base_model, "networks.lora", dims, alphas, None)
+
+    return merged_sd, metadata
 
 
 def merge(args):
@@ -202,19 +234,42 @@ def merge(args):
             unet,
             logit_scale,
             ckpt_info,
-        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.sd_model, "cpu")
+        ) = sdxl_model_util.load_models_from_sdxl_checkpoint(sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.sd_model, "cpu")
 
         merge_to_sd_model(text_model1, text_model2, unet, args.models, args.ratios, merge_dtype)
 
+        if args.no_metadata:
+            sai_metadata = None
+        else:
+            merged_from = sai_model_spec.build_merged_from([args.sd_model] + args.models)
+            title = os.path.splitext(os.path.basename(args.save_to))[0]
+            sai_metadata = sai_model_spec.build_metadata(
+                None, False, False, True, False, False, time.time(), title=title, merged_from=merged_from
+            )
+
         print(f"saving SD model to: {args.save_to}")
         sdxl_model_util.save_stable_diffusion_checkpoint(
-            args.save_to, text_model1, text_model2, unet, 0, 0, ckpt_info, vae, logit_scale, save_dtype
+            args.save_to, text_model1, text_model2, unet, 0, 0, ckpt_info, vae, logit_scale, sai_metadata, save_dtype
         )
     else:
-        state_dict = merge_lora_models(args.models, args.ratios, merge_dtype)
+        state_dict, metadata = merge_lora_models(args.models, args.ratios, merge_dtype)
+
+        print(f"calculating hashes and creating metadata...")
+
+        model_hash, legacy_hash = train_util.precalculate_safetensors_hashes(state_dict, metadata)
+        metadata["sshs_model_hash"] = model_hash
+        metadata["sshs_legacy_hash"] = legacy_hash
+
+        if not args.no_metadata:
+            merged_from = sai_model_spec.build_merged_from(args.models)
+            title = os.path.splitext(os.path.basename(args.save_to))[0]
+            sai_metadata = sai_model_spec.build_metadata(
+                state_dict, False, False, True, True, False, time.time(), title=title, merged_from=merged_from
+            )
+            metadata.update(sai_metadata)
 
         print(f"saving model to: {args.save_to}")
-        save_to_file(args.save_to, state_dict, state_dict, save_dtype)
+        save_to_file(args.save_to, state_dict, state_dict, save_dtype, metadata)
 
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -246,6 +301,12 @@ def setup_parser() -> argparse.ArgumentParser:
         "--models", type=str, nargs="*", help="LoRA models to merge: ckpt or safetensors file / マージするLoRAモデル、ckptまたはsafetensors"
     )
     parser.add_argument("--ratios", type=float, nargs="*", help="ratios for each model / それぞれのLoRAモデルの比率")
+    parser.add_argument(
+        "--no_metadata",
+        action="store_true",
+        help="do not save sai modelspec metadata (minimum ss_metadata for LoRA is saved) / "
+        + "sai modelspecのメタデータを保存しない（LoRAの最低限のss_metadataは保存される）",
+    )
 
     return parser
 

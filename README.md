@@ -22,7 +22,16 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 4, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+Aug 6, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+
+- [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
+  - The main items are set automatically. 
+  - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
+  - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
+  - Metadata editor will be available soon.
+- SDXL LoRA has `sdxl_base_v1-0` now  for `ss_base_model_version` metadata item, instead of `v0-9`.
+
+Aug 4, 2023: 
 
 - `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
 - `albumentations` is not required anymore.
@@ -218,7 +227,7 @@ For 8bit optimizer, you need to install `bitsandbytes`. For Linux, please instal
 For Windows, there are several versions of `bitsandbytes`:
 
 - `bitsandbytes` 0.35.0: Stable version. AdamW8bit is available. `full_bf16` is not available.
-- `bitsandbytes` 0.39.1: Lion8bit, PagedAdamW8bit and PagedLion8bit are available. `full_bf16` is available.
+- `bitsandbytes` 0.41.1: Lion8bit, PagedAdamW8bit and PagedLion8bit are available. `full_bf16` is available.
 
 Note: `bitsandbytes`above 0.35.0 till 0.41.0 seems to have an issue: https://github.com/TimDettmers/bitsandbytes/issues/659
 
@@ -240,12 +249,12 @@ cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_set
 
 This will install `bitsandbytes` 0.35.0 and copy the necessary files to the `bitsandbytes` directory.
 
-### bitsandbytes 0.39.1 for Windows
+### bitsandbytes 0.41.1 for Windows
 
 Install the Windows version whl file from [here](https://github.com/jllllll/bitsandbytes-windows-webui) or other sources, like:
 
 ```powershell
-pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl
+python -m pip install bitsandbytes==0.41.1 --prefer-binary --extra-index-url=https://jllllll.github.io/bitsandbytes-windows-webui
 ```
 
 ## Upgrade
