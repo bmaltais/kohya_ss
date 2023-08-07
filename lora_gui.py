@@ -1025,7 +1025,6 @@ def lora_tab(
             folders = Folders(headless=headless)
             
         with gr.Tab('Parameters'):
-
             def list_presets(path):
                 json_files = []
                 
@@ -1047,289 +1046,293 @@ def lora_tab(
                 choices=list_presets('./presets/lora'),
                 elem_id='myDropdown',
             )
-            with gr.Row():
-                LoRA_type = gr.Dropdown(
-                    label='LoRA type',
-                    choices=[
-                        'Kohya DyLoRA',
-                        'Kohya LoCon',
-                        'LyCORIS/DyLoRA',
-                        'LyCORIS/iA3',
-                        'LyCORIS/LoCon',
-                        'LyCORIS/LoHa',
-                        'LyCORIS/LoKr',
-                        'Standard',
-                    ],
-                    value='Standard',
-                )
-                with gr.Box():
-                    with gr.Row():
-                        lora_network_weights = gr.Textbox(
-                            label='LoRA network weights',
-                            placeholder='(Optional)',
-                            info='Path to an existing LoRA network weights to resume training from',
-                        )
-                        lora_network_weights_file = gr.Button(
-                            document_symbol,
-                            elem_id='open_folder_small',
-                            visible=(not headless),
-                        )
-                        lora_network_weights_file.click(
-                            get_any_file_path,
-                            inputs=[lora_network_weights],
-                            outputs=lora_network_weights,
-                            show_progress=False,
-                        )
-                        dim_from_weights = gr.Checkbox(
-                            label='DIM from weights',
-                            value=False,
-                            info='Automatically determine the dim(rank) from the weight file.',
-                        )
-            basic_training = BasicTraining(
-                learning_rate_value='0.0001',
-                lr_scheduler_value='cosine',
-                lr_warmup_value='10',
-            )
+            
+            with gr.Tab('Basic', elem_id='basic_tab'):
 
-            with gr.Row():
-                text_encoder_lr = gr.Number(
-                    label='Text Encoder learning rate',
-                    value='5e-5',
-                    info='Optional',
-                )
-                unet_lr = gr.Number(
-                    label='Unet learning rate',
-                    value='0.0001',
-                    info='Optional',
-                )
-                
-            # Add SDXL Parameters
-            sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_full_bf16=True)
-                
-            with gr.Row():
-                factor = gr.Slider(
-                    label='LoKr factor',
-                    value=-1,
-                    minimum=-1,
-                    maximum=64,
-                    step=1,
-                    visible=False,
-                )
-                use_cp = gr.Checkbox(
-                    value=False,
-                    label='Use CP decomposition',
-                    info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
-                    visible=False,
-                )
-                decompose_both = gr.Checkbox(
-                    value=False,
-                    label='LoKr decompose both',
-                    visible=False,
-                )
-                train_on_input = gr.Checkbox(
-                    value=True,
-                    label='iA3 train on input',
-                    visible=False,
+                with gr.Row():
+                    LoRA_type = gr.Dropdown(
+                        label='LoRA type',
+                        choices=[
+                            'Kohya DyLoRA',
+                            'Kohya LoCon',
+                            'LyCORIS/DyLoRA',
+                            'LyCORIS/iA3',
+                            'LyCORIS/LoCon',
+                            'LyCORIS/LoHa',
+                            'LyCORIS/LoKr',
+                            'Standard',
+                        ],
+                        value='Standard',
+                    )
+                    with gr.Box():
+                        with gr.Row():
+                            lora_network_weights = gr.Textbox(
+                                label='LoRA network weights',
+                                placeholder='(Optional)',
+                                info='Path to an existing LoRA network weights to resume training from',
+                            )
+                            lora_network_weights_file = gr.Button(
+                                document_symbol,
+                                elem_id='open_folder_small',
+                                visible=(not headless),
+                            )
+                            lora_network_weights_file.click(
+                                get_any_file_path,
+                                inputs=[lora_network_weights],
+                                outputs=lora_network_weights,
+                                show_progress=False,
+                            )
+                            dim_from_weights = gr.Checkbox(
+                                label='DIM from weights',
+                                value=False,
+                                info='Automatically determine the dim(rank) from the weight file.',
+                            )
+                basic_training = BasicTraining(
+                    learning_rate_value='0.0001',
+                    lr_scheduler_value='cosine',
+                    lr_warmup_value='10',
                 )
 
-            with gr.Row() as LoRA_dim_alpha:
-                network_dim = gr.Slider(
-                    minimum=1,
-                    maximum=1024,
-                    label='Network Rank (Dimension)',
-                    value=8,
-                    step=1,
-                    interactive=True,
-                )
-                network_alpha = gr.Slider(
-                    minimum=0.1,
-                    maximum=1024,
-                    label='Network Alpha',
-                    value=1,
-                    step=0.1,
-                    interactive=True,
-                    info='alpha for LoRA weight scaling',
-                )
-            with gr.Row(visible=False) as LoCon_row:
+                with gr.Row():
+                    text_encoder_lr = gr.Number(
+                        label='Text Encoder learning rate',
+                        value='5e-5',
+                        info='Optional',
+                    )
+                    unet_lr = gr.Number(
+                        label='Unet learning rate',
+                        value='0.0001',
+                        info='Optional',
+                    )
+                    
+                # Add SDXL Parameters
+                sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+                    
+                with gr.Row():
+                    factor = gr.Slider(
+                        label='LoKr factor',
+                        value=-1,
+                        minimum=-1,
+                        maximum=64,
+                        step=1,
+                        visible=False,
+                    )
+                    use_cp = gr.Checkbox(
+                        value=False,
+                        label='Use CP decomposition',
+                        info='A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.',
+                        visible=False,
+                    )
+                    decompose_both = gr.Checkbox(
+                        value=False,
+                        label='LoKr decompose both',
+                        visible=False,
+                    )
+                    train_on_input = gr.Checkbox(
+                        value=True,
+                        label='iA3 train on input',
+                        visible=False,
+                    )
 
-                # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
-                conv_dim = gr.Slider(
-                    minimum=0,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='Convolution Rank (Dimension)',
-                )
-                conv_alpha = gr.Slider(
-                    minimum=0,
-                    maximum=512,
-                    value=1,
-                    step=1,
-                    label='Convolution Alpha',
-                )
-            with gr.Row():
-                scale_weight_norms = gr.Slider(
-                    label='Scale weight norms',
-                    value=0,
-                    minimum=0,
-                    maximum=10,
-                    step=0.01,
-                    info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR #545 on kohya_ss/sd_scripts repo for details. Recommended setting: 1. Higher is weaker, lower is stronger.',
-                    interactive=True,
-                )
-                network_dropout = gr.Slider(
-                    label='Network dropout',
-                    value=0,
-                    minimum=0,
-                    maximum=1,
-                    step=0.01,
-                    info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
-                )
-                rank_dropout = gr.Slider(
-                    label='Rank dropout',
-                    value=0,
-                    minimum=0,
-                    maximum=1,
-                    step=0.01,
-                    info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-                )
-                module_dropout = gr.Slider(
-                    label='Module dropout',
-                    value=0.0,
-                    minimum=0.0,
-                    maximum=1.0,
-                    step=0.01,
-                    info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
-                )
-            with gr.Row(visible=False) as kohya_dylora:
-                unit = gr.Slider(
-                    minimum=1,
-                    maximum=64,
-                    label='DyLoRA Unit / Block size',
-                    value=1,
-                    step=1,
-                    interactive=True,
-                )
+                with gr.Row() as LoRA_dim_alpha:
+                    network_dim = gr.Slider(
+                        minimum=1,
+                        maximum=1024,
+                        label='Network Rank (Dimension)',
+                        value=8,
+                        step=1,
+                        interactive=True,
+                    )
+                    network_alpha = gr.Slider(
+                        minimum=0.1,
+                        maximum=1024,
+                        label='Network Alpha',
+                        value=1,
+                        step=0.1,
+                        interactive=True,
+                        info='alpha for LoRA weight scaling',
+                    )
+                with gr.Row(visible=False) as LoCon_row:
 
-                # Show or hide LoCon conv settings depending on LoRA type selection
-                def update_LoRA_settings(LoRA_type):
-                    log.info('LoRA type changed...')
+                    # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
+                    conv_dim = gr.Slider(
+                        minimum=0,
+                        maximum=512,
+                        value=1,
+                        step=1,
+                        label='Convolution Rank (Dimension)',
+                    )
+                    conv_alpha = gr.Slider(
+                        minimum=0,
+                        maximum=512,
+                        value=1,
+                        step=1,
+                        label='Convolution Alpha',
+                    )
+                with gr.Row():
+                    scale_weight_norms = gr.Slider(
+                        label='Scale weight norms',
+                        value=0,
+                        minimum=0,
+                        maximum=10,
+                        step=0.01,
+                        info='Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR #545 on kohya_ss/sd_scripts repo for details. Recommended setting: 1. Higher is weaker, lower is stronger.',
+                        interactive=True,
+                    )
+                    network_dropout = gr.Slider(
+                        label='Network dropout',
+                        value=0,
+                        minimum=0,
+                        maximum=1,
+                        step=0.01,
+                        info='Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5',
+                    )
+                    rank_dropout = gr.Slider(
+                        label='Rank dropout',
+                        value=0,
+                        minimum=0,
+                        maximum=1,
+                        step=0.01,
+                        info='can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                    )
+                    module_dropout = gr.Slider(
+                        label='Module dropout',
+                        value=0.0,
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.01,
+                        info='can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3',
+                    )
+                with gr.Row(visible=False) as kohya_dylora:
+                    unit = gr.Slider(
+                        minimum=1,
+                        maximum=64,
+                        label='DyLoRA Unit / Block size',
+                        value=1,
+                        step=1,
+                        interactive=True,
+                    )
 
-                    visibility_and_gr_types = {
-                        'LoRA_dim_alpha': (
-                            {
-                                'Kohya DyLoRA',
-                                'Kohya LoCon',
-                                'LyCORIS/DyLoRA',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoKr',
-                                'Standard',
-                            },
-                            gr.Row,
-                        ),
-                        'LoCon_row': (
-                            {
-                                'LoCon',
-                                'Kohya DyLoRA',
-                                'Kohya LoCon',
-                                'LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoKr',
-                                'LyCORIS/LoCon',
-                            },
-                            gr.Row,
-                        ),
-                        'kohya_advanced_lora': (
-                            {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
-                            gr.Row,
-                        ),
-                        'kohya_dylora': (
-                            {'Kohya DyLoRA', 'LyCORIS/DyLoRA'},
-                            gr.Row,
-                        ),
-                        'lora_network_weights': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',},
-                            gr.Textbox,
-                        ),
-                        'lora_network_weights_file': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',},
-                            gr.Button,
-                        ),
-                        'dim_from_weights': (
-                            {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',},
-                            gr.Checkbox,
-                        ),
-                        'factor': ({'LyCORIS/LoKr'}, gr.Slider),
-                        'use_cp': (
-                            {
-                                'LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',
-                            },
-                            gr.Checkbox,
-                        ),
-                        'decompose_both': ({'LyCORIS/LoKr'}, gr.Checkbox),
-                        'train_on_input': ({'LyCORIS/iA3'}, gr.Checkbox),
-                        'scale_weight_norms': (
-                            {
-                                'LoCon',
-                                'Kohya DyLoRA',
-                                'Kohya LoCon',
-                                'LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',
-                                'Standard',
-                            },
-                            gr.Slider,
-                        ),
-                        'network_dropout': (
-                            {
-                                'LoCon',
-                                'Kohya DyLoRA',
-                                'Kohya LoCon',
-                                'LyCORIS/DyLoRA',
-                                'LyCORIS/LoHa',
-                                'LyCORIS/LoCon',
-                                'LyCORIS/LoKr',
-                                'Standard',
-                            },
-                            gr.Slider,
-                        ),
-                        'rank_dropout': (
-                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
-                                'Standard',},
-                            gr.Slider,
-                        ),
-                        'module_dropout': (
-                            {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
-                                'Standard',},
-                            gr.Slider,
-                        ),
-                    }
+                    # Show or hide LoCon conv settings depending on LoRA type selection
+                    def update_LoRA_settings(LoRA_type):
+                        log.info('LoRA type changed...')
 
-                    results = []
-                    for attr, (
-                        visibility,
-                        gr_type,
-                    ) in visibility_and_gr_types.items():
-                        visible = LoRA_type in visibility
-                        results.append(gr_type.update(visible=visible))
+                        visibility_and_gr_types = {
+                            'LoRA_dim_alpha': (
+                                {
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LyCORIS/DyLoRA',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoKr',
+                                    'Standard',
+                                },
+                                gr.Row,
+                            ),
+                            'LoCon_row': (
+                                {
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoKr',
+                                    'LyCORIS/LoCon',
+                                },
+                                gr.Row,
+                            ),
+                            'kohya_advanced_lora': (
+                                {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
+                                gr.Row,
+                            ),
+                            'kohya_dylora': (
+                                {'Kohya DyLoRA', 'LyCORIS/DyLoRA'},
+                                gr.Row,
+                            ),
+                            'lora_network_weights': (
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',},
+                                gr.Textbox,
+                            ),
+                            'lora_network_weights_file': (
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',},
+                                gr.Button,
+                            ),
+                            'dim_from_weights': (
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',},
+                                gr.Checkbox,
+                            ),
+                            'factor': ({'LyCORIS/LoKr'}, gr.Slider),
+                            'use_cp': (
+                                {
+                                    'LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',
+                                },
+                                gr.Checkbox,
+                            ),
+                            'decompose_both': ({'LyCORIS/LoKr'}, gr.Checkbox),
+                            'train_on_input': ({'LyCORIS/iA3'}, gr.Checkbox),
+                            'scale_weight_norms': (
+                                {
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',
+                                    'Standard',
+                                },
+                                gr.Slider,
+                            ),
+                            'network_dropout': (
+                                {
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LyCORIS/DyLoRA',
+                                    'LyCORIS/LoHa',
+                                    'LyCORIS/LoCon',
+                                    'LyCORIS/LoKr',
+                                    'Standard',
+                                },
+                                gr.Slider,
+                            ),
+                            'rank_dropout': (
+                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                    'Standard',},
+                                gr.Slider,
+                            ),
+                            'module_dropout': (
+                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                    'Standard',},
+                                gr.Slider,
+                            ),
+                        }
 
-                    return tuple(results)
+                        results = []
+                        for attr, (
+                            visibility,
+                            gr_type,
+                        ) in visibility_and_gr_types.items():
+                            visible = LoRA_type in visibility
+                            results.append(gr_type.update(visible=visible))
 
-            with gr.Accordion('Advanced Configuration', open=False):
+                        return tuple(results)
+                    
+            with gr.Tab('Advanced', elem_id='advanced_tab'):
+            # with gr.Accordion('Advanced Configuration', open=False):
                 with gr.Row(visible=True) as kohya_advanced_lora:
                     with gr.Tab(label='Weights'):
                         with gr.Row(visible=True):
@@ -1384,7 +1387,8 @@ def lora_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            sample = SampleImages()
+            with gr.Tab('Samples', elem_id='samples_tab'):
+                sample = SampleImages()
 
             LoRA_type.change(
                 update_LoRA_settings,
@@ -1534,7 +1538,7 @@ def lora_tab(
             module_dropout,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
-            sdxl_params.full_bf16,
+            advanced_training.full_bf16,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
         ]

@@ -787,20 +787,19 @@ def finetune_tab(headless=False):
                         label='Weighted captions', value=False
                     )
         with gr.Tab('Parameters'):
-            basic_training = BasicTraining(learning_rate_value='1e-5', finetuning=True)
+            with gr.Tab('Basic', elem_id='basic_tab'):
+                basic_training = BasicTraining(learning_rate_value='1e-5', finetuning=True)
             
-            # Add SDXL Parameters
-            sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+                # Add SDXL Parameters
+                sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
             
-            with gr.Row():
-                dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
-                train_text_encoder = gr.Checkbox(
-                    label='Train text encoder', value=True
-                )
-                full_bf16 = gr.Checkbox(
-                    label='Full bf16', value = False
-                )
-            with gr.Accordion('Advanced parameters', open=False):
+                with gr.Row():
+                    dataset_repeats = gr.Textbox(label='Dataset repeats', value=40)
+                    train_text_encoder = gr.Checkbox(
+                        label='Train text encoder', value=True
+                    )
+                    
+            with gr.Tab('Advanced', elem_id='advanced_tab'):
                 with gr.Row():
                     gradient_accumulation_steps = gr.Number(
                         label='Gradient accumulate steps', value='1'
@@ -811,8 +810,9 @@ def finetune_tab(headless=False):
                     inputs=[advanced_training.color_aug],
                     outputs=[basic_training.cache_latents],  # Not applicable to fine_tune.py
                 )
-
-            sample = SampleImages()
+            
+            with gr.Tab('Samples', elem_id='samples_tab'):
+                sample = SampleImages()
 
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')
@@ -863,7 +863,7 @@ def finetune_tab(headless=False):
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             train_text_encoder,
-            full_bf16,
+            advanced_training.full_bf16,
             create_caption,
             create_buckets,
             source_model.save_model_as,

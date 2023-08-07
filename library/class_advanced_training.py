@@ -71,6 +71,18 @@ class AdvancedTraining:
                 info='(Optional) Save only the specified number of states (old models will be deleted)',
             )
         with gr.Row():
+            def full_options_update(full_training):
+                full_fp16_value = False
+                full_bf16_value = False
+                
+                if full_training == 'fp16 (experimental)':
+                    full_fp16_value = True
+                
+                if full_training == 'bf16 (experimental)':
+                    full_bf16_value = True
+                    
+                return gr.Checkbox.update(value=full_fp16_value), gr.Checkbox.update(value=full_bf16_value)
+            
             self.keep_tokens = gr.Slider(
                 label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
             )
@@ -86,9 +98,20 @@ class AdvancedTraining:
                 ],
                 value='75',
             )
+            # This dropdown is used to select the gradients training precision. This is a hackl for backward compatibility when only fp16 was available
+            # Now that bf16 is also possible I needed to implement an alternative selection method. Ugly but work
+            self.full_training = gr.Dropdown(label='Gradients training', choices=['full', 'bf16 (experimental)', 'fp16 (experimental)'], value='full')
             self.full_fp16 = gr.Checkbox(
-                label='Full fp16 training (experimental)', value=False
+                value=False,
+                visible=False
             )
+            self.full_bf16 = gr.Checkbox(
+                value=False,
+                visible=False
+            )
+            # This monitor updated to the full_training dropdown and will set the flags approprietly
+            self.full_training.change(full_options_update, inputs=[self.full_training], outputs=[self.full_fp16, self.full_bf16])
+            
         with gr.Row():
             self.gradient_checkpointing = gr.Checkbox(
                 label='Gradient checkpointing', value=False
