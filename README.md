@@ -505,12 +505,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/08/05 (v21.8.6)
+* 2023/08/05 (v21.8.7)
   - Merge latest sd-scripts updates.
-  - Allow DB training on SDXL models. Unsupported but appear to work.
-  - Fix finetuning latent caching issue when doing SDXL models in fp16
-  - Add SDXL merge lora support. You can now merge LoRAs into an SDXL checkpoint.
-  - Add SDPA CrossAttention option to trainers.
-  - Merge latest kohya_ss sd-scripts code
-  - Fix Dreambooth support for SDXL training
-  - Update to latest bitsandbytes release. New optional install option for bitsandbytes versions.
