@@ -508,3 +508,4 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 * 2023/08/05 (v21.8.7)
   - Merge latest sd-scripts updates.
   - Updated layout? This is up for debate... but I think it make things easier to find. Tab instead of endless scrolling...
+  - Fix issue with LoRA merge GUI

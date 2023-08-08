@@ -68,7 +68,7 @@ def merge_lora(
         if not check_model(model):
             return
 
-    if not sd_model:
+    if not sdxl_model:
         run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
     else:
         run_cmd = f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
