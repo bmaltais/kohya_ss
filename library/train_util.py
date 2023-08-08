@@ -2521,7 +2521,7 @@ def get_sai_model_spec(
     sdxl: bool,
     lora: bool,
     textual_inversion: bool,
-    is_stable_diffusion_ckpt: Optional[bool] = None, # None for TI and LoRA
+    is_stable_diffusion_ckpt: Optional[bool] = None,  # None for TI and LoRA
 ):
     timestamp = time.time()
 
@@ -2546,15 +2546,15 @@ def get_sai_model_spec(
         lora,
         textual_inversion,
         timestamp,
-        title,
-        reso,
-        is_stable_diffusion_ckpt,
-        args.metadata_author,
-        args.metadata_description,
-        args.metadata_license,
-        args.metadata_tags,
-        timesteps,
-        args.clip_skip,  # None or int
+        title=title,
+        reso=reso,
+        is_stable_diffusion_ckpt=is_stable_diffusion_ckpt,
+        author=args.metadata_author,
+        description=args.metadata_description,
+        license=args.metadata_license,
+        tags=args.metadata_tags,
+        timesteps=timesteps,
+        clip_skip=args.clip_skip,  # None or int
     )
     return metadata
 
