@@ -238,7 +238,7 @@ def update_images(
 # Gradio UI
 def gradio_manual_caption_gui_tab(headless=False):
     with gr.Tab("Manual Captioning"):
-        gr.Markdown("This utility will allow quick caption and tag editing of images.")
+        gr.Markdown("This utility allows quick captioning and tagging of images.")
         page = gr.Number(-1, visible=False)
         max_page = gr.Number(1, visible=False)
         loaded_images_dir = gr.Text(visible=False)
