@@ -56,7 +56,7 @@ from library import custom_train_functions
 from library.original_unet import UNet2DConditionModel
 from huggingface_hub import hf_hub_download
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFile
 import cv2
 from einops import rearrange
 from torch import einsum
@@ -64,6 +64,8 @@ import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
 import library.model_util as model_util
 import library.huggingface_util as huggingface_util
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # from library.attention_processors import FlashAttnProcessor
 # from library.hypernetwork import replace_attentions_for_hypernetwork
