@@ -71,6 +71,16 @@ class AdvancedTraining:
                 info='(Optional) Save only the specified number of states (old models will be deleted)',
             )
         with gr.Row():
+            def full_options_update(full_fp16, full_bf16):
+                full_fp16_active = True
+                full_bf16_active = True
+                
+                if full_fp16:
+                    full_bf16_active = False
+                if full_bf16:
+                    full_fp16_active = False
+                return gr.Checkbox.update(interactive=full_fp16_active, ), gr.Checkbox.update(interactive=full_bf16_active)
+            
             self.keep_tokens = gr.Slider(
                 label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
             )
@@ -87,8 +97,14 @@ class AdvancedTraining:
                 value='75',
             )
             self.full_fp16 = gr.Checkbox(
-                label='Full fp16 training (experimental)', value=False
+                label='Full fp16 training (experimental)', value=False,
             )
+            self.full_bf16 = gr.Checkbox(
+                label='Full bf16 training (experimental)', value=False, info='Required bitsandbytes >= 0.36.0'
+            )
+            self.full_fp16.change(full_options_update, inputs=[self.full_fp16, self.full_bf16], outputs=[self.full_fp16, self.full_bf16])
+            self.full_bf16.change(full_options_update, inputs=[self.full_fp16, self.full_bf16], outputs=[self.full_fp16, self.full_bf16])
+            
         with gr.Row():
             self.gradient_checkpointing = gr.Checkbox(
                 label='Gradient checkpointing', value=False

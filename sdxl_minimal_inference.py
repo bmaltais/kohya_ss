@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # 本体RAMが少ない場合はGPUにロードするといいかも
     # If the main RAM is small, it may be better to load it on the GPU
     text_model1, text_model2, vae, unet, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-        sdxl_model_util.MODEL_VERSION_SDXL_BASE_V0_9, args.ckpt_path, "cpu"
+        sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, args.ckpt_path, "cpu"
     )
 
     # Text Encoder 1はSDXL本体でもHuggingFaceのものを使っている

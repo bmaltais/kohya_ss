@@ -72,7 +72,16 @@ First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusio
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 4, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+Aug 6, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+
+- [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
+  - The main items are set automatically. 
+  - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
+  - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
+  - Metadata editor will be available soon.
+- SDXL LoRA has `sdxl_base_v1-0` now  for `ss_base_model_version` metadata item, instead of `v0-9`.
+
+Aug 4, 2023: 
 
 - `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
 - `albumentations` is not required anymore.
@@ -496,12 +505,7 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/08/05 (v21.8.6)
+* 2023/08/05 (v21.8.7)
   - Merge latest sd-scripts updates.
-  - Allow DB training on SDXL models. Unsupported but appear to work.
-  - Fix finetuning latent caching issue when doing SDXL models in fp16
-  - Add SDXL merge lora support. You can now merge LoRAs into an SDXL checkpoint.
-  - Add SDPA CrossAttention option to trainers.
-  - Merge latest kohya_ss sd-scripts code
-  - Fix Dreambooth support for SDXL training
-  - Update to latest bitsandbytes release. New optional install option for bitsandbytes versions.
+  - Updated layout? This is up for debate... but I think it make things easier to find. Tab instead of endless scrolling...
+  - Fix issue with LoRA merge GUI

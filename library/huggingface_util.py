@@ -26,7 +26,7 @@ def upload(
     repo_id = args.huggingface_repo_id
     repo_type = args.huggingface_repo_type
     token = args.huggingface_token
-    path_in_repo = args.huggingface_path_in_repo + dest_suffix
+    path_in_repo = args.huggingface_path_in_repo + dest_suffix if args.huggingface_path_in_repo is not None else None
     private = args.huggingface_repo_visibility is None or args.huggingface_repo_visibility != "public"
     api = HfApi(token=token)
     if not exists_repo(repo_id=repo_id, repo_type=repo_type, token=token):
