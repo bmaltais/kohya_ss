@@ -429,7 +429,7 @@ def train_model(
             if os.name == 'posix':
                 os.system(run_cmd)
             else:
-                subprocess.run(run_cmd)
+                subprocess.check_call(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
@@ -458,7 +458,7 @@ def train_model(
             if os.name == 'posix':
                 os.system(run_cmd)
             else:
-                subprocess.run(run_cmd)
+                subprocess.check_call(run_cmd)
 
     image_num = len(
         [
