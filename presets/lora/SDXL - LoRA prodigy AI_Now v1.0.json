@@ -59,7 +59,7 @@
     "noise_offset_type": "Original",
     "num_cpu_threads_per_process": 2,
     "optimizer": "Prodigy",
-    "optimizer_args": "weight_decay=0.01 decouple=True d0=0.000012 use_bias_correction=True",
+    "optimizer_args": "weight_decay=0.01 decouple=True d0=0.0001 use_bias_correction=True",
     "persistent_data_loader_workers": false,
     "prior_loss_weight": 1.0,
     "random_crop": false,
