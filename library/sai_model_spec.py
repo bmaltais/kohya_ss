@@ -194,8 +194,8 @@ def build_metadata(
         # comma separated to tuple
         if isinstance(reso, str):
             reso = tuple(map(int, reso.split(",")))
-            if len(reso) == 1:
-                reso = (reso[0], reso[0])
+        if len(reso) == 1:
+            reso = (reso[0], reso[0])
     else:
         # resolution is defined in dataset, so use default
         if sdxl:
@@ -215,7 +215,11 @@ def build_metadata(
         metadata["modelspec.prediction_type"] = PRED_TYPE_EPSILON
 
     if timesteps is not None:
-        metadata["modelspec.timestep_range"] = timesteps
+        if isinstance(timesteps, str) or isinstance(timesteps, int):
+            timesteps = (timesteps, timesteps)
+        if len(timesteps) == 1:
+            timesteps = (timesteps[0], timesteps[0])
+        metadata["modelspec.timestep_range"] = f"{timesteps[0]},{timesteps[1]}"
     else:
         del metadata["modelspec.timestep_range"]
 
@@ -228,7 +232,7 @@ def build_metadata(
     # assert all([v is not None for v in metadata.values()]), metadata
     if not all([v is not None for v in metadata.values()]):
         print(f"Internal error: some metadata values are None: {metadata}")
-
+    
     return metadata
 
 
