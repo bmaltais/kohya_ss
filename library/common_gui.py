@@ -687,7 +687,11 @@ def run_cmd_advanced_training(**kwargs):
         
     bucket_reso_steps = int(kwargs.get("bucket_reso_steps", 64))
     run_cmd += f' --bucket_reso_steps={bucket_reso_steps}'
-        
+    
+    v_pred_like_loss = float(kwargs.get("v_pred_like_loss", 0))
+    if v_pred_like_loss > 0:
+        run_cmd += f' --v_pred_like_loss="{v_pred_like_loss}"'
+    
     save_every_n_steps = int(kwargs.get("save_every_n_steps", 0))
     if save_every_n_steps > 0:
         run_cmd += f' --save_every_n_steps="{save_every_n_steps}"'

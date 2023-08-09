@@ -139,6 +139,9 @@ class AdvancedTraining:
             self.random_crop = gr.Checkbox(
                 label='Random crop instead of center crop', value=False
             )
+            self.v_pred_like_loss = gr.Slider(
+                label='V Pred like loss', value=0, minimum=0, maximum=1, step=0.01, info='Recommended value of 0.5 when used'
+            )
         
         with gr.Row():
             self.min_timestep = gr.Slider(
