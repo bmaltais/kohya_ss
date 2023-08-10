@@ -505,6 +505,5 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/08/05 (v21.8.7)
-  - Add manual captioning option. Thanks to https://github.com/channelcat for this great contribution. (https://github.com/bmaltais/kohya_ss/pull/1352)
-  - Added support for `v_pred_like_loss` to the advanced training tab
+* 2023/08/05 (v21.8.8)
+  - Fix issue with aiofiles: https://github.com/bmaltais/kohya_ss/issues/1359
