@@ -68,6 +68,10 @@ First SDXL Tutorial: [First Ever SDXL Training With Kohya LoRA - Stable Diffusio
 
 [![First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/mG0CvKAzb8o29nr5ye0Br.png)](https://youtu.be/AY6DMBCIZ3A)
 
+[**Become A Master Of SDXL Training With Kohya SS LoRAs - Combine Power Of Automatic1111 & SDXL LoRAs**](https://youtu.be/sBFGitIvD2A)
+
+[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/rXbRquLxFaDGaGlkl-SUp.png)](https://youtu.be/sBFGitIvD2A)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
@@ -507,3 +511,6 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 * 2023/08/05 (v21.8.8)
   - Fix issue with aiofiles: https://github.com/bmaltais/kohya_ss/issues/1359
+* 2023/08/05 (v21.8.7)
+  - Add manual captioning option. Thanks to https://github.com/channelcat for this great contribution. (https://github.com/bmaltais/kohya_ss/pull/1352)
+  - Added support for `v_pred_like_loss` to the advanced training tab
