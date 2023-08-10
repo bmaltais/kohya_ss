@@ -117,7 +117,7 @@ def save_configuration(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args,lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -238,7 +238,7 @@ def open_configuration(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args,lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -356,7 +356,7 @@ def train_model(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args,lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -506,7 +506,7 @@ def train_model(
         reg_factor = 2
 
     # calculate max_train_steps
-    if max_train_steps == '':
+    if max_train_steps == '' or max_train_steps == '0':
         max_train_steps = int(
             math.ceil(
                 float(total_steps)
@@ -606,6 +606,7 @@ def train_model(
         cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
+        lr_scheduler_args=lr_scheduler_args,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -753,10 +754,10 @@ def ti_tab(
                         step=1,
                         label='Vectors',
                     )
-                    max_train_steps = gr.Textbox(
-                        label='Max train steps',
-                        placeholder='(Optional) Maximum number of steps',
-                    )
+                    # max_train_steps = gr.Textbox(
+                    #     label='Max train steps',
+                    #     placeholder='(Optional) Maximum number of steps',
+                    # )
                     template = gr.Dropdown(
                         label='Template',
                         choices=[
@@ -869,7 +870,7 @@ def ti_tab(
             token_string,
             init_word,
             num_vectors_per_token,
-            max_train_steps,
+            basic_training.max_train_steps,
             weights,
             template,
             advanced_training.keep_tokens,
@@ -884,6 +885,7 @@ def ti_tab(
             advanced_training.caption_dropout_rate,
             basic_training.optimizer,
             basic_training.optimizer_args,
+            basic_training.lr_scheduler_args,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.adaptive_noise_scale,

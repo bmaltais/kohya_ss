@@ -111,6 +111,7 @@ def save_configuration(
     model_list,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     network_alpha,
     training_comment,
@@ -124,7 +125,7 @@ def save_configuration(
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args, lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -256,6 +257,7 @@ def open_configuration(
     model_list,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     network_alpha,
     training_comment,
@@ -265,11 +267,11 @@ def open_configuration(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps,v_pred_like_loss,
+    bucket_reso_steps, v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args, lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -426,7 +428,7 @@ def train_model(
     output_name,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     max_token_length,
-    max_train_epochs,
+    max_train_epochs, max_train_steps,
     max_data_loader_n_workers,
     network_alpha,
     training_comment,
@@ -436,11 +438,11 @@ def train_model(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps,v_pred_like_loss,
+    bucket_reso_steps, v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,
+    optimizer_args, lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -650,19 +652,20 @@ def train_model(
     log.info(f'Epoch: {epoch}')
     log.info(f'Regulatization factor: {reg_factor}')
 
-    # calculate max_train_steps
-    max_train_steps = int(
-        math.ceil(
-            float(total_steps)
-            / int(train_batch_size)
-            / int(gradient_accumulation_steps)
-            * int(epoch)
-            * int(reg_factor)
+    if max_train_steps == '' or max_train_steps == '0':
+        # calculate max_train_steps
+        max_train_steps = int(
+            math.ceil(
+                float(total_steps)
+                / int(train_batch_size)
+                / int(gradient_accumulation_steps)
+                * int(epoch)
+                * int(reg_factor)
+            )
         )
-    )
-    log.info(
-        f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}'
-    )
+        log.info(
+            f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}'
+        )
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -913,6 +916,7 @@ def train_model(
         cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
+        lr_scheduler_args=lr_scheduler_args,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -1484,6 +1488,7 @@ def lora_tab(
             source_model.model_list,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
+            basic_training.max_train_steps,
             advanced_training.max_data_loader_n_workers,
             network_alpha,
             folders.training_comment,
@@ -1499,6 +1504,7 @@ def lora_tab(
             advanced_training.caption_dropout_rate,
             basic_training.optimizer,
             basic_training.optimizer_args,
+            basic_training.lr_scheduler_args,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.adaptive_noise_scale,

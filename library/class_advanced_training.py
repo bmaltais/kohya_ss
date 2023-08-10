@@ -36,6 +36,7 @@ class AdvancedTraining:
             self.vae = gr.Textbox(
                 label='VAE',
                 placeholder='(Optional) path to checkpoint of vae to replace for training',
+                interactive=True
             )
             self.vae_button = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
