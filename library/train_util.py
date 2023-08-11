@@ -2994,11 +2994,11 @@ def verify_training_args(args: argparse.Namespace):
         )
 
     # noise_offset, perlin_noise, multires_noise_iterations cannot be enabled at the same time
-    # Listを使って数えてもいいけど並べてしまえ
-    if args.noise_offset is not None and args.multires_noise_iterations is not None:
-        raise ValueError(
-            "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にできません"
-        )
+    # # Listを使って数えてもいいけど並べてしまえ
+    # if args.noise_offset is not None and args.multires_noise_iterations is not None:
+    #     raise ValueError(
+    #         "noise_offset and multires_noise_iterations cannot be enabled at the same time / noise_offsetとmultires_noise_iterationsを同時に有効にできません"
+    #     )
     # if args.noise_offset is not None and args.perlin_noise is not None:
     #     raise ValueError("noise_offset and perlin_noise cannot be enabled at the same time / noise_offsetとperlin_noiseは同時に有効にできません")
     # if args.perlin_noise is not None and args.multires_noise_iterations is not None:
@@ -4281,7 +4281,7 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
     noise = torch.randn_like(latents, device=latents.device)
     if args.noise_offset:
         noise = custom_train_functions.apply_noise_offset(latents, noise, args.noise_offset, args.adaptive_noise_scale)
-    elif args.multires_noise_iterations:
+    if args.multires_noise_iterations:
         noise = custom_train_functions.pyramid_noise_like(
             noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount
         )
