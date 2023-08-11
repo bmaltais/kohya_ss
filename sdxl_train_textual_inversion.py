@@ -19,6 +19,8 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         super().assert_extra_args(args, train_dataset_group)
         sdxl_train_util.verify_sdxl_training_args(args, supportTextEncoderCaching=False)
 
+        train_dataset_group.verify_bucket_reso_steps(32)
+
     def load_target_model(self, args, weight_dtype, accelerator):
         (
             load_stable_diffusion_format,

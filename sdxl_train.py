@@ -98,6 +98,8 @@ def train(args):
     ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
     collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
 
+    train_dataset_group.verify_bucket_reso_steps(32)
+
     if args.debug_dataset:
         train_util.debug_dataset(train_dataset_group, True)
         return
