@@ -22,7 +22,13 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 6, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
+Aug 12, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+
+- The default value of noise offset when omitted has been changed to 0 from 0.0357.
+- The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
+  - 23 values correspond to `0: time/label embed, 1-9: input blocks 0-8, 10-12: mid blocks 0-2, 13-21: output blocks 0-8, 22: out`.
+
+Aug 6, 2023: 
 
 - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
   - The main items are set automatically. 
