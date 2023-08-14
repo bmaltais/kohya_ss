@@ -13,7 +13,7 @@ def main():
 
     args = parser.parse_args()
 
-    o_path = pathlib.Path(args.train_dir)
+    o_path = pathlib.Path(args.dir)
 
     dict_caption = {}
     dict_tag = {}
@@ -46,7 +46,10 @@ def main():
             if args.remove in list_tag:
                 list_tag.remove(args.remove)
 
-    if args.dry_run is False:
+    if args.dry_run is True:
+        for pathname, list_tag in dict_caption.items():
+            print("{:32s} : {:s}".format(pathname, ", ".join(list_tag)))
+    else:
         for pathname, list_tag in dict_caption.items():
             with open(pathname, "w") as wf:
                 wf.write(", ".join(list_tag))
