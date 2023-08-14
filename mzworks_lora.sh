@@ -17,6 +17,7 @@ fi
 # ----
 PRETRAINED_MODEL_NAME="emilianJR/AnyLORA"
 OUTPUT_NAME="mizunagiworks_lora"
+
 # ex) ln -s {{ /path/to }} ./dataset/train
 DATADIR_TRAIN="./dataset/train"
 # ex) ln -s {{ /path/to }} ./dataset/reg
@@ -24,6 +25,7 @@ DATADIR_REG="./dataset/reg"
 
 TRAIN_EPOCHS=10
 
+SAMPLER="ddim"
 
 function mode_train {
     accelerate launch --num_cpu_threads_per_process 4 train_network.py \
@@ -41,6 +43,9 @@ function mode_train {
         --sample_every_n_steps 100 \
         --sample_prompts "./mzworks_sample_prompts.txt" \
         --network_module networks.lora \
+        --flip_aug \
+        --random_crop \
+        --face_crop_aug_range "2.0,4.0" \
         --save_precision "float"
 }
 
@@ -49,11 +54,12 @@ function mode_generate {
     python gen_img_diffusers.py \
         --ckpt ${PRETRAINED_MODEL_NAME} \
         --n_iter 1 --scale 7.5 --steps 30 \
-        --outdir ./mzworks/${OUTPUT_NAME}/image --W 512 --H 512 --sampler k_euler_a \
+        --outdir ./mzworks/${OUTPUT_NAME}/image --W 512 --H 512 --sampler ${SAMPLER} \
         --network_module networks.lora \
         --network_weights ./mzworks/model/${OUTPUT_NAME}.safetensors \
         --network_mul 1.0 --max_embeddings_multiples 3 --clip_skip 1 \
-        --batch_size 1 --images_per_prompt 1 --interactive
+        --batch_size 1 --images_per_prompt 1 \
+        --interactive
 }
 
 function mode_tag {
