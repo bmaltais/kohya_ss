@@ -45,3 +45,11 @@ requirements_tmp_for_setup.txt
 
 *.npz
 presets/*/user_presets/*
+
+# MizunagiKB/kohya_ss
+mzworks
+dataset/train
+dataset/reg
+
+mzworks_lora.toml
+mzworks_sample_prompts.txt
