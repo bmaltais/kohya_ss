@@ -219,7 +219,7 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
     for key, value in tqdm(lora_sd.items()):
       weight_name = None
       if 'lora_down' in key:
-        block_down_name = key.rsplit(lora_name, 1)[0]
+        block_down_name = key.rsplit('lora_down', 1)[0]
         weight_name = key.rsplit(".", 1)[-1]
         lora_down_weight = value
       else:
