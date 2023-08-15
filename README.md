@@ -75,7 +75,11 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 12, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+Aug 13, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+
+- LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
+
+Aug 12, 2023: Following are the changes from the previous version. 
 
 - The default value of noise offset when omitted has been changed to 0 from 0.0357.
 - The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
