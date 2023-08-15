@@ -40,7 +40,7 @@ function mode_train {
         --mixed_precision "no" \
         --gradient_checkpointing \
         --save_every_n_epochs 1 \
-        --sample_every_n_steps 100 \
+        --sample_every_n_steps 600 \
         --sample_prompts "./mzworks_sample_prompts.txt" \
         --network_module networks.lora \
         --flip_aug \
@@ -50,16 +50,27 @@ function mode_train {
 }
 
 
-function mode_generate {
+function mode_generate_orig {
     python gen_img_diffusers.py \
         --ckpt ${PRETRAINED_MODEL_NAME} \
         --n_iter 1 --scale 7.5 --steps 30 \
-        --outdir ./mzworks/${OUTPUT_NAME}/image --W 512 --H 512 --sampler ${SAMPLER} \
+        --outdir ./mzworks/${OUTPUT_NAME}/image --W 512 --H 512 \
+        --sampler ${SAMPLER} \
         --network_module networks.lora \
         --network_weights ./mzworks/model/${OUTPUT_NAME}.safetensors \
         --network_mul 1.0 --max_embeddings_multiples 3 --clip_skip 1 \
         --batch_size 1 --images_per_prompt 1 \
-        --interactive
+        --from_file "./mzworks_sample_prompts.txt"
+}
+
+function mode_generate {
+    python mzworks_gen_img_diffusers.py \
+        --ckpt ${PRETRAINED_MODEL_NAME} \
+        --scale 7.5 --steps 30 \
+        --outdir ./mzworks/${OUTPUT_NAME}/image --W 512 --H 512 \
+        --network_weights ./mzworks/model/${OUTPUT_NAME}.safetensors \
+        --network_mul 1.0 \
+        --from_file "./mzworks_sample_prompts.txt"
 }
 
 function mode_tag {
