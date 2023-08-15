@@ -1,15 +1,7 @@
-# v1: initial release
-# v2: add open and save folder icons
-# v3: Add new Utilities tab for Dreambooth folder preparation
-# v3.1: Adding captionning of images to utilities
-
 import gradio as gr
 import json
 import math
 import os
-import subprocess
-import psutil
-import pathlib
 import argparse
 from datetime import datetime
 from library.common_gui import (
@@ -17,7 +9,6 @@ from library.common_gui import (
     get_any_file_path,
     get_saveasfile_path,
     color_aug_changed,
-    save_inference_file,
     run_cmd_advanced_training,
     run_cmd_training,
     update_my_data,
@@ -43,6 +34,11 @@ from library.tensorboard_gui import (
 from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 from library.class_lora_tab import LoRATools
+
+from library.dreambooth_folder_creation_gui import (
+    gradio_dreambooth_folder_creation_tab,
+)
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 
 from library.custom_logging import setup_logging
 
@@ -1416,6 +1412,20 @@ def lora_tab(
                     module_dropout,
                 ],
             )
+        
+        with gr.Tab('Dataset Preparation'):
+            gr.Markdown(
+                'This section provide Dreambooth tools to help setup your dataset...'
+            )
+            gradio_dreambooth_folder_creation_tab(
+                train_data_dir_input=folders.train_data_dir,
+                reg_data_dir_input=folders.reg_data_dir,
+                output_dir_input=folders.output_dir,
+                logging_dir_input=folders.logging_dir,
+                headless=headless,
+            )
+            gradio_dataset_balancing_tab(headless=headless)
+
 
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')

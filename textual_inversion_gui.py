@@ -40,6 +40,7 @@ from library.tensorboard_gui import (
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 
@@ -787,7 +788,7 @@ def ti_tab(
             with gr.Tab('Samples', elem_id='samples_tab'):
                 sample = SampleImages()
 
-        with gr.Tab('Tools'):
+        with gr.Tab('Dataset Preparation'):
             gr.Markdown(
                 'This section provide Dreambooth tools to help setup your dataset...'
             )
@@ -798,6 +799,7 @@ def ti_tab(
                 logging_dir_input=folders.logging_dir,
                 headless=headless,
             )
+            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')

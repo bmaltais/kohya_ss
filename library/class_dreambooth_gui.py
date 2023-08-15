@@ -9,6 +9,7 @@ from .class_sample_images import SampleImages
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from .common_gui import color_aug_changed
 
 class Dreambooth:
@@ -49,7 +50,7 @@ class Dreambooth:
 
             self.sample = SampleImages()
 
-        with gr.Tab('Tools'):
+        with gr.Tab('Dataset Preparation'):
             gr.Markdown(
                 'This section provide Dreambooth tools to help setup your dataset...'
             )
@@ -60,6 +61,7 @@ class Dreambooth:
                 logging_dir_input=self.folders.logging_dir,
                 headless=headless,
             )
+            gradio_dataset_balancing_tab(headless=headless)
             
     def save_to_json(self, filepath):
         def serialize(obj):

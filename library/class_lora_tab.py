@@ -31,7 +31,7 @@ class LoRATools:
         gradio_resize_lora_tab(headless=headless)
         gradio_verify_lora_tab(headless=headless)
         if folders:
-            with gr.Tab('Deprecated'):
+            with gr.Tab('Dataset Preparation'):
                 gradio_dreambooth_folder_creation_tab(
                     train_data_dir_input=folders.train_data_dir,
                     reg_data_dir_input=folders.reg_data_dir,

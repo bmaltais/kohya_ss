@@ -517,6 +517,8 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 * 2023/08/05 (v21.8.8)
   - Fix issue with aiofiles: https://github.com/bmaltais/kohya_ss/issues/1359
   - Merge sd-scripts updates as of Aug 11 2023
+  - Add new blip2 caption processor tool
+  - Add dataset preparation tab to appropriate trainers
 * 2023/08/05 (v21.8.7)
   - Add manual captioning option. Thanks to https://github.com/channelcat for this great contribution. (https://github.com/bmaltais/kohya_ss/pull/1352)
   - Added support for `v_pred_like_loss` to the advanced training tab
