@@ -52,4 +52,4 @@ dataset/train
 dataset/reg
 
 mzworks_lora.toml
-mzworks_sample_prompts.txt
+mzworks_*_prompts.txt
