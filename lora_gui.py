@@ -150,7 +150,6 @@ def save_configuration(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -303,7 +302,6 @@ def open_configuration(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -478,7 +476,6 @@ def train_model(
     block_lr_zero_threshold,
     block_dims,
     block_alphas,
-    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -803,7 +800,6 @@ def train_model(
             'block_lr_zero_threshold',
             'block_dims',
             'block_alphas',
-            'block_lr',
             'conv_block_dims',
             'conv_block_alphas',
             'rank_dropout',
@@ -838,7 +834,6 @@ def train_model(
             'block_lr_zero_threshold',
             'block_dims',
             'block_alphas',
-            'block_lr',
             'conv_block_dims',
             'conv_block_alphas',
             'rank_dropout',
@@ -873,7 +868,6 @@ def train_model(
             'block_lr_zero_threshold',
             'block_dims',
             'block_alphas',
-            'block_lr',
             'conv_block_dims',
             'conv_block_alphas',
             'rank_dropout',
@@ -896,9 +890,6 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
-
-    # if not block_lr == '':
-    #     run_cmd += f' --block_lr="{block_lr}"'
 
     if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
         if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
@@ -1474,11 +1465,6 @@ def lora_tab(
                                 placeholder='(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2',
                                 info='Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.',
                             )
-                            block_lr = gr.Textbox(
-                                label='Block LR',
-                                placeholder='(Optional)',
-                                info='Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3',
-                            )
                     with gr.Tab(label='Conv'):
                         with gr.Row(visible=True):
                             conv_block_dims = gr.Textbox(
@@ -1652,7 +1638,6 @@ def lora_tab(
             block_lr_zero_threshold,
             block_dims,
             block_alphas,
-            block_lr,
             conv_block_dims,
             conv_block_alphas,
             advanced_training.weighted_captions,

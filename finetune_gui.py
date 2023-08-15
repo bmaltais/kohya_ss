@@ -93,7 +93,7 @@ def save_configuration(
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,
+    gradient_accumulation_steps,block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -219,7 +219,7 @@ def open_configuration(
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,
+    gradient_accumulation_steps,block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -338,7 +338,7 @@ def train_model(
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,
+    gradient_accumulation_steps,block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -544,10 +544,9 @@ def train_model(
         run_cmd += f' --save_model_as={save_model_as}'
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    # if save_state:
-    #     run_cmd += ' --save_state'
-    # if not resume == '':
-    #     run_cmd += f' --resume={resume}'
+    if not block_lr == '':
+        run_cmd += f' --block_lr="{block_lr}"'
+    
     if not output_name == '':
         run_cmd += f' --output_name="{output_name}"'
     if int(max_token_length) > 75:
@@ -829,6 +828,11 @@ def finetune_tab(headless=False):
                     gradient_accumulation_steps = gr.Number(
                         label='Gradient accumulate steps', value='1'
                     )
+                    block_lr = gr.Textbox(
+                        label='Block LR',
+                        placeholder='(Optional)',
+                        info='Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3',
+                    )
                 advanced_training = AdvancedTraining(
                     headless=headless, finetuning=True
                 )
@@ -906,6 +910,7 @@ def finetune_tab(headless=False):
             advanced_training.resume,
             advanced_training.gradient_checkpointing,
             gradient_accumulation_steps,
+            block_lr,
             advanced_training.mem_eff_attn,
             advanced_training.shuffle_caption,
             output_name,
