@@ -812,6 +812,39 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
+            
+    if LoRA_type in ['LoRA-FA',]:
+        kohya_lora_var_list = [
+            'down_lr_weight',
+            'mid_lr_weight',
+            'up_lr_weight',
+            'block_lr_zero_threshold',
+            'block_dims',
+            'block_alphas',
+            'block_lr',
+            'conv_block_dims',
+            'conv_block_alphas',
+            'rank_dropout',
+            'module_dropout',
+        ]
+
+        run_cmd += f' --network_module=networks.lora_fa'
+        kohya_lora_vars = {
+            key: value
+            for key, value in vars().items()
+            if key in kohya_lora_var_list and value
+        }
+
+        network_args = ''
+        if LoRA_type == 'Kohya LoCon':
+            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f' {key}="{value}"'
+
+        if network_args:
+            run_cmd += f' --network_args{network_args}'
 
     if LoRA_type in ['Kohya DyLoRA']:
         kohya_lora_var_list = [
@@ -1061,6 +1094,7 @@ def lora_tab(
                         choices=[
                             'Kohya DyLoRA',
                             'Kohya LoCon',
+                            'LoRA-FA',
                             'LyCORIS/DyLoRA',
                             'LyCORIS/iA3',
                             'LyCORIS/LoCon',
@@ -1228,6 +1262,7 @@ def lora_tab(
                                 {
                                     'Kohya DyLoRA',
                                     'Kohya LoCon',
+                                    'LoRA-FA',
                                     'LyCORIS/DyLoRA',
                                     'LyCORIS/LoCon',
                                     'LyCORIS/LoHa',
@@ -1241,6 +1276,7 @@ def lora_tab(
                                     'LoCon',
                                     'Kohya DyLoRA',
                                     'Kohya LoCon',
+                                    'LoRA-FA',
                                     'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoKr',
@@ -1249,7 +1285,7 @@ def lora_tab(
                                 gr.Row,
                             ),
                             'kohya_advanced_lora': (
-                                {'Standard', 'Kohya DyLoRA', 'Kohya LoCon'},
+                                {'Standard', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',},
                                 gr.Row,
                             ),
                             'kohya_dylora': (
@@ -1257,21 +1293,21 @@ def lora_tab(
                                 gr.Row,
                             ),
                             'lora_network_weights': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
                                     'LyCORIS/LoKr',},
                                 gr.Textbox,
                             ),
                             'lora_network_weights_file': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
                                     'LyCORIS/LoKr',},
                                 gr.Button,
                             ),
                             'dim_from_weights': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon','LyCORIS/DyLoRA',
+                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
                                     'LyCORIS/LoKr',},
@@ -1294,6 +1330,7 @@ def lora_tab(
                                     'LoCon',
                                     'Kohya DyLoRA',
                                     'Kohya LoCon',
+                                    'LoRA-FA',
                                     'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
@@ -1307,6 +1344,7 @@ def lora_tab(
                                     'LoCon',
                                     'Kohya DyLoRA',
                                     'Kohya LoCon',
+                                    'LoRA-FA',
                                     'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
@@ -1316,12 +1354,12 @@ def lora_tab(
                                 gr.Slider,
                             ),
                             'rank_dropout': (
-                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',
                                     'Standard',},
                                 gr.Slider,
                             ),
                             'module_dropout': (
-                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon',
+                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',
                                     'Standard',},
                                 gr.Slider,
                             ),
