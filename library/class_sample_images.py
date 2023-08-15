@@ -18,6 +18,7 @@ document_symbol = '\U0001F4C4'   # 📄
 ### Gradio common sampler GUI section
 ###
 
+
 def run_cmd_sample(
     sample_every_n_steps,
     sample_every_n_epochs,
@@ -50,7 +51,7 @@ def run_cmd_sample(
     if not sample_every_n_steps == 0:
         run_cmd += f' --sample_every_n_steps="{sample_every_n_steps}"'
 
-    return run_cmd    
+    return run_cmd
 
 
 class SampleImages:
@@ -100,6 +101,5 @@ class SampleImages:
                 label='Sample prompts',
                 interactive=True,
                 placeholder='masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28',
-                info='Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps) and --n (negative prompt). To modify sample prompts during training, edit the prompt.txt file in the samples directory.'
+                info='Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps) and --n (negative prompt). To modify sample prompts during training, edit the prompt.txt file in the samples directory.',
             )
-                

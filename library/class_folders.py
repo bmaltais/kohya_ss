@@ -1,10 +1,11 @@
 import gradio as gr
 from .common_gui import remove_doublequote, get_folder_path
 
+
 class Folders:
     def __init__(self, headless=False):
         self.headless = headless
-        
+
         with gr.Row():
             self.train_data_dir = gr.Textbox(
                 label='Image folder',

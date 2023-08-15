@@ -40,7 +40,7 @@ def svd_merge_lora(
     if os.path.isfile(save_to):
         print(f"Output file '{save_to}' already exists. Aborting.")
         return
-    
+
     # Check if the ratio total is equal to one. If not mormalise to 1
     total_ratio = ratio_a + ratio_b + ratio_c + ratio_d
     if total_ratio != 1:
@@ -104,7 +104,9 @@ def svd_merge_lora(
 
 def gradio_svd_merge_lora_tab(headless=False):
     with gr.Tab('Merge LoRA (SVD)'):
-        gr.Markdown('This utility can merge two LoRA networks together into a new LoRA.')
+        gr.Markdown(
+            'This utility can merge two LoRA networks together into a new LoRA.'
+        )
 
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)

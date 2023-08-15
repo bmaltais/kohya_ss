@@ -148,7 +148,7 @@ def gradio_resize_lora_tab(headless=False):
                 placeholder='Value for the dynamic method selected.',
             )
         with gr.Row():
-            
+
             verbose = gr.Checkbox(label='Verbose', value=True)
             save_precision = gr.Dropdown(
                 label='Save precision',

@@ -17,7 +17,7 @@ from library.common_gui import (
     verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
-    check_duplicate_filenames
+    check_duplicate_filenames,
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -49,10 +49,11 @@ log = setup_logging()
 executor = CommandExecutor()
 
 button_run = gr.Button('Start training', variant='primary')
-            
+
 button_stop_training = gr.Button('Stop training')
 
 document_symbol = '\U0001F4C4'   # 📄
+
 
 def save_configuration(
     save_as,
@@ -117,11 +118,13 @@ def save_configuration(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args, lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -146,7 +149,8 @@ def save_configuration(
     up_lr_weight,
     block_lr_zero_threshold,
     block_dims,
-    block_alphas,block_lr,
+    block_alphas,
+    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -194,7 +198,11 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as'])
+    SaveConfigFile(
+        parameters=parameters,
+        file_path=file_path,
+        exclusion=['file_path', 'save_as'],
+    )
 
     return file_path
 
@@ -263,11 +271,13 @@ def open_configuration(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args, lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -292,7 +302,8 @@ def open_configuration(
     up_lr_weight,
     block_lr_zero_threshold,
     block_dims,
-    block_alphas,block_lr,
+    block_alphas,
+    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -424,7 +435,8 @@ def train_model(
     output_name,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     max_token_length,
-    max_train_epochs, max_train_steps,
+    max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     network_alpha,
     training_comment,
@@ -434,11 +446,13 @@ def train_model(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args, lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -463,7 +477,8 @@ def train_model(
     up_lr_weight,
     block_lr_zero_threshold,
     block_dims,
-    block_alphas,block_lr,
+    block_alphas,
+    block_lr,
     conv_block_dims,
     conv_block_alphas,
     weighted_captions,
@@ -487,7 +502,7 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
     global command_running
-    
+
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training LoRA {LoRA_type} ...')
     headless_bool = True if headless.get('label') == 'True' else False
@@ -503,7 +518,7 @@ def train_model(
             msg='Image folder path is missing', headless=headless_bool
         )
         return
-    
+
     # Check if there are files with the same filename but different image extension... warn the user if it is the case.
     check_duplicate_filenames(train_data_dir)
 
@@ -812,8 +827,10 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
-            
-    if LoRA_type in ['LoRA-FA',]:
+
+    if LoRA_type in [
+        'LoRA-FA',
+    ]:
         kohya_lora_var_list = [
             'down_lr_weight',
             'mid_lr_weight',
@@ -879,7 +896,7 @@ def train_model(
 
         if network_args:
             run_cmd += f' --network_args{network_args}'
-            
+
     # if not block_lr == '':
     #     run_cmd += f' --block_lr="{block_lr}"'
 
@@ -903,7 +920,7 @@ def train_model(
 
     run_cmd += f' --network_dim={network_dim}'
 
-    #if LoRA_type not in ['LyCORIS/LoCon']:
+    # if LoRA_type not in ['LyCORIS/LoCon']:
     if not lora_network_weights == '':
         run_cmd += f' --network_weights="{lora_network_weights}"'
         if dim_from_weights:
@@ -925,13 +942,13 @@ def train_model(
 
     if network_dropout > 0.0:
         run_cmd += f' --network_dropout="{network_dropout}"'
-        
+
     if sdxl_cache_text_encoder_outputs:
         run_cmd += f' --cache_text_encoder_outputs'
-        
+
     if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
-        
+
     if full_bf16:
         run_cmd += f' --full_bf16'
 
@@ -1007,18 +1024,24 @@ def train_model(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
         print(run_cmd)
-        
+
         save_to_file(run_cmd)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f'{output_name}_{formatted_datetime}.json')
-        
+        formatted_datetime = current_datetime.strftime('%Y%m%d-%H%M%S')
+        file_path = os.path.join(
+            output_dir, f'{output_name}_{formatted_datetime}.json'
+        )
+
         log.info(f'Saving training config to {file_path}...')
 
-        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as', 'headless', 'print_only'])
-        
+        SaveConfigFile(
+            parameters=parameters,
+            file_path=file_path,
+            exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+        )
+
         log.info(run_cmd)
         # Run the command
         executor.execute_command(run_cmd=run_cmd)
@@ -1048,7 +1071,7 @@ def lora_tab(
         gr.Markdown(
             'Train a custom model using kohya train network LoRA python code...'
         )
-        
+
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
@@ -1062,30 +1085,33 @@ def lora_tab(
 
         with gr.Tab('Folders'):
             folders = Folders(headless=headless)
-            
+
         with gr.Tab('Parameters'):
+
             def list_presets(path):
                 json_files = []
-                
+
                 for file in os.listdir(path):
                     if file.endswith('.json'):
                         json_files.append(os.path.splitext(file)[0])
-                        
+
                 user_presets_path = os.path.join(path, 'user_presets')
                 if os.path.isdir(user_presets_path):
                     for file in os.listdir(user_presets_path):
                         if file.endswith('.json'):
                             preset_name = os.path.splitext(file)[0]
-                            json_files.append(os.path.join('user_presets', preset_name))
-                
+                            json_files.append(
+                                os.path.join('user_presets', preset_name)
+                            )
+
                 return json_files
-            
+
             training_preset = gr.Dropdown(
                 label='Presets',
                 choices=list_presets('./presets/lora'),
                 elem_id='myDropdown',
             )
-            
+
             with gr.Tab('Basic', elem_id='basic_tab'):
 
                 with gr.Row():
@@ -1144,10 +1170,10 @@ def lora_tab(
                         value='0.0001',
                         info='Optional',
                     )
-                    
+
                 # Add SDXL Parameters
                 sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
-                    
+
                 with gr.Row():
                     factor = gr.Slider(
                         label='LoKr factor',
@@ -1285,7 +1311,12 @@ def lora_tab(
                                 gr.Row,
                             ),
                             'kohya_advanced_lora': (
-                                {'Standard', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',},
+                                {
+                                    'Standard',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                },
                                 gr.Row,
                             ),
                             'kohya_dylora': (
@@ -1293,24 +1324,45 @@ def lora_tab(
                                 gr.Row,
                             ),
                             'lora_network_weights': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
+                                {
+                                    'Standard',
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                    'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
-                                    'LyCORIS/LoKr',},
+                                    'LyCORIS/LoKr',
+                                },
                                 gr.Textbox,
                             ),
                             'lora_network_weights_file': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
+                                {
+                                    'Standard',
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                    'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
-                                    'LyCORIS/LoKr',},
+                                    'LyCORIS/LoKr',
+                                },
                                 gr.Button,
                             ),
                             'dim_from_weights': (
-                                {'Standard', 'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA', 'LyCORIS/DyLoRA',
+                                {
+                                    'Standard',
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                    'LyCORIS/DyLoRA',
                                     'LyCORIS/LoHa',
                                     'LyCORIS/LoCon',
-                                    'LyCORIS/LoKr',},
+                                    'LyCORIS/LoKr',
+                                },
                                 gr.Checkbox,
                             ),
                             'factor': ({'LyCORIS/LoKr'}, gr.Slider),
@@ -1354,13 +1406,23 @@ def lora_tab(
                                 gr.Slider,
                             ),
                             'rank_dropout': (
-                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',
-                                    'Standard',},
+                                {
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                    'Standard',
+                                },
                                 gr.Slider,
                             ),
                             'module_dropout': (
-                                {'LoCon', 'Kohya DyLoRA', 'Kohya LoCon', 'LoRA-FA',
-                                    'Standard',},
+                                {
+                                    'LoCon',
+                                    'Kohya DyLoRA',
+                                    'Kohya LoCon',
+                                    'LoRA-FA',
+                                    'Standard',
+                                },
                                 gr.Slider,
                             ),
                         }
@@ -1374,9 +1436,9 @@ def lora_tab(
                             results.append(gr_type.update(visible=visible))
 
                         return tuple(results)
-                    
+
             with gr.Tab('Advanced', elem_id='advanced_tab'):
-            # with gr.Accordion('Advanced Configuration', open=False):
+                # with gr.Accordion('Advanced Configuration', open=False):
                 with gr.Row(visible=True) as kohya_advanced_lora:
                     with gr.Tab(label='Weights'):
                         with gr.Row(visible=True):
@@ -1460,7 +1522,7 @@ def lora_tab(
                     module_dropout,
                 ],
             )
-        
+
         with gr.Tab('Dataset Preparation'):
             gr.Markdown(
                 'This section provide Dreambooth tools to help setup your dataset...'
@@ -1474,16 +1536,18 @@ def lora_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')
-            
+
             button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
         # Setup gradio tensorboard buttons
-        button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+        (
+            button_start_tensorboard,
+            button_stop_tensorboard,
+        ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -1637,7 +1701,9 @@ def lora_tab(
             inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
+            outputs=[gr.Textbox()]
+            + settings_list
+            + [training_preset, LoCon_row],
             show_progress=False,
         )
 
@@ -1660,26 +1726,26 @@ def lora_tab(
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
         )
-        
-        button_stop_training.click(
-            executor.kill_command
-        )
+
+        button_stop_training.click(executor.kill_command)
 
         button_print.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_true] + settings_list,
             show_progress=False,
         )
-        
+
     with gr.Tab('Tools'):
         lora_tools = LoRATools(folders=folders, headless=headless)
-        
+
     with gr.Tab('Guides'):
         gr.Markdown(
             'This section provide Various LoRA guides and information...'
         )
         if os.path.exists('./docs/LoRA/top_level.md'):
-            with open(os.path.join('./docs/LoRA/top_level.md'), 'r', encoding='utf8') as file:
+            with open(
+                os.path.join('./docs/LoRA/top_level.md'), 'r', encoding='utf8'
+            ) as file:
                 guides_top_level = file.read() + '\n'
         gr.Markdown(guides_top_level)
 
@@ -1701,7 +1767,9 @@ def UI(**kwargs):
             log.info(f'headless: {headless}')
 
             if os.path.exists('./style.css'):
-                with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
+                with open(
+                    os.path.join('./style.css'), 'r', encoding='utf8'
+                ) as file:
                     log.info('Load CSS...')
                     css += file.read() + '\n'
 
@@ -1749,8 +1817,8 @@ def UI(**kwargs):
             interface.launch(**launch_kwargs)
     except KeyboardInterrupt:
         # Code to execute when Ctrl+C is pressed
-        print("You pressed Ctrl+C!")
-    
+        print('You pressed Ctrl+C!')
+
 
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)

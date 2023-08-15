@@ -37,11 +37,12 @@ def verify_conditions(sd_model, lora_models):
         return True
     return False
 
+
 class GradioMergeLoRaTab:
     def __init__(self, headless=False):
         self.headless = headless
         self.build_tab()
-        
+
     def save_inputs_to_json(self, file_path, inputs):
         with open(file_path, 'w') as file:
             json.dump(inputs, file)
@@ -243,11 +244,32 @@ class GradioMergeLoRaTab:
                 ],
                 show_progress=False,
             )
-            
-    def merge_lora(self, sd_model, sdxl_model, lora_a_model, lora_b_model, lora_c_model, lora_d_model, ratio_a, ratio_b, ratio_c, ratio_d, save_to, precision, save_precision):
+
+    def merge_lora(
+        self,
+        sd_model,
+        sdxl_model,
+        lora_a_model,
+        lora_b_model,
+        lora_c_model,
+        lora_d_model,
+        ratio_a,
+        ratio_b,
+        ratio_c,
+        ratio_d,
+        save_to,
+        precision,
+        save_precision,
+    ):
 
         log.info('Merge model...')
-        models = [sd_model, lora_a_model, lora_b_model, lora_c_model, lora_d_model]
+        models = [
+            sd_model,
+            lora_a_model,
+            lora_b_model,
+            lora_c_model,
+            lora_d_model,
+        ]
         lora_models = models[1:]
         ratios = [ratio_a, ratio_b, ratio_c, ratio_d]
 
@@ -264,7 +286,9 @@ class GradioMergeLoRaTab:
         if not sdxl_model:
             run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
         else:
-            run_cmd = f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
+            run_cmd = (
+                f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
+            )
         if sd_model:
             run_cmd += f' --sd_model "{sd_model}"'
         run_cmd += f' --save_precision {save_precision}'
@@ -275,7 +299,9 @@ class GradioMergeLoRaTab:
         models_cmd = ' '.join([f'"{model}"' for model in lora_models if model])
 
         # Create a space-separated string of non-zero ratios corresponding to non-empty LoRa models
-        valid_ratios = [ratios[i] for i, model in enumerate(lora_models) if model]
+        valid_ratios = [
+            ratios[i] for i, model in enumerate(lora_models) if model
+        ]
         ratios_cmd = ' '.join([str(ratio) for ratio in valid_ratios])
 
         if models_cmd:

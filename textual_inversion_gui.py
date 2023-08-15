@@ -23,7 +23,7 @@ from library.common_gui import (
     output_message,
     verify_image_folder_pattern,
     SaveConfigFile,
-    save_to_file
+    save_to_file,
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -51,6 +51,7 @@ log = setup_logging()
 
 # Setup command executor
 executor = CommandExecutor()
+
 
 def save_configuration(
     save_as,
@@ -114,11 +115,13 @@ def save_configuration(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -139,7 +142,7 @@ def save_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -168,7 +171,11 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as'])
+    SaveConfigFile(
+        parameters=parameters,
+        file_path=file_path,
+        exclusion=['file_path', 'save_as'],
+    )
 
     return file_path
 
@@ -235,11 +242,13 @@ def open_configuration(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -260,7 +269,7 @@ def open_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -353,11 +362,13 @@ def train_model(
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
-    bucket_reso_steps, v_pred_like_loss,
+    bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
-    optimizer_args,lr_scheduler_args,
+    optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -378,11 +389,11 @@ def train_model(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae
+    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training TI...')
 
@@ -539,7 +550,7 @@ def train_model(
         run_cmd += f' "./sdxl_train_textual_inversion.py"'
     else:
         run_cmd += f' "./train_textual_inversion.py"'
-        
+
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -588,7 +599,7 @@ def train_model(
         )
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    
+
     if sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
 
@@ -673,22 +684,28 @@ def train_model(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
         print(run_cmd)
-        
+
         save_to_file(run_cmd)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f'{output_name}_{formatted_datetime}.json')
-        
+        formatted_datetime = current_datetime.strftime('%Y%m%d-%H%M%S')
+        file_path = os.path.join(
+            output_dir, f'{output_name}_{formatted_datetime}.json'
+        )
+
         log.info(f'Saving training config to {file_path}...')
 
-        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as', 'headless', 'print_only'])
-        
+        SaveConfigFile(
+            parameters=parameters,
+            file_path=file_path,
+            exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+        )
+
         log.info(run_cmd)
 
         # Run the command
-        
+
         executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
@@ -707,10 +724,10 @@ def ti_tab(
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    
+
     with gr.Tab('Training'):
         gr.Markdown('Train a TI using kohya textual inversion python code...')
-        
+
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
@@ -732,7 +749,9 @@ def ti_tab(
                         placeholder='(Optional) Path to existing TI embeding file to keep training',
                     )
                     weights_file_input = gr.Button(
-                        '📂', elem_id='open_folder_small', visible=(not headless)
+                        '📂',
+                        elem_id='open_folder_small',
+                        visible=(not headless),
                     )
                     weights_file_input.click(
                         get_file_path,
@@ -773,10 +792,13 @@ def ti_tab(
                     lr_scheduler_value='cosine',
                     lr_warmup_value='10',
                 )
-                    
+
                 # Add SDXL Parameters
-                sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
-                
+                sdxl_params = SDXLParameters(
+                    source_model.sdxl_checkbox,
+                    show_sdxl_cache_text_encoder_outputs=False,
+                )
+
             with gr.Tab('Advanced', elem_id='advanced_tab'):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
@@ -784,7 +806,7 @@ def ti_tab(
                     inputs=[advanced_training.color_aug],
                     outputs=[basic_training.cache_latents],
                 )
-            
+
             with gr.Tab('Samples', elem_id='samples_tab'):
                 sample = SampleImages()
 
@@ -803,13 +825,16 @@ def ti_tab(
 
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')
-            
+
             button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
         # Setup gradio tensorboard buttons
-        button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+        (
+            button_start_tensorboard,
+            button_stop_tensorboard,
+        ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -944,10 +969,8 @@ def ti_tab(
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
         )
-        
-        button_stop_training.click(
-            executor.kill_command
-        )
+
+        button_stop_training.click(executor.kill_command)
 
         button_print.click(
             train_model,

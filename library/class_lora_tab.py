@@ -14,11 +14,12 @@ from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 
+
 class LoRATools:
-    def __init__(self, folders = "", headless:bool = False):
+    def __init__(self, folders='', headless: bool = False):
         self.headless = headless
         self.folders = folders
-        
+
         gr.Markdown(
             'This section provide LoRA tools to help setup your dataset...'
         )
