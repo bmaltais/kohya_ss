@@ -813,7 +813,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    # sdxl_original_unet.USE_REENTRANT = False
+    sdxl_original_unet.USE_REENTRANT = False
 
     parser = setup_parser()
 
