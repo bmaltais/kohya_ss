@@ -1571,7 +1571,7 @@ def main(args):
             control_net.apply_to()
             control_net.load_state_dict(state_dict)
             control_net.to(dtype).to(device)
-            control_net.set_batch_cond_uncond_enabled(True)
+            control_net.set_batch_cond_only(False, False)
             control_nets.append(control_net)
 
     if args.opt_channels_last:
