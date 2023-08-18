@@ -325,7 +325,7 @@ def train(args):
 
         accelerator.print(f"\nsaving checkpoint: {ckpt_file}")
         sai_metadata = train_util.get_sai_model_spec(None, args, True, True, False)
-        sai_metadata["modelspec.architecture"] = sai_model_spec.ARCH_SD_XL_V1_BASE + "/lora-control-net"
+        sai_metadata["modelspec.architecture"] = sai_model_spec.ARCH_SD_XL_V1_BASE + "/control-net-llite"
 
         unwrapped_nw.save_weights(ckpt_file, save_dtype, sai_metadata)
         if args.huggingface_repo_id is not None:
