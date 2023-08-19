@@ -26,3 +26,14 @@ conditioning_data_dir = "path/to/conditioning/image/dir"
 `sdxl_gen_img.py` を実行してください。`--control_net_lllite_models` でLLLiteのモデルファイルを指定できます。次元数はモデルファイルから自動取得します。
 
 `--guide_image_path`で推論に用いるconditioning imageを指定してください。なおpreprocessは行われないため、たとえばCannyならCanny処理を行った画像を指定してください（背景黒に白線）。`--control_net_preps`, `--control_net_weights`, `--control_net_ratios` には未対応です。
+
+### サンプル
+Canny
+![kohya_ss_girl_standing_at_classroom_smiling_to_the_viewer_class_78976b3e-0d4d-4ea0-b8e3-053ae493abbc](https://github.com/kohya-ss/sd-scripts/assets/52813779/7e883352-0fea-4f5a-b820-94e17ec3f3f2)
+
+![im_20230819212806_000_1](https://github.com/kohya-ss/sd-scripts/assets/52813779/c28196f9-b2c3-40ad-b000-21a77e657968)
+
+![im_20230819212815_000_1](https://github.com/kohya-ss/sd-scripts/assets/52813779/b8506354-feb8-4d58-86a8-738a9ba03911)
+
+![im_20230819212822_000_1](https://github.com/kohya-ss/sd-scripts/assets/52813779/1612c221-8df5-420c-b907-75758d89aca7)
+
