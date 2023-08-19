@@ -86,7 +86,7 @@ ARGS = get_args()
 
 
 from lycoris.utils import extract_diff
-from lycoris.kohya_model_utils import load_models_from_stable_diffusion_checkpoint
+from lycoris.kohya.model_utils import load_models_from_stable_diffusion_checkpoint
 
 import torch
 from safetensors.torch import save_file
