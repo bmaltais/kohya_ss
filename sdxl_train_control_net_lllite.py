@@ -34,7 +34,7 @@ from library.custom_train_functions import (
     apply_noise_offset,
     scale_v_prediction_loss_like_noise_prediction,
 )
-import networks.lora_control_net as lora_control_net
+import networks.control_net_lllite as control_net_lllite
 
 
 # TODO 他のスクリプトと共通化する
@@ -176,7 +176,7 @@ def train(args):
         accelerator.wait_for_everyone()
 
     # prepare ControlNet
-    network = lora_control_net.LoRAControlNet(unet, args.cond_emb_dim, args.network_dim, 1, args.network_dropout)
+    network = control_net_lllite.ControlNetLLLite(unet, args.cond_emb_dim, args.network_dim, args.network_dropout)
     network.apply_to()
 
     if args.network_weights is not None:
@@ -242,7 +242,7 @@ def train(args):
     unet, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         unet, network, optimizer, train_dataloader, lr_scheduler
     )
-    network: lora_control_net.LoRAControlNet
+    network: control_net_lllite.ControlNetLLLite
 
     # transform DDP after prepare (train_network here only)
     unet, network = train_util.transform_models_if_DDP([unet, network])
@@ -311,7 +311,7 @@ def train(args):
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers(
-            "lora_control_net_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs
+            "lllite_control_net_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs
         )
 
     loss_list = []
@@ -401,11 +401,9 @@ def train(args):
                 controlnet_image = batch["conditioning_images"].to(dtype=weight_dtype)
 
                 with accelerator.autocast():
-                    # conditioning image embeddingを計算する / calculate conditioning image embedding
-                    cond_embs_4d, cond_embs_3d = network(controlnet_image)
-
-                    # 個別のLoRA的モジュールでさらにembeddingを計算する / calculate embedding in each LoRA-like module
-                    network.set_cond_embs(cond_embs_4d, cond_embs_3d)
+                    # conditioning imageをControlNetに渡す / pass conditioning image to ControlNet
+                    # 内部でcond_embに変換される / it will be converted to cond_emb inside
+                    network.set_cond_image(controlnet_image)
 
                     # それらの値を使いつつ、U-Netでノイズを予測する / predict noise with U-Net using those values
                     noise_pred = unet(noisy_latents, timesteps, text_embedding, vector_embedding)
@@ -562,7 +560,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    sdxl_original_unet.USE_REENTRANT = False
+    # sdxl_original_unet.USE_REENTRANT = False
 
     parser = setup_parser()
 
