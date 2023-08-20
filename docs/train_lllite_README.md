@@ -1,5 +1,7 @@
 # About ConrtolNet-LLLite
 
+__This is an extremely experimental implementation and may change significantly in the future.__
+
 日本語版は[こちら](./train_lllite_README-ja.md)
 
 ## Overview
@@ -48,6 +50,10 @@ For the sample Canny, the dimension of the conditioning image embedding is 32. T
 If you want to generate images with a script, run `sdxl_gen_img.py`. You can specify the LLLite model file with `--control_net_lllite_models`. The dimension is automatically obtained from the model file.
 
 Specify the conditioning image to be used for inference with `--guide_image_path`. Since preprocess is not performed, if it is Canny, specify an image processed with Canny (white line on black background). `--control_net_preps`, `--control_net_weights`, and `--control_net_ratios` are not supported.
+
+## Credit
+
+I would like to thank lllyasviel, the author of ControlNet, furusu, who provided me with advice on implementation and helped me solve problems, and ddPn08, who implemented the ControlNet dataset.
 
 ## Sample
 
