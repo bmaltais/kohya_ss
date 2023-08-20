@@ -1,4 +1,4 @@
-# About ConrtolNet-LLLite
+# About ControlNet-LLLite
 
 __This is an extremely experimental implementation and may change significantly in the future.__
 
@@ -6,7 +6,7 @@ __This is an extremely experimental implementation and may change significantly 
 
 ## Overview
 
-ConrtolNet-LLLite is a lightweight version of [ConrtolNet](https://github.com/lllyasviel/ControlNet). It is a "LoRA Like Lite" that is inspired by LoRA and has a lightweight structure. Currently, only SDXL is supported.
+ControlNet-LLLite is a lightweight version of [ControlNet](https://github.com/lllyasviel/ControlNet). It is a "LoRA Like Lite" that is inspired by LoRA and has a lightweight structure. Currently, only SDXL is supported.
 
 ## Sample weight file and inference
 
