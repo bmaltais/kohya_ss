@@ -32,15 +32,20 @@ conditioning_data_dir = "path/to/conditioning/image/dir"
 
 現時点の制約として、random_cropは使用できません。
 
+学習データとしては、元のモデルで生成した画像を学習用画像として、そこから加工した画像をconditioning imageとするのが良いようです。元モデルと異なる画風の画像を学習用画像とすると、制御に加えて、その画風についても学ぶ必要が生じます。ControlNet-LLLiteは容量が少ないため、画風学習には不向きです。
+
+もし生成画像以外を学習用画像とする場合には、後述の次元数を多めにしてください。
+
 ### 学習
 スクリプトで生成する場合は、`sdxl_train_control_net_lllite.py` を実行してください。`--cond_emb_dim` でconditioning image embeddingの次元数を指定できます。`--network_dim` でLoRA的モジュールのrankを指定できます。その他のオプションは`sdxl_train_network.py`に準じますが、`--network_module`の指定は不要です。
+
+学習時にはメモリを大量に使用しますので、キャッシュやgradient checkpointingなどの省メモリ化のオプションを有効にしてください。また`--full_bf16` オプションで、BFloat16を使用するのも有効です（RTX 30シリーズ以降のGPUが必要です）。24GB VRAMで動作確認しています。
 
 conditioning image embeddingの次元数は、サンプルのCannyでは32を指定しています。LoRA的モジュールのrankは同じく64です。対象とするconditioning imageの特徴に合わせて調整してください。
 
 （サンプルのCannyは恐らくかなり難しいと思われます。depthなどでは半分程度にしてもいいかもしれません。）
 
 ### 推論
-
 
 スクリプトで生成する場合は、`sdxl_gen_img.py` を実行してください。`--control_net_lllite_models` でLLLiteのモデルファイルを指定できます。次元数はモデルファイルから自動取得します。
 

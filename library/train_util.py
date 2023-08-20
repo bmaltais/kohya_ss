@@ -1976,7 +1976,7 @@ def debug_dataset(train_dataset, show_input_ids=False):
                     if "conditioning_images" in example:
                         cond_img = example["conditioning_images"][j]
                         print(f"conditioning image size: {cond_img.size()}")
-                        cond_img = (cond_img.numpy() * 255.0).astype(np.uint8)
+                        cond_img = ((cond_img.numpy() + 1.0) * 127.5).astype(np.uint8)
                         cond_img = np.transpose(cond_img, (1, 2, 0))
                         cond_img = cond_img[:, :, ::-1]
                         if os.name == "nt":
