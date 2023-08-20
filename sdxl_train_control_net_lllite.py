@@ -113,6 +113,8 @@ def train(args):
         assert (
             train_dataset_group.is_latent_cacheable()
         ), "when caching latents, either color_aug or random_crop cannot be used / latentをキャッシュするときはcolor_augとrandom_cropは使えません"
+    else:
+        print("WARNING: random_crop is not supported yet for ControlNet training / ControlNetの学習ではrandom_cropはまだサポートされていません")
 
     if args.cache_text_encoder_outputs:
         assert (

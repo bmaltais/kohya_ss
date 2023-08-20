@@ -1770,12 +1770,16 @@ class ControlNetDataset(BaseDataset):
             cond_img = load_image(image_info.cond_img_path)
 
             if self.dreambooth_dataset_delegate.enable_bucket:
-                cond_img = cv2.resize(cond_img, image_info.resized_size, interpolation=cv2.INTER_AREA)  # INTER_AREAでやりたいのでcv2でリサイズ
                 assert (
                     cond_img.shape[0] == original_size_hw[0] and cond_img.shape[1] == original_size_hw[1]
                 ), f"size of conditioning image is not match / 画像サイズが合いません: {image_info.absolute_path}"
-                ct, cl = crop_top_left
+                cond_img = cv2.resize(cond_img, image_info.resized_size, interpolation=cv2.INTER_AREA)  # INTER_AREAでやりたいのでcv2でリサイズ
+
+                # TODO support random crop
+                # 現在サポートしているcropはrandomではなく中央のみ
                 h, w = target_size_hw
+                ct = (cond_img.shape[0] - h) // 2
+                cl = (cond_img.shape[1] - w) // 2
                 cond_img = cond_img[ct : ct + h, cl : cl + w]
             else:
                 # assert (
