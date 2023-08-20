@@ -5,6 +5,11 @@ import os
 import shutil
 from .common_gui import get_folder_path, get_file_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
@@ -19,6 +24,7 @@ def convert_model(
     target_model_name_input,
     target_model_type,
     target_save_precision_type,
+    unet_use_linear_projection,
 ):
     # Check for caption_text_input
     if source_model_type == '':
@@ -27,16 +33,16 @@ def convert_model(
 
     # Check if source model exist
     if os.path.isfile(source_model_input):
-        print('The provided source model is a file')
+        log.info('The provided source model is a file')
     elif os.path.isdir(source_model_input):
-        print('The provided model is a folder')
+        log.info('The provided model is a folder')
     else:
         msgbox('The provided source model is neither a file nor a folder')
         return
 
     # Check if source model exist
     if os.path.isdir(target_model_folder_input):
-        print('The provided model folder exist')
+        log.info('The provided model folder exist')
     else:
         msgbox('The provided target folder does not exist')
         return
@@ -50,10 +56,10 @@ def convert_model(
 
     # check if v1 models
     if str(source_model_type) in v1_models:
-        print('SD v1 model specified. Setting --v1 parameter')
+        log.info('SD v1 model specified. Setting --v1 parameter')
         run_cmd += ' --v1'
     else:
-        print('SD v2 model specified. Setting --v2 parameter')
+        log.info('SD v2 model specified. Setting --v2 parameter')
         run_cmd += ' --v2'
 
     if not target_save_precision_type == 'unspecified':
@@ -67,6 +73,14 @@ def convert_model(
 
     if target_model_type == 'diffuser_safetensors':
         run_cmd += ' --use_safetensors'
+
+    # Fix for stabilityAI diffusers format. When saving v2 models in Diffusers format in training scripts and conversion scripts,
+    # it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is
+    # "use_linear_projection": false, stabilityai is true). Please note that the weight shapes are different, so please be careful
+    # when using the weight files directly.
+
+    if unet_use_linear_projection:
+        run_cmd += ' --unet_use_linear_projection'
 
     run_cmd += f' "{source_model_input}"'
 
@@ -85,7 +99,7 @@ def convert_model(
         )
         run_cmd += f' "{target_model_path}"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -111,7 +125,7 @@ def convert_model(
             inference_file = os.path.join(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
-            print(f'Saving v2-inference.yaml as {inference_file}')
+            log.info(f'Saving v2-inference.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference.yaml',
                 f'{inference_file}',
@@ -121,7 +135,7 @@ def convert_model(
             inference_file = os.path.join(
                 target_model_folder_input, f'{target_model_name_input}.yaml'
             )
-            print(f'Saving v2-inference-v.yaml as {inference_file}')
+            log.info(f'Saving v2-inference-v.yaml as {inference_file}')
             shutil.copy(
                 f'./v2_inference/v2-inference-v.yaml',
                 f'{inference_file}',
@@ -155,11 +169,15 @@ def convert_model(
 ###
 
 
-def gradio_convert_model_tab():
+def gradio_convert_model_tab(headless=False):
     with gr.Tab('Convert model'):
         gr.Markdown(
             'This utility can be used to convert from one stable diffusion model format to another.'
         )
+        
+        model_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
+        model_ext_name = gr.Textbox(value='Model types', visible=False)
+        
         with gr.Row():
             source_model_input = gr.Textbox(
                 label='Source model',
@@ -167,7 +185,9 @@ def gradio_convert_model_tab():
                 interactive=True,
             )
             button_source_model_dir = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_source_model_dir.click(
                 get_folder_path,
@@ -176,11 +196,13 @@ def gradio_convert_model_tab():
             )
 
             button_source_model_file = gr.Button(
-                document_symbol, elem_id='open_folder_small'
+                document_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_source_model_file.click(
                 get_file_path,
-                inputs=[source_model_input],
+                inputs=[source_model_input, model_ext, model_ext_name],
                 outputs=source_model_input,
                 show_progress=False,
             )
@@ -203,7 +225,9 @@ def gradio_convert_model_tab():
                 interactive=True,
             )
             button_target_model_folder = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_target_model_folder.click(
                 get_folder_path,
@@ -230,6 +254,11 @@ def gradio_convert_model_tab():
                 choices=['unspecified', 'fp16', 'bf16', 'float'],
                 value='unspecified',
             )
+            unet_use_linear_projection = gr.Checkbox(
+                label='UNet linear projection',
+                value=False,
+                info="Enable for Hugging Face's stabilityai models",
+            )
 
         convert_button = gr.Button('Convert model')
 
@@ -242,6 +271,7 @@ def gradio_convert_model_tab():
                 target_model_name_input,
                 target_model_type,
                 target_save_precision_type,
+                unet_use_linear_projection,
             ],
             show_progress=False,
         )

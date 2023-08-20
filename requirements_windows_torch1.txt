@@ -1,0 +1,5 @@
+torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116 # no_verify
+https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps # no_verify
+bitsandbytes==0.35.0 # no_verify
+tensorboard==2.10.1 tensorflow==2.10.1
+-r requirements.txt

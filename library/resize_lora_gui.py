@@ -4,6 +4,11 @@ import subprocess
 import os
 from .common_gui import get_saveasfilename_path, get_file_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -64,7 +69,7 @@ def resize_lora(
     if verbose:
         run_cmd += f' --verbose'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -72,13 +77,15 @@ def resize_lora(
     else:
         subprocess.run(run_cmd)
 
+    log.info('Done resizing...')
+
 
 ###
 # Gradio UI
 ###
 
 
-def gradio_resize_lora_tab():
+def gradio_resize_lora_tab(headless=False):
     with gr.Tab('Resize LoRA'):
         gr.Markdown('This utility can resize a LoRA.')
 
@@ -92,12 +99,31 @@ def gradio_resize_lora_tab():
                 interactive=True,
             )
             button_lora_a_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_a_model_file.click(
                 get_file_path,
                 inputs=[model, lora_ext, lora_ext_name],
                 outputs=model,
+                show_progress=False,
+            )
+        with gr.Row():
+            save_to = gr.Textbox(
+                label='Save to',
+                placeholder='path for the LoRA file to save...',
+                interactive=True,
+            )
+            button_save_to = gr.Button(
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
+            )
+            button_save_to.click(
+                get_saveasfilename_path,
+                inputs=[save_to, lora_ext, lora_ext_name],
+                outputs=save_to,
                 show_progress=False,
             )
         with gr.Row():
@@ -109,8 +135,6 @@ def gradio_resize_lora_tab():
                 value=4,
                 interactive=True,
             )
-
-        with gr.Row():
             dynamic_method = gr.Dropdown(
                 choices=['None', 'sv_ratio', 'sv_fro', 'sv_cumulative'],
                 value='sv_fro',
@@ -123,22 +147,9 @@ def gradio_resize_lora_tab():
                 interactive=True,
                 placeholder='Value for the dynamic method selected.',
             )
-            verbose = gr.Checkbox(label='Verbose', value=False)
         with gr.Row():
-            save_to = gr.Textbox(
-                label='Save to',
-                placeholder='path for the LoRA file to save...',
-                interactive=True,
-            )
-            button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
-            )
-            button_save_to.click(
-                get_saveasfilename_path,
-                inputs=[save_to, lora_ext, lora_ext_name],
-                outputs=save_to,
-                show_progress=False,
-            )
+            
+            verbose = gr.Checkbox(label='Verbose', value=True)
             save_precision = gr.Dropdown(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],

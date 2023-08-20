@@ -21,6 +21,7 @@ def sort_images_by_aspect_ratio(path):
     images = []
     for filename in os.listdir(path):
         if filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png") or filename.endswith(".webp"):
+            print(filename)
             img_path = os.path.join(path, filename)
             images.append((img_path, aspect_ratio(img_path)))
     # sort the list of tuples based on the aspect ratio
@@ -135,13 +136,13 @@ def save_resized_cropped_images(group, folder_name, group_number, avg_aspect_rat
     for i, (img_path, aspect_ratio) in enumerate(group):
         image = cv2.imread(img_path)
         cropped_image = center_crop_image(image, avg_aspect_ratio)
-        resized_image = cv2.resize(cropped_image, (small_width, small_height))
+        # resized_image = cv2.resize(cropped_image, (small_width, small_height))
         if use_original_name:
             save_name = os.path.basename(img_path)
         else:
             save_name = f"group_{group_number}_{i}.jpg"
         save_path = os.path.join(folder_name, save_name)
-        cv2.imwrite(save_path, resized_image)
+        cv2.imwrite(save_path, cropped_image)
         
         # Copy matching files named the same as img_path to
         copy_related_files(img_path, save_path)

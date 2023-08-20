@@ -5,22 +5,38 @@ from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
 from library.utilities import utilities_tab
-from library.extract_lora_gui import gradio_extract_lora_tab
-from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
-from library.merge_lora_gui import gradio_merge_lora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
 from lora_gui import lora_tab
+from library.class_lora_tab import LoRATools
+
+import os
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
 
 
 def UI(**kwargs):
     css = ''
 
+    headless = kwargs.get('headless', False)
+    log.info(f'headless: {headless}')
+
     if os.path.exists('./style.css'):
         with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            print('Load CSS...')
+            log.info('Load CSS...')
             css += file.read() + '\n'
 
-    interface = gr.Blocks(css=css, title='Kohya_ss GUI')
+    if os.path.exists('./.release'):
+        with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
+            release = file.read()
+
+    if os.path.exists('./README.md'):
+        with open(os.path.join('./README.md'), 'r', encoding='utf8') as file:
+            README = file.read()
+
+    interface = gr.Blocks(
+        css=css, title=f'Kohya_ss GUI {release}', theme=gr.themes.Default()
+    )
 
     with interface:
         with gr.Tab('Dreambooth'):
@@ -29,13 +45,13 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab()
-        with gr.Tab('Dreambooth LoRA'):
-            lora_tab()
-        with gr.Tab('Dreambooth TI'):
-            ti_tab()
-        with gr.Tab('Finetune'):
-            finetune_tab()
+            ) = dreambooth_tab(headless=headless)
+        with gr.Tab('LoRA'):
+            lora_tab(headless=headless)
+        with gr.Tab('Textual Inversion'):
+            ti_tab(headless=headless)
+        with gr.Tab('Finetuning'):
+            finetune_tab(headless=headless)
         with gr.Tab('Utilities'):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
@@ -43,12 +59,23 @@ def UI(**kwargs):
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
+                headless=headless,
             )
-            gradio_extract_lora_tab()
-            gradio_extract_lycoris_locon_tab()
-            gradio_merge_lora_tab()
-            gradio_resize_lora_tab()
+            with gr.Tab('LoRA'):
+                _ = LoRATools(headless=headless)
+        with gr.Tab('About'):
+            gr.Markdown(f'kohya_ss GUI release {release}')
+            with gr.Tab('README'):
+                gr.Markdown(README)
 
+        htmlStr = f"""
+        <html>
+            <body>
+                <div class="ver-class">{release}</div>
+            </body>
+        </html>
+        """
+        gr.HTML(htmlStr)
     # Show the interface
     launch_kwargs = {}
     username = kwargs.get('username')
@@ -97,6 +124,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--share', action='store_true', help='Share the gradio UI'
     )
+    parser.add_argument(
+        '--headless', action='store_true', help='Is the server headless'
+    )
 
     args = parser.parse_args()
 
@@ -107,4 +137,5 @@ if __name__ == '__main__':
         server_port=args.server_port,
         share=args.share,
         listen=args.listen,
+        headless=args.headless,
     )

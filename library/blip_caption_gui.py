@@ -3,6 +3,10 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
@@ -19,21 +23,19 @@ def caption_images(
     prefix,
     postfix,
 ):
-    # Check for caption_text_input
-    # if caption_text_input == "":
-    #     msgbox("Caption text is missing...")
-    #     return
-
-    # Check for images_dir_input
+    # Check if the image folder is provided
     if train_data_dir == '':
         msgbox('Image folder is missing...')
         return
 
+    # Check if the caption file extension is provided
     if caption_file_ext == '':
         msgbox('Please provide an extension for the caption files.')
         return
 
-    print(f'Captioning files in {train_data_dir}...')
+    log.info(f'Captioning files in {train_data_dir}...')
+
+    # Construct the command to run
     run_cmd = f'{PYTHON} "finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
@@ -47,7 +49,7 @@ def caption_images(
     run_cmd += f' "{train_data_dir}"'
     run_cmd += f' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -63,7 +65,7 @@ def caption_images(
         postfix=postfix,
     )
 
-    print('...captioning done')
+    log.info('...captioning done')
 
 
 ###
@@ -71,10 +73,10 @@ def caption_images(
 ###
 
 
-def gradio_blip_caption_gui_tab():
+def gradio_blip_caption_gui_tab(headless=False):
     with gr.Tab('BLIP Captioning'):
         gr.Markdown(
-            'This utility will use BLIP to caption files for each images in a folder.'
+            'This utility uses BLIP to caption files for each image in a folder.'
         )
         with gr.Row():
             train_data_dir = gr.Textbox(
@@ -83,7 +85,7 @@ def gradio_blip_caption_gui_tab():
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,
@@ -93,7 +95,7 @@ def gradio_blip_caption_gui_tab():
         with gr.Row():
             caption_file_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extention for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file, e.g., .caption, .txt',
                 value='.txt',
                 interactive=True,
             )

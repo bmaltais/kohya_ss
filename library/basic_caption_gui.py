@@ -4,6 +4,11 @@ import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace
 import os
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 
 def caption_images(
     caption_text,
@@ -15,36 +20,43 @@ def caption_images(
     find_text,
     replace_text,
 ):
-    # Check for images_dir
+    # Check if images_dir is provided
     if not images_dir:
-        msgbox('Image folder is missing...')
+        msgbox('Image folder is missing. Please provide the directory containing the images to caption.')
         return
 
+    # Check if caption_ext is provided
     if not caption_ext:
         msgbox('Please provide an extension for the caption files.')
         return
 
     if caption_text:
-        print(f'Captioning files in {images_dir} with {caption_text}...')
+        log.info(f'Captioning files in {images_dir} with {caption_text}...')
+
+        # Build the command to run caption.py
         run_cmd = f'python "tools/caption.py"'
         run_cmd += f' --caption_text="{caption_text}"'
+
+        # Add optional flags to the command
         if overwrite:
             run_cmd += f' --overwrite'
         if caption_ext:
             run_cmd += f' --caption_file_ext="{caption_ext}"'
+
         run_cmd += f' "{images_dir}"'
 
-        print(run_cmd)
+        log.info(run_cmd)
 
-        # Run the command
+        # Run the command based on the operating system
         if os.name == 'posix':
             os.system(run_cmd)
         else:
             subprocess.run(run_cmd)
 
+    # Check if overwrite option is enabled
     if overwrite:
         if prefix or postfix:
-            # Add prefix and postfix
+            # Add prefix and postfix to caption files
             add_pre_postfix(
                 folder=images_dir,
                 caption_file_ext=caption_ext,
@@ -52,6 +64,7 @@ def caption_images(
                 postfix=postfix,
             )
         if find_text:
+            # Find and replace text in caption files
             find_replace(
                 folder_path=images_dir,
                 caption_file_ext=caption_ext,
@@ -60,18 +73,19 @@ def caption_images(
             )
     else:
         if prefix or postfix:
+            # Show a message if modification is not possible without overwrite option enabled
             msgbox(
-                'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected...'
+                'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected.'
             )
 
-    print('...captioning done')
+    log.info('Captioning done.')
 
 
 # Gradio UI
-def gradio_basic_caption_gui_tab():
+def gradio_basic_caption_gui_tab(headless=False):
     with gr.Tab('Basic Captioning'):
         gr.Markdown(
-            'This utility will allow the creation of simple caption files for each image in a folder.'
+            'This utility allows you to create simple caption files for each image in a folder.'
         )
         with gr.Row():
             images_dir = gr.Textbox(
@@ -79,7 +93,9 @@ def gradio_basic_caption_gui_tab():
                 placeholder='Directory containing the images to caption',
                 interactive=True,
             )
-            folder_button = gr.Button('📂', elem_id='open_folder_small')
+            folder_button = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
             folder_button.click(
                 get_folder_path,
                 outputs=images_dir,
@@ -87,7 +103,7 @@ def gradio_basic_caption_gui_tab():
             )
             caption_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extension for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file (e.g., .caption, .txt)',
                 value='.txt',
                 interactive=True,
             )
@@ -104,7 +120,7 @@ def gradio_basic_caption_gui_tab():
             )
             caption_text = gr.Textbox(
                 label='Caption text',
-                placeholder='Eg: , by some artist. Leave empty if you just want to add pre or postfix',
+                placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
             )
             postfix = gr.Textbox(
@@ -115,12 +131,12 @@ def gradio_basic_caption_gui_tab():
         with gr.Row():
             find_text = gr.Textbox(
                 label='Find text',
-                placeholder='Eg: , by some artist. Leave empty if you just want to add pre or postfix',
+                placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
             )
             replace_text = gr.Textbox(
                 label='Replacement text',
-                placeholder='Eg: , by some artist. Leave empty if you just want to replace with nothing',
+                placeholder='e.g., "by some artist". Leave empty if you want to replace with nothing.',
                 interactive=True,
             )
             caption_button = gr.Button('Caption images')

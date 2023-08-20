@@ -2,6 +2,7 @@
 
 from tqdm import tqdm
 from library import model_util
+import library.train_util as train_util
 import argparse
 from transformers import CLIPTokenizer
 import torch
@@ -16,16 +17,20 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def interrogate(args):
+  weights_dtype = torch.float16
+
   # いろいろ準備する
   print(f"loading SD model: {args.sd_model}")
-  text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.sd_model)
+  args.pretrained_model_name_or_path = args.sd_model
+  args.vae = None
+  text_encoder, vae, unet, _ = train_util._load_target_model(args,weights_dtype, DEVICE)
 
   print(f"loading LoRA: {args.model}")
-  network = lora.create_network_from_weights(1.0, args.model, vae, text_encoder, unet)
+  network, weights_sd = lora.create_network_from_weights(1.0, args.model, vae, text_encoder, unet)
 
   # text encoder向けの重みがあるかチェックする：本当はlora側でやるのがいい
   has_te_weight = False
-  for key in network.weights_sd.keys():
+  for key in weights_sd.keys():
     if 'lora_te' in key:
       has_te_weight = True
       break
@@ -40,9 +45,9 @@ def interrogate(args):
   else:
     tokenizer: CLIPTokenizer = CLIPTokenizer.from_pretrained(TOKENIZER_PATH)  # , model_max_length=max_token_length + 2)
 
-  text_encoder.to(DEVICE)
+  text_encoder.to(DEVICE, dtype=weights_dtype)
   text_encoder.eval()
-  unet.to(DEVICE)
+  unet.to(DEVICE, dtype=weights_dtype)
   unet.eval()               # U-Netは呼び出さないので不要だけど
 
   # トークンをひとつひとつ当たっていく
@@ -78,8 +83,13 @@ def interrogate(args):
   orig_embs = get_all_embeddings(text_encoder)
 
   network.apply_to(text_encoder, unet, True, len(network.unet_loras) > 0)
-  network.to(DEVICE)
+  info = network.load_state_dict(weights_sd, strict=False)
+  print(f"Loading LoRA weights: {info}")
+
+  network.to(DEVICE, dtype=weights_dtype)
   network.eval()
+
+  del unet
 
   print("You can ignore warning messages start with '_IncompatibleKeys' (LoRA model does not have alpha because trained by older script) / '_IncompatibleKeys'の警告は無視して構いません（以前のスクリプトで学習されたLoRAモデルのためalphaの定義がありません）")
   print("get text encoder embeddings with lora.")
@@ -107,6 +117,7 @@ def interrogate(args):
 
 def setup_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser()
+
   parser.add_argument("--v2", action='store_true',
                       help='load Stable Diffusion v2.x model / Stable Diffusion 2.xのモデルを読み込む')
   parser.add_argument("--sd_model", type=str, default=None,

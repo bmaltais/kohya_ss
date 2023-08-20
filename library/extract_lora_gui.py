@@ -4,9 +4,14 @@ import subprocess
 import os
 from .common_gui import (
     get_saveasfilename_path,
-    get_any_file_path,
     get_file_path,
+    is_file_writable
 )
+
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
 
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -22,25 +27,31 @@ def extract_lora(
     save_precision,
     dim,
     v2,
+    sdxl,
     conv_dim,
+    clamp_quantile,
+    min_diff,
     device,
 ):
     # Check for caption_text_input
     if model_tuned == '':
-        msgbox('Invalid finetuned model file')
+        log.info('Invalid finetuned model file')
         return
 
     if model_org == '':
-        msgbox('Invalid base model file')
+        log.info('Invalid base model file')
         return
 
     # Check if source model exist
     if not os.path.isfile(model_tuned):
-        msgbox('The provided finetuned model is not a file')
+        log.info('The provided finetuned model is not a file')
         return
 
     if not os.path.isfile(model_org):
-        msgbox('The provided base model is not a file')
+        log.info('The provided base model is not a file')
+        return
+    
+    if not is_file_writable(save_to):
         return
 
     run_cmd = (
@@ -56,8 +67,12 @@ def extract_lora(
         run_cmd += f' --conv_dim {conv_dim}'
     if v2:
         run_cmd += f' --v2'
+    if sdxl:
+        run_cmd += f' --sdxl'
+    run_cmd += f' --clamp_quantile {clamp_quantile}'
+    run_cmd += f' --min_diff {min_diff}'
 
-    print(run_cmd)
+    log.info(run_cmd)
 
     # Run the command
     if os.name == 'posix':
@@ -71,7 +86,7 @@ def extract_lora(
 ###
 
 
-def gradio_extract_lora_tab():
+def gradio_extract_lora_tab(headless=False):
     with gr.Tab('Extract LoRA'):
         gr.Markdown(
             'This utility can extract a LoRA network from a finetuned model.'
@@ -88,7 +103,9 @@ def gradio_extract_lora_tab():
                 interactive=True,
             )
             button_model_tuned_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_model_tuned_file.click(
                 get_file_path,
@@ -103,7 +120,9 @@ def gradio_extract_lora_tab():
                 interactive=True,
             )
             button_model_org_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_model_org_file.click(
                 get_file_path,
@@ -118,7 +137,9 @@ def gradio_extract_lora_tab():
                 interactive=True,
             )
             button_save_to = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,
@@ -149,7 +170,19 @@ def gradio_extract_lora_tab():
                 step=1,
                 interactive=True,
             )
+            clamp_quantile = gr.Number(
+                label='Clamp Quantile',
+                value=1,
+                interactive=True,
+            )
+            min_diff = gr.Number(
+                label='Minimum difference',
+                value=0.01,
+                interactive=True,
+            )
+        with gr.Row():
             v2 = gr.Checkbox(label='v2', value=False, interactive=True)
+            sdxl = gr.Checkbox(label='SDXL', value=False, interactive=True)
             device = gr.Dropdown(
                 label='Device',
                 choices=[
@@ -171,8 +204,11 @@ def gradio_extract_lora_tab():
                 save_precision,
                 dim,
                 v2,
+                sdxl,
                 conv_dim,
-                device
+                clamp_quantile,
+                min_diff,
+                device,
             ],
             show_progress=False,
         )

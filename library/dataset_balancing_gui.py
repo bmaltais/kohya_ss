@@ -4,6 +4,11 @@ import gradio as gr
 from easygui import msgbox, boolbox
 from .common_gui import get_folder_path
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 # def select_folder():
 #     # Open a file dialog to select a directory
 #     folder = filedialog.askdirectory()
@@ -45,6 +50,11 @@ def dataset_balancing(concept_repeats, folder, insecure):
             # Count the number of image files
             images = len(image_files)
 
+            if images == 0:
+                log.info(
+                    f'No images of type .jpg, .jpeg, .png, .gif, .webp were found in {os.listdir(os.path.join(folder, subdir))}'
+                )
+
             # Check if the subdirectory name starts with a number inside braces,
             # indicating that the repeats value should be multiplied
             match = re.match(r'^\{(\d+\.?\d*)\}', subdir)
@@ -81,7 +91,7 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
             os.rename(old_name, new_name)
         else:
-            print(
+            log.info(
                 f'Skipping folder {subdir} because it does not match kohya_ss expected syntax...'
             )
 
@@ -99,7 +109,7 @@ def warning(insecure):
             return False
 
 
-def gradio_dataset_balancing_tab():
+def gradio_dataset_balancing_tab(headless=False):
     with gr.Tab('Dreambooth/LoRA Dataset balancing'):
         gr.Markdown(
             'This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.'
@@ -115,7 +125,7 @@ def gradio_dataset_balancing_tab():
             )
 
             select_dataset_folder_button = gr.Button(
-                '📂', elem_id='open_folder_small'
+                '📂', elem_id='open_folder_small', visible=(not headless)
             )
             select_dataset_folder_button.click(
                 get_folder_path,

@@ -8,6 +8,11 @@ from .common_gui import (
     get_file_path,
 )
 
+from library.custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
+
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
@@ -34,7 +39,7 @@ def verify_lora(
         f'{lora_model}',
     ]
 
-    print(' '.join(run_cmd))
+    log.info(' '.join(run_cmd))
 
     # Run the command
     process = subprocess.Popen(
@@ -50,7 +55,7 @@ def verify_lora(
 ###
 
 
-def gradio_verify_lora_tab():
+def gradio_verify_lora_tab(headless=False):
     with gr.Tab('Verify LoRA'):
         gr.Markdown(
             'This utility can verify a LoRA network to make sure it is properly trained.'
@@ -66,7 +71,9 @@ def gradio_verify_lora_tab():
                 interactive=True,
             )
             button_lora_model_file = gr.Button(
-                folder_symbol, elem_id='open_folder_small'
+                folder_symbol,
+                elem_id='open_folder_small',
+                visible=(not headless),
             )
             button_lora_model_file.click(
                 get_file_path,
