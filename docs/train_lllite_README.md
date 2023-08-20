@@ -1,5 +1,7 @@
 # About ConrtolNet-LLLite
 
+日本語版は[こちら](./train_lllite_README-ja.md)
+
 ## Overview
 
 ConrtolNet-LLLite is a lightweight version of [ConrtolNet](https://github.com/lllyasviel/ControlNet). It is a "LoRA Like Lite" that is inspired by LoRA and has a lightweight structure. Currently, only SDXL is supported.
