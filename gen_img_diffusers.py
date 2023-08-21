@@ -2627,7 +2627,7 @@ def main(args):
 
         images = []
         for p in paths:
-            image = Image.open(p)
+            image = train_util.load_image(p)
             if image.mode != "RGB":
                 print(f"convert image to RGB from {image.mode}: {p}")
                 image = image.convert("RGB")

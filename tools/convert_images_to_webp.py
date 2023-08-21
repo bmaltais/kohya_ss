@@ -3,7 +3,7 @@ import glob
 import os
 from pathlib import Path
 from PIL import Image
-
+from library.train_util import load_image
 
 def main():
     # Define the command-line arguments
@@ -33,7 +33,7 @@ def main():
     # Iterate over the list of files
     for file in files:
         # Open the image file
-        img = Image.open(file)
+        img = load_image(file)
 
         # Create a new file path with the output file extension
         new_path = Path(file).with_suffix(f".{out_ext}")

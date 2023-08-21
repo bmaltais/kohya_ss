@@ -118,9 +118,7 @@ def main(args):
             image, image_path = data
             if image is None:
                 try:
-                    image = Image.open(image_path)
-                    if image.mode != "RGB":
-                        image = image.convert("RGB")
+                    image = train_util.load_image(image_path)
                 except Exception as e:
                     print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
                     continue

@@ -122,9 +122,7 @@ def main(args):
             image = transforms.functional.to_pil_image(img_tensor)
         else:
             try:
-                image = Image.open(image_path)
-                if image.mode != "RGB":
-                    image = image.convert("RGB")
+                image = train_util.load_image(image_path)
             except Exception as e:
                 print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
                 continue

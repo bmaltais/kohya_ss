@@ -15,6 +15,7 @@ from torch import nn
 from tqdm import tqdm
 from PIL import Image
 
+from library.train_util import load_image
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels=None, kernel_size=3, stride=1, padding=1):
@@ -277,7 +278,7 @@ def upscale_images(args: argparse.Namespace):
     image_paths = glob.glob(args.image_pattern)
     images = []
     for image_path in image_paths:
-        image = Image.open(image_path)
+        image = load_image(image_path)
         image = image.convert("RGB")
 
         # make divisible by 8

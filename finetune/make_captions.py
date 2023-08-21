@@ -43,7 +43,7 @@ class ImageLoadingTransformDataset(torch.utils.data.Dataset):
         img_path = self.images[idx]
 
         try:
-            image = Image.open(img_path).convert("RGB")
+            image = train_util.load_image(img_path)
             # convert to tensor temporarily so dataloader will accept it
             tensor = IMAGE_TRANSFORM(image)
         except Exception as e:
@@ -131,9 +131,7 @@ def main(args):
             img_tensor, image_path = data
             if img_tensor is None:
                 try:
-                    raw_image = Image.open(image_path)
-                    if raw_image.mode != "RGB":
-                        raw_image = raw_image.convert("RGB")
+                    raw_image = train_util.load_image(image_path)
                     img_tensor = IMAGE_TRANSFORM(raw_image)
                 except Exception as e:
                     print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")

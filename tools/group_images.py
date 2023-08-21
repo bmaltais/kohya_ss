@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from library.custom_logging import setup_logging
-
+from library.train_util import load_image
 # Set up logging
 log = setup_logging()
 
@@ -34,7 +34,7 @@ class ImageProcessor:
         return images
 
     def group_images(self, images):
-        sorted_images = sorted(images, key=lambda path: Image.open(path).size[0] / Image.open(path).size[1])
+        sorted_images = sorted(images, key=lambda path: load_image(path).size[0] / load_image(path).size[1])
         groups = [sorted_images[i:i+self.group_size] for i in range(0, len(sorted_images), self.group_size)]
         return groups
 
@@ -54,7 +54,7 @@ class ImageProcessor:
     def get_aspect_ratios(self, group):
         aspect_ratios = []
         for path in group:
-            with Image.open(path) as img:
+            with load_image(path) as img:
                 width, height = img.size
                 aspect_ratios.append(width / height)
         return aspect_ratios
@@ -62,7 +62,7 @@ class ImageProcessor:
     def crop_images(self, group, avg_aspect_ratio):
         cropped_images = []
         for j, path in enumerate(group):
-            with Image.open(path) as img:
+            with load_image(path) as img:
                 log.info(f"  Processing image {j+1}: {path}")
                 img = self.crop_image(img, avg_aspect_ratio)
                 cropped_images.append(img)
@@ -143,7 +143,7 @@ class ImageProcessor:
     def pad_images(self, group, avg_aspect_ratio):
         padded_images = []
         for j, path in enumerate(group):
-            with Image.open(path) as img:
+            with load_image(path) as img:
                 log.info(f"  Processing image {j+1}: {path}")
                 img = self.pad_image(img, avg_aspect_ratio)
                 padded_images.append(img)

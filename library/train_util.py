@@ -56,7 +56,7 @@ from library import custom_train_functions
 from library.original_unet import UNet2DConditionModel
 from huggingface_hub import hf_hub_download
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 import cv2
 import safetensors.torch
 from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipeline
@@ -933,11 +933,11 @@ class BaseDataset(torch.utils.data.Dataset):
             )
 
     def get_image_size(self, image_path):
-        image = Image.open(image_path)
+        image = load_image(image_path)
         return image.size
-
-    def load_image_with_face_info(self, subset: BaseSubset, image_path: str):
-        img = load_image(image_path)
+    
+    def load_image_numpy_with_face_info(self, subset: BaseSubset, image_path: str):
+        img = load_image_numpy(image_path)
 
         face_cx = face_cy = face_w = face_h = 0
         if subset.face_crop_aug_range is not None:
@@ -1050,7 +1050,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 image = None
             else:
                 # 画像を読み込み、必要ならcropする
-                img, face_cx, face_cy, face_w, face_h = self.load_image_with_face_info(subset, image_info.absolute_path)
+                img, face_cx, face_cy, face_w, face_h = self.load_image_numpy_with_face_info(subset, image_info.absolute_path)
                 im_h, im_w = img.shape[0:2]
 
                 if self.enable_bucket:
@@ -1223,7 +1223,7 @@ class BaseDataset(torch.utils.data.Dataset):
             caption = image_info.caption  # TODO cache some patterns of dropping, shuffling, etc.
 
             if self.caching_mode == "latents":
-                image = load_image(image_info.absolute_path)
+                image = load_image_numpy(image_info.absolute_path)
             else:
                 image = None
 
@@ -1758,7 +1758,7 @@ class ControlNetDataset(BaseDataset):
             original_size_hw = example["original_sizes_hw"][i]
             crop_top_left = example["crop_top_lefts"][i]
             flipped = example["flippeds"][i]
-            cond_img = load_image(image_info.cond_img_path)
+            cond_img = load_image_numpy(image_info.cond_img_path)
 
             if self.dreambooth_dataset_delegate.enable_bucket:
                 cond_img = cv2.resize(cond_img, image_info.resized_size, interpolation=cv2.INTER_AREA)  # INTER_AREAでやりたいのでcv2でリサイズ
@@ -2078,9 +2078,13 @@ def load_image(image_path):
     image = Image.open(image_path)
     if not image.mode == "RGB":
         image = image.convert("RGB")
+    oriented_image = ImageOps.exif_transpose(image)
+    return oriented_image
+
+def load_image_numpy(image_path):
+    image = load_image(image_path)
     img = np.array(image, np.uint8)
     return img
-
 
 # 画像を読み込む。戻り値はnumpy.ndarray,(original width, original height),(crop left, crop top, crop right, crop bottom)
 def trim_and_resize_if_required(
@@ -2129,7 +2133,7 @@ def cache_batch_latents(
     """
     images = []
     for info in image_infos:
-        image = load_image(info.absolute_path) if info.image is None else np.array(info.image, np.uint8)
+        image = load_image_numpy(info.absolute_path) if info.image is None else np.array(info.image, np.uint8)
         # TODO 画像のメタデータが壊れていて、メタデータから割り当てたbucketと実際の画像サイズが一致しない場合があるのでチェック追加要
         image, original_size, crop_ltrb = trim_and_resize_if_required(random_crop, image, info.bucket_reso, info.resized_size)
         image = IMAGE_TRANSFORMS(image)
@@ -4485,7 +4489,7 @@ def sample_images_common(
                     negative_prompt = negative_prompt.replace(prompt_replacement[0], prompt_replacement[1])
 
             if controlnet_image is not None:
-                controlnet_image = Image.open(controlnet_image).convert("RGB")
+                controlnet_image = load_image(controlnet_image)
                 controlnet_image = controlnet_image.resize((width, height), Image.LANCZOS)
 
             height = max(64, height - height % 8)  # round to divisible by 8
@@ -4557,7 +4561,7 @@ class ImageLoadingDataset(torch.utils.data.Dataset):
         img_path = self.images[idx]
 
         try:
-            image = Image.open(img_path).convert("RGB")
+            image = load_image(img_path)
             # convert to tensor temporarily so dataloader will accept it
             tensor_pil = transforms.functional.pil_to_tensor(image)
         except Exception as e:

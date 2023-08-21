@@ -7,6 +7,7 @@ import math
 from PIL import Image
 import numpy as np
 
+from library.train_util import load_image
 
 def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2, interpolation=None, save_as_png=False, copy_associated_files=False):
   # Split the max_resolution string by "," and strip any whitespaces
@@ -37,9 +38,7 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       continue
 
     # Load image
-    image = Image.open(os.path.join(src_img_folder, filename))
-    if not image.mode == "RGB":
-      image = image.convert("RGB")
+    image = load_image(os.path.join(src_img_folder, filename))
     img = np.array(image, np.uint8)
 
     base, _ = os.path.splitext(filename)

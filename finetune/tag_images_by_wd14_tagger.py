@@ -55,7 +55,7 @@ class ImageLoadingPrepDataset(torch.utils.data.Dataset):
         img_path = str(self.images[idx])
 
         try:
-            image = Image.open(img_path).convert("RGB")
+            image = train_util.load_image(img_path)
             image = preprocess_image(image)
             tensor = torch.tensor(image)
         except Exception as e:
@@ -197,9 +197,7 @@ def main(args):
                 image = image.detach().numpy()
             else:
                 try:
-                    image = Image.open(image_path)
-                    if image.mode != "RGB":
-                        image = image.convert("RGB")
+                    image = train_util.load_image(image_path)
                     image = preprocess_image(image)
                 except Exception as e:
                     print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")

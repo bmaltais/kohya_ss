@@ -3,6 +3,7 @@ from PIL import Image
 import os
 import numpy as np
 import itertools
+from library.train_util import load_image
 
 class ImageProcessor:
 
@@ -27,7 +28,7 @@ class ImageProcessor:
         return images
 
     def group_images(self, images, group_size):
-        sorted_images = sorted(images, key=lambda path: Image.open(path).size[0] / Image.open(path).size[1])
+        sorted_images = sorted(images, key=lambda path: load_image(path).size[0] / load_image(path).size[1])
         groups = [sorted_images[i:i+group_size] for i in range(0, len(sorted_images), group_size)]
         return groups
 
@@ -40,14 +41,14 @@ class ImageProcessor:
     def get_aspect_ratios(self, group):
         aspect_ratios = []
         for path in group:
-            with Image.open(path) as img:
+            with load_image(path) as img:
                 width, height = img.size
                 aspect_ratios.append(width / height)
         return aspect_ratios
 
     def calculate_losses(self, group, avg_aspect_ratio):
         for j, path in enumerate(group):
-            with Image.open(path) as img:
+            with load_image(path) as img:
                 loss = self.calculate_loss(img, avg_aspect_ratio)
                 self.losses.append((path, loss))  # Add (path, loss) tuple to the list
 
