@@ -754,6 +754,9 @@ class PipelineLike:
         # we always cast to float32 as this does not cause significant overhead and is compatible with bfloa16
         image = image.cpu().permute(0, 2, 3, 1).float().numpy()
 
+        if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
         if output_type == "pil":
             # image = self.numpy_to_pil(image)
             image = (image * 255).round().astype("uint8")
