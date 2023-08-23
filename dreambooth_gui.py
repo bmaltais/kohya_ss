@@ -23,7 +23,7 @@ from library.common_gui import (
     output_message,
     verify_image_folder_pattern,
     SaveConfigFile,
-    save_to_file
+    save_to_file,
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
@@ -40,6 +40,7 @@ from library.tensorboard_gui import (
 from library.dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
+from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 
@@ -99,6 +100,7 @@ def save_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
@@ -110,10 +112,12 @@ def save_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
     optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -161,7 +165,11 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as'])
+    SaveConfigFile(
+        parameters=parameters,
+        file_path=file_path,
+        exclusion=['file_path', 'save_as'],
+    )
 
     return file_path
 
@@ -213,6 +221,7 @@ def open_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
@@ -224,10 +233,12 @@ def open_configuration(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
     optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -326,6 +337,7 @@ def train_model(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
@@ -337,10 +349,12 @@ def train_model(
     bucket_no_upscale,
     random_crop,
     bucket_reso_steps,
+    v_pred_like_loss,
     caption_dropout_every_n_epochs,
     caption_dropout_rate,
     optimizer,
     optimizer_args,
+    lr_scheduler_args,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -365,7 +379,7 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     print_only_bool = True if print_only.get('label') == 'True' else False
     log.info(f'Start training Dreambooth...')
 
@@ -498,17 +512,20 @@ def train_model(
         )
         reg_factor = 2
 
-    # calculate max_train_steps
-    max_train_steps = int(
-        math.ceil(
-            float(total_steps)
-            / int(train_batch_size)
-            / int(gradient_accumulation_steps)
-            * int(epoch)
-            * int(reg_factor)
+    if max_train_steps == '' or max_train_steps == '0':
+        # calculate max_train_steps
+        max_train_steps = int(
+            math.ceil(
+                float(total_steps)
+                / int(train_batch_size)
+                / int(gradient_accumulation_steps)
+                * int(epoch)
+                * int(reg_factor)
+            )
         )
-    )
-    log.info(f'max_train_steps = {max_train_steps}')
+        log.info(
+            f'max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}'
+        )
 
     # calculate stop encoder training
     if int(stop_text_encoder_training_pct) == -1:
@@ -530,7 +547,7 @@ def train_model(
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./train_db.py"'
-        
+
     if v2:
         run_cmd += ' --v2'
     if v_parameterization:
@@ -599,6 +616,7 @@ def train_model(
         cache_latents_to_disk=cache_latents_to_disk,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
+        lr_scheduler_args=lr_scheduler_args,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -620,6 +638,7 @@ def train_model(
         bucket_no_upscale=bucket_no_upscale,
         random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
+        v_pred_like_loss=v_pred_like_loss,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         noise_offset_type=noise_offset_type,
@@ -653,22 +672,28 @@ def train_model(
             'Here is the trainer command as a reference. It will not be executed:\n'
         )
         print(run_cmd)
-        
+
         save_to_file(run_cmd)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f'{output_name}_{formatted_datetime}.json')
-        
+        formatted_datetime = current_datetime.strftime('%Y%m%d-%H%M%S')
+        file_path = os.path.join(
+            output_dir, f'{output_name}_{formatted_datetime}.json'
+        )
+
         log.info(f'Saving training config to {file_path}...')
 
-        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=['file_path', 'save_as', 'headless', 'print_only'])
-        
+        SaveConfigFile(
+            parameters=parameters,
+            file_path=file_path,
+            exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+        )
+
         log.info(run_cmd)
 
         # Run the command
-        
+
         executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
@@ -691,13 +716,15 @@ def dreambooth_tab(
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    
+
     with gr.Tab('Training'):
-        gr.Markdown('Train a custom model using kohya dreambooth python code...')
-        
+        gr.Markdown(
+            'Train a custom model using kohya dreambooth python code...'
+        )
+
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
-        
+
         source_model = SourceModel(headless=headless)
 
         with gr.Tab('Folders'):
@@ -709,10 +736,10 @@ def dreambooth_tab(
                     lr_scheduler_value='cosine',
                     lr_warmup_value='10',
                 )
-                    
+
                 # # Add SDXL Parameters
                 # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
-            
+
             with gr.Tab('Advanced', elem_id='advanced_tab'):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
@@ -720,11 +747,11 @@ def dreambooth_tab(
                     inputs=[advanced_training.color_aug],
                     outputs=[basic_training.cache_latents],
                 )
-            
+
             with gr.Tab('Samples', elem_id='samples_tab'):
                 sample = SampleImages()
 
-        with gr.Tab('Tools'):
+        with gr.Tab('Dataset Preparation'):
             gr.Markdown(
                 'This section provide Dreambooth tools to help setup your dataset...'
             )
@@ -735,16 +762,20 @@ def dreambooth_tab(
                 logging_dir_input=folders.logging_dir,
                 headless=headless,
             )
+            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Row():
             button_run = gr.Button('Start training', variant='primary')
-            
+
             button_stop_training = gr.Button('Stop training')
 
         button_print = gr.Button('Print training command')
 
         # Setup gradio tensorboard buttons
-        button_start_tensorboard, button_stop_tensorboard = gradio_tensorboard()
+        (
+            button_start_tensorboard,
+            button_stop_tensorboard,
+        ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -801,6 +832,7 @@ def dreambooth_tab(
             folders.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
+            basic_training.max_train_steps,
             advanced_training.max_data_loader_n_workers,
             advanced_training.mem_eff_attn,
             advanced_training.gradient_accumulation_steps,
@@ -812,10 +844,12 @@ def dreambooth_tab(
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
             advanced_training.bucket_reso_steps,
+            advanced_training.v_pred_like_loss,
             advanced_training.caption_dropout_every_n_epochs,
             advanced_training.caption_dropout_rate,
             basic_training.optimizer,
             basic_training.optimizer_args,
+            basic_training.lr_scheduler_args,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.adaptive_noise_scale,
@@ -872,10 +906,8 @@ def dreambooth_tab(
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
             show_progress=False,
         )
-        
-        button_stop_training.click(
-            executor.kill_command
-        )
+
+        button_stop_training.click(executor.kill_command)
 
         button_print.click(
             train_model,

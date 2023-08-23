@@ -11,6 +11,7 @@ log = setup_logging()
 
 PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 
+
 def group_images(
     input_folder,
     output_folder,
@@ -18,7 +19,7 @@ def group_images(
     include_subfolders,
     do_not_copy_other_files,
     generate_captions,
-    caption_ext
+    caption_ext,
 ):
     if input_folder == '':
         msgbox('Input folder is missing...')
@@ -55,8 +56,10 @@ def group_images(
 
 def gradio_group_images_gui_tab(headless=False):
     with gr.Tab('Group Images'):
-        gr.Markdown('This utility will group images in a folder based on their aspect ratio.')
-        
+        gr.Markdown(
+            'This utility will group images in a folder based on their aspect ratio.'
+        )
+
         with gr.Row():
             input_folder = gr.Textbox(
                 label='Input folder',
@@ -90,7 +93,9 @@ def gradio_group_images_gui_tab(headless=False):
                 label='Group size',
                 info='Number of images to group together',
                 value='4',
-                minimum=1, maximum=64, step=1,
+                minimum=1,
+                maximum=64,
+                step=1,
                 interactive=True,
             )
 
@@ -105,13 +110,13 @@ def gradio_group_images_gui_tab(headless=False):
                 value=False,
                 info='Do not copy other files in the input folder to the output folder',
             )
-            
+
             generate_captions = gr.Checkbox(
                 label='Generate Captions',
                 value=False,
                 info='Generate caption files for the grouped images based on their folder name',
             )
-            
+
             caption_ext = gr.Textbox(
                 label='Caption Extension',
                 placeholder='Caption file extension (e.g., .txt)',

@@ -13,7 +13,7 @@ from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeigh
 TOKENIZER1_PATH = "openai/clip-vit-large-patch14"
 TOKENIZER2_PATH = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
-DEFAULT_NOISE_OFFSET = 0.0357
+# DEFAULT_NOISE_OFFSET = 0.0357
 
 
 def load_target_model(args, accelerator, model_version: str, weight_dtype):
@@ -312,18 +312,18 @@ def verify_sdxl_training_args(args: argparse.Namespace, supportTextEncoderCachin
     if args.clip_skip is not None:
         print("clip_skip will be unexpected / SDXL学習ではclip_skipは動作しません")
 
-    if args.multires_noise_iterations:
-        print(
-            f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET}, but noise_offset is disabled due to multires_noise_iterations / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されていますが、multires_noise_iterationsが有効になっているためnoise_offsetは無効になります"
-        )
-    else:
-        if args.noise_offset is None:
-            args.noise_offset = DEFAULT_NOISE_OFFSET
-        elif args.noise_offset != DEFAULT_NOISE_OFFSET:
-            print(
-                f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET} / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されています"
-            )
-        print(f"noise_offset is set to {args.noise_offset} / noise_offsetが{args.noise_offset}に設定されました")
+    # if args.multires_noise_iterations:
+    #     print(
+    #         f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET}, but noise_offset is disabled due to multires_noise_iterations / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されていますが、multires_noise_iterationsが有効になっているためnoise_offsetは無効になります"
+    #     )
+    # else:
+    #     if args.noise_offset is None:
+    #         args.noise_offset = DEFAULT_NOISE_OFFSET
+    #     elif args.noise_offset != DEFAULT_NOISE_OFFSET:
+    #         print(
+    #             f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET} / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されています"
+    #         )
+    #     print(f"noise_offset is set to {args.noise_offset} / noise_offsetが{args.noise_offset}に設定されました")
 
     assert (
         not hasattr(args, "weighted_captions") or not args.weighted_captions

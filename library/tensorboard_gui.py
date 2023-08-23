@@ -12,6 +12,7 @@ log = setup_logging()
 tensorboard_proc = None
 TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
 
+
 def start_tensorboard(logging_dir, wait_time=5):
     global tensorboard_proc
 
@@ -20,11 +21,21 @@ def start_tensorboard(logging_dir, wait_time=5):
         msgbox(msg='Error: log folder is empty')
         return
 
-    run_cmd = [TENSORBOARD, '--logdir', logging_dir, '--host', '0.0.0.0', '--port', '6006']
+    run_cmd = [
+        TENSORBOARD,
+        '--logdir',
+        logging_dir,
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '6006',
+    ]
 
     log.info(run_cmd)
     if tensorboard_proc is not None:
-        log.info('Tensorboard is already running. Terminating existing process before starting new one...')
+        log.info(
+            'Tensorboard is already running. Terminating existing process before starting new one...'
+        )
         stop_tensorboard()
 
     # Start background process
@@ -42,6 +53,7 @@ def start_tensorboard(logging_dir, wait_time=5):
     log.info('Opening tensorboard url in browser...')
     webbrowser.open('http://localhost:6006')
 
+
 def stop_tensorboard():
     global tensorboard_proc
     if tensorboard_proc is not None:
@@ -54,6 +66,7 @@ def stop_tensorboard():
             log.error('Failed to stop Tensorboard:', e)
     else:
         log.info('Tensorboard is not running...')
+
 
 def gradio_tensorboard():
     with gr.Row():

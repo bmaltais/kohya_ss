@@ -3,7 +3,7 @@ import argparse
 import glob
 
 def remove_items_with_keywords(json_file_path):
-    keywords = ["pretrained_model_name_or_path", "dir", "save_model_as", "save_state", "resume", "output_name", "model_list", "sample_"]
+    keywords = ["pretrained_model_name_or_path", "dir", "save_model_as", "save_state", "resume", "output_name", "model_list", "sample_", "wandb_api_key"]
     
     with open(json_file_path) as file:
         data = json.load(file)

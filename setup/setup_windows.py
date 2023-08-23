@@ -155,8 +155,8 @@ def install_bitsandbytes_0_35_0():
     sync_bits_and_bytes_files()
 
 def install_bitsandbytes_0_40_1():
-    log.info('Installing bitsandbytes 0.41.1...')
-    setup_common.install('--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.40.1-py3-none-win_amd64.whl', 'bitsandbytes 0.40.1', reinstall=True)
+    log.info('Installing bitsandbytes 0.40.1...')
+    setup_common.install('--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.40.1.post1-py3-none-win_amd64.whl', 'bitsandbytes 0.40.1', reinstall=True)
 
 def install_bitsandbytes_0_41_1():
     log.info('Installing bitsandbytes 0.41.1...')

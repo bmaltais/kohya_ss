@@ -22,7 +22,9 @@ def caption_images(
 ):
     # Check if images_dir is provided
     if not images_dir:
-        msgbox('Image folder is missing. Please provide the directory containing the images to caption.')
+        msgbox(
+            'Image folder is missing. Please provide the directory containing the images to caption.'
+        )
         return
 
     # Check if caption_ext is provided

@@ -23,6 +23,8 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
             args.network_train_unet_only or not args.cache_text_encoder_outputs
         ), "network for Text Encoder cannot be trained with caching Text Encoder outputs / Text Encoderの出力をキャッシュしながらText Encoderのネットワークを学習することはできません"
 
+        train_dataset_group.verify_bucket_reso_steps(32)
+
     def load_target_model(self, args, weight_dtype, accelerator):
         (
             load_stable_diffusion_format,

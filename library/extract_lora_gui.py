@@ -5,7 +5,7 @@ import os
 from .common_gui import (
     get_saveasfilename_path,
     get_file_path,
-    is_file_writable
+    is_file_writable,
 )
 
 from library.custom_logging import setup_logging
@@ -50,7 +50,7 @@ def extract_lora(
     if not os.path.isfile(model_org):
         log.info('The provided base model is not a file')
         return
-    
+
     if not is_file_writable(save_to):
         return
 

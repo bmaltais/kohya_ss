@@ -76,7 +76,9 @@ def dreambooth_folder_preparation(
     if not util_regularization_images_dir_input == '':
         # Create the regularization_dir path
         if not util_regularization_images_repeat_input > 0:
-            log.info('Repeats is missing... not copying regularisation images...')
+            log.info(
+                'Repeats is missing... not copying regularisation images...'
+            )
         else:
             regularization_dir = os.path.join(
                 util_training_dir_output,
@@ -85,7 +87,9 @@ def dreambooth_folder_preparation(
 
             # Remove folders if they exist
             if os.path.exists(regularization_dir):
-                log.info(f'Removing existing directory {regularization_dir}...')
+                log.info(
+                    f'Removing existing directory {regularization_dir}...'
+                )
                 shutil.rmtree(regularization_dir)
 
             # Copy the regularisation images to their respective directories

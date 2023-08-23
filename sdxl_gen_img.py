@@ -47,10 +47,9 @@ import library.train_util as train_util
 import library.sdxl_model_util as sdxl_model_util
 import library.sdxl_train_util as sdxl_train_util
 from networks.lora import LoRANetwork
-import tools.original_control_net as original_control_net
-from tools.original_control_net import ControlNetInfo
 from library.sdxl_original_unet import SdxlUNet2DConditionModel
 from library.original_unet import FlashAttentionFunction
+from networks.control_net_lllite import ControlNetLLLite
 
 # scheduler:
 SCHEDULER_LINEAR_START = 0.00085
@@ -327,7 +326,7 @@ class PipelineLike:
             self.token_replacements_list.append({})
 
         # ControlNet # not supported yet
-        self.control_nets: List[ControlNetInfo] = []
+        self.control_nets: List[ControlNetLLLite] = []
         self.control_net_enabled = True  # control_netsが空ならTrueでもFalseでもControlNetは動作しない
 
     # Textual Inversion
@@ -371,6 +370,8 @@ class PipelineLike:
         width: int = 1024,
         original_height: int = None,
         original_width: int = None,
+        original_height_negative: int = None,
+        original_width_negative: int = None,
         crop_top: int = 0,
         crop_left: int = 0,
         num_inference_steps: int = 50,
@@ -390,6 +391,7 @@ class PipelineLike:
         is_cancelled_callback: Optional[Callable[[], bool]] = None,
         callback_steps: Optional[int] = 1,
         img2img_noise=None,
+        clip_guide_images=None,
         **kwargs,
     ):
         # TODO support secondary prompt
@@ -494,26 +496,38 @@ class PipelineLike:
                 text_embeddings = torch.cat([uncond_embeddings, text_embeddings, real_uncond_embeddings])
 
         if self.control_nets:
+            # ControlNetのhintにguide imageを流用する
             if isinstance(clip_guide_images, PIL.Image.Image):
                 clip_guide_images = [clip_guide_images]
+            if isinstance(clip_guide_images[0], PIL.Image.Image):
+                clip_guide_images = [preprocess_image(im) for im in clip_guide_images]
+                clip_guide_images = torch.cat(clip_guide_images)
+            if isinstance(clip_guide_images, list):
+                clip_guide_images = torch.stack(clip_guide_images)
 
-                # ControlNetのhintにguide imageを流用する
-                # 前処理はControlNet側で行う
+            clip_guide_images = clip_guide_images.to(self.device, dtype=text_embeddings.dtype)
 
         # create size embs
         if original_height is None:
             original_height = height
         if original_width is None:
             original_width = width
+        if original_height_negative is None:
+            original_height_negative = original_height
+        if original_width_negative is None:
+            original_width_negative = original_width
         if crop_top is None:
             crop_top = 0
         if crop_left is None:
             crop_left = 0
         emb1 = sdxl_train_util.get_timestep_embedding(torch.FloatTensor([original_height, original_width]).unsqueeze(0), 256)
+        uc_emb1 = sdxl_train_util.get_timestep_embedding(
+            torch.FloatTensor([original_height_negative, original_width_negative]).unsqueeze(0), 256
+        )
         emb2 = sdxl_train_util.get_timestep_embedding(torch.FloatTensor([crop_top, crop_left]).unsqueeze(0), 256)
         emb3 = sdxl_train_util.get_timestep_embedding(torch.FloatTensor([height, width]).unsqueeze(0), 256)
         c_vector = torch.cat([emb1, emb2, emb3], dim=1).to(self.device, dtype=text_embeddings.dtype).repeat(batch_size, 1)
-        uc_vector = c_vector.clone().to(self.device, dtype=text_embeddings.dtype)
+        uc_vector = torch.cat([uc_emb1, emb2, emb3], dim=1).to(self.device, dtype=text_embeddings.dtype).repeat(batch_size, 1)
 
         c_vector = torch.cat([text_pool, c_vector], dim=1)
         uc_vector = torch.cat([uncond_pool, uc_vector], dim=1)
@@ -645,35 +659,47 @@ class PipelineLike:
         num_latent_input = (3 if negative_scale is not None else 2) if do_classifier_free_guidance else 1
 
         if self.control_nets:
-            guided_hints = original_control_net.get_guided_hints(self.control_nets, num_latent_input, batch_size, clip_guide_images)
+            # guided_hints = original_control_net.get_guided_hints(self.control_nets, num_latent_input, batch_size, clip_guide_images)
+            if self.control_net_enabled:
+                for control_net in self.control_nets:
+                    with torch.no_grad():
+                        control_net.set_cond_image(clip_guide_images)
+            else:
+                for control_net in self.control_nets:
+                    control_net.set_cond_image(None)
 
         for i, t in enumerate(tqdm(timesteps)):
             # expand the latents if we are doing classifier free guidance
             latent_model_input = latents.repeat((num_latent_input, 1, 1, 1))
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
-            # predict the noise residual
-            if self.control_nets and self.control_net_enabled:
-                if reginonal_network:
-                    num_sub_and_neg_prompts = len(text_embeddings) // batch_size
-                    text_emb_last = text_embeddings[num_sub_and_neg_prompts - 2 :: num_sub_and_neg_prompts]  # last subprompt
-                else:
-                    text_emb_last = text_embeddings
+            # # disable control net if ratio is set
+            # if self.control_nets and self.control_net_enabled:
+            #     pass # TODO
 
-                # not working yet
-                noise_pred = original_control_net.call_unet_and_control_net(
-                    i,
-                    num_latent_input,
-                    self.unet,
-                    self.control_nets,
-                    guided_hints,
-                    i / len(timesteps),
-                    latent_model_input,
-                    t,
-                    text_emb_last,
-                ).sample
-            else:
-                noise_pred = self.unet(latent_model_input, t, text_embeddings, vector_embeddings)
+            # predict the noise residual
+            # TODO Diffusers' ControlNet
+            # if self.control_nets and self.control_net_enabled:
+            #     if reginonal_network:
+            #         num_sub_and_neg_prompts = len(text_embeddings) // batch_size
+            #         text_emb_last = text_embeddings[num_sub_and_neg_prompts - 2 :: num_sub_and_neg_prompts]  # last subprompt
+            #     else:
+            #         text_emb_last = text_embeddings
+
+            #     # not working yet
+            #     noise_pred = original_control_net.call_unet_and_control_net(
+            #         i,
+            #         num_latent_input,
+            #         self.unet,
+            #         self.control_nets,
+            #         guided_hints,
+            #         i / len(timesteps),
+            #         latent_model_input,
+            #         t,
+            #         text_emb_last,
+            #     ).sample
+            # else:
+            noise_pred = self.unet(latent_model_input, t, text_embeddings, vector_embeddings)
 
             # perform guidance
             if do_classifier_free_guidance:
@@ -1260,6 +1286,8 @@ class BatchDataExt(NamedTuple):
     height: int
     original_width: int
     original_height: int
+    original_width_negative: int
+    original_height_negative: int
     crop_left: int
     crop_top: int
     steps: int
@@ -1309,7 +1337,10 @@ def main(args):
 
     # schedulerを用意する
     sched_init_args = {}
+    has_steps_offset = True
+    has_clip_sample = True
     scheduler_num_noises_per_step = 1
+
     if args.sampler == "ddim":
         scheduler_cls = DDIMScheduler
         scheduler_module = diffusers.schedulers.scheduling_ddim
@@ -1319,32 +1350,48 @@ def main(args):
     elif args.sampler == "pndm":
         scheduler_cls = PNDMScheduler
         scheduler_module = diffusers.schedulers.scheduling_pndm
+        has_clip_sample = False
     elif args.sampler == "lms" or args.sampler == "k_lms":
         scheduler_cls = LMSDiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_lms_discrete
+        has_clip_sample = False
     elif args.sampler == "euler" or args.sampler == "k_euler":
         scheduler_cls = EulerDiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_euler_discrete
+        has_clip_sample = False
     elif args.sampler == "euler_a" or args.sampler == "k_euler_a":
         scheduler_cls = EulerAncestralDiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_euler_ancestral_discrete
+        has_clip_sample = False
     elif args.sampler == "dpmsolver" or args.sampler == "dpmsolver++":
         scheduler_cls = DPMSolverMultistepScheduler
         sched_init_args["algorithm_type"] = args.sampler
         scheduler_module = diffusers.schedulers.scheduling_dpmsolver_multistep
+        has_clip_sample = False
     elif args.sampler == "dpmsingle":
         scheduler_cls = DPMSolverSinglestepScheduler
         scheduler_module = diffusers.schedulers.scheduling_dpmsolver_singlestep
+        has_clip_sample = False
+        has_steps_offset = False
     elif args.sampler == "heun":
         scheduler_cls = HeunDiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_heun_discrete
+        has_clip_sample = False
     elif args.sampler == "dpm_2" or args.sampler == "k_dpm_2":
         scheduler_cls = KDPM2DiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_k_dpm_2_discrete
+        has_clip_sample = False
     elif args.sampler == "dpm_2_a" or args.sampler == "k_dpm_2_a":
         scheduler_cls = KDPM2AncestralDiscreteScheduler
         scheduler_module = diffusers.schedulers.scheduling_k_dpm_2_ancestral_discrete
         scheduler_num_noises_per_step = 2
+        has_clip_sample = False
+
+    # 警告を出さないようにする
+    if has_steps_offset:
+        sched_init_args["steps_offset"] = 1
+    if has_clip_sample:
+        sched_init_args["clip_sample"] = False
 
     # samplerの乱数をあらかじめ指定するための処理
 
@@ -1397,10 +1444,11 @@ def main(args):
         **sched_init_args,
     )
 
-    # clip_sample=Trueにする
-    if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
-        print("set clip_sample to True")
-        scheduler.config.clip_sample = True
+    # ↓以下は結局PipeでFalseに設定されるので意味がなかった
+    # # clip_sample=Trueにする
+    # if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
+    #     print("set clip_sample to True")
+    #     scheduler.config.clip_sample = True
 
     # deviceを決定する
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # "mps"を考量してない
@@ -1519,16 +1567,40 @@ def main(args):
         upscaler.to(dtype).to(device)
 
     # ControlNetの処理
-    control_nets: List[ControlNetInfo] = []
-    if args.control_net_models:
-        for i, model in enumerate(args.control_net_models):
-            prep_type = None if not args.control_net_preps or len(args.control_net_preps) <= i else args.control_net_preps[i]
-            weight = 1.0 if not args.control_net_weights or len(args.control_net_weights) <= i else args.control_net_weights[i]
-            ratio = 1.0 if not args.control_net_ratios or len(args.control_net_ratios) <= i else args.control_net_ratios[i]
+    control_nets: List[ControlNetLLLite] = []
+    # if args.control_net_models:
+    #     for i, model in enumerate(args.control_net_models):
+    #         prep_type = None if not args.control_net_preps or len(args.control_net_preps) <= i else args.control_net_preps[i]
+    #         weight = 1.0 if not args.control_net_weights or len(args.control_net_weights) <= i else args.control_net_weights[i]
+    #         ratio = 1.0 if not args.control_net_ratios or len(args.control_net_ratios) <= i else args.control_net_ratios[i]
 
-            ctrl_unet, ctrl_net = original_control_net.load_control_net(False, unet, model)
-            prep = original_control_net.load_preprocess(prep_type)
-            control_nets.append(ControlNetInfo(ctrl_unet, ctrl_net, prep, weight, ratio))
+    #         ctrl_unet, ctrl_net = original_control_net.load_control_net(False, unet, model)
+    #         prep = original_control_net.load_preprocess(prep_type)
+    #         control_nets.append(ControlNetInfo(ctrl_unet, ctrl_net, prep, weight, ratio))
+    if args.control_net_lllite_models:
+        for i, model_file in enumerate(args.control_net_lllite_models):
+            print(f"loading ControlNet-LLLite: {model_file}")
+
+            from safetensors.torch import load_file
+
+            state_dict = load_file(model_file)
+            mlp_dim = None
+            cond_emb_dim = None
+            for key, value in state_dict.items():
+                if mlp_dim is None and "down.0.weight" in key:
+                    mlp_dim = value.shape[0]
+                elif cond_emb_dim is None and "conditioning1.0" in key:
+                    cond_emb_dim = value.shape[0] * 2
+                if mlp_dim is not None and cond_emb_dim is not None:
+                    break
+            assert mlp_dim is not None and cond_emb_dim is not None, f"invalid control net: {model_file}"
+
+            control_net = ControlNetLLLite(unet, cond_emb_dim, mlp_dim)
+            control_net.apply_to()
+            control_net.load_state_dict(state_dict)
+            control_net.to(dtype).to(device)
+            control_net.set_batch_cond_only(False, False)
+            control_nets.append(control_net)
 
     if args.opt_channels_last:
         print(f"set optimizing: channels last")
@@ -1541,8 +1613,9 @@ def main(args):
                 network.to(memory_format=torch.channels_last)
 
         for cn in control_nets:
-            cn.unet.to(memory_format=torch.channels_last)
-            cn.net.to(memory_format=torch.channels_last)
+            cn.to(memory_format=torch.channels_last)
+            # cn.unet.to(memory_format=torch.channels_last)
+            # cn.net.to(memory_format=torch.channels_last)
 
     pipe = PipelineLike(
         device,
@@ -1800,6 +1873,8 @@ def main(args):
 
                     original_width_1st = scale_and_round(ext.original_width)
                     original_height_1st = scale_and_round(ext.original_height)
+                    original_width_negative_1st = scale_and_round(ext.original_width_negative)
+                    original_height_negative_1st = scale_and_round(ext.original_height_negative)
                     crop_left_1st = scale_and_round(ext.crop_left)
                     crop_top_1st = scale_and_round(ext.crop_top)
 
@@ -1810,6 +1885,8 @@ def main(args):
                         height_1st,
                         original_width_1st,
                         original_height_1st,
+                        original_width_negative_1st,
+                        original_height_negative_1st,
                         crop_left_1st,
                         crop_top_1st,
                         args.highres_fix_steps,
@@ -1877,6 +1954,8 @@ def main(args):
                     height,
                     original_width,
                     original_height,
+                    original_width_negative,
+                    original_height_negative,
                     crop_left,
                     crop_top,
                     steps,
@@ -2000,6 +2079,8 @@ def main(args):
                 width,
                 original_height,
                 original_width,
+                original_height_negative,
+                original_width_negative,
                 crop_top,
                 crop_left,
                 steps,
@@ -2040,6 +2121,8 @@ def main(args):
                     metadata.add_text("clip-prompt", clip_prompt)
                 metadata.add_text("original-height", str(original_height))
                 metadata.add_text("original-width", str(original_width))
+                metadata.add_text("original-height-negative", str(original_height_negative))
+                metadata.add_text("original-width-negative", str(original_width_negative))
                 metadata.add_text("crop-top", str(crop_top))
                 metadata.add_text("crop-left", str(crop_left))
 
@@ -2103,6 +2186,8 @@ def main(args):
                     height = args.H
                     original_width = args.original_width
                     original_height = args.original_height
+                    original_width_negative = args.original_width_negative
+                    original_height_negative = args.original_height_negative
                     crop_top = args.crop_top
                     crop_left = args.crop_left
                     scale = args.scale
@@ -2143,6 +2228,18 @@ def main(args):
                             if m:
                                 original_height = int(m.group(1))
                                 print(f"original height: {original_height}")
+                                continue
+
+                            m = re.match(r"nw (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                original_width_negative = int(m.group(1))
+                                print(f"original width negative: {original_width_negative}")
+                                continue
+
+                            m = re.match(r"nh (\d+)", parg, re.IGNORECASE)
+                            if m:
+                                original_height_negative = int(m.group(1))
+                                print(f"original height negative: {original_height_negative}")
                                 continue
 
                             m = re.match(r"ct (\d+)", parg, re.IGNORECASE)
@@ -2281,6 +2378,8 @@ def main(args):
                         height,
                         original_width,
                         original_height,
+                        original_width_negative,
+                        original_height_negative,
                         crop_left,
                         crop_top,
                         steps,
@@ -2346,6 +2445,18 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--original_width", type=int, default=None, help="original width for SDXL conditioning / SDXLの条件付けに用いるoriginal widthの値"
+    )
+    parser.add_argument(
+        "--original_height_negative",
+        type=int,
+        default=None,
+        help="original height for SDXL unconditioning / SDXLのネガティブ条件付けに用いるoriginal heightの値",
+    )
+    parser.add_argument(
+        "--original_width_negative",
+        type=int,
+        default=None,
+        help="original width for SDXL unconditioning / SDXLのネガティブ条件付けに用いるoriginal widthの値",
     )
     parser.add_argument("--crop_top", type=int, default=None, help="crop top for SDXL conditioning / SDXLの条件付けに用いるcrop topの値")
     parser.add_argument("--crop_left", type=int, default=None, help="crop left for SDXL conditioning / SDXLの条件付けに用いるcrop leftの値")
@@ -2504,20 +2615,23 @@ def setup_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--control_net_models", type=str, default=None, nargs="*", help="ControlNet models to use / 使用するControlNetのモデル名"
-    )
-    parser.add_argument(
-        "--control_net_preps", type=str, default=None, nargs="*", help="ControlNet preprocess to use / 使用するControlNetのプリプロセス名"
-    )
-    parser.add_argument("--control_net_weights", type=float, default=None, nargs="*", help="ControlNet weights / ControlNetの重み")
-    parser.add_argument(
-        "--control_net_ratios",
-        type=float,
-        default=None,
-        nargs="*",
-        help="ControlNet guidance ratio for steps / ControlNetでガイドするステップ比率",
+        "--control_net_lllite_models", type=str, default=None, nargs="*", help="ControlNet models to use / 使用するControlNetのモデル名"
     )
     # parser.add_argument(
+    #     "--control_net_models", type=str, default=None, nargs="*", help="ControlNet models to use / 使用するControlNetのモデル名"
+    # )
+    # parser.add_argument(
+    #     "--control_net_preps", type=str, default=None, nargs="*", help="ControlNet preprocess to use / 使用するControlNetのプリプロセス名"
+    # )
+    # parser.add_argument("--control_net_multiplier", type=float, default=None, nargs="*", help="ControlNet multiplier / ControlNetの適用率")
+    # parser.add_argument(
+    #     "--control_net_ratios",
+    #     type=float,
+    #     default=None,
+    #     nargs="*",
+    #     help="ControlNet guidance ratio for steps / ControlNetでガイドするステップ比率",
+    # )
+    # # parser.add_argument(
     #     "--control_net_image_path", type=str, default=None, nargs="*", help="image for ControlNet guidance / ControlNetでガイドに使う画像"
     # )
 

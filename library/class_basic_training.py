@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 
+
 class BasicTraining:
     def __init__(
         self,
@@ -26,6 +27,10 @@ class BasicTraining:
             self.max_train_epochs = gr.Textbox(
                 label='Max train epoch',
                 placeholder='(Optional) Enforce number of epoch',
+            )
+            self.max_train_steps = gr.Textbox(
+                label='Max train steps',
+                placeholder='(Optional) Enforce number of steps',
             )
             self.save_every_n_epochs = gr.Number(
                 label='Save every N epochs', value=1, precision=0
@@ -68,9 +73,6 @@ class BasicTraining:
                 label='Cache latents to disk', value=False
             )
         with gr.Row():
-            self.learning_rate = gr.Number(
-                label='Learning rate', value=learning_rate_value
-            )
             self.lr_scheduler = gr.Dropdown(
                 label='LR Scheduler',
                 choices=[
@@ -83,13 +85,6 @@ class BasicTraining:
                     'polynomial',
                 ],
                 value=lr_scheduler_value,
-            )
-            self.lr_warmup = gr.Slider(
-                label='LR warmup (% of steps)',
-                value=lr_warmup_value,
-                minimum=0,
-                maximum=100,
-                step=1,
             )
             self.optimizer = gr.Dropdown(
                 label='Optimizer',
@@ -107,14 +102,34 @@ class BasicTraining:
                     'DAdaptSGD',
                     'Lion',
                     'Lion8bit',
-                    "PagedAdamW8bit",
-                    "PagedLion8bit",
+                    'PagedAdamW8bit',
+                    'PagedLion8bit',
                     'Prodigy',
                     'SGDNesterov',
                     'SGDNesterov8bit',
                 ],
                 value='AdamW8bit',
                 interactive=True,
+            )
+        with gr.Row():
+            self.lr_scheduler_args = gr.Textbox(
+                label='LR scheduler extra arguments',
+                placeholder='(Optional) eg: "lr_end=5e-5"',
+            )
+            self.optimizer_args = gr.Textbox(
+                label='Optimizer extra arguments',
+                placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
+            )
+        with gr.Row():
+            self.learning_rate = gr.Number(
+                label='Learning rate', value=learning_rate_value
+            )
+            self.lr_warmup = gr.Slider(
+                label='LR warmup (% of steps)',
+                value=lr_warmup_value,
+                minimum=0,
+                maximum=100,
+                step=1,
             )
         with gr.Row(visible=not finetuning):
             self.lr_scheduler_num_cycles = gr.Textbox(
@@ -125,11 +140,6 @@ class BasicTraining:
             self.lr_scheduler_power = gr.Textbox(
                 label='LR power',
                 placeholder='(Optional) For Cosine with restart and polynomial only',
-            )
-        with gr.Row():
-            self.optimizer_args = gr.Textbox(
-                label='Optimizer extra arguments',
-                placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
             )
         with gr.Row(visible=not finetuning):
             self.max_resolution = gr.Textbox(
@@ -145,7 +155,22 @@ class BasicTraining:
                 label='Stop text encoder training',
             )
         with gr.Row(visible=not finetuning):
-            self.enable_bucket = gr.Checkbox(label='Enable buckets', value=True)
-            self.min_bucket_reso = gr.Slider(label='Minimum bucket resolution', value=256, minimum=64, maximum=4096, step=64, info='Minimum size in pixel a bucket can be (>= 64)')
-            self.max_bucket_reso = gr.Slider(label='Maximum bucket resolution', value=2048, minimum=64, maximum=4096, step=64, info='Maximum size in pixel a bucket can be (>= 64)')
-            
+            self.enable_bucket = gr.Checkbox(
+                label='Enable buckets', value=True
+            )
+            self.min_bucket_reso = gr.Slider(
+                label='Minimum bucket resolution',
+                value=256,
+                minimum=64,
+                maximum=4096,
+                step=64,
+                info='Minimum size in pixel a bucket can be (>= 64)',
+            )
+            self.max_bucket_reso = gr.Slider(
+                label='Maximum bucket resolution',
+                value=2048,
+                minimum=64,
+                maximum=4096,
+                step=64,
+                info='Maximum size in pixel a bucket can be (>= 64)',
+            )

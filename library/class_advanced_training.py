@@ -1,30 +1,35 @@
 import gradio as gr
 from .common_gui import get_folder_path, get_any_file_path
 
+
 class AdvancedTraining:
-    def __init__(
-        self,
-        headless=False,
-        finetuning: bool = False
-    ):
+    def __init__(self, headless=False, finetuning: bool = False):
         self.headless = headless
         self.finetuning = finetuning
+
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
-                return (gr.Group.update(visible=True), gr.Group.update(visible=False))
+                return (
+                    gr.Group.update(visible=True),
+                    gr.Group.update(visible=False),
+                )
             else:
-                return (gr.Group.update(visible=False), gr.Group.update(visible=True))
+                return (
+                    gr.Group.update(visible=False),
+                    gr.Group.update(visible=True),
+                )
 
         with gr.Row(visible=not finetuning):
             self.no_token_padding = gr.Checkbox(
                 label='No token padding', value=False
             )
             self.gradient_accumulation_steps = gr.Slider(
-                label='Gradient accumulate steps', 
+                label='Gradient accumulate steps',
                 info='Number of updates steps to accumulate before performing a backward/update pass',
                 value='1',
-                minimum=1, maximum=120,
-                step=1
+                minimum=1,
+                maximum=120,
+                step=1,
             )
             self.weighted_captions = gr.Checkbox(
                 label='Weighted captions', value=False
@@ -36,6 +41,7 @@ class AdvancedTraining:
             self.vae = gr.Textbox(
                 label='VAE',
                 placeholder='(Optional) path to checkpoint of vae to replace for training',
+                interactive=True,
             )
             self.vae_button = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
@@ -71,16 +77,19 @@ class AdvancedTraining:
                 info='(Optional) Save only the specified number of states (old models will be deleted)',
             )
         with gr.Row():
+
             def full_options_update(full_fp16, full_bf16):
                 full_fp16_active = True
                 full_bf16_active = True
-                
+
                 if full_fp16:
                     full_bf16_active = False
                 if full_bf16:
                     full_fp16_active = False
-                return gr.Checkbox.update(interactive=full_fp16_active, ), gr.Checkbox.update(interactive=full_bf16_active)
-            
+                return gr.Checkbox.update(
+                    interactive=full_fp16_active,
+                ), gr.Checkbox.update(interactive=full_bf16_active)
+
             self.keep_tokens = gr.Slider(
                 label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
             )
@@ -97,19 +106,32 @@ class AdvancedTraining:
                 value='75',
             )
             self.full_fp16 = gr.Checkbox(
-                label='Full fp16 training (experimental)', value=False,
+                label='Full fp16 training (experimental)',
+                value=False,
             )
             self.full_bf16 = gr.Checkbox(
-                label='Full bf16 training (experimental)', value=False, info='Required bitsandbytes >= 0.36.0'
+                label='Full bf16 training (experimental)',
+                value=False,
+                info='Required bitsandbytes >= 0.36.0',
             )
-            self.full_fp16.change(full_options_update, inputs=[self.full_fp16, self.full_bf16], outputs=[self.full_fp16, self.full_bf16])
-            self.full_bf16.change(full_options_update, inputs=[self.full_fp16, self.full_bf16], outputs=[self.full_fp16, self.full_bf16])
-            
+            self.full_fp16.change(
+                full_options_update,
+                inputs=[self.full_fp16, self.full_bf16],
+                outputs=[self.full_fp16, self.full_bf16],
+            )
+            self.full_bf16.change(
+                full_options_update,
+                inputs=[self.full_fp16, self.full_bf16],
+                outputs=[self.full_fp16, self.full_bf16],
+            )
+
         with gr.Row():
             self.gradient_checkpointing = gr.Checkbox(
                 label='Gradient checkpointing', value=False
             )
-            self.shuffle_caption = gr.Checkbox(label='Shuffle caption', value=False)
+            self.shuffle_caption = gr.Checkbox(
+                label='Shuffle caption', value=False
+            )
             self.persistent_data_loader_workers = gr.Checkbox(
                 label='Persistent data loader', value=False
             )
@@ -122,11 +144,22 @@ class AdvancedTraining:
             #     label='Use 8bit adam', value=False, visible=False
             # )
             # self.xformers = gr.Checkbox(label='Use xformers', value=True, info='Use xformers for CrossAttention')
-            self.xformers = gr.Dropdown(label='CrossAttention', choices=["none", "sdpa", "xformers"], value='xformers')
-            self.color_aug = gr.Checkbox(label='Color augmentation', value=False)
+            self.xformers = gr.Dropdown(
+                label='CrossAttention',
+                choices=['none', 'sdpa', 'xformers'],
+                value='xformers',
+            )
+            self.color_aug = gr.Checkbox(
+                label='Color augmentation', value=False
+            )
             self.flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
             self.min_snr_gamma = gr.Slider(
-                label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1
+                label='Min SNR gamma',
+                value=0,
+                minimum=0,
+                maximum=20,
+                step=1,
+                info='Recommended value of 5 when used',
             )
         with gr.Row():
             # self.sdpa = gr.Checkbox(label='Use sdpa', value=False, info='Use sdpa for CrossAttention')
@@ -134,12 +167,23 @@ class AdvancedTraining:
                 label="Don't upscale bucket resolution", value=True
             )
             self.bucket_reso_steps = gr.Slider(
-                label='Bucket resolution steps', value=64, minimum=1, maximum=128
+                label='Bucket resolution steps',
+                value=64,
+                minimum=1,
+                maximum=128,
             )
             self.random_crop = gr.Checkbox(
                 label='Random crop instead of center crop', value=False
             )
-        
+            self.v_pred_like_loss = gr.Slider(
+                label='V Pred like loss',
+                value=0,
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                info='Recommended value of 0.5 when used',
+            )
+
         with gr.Row():
             self.min_timestep = gr.Slider(
                 label='Min Timestep',
@@ -147,7 +191,7 @@ class AdvancedTraining:
                 step=1,
                 minimum=0,
                 maximum=1000,
-                info='Values greater than 0 will make the model more img2img focussed. 0 = image only'
+                info='Values greater than 0 will make the model more img2img focussed. 0 = image only',
             )
             self.max_timestep = gr.Slider(
                 label='Max Timestep',
@@ -157,7 +201,7 @@ class AdvancedTraining:
                 maximum=1000,
                 info='Values lower than 1000 will make the model more img2img focussed. 1000 = noise only',
             )
-        
+
         with gr.Row():
             self.noise_offset_type = gr.Dropdown(
                 label='Noise offset type',
@@ -204,7 +248,10 @@ class AdvancedTraining:
             self.noise_offset_type.change(
                 noise_offset_type_change,
                 inputs=[self.noise_offset_type],
-                outputs=[self.noise_offset_original, self.noise_offset_multires]
+                outputs=[
+                    self.noise_offset_original,
+                    self.noise_offset_multires,
+                ],
             )
         with gr.Row():
             self.caption_dropout_every_n_epochs = gr.Number(
@@ -217,7 +264,9 @@ class AdvancedTraining:
                 label='VAE batch size', minimum=0, maximum=32, value=0, step=1
             )
         with gr.Row():
-            self.save_state = gr.Checkbox(label='Save training state', value=False)
+            self.save_state = gr.Checkbox(
+                label='Save training state', value=False
+            )
             self.resume = gr.Textbox(
                 label='Resume from saved training state',
                 placeholder='path to "last-state" state folder to resume from',
@@ -256,4 +305,3 @@ class AdvancedTraining:
                 value=False,
                 info='Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.',
             )
-            
