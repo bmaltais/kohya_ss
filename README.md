@@ -415,6 +415,7 @@ To launch the GUI service, you can use the provided scripts or run the `kohya_gu
 --server_port: Define the port to run the server listener on.
 --inbrowser: Open the Gradio UI in a web browser.
 --share: Share the Gradio UI.
+--language: Set custom language
 ```
 
 ### Launching the GUI on Windows
