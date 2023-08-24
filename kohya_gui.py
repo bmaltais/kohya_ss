@@ -6,6 +6,7 @@ from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
 from library.utilities import utilities_tab
 from lora_gui import lora_tab
+from library.common_gui import setup_common_textbox
 from library.class_lora_tab import LoRATools
 
 import os

@@ -19,6 +19,17 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+common_textbox = None
+
+def setup_common_textbox():
+    global common_textbox
+    if common_textbox is None:
+        common_textbox = gr.Textbox(
+                label='Training log',
+                value='',
+                interactive=False)
+    return common_textbox
+
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
     'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
