@@ -121,7 +121,7 @@ CANNY_DIR = "path/to/canny/images"
 os.makedirs(CANNY_DIR, exist_ok=True)
 img_files = glob.glob(IMAGES_DIR + "/*.png")
 for img_file in img_files:
-    can_file = CANNY_DIR + "\\" + os.path.basename(img_file)
+    can_file = CANNY_DIR + "/" + os.path.basename(img_file)
     if os.path.exists(can_file):
         print("Skip: " + img_file)
         continue
