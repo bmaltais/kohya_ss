@@ -75,5 +75,5 @@ class CommandExecutor:
                     remove_port_from_used(port)
             else:
                 log.info('There is no running process to kill.')
-            self.port_dict.remove(port)
+            del self.port_dict[port]
             
