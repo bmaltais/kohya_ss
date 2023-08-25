@@ -47,6 +47,35 @@ conditioning image embeddingの次元数は、サンプルのCannyでは32を指
 
 （サンプルのCannyは恐らくかなり難しいと思われます。depthなどでは半分程度にしてもいいかもしれません。）
 
+以下は .toml の設定例です。
+
+```toml
+pretrained_model_name_or_path = "/path/to/model_trained_on.safetensors"
+max_train_epochs = 12
+max_data_loader_n_workers = 4
+persistent_data_loader_workers = true
+seed = 42
+gradient_checkpointing = true
+mixed_precision = "bf16"
+save_precision = "bf16"
+full_bf16 = true
+optimizer_type = "adamw8bit"
+learning_rate = 2e-4
+xformers = true
+output_dir = "/path/to/output/dir"
+output_name = "output_name"
+save_every_n_epochs = 1
+save_model_as = "safetensors"
+vae_batch_size = 4
+cache_latents = true
+cache_latents_to_disk = true
+cache_text_encoder_outputs = true
+cache_text_encoder_outputs_to_disk = true
+network_dim = 64
+cond_emb_dim = 32
+dataset_config = "/path/to/dataset.toml"
+```
+
 ### 推論
 
 スクリプトで生成する場合は、`sdxl_gen_img.py` を実行してください。`--control_net_lllite_models` でLLLiteのモデルファイルを指定できます。次元数はモデルファイルから自動取得します。
@@ -92,7 +121,7 @@ CANNY_DIR = "path/to/canny/images"
 os.makedirs(CANNY_DIR, exist_ok=True)
 img_files = glob.glob(IMAGES_DIR + "/*.png")
 for img_file in img_files:
-    can_file = CANNY_DIR + "\\" + os.path.basename(img_file)
+    can_file = CANNY_DIR + "/" + os.path.basename(img_file)
     if os.path.exists(can_file):
         print("Skip: " + img_file)
         continue
