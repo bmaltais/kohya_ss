@@ -369,7 +369,7 @@ class SdxlUNet2DConditionModelControlNetLLLite(sdxl_original_unet.SdxlUNet2DCond
         # module_name = module_name.replace("proj_out", "proj@out")
         pattern = re.compile(r"(_block|_layer|to_|time_embed|label_emb|skip_connection|proj_in|proj_out)")
 
-        # conver to lllite with U-Net state dict
+        # convert to lllite with U-Net state dict
         state_dict = non_lllite_unet_sd.copy() if non_lllite_unet_sd is not None else {}
         for key in weights_sd.keys():
             # split with "."
