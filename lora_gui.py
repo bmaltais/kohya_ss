@@ -26,7 +26,7 @@ from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_sdxl_parameters import SDXLParameters
 from library.class_folders import Folders
-from library.class_command_executor import CommandExecutor
+from library.class_command_executor_multi import MultiCommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -49,7 +49,7 @@ from library.port_util import get_available_port
 log = setup_logging()
 
 # Setup command executor
-executor = CommandExecutor()
+executor = MultiCommandExecutor()
 
 button_run = gr.Button('Start training', variant='primary')
 
@@ -1050,9 +1050,10 @@ def train_model(
         log.info(run_cmd)
         # Run the command
         if not run_as_subprocess:
-            executor.execute_command(run_cmd=run_cmd, port=available_port)
+            executor.execute_command(run_cmd=run_cmd, port=available_port) # MultiCommandExecutor supports port argument
         else:
             log.info("WARN : Running as subprocess, stop button will kill all training processes")
+            # TODO: support single process kill, we can do it with inputting port
             executor.execute_command_subprocess(run_cmd=run_cmd, port=available_port)
 
         # # check if output_dir/last is a folder... therefore it is a diffuser model
@@ -1556,6 +1557,18 @@ def lora_tab(
                 info='Run the training as a subprocess in the background. You may not be able to stop the training.',
             )
             button_run = gr.Button('Start training', variant='primary')
+            
+            dropdown_ports = gr.Dropdown(
+                label='Ports to kill',
+                choices=[-1],
+                value="-1",
+                elem_id='ports_dynamic',
+            )
+            # refresh emoji
+            refresh_dropdown_port_button = gr.Button(
+                value='🔄',
+                elem_id='refresh_ports'
+            )
 
             button_stop_training = gr.Button('Stop training')
 
@@ -1569,7 +1582,15 @@ def lora_tab(
             button_start_tensorboard,
             button_stop_tensorboard,
         ) = gradio_tensorboard()
-
+            
+        refresh_dropdown_port_button.click(
+            fn =lambda : gr.Dropdown.update(
+                choices=["-1"] + [str(x) for x in executor.get_running_process_ports()]
+            ),
+            outputs=[dropdown_ports],
+            show_progress=False,
+        )
+        
         button_start_tensorboard.click(
             start_tensorboard,
             inputs=folders.logging_dir,
@@ -1748,7 +1769,7 @@ def lora_tab(
             outputs=text_log_output_box,
         )
 
-        button_stop_training.click(executor.kill_command)
+        button_stop_training.click(executor.kill_command, inputs=[dropdown_ports])
 
         button_print.click(
             train_model,
