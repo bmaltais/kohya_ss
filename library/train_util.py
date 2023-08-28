@@ -4319,6 +4319,86 @@ SCHEDULER_LINEAR_END = 0.0120
 SCHEDULER_TIMESTEPS = 1000
 SCHEDLER_SCHEDULE = "scaled_linear"
 
+#schedulerを用意する
+#Same code as before but in a function for cleaner code
+def arg_to_scheduler(sampler_arg):
+    """Same code as before but in a function for cleaner code"""
+    sched_init_args = {}
+
+    if sampler_arg == "ddim":
+        scheduler_cls = DDIMScheduler
+    elif sampler_arg == "ddpm":  # ddpmはおかしくなるのでoptionから外してある
+        scheduler_cls = DDPMScheduler
+    elif sampler_arg == "pndm":
+        scheduler_cls = PNDMScheduler
+    elif sampler_arg == "lms" or sampler_arg == "k_lms":
+        scheduler_cls = LMSDiscreteScheduler
+    elif sampler_arg == "euler" or sampler_arg == "k_euler":
+        scheduler_cls = EulerDiscreteScheduler
+    elif sampler_arg == "euler_a" or sampler_arg == "k_euler_a":
+        scheduler_cls = EulerAncestralDiscreteScheduler
+    elif sampler_arg == "dpmsolver" or sampler_arg == "dpmsolver++":
+        scheduler_cls = DPMSolverMultistepScheduler
+        sched_init_args["algorithm_type"] = sampler_arg
+    elif sampler_arg == "dpmsingle":
+        scheduler_cls = DPMSolverSinglestepScheduler
+    elif sampler_arg == "heun":
+        scheduler_cls = HeunDiscreteScheduler
+    elif sampler_arg == "dpm_2" or sampler_arg == "k_dpm_2":
+        scheduler_cls = KDPM2DiscreteScheduler
+    elif sampler_arg == "dpm_2_a" or sampler_arg == "k_dpm_2_a":
+        scheduler_cls = KDPM2AncestralDiscreteScheduler
+    else:
+        scheduler_cls = DDIMScheduler
+    
+    return scheduler_cls, sched_init_args
+
+#Same code as before but in a function to allow for different samplers per prompt
+def get_alternating_scheduler(
+    pipe_class,
+    args: argparse.Namespace,
+    device,
+    vae,
+    tokenizer,
+    text_encoder,
+    unet,
+    alt_sample_sampler
+):
+    if alt_sample_sampler != "":
+        scheduler_cls, sched_init_args = arg_to_scheduler(alt_sample_sampler)
+    else:
+        scheduler_cls, sched_init_args = arg_to_scheduler(args.sample_sampler)
+
+    if args.v_parameterization:
+        sched_init_args["prediction_type"] = "v_prediction"
+
+    scheduler = scheduler_cls(
+        num_train_timesteps=SCHEDULER_TIMESTEPS,
+        beta_start=SCHEDULER_LINEAR_START,
+        beta_end=SCHEDULER_LINEAR_END,
+        beta_schedule=SCHEDLER_SCHEDULE,
+        **sched_init_args,
+    )
+
+    # clip_sample=Trueにする
+    if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
+        # print("set clip_sample to True")
+        scheduler.config.clip_sample = True
+
+    pipeline = pipe_class(
+        text_encoder=text_encoder,
+        vae=vae,
+        unet=unet,
+        tokenizer=tokenizer,
+        scheduler=scheduler,
+        safety_checker=None,
+        feature_extractor=None,
+        requires_safety_checker=False,
+        clip_skip=args.clip_skip,
+    )
+    # pipeline.to(device)
+
+    return pipeline
 
 def sample_images(*args, **kwargs):
     return sample_images_common(StableDiffusionLongPromptWeightingPipeline, *args, **kwargs)
@@ -4376,63 +4456,6 @@ def sample_images_common(
         with open(args.sample_prompts, "r", encoding="utf-8") as f:
             prompts = json.load(f)
 
-    # schedulerを用意する
-    sched_init_args = {}
-    if args.sample_sampler == "ddim":
-        scheduler_cls = DDIMScheduler
-    elif args.sample_sampler == "ddpm":  # ddpmはおかしくなるのでoptionから外してある
-        scheduler_cls = DDPMScheduler
-    elif args.sample_sampler == "pndm":
-        scheduler_cls = PNDMScheduler
-    elif args.sample_sampler == "lms" or args.sample_sampler == "k_lms":
-        scheduler_cls = LMSDiscreteScheduler
-    elif args.sample_sampler == "euler" or args.sample_sampler == "k_euler":
-        scheduler_cls = EulerDiscreteScheduler
-    elif args.sample_sampler == "euler_a" or args.sample_sampler == "k_euler_a":
-        scheduler_cls = EulerAncestralDiscreteScheduler
-    elif args.sample_sampler == "dpmsolver" or args.sample_sampler == "dpmsolver++":
-        scheduler_cls = DPMSolverMultistepScheduler
-        sched_init_args["algorithm_type"] = args.sample_sampler
-    elif args.sample_sampler == "dpmsingle":
-        scheduler_cls = DPMSolverSinglestepScheduler
-    elif args.sample_sampler == "heun":
-        scheduler_cls = HeunDiscreteScheduler
-    elif args.sample_sampler == "dpm_2" or args.sample_sampler == "k_dpm_2":
-        scheduler_cls = KDPM2DiscreteScheduler
-    elif args.sample_sampler == "dpm_2_a" or args.sample_sampler == "k_dpm_2_a":
-        scheduler_cls = KDPM2AncestralDiscreteScheduler
-    else:
-        scheduler_cls = DDIMScheduler
-
-    if args.v_parameterization:
-        sched_init_args["prediction_type"] = "v_prediction"
-
-    scheduler = scheduler_cls(
-        num_train_timesteps=SCHEDULER_TIMESTEPS,
-        beta_start=SCHEDULER_LINEAR_START,
-        beta_end=SCHEDULER_LINEAR_END,
-        beta_schedule=SCHEDLER_SCHEDULE,
-        **sched_init_args,
-    )
-
-    # clip_sample=Trueにする
-    if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
-        # print("set clip_sample to True")
-        scheduler.config.clip_sample = True
-
-    pipeline = pipe_class(
-        text_encoder=text_encoder,
-        vae=vae,
-        unet=unet,
-        tokenizer=tokenizer,
-        scheduler=scheduler,
-        safety_checker=None,
-        feature_extractor=None,
-        requires_safety_checker=False,
-        clip_skip=args.clip_skip,
-    )
-    pipeline.to(device)
-
     save_dir = args.output_dir + "/sample"
     os.makedirs(save_dir, exist_ok=True)
 
@@ -4442,9 +4465,9 @@ def sample_images_common(
     with torch.no_grad():
         # with accelerator.autocast():
         for i, prompt in enumerate(prompts):
+
             if not accelerator.is_main_process:
                 continue
-
             if isinstance(prompt, dict):
                 negative_prompt = prompt.get("negative_prompt")
                 sample_steps = prompt.get("sample_steps", 30)
@@ -4460,6 +4483,7 @@ def sample_images_common(
                 #     continue
 
                 # subset of gen_img_diffusers
+                #Split prompt if multiple are added and attach respective samplers
                 prompts_split = prompt.split("||")
                 for num, multi_prompts in enumerate(prompts_split):
                     prompt_args = multi_prompts.split(" --")
@@ -4470,6 +4494,7 @@ def sample_images_common(
                     scale = 7.5
                     seed = None
                     controlnet_image = None
+                    alt_sample_sampler = ""
                     for parg in prompt_args:
                         try:
                             m = re.match(r"w (\d+)", parg, re.IGNORECASE)
@@ -4507,9 +4532,17 @@ def sample_images_common(
                                 controlnet_image = m.group(1)
                                 continue
 
+                            m = re.match(r"ss (.+)", parg, re.IGNORECASE)
+                            if m:  # negative prompt
+                                alt_sample_sampler = m.group(1)
+                                continue
+
                         except ValueError as ex:
                             print(f"Exception in parsing / 解析エラー: {parg}")
                             print(ex)
+
+                    pipeline = get_alternating_scheduler(pipe_class,args,device,vae,tokenizer,text_encoder,unet, alt_sample_sampler)
+                    pipeline.to(device)
 
                     if seed is not None:
                         torch.manual_seed(seed)
@@ -4532,6 +4565,7 @@ def sample_images_common(
                     print(f"width: {width}")
                     print(f"sample_steps: {sample_steps}")
                     print(f"scale: {scale}")
+                    print(f"sampler: {alt_sample_sampler}") if alt_sample_sampler != "" else print(f"sampler: {args.sample_sampler}")
                     with accelerator.autocast():
                         latents = pipeline(
                             prompt=prompt,
