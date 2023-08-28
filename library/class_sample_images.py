@@ -101,5 +101,5 @@ class SampleImages:
                 label='Sample prompts',
                 interactive=True,
                 placeholder='masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28',
-                info='Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps) and --n (negative prompt). To modify sample prompts during training, edit the prompt.txt file in the samples directory.',
+                info='Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps), and --n (negative prompt). Add multiple prompts by splitting each prompt set with || and use --ss to set a different sampler for that prompt (If --ss is not set, the sampler chosen in the dropdown menu is used). To modify sample prompts during training, edit the prompt.txt file in the samples directory.',
             )
