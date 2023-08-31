@@ -3751,7 +3751,7 @@ def prepare_dtype(args: argparse.Namespace):
 
 def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", unet_use_linear_projection_in_v2=False):
     name_or_path = args.pretrained_model_name_or_path
-    name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
+    name_or_path = os.path.realpath(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
     if load_stable_diffusion_format:
         print(f"load StableDiffusion checkpoint: {name_or_path}")
