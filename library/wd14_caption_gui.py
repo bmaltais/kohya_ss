@@ -164,6 +164,7 @@ def gradio_wd14_caption_gui_tab(headless=False):
                     'SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
                     'SmilingWolf/wd-v1-4-vit-tagger-v2',
                     'SmilingWolf/wd-v1-4-swinv2-tagger-v2',
+                    'SmilingWolf/wd-v1-4-moat-tagger-v2',
                 ],
                 value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
             )
