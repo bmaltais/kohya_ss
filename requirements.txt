@@ -27,5 +27,6 @@ toml==0.10.2
 transformers==4.30.2
 voluptuous==0.13.1
 wandb==0.15.0
+xformers==0.0.21
 # for kohya_ss library
 -e . # no_verify leave this to specify not checking this a verification stage
