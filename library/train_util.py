@@ -96,6 +96,13 @@ try:
 except:
     pass
 
+try:
+    from jxlpy import JXLImagePlugin
+
+    IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
+except:
+    pass
+
 IMAGE_TRANSFORMS = transforms.Compose(
     [
         transforms.ToTensor(),
@@ -333,6 +340,8 @@ class BaseSubset:
         caption_dropout_rate: float,
         caption_dropout_every_n_epochs: int,
         caption_tag_dropout_rate: float,
+        caption_prefix: Optional[str],
+        caption_suffix: Optional[str],
         token_warmup_min: int,
         token_warmup_step: Union[float, int],
     ) -> None:
@@ -347,6 +356,8 @@ class BaseSubset:
         self.caption_dropout_rate = caption_dropout_rate
         self.caption_dropout_every_n_epochs = caption_dropout_every_n_epochs
         self.caption_tag_dropout_rate = caption_tag_dropout_rate
+        self.caption_prefix = caption_prefix
+        self.caption_suffix = caption_suffix
 
         self.token_warmup_min = token_warmup_min  # step=0におけるタグの数
         self.token_warmup_step = token_warmup_step  # N（N<1ならN*max_train_steps）ステップ目でタグの数が最大になる
@@ -371,6 +382,8 @@ class DreamBoothSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -388,6 +401,8 @@ class DreamBoothSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -419,6 +434,8 @@ class FineTuningSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -436,6 +453,8 @@ class FineTuningSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -464,6 +483,8 @@ class ControlNetSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -481,6 +502,8 @@ class ControlNetSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -588,6 +611,12 @@ class BaseDataset(torch.utils.data.Dataset):
         self.replacements[str_from] = str_to
 
     def process_caption(self, subset: BaseSubset, caption):
+        # caption に prefix/suffix を付ける
+        if subset.caption_prefix:
+            caption = subset.caption_prefix + " " + caption
+        if subset.caption_suffix:
+            caption = caption + " " + subset.caption_suffix
+
         # dropoutの決定：tag dropがこのメソッド内にあるのでここで行うのが良い
         is_drop_out = subset.caption_dropout_rate > 0 and random.random() < subset.caption_dropout_rate
         is_drop_out = (
@@ -3060,6 +3089,18 @@ def add_dataset_arguments(
         type=int,
         default=0,
         help="keep heading N tokens when shuffling caption tokens (token means comma separated strings) / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す（トークンはカンマ区切りの各部分を意味する）",
+    )
+    parser.add_argument(
+        "--caption_prefix",
+        type=str,
+        default=None,
+        help="prefix for caption text / captionのテキストの先頭に付ける文字列",
+    )
+    parser.add_argument(
+        "--caption_suffix",
+        type=str,
+        default=None,
+        help="suffix for caption text / captionのテキストの末尾に付ける文字列",
     )
     parser.add_argument("--color_aug", action="store_true", help="enable weak color augmentation / 学習時に色合いのaugmentationを有効にする")
     parser.add_argument("--flip_aug", action="store_true", help="enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする")
