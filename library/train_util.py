@@ -96,6 +96,13 @@ try:
 except:
     pass
 
+try:
+    from jxlpy import JXLImagePlugin
+
+    IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
+except:
+    pass
+
 IMAGE_TRANSFORMS = transforms.Compose(
     [
         transforms.ToTensor(),
