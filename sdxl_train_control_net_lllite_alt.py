@@ -1,4 +1,4 @@
-# cond_imageをU-Netのforardで渡すバージョンのControlNet-LLLite検証用学習コード
+# cond_imageをU-Netのforwardで渡すバージョンのControlNet-LLLite検証用学習コード
 # training code for ControlNet-LLLite with passing cond_image to U-Net's forward
 
 import argparse
