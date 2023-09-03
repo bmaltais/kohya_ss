@@ -22,11 +22,21 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 13, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+
+- ControlNet-LLLite is added. See [documentation](./docs/train_lllite_README.md) for details.
+- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+- Peak memory usage is reduced. [#791](https://github.com/kohya-ss/sd-scripts/pull/791)
+- Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
+- Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
+- Other minor changes.
+- Thanks for contributions from Isotr0py, vvern999, lansing  and others!
+
+Aug 13, 2023: 
 
 - LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
 
-Aug 12, 2023: Following are the changes from the previous version. 
+Aug 12, 2023: 
 
 - The default value of noise offset when omitted has been changed to 0 from 0.0357.
 - The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
