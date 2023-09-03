@@ -1,5 +1,5 @@
 torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118 # no_verify
-xformers==0.0.20
+xformers==0.0.21
 bitsandbytes==0.35.0 # no_verify
 # https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl # no_verify
 tensorboard==2.12.3 tensorflow==2.12.0

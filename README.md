@@ -71,15 +71,29 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 [![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/-BQQRjP9Maht_n4UHxgBJ.png)](https://youtu.be/-xEwaQ54DI4)
 
+[**How To Do SDXL LoRA Training On RunPod With Kohya SS GUI Trainer & Use LoRAs With Automatic1111 UI**](https://youtu.be/JF2P7BIUpIU?feature=shared)
+
+[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/n82kc7ND2rDmhRmRexLrb.png)](https://youtu.be/JF2P7BIUpIU?feature=shared)
+
 ### About SDXL training
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Aug 13, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+
+- ControlNet-LLLite is added. See [documentation](./docs/train_lllite_README.md) for details.
+- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+- Peak memory usage is reduced. [#791](https://github.com/kohya-ss/sd-scripts/pull/791)
+- Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
+- Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
+- Other minor changes.
+- Thanks for contributions from Isotr0py, vvern999, lansing  and others!
+
+Aug 13, 2023: 
 
 - LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
 
-Aug 12, 2023: Following are the changes from the previous version. 
+Aug 12, 2023: 
 
 - The default value of noise offset when omitted has been changed to 0 from 0.0357.
 - The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
@@ -415,6 +429,7 @@ To launch the GUI service, you can use the provided scripts or run the `kohya_gu
 --server_port: Define the port to run the server listener on.
 --inbrowser: Open the Gradio UI in a web browser.
 --share: Share the Gradio UI.
+--language: Set custom language
 ```
 
 ### Launching the GUI on Windows
@@ -518,11 +533,12 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/08/05 (v21.8.8)
-  - Fix issue with aiofiles: https://github.com/bmaltais/kohya_ss/issues/1359
-  - Merge sd-scripts updates as of Aug 23 2023
-  - Add new blip2 caption processor tool
-  - Add dataset preparation tab to appropriate trainers
-  - Add GUI support for new block_lr lora network parameter
-  - Add support for experimental LoRA-FA network
-  - Fix LyCORIS extraction issue with code
+* 2023/08/05 (v21.8.9)
+  - Update sd-script to caode as of Sept 3 2023
+    * ControlNet-LLLite is added. See documentation for details.
+    * JPEG XL is supported. #786
+    * Peak memory usage is reduced. #791
+    * Input perturbation noise is added. See #798 for details.
+    * Dataset subset now has caption_prefix and caption_suffix options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in .toml.
+    * Other minor changes.
+  - Added support fir Chinese locallisation

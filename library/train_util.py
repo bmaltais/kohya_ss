@@ -96,6 +96,13 @@ try:
 except:
     pass
 
+try:
+    from jxlpy import JXLImagePlugin
+
+    IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
+except:
+    pass
+
 IMAGE_TRANSFORMS = transforms.Compose(
     [
         transforms.ToTensor(),
@@ -333,6 +340,8 @@ class BaseSubset:
         caption_dropout_rate: float,
         caption_dropout_every_n_epochs: int,
         caption_tag_dropout_rate: float,
+        caption_prefix: Optional[str],
+        caption_suffix: Optional[str],
         token_warmup_min: int,
         token_warmup_step: Union[float, int],
     ) -> None:
@@ -347,6 +356,8 @@ class BaseSubset:
         self.caption_dropout_rate = caption_dropout_rate
         self.caption_dropout_every_n_epochs = caption_dropout_every_n_epochs
         self.caption_tag_dropout_rate = caption_tag_dropout_rate
+        self.caption_prefix = caption_prefix
+        self.caption_suffix = caption_suffix
 
         self.token_warmup_min = token_warmup_min  # step=0におけるタグの数
         self.token_warmup_step = token_warmup_step  # N（N<1ならN*max_train_steps）ステップ目でタグの数が最大になる
@@ -371,6 +382,8 @@ class DreamBoothSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -388,6 +401,8 @@ class DreamBoothSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -419,6 +434,8 @@ class FineTuningSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -436,6 +453,8 @@ class FineTuningSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -464,6 +483,8 @@ class ControlNetSubset(BaseSubset):
         caption_dropout_rate,
         caption_dropout_every_n_epochs,
         caption_tag_dropout_rate,
+        caption_prefix,
+        caption_suffix,
         token_warmup_min,
         token_warmup_step,
     ) -> None:
@@ -481,6 +502,8 @@ class ControlNetSubset(BaseSubset):
             caption_dropout_rate,
             caption_dropout_every_n_epochs,
             caption_tag_dropout_rate,
+            caption_prefix,
+            caption_suffix,
             token_warmup_min,
             token_warmup_step,
         )
@@ -588,6 +611,12 @@ class BaseDataset(torch.utils.data.Dataset):
         self.replacements[str_from] = str_to
 
     def process_caption(self, subset: BaseSubset, caption):
+        # caption に prefix/suffix を付ける
+        if subset.caption_prefix:
+            caption = subset.caption_prefix + " " + caption
+        if subset.caption_suffix:
+            caption = caption + " " + subset.caption_suffix
+
         # dropoutの決定：tag dropがこのメソッド内にあるのでここで行うのが良い
         is_drop_out = subset.caption_dropout_rate > 0 and random.random() < subset.caption_dropout_rate
         is_drop_out = (
@@ -1676,6 +1705,8 @@ class ControlNetDataset(BaseDataset):
                 subset.caption_dropout_rate,
                 subset.caption_dropout_every_n_epochs,
                 subset.caption_tag_dropout_rate,
+                subset.caption_prefix,
+                subset.caption_suffix,
                 subset.token_warmup_min,
                 subset.token_warmup_step,
             )
@@ -2865,6 +2896,13 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         default=None,
         help="enable multires noise with this number of iterations (if enabled, around 6-10 is recommended) / Multires noiseを有効にしてこのイテレーション数を設定する（有効にする場合は6-10程度を推奨）",
     )
+    parser.add_argument(
+        "--ip_noise_gamma",
+        type=float,
+        default=None,
+        help="enable input perturbation noise. used for regularization. recommended value: around 0.1 (from arxiv.org/abs/2301.11706) "
+        + "/  input perturbation noiseを有効にする。正則化に使用される。推奨値: 0.1程度 (arxiv.org/abs/2301.11706 より)",
+    )
     # parser.add_argument(
     #     "--perlin_noise",
     #     type=int,
@@ -3060,6 +3098,18 @@ def add_dataset_arguments(
         type=int,
         default=0,
         help="keep heading N tokens when shuffling caption tokens (token means comma separated strings) / captionのシャッフル時に、先頭からこの個数のトークンをシャッフルしないで残す（トークンはカンマ区切りの各部分を意味する）",
+    )
+    parser.add_argument(
+        "--caption_prefix",
+        type=str,
+        default=None,
+        help="prefix for caption text / captionのテキストの先頭に付ける文字列",
+    )
+    parser.add_argument(
+        "--caption_suffix",
+        type=str,
+        default=None,
+        help="suffix for caption text / captionのテキストの末尾に付ける文字列",
     )
     parser.add_argument("--color_aug", action="store_true", help="enable weak color augmentation / 学習時に色合いのaugmentationを有効にする")
     parser.add_argument("--flip_aug", action="store_true", help="enable horizontal flip augmentation / 学習時に左右反転のaugmentationを有効にする")
@@ -3751,7 +3801,7 @@ def prepare_dtype(args: argparse.Namespace):
 
 def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", unet_use_linear_projection_in_v2=False):
     name_or_path = args.pretrained_model_name_or_path
-    name_or_path = os.readlink(name_or_path) if os.path.islink(name_or_path) else name_or_path
+    name_or_path = os.path.realpath(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
     if load_stable_diffusion_format:
         print(f"load StableDiffusion checkpoint: {name_or_path}")
@@ -4308,7 +4358,10 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
 
     # Add noise to the latents according to the noise magnitude at each timestep
     # (this is the forward diffusion process)
-    noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+    if args.ip_noise_gamma:
+        noisy_latents = noise_scheduler.add_noise(latents, noise + args.ip_noise_gamma * torch.randn_like(latents), timesteps)
+    else:
+        noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
     return noise, noisy_latents, timesteps
 

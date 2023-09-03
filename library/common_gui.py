@@ -709,7 +709,7 @@ def run_cmd_training(**kwargs):
 
     lr_scheduler_args = kwargs.get('lr_scheduler_args', '')
     if lr_scheduler_args != '':
-        run_cmd += f' --lr_scheduler_args {optimizer_args}'
+        run_cmd += f' --lr_scheduler_args {lr_scheduler_args}'
     return run_cmd
 
 

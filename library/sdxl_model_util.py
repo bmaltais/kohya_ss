@@ -160,7 +160,7 @@ def _load_state_dict_on_device(model, state_dict, device, dtype=None):
 
 def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dtype=None):
     # model_version is reserved for future use
-    # dtype is reserved for full_fp16/bf16 integration. Text Encoder will remain fp32, because it runs on CPU when caching
+    # dtype is used for full_fp16/bf16 integration. Text Encoder will remain fp32, because it runs on CPU when caching
 
     # Load the state dict
     if model_util.is_safetensors(ckpt_path):
@@ -193,7 +193,7 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
     for k in list(state_dict.keys()):
         if k.startswith("model.diffusion_model."):
             unet_sd[k.replace("model.diffusion_model.", "")] = state_dict.pop(k)
-    info = _load_state_dict_on_device(unet, unet_sd, device=map_location)
+    info = _load_state_dict_on_device(unet, unet_sd, device=map_location, dtype=dtype)
     print("U-Net: ", info)
 
     # Text Encoders
@@ -221,7 +221,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
         # torch_dtype="float32",
         # transformers_version="4.25.0.dev0",
     )
-    text_model1 = CLIPTextModel._from_config(text_model1_cfg)
+    with init_empty_weights():
+        text_model1 = CLIPTextModel._from_config(text_model1_cfg)
 
     # Text Encoder 2 is different from Stability AI's SDXL. SDXL uses open clip, but we use the model from HuggingFace.
     # Note: Tokenizer from HuggingFace is different from SDXL. We must use open clip's tokenizer.
@@ -246,7 +247,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
         # torch_dtype="float32",
         # transformers_version="4.25.0.dev0",
     )
-    text_model2 = CLIPTextModelWithProjection(text_model2_cfg)
+    with init_empty_weights():
+        text_model2 = CLIPTextModelWithProjection(text_model2_cfg)
 
     print("loading text encoders from checkpoint")
     te1_sd = {}
@@ -257,21 +259,22 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
         elif k.startswith("conditioner.embedders.1.model."):
             te2_sd[k] = state_dict.pop(k)
 
-    info1 = text_model1.load_state_dict(te1_sd)
+    info1 = _load_state_dict_on_device(text_model1, te1_sd, device=map_location)  # remain fp32
     print("text encoder 1:", info1)
 
     converted_sd, logit_scale = convert_sdxl_text_encoder_2_checkpoint(te2_sd, max_length=77)
-    info2 = text_model2.load_state_dict(converted_sd)
+    info2 = _load_state_dict_on_device(text_model2, converted_sd, device=map_location)  # remain fp32
     print("text encoder 2:", info2)
 
     # prepare vae
     print("building VAE")
     vae_config = model_util.create_vae_diffusers_config()
-    vae = AutoencoderKL(**vae_config)  # .to(device)
+    with init_empty_weights():
+        vae = AutoencoderKL(**vae_config)
 
     print("loading VAE from checkpoint")
     converted_vae_checkpoint = model_util.convert_ldm_vae_checkpoint(state_dict, vae_config)
-    info = vae.load_state_dict(converted_vae_checkpoint)
+    info = _load_state_dict_on_device(vae, converted_vae_checkpoint, device=map_location, dtype=dtype)
     print("VAE:", info)
 
     ckpt_info = (epoch, global_step) if epoch is not None else None
