@@ -138,9 +138,13 @@ DreamBooth の手法と fine tuning の手法の両方とも利用可能な学�
 | `num_repeats` | `10` | o | o | o |
 | `random_crop` | `false` | o | o | o |
 | `shuffle_caption` | `true` | o | o | o |
+| `caption_prefix` | `“masterpiece, best quality, ”` | o | o | o |
+| `caption_suffix` | `“, from side”` | o | o | o |
 
 * `num_repeats`
     * サブセットの画像の繰り返し回数を指定します。fine tuning における `--dataset_repeats` に相当しますが、`num_repeats` はどの学習方法でも指定可能です。
+* `caption_prefix`, `caption_suffix`
+    * キャプションの前、後に付与する文字列を指定します。シャッフルはこれらの文字列を含めた状態で行われます。`keep_tokens` を指定する場合には注意してください。
 
 ### DreamBooth 方式専用のオプション
 
