@@ -533,11 +533,12 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
-* 2023/08/05 (v21.8.8)
-  - Fix issue with aiofiles: https://github.com/bmaltais/kohya_ss/issues/1359
-  - Merge sd-scripts updates as of Aug 23 2023
-  - Add new blip2 caption processor tool
-  - Add dataset preparation tab to appropriate trainers
-  - Add GUI support for new block_lr lora network parameter
-  - Add support for experimental LoRA-FA network
-  - Fix LyCORIS extraction issue with code
+* 2023/08/05 (v21.8.9)
+  - Update sd-script to caode as of Sept 3 2023
+    * ControlNet-LLLite is added. See documentation for details.
+    * JPEG XL is supported. #786
+    * Peak memory usage is reduced. #791
+    * Input perturbation noise is added. See #798 for details.
+    * Dataset subset now has caption_prefix and caption_suffix options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in .toml.
+    * Other minor changes.
+  - Added support fir Chinese locallisation
