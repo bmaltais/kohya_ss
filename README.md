@@ -25,9 +25,9 @@ The feature of SDXL training is now available in sdxl branch as an experimental 
 Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
 
 - ControlNet-LLLite is added. See [documenation](./docs/train_lllite_README.md) for details.
-- JPEG XL is supported. [#786](./pull/786) 
-- Peak memory usage is reduced. [#791](./pull/791)
-- Input perturbation noise is added. See [#798](./pull/798) for details.
+- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+- Peak memory usage is reduced. [#791](https://github.com/kohya-ss/sd-scripts/pull/791)
+- Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
 - Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
 - Other minor changes.
 - Thanks for contributions from Isotr0py, vvern999, lansing  and others!
