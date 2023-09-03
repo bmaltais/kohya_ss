@@ -1,4 +1,4 @@
-# cond_imageをU-Netのforardで渡すバージョンのControlNet-LLLite検証用実装
+# cond_imageをU-Netのforwardで渡すバージョンのControlNet-LLLite検証用実装
 # ControlNet-LLLite implementation for verification with cond_image passed in U-Net's forward
 
 import os

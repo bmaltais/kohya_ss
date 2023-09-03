@@ -2898,7 +2898,8 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--ip_noise_gamma",
         type=float,
         default=None,
-        help="enable input perturbation noise. used for regularization. recommended value: around 0.1 (from arxiv.org/abs/2301.11706) /  ",
+        help="enable input perturbation noise. used for regularization. recommended value: around 0.1 (from arxiv.org/abs/2301.11706) "
+        + "/  input perturbation noiseを有効にする。正則化に使用される。推奨値: 0.1程度 (arxiv.org/abs/2301.11706 より)",
     )
     # parser.add_argument(
     #     "--perlin_noise",
@@ -4353,11 +4354,11 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
     timesteps = torch.randint(min_timestep, max_timestep, (b_size,), device=latents.device)
     timesteps = timesteps.long()
 
+    # Add noise to the latents according to the noise magnitude at each timestep
+    # (this is the forward diffusion process)
     if args.ip_noise_gamma:
         noisy_latents = noise_scheduler.add_noise(latents, noise + args.ip_noise_gamma * torch.randn_like(latents), timesteps)
     else:
-        # Add noise to the latents according to the noise magnitude at each timestep
-        # (this is the forward diffusion process)
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
     return noise, noisy_latents, timesteps
