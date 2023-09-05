@@ -509,6 +509,7 @@ class NetworkTrainer:
             "ss_prior_loss_weight": args.prior_loss_weight,
             "ss_min_snr_gamma": args.min_snr_gamma,
             "ss_scale_weight_norms": args.scale_weight_norms,
+            "ss_ip_noise_gamma": args.ip_noise_gamma,
         }
 
         if use_user_config:
