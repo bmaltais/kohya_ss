@@ -27,6 +27,7 @@ Options:
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --no-gui                  Skips launching the GUI.
   -v, --verbose                 Increase verbosity levels up to 3.
+      --use-ipex                Use IPEX with Intel ARC GPUs.
 EOF
 }
 
@@ -87,6 +88,7 @@ MAXVERBOSITY=6
 DIR=""
 PARENT_DIR=""
 VENV_DIR=""
+USE_IPEX=false
 
 # Function to get the distro name
 get_distro_name() {
@@ -203,6 +205,8 @@ install_python_dependencies() {
     "lin"*)
       if [ "$RUNPOD" = true ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+      elif [ "$USE_IPEX" = true ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt
       else
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
       fi
@@ -318,6 +322,7 @@ while getopts ":vb:d:g:inprus-:" opt; do
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
   u | no-gui) SKIP_GUI=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
+  use-ipex) USE_IPEX=true ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
   esac
