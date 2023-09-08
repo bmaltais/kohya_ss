@@ -70,14 +70,19 @@ else
 fi
 
 #Set OneAPI environmet if it's not set by the user
-if [[ "$@" == *"--use-ipex"* ]] && [ ! -x "$(command -v sycl-ls)" ]
+if [[ "$@" == *"--use-ipex"* ]]
 then
     echo "Setting OneAPI environment"
-    if [[ -z "$ONEAPI_ROOT" ]]
+    if [ ! -x "$(command -v sycl-ls)" ]
     then
-        ONEAPI_ROOT=/opt/intel/oneapi
+        if [[ -z "$ONEAPI_ROOT" ]]
+        then
+            ONEAPI_ROOT=/opt/intel/oneapi
+        fi
+        source $ONEAPI_ROOT/setvars.sh
     fi
-    source $ONEAPI_ROOT/setvars.sh
+    export NEOReadDebugKeys=1
+    export ClDeviceGlobalMemSizeAvailablePercent=100
 fi
 
 # Validate the requirements and run the script if successful
