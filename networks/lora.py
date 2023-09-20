@@ -5,7 +5,9 @@
 
 import math
 import os
-from typing import List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
+from diffusers import AutoencoderKL
+from transformers import CLIPTextModel
 import numpy as np
 import torch
 import re
@@ -402,7 +404,16 @@ def parse_block_lr_kwargs(nw_kwargs):
     return down_lr_weight, mid_lr_weight, up_lr_weight
 
 
-def create_network(multiplier, network_dim, network_alpha, vae, text_encoder, unet, neuron_dropout=None, **kwargs):
+def create_network(
+    multiplier: float,
+    network_dim: Optional[int],
+    network_alpha: Optional[float],
+    vae: AutoencoderKL,
+    text_encoder: Union[CLIPTextModel, List[CLIPTextModel]],
+    unet,
+    neuron_dropout: Optional[float] = None,
+    **kwargs,
+):
     if network_dim is None:
         network_dim = 4  # default
     if network_alpha is None:
@@ -721,33 +732,36 @@ def create_network_from_weights(multiplier, file, vae, text_encoder, unet, weigh
 class LoRANetwork(torch.nn.Module):
     NUM_OF_BLOCKS = 12  # フルモデル相当でのup,downの層の数
 
-    # is it possible to apply conv_in and conv_out? -> yes, newer LoCon supports it (^^;)
-    UNET_TARGET_REPLACE_MODULE = ["Transformer2DModel", "Attention"]
+    UNET_TARGET_REPLACE_MODULE = ["Transformer2DModel"]
     UNET_TARGET_REPLACE_MODULE_CONV2D_3X3 = ["ResnetBlock2D", "Downsample2D", "Upsample2D"]
     TEXT_ENCODER_TARGET_REPLACE_MODULE = ["CLIPAttention", "CLIPMLP"]
     LORA_PREFIX_UNET = "lora_unet"
     LORA_PREFIX_TEXT_ENCODER = "lora_te"
 
+    # SDXL: must starts with LORA_PREFIX_TEXT_ENCODER
+    LORA_PREFIX_TEXT_ENCODER1 = "lora_te1"
+    LORA_PREFIX_TEXT_ENCODER2 = "lora_te2"
+
     def __init__(
         self,
-        text_encoder,
+        text_encoder: Union[List[CLIPTextModel], CLIPTextModel],
         unet,
-        multiplier=1.0,
-        lora_dim=4,
-        alpha=1,
-        dropout=None,
-        rank_dropout=None,
-        module_dropout=None,
-        conv_lora_dim=None,
-        conv_alpha=None,
-        block_dims=None,
-        block_alphas=None,
-        conv_block_dims=None,
-        conv_block_alphas=None,
-        modules_dim=None,
-        modules_alpha=None,
-        module_class=LoRAModule,
-        varbose=False,
+        multiplier: float = 1.0,
+        lora_dim: int = 4,
+        alpha: float = 1,
+        dropout: Optional[float] = None,
+        rank_dropout: Optional[float] = None,
+        module_dropout: Optional[float] = None,
+        conv_lora_dim: Optional[int] = None,
+        conv_alpha: Optional[float] = None,
+        block_dims: Optional[List[int]] = None,
+        block_alphas: Optional[List[float]] = None,
+        conv_block_dims: Optional[List[int]] = None,
+        conv_block_alphas: Optional[List[float]] = None,
+        modules_dim: Optional[Dict[str, int]] = None,
+        modules_alpha: Optional[Dict[str, int]] = None,
+        module_class: Type[object] = LoRAModule,
+        varbose: Optional[bool] = False,
     ) -> None:
         """
         LoRA network: すごく引数が多いが、パターンは以下の通り
@@ -785,8 +799,21 @@ class LoRANetwork(torch.nn.Module):
                 print(f"apply LoRA to Conv2d with kernel size (3,3). dim (rank): {self.conv_lora_dim}, alpha: {self.conv_alpha}")
 
         # create module instances
-        def create_modules(is_unet, root_module: torch.nn.Module, target_replace_modules) -> List[LoRAModule]:
-            prefix = LoRANetwork.LORA_PREFIX_UNET if is_unet else LoRANetwork.LORA_PREFIX_TEXT_ENCODER
+        def create_modules(
+            is_unet: bool,
+            text_encoder_idx: Optional[int],  # None, 1, 2
+            root_module: torch.nn.Module,
+            target_replace_modules: List[torch.nn.Module],
+        ) -> List[LoRAModule]:
+            prefix = (
+                self.LORA_PREFIX_UNET
+                if is_unet
+                else (
+                    self.LORA_PREFIX_TEXT_ENCODER
+                    if text_encoder_idx is None
+                    else (self.LORA_PREFIX_TEXT_ENCODER1 if text_encoder_idx == 1 else self.LORA_PREFIX_TEXT_ENCODER2)
+                )
+            )
             loras = []
             skipped = []
             for name, module in root_module.named_modules():
@@ -802,11 +829,14 @@ class LoRANetwork(torch.nn.Module):
 
                             dim = None
                             alpha = None
+
                             if modules_dim is not None:
+                                # モジュール指定あり
                                 if lora_name in modules_dim:
                                     dim = modules_dim[lora_name]
                                     alpha = modules_alpha[lora_name]
                             elif is_unet and block_dims is not None:
+                                # U-Netでblock_dims指定あり
                                 block_idx = get_block_index(lora_name)
                                 if is_linear or is_conv2d_1x1:
                                     dim = block_dims[block_idx]
@@ -815,6 +845,7 @@ class LoRANetwork(torch.nn.Module):
                                     dim = conv_block_dims[block_idx]
                                     alpha = conv_block_alphas[block_idx]
                             else:
+                                # 通常、すべて対象とする
                                 if is_linear or is_conv2d_1x1:
                                     dim = self.lora_dim
                                     alpha = self.alpha
@@ -823,6 +854,7 @@ class LoRANetwork(torch.nn.Module):
                                     alpha = self.conv_alpha
 
                             if dim is None or dim == 0:
+                                # skipした情報を出力
                                 if is_linear or is_conv2d_1x1 or (self.conv_lora_dim is not None or conv_block_dims is not None):
                                     skipped.append(lora_name)
                                 continue
@@ -840,7 +872,23 @@ class LoRANetwork(torch.nn.Module):
                             loras.append(lora)
             return loras, skipped
 
-        self.text_encoder_loras, skipped_te = create_modules(False, text_encoder, LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE)
+        text_encoders = text_encoder if type(text_encoder) == list else [text_encoder]
+
+        # create LoRA for text encoder
+        # 毎回すべてのモジュールを作るのは無駄なので要検討
+        self.text_encoder_loras = []
+        skipped_te = []
+        for i, text_encoder in enumerate(text_encoders):
+            if len(text_encoders) > 1:
+                index = i + 1
+                print(f"create LoRA for Text Encoder {index}:")
+            else:
+                index = None
+                print(f"create LoRA for Text Encoder:")
+
+            text_encoder_loras, skipped = create_modules(False, index, text_encoder, LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE)
+            self.text_encoder_loras.extend(text_encoder_loras)
+            skipped_te += skipped
         print(f"create LoRA for Text Encoder: {len(self.text_encoder_loras)} modules.")
 
         # extend U-Net target modules if conv2d 3x3 is enabled, or load from weights
@@ -848,7 +896,7 @@ class LoRANetwork(torch.nn.Module):
         if modules_dim is not None or self.conv_lora_dim is not None or conv_block_dims is not None:
             target_modules += LoRANetwork.UNET_TARGET_REPLACE_MODULE_CONV2D_3X3
 
-        self.unet_loras, skipped_un = create_modules(True, unet, target_modules)
+        self.unet_loras, skipped_un = create_modules(True, None, unet, target_modules)
         print(f"create LoRA for U-Net: {len(self.unet_loras)} modules.")
 
         skipped = skipped_te + skipped_un
@@ -962,6 +1010,7 @@ class LoRANetwork(torch.nn.Module):
 
         return lr_weight
 
+    # 二つのText Encoderに別々の学習率を設定できるようにするといいかも
     def prepare_optimizer_params(self, text_encoder_lr, unet_lr, default_lr):
         self.requires_grad_(True)
         all_params = []

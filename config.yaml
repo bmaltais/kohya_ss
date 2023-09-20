@@ -1,0 +1,46 @@
+train_config:
+  max_train_steps: 5000
+  output_dir: "Lora_path"
+
+
+create_config:
+  port:
+    7860
+  #生成图片的尺寸
+  create_width:
+    512
+  create_height:
+    512
+
+  #超像素尺寸
+  Extrax:
+    800
+  #采样步数
+  SStep:
+    30
+
+
+  CFG:
+    5
+
+  DS:
+    0.6
+  Prompt:
+    "wallpaper"
+  NPrompt:
+    "(worst quality:1.6, low quality:1.6), (zombie, sketch, interlocked fingers, comic)"
+
+  Chekpoint:
+    #  "sd_xl_refiner_1.0.safetensors [7440042bbd]"
+    #  "indoors30V15Mdbz_indoors30V15Mdbz.safetensors [bc80e3abab]"
+    "meinamix_meinaV11.safetensors [54ef3e3610]"
+  Controlnet:
+    #  "control_sd15_canny [fef5e48e]"
+    "control_v11p_sd15_lineart [43d4be0d]"
+  con_module:
+    "lineart_standard"
+  guidance_start:
+    0.0
+  guidance_end:
+    0.8
+

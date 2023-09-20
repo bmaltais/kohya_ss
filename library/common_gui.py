@@ -6,8 +6,10 @@ import gradio as gr
 import easygui
 import shutil
 import sys
+import json
 
 from library.custom_logging import setup_logging
+from datetime import datetime
 
 # Set up logging
 log = setup_logging()
@@ -19,12 +21,14 @@ document_symbol = '\U0001F4C4'   # 📄
 
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
+    'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
     'stabilityai/stable-diffusion-2-1-base',
     'stabilityai/stable-diffusion-2-base',
 ]
 
 # define a list of substrings to search for v_parameterization models
 V_PARAMETERIZATION_MODELS = [
+    'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
     'stabilityai/stable-diffusion-2-1',
     'stabilityai/stable-diffusion-2',
 ]
@@ -35,8 +39,14 @@ V1_MODELS = [
     'runwayml/stable-diffusion-v1-5',
 ]
 
+# define a list of substrings to search for SDXL base models
+SDXL_MODELS = [
+    'stabilityai/stable-diffusion-xl-base-0.9',
+    'stabilityai/stable-diffusion-xl-refiner-0.9'
+]
+
 # define a list of substrings to search for
-ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS
+ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDXL_MODELS
 
 ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
 
@@ -121,15 +131,16 @@ def update_my_data(my_data):
         my_data['LoRA_type'] = 'LyCORIS/LoCon'
 
     # Update model save choices due to changes for LoRA and TI training
-    if (
-        my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
-    ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
-        message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
-        if my_data.get('LoRA_type'):
-            log.info(message.format('LoRA'))
-        if my_data.get('num_vectors_per_token'):
-            log.info(message.format('TI'))
-        my_data['save_model_as'] = 'safetensors'
+    if 'save_model_as' in my_data:
+        if (
+            my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
+        ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
+            message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
+            if my_data.get('LoRA_type'):
+                log.info(message.format('LoRA'))
+            if my_data.get('num_vectors_per_token'):
+                log.info(message.format('TI'))
+            my_data['save_model_as'] = 'safetensors'
 
     return my_data
 
@@ -137,16 +148,6 @@ def update_my_data(my_data):
 def get_dir_and_file(file_path):
     dir_path, file_name = os.path.split(file_path)
     return (dir_path, file_name)
-
-
-# def has_ext_files(directory, extension):
-#     # Iterate through all the files in the directory
-#     for file in os.listdir(directory):
-#         # If the file name ends with extension, return True
-#         if file.endswith(extension):
-#             return True
-#     # If no extension files were found, return False
-#     return False
 
 
 def get_file_path(
@@ -219,19 +220,6 @@ def remove_doublequote(file_path):
         file_path = file_path.replace('"', '')
 
     return file_path
-
-
-# def set_legacy_8bitadam(optimizer, use_8bit_adam):
-#     if optimizer == 'AdamW8bit':
-#         # use_8bit_adam = True
-#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-#             value=True, interactive=False, visible=True
-#         )
-#     else:
-#         # use_8bit_adam = False
-#         return gr.Dropdown.update(value=optimizer), gr.Checkbox.update(
-#             value=False, interactive=False, visible=True
-#         )
 
 
 def get_folder_path(folder_path=''):
@@ -477,358 +465,79 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
 
 def set_pretrained_model_name_or_path_input(
-    model_list, pretrained_model_name_or_path, v2, v_parameterization
+    model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 ):
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(model_list) in V2_BASE_MODELS:
-        log.info('SD v2 model detected. Setting --v2 parameter')
-        v2 = True
-        v_parameterization = False
-        pretrained_model_name_or_path = str(model_list)
+    # Check if the given model_list is in the list of SDXL models
+    if str(model_list) in SDXL_MODELS:
+        log.info('SDXL model selected. Setting sdxl parameters')
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=True, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
+    # Check if the given model_list is in the list of V2 base models
+    if str(model_list) in V2_BASE_MODELS:
+        log.info('SD v2 base model selected. Setting --v2 parameter')
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
+
+    # Check if the given model_list is in the list of V parameterization models
     if str(model_list) in V_PARAMETERIZATION_MODELS:
         log.info(
-            'SD v2 v_parameterization detected. Setting --v2 parameter and --v_parameterization'
+            'SD v2 model selected. Setting --v2 and --v_parameterization parameters'
         )
-        v2 = True
-        v_parameterization = True
-        pretrained_model_name_or_path = str(model_list)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
+    # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
-        v2 = False
-        v_parameterization = False
-        pretrained_model_name_or_path = str(model_list)
+        log.info(
+            'SD v1.4 model selected.'
+        )
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox.update(value=str(model_list), visible=False)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
+    # Check if the model_list is set to 'custom'
     if model_list == 'custom':
-        if (
-            str(pretrained_model_name_or_path) in V1_MODELS
-            or str(pretrained_model_name_or_path) in V2_BASE_MODELS
-            or str(pretrained_model_name_or_path) in V_PARAMETERIZATION_MODELS
-        ):
-            pretrained_model_name_or_path = ''
-            v2 = False
-            v_parameterization = False
-    return model_list, pretrained_model_name_or_path, v2, v_parameterization
-
-
-def set_v2_checkbox(model_list, v2, v_parameterization):
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v2 list
-    if str(model_list) in V2_BASE_MODELS:
-        v2 = True
-        v_parameterization = False
-
-    # check if $v2 and $v_parameterization are empty and if $pretrained_model_name_or_path contains any of the substrings in the v_parameterization list
-    if str(model_list) in V_PARAMETERIZATION_MODELS:
-        v2 = True
-        v_parameterization = True
-
-    if str(model_list) in V1_MODELS:
-        v2 = False
-        v_parameterization = False
-
-    return v2, v_parameterization
-
-
-def set_model_list(
-    model_list,
-    pretrained_model_name_or_path,
-    v2,
-    v_parameterization,
-):
-
-    if not pretrained_model_name_or_path in ALL_PRESET_MODELS:
-        model_list = 'custom'
-    else:
-        model_list = pretrained_model_name_or_path
-
-    return model_list, v2, v_parameterization
+        v2 = gr.Checkbox.update(visible=True)
+        v_parameterization = gr.Checkbox.update(visible=True)
+        sdxl = gr.Checkbox.update(visible=True)
+        pretrained_model_name_or_path = gr.Textbox.update(visible=True)
+        pretrained_model_name_or_path_file = gr.Button.update(visible=True)
+        pretrained_model_name_or_path_folder = gr.Button.update(visible=True)
+        return model_list, pretrained_model_name_or_path, pretrained_model_name_or_path_file, pretrained_model_name_or_path_folder, v2, v_parameterization, sdxl
 
 
 ###
 ### Gradio common GUI section
 ###
-
-
-def gradio_config(headless=False):
-    with gr.Accordion('Configuration file', open=False):
-        with gr.Row():
-            button_open_config = gr.Button(
-                'Open 📂', elem_id='open_folder', visible=(not headless)
-            )
-            button_save_config = gr.Button(
-                'Save 💾', elem_id='open_folder', visible=(not headless)
-            )
-            button_save_as_config = gr.Button(
-                'Save as... 💾', elem_id='open_folder', visible=(not headless)
-            )
-            config_file_name = gr.Textbox(
-                label='',
-                placeholder="type the configuration file path or use the 'Open' button above to select it...",
-                interactive=True,
-            )
-            button_load_config = gr.Button('Load 💾', elem_id='open_folder')
-            config_file_name.change(
-                remove_doublequote,
-                inputs=[config_file_name],
-                outputs=[config_file_name],
-            )
-    return (
-        button_open_config,
-        button_save_config,
-        button_save_as_config,
-        config_file_name,
-        button_load_config,
-    )
-
-
+ 
 def get_pretrained_model_name_or_path_file(
     model_list, pretrained_model_name_or_path
 ):
     pretrained_model_name_or_path = get_any_file_path(
         pretrained_model_name_or_path
     )
-    set_model_list(model_list, pretrained_model_name_or_path)
+    # set_model_list(model_list, pretrained_model_name_or_path)
 
-
-def gradio_source_model(
-    save_model_as_choices=[
-        'same as source model',
-        'ckpt',
-        'diffusers',
-        'diffusers_safetensors',
-        'safetensors',
-    ],
-    headless=False,
-):
-    with gr.Tab('Source model'):
-        # Define the input elements
-        with gr.Row():
-            pretrained_model_name_or_path = gr.Textbox(
-                label='Pretrained model name or path',
-                placeholder='enter the path to custom model or name of pretrained model',
-                value='runwayml/stable-diffusion-v1-5',
-            )
-            pretrained_model_name_or_path_file = gr.Button(
-                document_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            pretrained_model_name_or_path_file.click(
-                get_any_file_path,
-                inputs=pretrained_model_name_or_path,
-                outputs=pretrained_model_name_or_path,
-                show_progress=False,
-            )
-            pretrained_model_name_or_path_folder = gr.Button(
-                folder_symbol,
-                elem_id='open_folder_small',
-                visible=(not headless),
-            )
-            pretrained_model_name_or_path_folder.click(
-                get_folder_path,
-                inputs=pretrained_model_name_or_path,
-                outputs=pretrained_model_name_or_path,
-                show_progress=False,
-            )
-            model_list = gr.Dropdown(
-                label='Model Quick Pick',
-                choices=[
-                    'custom',
-                    'stabilityai/stable-diffusion-2-1-base',
-                    'stabilityai/stable-diffusion-2-base',
-                    'stabilityai/stable-diffusion-2-1',
-                    'stabilityai/stable-diffusion-2',
-                    'runwayml/stable-diffusion-v1-5',
-                    'CompVis/stable-diffusion-v1-4',
-                ],
-                value='runwayml/stable-diffusion-v1-5',
-            )
-            save_model_as = gr.Dropdown(
-                label='Save trained model as',
-                choices=save_model_as_choices,
-                value='safetensors',
-            )
-
-        with gr.Row():
-            v2 = gr.Checkbox(label='v2', value=False)
-            v_parameterization = gr.Checkbox(
-                label='v_parameterization', value=False
-            )
-            v2.change(
-                set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization],
-                outputs=[v2, v_parameterization],
-                show_progress=False,
-            )
-            v_parameterization.change(
-                set_v2_checkbox,
-                inputs=[model_list, v2, v_parameterization],
-                outputs=[v2, v_parameterization],
-                show_progress=False,
-            )
-        model_list.change(
-            set_pretrained_model_name_or_path_input,
-            inputs=[
-                model_list,
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-            ],
-            outputs=[
-                model_list,
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-            ],
-            show_progress=False,
-        )
-        # Update the model list and parameters when user click outside the button or field
-        pretrained_model_name_or_path.change(
-            set_model_list,
-            inputs=[
-                model_list,
-                pretrained_model_name_or_path,
-                v2,
-                v_parameterization,
-            ],
-            outputs=[
-                model_list,
-                v2,
-                v_parameterization,
-            ],
-            show_progress=False,
-        )
-    return (
-        pretrained_model_name_or_path,
-        v2,
-        v_parameterization,
-        save_model_as,
-        model_list,
-    )
-
-
-def gradio_training(
-    learning_rate_value='1e-6',
-    lr_scheduler_value='constant',
-    lr_warmup_value='0',
-):
-    with gr.Row():
-        train_batch_size = gr.Slider(
-            minimum=1,
-            maximum=64,
-            label='Train batch size',
-            value=1,
-            step=1,
-        )
-        epoch = gr.Number(label='Epoch', value=1, precision=0)
-        save_every_n_epochs = gr.Number(
-            label='Save every N epochs', value=1, precision=0
-        )
-        caption_extension = gr.Textbox(
-            label='Caption Extension',
-            placeholder='(Optional) Extension for caption files. default: .caption',
-        )
-    with gr.Row():
-        mixed_precision = gr.Dropdown(
-            label='Mixed precision',
-            choices=[
-                'no',
-                'fp16',
-                'bf16',
-            ],
-            value='fp16',
-        )
-        save_precision = gr.Dropdown(
-            label='Save precision',
-            choices=[
-                'float',
-                'fp16',
-                'bf16',
-            ],
-            value='fp16',
-        )
-        num_cpu_threads_per_process = gr.Slider(
-            minimum=1,
-            maximum=os.cpu_count(),
-            step=1,
-            label='Number of CPU threads per core',
-            value=2,
-        )
-        seed = gr.Textbox(label='Seed', placeholder='(Optional) eg:1234')
-        cache_latents = gr.Checkbox(label='Cache latents', value=True)
-        cache_latents_to_disk = gr.Checkbox(
-            label='Cache latents to disk', value=False
-        )
-    with gr.Row():
-        learning_rate = gr.Number(
-            label='Learning rate', value=learning_rate_value
-        )
-        lr_scheduler = gr.Dropdown(
-            label='LR Scheduler',
-            choices=[
-                'adafactor',
-                'constant',
-                'constant_with_warmup',
-                'cosine',
-                'cosine_with_restarts',
-                'linear',
-                'polynomial',
-            ],
-            value=lr_scheduler_value,
-        )
-        lr_warmup = gr.Slider(
-            label='LR warmup (% of steps)',
-            value=lr_warmup_value,
-            minimum=0,
-            maximum=100,
-            step=1,
-        )
-        optimizer = gr.Dropdown(
-            label='Optimizer',
-            choices=[
-                'AdamW',
-                'AdamW8bit',
-                'Adafactor',
-                'DAdaptation',
-                'DAdaptAdaGrad',
-                'DAdaptAdam',
-                'DAdaptAdan',
-                'DAdaptAdanIP',
-                'DAdaptAdamPreprint',
-                'DAdaptLion',
-                'DAdaptSGD',
-                'Lion',
-                'Lion8bit',
-                'Prodigy',
-                'SGDNesterov',
-                'SGDNesterov8bit',
-            ],
-            value='AdamW8bit',
-            interactive=True,
-        )
-    with gr.Row():
-        optimizer_args = gr.Textbox(
-            label='Optimizer extra arguments',
-            placeholder='(Optional) eg: relative_step=True scale_parameter=True warmup_init=True',
-        )
-    return (
-        learning_rate,
-        lr_scheduler,
-        lr_warmup,
-        train_batch_size,
-        epoch,
-        save_every_n_epochs,
-        mixed_precision,
-        save_precision,
-        num_cpu_threads_per_process,
-        seed,
-        caption_extension,
-        cache_latents,
-        cache_latents_to_disk,
-        optimizer,
-        optimizer_args,
-    )
 
 def get_int_or_default(kwargs, key, default_value=0):
     value = kwargs.get(key, default_value)
@@ -929,225 +638,6 @@ def run_cmd_training(**kwargs):
     return run_cmd
 
 
-def gradio_advanced_training(headless=False):
-    def noise_offset_type_change(noise_offset_type):
-        if noise_offset_type == 'Original':
-            return (gr.Group.update(visible=True), gr.Group.update(visible=False))
-        else:
-            return (gr.Group.update(visible=False), gr.Group.update(visible=True))
-    with gr.Row():
-        additional_parameters = gr.Textbox(
-            label='Additional parameters',
-            placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
-        )
-    with gr.Row():
-        save_every_n_steps = gr.Number(
-            label='Save every N steps',
-            value=0,
-            precision=0,
-            info='(Optional) The model is saved every specified steps',
-        )
-        save_last_n_steps = gr.Number(
-            label='Save last N steps',
-            value=0,
-            precision=0,
-            info='(Optional) Save only the specified number of models (old models will be deleted)',
-        )
-        save_last_n_steps_state = gr.Number(
-            label='Save last N states',
-            value=0,
-            precision=0,
-            info='(Optional) Save only the specified number of states (old models will be deleted)',
-        )
-    with gr.Row():
-        keep_tokens = gr.Slider(
-            label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
-        )
-        clip_skip = gr.Slider(
-            label='Clip skip', value='1', minimum=1, maximum=12, step=1
-        )
-        max_token_length = gr.Dropdown(
-            label='Max Token Length',
-            choices=[
-                '75',
-                '150',
-                '225',
-            ],
-            value='75',
-        )
-        full_fp16 = gr.Checkbox(
-            label='Full fp16 training (experimental)', value=False
-        )
-    with gr.Row():
-        gradient_checkpointing = gr.Checkbox(
-            label='Gradient checkpointing', value=False
-        )
-        shuffle_caption = gr.Checkbox(label='Shuffle caption', value=False)
-        persistent_data_loader_workers = gr.Checkbox(
-            label='Persistent data loader', value=False
-        )
-        mem_eff_attn = gr.Checkbox(
-            label='Memory efficient attention', value=False
-        )
-    with gr.Row():
-        # This use_8bit_adam element should be removed in a future release as it is no longer used
-        # use_8bit_adam = gr.Checkbox(
-        #     label='Use 8bit adam', value=False, visible=False
-        # )
-        xformers = gr.Checkbox(label='Use xformers', value=True)
-        color_aug = gr.Checkbox(label='Color augmentation', value=False)
-        flip_aug = gr.Checkbox(label='Flip augmentation', value=False)
-        min_snr_gamma = gr.Slider(
-            label='Min SNR gamma', value=0, minimum=0, maximum=20, step=1
-        )
-    with gr.Row():
-        bucket_no_upscale = gr.Checkbox(
-            label="Don't upscale bucket resolution", value=True
-        )
-        bucket_reso_steps = gr.Slider(
-            label='Bucket resolution steps', value=64, minimum=1, maximum=128
-        )
-        random_crop = gr.Checkbox(
-            label='Random crop instead of center crop', value=False
-        )
-    
-    with gr.Row():
-        noise_offset_type = gr.Dropdown(
-            label='Noise offset type',
-            choices=[
-                'Original',
-                'Multires',
-            ],
-            value='Original',
-        )
-        with gr.Row(visible=True) as noise_offset_original:
-            noise_offset = gr.Slider(
-                label='Noise offset',
-                value=0,
-                minimum=0,
-                maximum=1,
-                step=0.01,
-                info='recommended values are 0.05 - 0.15',
-            )
-            adaptive_noise_scale = gr.Slider(
-                label='Adaptive noise scale',
-                value=0,
-                minimum=-1,
-                maximum=1,
-                step=0.001,
-                info='(Experimental, Optional) Since the latent is close to a normal distribution, it may be a good idea to specify a value around 1/10 the noise offset.',
-            )
-        with gr.Row(visible=False) as noise_offset_multires:
-            multires_noise_iterations = gr.Slider(
-                label='Multires noise iterations',
-                value=0,
-                minimum=0,
-                maximum=64,
-                step=1,
-                info='enable multires noise (recommended values are 6-10)',
-            )
-            multires_noise_discount = gr.Slider(
-                label='Multires noise discount',
-                value=0,
-                minimum=0,
-                maximum=1,
-                step=0.01,
-                info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
-            )
-        noise_offset_type.change(
-            noise_offset_type_change,
-            inputs=[noise_offset_type],
-            outputs=[noise_offset_original, noise_offset_multires]
-        )
-    with gr.Row():
-        caption_dropout_every_n_epochs = gr.Number(
-            label='Dropout caption every n epochs', value=0
-        )
-        caption_dropout_rate = gr.Slider(
-            label='Rate of caption dropout', value=0, minimum=0, maximum=1
-        )
-        vae_batch_size = gr.Slider(
-            label='VAE batch size', minimum=0, maximum=32, value=0, step=1
-        )
-    with gr.Row():
-        save_state = gr.Checkbox(label='Save training state', value=False)
-        resume = gr.Textbox(
-            label='Resume from saved training state',
-            placeholder='path to "last-state" state folder to resume from',
-        )
-        resume_button = gr.Button(
-            '📂', elem_id='open_folder_small', visible=(not headless)
-        )
-        resume_button.click(
-            get_folder_path,
-            outputs=resume,
-            show_progress=False,
-        )
-        max_train_epochs = gr.Textbox(
-            label='Max train epoch',
-            placeholder='(Optional) Override number of epoch',
-        )
-        max_data_loader_n_workers = gr.Textbox(
-            label='Max num workers for DataLoader',
-            placeholder='(Optional) Override number of epoch. Default: 8',
-            value='0',
-        )
-    with gr.Row():
-        wandb_api_key = gr.Textbox(
-            label='WANDB API Key',
-            value='',
-            placeholder='(Optional)',
-            info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login',
-        )
-        use_wandb = gr.Checkbox(
-            label='WANDB Logging',
-            value=False,
-            info='If unchecked, tensorboard will be used as the default for logging.',
-        )
-        scale_v_pred_loss_like_noise_pred = gr.Checkbox(
-            label='Scale v prediction loss',
-            value=False,
-            info='Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.',
-        )
-    return (
-        # use_8bit_adam,
-        xformers,
-        full_fp16,
-        gradient_checkpointing,
-        shuffle_caption,
-        color_aug,
-        flip_aug,
-        clip_skip,
-        mem_eff_attn,
-        save_state,
-        resume,
-        max_token_length,
-        max_train_epochs,
-        max_data_loader_n_workers,
-        keep_tokens,
-        persistent_data_loader_workers,
-        bucket_no_upscale,
-        random_crop,
-        bucket_reso_steps,
-        caption_dropout_every_n_epochs,
-        caption_dropout_rate,
-        noise_offset_type,
-        noise_offset,
-        adaptive_noise_scale,
-        multires_noise_iterations,
-        multires_noise_discount,
-        additional_parameters,
-        vae_batch_size,
-        min_snr_gamma,
-        save_every_n_steps,
-        save_last_n_steps,
-        save_last_n_steps_state,
-        use_wandb,
-        wandb_api_key,
-        scale_v_pred_loss_like_noise_pred,
-    )
-
-
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ''
     
@@ -1205,6 +695,14 @@ def run_cmd_advanced_training(**kwargs):
     min_snr_gamma = int(kwargs.get("min_snr_gamma", 0))
     if min_snr_gamma >= 1:
         run_cmd += f' --min_snr_gamma={min_snr_gamma}'
+        
+    min_timestep = int(kwargs.get("min_timestep", 0))
+    if min_timestep > 0:
+        run_cmd += f' --min_timestep={min_timestep}'
+        
+    max_timestep = int(kwargs.get("max_timestep", 1000))
+    if max_timestep < 1000:
+        run_cmd += f' --max_timestep={max_timestep}'
     
     save_state = kwargs.get('save_state')
     if save_state:
@@ -1325,3 +823,20 @@ def verify_image_folder_pattern(folder_path):
 
     log.info(f'Valid image folder names found in: {folder_path}')
     return true_response
+
+def SaveConfigFile(parameters, file_path: str, exclusion = ['file_path', 'save_as', 'headless', 'print_only']):
+    # Return the values of the variables as a dictionary
+    variables = {
+        name: value
+        for name, value in sorted(parameters, key=lambda x: x[0])
+        if name not in exclusion
+    }
+
+    # Save the data to the selected file
+    with open(file_path, 'w') as file:
+        json.dump(variables, file, indent=2)
+        
+def save_to_file(content):
+    file_path = 'logs/print_command.txt'
+    with open(file_path, 'a') as file:
+        file.write(content + '\n')

@@ -19,3 +19,16 @@
     padding-left: 0.75em;
     padding-right: 0.75em;
 }
+
+.ver-class {
+    color: #808080;
+    font-size: small;
+    text-align: right;
+    padding-right: 1em;
+}
+
+#myDropdown {
+    height: auto;
+    width: 33%;
+    flex-grow: 0;
+}
