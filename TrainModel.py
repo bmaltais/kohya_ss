@@ -1,6 +1,7 @@
-import os,yaml
+import os, yaml
 from fastapi import FastAPI
 from PIL import Image
+
 
 class TrainModelResult:
     def __init__(self, user_info: dict, model_save_path, model_file=None):
@@ -16,8 +17,6 @@ class TrainModel:
         train_configs = configs["train_config"]
         self.max_train_steps = train_configs["max_train_steps"]
 
-
-
         print(configs)
 
     def __save_train_picture_to_dir__(self, train_photo_list):
@@ -25,7 +24,7 @@ class TrainModel:
             pic.save(f"train_pictures/100_train/{index}.jpg")
 
     def train(self, user_info, main_photo: Image, train_photo_list: [Image, Image], progress_dir='',
-              return_model=False):
+              return_model=False, max_step=5000):
 
         self.__save_train_picture_to_dir__(train_photo_list)
         # blip 打标签
@@ -48,7 +47,7 @@ class TrainModel:
                 r'--pretrained_model_name_or_path="../stable-diffusion-webui/models/Stable-diffusion/epicrealism_pureEvolutionV3.safetensors" '
                 r'--train_data_dir="train_pictures" '
                 r'--resolution="512,512" '
-                r'--output_dir="Lora_path" '
+                r'--output_dir="../stable-diffusion-webui/models/Lora" '
                 r'--logging_dir="logs" '
                 r'--network_alpha="128" '
                 r'--save_model_as=safetensors '
@@ -65,7 +64,7 @@ class TrainModel:
                 r'--lr_scheduler="cosine_with_restarts" '
                 r'--lr_warmup_steps="675" '
                 r'--train_batch_size="1" '
-                f'--max_train_steps="{self.max_train_steps}" '
+                f'--max_train_steps="{max_step}" '
                 r'--save_every_n_epochs="1" '
                 r'--mixed_precision="fp16" '
                 r'--save_precision="fp16" '

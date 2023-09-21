@@ -18,7 +18,8 @@ if __name__ == '__main__':
     background_image2 = Image.open("lllll/00012-0-1P616194618-4.png")
 
     create_list = [
-        {'style_photo': style_photo1, "background_image": background_image1, 'promote': 'black suit, white T-shirt,red tie,',
+        {'style_photo': style_photo1, "background_image": background_image1,
+         'promote': 'black suit, white T-shirt,red tie,',
          'quantity': 5},
         {'style_photo': style_photo2, "background_image": background_image2, 'promote': 'white suit,blue tie',
          'quantity': 3}
@@ -32,7 +33,8 @@ if __name__ == '__main__':
 
     # 调用 generate_photos 方法进行图片生成
     generation_result = photo_creator.generate_photos(user_info, main_photo, create_list, progress_temp_dir,
-                                                      result_save_dir)
+                                                      result_save_dir,
+                                                      lora_path="/home/tt/Downloads/LoRA/model/AnneH728-000005.safetensors")
 
     # 处理生成结果
     generated_photos = generation_result.generated_photos

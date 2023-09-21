@@ -1,6 +1,5 @@
 train_config:
-  max_train_steps: 5000
-  output_dir: "Lora_path"
+  max_train_steps: 10000
 
 
 create_config:
@@ -28,7 +27,7 @@ create_config:
   Prompt:
     "wallpaper"
   NPrompt:
-    "(worst quality:1.6, low quality:1.6), (zombie, sketch, interlocked fingers, comic)"
+    "cartoon, painting, illustration, asian, chinese,(worst quality, low quality, normal quality:2)"
 
   Chekpoint:
     #  "sd_xl_refiner_1.0.safetensors [7440042bbd]"

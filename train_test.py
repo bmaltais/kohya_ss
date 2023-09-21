@@ -9,7 +9,6 @@ if __name__ == '__main__':
     # 准备训练所需的参数
     user_info = {'user_id': 123456, 'promote': 'feature_value'}
 
-
     main_photo_path = 'lllll/TfwVAbyX_400x400.jpg'
     main_photo = Image.open(main_photo_path)
     train_photo_list = []
@@ -24,11 +23,10 @@ if __name__ == '__main__':
     # 调用 train 方法进行模型训练
     print(type(train_photo_list[0]))
 
-    training_result = trainer.train(user_info, main_photo, train_photo_list, progress_dir, return_model)
+    training_result = trainer.train(user_info, main_photo, train_photo_list, progress_dir, return_model, max_step=5520)
 
     # 打印训练结果
     print("User Info:", training_result.user_info)
     print("Model Save Path:", training_result.model_save_path)
     if training_result.model_file:
         print("Model File:", training_result.model_file)
-
