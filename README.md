@@ -533,6 +533,9 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
 
 ## Change History
 
+* 2023/09/23 (v21.8.10)
+  - Minor point upgrade. Mostly adding a new preset.
+  
 * 2023/08/05 (v21.8.9)
   - Update sd-script to caode as of Sept 3 2023
     * ControlNet-LLLite is added. See documentation for details.
@@ -541,4 +544,4 @@ If you come across a `FileNotFoundError`, it is likely due to an installation is
     * Input perturbation noise is added. See #798 for details.
     * Dataset subset now has caption_prefix and caption_suffix options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in .toml.
     * Other minor changes.
-  - Added support fir Chinese locallisation
+  - Added support for Chinese locallisation
