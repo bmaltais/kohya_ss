@@ -22,7 +22,14 @@ __Stable Diffusion web UI now seems to support LoRA trained by ``sd-scripts``.__
 
 The feature of SDXL training is now available in sdxl branch as an experimental feature. 
 
-Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+Sep 24, 2023: The feature will be merged into the main branch very soon. Following are the changes from the previous version. 
+
+- `accelerate` is updated to 0.23.0, and `diffusers` is updated to 0.21.2. Dependency for `invisible-watermark` is removed. Please update them with the upgrade instructions below.
+- Intel ARC support with IPEX is added. [#825](https://github.com/kohya-ss/sd-scripts/pull/825)
+- Other changes and fixes.
+- Thanks for contributions from Disty0, sdbds, jvkap, rockerBOO, Symbiomatrix and others!
+
+Sep 3, 2023: 
 
 - ControlNet-LLLite is added. See [documentation](./docs/train_lllite_README.md) for details.
 - JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
