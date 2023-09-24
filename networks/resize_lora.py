@@ -283,8 +283,8 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
 
 
 def resize(args):
-  if args.save_to is None or not (args.save_to.endswith('.ckpt') or args.save_to.endswith('.safetensors')):
-    raise Exception("The --save_to argument must be specified and must be a .ckpt or .safetensors file.")
+  if args.save_to is None or not (args.save_to.endswith('.ckpt') or args.save_to.endswith('.pt') or args.save_to.endswith('.pth') or args.save_to.endswith('.safetensors')):
+    raise Exception("The --save_to argument must be specified and must be a .ckpt , .pt, .pth or .safetensors file.")
 
     
   def str_to_dtype(p):
