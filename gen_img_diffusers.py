@@ -3152,7 +3152,7 @@ def main(args):
                             print("predefined seeds are exhausted")
                             seed = None
                     elif args.iter_same_seed:
-                        seeds = iter_seed
+                        seed = iter_seed
                     else:
                         seed = None  # 前のを消す
 
