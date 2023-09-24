@@ -3,13 +3,6 @@ import os
 
 import regex
 import torch
-try:
-    import intel_extension_for_pytorch as ipex
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
-        ipex_init()
-except Exception:
-    pass
 import open_clip
 from library import sdxl_model_util, sdxl_train_util, train_util
 
