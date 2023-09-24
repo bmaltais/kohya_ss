@@ -576,12 +576,12 @@ def train_model(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    if stop_text_encoder_training_pct > 0:
-        output_message(
-            msg='Output "stop text encoder training" is not yet supported. Ignoring',
-            headless=headless_bool,
-        )
-        stop_text_encoder_training_pct = 0
+    # if stop_text_encoder_training_pct > 0:
+    #     output_message(
+    #         msg='Output "stop text encoder training" is not yet supported. Ignoring',
+    #         headless=headless_bool,
+    #     )
+    #     stop_text_encoder_training_pct = 0
 
     if check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless_bool
