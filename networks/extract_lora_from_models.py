@@ -14,7 +14,7 @@ import lora
 
 
 CLAMP_QUANTILE = 0.99
-MIN_DIFF = 1e-4
+MIN_DIFF = 1e-1
 
 
 def save_to_file(file_name, model, state_dict, dtype):
@@ -200,7 +200,7 @@ def svd(args):
     if not args.no_metadata:
         title = os.path.splitext(os.path.basename(args.save_to))[0]
         sai_metadata = sai_model_spec.build_metadata(
-            None, args.v2, args.v_parameterization, False, True, False, time.time(), title=title
+            None, args.v2, args.v_parameterization, args.sdxl, True, False, time.time(), title=title
         )
         metadata.update(sai_metadata)
 
