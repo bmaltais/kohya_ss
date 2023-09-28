@@ -144,7 +144,7 @@ def ipex_init(): # pylint: disable=too-many-statements
         ipex._C._DeviceProperties.minor = 2
 
         #Fix functions with ipex:
-        torch.cuda.mem_get_info = lambda device=None: [(torch.xpu.get_device_properties(device).total_memory - torch.xpu.memory_allocated(device)), torch.xpu.get_device_properties(device).total_memory]
+        torch.cuda.mem_get_info = lambda device=None: [(torch.xpu.get_device_properties(device).total_memory - torch.xpu.memory_reserved(device)), torch.xpu.get_device_properties(device).total_memory]
         torch._utils._get_available_device_type = lambda: "xpu"
         torch.has_cuda = True
         torch.cuda.has_half = True
@@ -156,7 +156,6 @@ def ipex_init(): # pylint: disable=too-many-statements
         torch.cuda.get_device_properties.minor = 7
         torch.cuda.ipc_collect = lambda *args, **kwargs: None
         torch.cuda.utilization = lambda *args, **kwargs: 0
-        # getDeviceIdListForCard is renamed since https://github.com/intel/intel-extension-for-pytorch/commit/835b41fd5c8b6facf9efee8312f20699850ee592
         if hasattr(torch.xpu, 'getDeviceIdListForCard'):
             torch.cuda.getDeviceIdListForCard = torch.xpu.getDeviceIdListForCard
             torch.cuda.get_device_id_list_per_card = torch.xpu.getDeviceIdListForCard
