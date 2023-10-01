@@ -625,6 +625,29 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+* 2023/10/01 (v22.0.0)
+  - Merging main branch of sd-scripts:
+    - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
+      - The main items are set automatically. 
+      - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
+      - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
+      - Metadata editor will be available soon.
+
+    - `--v_pred_like_loss ratio` option is added. This option adds the loss like v-prediction loss in SDXL training. `0.1` means that the loss is added 10% of the v-prediction loss. The default value is None (disabled).
+      - In v-prediction, the loss is higher in the early timesteps (near the noise). This option can be used to increase the loss in the early timesteps.
+
+    - Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
+
+    - LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
+    - JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+    - Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
+    - Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
+    - Intel ARC support with IPEX is added. [#825](https://github.com/kohya-ss/sd-scripts/pull/825)
+    - Other bug fixes and improvements.
+  - New SDXL presets
+  - Update wandb module version
+  - Add support for Chinese zh-CN localisation. You can use it with `.\gui.bat --language=zh-CN`
+
 * 2023/09/23 (v21.8.10)
   - Minor point upgrade. Mostly adding a new preset.
   
