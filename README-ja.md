@@ -1,3 +1,7 @@
+SDXLがサポートされました。sdxlブランチはmainブランチにマージされました。リポジトリを更新したときにはUpgradeの手順を実行してください。また accelerate のバージョンが上がっていますので、accelerate config を再度実行してください。
+
+SDXL学習については[こちら](./README.md#sdxl-training)をご覧ください（英語です）。
+
 ## リポジトリについて
 Stable Diffusionの学習、画像生成、その他のスクリプトを入れたリポジトリです。
 
@@ -9,12 +13,11 @@ GUIやPowerShellスクリプトなど、より使いやすくする機能が[bma
 
 * DreamBooth、U-NetおよびText Encoderの学習をサポート
 * fine-tuning、同上
+* LoRAの学習をサポート
 * 画像生成
 * モデル変換（Stable Diffision ckpt/safetensorsとDiffusersの相互変換）
 
 ## 使用法について
-
-当リポジトリ内およびnote.comに記事がありますのでそちらをご覧ください（将来的にはすべてこちらへ移すかもしれません）。
 
 * [学習について、共通編](./docs/train_README-ja.md) : データ整備やオプションなど
     * [データセット設定](./docs/config_README-ja.md)
@@ -41,11 +44,13 @@ PowerShellを使う場合、venvを使えるようにするためには以下の
 
 ## Windows環境でのインストール
 
-以下の例ではPyTorchは1.12.1／CUDA 11.6版をインストールします。CUDA 11.3版やPyTorch 1.13を使う場合は適宜書き換えください。
+スクリプトはPyTorch 2.0.1でテストしています。PyTorch 1.12.1でも動作すると思われます。
+
+以下の例ではPyTorchは2.0.1／CUDA 11.8版をインストールします。CUDA 11.6版やPyTorch 1.12.1を使う場合は適宜書き換えください。
 
 （なお、python -m venv～の行で「python」とだけ表示された場合、py -m venv～のようにpythonをpyに変更してください。）
 
-通常の（管理者ではない）PowerShellを開き以下を順に実行します。
+PowerShellを使う場合、通常の（管理者ではない）PowerShellを開き以下を順に実行します。
 
 ```powershell
 git clone https://github.com/kohya-ss/sd-scripts.git
@@ -54,43 +59,14 @@ cd sd-scripts
 python -m venv venv
 .\venv\Scripts\activate
 
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118
 pip install --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+pip install xformers==0.0.20
 
 accelerate config
 ```
 
-<!-- 
-pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
-pip install --use-pep517 --upgrade -r requirements.txt
-pip install -U -I --no-deps xformers==0.0.16
--->
-
-コマンドプロンプトでは以下になります。
-
-
-```bat
-git clone https://github.com/kohya-ss/sd-scripts.git
-cd sd-scripts
-
-python -m venv venv
-.\venv\Scripts\activate
-
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
-accelerate config
-```
+コマンドプロンプトでも同一です。
 
 （注:``python -m venv venv`` のほうが ``python -m venv --system-site-packages venv`` より安全そうなため書き換えました。globalなpythonにパッケージがインストールしてあると、後者だといろいろと問題が起きます。）
 
@@ -111,29 +87,40 @@ accelerate configの質問には以下のように答えてください。（bf1
 ※場合によって ``ValueError: fp16 mixed precision requires a GPU`` というエラーが出ることがあるようです。この場合、6番目の質問（
 ``What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:``）に「0」と答えてください。（id `0`のGPUが使われます。）
 
-### PyTorchとxformersのバージョンについて
+### オプション：`bitsandbytes`（8bit optimizer）を使う
 
-他のバージョンでは学習がうまくいかない場合があるようです。特に他の理由がなければ指定のバージョンをお使いください。
+`bitsandbytes`はオプションになりました。Linuxでは通常通りpipでインストールできます（0.41.1または以降のバージョンを推奨）。
 
-### オプション：Lion8bitを使う
+Windowsでは0.35.0または0.41.1を推奨します。
 
-Lion8bitを使う場合には`bitsandbytes`を0.38.0以降にアップグレードする必要があります。`bitsandbytes`をアンインストールし、Windows環境では例えば[こちら](https://github.com/jllllll/bitsandbytes-windows-webui)などからWindows版のwhlファイルをインストールしてください。たとえば以下のような手順になります。
+- `bitsandbytes` 0.35.0: 安定しているとみられるバージョンです。AdamW8bitは使用できますが、他のいくつかの8bit optimizer、学習時の`full_bf16`オプションは使用できません。
+- `bitsandbytes` 0.41.1: Lion8bit、PagedAdamW8bit、PagedLion8bitをサポートします。`full_bf16`が使用できます。
+
+注：`bitsandbytes` 0.35.0から0.41.0までのバージョンには問題があるようです。 https://github.com/TimDettmers/bitsandbytes/issues/659
+
+以下の手順に従い、`bitsandbytes`をインストールしてください。
+
+### 0.35.0を使う場合
+
+PowerShellの例です。コマンドプロンプトではcpの代わりにcopyを使ってください。
 
 ```powershell
-pip install https://github.com/jllllll/bitsandbytes-windows-webui/raw/main/bitsandbytes-0.38.1-py3-none-any.whl
+cd sd-scripts
+.\venv\Scripts\activate
+pip install bitsandbytes==0.35.0
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 ```
 
-アップグレード時には`pip install .`でこのリポジトリを更新し、必要に応じて他のパッケージもアップグレードしてください。
+### 0.41.1を使う場合
 
-### オプション：PagedAdamW8bitとPagedLion8bitを使う
-
-PagedAdamW8bitとPagedLion8bitを使う場合には`bitsandbytes`を0.39.0以降にアップグレードする必要があります。`bitsandbytes`をアンインストールし、Windows環境では例えば[こちら](https://github.com/jllllll/bitsandbytes-windows-webui)などからWindows版のwhlファイルをインストールしてください。たとえば以下のような手順になります。
+jllllll氏の配布されている[こちら](https://github.com/jllllll/bitsandbytes-windows-webui) または他の場所から、Windows用のwhlファイルをインストールしてください。
 
 ```powershell
-pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
+python -m pip install bitsandbytes==0.41.1 --prefer-binary --extra-index-url=https://jllllll.github.io/bitsandbytes-windows-webui
 ```
-
-アップグレード時には`pip install .`でこのリポジトリを更新し、必要に応じて他のパッケージもアップグレードしてください。
 
 ## アップグレード
 
