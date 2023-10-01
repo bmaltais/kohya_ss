@@ -78,8 +78,8 @@ def train(args):
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
-    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
-    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
+    ds_for_collator = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collator = train_util.collator_class(current_epoch, current_step, ds_for_collator)
 
     if args.no_token_padding:
         train_dataset_group.disable_token_padding()
@@ -177,7 +177,7 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collater,
+        collate_fn=collator,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
