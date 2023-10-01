@@ -547,17 +547,13 @@ def generate_controlnet_subsets_config_by_subdirs(train_data_dir: Optional[str] 
       return []
 
     subsets_config = []
-    for subdir in base_dir.iterdir():
-      if not subdir.is_dir():
-        continue
-
-      subset_config = {"image_dir": str(subdir), "conditioning_data_dir": conditioning_data_dir, "caption_extension": caption_extension, "num_repeats": 1}
-      subsets_config.append(subset_config)
+    subset_config = {"image_dir": train_data_dir, "conditioning_data_dir": conditioning_data_dir, "caption_extension": caption_extension, "num_repeats": 1}
+    subsets_config.append(subset_config)
 
     return subsets_config
 
   subsets_config = []
-  subsets_config += generate(train_data_dir, False)
+  subsets_config += generate(train_data_dir)
 
   return subsets_config
 
