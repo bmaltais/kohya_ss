@@ -426,7 +426,10 @@ class NetworkTrainer:
                 t_enc.train()
 
                 # set top parameter requires_grad = True for gradient checkpointing works
-                t_enc.text_model.embeddings.requires_grad_(True)
+                if train_text_encoder:
+                    t_enc.text_model.embeddings.requires_grad_(True)
+                else:
+                    unet.parameters().__next__().requires_grad_(True)
         else:
             unet.eval()
             for t_enc in text_encoders:
