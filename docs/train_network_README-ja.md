@@ -181,6 +181,8 @@ python networks\extract_lora_from_dylora.py --model "foldername/dylora-model.saf
 
 詳細は[PR #355](https://github.com/kohya-ss/sd-scripts/pull/355) をご覧ください。
 
+SDXLは現在サポートしていません。
+
 フルモデルの25個のブロックの重みを指定できます。最初のブロックに該当するLoRAは存在しませんが、階層別LoRA適用等との互換性のために25個としています。またconv2d3x3に拡張しない場合も一部のブロックにはLoRAが存在しませんが、記述を統一するため常に25個の値を指定してください。
 
 `--network_args` で以下の引数を指定してください。
@@ -246,6 +248,8 @@ network_args = [ "block_dims=2,4,4,4,8,8,8,8,12,12,12,12,16,12,12,12,12,8,8,8,8,
 
 merge_lora.pyでStable DiffusionのモデルにLoRAの学習結果をマージしたり、複数のLoRAモデルをマージしたりできます。
 
+SDXL向けにはsdxl_merge_lora.pyを用意しています。オプション等は同一ですので、以下のmerge_lora.pyを読み替えてください。
+
 ### Stable DiffusionのモデルにLoRAのモデルをマージする
 
 マージ後のモデルは通常のStable Diffusionのckptと同様に扱えます。たとえば以下のようなコマンドラインになります。
@@ -276,28 +280,28 @@ python networks\merge_lora.py --sd_model ..\model\model.ckpt
 
 ### 複数のLoRAのモデルをマージする
 
-__複数のLoRAをマージする場合は原則として `svd_merge_lora.py` を使用してください。__ 単純なup同士やdown同士のマージでは、計算結果が正しくなくなるためです。
-
-`merge_lora.py` によるマージは差分抽出法でLoRAを生成する場合等、ごく限られた場合でのみ有効です。
+--concatオプションを指定すると、複数のLoRAを単純に結合して新しいLoRAモデルを作成できます。ファイルサイズ（およびdim/rank）は指定したLoRAの合計サイズになります（マージ時にdim (rank)を変更する場合は `svd_merge_lora.py` を使用してください）。
 
 たとえば以下のようなコマンドラインになります。
 
 ```
-python networks\merge_lora.py 
+python networks\merge_lora.py --save_precision bf16 
     --save_to ..\lora_train1\model-char1-style1-merged.safetensors 
-    --models ..\lora_train1\last.safetensors ..\lora_train2\last.safetensors --ratios 0.6 0.4
+    --models ..\lora_train1\last.safetensors ..\lora_train2\last.safetensors 
+    --ratios 1.0 -1.0 --concat --shuffle
 ```
 
---sd_modelオプションは指定不要です。
+--concatオプションを指定します。
+
+また--shuffleオプションを追加し、重みをシャッフルします。シャッフルしないとマージ後のLoRAから元のLoRAを取り出せるため、コピー機学習などの場合には学習元データが明らかになります。ご注意ください。
 
 --save_toオプションにマージ後のLoRAモデルの保存先を指定します（.ckptまたは.safetensors、拡張子で自動判定）。
 
 --modelsに学習したLoRAのモデルファイルを指定します。三つ以上も指定可能です。
 
---ratiosにそれぞれのモデルの比率（どのくらい重みを元モデルに反映するか）を0~1.0の数値で指定します。二つのモデルを一対一でマージす場合は、「0.5 0.5」になります。「1.0 1.0」では合計の重みが大きくなりすぎて、恐らく結果はあまり望ましくないものになると思われます。
+--ratiosにそれぞれのモデルの比率（どのくらい重みを元モデルに反映するか）を0~1.0の数値で指定します。二つのモデルを一対一でマージする場合は、「0.5 0.5」になります。「1.0 1.0」では合計の重みが大きくなりすぎて、恐らく結果はあまり望ましくないものになると思われます。
 
 v1で学習したLoRAとv2で学習したLoRA、rank（次元数）の異なるLoRAはマージできません。U-NetだけのLoRAとU-Net+Text EncoderのLoRAはマージできるはずですが、結果は未知数です。
-
 
 ### その他のオプション
 
@@ -306,6 +310,7 @@ v1で学習したLoRAとv2で学習したLoRA、rank（次元数）の異なるL
 * save_precision
   * モデル保存時の精度をfloat、fp16、bf16から指定できます。省略時はprecisionと同じ精度になります。
 
+他にもいくつかのオプションがありますので、--helpで確認してください。
 
 ## 複数のrankが異なるLoRAのモデルをマージする
 
