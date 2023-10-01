@@ -12,4 +12,4 @@ nd="nd"
 
 
 [files]
-extend-exclude = ["_typos.toml"]
+extend-exclude = ["_typos.toml", "venv"]
