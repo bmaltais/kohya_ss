@@ -647,6 +647,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - New SDXL presets
   - Update wandb module version
   - Add support for Chinese zh-CN localisation. You can use it with `.\gui.bat --language=zh-CN`
+  - Add presets support to `Finetuning`. You can add your own finetuning user presets under the `/presets/finetune/user_presets` folder.
 
 * 2023/09/23 (v21.8.10)
   - Minor point upgrade. Mostly adding a new preset.
