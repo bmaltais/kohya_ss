@@ -78,7 +78,7 @@ def check_torch():
             ]:
                 if hasattr(torch, "xpu") and torch.xpu.is_available():
                     log.info(
-                        f'Torch detected GPU: Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
+                        f'Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
                     )
                 else:
                     log.info(
