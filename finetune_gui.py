@@ -180,6 +180,7 @@ def save_configuration(
 
 def open_configuration(
     ask_for_file,
+    apply_preset,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -267,11 +268,27 @@ def open_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    training_preset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
 
     ask_for_file = True if ask_for_file.get('label') == 'True' else False
+    apply_preset = True if apply_preset.get('label') == 'True' else False
+
+    # Check if we are "applying" a preset or a config
+    if apply_preset:
+        log.info(f'Applying preset {training_preset}...')
+        file_path = f'./presets/finetune/{training_preset}.json'
+    else:
+        # If not applying a preset, set the `training_preset` field to an empty string
+        # Find the index of the `training_preset` parameter using the `index()` method
+        training_preset_index = parameters.index(
+            ('training_preset', training_preset)
+        )
+
+        # Update the value of `training_preset` by directly assigning an empty string value
+        parameters[training_preset_index] = ('training_preset', '')
 
     original_file_path = file_path
 
@@ -291,9 +308,10 @@ def open_configuration(
 
     values = [file_path]
     for key, value in parameters:
+        json_value = my_data.get(key)
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'file_path']:
-            values.append(my_data.get(key, value))
+        if not key in ['ask_for_file', 'apply_preset', 'file_path']:
+            values.append(json_value if json_value is not None else value)
     return tuple(values)
 
 
@@ -808,6 +826,31 @@ def finetune_tab(headless=False):
                         label='Weighted captions', value=False
                     )
         with gr.Tab('Parameters'):
+            
+            def list_presets(path):
+                json_files = []
+
+                for file in os.listdir(path):
+                    if file.endswith('.json'):
+                        json_files.append(os.path.splitext(file)[0])
+
+                user_presets_path = os.path.join(path, 'user_presets')
+                if os.path.isdir(user_presets_path):
+                    for file in os.listdir(user_presets_path):
+                        if file.endswith('.json'):
+                            preset_name = os.path.splitext(file)[0]
+                            json_files.append(
+                                os.path.join('user_presets', preset_name)
+                            )
+
+                return json_files
+
+            training_preset = gr.Dropdown(
+                label='Presets',
+                choices=list_presets('./presets/finetune'),
+                elem_id='myDropdown',
+            )
+            
             with gr.Tab('Basic', elem_id='basic_tab'):
                 basic_training = BasicTraining(
                     learning_rate_value='1e-5', finetuning=True
@@ -960,6 +1003,53 @@ def finetune_tab(headless=False):
             advanced_training.max_timestep,
         ]
 
+        config.button_open_config.click(
+            open_configuration,
+            inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[config.config_file_name]
+            + settings_list
+            + [training_preset],
+            show_progress=False,
+        )
+
+        # config.button_open_config.click(
+        #     open_configuration,
+        #     inputs=[dummy_db_true, dummy_db_false, config.config_file_name] + settings_list,
+        #     outputs=[config.config_file_name] + settings_list,
+        #     show_progress=False,
+        # )
+
+        config.button_load_config.click(
+            open_configuration,
+            inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[config.config_file_name]
+            + settings_list
+            + [training_preset],
+            show_progress=False,
+        )
+
+        # config.button_load_config.click(
+        #     open_configuration,
+        #     inputs=[dummy_db_false, config.config_file_name] + settings_list,
+        #     outputs=[config.config_file_name] + settings_list,
+        #     show_progress=False,
+        # )
+
+        training_preset.input(
+            open_configuration,
+            inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
+            + settings_list
+            + [training_preset],
+            outputs=[gr.Textbox()]
+            + settings_list
+            + [training_preset],
+            show_progress=False,
+        )
+
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
@@ -971,20 +1061,6 @@ def finetune_tab(headless=False):
         button_print.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_true] + settings_list,
-            show_progress=False,
-        )
-
-        config.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
-            show_progress=False,
-        )
-
-        config.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
             show_progress=False,
         )
 
