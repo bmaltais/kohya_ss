@@ -1,9 +1,9 @@
 accelerate==0.23.0
-diffusers[torch]==0.21.4
 # albumentations==1.3.0
 aiofiles==23.2.1
 altair==4.2.2
 dadaptation==3.1
+diffusers[torch]==0.21.4
 easygui==0.98.3
 einops==0.6.0
 fairscale==0.4.13
