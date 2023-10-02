@@ -69,7 +69,7 @@ else
     fi
 fi
 
-#Set OneAPI environmet if it's not set by the user
+#Set OneAPI if it's not set by the user
 if [[ "$@" == *"--use-ipex"* ]]
 then
     echo "Setting OneAPI environment"
