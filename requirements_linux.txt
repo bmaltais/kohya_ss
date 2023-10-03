@@ -1,4 +1,6 @@
-torch==2.0.1+cu118 torchvision==0.15.2+cu118 --extra-index-url https://download.pytorch.org/whl/cu118 # no_verify leave this to specify not checking this a verification stage
-xformers==0.0.21 bitsandbytes==0.41.1
-tensorboard==2.12.3 tensorflow==2.12.0
+torch==2.1.0+cu121 torchvision==0.16.0+cu121 --extra-index-url https://download.pytorch.org/whl/cu121 # no_verify leave this to specify not checking this a verification stage
+xformers==0.0.22
+bitsandbytes==0.41.1
+tensorboard==2.14.1
+tensorflow==2.14.0
 -r requirements.txt
