@@ -10,7 +10,7 @@ from library.class_lora_tab import LoRATools
 
 import os
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()

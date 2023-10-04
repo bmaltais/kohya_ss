@@ -41,7 +41,7 @@ from library.dreambooth_folder_creation_gui import (
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
