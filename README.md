@@ -627,7 +627,13 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 * 2023/10/08 (v22.1.0)
   - Remove support for torch 1 to align with kohya_ss sd-scripts code base.
-
+  - Add Intel ARC GPU support with IPEX support on Linuix / WSL
+    - Users needs to set these manually:
+      * Mixed precision to BF16,
+      * Attention to SDPA,
+      * Optimizer to: AdamW (or any other non 8 bit one).
+    - Run setup with: `./setup.sh --use-ipex`
+    - Run the GUI with: `./gui.sh --use-ipex`
 * 2023/10/01 (v22.0.0)
   - Merging main branch of sd-scripts:
     - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
