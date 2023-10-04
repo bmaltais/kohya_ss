@@ -625,6 +625,9 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+* 2023/10/08 (v22.1.0)
+  - Remove support for torch 1 to align with kohya_ss sd-scripts code base.
+
 * 2023/10/01 (v22.0.0)
   - Merging main branch of sd-scripts:
     - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
@@ -648,16 +651,3 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - Update wandb module version
   - Add support for Chinese zh-CN localisation. You can use it with `.\gui.bat --language=zh-CN`
   - Add presets support to `Finetuning`. You can add your own finetuning user presets under the `/presets/finetune/user_presets` folder.
-
-* 2023/09/23 (v21.8.10)
-  - Minor point upgrade. Mostly adding a new preset.
-  
-* 2023/08/05 (v21.8.9)
-  - Update sd-script to caode as of Sept 3 2023
-    * ControlNet-LLLite is added. See documentation for details.
-    * JPEG XL is supported. #786
-    * Peak memory usage is reduced. #791
-    * Input perturbation noise is added. See #798 for details.
-    * Dataset subset now has caption_prefix and caption_suffix options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in .toml.
-    * Other minor changes.
-  - Added support for Chinese locallisation

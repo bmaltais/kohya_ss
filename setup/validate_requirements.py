@@ -110,10 +110,7 @@ def main():
     if args.requirements:
         setup_common.install_requirements(args.requirements, check_no_verify_flag=True)
     else:
-        if torch_ver == 1:
-            setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=True)
-        else:
-            setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=True)
+        setup_common.install_requirements('requirements_windows_torch2.txt', check_no_verify_flag=True)
 
 
 if __name__ == '__main__':
