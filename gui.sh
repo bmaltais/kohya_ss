@@ -59,10 +59,30 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     fi
 else
     if [ "$RUNPOD" = false ]; then
-        REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+        if [[ "$@" == *"--use-ipex"* ]]; then
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_ipex.txt"
+        else
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+        fi
     else
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_runpod.txt"
     fi
+fi
+
+#Set OneAPI if it's not set by the user
+if [[ "$@" == *"--use-ipex"* ]]
+then
+    echo "Setting OneAPI environment"
+    if [ ! -x "$(command -v sycl-ls)" ]
+    then
+        if [[ -z "$ONEAPI_ROOT" ]]
+        then
+            ONEAPI_ROOT=/opt/intel/oneapi
+        fi
+        source $ONEAPI_ROOT/setvars.sh
+    fi
+    export NEOReadDebugKeys=1
+    export ClDeviceGlobalMemSizeAvailablePercent=100
 fi
 
 # Validate the requirements and run the script if successful

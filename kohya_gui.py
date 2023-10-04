@@ -133,6 +133,10 @@ if __name__ == '__main__':
         '--language', type=str, default=None, help='Set custom language'
     )
 
+    parser.add_argument(
+        '--use-ipex', action='store_true', help='Use IPEX environment'
+    )
+
     args = parser.parse_args()
 
     UI(
