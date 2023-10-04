@@ -252,13 +252,13 @@ def setup_parser() -> argparse.ArgumentParser:
         "--clamp_quantile",
         type=float,
         default=1,
-        help="Quantile clamping value, float, (0-1). Defailt = 1",
+        help="Quantile clamping value, float, (0-1). Default = 1",
     )
     parser.add_argument(
         "--min_diff",
         type=float,
         default=1,
-        help="Minimum difference betwen finetuned model and base to consider them different enough to extract, float, (0-1). Defailt = 0.01",
+        help="Minimum difference between finetuned model and base to consider them different enough to extract, float, (0-1). Default = 0.01",
     )
     parser.add_argument(
         "--no_metadata",

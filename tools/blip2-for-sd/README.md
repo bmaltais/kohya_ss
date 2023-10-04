@@ -4,7 +4,7 @@ source: https://github.com/Talmendo/blip2-for-sd
 
 Simple script to make BLIP2 output image description in a format suitable for Stable Diffusion.
 
-Format followd is roughly
+Format followed is roughly
 `[STYLE OF PHOTO] photo of a [SUBJECT], [IMPORTANT FEATURE], [MORE DETAILS], [POSE OR ACTION], [FRAMING], [SETTING/BACKGROUND], [LIGHTING], [CAMERA ANGLE], [CAMERA PROPERTIES],in style of [PHOTOGRAPHER]`
 
 ## Usage
