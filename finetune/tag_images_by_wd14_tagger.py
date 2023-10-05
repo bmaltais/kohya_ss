@@ -176,7 +176,7 @@ def main(args):
                     with open(caption_file, "rt", encoding="utf-8") as f:
 
                         # Read file and remove new lines
-                        existing_content = f.read().strip("\n")  # Remove trailing comma, whitespace, and newlines
+                        existing_content = f.read().strip("\n")  # Remove newlines
 
                         # Split the content into tags and store them in a list
                         existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
