@@ -165,12 +165,35 @@ def main(args):
             if len(character_tag_text) > 0:
                 character_tag_text = character_tag_text[2:]
 
+            caption_file = os.path.splitext(image_path)[0] + args.caption_extension
+
             tag_text = ", ".join(combined_tags)
 
-            with open(os.path.splitext(image_path)[0] + args.caption_extension, "wt", encoding="utf-8") as f:
+            if args.append_captions:
+                # Check if file exists
+                if os.path.exists(caption_file):
+
+                    with open(caption_file, "rt", encoding="utf-8") as f:
+
+                        # Read file and remove new lines
+                        existing_content = f.read().strip("\n")  # Remove trailing comma, whitespace, and newlines
+
+                        # Split the content into tags and store them in a list
+                        existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
+
+                    # Check and remove repeating tags in tag_text
+                    tag_text = ", ".join([tag for tag in combined_tags if tag not in existing_tags])
+
+                    # If the file has content, prepend a comma to tag_text
+                    if existing_content.strip() and tag_text:
+                        tag_text = ", ".join(existing_tags) + ", " + tag_text
+
+
+            with open(caption_file, "wt", encoding="utf-8") as f:
                 f.write(tag_text + "\n")
                 if args.debug:
-                    print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
+                    print(
+                        f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
 
     # 読み込みの高速化のためにDataLoaderを使うオプション
     if args.max_data_loader_n_workers is not None:
@@ -282,7 +305,9 @@ def setup_parser() -> argparse.ArgumentParser:
         default="",
         help="comma-separated list of undesired tags to remove from the output / 出力から除外したいタグのカンマ区切りのリスト",
     )
-    parser.add_argument("--frequency_tags", action="store_true", help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
+    parser.add_argument("--frequency_tags", action="store_true",
+                        help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
+    parser.add_argument("--append_captions", action="store_true", help="Append captions instead of overwriting")
 
     return parser
 
