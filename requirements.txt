@@ -22,6 +22,7 @@ huggingface-hub==0.15.1
 # for WD14 captioning (tensroflow or onnx)
 # tensorflow==2.10.1
 # onnx==1.14.1
+# onnxruntime-gpu==1.16.0
 # onnxruntime==1.16.0
 # open clip for SDXL
 open-clip-torch==2.20.0
