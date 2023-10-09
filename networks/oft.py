@@ -28,7 +28,7 @@ class OFTModule(torch.nn.Module):
     ):
         """
         dim -> num blocks
-        alpha -> constrait
+        alpha -> constraint
         """
         super().__init__()
         self.oft_name = oft_name

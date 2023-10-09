@@ -279,7 +279,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 - [OFT](https://oft.wyliu.com/) をサポートしました。
   - `sdxl_train_network.py` の`--network_module`に `networks.oft` を指定してください。使用方法は `networks.lora` と同様ですが一部のオプションは未サポートです。
   - `sdxl_gen_img.py` でも同様に  OFT を指定できます。
-  - OFT は現在 SDXL のみサポートしています。OFT は現在 transformer の Q/K/V と O を変更しますが、SD1/2 は transfomer の数が SDXL よりも極端に少ないためです。
+  - OFT は現在 SDXL のみサポートしています。OFT は現在 transformer の Q/K/V と O を変更しますが、SD1/2 は transformer の数が SDXL よりも極端に少ないためです。
   - 実装は laksjdjf 氏の [OFT実装](https://github.com/laksjdjf/sd-trainer/blob/dev/networks/lora_modules.py) を多くの部分で参考にしています。laksjdjf 氏に感謝します。
 - その他のバグ修正と改善。
 
