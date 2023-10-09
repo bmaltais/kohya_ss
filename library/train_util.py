@@ -96,8 +96,17 @@ try:
 except:
     pass
 
+# JPEG-XL on Linux
 try:
     from jxlpy import JXLImagePlugin
+
+    IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
+except:
+    pass
+
+# JPEG-XL on Windows
+try:
+    import pillow_jxl
 
     IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
 except:
