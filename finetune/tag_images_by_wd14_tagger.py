@@ -169,31 +169,26 @@ def main(args):
 
             tag_text = ", ".join(combined_tags)
 
-            if args.append_captions:
+            if args.append_tags:
                 # Check if file exists
                 if os.path.exists(caption_file):
-
                     with open(caption_file, "rt", encoding="utf-8") as f:
-
                         # Read file and remove new lines
                         existing_content = f.read().strip("\n")  # Remove newlines
 
-                        # Split the content into tags and store them in a list
-                        existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
+                    # Split the content into tags and store them in a list
+                    existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
 
                     # Check and remove repeating tags in tag_text
-                    tag_text = ", ".join([tag for tag in combined_tags if tag not in existing_tags])
+                    new_tags = [tag for tag in combined_tags if tag not in existing_tags]
 
-                    # If the file has content, prepend a comma to tag_text
-                    if existing_content.strip() and tag_text:
-                        tag_text = ", ".join(existing_tags) + ", " + tag_text
-
+                    # Create new tag_text
+                    tag_text = ", ".join(existing_tags + new_tags)
 
             with open(caption_file, "wt", encoding="utf-8") as f:
                 f.write(tag_text + "\n")
                 if args.debug:
-                    print(
-                        f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
+                    print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
 
     # 読み込みの高速化のためにDataLoaderを使うオプション
     if args.max_data_loader_n_workers is not None:
@@ -305,15 +300,15 @@ def setup_parser() -> argparse.ArgumentParser:
         default="",
         help="comma-separated list of undesired tags to remove from the output / 出力から除外したいタグのカンマ区切りのリスト",
     )
-    parser.add_argument("--frequency_tags", action="store_true",
-                        help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
-    parser.add_argument("--append_captions", action="store_true", help="Append captions instead of overwriting")
+    parser.add_argument("--frequency_tags", action="store_true", help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
+    parser.add_argument("--append_tags", action="store_true", help="Append captions instead of overwriting / 上書きではなくキャプションを追記する")
 
     return parser
 
+
 if __name__ == "__main__":
     parser = setup_parser()
-    
+
     args = parser.parse_args()
 
     # スペルミスしていたオプションを復元する
