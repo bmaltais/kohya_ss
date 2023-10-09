@@ -283,7 +283,10 @@ class NetworkTrainer:
         if args.dim_from_weights:
             network, _ = network_module.create_network_from_weights(1, args.network_weights, vae, text_encoder, unet, **net_kwargs)
         else:
-            # LyCORIS will work with this...
+            if "dropout" not in net_kwargs:
+                # workaround for LyCORIS (;^ω^)
+                net_kwargs["dropout"] = args.network_dropout
+
             network = network_module.create_network(
                 1.0,
                 args.network_dim,

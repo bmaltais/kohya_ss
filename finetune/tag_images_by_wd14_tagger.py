@@ -197,9 +197,27 @@ def main(args):
             if len(character_tag_text) > 0:
                 character_tag_text = character_tag_text[2:]
 
+            caption_file = os.path.splitext(image_path)[0] + args.caption_extension
+
             tag_text = ", ".join(combined_tags)
 
-            with open(os.path.splitext(image_path)[0] + args.caption_extension, "wt", encoding="utf-8") as f:
+            if args.append_tags:
+                # Check if file exists
+                if os.path.exists(caption_file):
+                    with open(caption_file, "rt", encoding="utf-8") as f:
+                        # Read file and remove new lines
+                        existing_content = f.read().strip("\n")  # Remove newlines
+
+                    # Split the content into tags and store them in a list
+                    existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
+
+                    # Check and remove repeating tags in tag_text
+                    new_tags = [tag for tag in combined_tags if tag not in existing_tags]
+
+                    # Create new tag_text
+                    tag_text = ", ".join(existing_tags + new_tags)
+
+            with open(caption_file, "wt", encoding="utf-8") as f:
                 f.write(tag_text + "\n")
                 if args.debug:
                     print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
@@ -316,12 +334,14 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--frequency_tags", action="store_true", help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
     parser.add_argument("--onnx", action="store_true", help="use onnx model for inference")
+    parser.add_argument("--append_tags", action="store_true", help="Append captions instead of overwriting / 上書きではなくキャプションを追記する")
 
     return parser
 
+
 if __name__ == "__main__":
     parser = setup_parser()
-    
+
     args = parser.parse_args()
 
     # スペルミスしていたオプションを復元する
