@@ -249,6 +249,40 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### Oct 9. 2023 / 2023/10/9
+
+- `tag_images_by_wd_14_tagger.py` now supports Onnx. If you use Onnx, TensorFlow is not required anymore. [#864](https://github.com/kohya-ss/sd-scripts/pull/864) Thanks to Isotr0py!
+  - `--onnx` option is added. If you use Onnx, specify `--onnx` option.
+  - Please install Onnx and other required packages. 
+    1. Uninstall TensorFlow.
+    1. `pip install tensorboard==2.14.1` This is required for the specified version of protobuf.
+    1. `pip install protobuf==3.20.3` This is required for Onnx.
+    1. `pip install onnx==1.14.1`
+    1. `pip install onnxruntime-gpu==1.16.0` or `pip install onnxruntime==1.16.0`
+- `--append_tags` option is added to `tag_images_by_wd_14_tagger.py`. This option appends the tags to the existing tags, instead of replacing them. [#858](https://github.com/kohya-ss/sd-scripts/pull/858) Thanks to a-l-e-x-d-s-9! 
+- [OFT](https://oft.wyliu.com/) is now supported.
+  - You can use `networks.oft` for the network module in `sdxl_train_network.py`.  The usage is the same as `networks.lora`. Some options are not supported.
+  - `sdxl_gen_img.py` also supports OFT as `--network_module`. 
+  - OFT only supports SDXL currently. Because current OFT tweaks Q/K/V and O in the transformer, and SD1/2 have extremely fewer transformers than SDXL.
+  - The implementation is heavily based on laksjdjf's [OFT implementation](https://github.com/laksjdjf/sd-trainer/blob/dev/networks/lora_modules.py). Thanks to laksjdjf!
+- Other bug fixes and improvements.
+
+- `tag_images_by_wd_14_tagger.py` が Onnx をサポートしました。Onnx を使用する場合は TensorFlow は不要です。[#864](https://github.com/kohya-ss/sd-scripts/pull/864) Isotr0py氏に感謝します。
+  - Onnxを使用する場合は、`--onnx` オプションを指定してください。
+  - Onnx とその他の必要なパッケージをインストールしてください。
+    1. TensorFlow をアンインストールしてください。
+    1. `pip install tensorboard==2.14.1` protobufの指定バージョンにこれが必要。
+    1. `pip install protobuf==3.20.3` Onnxのために必要。
+    1. `pip install onnx==1.14.1`
+    1. `pip install onnxruntime-gpu==1.16.0` または `pip install onnxruntime==1.16.0`
+- `tag_images_by_wd_14_tagger.py` に `--append_tags` オプションが追加されました。このオプションを指定すると、既存のタグに上書きするのではなく、新しいタグのみが既存のタグに追加されます。 [#858](https://github.com/kohya-ss/sd-scripts/pull/858) a-l-e-x-d-s-9氏に感謝します。
+- [OFT](https://oft.wyliu.com/) をサポートしました。
+  - `sdxl_train_network.py` の`--network_module`に `networks.oft` を指定してください。使用方法は `networks.lora` と同様ですが一部のオプションは未サポートです。
+  - `sdxl_gen_img.py` でも同様に  OFT を指定できます。
+  - OFT は現在 SDXL のみサポートしています。OFT は現在 transformer の Q/K/V と O を変更しますが、SD1/2 は transformer の数が SDXL よりも極端に少ないためです。
+  - 実装は laksjdjf 氏の [OFT実装](https://github.com/laksjdjf/sd-trainer/blob/dev/networks/lora_modules.py) を多くの部分で参考にしています。laksjdjf 氏に感謝します。
+- その他のバグ修正と改善。
+
 ### Oct 1. 2023 / 2023/10/1
 
 - SDXL training is now available in the main branch. The sdxl branch is merged into the main branch.
