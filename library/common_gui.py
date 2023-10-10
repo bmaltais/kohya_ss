@@ -41,8 +41,8 @@ V1_MODELS = [
 
 # define a list of substrings to search for SDXL base models
 SDXL_MODELS = [
-    'stabilityai/stable-diffusion-xl-base-0.9',
-    'stabilityai/stable-diffusion-xl-refiner-0.9',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-xl-refiner-1.0',
 ]
 
 # define a list of substrings to search for
