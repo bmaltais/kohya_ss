@@ -249,6 +249,21 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### Oct 11, 2023 / 2023/10/11
+- Fix to work `make_captions_by_git.py` with the latest version of transformers.
+- Improve `gen_img_diffusers.py` and `sdxl_gen_img.py`. Both scripts now support the following options:
+  - `--network_merge_n_models` option can be used to merge some of the models. The remaining models aren't merged, so the multiplier can be changed, and the regional LoRA also works.
+  - `--network_regional_mask_max_color_codes` is added. Now you can use up to 7 regions.
+    - When this option is specified, the mask of the regional LoRA is the color code based instead of the channel based. The value is the maximum number of the color codes (up to 7). 
+    - You can specify the mask for each LoRA by colors: 0x0000ff, 0x00ff00, 0x00ffff, 0xff0000, 0xff00ff, 0xffff00, 0xffffff.
+
+- `make_captions_by_git.py` が最新の transformers で動作するように修正しました。
+- `gen_img_diffusers.py` と `sdxl_gen_img.py` を更新し、以下のオプションを追加しました。
+  - `--network_merge_n_models` オプションで一部のモデルのみマージできます。残りのモデルはマージされないため、重みを変更したり、領域別LoRAを使用したりできます。
+  - `--network_regional_mask_max_color_codes` を追加しました。最大7つの領域を使用できます。
+    - このオプションを指定すると、領域別LoRAのマスクはチャンネルベースではなくカラーコードベースになります。値はカラーコードの最大数（最大7）です。
+    - 各LoRAに対してマスクをカラーで指定できます：0x0000ff、0x00ff00、0x00ffff、0xff0000、0xff00ff、0xffff00、0xffffff。
+
 ### Oct 9. 2023 / 2023/10/9
 
 - `tag_images_by_wd_14_tagger.py` now supports Onnx. If you use Onnx, TensorFlow is not required anymore. [#864](https://github.com/kohya-ss/sd-scripts/pull/864) Thanks to Isotr0py!
