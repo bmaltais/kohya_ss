@@ -96,8 +96,17 @@ try:
 except:
     pass
 
+# JPEG-XL on Linux
 try:
     from jxlpy import JXLImagePlugin
+
+    IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
+except:
+    pass
+
+# JPEG-XL on Windows
+try:
+    import pillow_jxl
 
     IMAGE_EXTENSIONS.extend([".jxl", ".JXL"])
 except:
@@ -4658,7 +4667,7 @@ class ImageLoadingDataset(torch.utils.data.Dataset):
 
 
 # collate_fn用 epoch,stepはmultiprocessing.Value
-class collater_class:
+class collator_class:
     def __init__(self, epoch, step, dataset):
         self.current_epoch = epoch
         self.current_step = step
