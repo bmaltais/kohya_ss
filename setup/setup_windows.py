@@ -98,31 +98,31 @@ def sync_bits_and_bytes_files():
         log.error(f'An unexpected error occurred: {e}')
 
 
-def install_kohya_ss_torch1():
-    setup_common.check_repo_version()
-    setup_common.check_python()
+# def install_kohya_ss_torch1():
+#     setup_common.check_repo_version()
+#     setup_common.check_python()
 
-    # Upgrade pip if needed
-    setup_common.install('--upgrade pip')
+#     # Upgrade pip if needed
+#     setup_common.install('--upgrade pip')
 
-    if setup_common.check_torch() == 2:
-        input(
-            f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit enter to continue...{RESET_COLOR}'
-        )
-        return
+#     if setup_common.check_torch() == 2:
+#         input(
+#             f'{YELLOW}\nTorch 2 is already installed in the venv. To install Torch 1 delete the venv and re-run setup.bat\n\nHit enter to continue...{RESET_COLOR}'
+#         )
+#         return
 
-    # setup_common.install(
-    #     'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
-    #     'torch torchvision'
-    # )
-    # setup_common.install(
-    #     'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
-    #     'xformers-0.0.14'
-    # )
-    setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=False)
-    sync_bits_and_bytes_files()
-    setup_common.configure_accelerate(run_accelerate=True)
-    # run_cmd(f'accelerate config')
+#     # setup_common.install(
+#     #     'torch==1.12.1+cu116 torchvision==0.13.1+cu116 --index-url https://download.pytorch.org/whl/cu116',
+#     #     'torch torchvision'
+#     # )
+#     # setup_common.install(
+#     #     'https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl -U -I --no-deps',
+#     #     'xformers-0.0.14'
+#     # )
+#     setup_common.install_requirements('requirements_windows_torch1.txt', check_no_verify_flag=False)
+#     sync_bits_and_bytes_files()
+#     setup_common.configure_accelerate(run_accelerate=True)
+#     # run_cmd(f'accelerate config')
 
 
 def install_kohya_ss_torch2():
@@ -132,11 +132,11 @@ def install_kohya_ss_torch2():
     # Upgrade pip if needed
     setup_common.install('--upgrade pip')
 
-    if setup_common.check_torch() == 1:
-        input(
-            f'{YELLOW}\nTorch 1 is already installed in the venv. To install Torch 2 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
-        )
-        return
+    # if setup_common.check_torch() == 1:
+    #     input(
+    #         f'{YELLOW}\nTorch 1 is already installed in the venv. To install Torch 2 delete the venv and re-run setup.bat\n\nHit any key to acknowledge.{RESET_COLOR}'
+    #     )
+    #     return
 
     # setup_common.install(
     #     'torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118',
@@ -177,23 +177,24 @@ def main_menu():
         print('')
 
         if choice == '1':
-            while True:
-                print('1. Torch 1 (legacy, no longer supported. Will be removed in v21.9.x)')
-                print('2. Torch 2 (recommended)')
-                print('3. Cancel')
-                choice_torch = input('\nEnter your choice: ')
-                print('')
+            install_kohya_ss_torch2()
+            # while True:
+            #     print('1. Torch 1 (legacy, no longer supported. Will be removed in v21.9.x)')
+            #     print('2. Torch 2 (recommended)')
+            #     print('3. Cancel')
+            #     choice_torch = input('\nEnter your choice: ')
+            #     print('')
 
-                if choice_torch == '1':
-                    install_kohya_ss_torch1()
-                    break
-                elif choice_torch == '2':
-                    install_kohya_ss_torch2()
-                    break
-                elif choice_torch == '3':
-                    break
-                else:
-                    print('Invalid choice. Please enter a number between 1-3.')
+            #     if choice_torch == '1':
+            #         install_kohya_ss_torch1()
+            #         break
+            #     elif choice_torch == '2':
+            #         install_kohya_ss_torch2()
+            #         break
+            #     elif choice_torch == '3':
+            #         break
+            #     else:
+            #         print('Invalid choice. Please enter a number between 1-3.')
         elif choice == '2':
             cudann_install()
         elif choice == '3':

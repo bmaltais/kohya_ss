@@ -41,7 +41,7 @@ from library.dreambooth_folder_creation_gui import (
 from library.dataset_balancing_gui import gradio_dataset_balancing_tab
 
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
@@ -735,7 +735,7 @@ def train_model(
             )
             return
         run_cmd += f' --network_module=lycoris.kohya'
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=lora"'
+        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=locon"'
 
     if LoRA_type == 'LyCORIS/LoHa':
         try:

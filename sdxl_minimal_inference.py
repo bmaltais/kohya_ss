@@ -101,7 +101,7 @@ if __name__ == "__main__":
         type=str,
         nargs="*",
         default=[],
-        help="LoRA weights, only supports networks.lora, each arguement is a `path;multiplier` (semi-colon separated)",
+        help="LoRA weights, only supports networks.lora, each argument is a `path;multiplier` (semi-colon separated)",
     )
     parser.add_argument("--interactive", action="store_true")
     args = parser.parse_args()

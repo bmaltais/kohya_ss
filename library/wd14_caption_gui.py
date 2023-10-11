@@ -25,6 +25,9 @@ def caption_images(
     frequency_tags,
     prefix,
     postfix,
+    onnx,
+    append_tags,
+    force_download
 ):
     # Check for images_dir_input
     if train_data_dir == '':
@@ -54,6 +57,12 @@ def caption_images(
         run_cmd += f' --remove_underscore'
     if frequency_tags:
         run_cmd += f' --frequency_tags'
+    if onnx:
+        run_cmd += f' --onnx'
+    if append_tags:
+        run_cmd += f' --append_tags'
+    if force_download:
+        run_cmd += f' --force_download'
 
     if not undesired_tags == '':
         run_cmd += f' --undesired_tags="{undesired_tags}"'
@@ -133,6 +142,20 @@ def gradio_wd14_caption_gui_tab(headless=False):
             )
 
         with gr.Row():
+            onnx = gr.Checkbox(
+                label='Use onnx',
+                value=False,
+                interactive=True,
+                info="https://github.com/onnx/onnx"
+            )
+            append_tags = gr.Checkbox(
+                label='Append TAGs',
+                value=False,
+                interactive=True,
+                info="This option appends the tags to the existing tags, instead of replacing them."
+            )
+
+        with gr.Row():
             replace_underscores = gr.Checkbox(
                 label='Replace underscores in filenames with spaces',
                 value=True,
@@ -167,6 +190,12 @@ def gradio_wd14_caption_gui_tab(headless=False):
                     'SmilingWolf/wd-v1-4-moat-tagger-v2',
                 ],
                 value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
+            )
+            
+            force_download = gr.Checkbox(
+                label='Force model re-download',
+                value=False,
+                info='Usefull to force model re download when switching to onnx',
             )
 
             general_threshold = gr.Slider(
@@ -215,6 +244,9 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 frequency_tags,
                 prefix,
                 postfix,
+                onnx,
+                append_tags,
+                force_download
             ],
             show_progress=False,
         )
