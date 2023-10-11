@@ -89,7 +89,7 @@ class CaptionProcessor:
       p_lighting = self.ask("What is the scene lighting like? For example: soft lighting, studio lighting, natural lighting", image)
       # print(p_lighting)
 
-      p_angle = self.ask("What angle is the picture taken from? Be succint, like: from the side, from below, from front", image)
+      p_angle = self.ask("What angle is the picture taken from? Be succinct, like: from the side, from below, from front", image)
       # print(p_angle)
 
       p_camera = self.ask("What kind of camera could this picture have been taken with? Be specific and guess a brand with specific camera type", image)

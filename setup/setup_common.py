@@ -394,7 +394,7 @@ def process_requirements_line(line, show_stdout: bool = False):
 
 def install_requirements(requirements_file, check_no_verify_flag=False, show_stdout: bool = False):
     if check_no_verify_flag:
-        log.info(f'Verifying modules instalation status from {requirements_file}...')
+        log.info(f'Verifying modules installation status from {requirements_file}...')
     else:
         log.info(f'Installing modules from {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:

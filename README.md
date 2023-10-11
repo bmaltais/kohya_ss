@@ -83,62 +83,62 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 ### About SDXL training
 
-The feature of SDXL training is now available in sdxl branch as an experimental feature. 
+The feature of SDXL training is now available in sdxl branch as an experimental feature.
 
-Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version. 
+Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
 
 - ControlNet-LLLite is added. See [documentation](./docs/train_lllite_README.md) for details.
-- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786)
 - Peak memory usage is reduced. [#791](https://github.com/kohya-ss/sd-scripts/pull/791)
 - Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
 - Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
 - Other minor changes.
 - Thanks for contributions from Isotr0py, vvern999, lansing  and others!
 
-Aug 13, 2023: 
+Aug 13, 2023:
 
 - LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
 
-Aug 12, 2023: 
+Aug 12, 2023:
 
 - The default value of noise offset when omitted has been changed to 0 from 0.0357.
 - The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
   - 23 values correspond to `0: time/label embed, 1-9: input blocks 0-8, 10-12: mid blocks 0-2, 13-21: output blocks 0-8, 22: out`.
 
-Aug 6, 2023: 
+Aug 6, 2023:
 
 - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
-  - The main items are set automatically. 
+  - The main items are set automatically.
   - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
   - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
   - Metadata editor will be available soon.
 - SDXL LoRA has `sdxl_base_v1-0` now  for `ss_base_model_version` metadata item, instead of `v0-9`.
 
-Aug 4, 2023: 
+Aug 4, 2023:
 
-- `bitsandbytes` is now optional. Please install it if you want to use it. The insructions are in the later section.
-- `albumentations` is not required anymore.
+- `bitsandbytes` is now optional. Please install it if you want to use it. The instructions are in the later section.
+- `albumentations` is not required any more.
 - An issue for pooled output for Textual Inversion training is fixed.
 - `--v_pred_like_loss ratio` option is added. This option adds the loss like v-prediction loss in SDXL training. `0.1` means that the loss is added 10% of the v-prediction loss. The default value is None (disabled).
   - In v-prediction, the loss is higher in the early timesteps (near the noise). This option can be used to increase the loss in the early timesteps.
 - Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
 - `sdxl_gen_imgs.py` supports batch size > 1.
-- Fix ControlNet to work with attention couple and reginal LoRA in `gen_img_diffusers.py`.
+- Fix ControlNet to work with attention couple and regional LoRA in `gen_img_diffusers.py`.
 
 Summary of the feature:
 
-- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
+- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance.
   - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
   - Please launch the script as follows:
     `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
   - This script should work with multi-GPU, but it is not tested in my environment.
 
-- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance. 
+- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance.
   - The options are almost the same as `cache_latents.py' and `sdxl_train.py'. See the help message for the usage.
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
   - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
-    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage. 
+    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage.
     - However, bitsandbytes==0.35 doesn't seem to support this. Please use a newer version of bitsandbytes or another optimizer.
     - I cannot find bitsandbytes>0.35.0 that works correctly on Windows.
     - In addition, the full bfloat16 training might be unstable. Please use it at your own risk.
@@ -159,11 +159,11 @@ Summary of the feature:
     1. Training with captions. All captions must include the token string. The token string is replaced with multiple tokens.
     2. Use `--use_object_template` or `--use_style_template` option. The captions are generated from the template. The existing captions are ignored.
   - See below for the format of the embeddings.
-  
+
 - `sdxl_gen_img.py` is added. This script can be used to generate images with SDXL, including LoRA. See the help message for the usage.
   - Textual Inversion is supported, but the name for the embeds in the caption becomes alphabet only. For example, `neg_hand_v1.safetensors` can be activated with `neghandv`.
 
-`requirements.txt` is updated to support SDXL training. 
+`requirements.txt` is updated to support SDXL training.
 
 #### Tips for SDXL training
 
@@ -184,6 +184,7 @@ Summary of the feature:
 - `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
 
 Example of the optimizer settings for Adafactor with the fixed learning rate:
+
 ```toml
 optimizer_type = "adafactor"
 optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
@@ -203,7 +204,6 @@ I would like to express my gratitude to camendutu for their valuable contributio
 | Colab                                                                                                                                                                          | Info                |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
-
 
 ## Installation
 
@@ -227,17 +227,17 @@ To set up the project, follow these steps:
 1. Open a terminal and navigate to the desired installation directory.
 
 2. Clone the repository by running the following command:
-   ```
+   ```shell
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
 3. Change into the `kohya_ss` directory:
-   ```
+   ```shell
    cd kohya_ss
    ```
 
 4. Run the setup script by executing the following command:
-   ```
+   ```shell
    .\setup.bat
    ```
 
@@ -260,7 +260,7 @@ Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on 
 To install the necessary dependencies on a Linux system, ensure that you fulfill the following requirements:
 
 - Ensure that `venv` support is pre-installed. You can install it on Ubuntu 22.04 using the command:
-  ```
+  ```shell
   apt install python3.10-venv
   ```
 
@@ -269,7 +269,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
 - Make sure you have Python version 3.10.6 or higher (but lower than 3.11.0) installed on your system.
 
 - If you are using WSL2, set the `LD_LIBRARY_PATH` environment variable by executing the following command:
-  ```
+  ```shell
   export LD_LIBRARY_PATH=/usr/lib/wsl/lib/
   ```
 
@@ -280,22 +280,22 @@ To set up the project on Linux or macOS, perform the following steps:
 1. Open a terminal and navigate to the desired installation directory.
 
 2. Clone the repository by running the following command:
-   ```
+   ```shell
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
 3. Change into the `kohya_ss` directory:
-   ```
+   ```shell
    cd kohya_ss
    ```
 
 4. If you encounter permission issues, make the `setup.sh` script executable by running the following command:
-   ```
+   ```shell
    chmod +x ./setup.sh
    ```
 
 5. Run the setup script by executing the following command:
-   ```
+   ```shell
    ./setup.sh
    ```
 
@@ -310,6 +310,7 @@ For macOS and other non-Linux systems, the installation process will attempt to 
 If you choose to use the interactive mode, the default values for the accelerate configuration screen will be "This machine," "None," and "No" for the remaining questions. These default answers are the same as the Windows installation.
 
 ### Runpod
+
 #### Manual installation
 
 To install the necessary components for Runpod and run kohya_ss, follow these steps:
@@ -319,25 +320,25 @@ To install the necessary components for Runpod and run kohya_ss, follow these st
 2. SSH into the Runpod.
 
 3. Clone the repository by running the following command:
-   ```
+   ```shell
    cd /workspace
    git clone https://github.com/bmaltais/kohya_ss.git
    ```
 
 4. Run the setup script:
-   ```
+   ```shell
    cd kohya_ss
    ./setup-runpod.sh
    ```
 
 5. Run the gui with:
-   ```
+   ```shell
    ./gui.sh --share --headless
    ```
 
    or with this if you expose 7860 directly via the runpod configuration
 
-   ```
+   ```shell
    ./gui.sh --listen=0.0.0.0 --headless
    ```
 
@@ -355,6 +356,7 @@ To run from a pre-built Runpod template you can:
 
 
 ### Docker
+
 #### Local docker build
 
 If you prefer to use Docker, follow the instructions below:
@@ -546,7 +548,7 @@ The documentation in this section will be moved to a separate document later.
 
 - `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
   - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
-    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage. 
+    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage.
     - The full bfloat16 training might be unstable. Please use it at your own risk.
   - The different learning rates for each U-Net block are now supported in sdxl_train.py. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
     - 23 values correspond to `0: time/label embed, 1-9: input blocks 0-8, 10-12: mid blocks 0-2, 13-21: output blocks 0-8, 22: out`.
@@ -571,13 +573,13 @@ The documentation in this section will be moved to a separate document later.
 
 ### Utility scripts for SDXL
 
-- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance. 
+- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance.
   - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
   - Please launch the script as follows:
     `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
   - This script should work with multi-GPU, but it is not tested in my environment.
 
-- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance. 
+- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance.
   - The options are almost the same as `cache_latents.py` and `sdxl_train.py`. See the help message for the usage.
 
 - `sdxl_gen_img.py` is added. This script can be used to generate images with SDXL, including LoRA, Textual Inversion and ControlNet-LLLite. See the help message for the usage.
@@ -601,6 +603,7 @@ The documentation in this section will be moved to a separate document later.
 - `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
 
 Example of the optimizer settings for Adafactor with the fixed learning rate:
+
 ```toml
 optimizer_type = "adafactor"
 optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
@@ -621,7 +624,6 @@ save_file(state_dict, file)
 ### ControlNet-LLLite
 
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
-
 
 ## Change History
 
@@ -654,7 +656,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 * 2023/10/01 (v22.0.0)
   - Merging main branch of sd-scripts:
     - [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
-      - The main items are set automatically. 
+      - The main items are set automatically.
       - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
       - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
       - Metadata editor will be available soon.
@@ -665,7 +667,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
     - Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
 
     - LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
-    - JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786) 
+    - JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786)
     - Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
     - Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
     - Intel ARC support with IPEX is added. [#825](https://github.com/kohya-ss/sd-scripts/pull/825)

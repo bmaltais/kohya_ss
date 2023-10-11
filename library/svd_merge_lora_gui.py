@@ -41,7 +41,7 @@ def svd_merge_lora(
         print(f"Output file '{save_to}' already exists. Aborting.")
         return
 
-    # Check if the ratio total is equal to one. If not mormalise to 1
+    # Check if the ratio total is equal to one. If not normalise to 1
     total_ratio = ratio_a + ratio_b + ratio_c + ratio_d
     if total_ratio != 1:
         ratio_a /= total_ratio
