@@ -1,16 +1,14 @@
 import argparse
 import csv
-import glob
 import os
-
-from PIL import Image
-import cv2
-from tqdm import tqdm
-import numpy as np
-from tensorflow.keras.models import load_model
-from huggingface_hub import hf_hub_download
-import torch
 from pathlib import Path
+
+import cv2
+import numpy as np
+import torch
+from huggingface_hub import hf_hub_download
+from PIL import Image
+from tqdm import tqdm
 
 import library.train_util as train_util
 
@@ -20,6 +18,7 @@ IMAGE_SIZE = 448
 # wd-v1-4-swinv2-tagger-v2 / wd-v1-4-vit-tagger / wd-v1-4-vit-tagger-v2/ wd-v1-4-convnext-tagger / wd-v1-4-convnext-tagger-v2
 DEFAULT_WD14_TAGGER_REPO = "SmilingWolf/wd-v1-4-convnext-tagger-v2"
 FILES = ["keras_metadata.pb", "saved_model.pb", "selected_tags.csv"]
+FILES_ONNX = ["model.onnx"]
 SUB_DIR = "variables"
 SUB_DIR_FILES = ["variables.data-00000-of-00001", "variables.index"]
 CSV_FILE = FILES[-1]
@@ -81,7 +80,10 @@ def main(args):
     # https://github.com/toriato/stable-diffusion-webui-wd14-tagger/issues/22
     if not os.path.exists(args.model_dir) or args.force_download:
         print(f"downloading wd14 tagger model from hf_hub. id: {args.repo_id}")
-        for file in FILES:
+        files = FILES
+        if args.onnx:
+            files += FILES_ONNX
+        for file in files:
             hf_hub_download(args.repo_id, file, cache_dir=args.model_dir, force_download=True, force_filename=file)
         for file in SUB_DIR_FILES:
             hf_hub_download(
@@ -96,7 +98,46 @@ def main(args):
         print("using existing wd14 tagger model")
 
     # 画像を読み込む
-    model = load_model(args.model_dir)
+    if args.onnx:
+        import onnx
+        import onnxruntime as ort
+
+        onnx_path = f"{args.model_dir}/model.onnx"
+        print("Running wd14 tagger with onnx")
+        print(f"loading onnx model: {onnx_path}")
+
+        if not os.path.exists(onnx_path):
+            raise Exception(
+                f"onnx model not found: {onnx_path}, please redownload the model with --force_download"
+                + " / onnxモデルが見つかりませんでした。--force_downloadで再ダウンロードしてください"
+            )
+
+        model = onnx.load(onnx_path)
+        input_name = model.graph.input[0].name
+        try:
+            batch_size = model.graph.input[0].type.tensor_type.shape.dim[0].dim_value
+        except:
+            batch_size = model.graph.input[0].type.tensor_type.shape.dim[0].dim_param
+
+        if args.batch_size != batch_size and type(batch_size) != str:
+            # some rebatch model may use 'N' as dynamic axes
+            print(
+                f"Batch size {args.batch_size} doesn't match onnx model batch size {batch_size}, use model batch size {batch_size}"
+            )
+            args.batch_size = batch_size
+
+        del model
+
+        ort_sess = ort.InferenceSession(
+            onnx_path,
+            providers=["CUDAExecutionProvider"]
+            if "CUDAExecutionProvider" in ort.get_available_providers()
+            else ["CPUExecutionProvider"],
+        )
+    else:
+        from tensorflow.keras.models import load_model
+
+        model = load_model(f"{args.model_dir}")
 
     # label_names = pd.read_csv("2022_0000_0899_6549/selected_tags.csv")
     # 依存ライブラリを増やしたくないので自力で読むよ
@@ -124,8 +165,14 @@ def main(args):
     def run_batch(path_imgs):
         imgs = np.array([im for _, im in path_imgs])
 
-        probs = model(imgs, training=False)
-        probs = probs.numpy()
+        if args.onnx:
+            if len(imgs) < args.batch_size:
+                imgs = np.concatenate([imgs, np.zeros((args.batch_size - len(imgs), IMAGE_SIZE, IMAGE_SIZE, 3))], axis=0)
+            probs = ort_sess.run(None, {input_name: imgs})[0]  # onnx output numpy
+            probs = probs[: len(path_imgs)]
+        else:
+            probs = model(imgs, training=False)
+            probs = probs.numpy()
 
         for (image_path, _), prob in zip(path_imgs, probs):
             # 最初の4つはratingなので無視する
@@ -165,9 +212,27 @@ def main(args):
             if len(character_tag_text) > 0:
                 character_tag_text = character_tag_text[2:]
 
+            caption_file = os.path.splitext(image_path)[0] + args.caption_extension
+
             tag_text = ", ".join(combined_tags)
 
-            with open(os.path.splitext(image_path)[0] + args.caption_extension, "wt", encoding="utf-8") as f:
+            if args.append_tags:
+                # Check if file exists
+                if os.path.exists(caption_file):
+                    with open(caption_file, "rt", encoding="utf-8") as f:
+                        # Read file and remove new lines
+                        existing_content = f.read().strip("\n")  # Remove newlines
+
+                    # Split the content into tags and store them in a list
+                    existing_tags = [tag.strip() for tag in existing_content.split(",") if tag.strip()]
+
+                    # Check and remove repeating tags in tag_text
+                    new_tags = [tag for tag in combined_tags if tag not in existing_tags]
+
+                    # Create new tag_text
+                    tag_text = ", ".join(existing_tags + new_tags)
+
+            with open(caption_file, "wt", encoding="utf-8") as f:
                 f.write(tag_text + "\n")
                 if args.debug:
                     print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
@@ -283,12 +348,15 @@ def setup_parser() -> argparse.ArgumentParser:
         help="comma-separated list of undesired tags to remove from the output / 出力から除外したいタグのカンマ区切りのリスト",
     )
     parser.add_argument("--frequency_tags", action="store_true", help="Show frequency of tags for images / 画像ごとのタグの出現頻度を表示する")
+    parser.add_argument("--onnx", action="store_true", help="use onnx model for inference / onnxモデルを推論に使用する")
+    parser.add_argument("--append_tags", action="store_true", help="Append captions instead of overwriting / 上書きではなくキャプションを追記する")
 
     return parser
 
+
 if __name__ == "__main__":
     parser = setup_parser()
-    
+
     args = parser.parse_args()
 
     # スペルミスしていたオプションを復元する

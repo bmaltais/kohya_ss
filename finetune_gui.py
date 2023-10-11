@@ -34,7 +34,7 @@ from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()

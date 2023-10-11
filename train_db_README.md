@@ -164,6 +164,7 @@ Each yaml file can be found at [https://github.com/Stability-AI/stablediffusion/
 # Other study options
 
 ## Supports Stable Diffusion 2.0 --v2 / --v_parameterization
+
 Specify the v2 option when using Hugging Face's stable-diffusion-2-base, and specify both the v2 and v_parameterization options when using stable-diffusion-2 or 768-v-ema.ckpt.
 
 In addition, learning SD 2.0 seems to be difficult with VRAM 12GB because the Text Encoder is getting bigger.
@@ -179,11 +180,13 @@ The following points have changed significantly in Stable Diffusion 2.0.
 Among these, 1 to 4 are adopted for base, and 1 to 5 are adopted for the one without base (768-v). Enabling 1-4 is the v2 option, and enabling 5 is the v_parameterization option.
 
 ## check training data --debug_dataset
+
 By adding this option, you can check what kind of image data and captions will be learned in advance before learning. Press Esc to exit and return to the command line.
 
 *Please note that it seems to hang when executed in an environment where there is no screen such as Colab.
 
 ## Stop training Text Encoder --stop_text_encoder_training
+
 If you specify a numerical value for the stop_text_encoder_training option, after that number of steps, only the U-Net will be trained without training the Text Encoder. In some cases, the accuracy may be improved.
 
 (Probably only the Text Encoder may overfit first, and I guess that it can be prevented, but the detailed impact is unknown.)
@@ -202,14 +205,17 @@ Use the resume option to resume training from a saved training state. Please spe
 Please note that due to the specifications of Accelerator (?), the number of epochs and global step are not saved, and it will start from 1 even when you resume.
 
 ## No tokenizer padding --no_token_padding
+
 The no_token_padding option does not pad the output of the Tokenizer (same behavior as Diffusers version of old DreamBooth).
 
 ## Training with arbitrary size images --resolution
+
 You can study outside the square. Please specify "width, height" like "448,640" in resolution. Width and height must be divisible by 64. Match the size of the training image and the regularization image.
 
 Personally, I often generate vertically long images, so I sometimes learn with "448, 640".
 
 ## Aspect Ratio Bucketing --enable_bucket / --min_bucket_reso / --max_bucket_reso
+
 It is enabled by specifying the enable_bucket option. Stable Diffusion is trained at 512x512, but also at resolutions such as 256x768 and 384x640.
 
 If you specify this option, you do not need to unify the training images and regularization images to a specific resolution. Choose from several resolutions (aspect ratios) and learn at that resolution.
@@ -224,19 +230,23 @@ When Aspect Ratio Bucketing is enabled, it may be better to prepare regularizati
 (Because the images in one batch are not biased toward training images and regularization images.
 
 ## augmentation --color_aug / --flip_aug
+
 Augmentation is a method of improving model performance by dynamically changing data during learning. Learn while subtly changing the hue with color_aug and flipping left and right with flip_aug.
 
 Since the data changes dynamically, it cannot be specified together with the cache_latents option.
 
 ## Specify data precision when saving --save_precision
+
 Specifying float, fp16, or bf16 as the save_precision option will save the checkpoint in that format (only when saving in Stable Diffusion format). Please use it when you want to reduce the size of checkpoint.
 
 ## save in any format --save_model_as
+
 Specify the save format of the model. Specify one of ckpt, safetensors, diffusers, diffusers_safetensors.
 
 When reading Stable Diffusion format (ckpt or safetensors) and saving in Diffusers format, missing information is supplemented by dropping v1.5 or v2.1 information from Hugging Face.
 
 ## Save learning log --logging_dir / --log_prefix
+
 Specify the log save destination folder in the logging_dir option. Logs in TensorBoard format are saved.
 
 For example, if you specify --logging_dir=logs, a logs folder will be created in your working folder, and logs will be saved in the date/time folder.
@@ -251,9 +261,11 @@ tensorboard --logdir=logs
 Then open your browser and go to http://localhost:6006/ to see it.
 
 ## scheduler related specification of learning rate --lr_scheduler / --lr_warmup_steps
+
 You can choose the learning rate scheduler from linear, cosine, cosine_with_restarts, polynomial, constant, constant_with_warmup with the lr_scheduler option. Default is constant. With lr_warmup_steps, you can specify the number of steps to warm up the scheduler (gradually changing the learning rate). Please do your own research for details.
 
 ## Training with fp16 gradient (experimental feature) --full_fp16
+
 The full_fp16 option will change the gradient from normal float32 to float16 (fp16) and learn (it seems to be full fp16 learning instead of mixed precision).
 As a result, it seems that the SD1.x 512x512 size can be learned with a VRAM usage of less than 8GB, and the SD2.x 512x512 size can be learned with a VRAM usage of less than 12GB.
 
@@ -269,6 +281,7 @@ The setting of the learning rate and the number of steps seems to be severe. Ple
 # Other learning methods
 
 ## Learning multiple classes, multiple identifiers
+
 The method is simple, multiple folders with ``Repetition count_<identifier> <class>`` in the training image folder, and a folder with ``Repetition count_<class>`` in the regularization image folder. Please prepare multiple
 
 For example, learning "sls frog" and "cpc rabbit" at the same time would look like this:
@@ -286,6 +299,7 @@ If you have one class and multiple targets, you can have only one regularized im
 If the number of data varies, it seems that good results can be obtained by adjusting the number of repetitions to unify the number of sheets for each class and identifier.
 
 ## Use captions in DreamBooth
+
 If you put a file with the same file name as the image and the extension .caption (you can change it in the option) in the training image and regularization image folders, the caption will be read from that file and learned as a prompt.
 
 * The folder name (identifier class) will no longer be used for training those images.

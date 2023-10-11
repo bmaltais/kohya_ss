@@ -1,6 +1,6 @@
 import os
 import gradio as gr
-import localization
+import library.localization as localization
 
 
 def file_path(fn):
@@ -16,7 +16,7 @@ def js_html_str(language):
 
 def add_javascript(language):
     if language is None:
-        print('no language')
+        # print('no language')
         return
     jsStr = js_html_str(language)
 

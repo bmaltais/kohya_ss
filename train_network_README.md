@@ -1,4 +1,4 @@
-## About learning LoRA
+# About learning LoRA
 
 [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685) (arxiv), [LoRA](https://github.com/microsoft/LoRA) (github) to Stable Applied to Diffusion.
 
@@ -96,7 +96,7 @@ Specify the save destination of the model after merging in the --save_to option 
 
 Specify the LoRA model file learned in --models. It is possible to specify more than one, in which case they will be merged in order.
 
-For --ratios, specify the application rate of each model (how much weight is reflected in the original model) with a numerical value from 0 to 1.0. For example, if it is close to overfitting, it may be better if the application rate is lowered. Specify as many as the number of models.
+For --ratios, specify the application rate of each model (how much weight is reflected in the original model) with a numerical value from 0 to 1.0. For example, if it is close to over fitting, it may be better if the application rate is lowered. Specify as many as the number of models.
 
 When specifying multiple, it will be as follows.
 
@@ -112,7 +112,7 @@ Applying multiple LoRA models one by one to the SD model and merging multiple Lo
 
 For example, a command line like:
 
-```
+```shell
 python networks\merge_lora.py
      --save_to ..\lora_train1\model-char1-style1-merged.safetensors
      --models ..\lora_train1\last.safetensors ..\lora_train2\last.safetensors --ratios 0.6 0.4
@@ -127,7 +127,6 @@ Specify the LoRA model file learned in --models. Three or more can be specified.
 For --ratios, specify the ratio of each model (how much weight is reflected in the original model) with a numerical value from 0 to 1.0. If you merge two models one-to-one, it will be "0.5 0.5". "1.0 1.0" would give too much weight to the sum, and the result would probably be less desirable.
 
 LoRA trained with v1 and LoRA trained with v2, and LoRA with different number of dimensions cannot be merged. U-Net only LoRA and U-Net+Text Encoder LoRA should be able to merge, but the result is unknown.
-
 
 ### Other Options
 
@@ -151,7 +150,8 @@ LoRA approximates the difference between two models (for example, the original m
 ### How to run scripts
 
 Please specify as follows.
-```
+
+```shell
 python networks\extract_lora_from_models.py --model_org base-model.ckpt
      --model_tuned fine-tuned-model.ckpt
      --save_to lora-weights.safetensors --dim 4
