@@ -241,7 +241,7 @@ To set up the project, follow these steps:
    .\setup.bat
    ```
 
-   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. Tfe amount of VRAM on your GPU does not have an impact on the values used.
+   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. The amount of VRAM on your GPU does not have an impact on the values used.
 
 #### Optional: CUDNN 8.6
 
