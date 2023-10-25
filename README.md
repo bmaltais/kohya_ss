@@ -368,6 +368,7 @@ If you prefer to use Docker, follow the instructions below:
    ```bash
    git clone https://github.com/bmaltais/kohya_ss.git
    cd kohya_ss
+   docker compose create
    docker compose build
    docker compose run --service-ports kohya-ss-gui
    ```
