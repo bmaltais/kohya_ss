@@ -148,6 +148,13 @@ class ImageInfo:
 
 class BucketManager:
     def __init__(self, no_upscale, max_reso, min_size, max_size, reso_steps) -> None:
+        if max_size is not None:
+            if max_reso is not None:
+                assert max_size >= max_reso[0], "the max_size should be larger than the width of max_reso"
+                assert max_size >= max_reso[1], "the max_size should be larger than the height of max_reso"
+            if min_size is not None:
+                assert max_size >= min_size, "the max_size should be larger than the min_size"
+
         self.no_upscale = no_upscale
         if max_reso is None:
             self.max_reso = None
