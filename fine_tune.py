@@ -407,7 +407,7 @@ def train(args):
 
             loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
             avr_loss: float = loss_recorder.get_moving_average()
-            logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+            logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)
 
             if global_step >= args.max_train_steps:
