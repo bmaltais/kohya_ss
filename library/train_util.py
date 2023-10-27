@@ -4700,5 +4700,6 @@ class LossRecorder:
             self.loss_list[step] = loss
         self.loss_total += loss
 
-    def get_moving_average(self) -> float:
+    @property
+    def moving_average(self) -> float:
         return self.loss_total / len(self.loss_list)
