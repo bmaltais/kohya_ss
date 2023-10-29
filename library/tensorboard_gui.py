@@ -46,12 +46,16 @@ def start_tensorboard(logging_dir, wait_time=5):
         log.error('Failed to start Tensorboard:', e)
         return
 
-    # Wait for some time to allow TensorBoard to start up
-    time.sleep(wait_time)
 
-    # Open the TensorBoard URL in the default browser
-    log.info('Opening tensorboard url in browser...')
-    webbrowser.open('http://localhost:6006')
+    # Check if DISPLAY variable is set, if it is, then open TensorBoard in browser
+    if os.environ.get('DISPLAY') is not None:
+
+        # Wait for some time to allow TensorBoard to start up
+        time.sleep(wait_time)
+
+        # Open the TensorBoard URL in the default browser
+        log.info('Opening tensorboard url in browser...')
+        webbrowser.open('http://localhost:6006')
 
 
 def stop_tensorboard():
