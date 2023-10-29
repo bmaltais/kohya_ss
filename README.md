@@ -249,6 +249,21 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### Oct 29, 2023 / 2023/10/29
+
+(To be updated)
+
+- `sdxl_train.py` now supports different learning rates for each Text Encoder.
+  - Example:
+    - `--learning_rate 1e-6`: train U-Net only
+    - `--train_text_encoder --learning_rate 1e-6`: train U-Net and two Text Encoders with the same learning rate (same as the previous version)
+    - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train U-Net and two Text Encoders with the different learning rates
+    - `--train_text_encoder --learning_rate 0 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train two Text Encoders only 
+    - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 0`: train U-Net and one Text Encoder only
+    - `--train_text_encoder --learning_rate 0 --learning_rate_te1 0 --learning_rate_te2 1e-6`: train one Text Encoder only
+- `sdxl_train.py` で、二つのText Encoderそれぞれに独立した学習率が指定できるようになりました。
+  - サンプルは上の英語版を参照してください。
+
 ### Oct 11, 2023 / 2023/10/11
 - Fix to work `make_captions_by_git.py` with the latest version of transformers.
 - Improve `gen_img_diffusers.py` and `sdxl_gen_img.py`. Both scripts now support the following options:
