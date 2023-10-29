@@ -534,6 +534,20 @@ class TextualInversionTrainer:
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
             current_epoch.value = epoch + 1
 
+            # For --sample_at_first
+            self.sample_images(
+                accelerator,
+                args,
+                epoch,
+                global_step,
+                accelerator.device,
+                vae,
+                tokenizer_or_list,
+                text_encoder_or_list,
+                unet,
+                prompt_replacement,
+            )
+
             for text_encoder in text_encoders:
                 text_encoder.train()
 

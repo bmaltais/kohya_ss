@@ -303,6 +303,9 @@ def train(args):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
+        # For --sample_at_first
+        train_util.sample_images(accelerator, args, epoch, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
+
         for m in training_models:
             m.train()
 
