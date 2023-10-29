@@ -477,6 +477,19 @@ def train(args):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
+        # For --sample_at_first
+        sdxl_train_util.sample_images(
+            accelerator,
+            args,
+            epoch,
+            global_step,
+            accelerator.device,
+            vae,
+            [tokenizer1, tokenizer2],
+            [text_encoder1, text_encoder2],
+            unet,
+        )
+
         for m in training_models:
             m.train()
 

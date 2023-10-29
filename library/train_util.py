@@ -2969,6 +2969,9 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--sample_every_n_steps", type=int, default=None, help="generate sample images every N steps / 学習中のモデルで指定ステップごとにサンプル出力する"
     )
     parser.add_argument(
+        "--sample_at_first", action='store_true', help="generate sample images before training / 学習前にサンプル出力する"
+    )
+    parser.add_argument(
         "--sample_every_n_epochs",
         type=int,
         default=None,
@@ -4429,15 +4432,19 @@ def sample_images_common(
     """
     StableDiffusionLongPromptWeightingPipelineの改造版を使うようにしたので、clip skipおよびプロンプトの重みづけに対応した
     """
-    if args.sample_every_n_steps is None and args.sample_every_n_epochs is None:
-        return
-    if args.sample_every_n_epochs is not None:
-        # sample_every_n_steps は無視する
-        if epoch is None or epoch % args.sample_every_n_epochs != 0:
+    if steps == 0:
+        if not args.sample_at_first:
             return
     else:
-        if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
+        if args.sample_every_n_steps is None and args.sample_every_n_epochs is None:
             return
+        if args.sample_every_n_epochs is not None:
+            # sample_every_n_steps は無視する
+            if epoch is None or epoch % args.sample_every_n_epochs != 0:
+                return
+        else:
+            if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
+                return
 
     print(f"\ngenerating sample images at step / サンプル画像生成 ステップ: {steps}")
     if not os.path.isfile(args.sample_prompts):
