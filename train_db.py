@@ -11,10 +11,13 @@ import toml
 
 from tqdm import tqdm
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -164,11 +167,17 @@ def train(args):
     # 学習に必要なクラスを準備する
     accelerator.print("prepare optimizer, data loader etc.")
     if train_text_encoder:
-        # wightout list, adamw8bit is crashed
-        trainable_params = list(itertools.chain(unet.parameters(), text_encoder.parameters()))
+        if args.learning_rate_te is None:
+            # wightout list, adamw8bit is crashed
+            trainable_params = list(itertools.chain(unet.parameters(), text_encoder.parameters()))
+        else:
+            trainable_params = [
+                {"params": list(unet.parameters()), "lr": args.learning_rate},
+                {"params": list(text_encoder.parameters()), "lr": args.learning_rate_te},
+            ]
     else:
         trainable_params = unet.parameters()
-    
+
     _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
     # dataloaderを準備する
@@ -461,6 +470,12 @@ def setup_parser() -> argparse.ArgumentParser:
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)
 
+    parser.add_argument(
+        "--learning_rate_te",
+        type=float,
+        default=None,
+        help="learning rate for text encoder, default is same as unet / Text Encoderの学習率、デフォルトはunetと同じ",
+    )
     parser.add_argument(
         "--no_token_padding",
         action="store_true",
