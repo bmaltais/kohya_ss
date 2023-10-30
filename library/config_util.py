@@ -51,6 +51,7 @@ class BaseSubsetParams:
   image_dir: Optional[str] = None
   num_repeats: int = 1
   shuffle_caption: bool = False
+  caption_seperator: str = ',',
   keep_tokens: int = 0
   color_aug: bool = False
   flip_aug: bool = False
