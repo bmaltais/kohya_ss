@@ -8,6 +8,7 @@ import math
 import os
 from multiprocessing import Value
 import toml
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
 from tqdm import tqdm
 import torch
@@ -326,7 +327,10 @@ def train(args):
                 else:
                     target = noise
 
-                loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                # ssim_loss = SSIM(win_size=11, win_sigma=1.5, data_range=1, size_average=True, channel=4)
+                ssim_loss =MS_SSIM(win_size=3,win_sigma=1.5, data_range=1, size_average=True, channel=4)
+                _ssim_loss = 1-ssim_loss(noise_pred.float(), target.float())
+                loss = torch.nn.functional.huber_loss(noise_pred.float(), target.float(), reduction="none") +(0.5 * _ssim_loss)
                 loss = loss.mean([1, 2, 3])
 
                 loss_weights = batch["loss_weights"]  # 各sampleごとのweight
@@ -383,15 +387,14 @@ def train(args):
 
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
-                logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
+                logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}        
                 if (
                     args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower()
                 ):  # tracking d*lr value
                     logs["lr/d*lr"] = (
                         lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
                     )
-                accelerator.log(logs, step=global_step)
-
+                accelerator.log(logs, step=global_step)  
             if epoch == 0:
                 loss_list.append(current_loss)
             else:

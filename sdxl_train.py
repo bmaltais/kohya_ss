@@ -7,9 +7,11 @@ import os
 from multiprocessing import Value
 from typing import List
 import toml
+from library.custom_train_functions import noised_embed
 
 from tqdm import tqdm
 import torch
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 try:
     import intel_extension_for_pytorch as ipex
     if torch.xpu.is_available():
@@ -535,6 +537,7 @@ def train(args):
                 # concat embeddings
                 vector_embedding = torch.cat([pool2, embs], dim=1).to(weight_dtype)
                 text_embedding = torch.cat([encoder_hidden_states1, encoder_hidden_states2], dim=2).to(weight_dtype)
+                text_embedding = noised_embed(text_embedding,5)
 
                 # Sample noise, sample a random timestep for each image, and add noise to the latents,
                 # with noise offset and/or multires noise if specified
@@ -550,7 +553,11 @@ def train(args):
 
                 if args.min_snr_gamma or args.scale_v_pred_loss_like_noise_pred or args.v_pred_like_loss:
                     # do not mean over batch dimension for snr weight or scale v-pred loss
-                    loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                    # loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                    ssim_loss =MS_SSIM(win_size=3,win_sigma=1.5, data_range=1, size_average=True, channel=4)
+                    _ssim_loss = 1-ssim_loss(noise_pred.float(), target.float())
+                    # loss = torch.nn.functional.huber_loss(noise_pred.float(), target.float(), reduction="none") * 0.5 + _ssim_loss
+                    loss = torch.nn.functional.huber_loss(noise_pred.float(), target.float(), reduction="none") * 0.3 + _ssim_loss #测试结构衡量指标
                     loss = loss.mean([1, 2, 3])
 
                     if args.min_snr_gamma:
@@ -636,7 +643,7 @@ def train(args):
             loss_total += current_loss
             avr_loss = loss_total / (step + 1)
             logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
-            progress_bar.set_postfix(**logs)
+            progress_bar.set_postfix(**logs) 
 
             if global_step >= args.max_train_steps:
                 break

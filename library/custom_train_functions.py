@@ -342,6 +342,7 @@ def get_unweighted_text_embeddings(
             enc_out = text_encoder(text_input, output_hidden_states=True, return_dict=True)
             text_embeddings = enc_out["hidden_states"][-clip_skip]
             text_embeddings = text_encoder.text_model.final_layer_norm(text_embeddings)
+    text_embeddings = noised_embed(text_embeddings,5)      
     return text_embeddings
 
 
@@ -416,6 +417,8 @@ def get_weighted_text_embeddings(
         pad,
         no_boseos_middle=no_boseos_middle,
     )
+
+
     prompt_weights = torch.tensor(prompt_weights, dtype=text_embeddings.dtype, device=device)
 
     # assign weights to the prompts and normalize in the sense of mean
@@ -425,6 +428,13 @@ def get_weighted_text_embeddings(
     text_embeddings = text_embeddings * (previous_mean / current_mean).unsqueeze(-1).unsqueeze(-1)
 
     return text_embeddings
+
+def noised_embed(orig_embed,noise_alpha):
+    embed_init = orig_embed
+    dims = torch.tensor(embed_init.size(1) * embed_init.size(2))
+    mag_norm = noise_alpha/torch.sqrt(dims)
+    return embed_init + torch.zeros_like(embed_init).uniform_(-mag_norm, mag_norm)
+
 
 
 # https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2

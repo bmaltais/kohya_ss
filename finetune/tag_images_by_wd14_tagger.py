@@ -135,7 +135,7 @@ def main(args):
             else ["CPUExecutionProvider"],
         )
     else:
-        from tensorflow.keras.models import load_model
+        from tensorflow.python.keras.models import load_model
 
         model = load_model(f"{args.model_dir}")
 

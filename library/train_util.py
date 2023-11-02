@@ -63,6 +63,7 @@ from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipel
 import library.model_util as model_util
 import library.huggingface_util as huggingface_util
 import library.sai_model_spec as sai_model_spec
+from library.custom_train_functions import noised_embed
 
 # from library.attention_processors import FlashAttnProcessor
 # from library.hypernetwork import replace_attentions_for_hypernetwork
@@ -3945,6 +3946,9 @@ def get_hidden_states(args: argparse.Namespace, input_ids, tokenizer, text_encod
     if weight_dtype is not None:
         # this is required for additional network training
         encoder_hidden_states = encoder_hidden_states.to(weight_dtype)
+    # print(encoder_hidden_states)    
+    encoder_hidden_states =noised_embed(encoder_hidden_states,5)  
+    # print(encoder_hidden_states)  
 
     return encoder_hidden_states
 

@@ -799,7 +799,17 @@ class NetworkTrainer:
                     else:
                         target = noise
 
-                    loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                    # if args.mae:
+                    #     loss = torch.nn.functional.l1_loss(noise_pred.flot(),target.float(),reduction="none")
+                    # else:    
+                    #     loss = torch.nn.functional.mse_loss(noise_pred.float(), target.float(), reduction="none")
+                    # mu = target.mean(dim=0)
+                    # sigma = target.var(dim=0).sqrt() 
+                    # pg = torch.distributions.Normal(mu,sigma)
+                    # ce_loss = torch.nn.functional.cross_entropy(noise_pred.float(), target.float(), reduction="none")
+                    # kl_loss =torch.nn.functional.kl_div(noise_pred.float(), pg.float(), reduction="none")
+
+                    # loss = abs(ce_loss - kl_loss)
                     loss = loss.mean([1, 2, 3])
 
                     loss_weights = batch["loss_weights"]  # 各sampleごとのweight
