@@ -627,6 +627,8 @@ save_file(state_dict, file)
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
 ## Change History
+* 2023/11/03 (v22.1.1)
+  - Implement headless support for tensorboard as proposed by @sammcj
 
 * 2023/10/10 (v22.1.0)
   - Remove support for torch 1 to align with kohya_ss sd-scripts code base.

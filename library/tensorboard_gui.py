@@ -13,8 +13,10 @@ tensorboard_proc = None
 TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
 
 
-def start_tensorboard(logging_dir, wait_time=5):
+def start_tensorboard(headless, logging_dir, wait_time=5):
     global tensorboard_proc
+    
+    headless_bool = True if headless.get('label') == 'True' else False
 
     if not os.listdir(logging_dir):
         log.info('Error: log folder is empty')
@@ -46,12 +48,13 @@ def start_tensorboard(logging_dir, wait_time=5):
         log.error('Failed to start Tensorboard:', e)
         return
 
-    # Wait for some time to allow TensorBoard to start up
-    time.sleep(wait_time)
+    if not headless_bool:
+        # Wait for some time to allow TensorBoard to start up
+        time.sleep(wait_time)
 
-    # Open the TensorBoard URL in the default browser
-    log.info('Opening tensorboard url in browser...')
-    webbrowser.open('http://localhost:6006')
+        # Open the TensorBoard URL in the default browser
+        log.info('Opening tensorboard url in browser...')
+        webbrowser.open('http://localhost:6006')
 
 
 def stop_tensorboard():
