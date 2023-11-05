@@ -249,9 +249,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
-### Oct 29, 2023 / 2023/10/29
-
-(To be updated)
+### Nov 5, 2023 / 2023/11/5
 
 - `sdxl_train.py` now supports different learning rates for each Text Encoder.
   - Example:
@@ -261,8 +259,30 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
     - `--train_text_encoder --learning_rate 0 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train two Text Encoders only 
     - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 0`: train U-Net and one Text Encoder only
     - `--train_text_encoder --learning_rate 0 --learning_rate_te1 0 --learning_rate_te2 1e-6`: train one Text Encoder only
-- `sdxl_train.py` で、二つのText Encoderそれぞれに独立した学習率が指定できるようになりました。
-  - サンプルは上の英語版を参照してください。
+
+- `train_db.py` and `fine_tune.py` now support different learning rates for Text Encoder. Specify with `--learning_rate_te` option. 
+  - To train Text Encoder with `fine_tune.py`, specify `--train_text_encoder` option too. `train_db.py` trains Text Encoder by default.
+
+- Fixed the bug that Text Encoder is not trained when block lr is specified in `sdxl_train.py`.
+
+- Debiased Estimation loss is added to each training script. Thanks to sdbds! 
+  - See PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) for details.
+- Training of Text Encoder is improved in `train_network.py` and `sdxl_train_network.py`. Thanks to KohakuBlueleaf! PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
+- The moving average of the loss is now displayed in the progress bar in each training script. Thanks to shirayu! PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
+- PagedAdamW32bit optimizer is supported. Specify `--optimizer_type=PagedAdamW32bit`. Thanks to xzuyn! PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
+- Other bug fixes and improvements.
+
+- `sdxl_train.py` で、二つのText Encoderそれぞれに独立した学習率が指定できるようになりました。サンプルは上の英語版を参照してください。
+- `train_db.py` および `fine_tune.py` で Text Encoder に別の学習率を指定できるようになりました。`--learning_rate_te` オプションで指定してください。
+  - `fine_tune.py` で Text Encoder を学習するには `--train_text_encoder` オプションをあわせて指定してください。`train_db.py` はデフォルトで学習します。
+- `sdxl_train.py` で block lr を指定すると Text Encoder が学習されない不具合を修正しました。
+- Debiased Estimation loss が各学習スクリプトに追加されました。sdbsd 氏に感謝します。
+  - 詳細は PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) を参照してください。
+- `train_network.py` と `sdxl_train_network.py` でText Encoderの学習が改善されました。KohakuBlueleaf 氏に感謝します。 PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
+- 各学習スクリプトで移動平均のlossがプログレスバーに表示されるようになりました。shirayu 氏に感謝します。 PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
+- PagedAdamW32bit オプティマイザがサポートされました。`--optimizer_type=PagedAdamW32bit` と指定してください。xzuyn 氏に感謝します。 PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
+- その他のバグ修正と改善。
+
 
 ### Oct 11, 2023 / 2023/10/11
 - Fix to work `make_captions_by_git.py` with the latest version of transformers.
