@@ -74,33 +74,22 @@ def get_block_params_to_optimize(unet: SdxlUNet2DConditionModel, block_lrs: List
 
 
 def append_block_lr_to_logs(block_lrs, logs, lr_scheduler, optimizer_type):
-    lrs = lr_scheduler.get_last_lr()
-
-    lr_index = 0
+    names = []
     block_index = 0
-    while lr_index < len(lrs):
+    while block_index < UNET_NUM_BLOCKS_FOR_BLOCK_LR + 2:
         if block_index < UNET_NUM_BLOCKS_FOR_BLOCK_LR:
-            name = f"block{block_index}"
             if block_lrs[block_index] == 0:
                 block_index += 1
                 continue
+            names.append(f"block{block_index}")
         elif block_index == UNET_NUM_BLOCKS_FOR_BLOCK_LR:
-            name = "text_encoder1"
+            names.append("text_encoder1")
         elif block_index == UNET_NUM_BLOCKS_FOR_BLOCK_LR + 1:
-            name = "text_encoder2"
-        else:
-            raise ValueError(f"unexpected block_index: {block_index}")
+            names.append("text_encoder2")
 
         block_index += 1
 
-        logs["lr/" + name] = float(lrs[lr_index])
-
-        if optimizer_type.lower().startswith("DAdapt".lower()) or optimizer_type.lower() == "Prodigy".lower():
-            logs["lr/d*lr/" + name] = (
-                lr_scheduler.optimizers[-1].param_groups[lr_index]["d"] * lr_scheduler.optimizers[-1].param_groups[lr_index]["lr"]
-            )
-
-        lr_index += 1
+    train_util.append_lr_to_logs_with_names(logs, lr_scheduler, optimizer_type, names)
 
 
 def train(args):
@@ -287,8 +276,8 @@ def train(args):
         if args.gradient_checkpointing:
             text_encoder1.gradient_checkpointing_enable()
             text_encoder2.gradient_checkpointing_enable()
-        lr_te1 = args.learning_rate_te1 if args.learning_rate_te1 is not None else args.learning_rate # 0 means not train
-        lr_te2 = args.learning_rate_te2 if args.learning_rate_te2 is not None else args.learning_rate # 0 means not train
+        lr_te1 = args.learning_rate_te1 if args.learning_rate_te1 is not None else args.learning_rate  # 0 means not train
+        lr_te2 = args.learning_rate_te2 if args.learning_rate_te2 is not None else args.learning_rate  # 0 means not train
         train_text_encoder1 = lr_te1 > 0
         train_text_encoder2 = lr_te2 > 0
 
@@ -647,15 +636,9 @@ def train(args):
             if args.logging_dir is not None:
                 logs = {"loss": current_loss}
                 if block_lrs is None:
-                    logs["lr"] = float(lr_scheduler.get_last_lr()[0])
-                    if (
-                        args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower()
-                    ):  # tracking d*lr value
-                        logs["lr/d*lr"] = (
-                            lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
-                        )
+                    train_util.append_lr_to_logs(logs, lr_scheduler, args.optimizer_type, including_unet=train_unet)
                 else:
-                    append_block_lr_to_logs(block_lrs, logs, lr_scheduler, args.optimizer_type)
+                    append_block_lr_to_logs(block_lrs, logs, lr_scheduler, args.optimizer_type)  # U-Net is included in block_lrs
 
                 accelerator.log(logs, step=global_step)
 

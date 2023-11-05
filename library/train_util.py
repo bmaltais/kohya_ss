@@ -2864,7 +2864,10 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--full_bf16", action="store_true", help="bf16 training including gradients / 勾配も含めてbf16で学習する"
     )  # TODO move to SDXL training, because it is not supported by SD1/2
     parser.add_argument(
-        "--ddp_timeout", type=int, default=30, help="DDP timeout (min) / DDPのタイムアウト(min)",
+        "--ddp_timeout",
+        type=int,
+        default=None,
+        help="DDP timeout (min, None for default of accelerate) / DDPのタイムアウト（分、Noneでaccelerateのデフォルト）",
     )
     parser.add_argument(
         "--clip_skip",
@@ -3806,12 +3809,15 @@ def prepare_accelerator(args: argparse.Namespace):
             if args.wandb_api_key is not None:
                 wandb.login(key=args.wandb_api_key)
 
+    kwargs_handlers = (
+        None if args.ddp_timeout is None else [InitProcessGroupKwargs(timeout=datetime.timedelta(minutes=args.ddp_timeout))]
+    )
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         mixed_precision=args.mixed_precision,
         log_with=log_with,
         project_dir=logging_dir,
-        kwargs_handlers=[InitProcessGroupKwargs(timeout=datetime.timedelta(minutes=args.ddp_timeout))],
+        kwargs_handlers=kwargs_handlers,
     )
     return accelerator
 
@@ -4401,6 +4407,29 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
     return noise, noisy_latents, timesteps
 
 
+def append_lr_to_logs(logs, lr_scheduler, optimizer_type, including_unet=True):
+    names = []
+    if including_unet:
+        names.append("unet")
+    names.append("text_encoder1")
+    names.append("text_encoder2")
+
+    append_lr_to_logs_with_names(logs, lr_scheduler, optimizer_type, names)
+
+
+def append_lr_to_logs_with_names(logs, lr_scheduler, optimizer_type, names):
+    lrs = lr_scheduler.get_last_lr()
+
+    for lr_index in range(len(lrs)):
+        name = names[lr_index]
+        logs["lr/" + name] = float(lrs[lr_index])
+
+        if optimizer_type.lower().startswith("DAdapt".lower()) or optimizer_type.lower() == "Prodigy".lower():
+            logs["lr/d*lr/" + name] = (
+                lr_scheduler.optimizers[-1].param_groups[lr_index]["d"] * lr_scheduler.optimizers[-1].param_groups[lr_index]["lr"]
+            )
+
+
 # scheduler:
 SCHEDULER_LINEAR_START = 0.00085
 SCHEDULER_LINEAR_END = 0.0120
@@ -4718,7 +4747,7 @@ class LossRecorder:
         self.loss_list: List[float] = []
         self.loss_total: float = 0.0
 
-    def add(self, *, epoch:int, step: int, loss: float) -> None:
+    def add(self, *, epoch: int, step: int, loss: float) -> None:
         if epoch == 0:
             self.loss_list.append(loss)
         else:
