@@ -265,8 +265,8 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 - Fixed the bug that Text Encoder is not trained when block lr is specified in `sdxl_train.py`.
 
-- Debiased Estimation loss is added to each training script. Thanks to sdbds! 
-  - See PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) for details.
+- Debiased Estimation loss is added to each training script. Thanks to sdbds!
+  - Specify `--debiased_estimation_loss` option to enable it. See PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) for details.
 - Training of Text Encoder is improved in `train_network.py` and `sdxl_train_network.py`. Thanks to KohakuBlueleaf! PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
 - The moving average of the loss is now displayed in the progress bar in each training script. Thanks to shirayu! PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
 - PagedAdamW32bit optimizer is supported. Specify `--optimizer_type=PagedAdamW32bit`. Thanks to xzuyn! PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
@@ -277,7 +277,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - `fine_tune.py` で Text Encoder を学習するには `--train_text_encoder` オプションをあわせて指定してください。`train_db.py` はデフォルトで学習します。
 - `sdxl_train.py` で block lr を指定すると Text Encoder が学習されない不具合を修正しました。
 - Debiased Estimation loss が各学習スクリプトに追加されました。sdbsd 氏に感謝します。
-  - 詳細は PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) を参照してください。
+  - `--debiased_estimation_loss` を指定すると有効になります。詳細は PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) を参照してください。
 - `train_network.py` と `sdxl_train_network.py` でText Encoderの学習が改善されました。KohakuBlueleaf 氏に感謝します。 PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
 - 各学習スクリプトで移動平均のlossがプログレスバーに表示されるようになりました。shirayu 氏に感謝します。 PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
 - PagedAdamW32bit オプティマイザがサポートされました。`--optimizer_type=PagedAdamW32bit` と指定してください。xzuyn 氏に感謝します。 PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
