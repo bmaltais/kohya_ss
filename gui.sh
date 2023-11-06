@@ -85,7 +85,13 @@ then
     export ClDeviceGlobalMemSizeAvailablePercent=100
 fi
 
+#Set STARTUP_CMD as normal python if not specified
+if [[ -z "$STARTUP_CMD" ]]
+then
+    STARTUP_CMD=python
+fi
+
 # Validate the requirements and run the script if successful
 if python "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
-    python "$SCRIPT_DIR/kohya_gui.py" "$@"
+    "${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "$@"
 fi
