@@ -83,6 +83,14 @@ then
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
+    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]]
+    then
+        STARTUP_CMD=ipexrun
+        if [[ -z "$STARTUP_CMD_ARGS" ]]
+        then
+            STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator jemalloc"
+        fi
+    fi
 fi
 
 #Set STARTUP_CMD as normal python if not specified
