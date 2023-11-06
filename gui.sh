@@ -83,7 +83,7 @@ then
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
-    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]]
+    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]] && [ -x "$(command -v ipexrun)" ]
     then
         STARTUP_CMD=ipexrun
         if [[ -z "$STARTUP_CMD_ARGS" ]]
