@@ -12,9 +12,14 @@ log = setup_logging()
 tensorboard_proc = None
 TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
 
+# Set the default tensorboard port
+DEFAULT_TENSORBOARD_PORT = 6006
 
 def start_tensorboard(logging_dir, wait_time=5):
     global tensorboard_proc
+
+    # Read the TENSORBOARD_PORT from the environment, or use the default
+    tensorboard_port = os.environ.get('TENSORBOARD_PORT', DEFAULT_TENSORBOARD_PORT)
 
     if not os.listdir(logging_dir):
         log.info('Error: log folder is empty')
@@ -28,7 +33,7 @@ def start_tensorboard(logging_dir, wait_time=5):
         '--host',
         '0.0.0.0',
         '--port',
-        '6006',
+        str(tensorboard_port),
     ]
 
     log.info(run_cmd)
@@ -39,7 +44,7 @@ def start_tensorboard(logging_dir, wait_time=5):
         stop_tensorboard()
 
     # Start background process
-    log.info('Starting tensorboard...')
+    log.info('Starting TensorBoard on port {}'.format(tensorboard_port))
     try:
         tensorboard_proc = subprocess.Popen(run_cmd)
     except Exception as e:
@@ -50,8 +55,9 @@ def start_tensorboard(logging_dir, wait_time=5):
     time.sleep(wait_time)
 
     # Open the TensorBoard URL in the default browser
-    log.info('Opening tensorboard url in browser...')
-    webbrowser.open('http://localhost:6006')
+    tensorboard_url = f'http://localhost:{tensorboard_port}'
+    log.info(f'Opening TensorBoard URL in browser: {tensorboard_url}')
+    webbrowser.open(tensorboard_url)
 
 
 def stop_tensorboard():
