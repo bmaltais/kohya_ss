@@ -308,13 +308,13 @@ class NetworkTrainer:
             )
             args.scale_weight_norms = False
 
-        train_unet = not args.network_train_text_encoder_only
-        train_text_encoder = not args.network_train_unet_only and not self.is_text_encoder_outputs_cached(args)
-        network.apply_to(text_encoder, unet, train_text_encoder, train_unet)
-
         if args.network_weights is not None:
             info = network.load_weights(args.network_weights)
             accelerator.print(f"load network weights from {args.network_weights}: {info}")
+
+        train_unet = not args.network_train_text_encoder_only
+        train_text_encoder = not args.network_train_unet_only and not self.is_text_encoder_outputs_cached(args)
+        network.apply_to(text_encoder, unet, train_text_encoder, train_unet)
 
         if args.gradient_checkpointing:
             unet.enable_gradient_checkpointing()
