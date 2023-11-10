@@ -8,7 +8,7 @@ Access EDG's tutorials here: https://ko-fi.com/post/EDGs-tutorials-P5P6KT5MT
 
 - Set the `Max resolution` to at least 1024x1024, as this is the standard resolution for SDXL.
 - Use a GPU that has at least 12GB memory for the LoRA training process.
-- We strongly recommend using the `--train_unet_only` option for SDXL LoRA to avoid unforeseen training results caused by dual text encoders in SDXL.
+- We strongly recommend using the `--network_train_unet_only` option for SDXL LoRA to avoid unforeseen training results caused by dual text encoders in SDXL.
 - PyTorch 2 tends to use less GPU memory than PyTorch 1.
 
 Here's an example configuration for the Adafactor optimizer with a fixed learning rate:
