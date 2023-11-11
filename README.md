@@ -629,6 +629,10 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 ## Change History
 * 2023/11/03 (v22.1.1)
   - Implement headless support for tensorboard as proposed by @sammcj
+  - documentation: fix recommended parameter "train_unet_only" -> "network_train_unet_only" by @nylki
+  - Improved Environment Variable Handling for Enhanced Flexibility in TensorBoard Launch by @lcolok
+  - Add STARTUP_CMD env var and IPEXRUN support to gui.sh by @Disty0
+  - Fix VAE being applied (for LoRA training) by @rockerBOO
 
 * 2023/10/10 (v22.1.0)
   - Remove support for torch 1 to align with kohya_ss sd-scripts code base.
