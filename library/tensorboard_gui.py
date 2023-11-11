@@ -15,8 +15,10 @@ TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
 # Set the default tensorboard port
 DEFAULT_TENSORBOARD_PORT = 6006
 
-def start_tensorboard(logging_dir, wait_time=5):
+def start_tensorboard(headless, logging_dir, wait_time=5):
     global tensorboard_proc
+    
+    headless_bool = True if headless.get('label') == 'True' else False
 
     # Read the TENSORBOARD_PORT from the environment, or use the default
     tensorboard_port = os.environ.get('TENSORBOARD_PORT', DEFAULT_TENSORBOARD_PORT)
@@ -51,13 +53,14 @@ def start_tensorboard(logging_dir, wait_time=5):
         log.error('Failed to start Tensorboard:', e)
         return
 
-    # Wait for some time to allow TensorBoard to start up
-    time.sleep(wait_time)
+    if not headless_bool:
+        # Wait for some time to allow TensorBoard to start up
+        time.sleep(wait_time)
 
-    # Open the TensorBoard URL in the default browser
-    tensorboard_url = f'http://localhost:{tensorboard_port}'
-    log.info(f'Opening TensorBoard URL in browser: {tensorboard_url}')
-    webbrowser.open(tensorboard_url)
+        # Open the TensorBoard URL in the default browser
+        tensorboard_url = f'http://localhost:{tensorboard_port}'
+        log.info(f'Opening TensorBoard URL in browser: {tensorboard_url}')
+        webbrowser.open(tensorboard_url)
 
 
 def stop_tensorboard():

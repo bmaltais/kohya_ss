@@ -906,7 +906,7 @@ def finetune_tab(headless=False):
 
         button_start_tensorboard.click(
             start_tensorboard,
-            inputs=logging_dir,
+            inputs=[dummy_headless, logging_dir],
         )
 
         button_stop_tensorboard.click(

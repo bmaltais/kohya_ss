@@ -241,7 +241,7 @@ To set up the project, follow these steps:
    .\setup.bat
    ```
 
-   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. Tfe amount of VRAM on your GPU does not have an impact on the values used.
+   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. The amount of VRAM on your GPU does not have an impact on the values used.
 
 #### Optional: CUDNN 8.6
 
@@ -368,6 +368,7 @@ If you prefer to use Docker, follow the instructions below:
    ```bash
    git clone https://github.com/bmaltais/kohya_ss.git
    cd kohya_ss
+   docker compose create
    docker compose build
    docker compose run --service-ports kohya-ss-gui
    ```
@@ -626,6 +627,8 @@ save_file(state_dict, file)
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
 ## Change History
+* 2023/11/03 (v22.1.1)
+  - Implement headless support for tensorboard as proposed by @sammcj
 
 * 2023/10/10 (v22.1.0)
   - Remove support for torch 1 to align with kohya_ss sd-scripts code base.

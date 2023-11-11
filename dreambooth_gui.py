@@ -780,7 +780,7 @@ def dreambooth_tab(
 
         button_start_tensorboard.click(
             start_tensorboard,
-            inputs=folders.logging_dir,
+            inputs=[dummy_headless, folders.logging_dir],
             show_progress=False,
         )
 
