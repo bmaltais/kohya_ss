@@ -881,6 +881,12 @@ def run_cmd_advanced_training(**kwargs):
     wandb_api_key = kwargs.get('wandb_api_key', '')
     if wandb_api_key:
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        
+    vae = kwargs.get(
+        'vae'
+    )
+    if vae:
+        run_cmd += ' --vae="{vae}"'
 
     return run_cmd
 

@@ -170,6 +170,7 @@ def save_configuration(
     full_bf16,
     min_timestep,
     max_timestep,
+    vae
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -323,6 +324,7 @@ def open_configuration(
     min_timestep,
     max_timestep,
     training_preset,
+    vae
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -496,6 +498,7 @@ def train_model(
     full_bf16,
     min_timestep,
     max_timestep,
+    vae
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1001,6 +1004,7 @@ def train_model(
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
         min_timestep=min_timestep,
         max_timestep=max_timestep,
+        vae=vae,
     )
 
     run_cmd += run_cmd_sample(
@@ -1658,6 +1662,7 @@ def lora_tab(
             advanced_training.full_bf16,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
+            advanced_training.vae,
         ]
 
         config.button_open_config.click(
