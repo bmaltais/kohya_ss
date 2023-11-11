@@ -70,14 +70,16 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-            dataset.cache_text_encoder_outputs(
-                tokenizers,
-                text_encoders,
-                accelerator.device,
-                weight_dtype,
-                args.cache_text_encoder_outputs_to_disk,
-                accelerator.is_main_process,
-            )
+            # When TE is not be trained, it will not be prepared so we need to use explicit autocast
+            with accelerator.autocast():
+                dataset.cache_text_encoder_outputs(
+                    tokenizers,
+                    text_encoders,
+                    accelerator.device,
+                    weight_dtype,
+                    args.cache_text_encoder_outputs_to_disk,
+                    accelerator.is_main_process,
+                )
 
             text_encoders[0].to("cpu", dtype=torch.float32)  # Text Encoder doesn't work with fp16 on CPU
             text_encoders[1].to("cpu", dtype=torch.float32)

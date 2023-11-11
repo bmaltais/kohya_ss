@@ -48,6 +48,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Tips for SDXL training](#tips-for-sdxl-training-1)
     - [Format of Textual Inversion embeddings for SDXL](#format-of-textual-inversion-embeddings-for-sdxl)
     - [ControlNet-LLLite](#controlnet-lllite)
+    - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
 
 
@@ -626,36 +627,50 @@ save_file(state_dict, file)
 
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
-## Change History
-* 2023/11/03 (v22.1.1)
-  - Implement headless support for tensorboard as proposed by @sammcj
-  - documentation: fix recommended parameter "train_unet_only" -> "network_train_unet_only" by @nylki
-  - Improved Environment Variable Handling for Enhanced Flexibility in TensorBoard Launch by @lcolok
-  - Add STARTUP_CMD env var and IPEXRUN support to gui.sh by @Disty0
-  - Fix VAE being applied (for LoRA training) by @rockerBOO
+### Sample image generation during training
+  A prompt file might look like this, for example
 
-* 2023/10/10 (v22.1.0)
-  - Remove support for torch 1 to align with kohya_ss sd-scripts code base.
-  - Add Intel ARC GPU support with IPEX support on Linux / WSL
-    - Users needs to set these manually:
-      * Mixed precision to BF16,
-      * Attention to SDPA,
-      * Optimizer to: AdamW (or any other non 8 bit one).
-    - Run setup with: `./setup.sh --use-ipex`
-    - Run the GUI with: `./gui.sh --use-ipex`
-  - Merging main branch of sd-scripts:
-    - `tag_images_by_wd_14_tagger.py` now supports Onnx. If you use Onnx, TensorFlow is not required anymore. [#864](https://github.com/kohya-ss/sd-scripts/pull/864) Thanks to Isotr0py!
-      - `--onnx` option is added. If you use Onnx, specify `--onnx` option.
-      - Please install Onnx and other required packages. 
-        1. Uninstall TensorFlow.
-        2. `pip install tensorboard==2.14.1` This is required for the specified version of protobuf.
-        3. `pip install protobuf==3.20.3` This is required for Onnx.
-        4. `pip install onnx==1.14.1`
-        5. `pip install onnxruntime-gpu==1.16.0` or `pip install onnxruntime==1.16.0`
-    - `--append_tags` option is added to `tag_images_by_wd_14_tagger.py`. This option appends the tags to the existing tags, instead of replacing them. [#858](https://github.com/kohya-ss/sd-scripts/pull/858) Thanks to a-l-e-x-d-s-9! 
-    - [OFT](https://oft.wyliu.com/) is now supported.
-      - You can use `networks.oft` for the network module in `sdxl_train_network.py`.  The usage is the same as `networks.lora`. Some options are not supported.
-      - `sdxl_gen_img.py` also supports OFT as `--network_module`. 
-      - OFT only supports SDXL currently. Because current OFT tweaks Q/K/V and O in the transformer, and SD1/2 have extremely fewer transformers than SDXL.
-      - The implementation is heavily based on laksjdjf's [OFT implementation](https://github.com/laksjdjf/sd-trainer/blob/dev/networks/lora_modules.py). Thanks to laksjdjf!
-    - Other bug fixes and improvements.
+```
+# prompt 1
+masterpiece, best quality, (1girl), in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28
+
+# prompt 2
+masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy,bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
+```
+
+  Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
+
+  * `--n` Negative prompt up to the next option.
+  * `--w` Specifies the width of the generated image.
+  * `--h` Specifies the height of the generated image.
+  * `--d` Specifies the seed of the generated image.
+  * `--l` Specifies the CFG scale of the generated image.
+  * `--s` Specifies the number of steps in the generation.
+
+  The prompt weighting such as `( )` and `[ ]` are working.
+
+
+## Change History
+* 2023/11/03 (v22.2.0)
+- `sdxl_train.py` now supports different learning rates for each Text Encoder.
+  - Example:
+    - `--learning_rate 1e-6`: train U-Net only
+    - `--train_text_encoder --learning_rate 1e-6`: train U-Net and two Text Encoders with the same learning rate (same as the previous version)
+    - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train U-Net and two Text Encoders with the different learning rates
+    - `--train_text_encoder --learning_rate 0 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train two Text Encoders only 
+    - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 0`: train U-Net and one Text Encoder only
+    - `--train_text_encoder --learning_rate 0 --learning_rate_te1 0 --learning_rate_te2 1e-6`: train one Text Encoder only
+
+- `train_db.py` and `fine_tune.py` now support different learning rates for Text Encoder. Specify with `--learning_rate_te` option. 
+  - To train Text Encoder with `fine_tune.py`, specify `--train_text_encoder` option too. `train_db.py` trains Text Encoder by default.
+
+- Fixed the bug that Text Encoder is not trained when block lr is specified in `sdxl_train.py`.
+
+- Debiased Estimation loss is added to each training script. Thanks to sdbds!
+  - Specify `--debiased_estimation_loss` option to enable it. See PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) for details.
+- Training of Text Encoder is improved in `train_network.py` and `sdxl_train_network.py`. Thanks to KohakuBlueleaf! PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
+- The moving average of the loss is now displayed in the progress bar in each training script. Thanks to shirayu! PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
+- PagedAdamW32bit optimizer is supported. Specify `--optimizer_type=PagedAdamW32bit`. Thanks to xzuyn! PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
+- Other bug fixes and improvements.
+
+
