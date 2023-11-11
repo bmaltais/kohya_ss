@@ -83,9 +83,23 @@ then
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
+    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]] && [ -x "$(command -v ipexrun)" ]
+    then
+        STARTUP_CMD=ipexrun
+        if [[ -z "$STARTUP_CMD_ARGS" ]]
+        then
+            STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator jemalloc"
+        fi
+    fi
+fi
+
+#Set STARTUP_CMD as normal python if not specified
+if [[ -z "$STARTUP_CMD" ]]
+then
+    STARTUP_CMD=python
 fi
 
 # Validate the requirements and run the script if successful
 if python "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
-    python "$SCRIPT_DIR/kohya_gui.py" "$@"
+    "${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "$@"
 fi
