@@ -792,6 +792,7 @@ def ti_tab(
                     learning_rate_value='1e-5',
                     lr_scheduler_value='cosine',
                     lr_warmup_value='10',
+                    sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 # Add SDXL Parameters

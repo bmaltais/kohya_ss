@@ -82,6 +82,9 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     create_caption,
@@ -209,6 +212,9 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     create_caption,
@@ -345,6 +351,9 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     generate_caption_database,
@@ -536,6 +545,11 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
+        if sdxl_checkbox:
+            run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
+            run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
+        else:
+            run_cmd += f' --learning_rate_te="{learning_rate_te}"'
     if full_bf16:
         run_cmd += ' --full_bf16'
     if weighted_captions:
@@ -552,7 +566,6 @@ def train_model(
     if not logging_dir == '':
         run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --dataset_repeats={dataset_repeats}'
-    run_cmd += f' --learning_rate={learning_rate}'
 
     run_cmd += ' --enable_bucket'
     run_cmd += f' --resolution="{max_resolution}"'
@@ -853,7 +866,7 @@ def finetune_tab(headless=False):
             
             with gr.Tab('Basic', elem_id='basic_tab'):
                 basic_training = BasicTraining(
-                    learning_rate_value='1e-5', finetuning=True
+                    learning_rate_value='1e-5', finetuning=True, sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 # Add SDXL Parameters
@@ -942,6 +955,9 @@ def finetune_tab(headless=False):
             basic_training.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
+            basic_training.learning_rate_te,
+            basic_training.learning_rate_te1,
+            basic_training.learning_rate_te2,
             train_text_encoder,
             advanced_training.full_bf16,
             create_caption,

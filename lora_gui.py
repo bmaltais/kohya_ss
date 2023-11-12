@@ -171,6 +171,7 @@ def save_configuration(
     min_timestep,
     max_timestep,
     vae,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -325,6 +326,7 @@ def open_configuration(
     max_timestep,
     training_preset,
     vae,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -497,6 +499,7 @@ def train_model(
     min_timestep,
     max_timestep,
     vae,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -932,6 +935,9 @@ def train_model(
 
     if full_bf16:
         run_cmd += f" --full_bf16"
+        
+    if debiased_estimation_loss:
+        run_cmd += " --debiased_estimation_loss"
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -1134,6 +1140,7 @@ def lora_tab(
                     learning_rate_value="0.0001",
                     lr_scheduler_value="cosine",
                     lr_warmup_value="10",
+                    sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 with gr.Row():
@@ -1643,6 +1650,7 @@ def lora_tab(
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             advanced_training.vae,
+            advanced_training.debiased_estimation_loss,
         ]
 
         config.button_open_config.click(
