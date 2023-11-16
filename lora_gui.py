@@ -324,9 +324,9 @@ def open_configuration(
     full_bf16,
     min_timestep,
     max_timestep,
-    training_preset,
     vae,
     debiased_estimation_loss,
+    training_preset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())

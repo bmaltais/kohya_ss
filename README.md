@@ -651,6 +651,9 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2023/11/?? (v22.2.1)
+- Fix issue with `Debiased Estimation loss` not getting properly loaded from json file. Oups.
+
 * 2023/11/15 (v22.2.0)
 - sd-scripts code base update:
   - `sdxl_train.py` now supports different learning rates for each Text Encoder.
