@@ -886,7 +886,7 @@ def run_cmd_advanced_training(**kwargs):
         'vae'
     )
     if vae:
-        run_cmd += ' --vae="{vae}"'
+        run_cmd += f' --vae="{vae}"'
 
     return run_cmd
 
