@@ -361,6 +361,23 @@ def get_timestep_embedding(
     return emb
 
 
+# Deep Shrink: We do not common this function, because minimize dependencies.
+def resize_like(x, target, mode="bicubic", align_corners=False):
+    org_dtype = x.dtype
+    if org_dtype == torch.bfloat16:
+        x = x.to(torch.float32)
+
+    if x.shape[-2:] != target.shape[-2:]:
+        if mode == "nearest":
+            x = F.interpolate(x, size=target.shape[-2:], mode=mode)
+        else:
+            x = F.interpolate(x, size=target.shape[-2:], mode=mode, align_corners=align_corners)
+
+    if org_dtype == torch.bfloat16:
+        x = x.to(org_dtype)
+    return x
+
+
 class SampleOutput:
     def __init__(self, sample):
         self.sample = sample
@@ -1130,6 +1147,11 @@ class UpBlock2D(nn.Module):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
+            # Deep Shrink
+            if res_hidden_states.shape[-2:] != hidden_states.shape[-2:]:
+                hidden_states = resize_like(hidden_states, res_hidden_states)
+
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
 
             if self.training and self.gradient_checkpointing:
@@ -1221,6 +1243,11 @@ class CrossAttnUpBlock2D(nn.Module):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
+            # Deep Shrink
+            if res_hidden_states.shape[-2:] != hidden_states.shape[-2:]:
+                hidden_states = resize_like(hidden_states, res_hidden_states)
+
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
 
             if self.training and self.gradient_checkpointing:
@@ -1417,6 +1444,31 @@ class UNet2DConditionModel(nn.Module):
         self.conv_act = nn.SiLU()
         self.conv_out = nn.Conv2d(BLOCK_OUT_CHANNELS[0], OUT_CHANNELS, kernel_size=3, padding=1)
 
+        # Deep Shrink
+        self.ds_depth_1 = None
+        self.ds_depth_2 = None
+        self.ds_timesteps_1 = None
+        self.ds_timesteps_2 = None
+        self.ds_ratio = None
+
+    def set_deep_shrink(self, ds_depth_1, ds_timesteps_1=650, ds_depth_2=None, ds_timesteps_2=None, ds_ratio=0.5):
+        if ds_depth_1 is None:
+            print("Deep Shrink is disabled.")
+            self.ds_depth_1 = None
+            self.ds_timesteps_1 = None
+            self.ds_depth_2 = None
+            self.ds_timesteps_2 = None
+            self.ds_ratio = None
+        else:
+            print(
+                f"Deep Shrink is enabled: [depth={ds_depth_1}/{ds_depth_2}, timesteps={ds_timesteps_1}/{ds_timesteps_2}, ratio={ds_ratio}]"
+            )
+            self.ds_depth_1 = ds_depth_1
+            self.ds_timesteps_1 = ds_timesteps_1
+            self.ds_depth_2 = ds_depth_2 if ds_depth_2 is not None else -1
+            self.ds_timesteps_2 = ds_timesteps_2 if ds_timesteps_2 is not None else 1000
+            self.ds_ratio = ds_ratio
+
     # region diffusers compatibility
     def prepare_config(self):
         self.config = SimpleNamespace()
@@ -1519,9 +1571,21 @@ class UNet2DConditionModel(nn.Module):
         # 2. pre-process
         sample = self.conv_in(sample)
 
-        # 3. down
         down_block_res_samples = (sample,)
-        for downsample_block in self.down_blocks:
+        for depth, downsample_block in enumerate(self.down_blocks):
+            # Deep Shrink
+            if self.ds_depth_1 is not None:
+                if (depth == self.ds_depth_1 and timesteps[0] >= self.ds_timesteps_1) or (
+                    self.ds_depth_2 is not None
+                    and depth == self.ds_depth_2
+                    and timesteps[0] < self.ds_timesteps_1
+                    and timesteps[0] >= self.ds_timesteps_2
+                ):
+                    org_dtype = sample.dtype
+                    if org_dtype == torch.bfloat16:
+                        sample = sample.to(torch.float32)
+                    sample = F.interpolate(sample, scale_factor=self.ds_ratio, mode="bicubic", align_corners=False).to(org_dtype)
+
             # downblockはforwardで必ずencoder_hidden_statesを受け取るようにしても良さそうだけど、
             # まあこちらのほうがわかりやすいかもしれない
             if downsample_block.has_cross_attention:
