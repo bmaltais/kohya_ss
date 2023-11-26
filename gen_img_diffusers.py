@@ -105,7 +105,7 @@ import library.train_util as train_util
 from networks.lora import LoRANetwork
 import tools.original_control_net as original_control_net
 from tools.original_control_net import ControlNetInfo
-from library.original_unet import UNet2DConditionModel
+from library.original_unet import UNet2DConditionModel, InferUNet2DConditionModel
 from library.original_unet import FlashAttentionFunction
 
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
@@ -378,7 +378,7 @@ class PipelineLike:
         vae: AutoencoderKL,
         text_encoder: CLIPTextModel,
         tokenizer: CLIPTokenizer,
-        unet: UNet2DConditionModel,
+        unet: InferUNet2DConditionModel,
         scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
         clip_skip: int,
         clip_model: CLIPModel,
@@ -2196,6 +2196,7 @@ def main(args):
         )
         original_unet.load_state_dict(unet.state_dict())
         unet = original_unet
+    unet: InferUNet2DConditionModel = InferUNet2DConditionModel(unet)
 
     # VAEを読み込む
     if args.vae is not None:
@@ -2352,13 +2353,20 @@ def main(args):
         vae = sli_vae
         del sli_vae
     vae.to(dtype).to(device)
+    vae.eval()
 
     text_encoder.to(dtype).to(device)
     unet.to(dtype).to(device)
+
+    text_encoder.eval()
+    unet.eval()
+
     if clip_model is not None:
         clip_model.to(dtype).to(device)
+        clip_model.eval()
     if vgg16_model is not None:
         vgg16_model.to(dtype).to(device)
+        vgg16_model.eval()
 
     # networkを組み込む
     if args.network_module:
