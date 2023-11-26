@@ -809,7 +809,9 @@ class PipelineLike:
                 if t < start_timesteps and current_ratio < 1.0 and step_elapsed >= every_n_steps:
                     print("upscale")
                     current_ratio = min(current_ratio + ratio_step, 1.0)
-                    h = int(height * current_ratio) // 8 * 8 # make divisible by 8 because size of latents must be divisible at bottom of UNet  
+                    h = (
+                        int(height * current_ratio) // 8 * 8
+                    )  # make divisible by 8 because size of latents must be divisible at bottom of UNet
                     w = int(width * current_ratio) // 8 * 8
                     resized_size = (h, w)
                     self.scheduler.set_resized_size(resized_size)
@@ -1946,7 +1948,7 @@ def main(args):
         unet.set_deep_shrink(args.ds_depth_1, args.ds_timesteps_1, args.ds_depth_2, args.ds_timesteps_2, args.ds_ratio)
 
     # Gradual Latent
-    if args.gradual_latent_ratio is not None:
+    if args.gradual_latent_timesteps is not None:
         gradual_latent = (
             args.gradual_latent_ratio,
             args.gradual_latent_timesteps,
@@ -2739,8 +2741,8 @@ def main(args):
                     unet.set_deep_shrink(ds_depth_1, ds_timesteps_1, ds_depth_2, ds_timesteps_2, ds_ratio)
 
                 # override Gradual Latent
-                if gl_ratio is not None:
-                    if gl_timesteps is None:
+                if gl_timesteps is not None:
+                    if gl_timesteps < 0:
                         gl_timesteps = args.gradual_latent_timesteps or 650
                     pipe.set_gradual_latent((gl_ratio, gl_timesteps, gl_every_n_steps, gl_ratio_step))
 
