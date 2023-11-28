@@ -713,7 +713,6 @@ class BaseDataset(torch.utils.data.Dataset):
                 else:
                     caption = caption.replace(str_from, str_to)
 
-        print(caption)
         return caption
 
     def get_input_ids(self, caption, tokenizer=None):
