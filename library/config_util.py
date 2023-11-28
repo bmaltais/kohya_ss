@@ -53,6 +53,7 @@ class BaseSubsetParams:
   shuffle_caption: bool = False
   caption_separator: str = ',',
   keep_tokens: int = 0
+  keep_tokens_separator: str = None,
   color_aug: bool = False
   flip_aug: bool = False
   face_crop_aug_range: Optional[Tuple[float, float]] = None
@@ -160,6 +161,7 @@ class ConfigSanitizer:
     "random_crop": bool,
     "shuffle_caption": bool,
     "keep_tokens": int,
+    "keep_tokens_separator": str,
     "token_warmup_min": int,
     "token_warmup_step": Any(float,int),
     "caption_prefix": str,
@@ -461,6 +463,7 @@ def generate_dataset_group_by_blueprint(dataset_group_blueprint: DatasetGroupBlu
           num_repeats: {subset.num_repeats}
           shuffle_caption: {subset.shuffle_caption}
           keep_tokens: {subset.keep_tokens}
+          keep_tokens_separator: {subset.keep_tokens_separator}
           caption_dropout_rate: {subset.caption_dropout_rate}
           caption_dropout_every_n_epoches: {subset.caption_dropout_every_n_epochs}
           caption_tag_dropout_rate: {subset.caption_tag_dropout_rate}
