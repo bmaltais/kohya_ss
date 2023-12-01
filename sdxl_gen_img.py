@@ -1829,10 +1829,10 @@ def main(args):
     # Gradual Latent
     if args.gradual_latent_timesteps is not None:
         if args.gradual_latent_unsharp_params:
-            ksize, sigma, strength = [float(v) for v in args.gradual_latent_unsharp_params.split(",")]
-            ksize = int(ksize)
+            us_ksize, us_sigma, us_strength = [float(v) for v in args.gradual_latent_unsharp_params.split(",")]
+            us_ksize = int(us_ksize)
         else:
-            ksize, sigma, strength = None, None, None
+            us_ksize, us_sigma, us_strength = None, None, None
 
         gradual_latent = GradualLatent(
             args.gradual_latent_ratio,
@@ -1840,9 +1840,9 @@ def main(args):
             args.gradual_latent_every_n_steps,
             args.gradual_latent_ratio_step,
             args.gradual_latent_s_noise,
-            ksize,
-            sigma,
-            strength,
+            us_ksize,
+            us_sigma,
+            us_strength,
         )
         pipe.set_gradual_latent(gradual_latent)
 
@@ -2650,12 +2650,12 @@ def main(args):
                     if gl_timesteps < 0:
                         gl_timesteps = args.gradual_latent_timesteps or 650
                     if gl_unsharp_params is not None:
-                        ksize, sigma, strength = [float(v) for v in gl_unsharp_params.split(",")]
-                        ksize = int(ksize)
+                        us_ksize, us_sigma, us_strength = [float(v) for v in gl_unsharp_params.split(",")]
+                        us_ksize = int(us_ksize)
                     else:
-                        ksize, sigma, strength = None, None, None
+                        us_ksize, us_sigma, us_strength = None, None, None
                     gradual_latent = GradualLatent(
-                        gl_ratio, gl_timesteps, gl_every_n_steps, gl_ratio_step, gl_s_noise, ksize, sigma, strength
+                        gl_ratio, gl_timesteps, gl_every_n_steps, gl_ratio_step, gl_s_noise, us_ksize, us_sigma, us_strength
                     )
                     pipe.set_gradual_latent(gradual_latent)
 
