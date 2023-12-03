@@ -651,7 +651,12 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2023/11/?? (v22.2.1)
+* 2023/12/03 (v22.2.2)
+- Update Lycoris module to 2.0.0 (https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/README.md)
+- Update Lycoris merge and extract tools
+- Remove anoying warning about local pip modules that is not necessary.
+
+* 2023/11/20 (v22.2.1)
 - Fix issue with `Debiased Estimation loss` not getting properly loaded from json file. Oups.
 
 * 2023/11/15 (v22.2.0)

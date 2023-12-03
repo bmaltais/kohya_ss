@@ -25,6 +25,7 @@ def extract_lycoris_locon(
     base_model,
     output_name,
     device,
+    is_sdxl,
     is_v2,
     mode,
     linear_dim,
@@ -58,6 +59,8 @@ def extract_lycoris_locon(
         return
 
     run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
+    if is_sdxl:
+        run_cmd += f' --is_sdxl'
     if is_v2:
         run_cmd += f' --is_v2'
     run_cmd += f' --device {device}'
@@ -196,10 +199,13 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value='cuda',
                 interactive=True,
             )
+            
+            is_sdxl = gr.Checkbox(label='is SDXL', value=False, interactive=True)
+            
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
         mode = gr.Dropdown(
             label='Mode',
-            choices=['fixed', 'threshold', 'ratio', 'quantile'],
+            choices=['fixed', 'full', 'quantile', 'ratio', 'threshold'],
             value='fixed',
             interactive=True,
         )
@@ -211,6 +217,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=1,
                 step=1,
                 interactive=True,
+                info="network dim for linear layer in fixed mode",
             )
             conv_dim = gr.Slider(
                 minimum=1,
@@ -219,6 +226,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value=1,
                 step=1,
                 interactive=True,
+                info="network dim for conv layer in fixed mode",
             )
         with gr.Row(visible=False) as threshold:
             linear_threshold = gr.Slider(
@@ -312,6 +320,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 base_model,
                 output_name,
                 device,
+                is_sdxl,
                 is_v2,
                 mode,
                 linear_dim,
