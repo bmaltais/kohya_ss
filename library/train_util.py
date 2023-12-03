@@ -226,6 +226,12 @@ class BucketManager:
             if reso in self.predefined_resos_set:
                 pass
             else:
+                # Check if the height (reso[1]) is zero
+                if reso[1] == 0:
+                    raise ValueError("Image height cannot be zero.")
+                
+                # Calculate aspect ratio error
+                ar_error = (reso[0] / reso[1]) - aspect_ratio
                 ar_errors = self.predefined_aspect_ratios - aspect_ratio
                 predefined_bucket_id = np.abs(ar_errors).argmin()  # 当該解像度以外でaspect ratio errorが最も少ないもの
                 reso = self.predefined_resos[predefined_bucket_id]
