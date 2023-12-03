@@ -1829,10 +1829,12 @@ def main(args):
     # Gradual Latent
     if args.gradual_latent_timesteps is not None:
         if args.gradual_latent_unsharp_params:
-            us_ksize, us_sigma, us_strength = [float(v) for v in args.gradual_latent_unsharp_params.split(",")]
+            us_params = args.gradual_latent_unsharp_params.split(",")
+            us_ksize, us_sigma, us_strength = [float(v) for v in us_params[:3]]
+            us_target_x = True if len(us_params) <= 3 else bool(int(us_params[3]))
             us_ksize = int(us_ksize)
         else:
-            us_ksize, us_sigma, us_strength = None, None, None
+            us_ksize, us_sigma, us_strength, us_target_x = None, None, None, None
 
         gradual_latent = GradualLatent(
             args.gradual_latent_ratio,
@@ -1843,6 +1845,7 @@ def main(args):
             us_ksize,
             us_sigma,
             us_strength,
+            us_target_x,
         )
         pipe.set_gradual_latent(gradual_latent)
 
@@ -2650,12 +2653,22 @@ def main(args):
                     if gl_timesteps < 0:
                         gl_timesteps = args.gradual_latent_timesteps or 650
                     if gl_unsharp_params is not None:
-                        us_ksize, us_sigma, us_strength = [float(v) for v in gl_unsharp_params.split(",")]
+                        unsharp_params = gl_unsharp_params.split(",")
+                        us_ksize, us_sigma, us_strength = [float(v) for v in unsharp_params[:3]]
+                        us_target_x = True if len(unsharp_params) < 4 else bool(int(unsharp_params[3]))
                         us_ksize = int(us_ksize)
                     else:
-                        us_ksize, us_sigma, us_strength = None, None, None
+                        us_ksize, us_sigma, us_strength, us_target_x = None, None, None, None
                     gradual_latent = GradualLatent(
-                        gl_ratio, gl_timesteps, gl_every_n_steps, gl_ratio_step, gl_s_noise, us_ksize, us_sigma, us_strength
+                        gl_ratio,
+                        gl_timesteps,
+                        gl_every_n_steps,
+                        gl_ratio_step,
+                        gl_s_noise,
+                        us_ksize,
+                        us_sigma,
+                        us_strength,
+                        us_target_x,
                     )
                     pipe.set_gradual_latent(gradual_latent)
 
@@ -3056,8 +3069,8 @@ def setup_parser() -> argparse.ArgumentParser:
         "--gradual_latent_unsharp_params",
         type=str,
         default=None,
-        help="unsharp mask parameters for Gradual Latent: ksize, sigma, strength. `3,0.5,0.5` is recommended /"
-        + " Gradual Latentのunsharp maskのパラメータ: ksize, sigma, strength. `3,0.5,0.5` が推奨",
+        help="unsharp mask parameters for Gradual Latent: ksize, sigma, strength, target-x (1 means True). `3,0.5,0.5,1` or `3,1.0,1.0,0` is recommended /"
+        + " Gradual Latentのunsharp maskのパラメータ: ksize, sigma, strength, target-x. `3,0.5,0.5,1` または `3,1.0,1.0,0` が推奨",
     )
 
     # # parser.add_argument(
