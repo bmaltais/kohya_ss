@@ -361,6 +361,23 @@ def get_timestep_embedding(
     return emb
 
 
+# Deep Shrink: We do not common this function, because minimize dependencies.
+def resize_like(x, target, mode="bicubic", align_corners=False):
+    org_dtype = x.dtype
+    if org_dtype == torch.bfloat16:
+        x = x.to(torch.float32)
+
+    if x.shape[-2:] != target.shape[-2:]:
+        if mode == "nearest":
+            x = F.interpolate(x, size=target.shape[-2:], mode=mode)
+        else:
+            x = F.interpolate(x, size=target.shape[-2:], mode=mode, align_corners=align_corners)
+
+    if org_dtype == torch.bfloat16:
+        x = x.to(org_dtype)
+    return x
+
+
 class SampleOutput:
     def __init__(self, sample):
         self.sample = sample
@@ -1130,6 +1147,7 @@ class UpBlock2D(nn.Module):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
 
             if self.training and self.gradient_checkpointing:
@@ -1221,6 +1239,7 @@ class CrossAttnUpBlock2D(nn.Module):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
 
             if self.training and self.gradient_checkpointing:
@@ -1519,7 +1538,6 @@ class UNet2DConditionModel(nn.Module):
         # 2. pre-process
         sample = self.conv_in(sample)
 
-        # 3. down
         down_block_res_samples = (sample,)
         for downsample_block in self.down_blocks:
             # downblockはforwardで必ずencoder_hidden_statesを受け取るようにしても良さそうだけど、
@@ -1604,3 +1622,255 @@ class UNet2DConditionModel(nn.Module):
         timesteps = timesteps.expand(sample.shape[0])
 
         return timesteps
+
+
+class InferUNet2DConditionModel:
+    def __init__(self, original_unet: UNet2DConditionModel):
+        self.delegate = original_unet
+
+        # override original model's forward method: because forward is not called by `__call__`
+        # overriding `__call__` is not enough, because nn.Module.forward has a special handling
+        self.delegate.forward = self.forward
+
+        # override original model's up blocks' forward method
+        for up_block in self.delegate.up_blocks:
+            if up_block.__class__.__name__ == "UpBlock2D":
+
+                def resnet_wrapper(func, block):
+                    def forward(*args, **kwargs):
+                        return func(block, *args, **kwargs)
+
+                    return forward
+
+                up_block.forward = resnet_wrapper(self.up_block_forward, up_block)
+
+            elif up_block.__class__.__name__ == "CrossAttnUpBlock2D":
+
+                def cross_attn_up_wrapper(func, block):
+                    def forward(*args, **kwargs):
+                        return func(block, *args, **kwargs)
+
+                    return forward
+
+                up_block.forward = cross_attn_up_wrapper(self.cross_attn_up_block_forward, up_block)
+
+        # Deep Shrink
+        self.ds_depth_1 = None
+        self.ds_depth_2 = None
+        self.ds_timesteps_1 = None
+        self.ds_timesteps_2 = None
+        self.ds_ratio = None
+
+    # call original model's methods
+    def __getattr__(self, name):
+        return getattr(self.delegate, name)
+
+    def __call__(self, *args, **kwargs):
+        return self.delegate(*args, **kwargs)
+
+    def set_deep_shrink(self, ds_depth_1, ds_timesteps_1=650, ds_depth_2=None, ds_timesteps_2=None, ds_ratio=0.5):
+        if ds_depth_1 is None:
+            print("Deep Shrink is disabled.")
+            self.ds_depth_1 = None
+            self.ds_timesteps_1 = None
+            self.ds_depth_2 = None
+            self.ds_timesteps_2 = None
+            self.ds_ratio = None
+        else:
+            print(
+                f"Deep Shrink is enabled: [depth={ds_depth_1}/{ds_depth_2}, timesteps={ds_timesteps_1}/{ds_timesteps_2}, ratio={ds_ratio}]"
+            )
+            self.ds_depth_1 = ds_depth_1
+            self.ds_timesteps_1 = ds_timesteps_1
+            self.ds_depth_2 = ds_depth_2 if ds_depth_2 is not None else -1
+            self.ds_timesteps_2 = ds_timesteps_2 if ds_timesteps_2 is not None else 1000
+            self.ds_ratio = ds_ratio
+
+    def up_block_forward(self, _self, hidden_states, res_hidden_states_tuple, temb=None, upsample_size=None):
+        for resnet in _self.resnets:
+            # pop res hidden states
+            res_hidden_states = res_hidden_states_tuple[-1]
+            res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
+            # Deep Shrink
+            if res_hidden_states.shape[-2:] != hidden_states.shape[-2:]:
+                hidden_states = resize_like(hidden_states, res_hidden_states)
+
+            hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            hidden_states = resnet(hidden_states, temb)
+
+        if _self.upsamplers is not None:
+            for upsampler in _self.upsamplers:
+                hidden_states = upsampler(hidden_states, upsample_size)
+
+        return hidden_states
+
+    def cross_attn_up_block_forward(
+        self,
+        _self,
+        hidden_states,
+        res_hidden_states_tuple,
+        temb=None,
+        encoder_hidden_states=None,
+        upsample_size=None,
+    ):
+        for resnet, attn in zip(_self.resnets, _self.attentions):
+            # pop res hidden states
+            res_hidden_states = res_hidden_states_tuple[-1]
+            res_hidden_states_tuple = res_hidden_states_tuple[:-1]
+
+            # Deep Shrink
+            if res_hidden_states.shape[-2:] != hidden_states.shape[-2:]:
+                hidden_states = resize_like(hidden_states, res_hidden_states)
+
+            hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            hidden_states = resnet(hidden_states, temb)
+            hidden_states = attn(hidden_states, encoder_hidden_states=encoder_hidden_states).sample
+
+        if _self.upsamplers is not None:
+            for upsampler in _self.upsamplers:
+                hidden_states = upsampler(hidden_states, upsample_size)
+
+        return hidden_states
+
+    def forward(
+        self,
+        sample: torch.FloatTensor,
+        timestep: Union[torch.Tensor, float, int],
+        encoder_hidden_states: torch.Tensor,
+        class_labels: Optional[torch.Tensor] = None,
+        return_dict: bool = True,
+        down_block_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
+        mid_block_additional_residual: Optional[torch.Tensor] = None,
+    ) -> Union[Dict, Tuple]:
+        r"""
+        current implementation is a copy of `UNet2DConditionModel.forward()` with Deep Shrink.
+        """
+
+        r"""
+        Args:
+            sample (`torch.FloatTensor`): (batch, channel, height, width) noisy inputs tensor
+            timestep (`torch.FloatTensor` or `float` or `int`): (batch) timesteps
+            encoder_hidden_states (`torch.FloatTensor`): (batch, sequence_length, feature_dim) encoder hidden states
+            return_dict (`bool`, *optional*, defaults to `True`):
+                Whether or not to return a dict instead of a plain tuple.
+
+        Returns:
+            `SampleOutput` or `tuple`:
+            `SampleOutput` if `return_dict` is True, otherwise a `tuple`. When returning a tuple, the first element is the sample tensor.
+        """
+
+        _self = self.delegate
+
+        # By default samples have to be AT least a multiple of the overall upsampling factor.
+        # The overall upsampling factor is equal to 2 ** (# num of upsampling layears).
+        # However, the upsampling interpolation output size can be forced to fit any upsampling size
+        # on the fly if necessary.
+        # デフォルトではサンプルは「2^アップサンプルの数」、つまり64の倍数である必要がある
+        # ただそれ以外のサイズにも対応できるように、必要ならアップサンプルのサイズを変更する
+        # 多分画質が悪くなるので、64で割り切れるようにしておくのが良い
+        default_overall_up_factor = 2**_self.num_upsamplers
+
+        # upsample size should be forwarded when sample is not a multiple of `default_overall_up_factor`
+        # 64で割り切れないときはupsamplerにサイズを伝える
+        forward_upsample_size = False
+        upsample_size = None
+
+        if any(s % default_overall_up_factor != 0 for s in sample.shape[-2:]):
+            # logger.info("Forward upsample size to force interpolation output size.")
+            forward_upsample_size = True
+
+        # 1. time
+        timesteps = timestep
+        timesteps = _self.handle_unusual_timesteps(sample, timesteps)  # 変な時だけ処理
+
+        t_emb = _self.time_proj(timesteps)
+
+        # timesteps does not contain any weights and will always return f32 tensors
+        # but time_embedding might actually be running in fp16. so we need to cast here.
+        # there might be better ways to encapsulate this.
+        # timestepsは重みを含まないので常にfloat32のテンソルを返す
+        # しかしtime_embeddingはfp16で動いているかもしれないので、ここでキャストする必要がある
+        # time_projでキャストしておけばいいんじゃね？
+        t_emb = t_emb.to(dtype=_self.dtype)
+        emb = _self.time_embedding(t_emb)
+
+        # 2. pre-process
+        sample = _self.conv_in(sample)
+
+        down_block_res_samples = (sample,)
+        for depth, downsample_block in enumerate(_self.down_blocks):
+            # Deep Shrink
+            if self.ds_depth_1 is not None:
+                if (depth == self.ds_depth_1 and timesteps[0] >= self.ds_timesteps_1) or (
+                    self.ds_depth_2 is not None
+                    and depth == self.ds_depth_2
+                    and timesteps[0] < self.ds_timesteps_1
+                    and timesteps[0] >= self.ds_timesteps_2
+                ):
+                    org_dtype = sample.dtype
+                    if org_dtype == torch.bfloat16:
+                        sample = sample.to(torch.float32)
+                    sample = F.interpolate(sample, scale_factor=self.ds_ratio, mode="bicubic", align_corners=False).to(org_dtype)
+
+            # downblockはforwardで必ずencoder_hidden_statesを受け取るようにしても良さそうだけど、
+            # まあこちらのほうがわかりやすいかもしれない
+            if downsample_block.has_cross_attention:
+                sample, res_samples = downsample_block(
+                    hidden_states=sample,
+                    temb=emb,
+                    encoder_hidden_states=encoder_hidden_states,
+                )
+            else:
+                sample, res_samples = downsample_block(hidden_states=sample, temb=emb)
+
+            down_block_res_samples += res_samples
+
+        # skip connectionにControlNetの出力を追加する
+        if down_block_additional_residuals is not None:
+            down_block_res_samples = list(down_block_res_samples)
+            for i in range(len(down_block_res_samples)):
+                down_block_res_samples[i] += down_block_additional_residuals[i]
+            down_block_res_samples = tuple(down_block_res_samples)
+
+        # 4. mid
+        sample = _self.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
+
+        # ControlNetの出力を追加する
+        if mid_block_additional_residual is not None:
+            sample += mid_block_additional_residual
+
+        # 5. up
+        for i, upsample_block in enumerate(_self.up_blocks):
+            is_final_block = i == len(_self.up_blocks) - 1
+
+            res_samples = down_block_res_samples[-len(upsample_block.resnets) :]
+            down_block_res_samples = down_block_res_samples[: -len(upsample_block.resnets)]  # skip connection
+
+            # if we have not reached the final block and need to forward the upsample size, we do it here
+            # 前述のように最後のブロック以外ではupsample_sizeを伝える
+            if not is_final_block and forward_upsample_size:
+                upsample_size = down_block_res_samples[-1].shape[2:]
+
+            if upsample_block.has_cross_attention:
+                sample = upsample_block(
+                    hidden_states=sample,
+                    temb=emb,
+                    res_hidden_states_tuple=res_samples,
+                    encoder_hidden_states=encoder_hidden_states,
+                    upsample_size=upsample_size,
+                )
+            else:
+                sample = upsample_block(
+                    hidden_states=sample, temb=emb, res_hidden_states_tuple=res_samples, upsample_size=upsample_size
+                )
+
+        # 6. post-process
+        sample = _self.conv_norm_out(sample)
+        sample = _self.conv_act(sample)
+        sample = _self.conv_out(sample)
+
+        if not return_dict:
+            return (sample,)
+
+        return SampleOutput(sample=sample)
