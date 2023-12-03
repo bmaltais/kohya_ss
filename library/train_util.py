@@ -4692,6 +4692,8 @@ def sample_images_common(
             print(f"sample_steps: {sample_steps}")
             print(f"scale: {scale}")
             print(f"sample_sampler: {sampler_name}")
+            if seed is not None:
+                print(f"seed: {seed}")
             with accelerator.autocast():
                 latents = pipeline(
                     prompt=prompt,
