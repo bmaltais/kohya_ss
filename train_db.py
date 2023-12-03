@@ -279,6 +279,8 @@ def train(args):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
 
+        train_util.sample_images(accelerator, args, epoch, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
+
         # 指定したステップ数までText Encoderを学習する：epoch最初の状態
         unet.train()
         # train==True is required to enable gradient_checkpointing

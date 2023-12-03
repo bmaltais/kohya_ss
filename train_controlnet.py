@@ -373,6 +373,20 @@ def train(args):
 
     # training loop
     for epoch in range(num_train_epochs):
+        # For --sample_at_first
+        train_util.sample_images(
+            accelerator,
+            args,
+            epoch,
+            global_step,
+            accelerator.device,
+            vae,
+            tokenizer,
+            text_encoder,
+            unet,
+            controlnet=controlnet,
+        )
+
         if is_main_process:
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
