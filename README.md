@@ -655,6 +655,9 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 - Update Lycoris module to 2.0.0 (https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/README.md)
 - Update Lycoris merge and extract tools
 - Remove anoying warning about local pip modules that is not necessary.
+- Adding support for LyCORIS presets
+- Adding Support for LyCORIS Native Fine-Tuning
+- Adding support for Lycoris Diag-OFT
 
 * 2023/11/20 (v22.2.1)
 - Fix issue with `Debiased Estimation loss` not getting properly loaded from json file. Oups.

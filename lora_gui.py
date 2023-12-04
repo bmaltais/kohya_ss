@@ -171,6 +171,7 @@ def save_configuration(
     min_timestep,
     max_timestep,
     vae,
+    LyCORIS_preset,
     debiased_estimation_loss,
 ):
     # Get list of function parameters and values
@@ -325,6 +326,7 @@ def open_configuration(
     min_timestep,
     max_timestep,
     vae,
+    LyCORIS_preset,
     debiased_estimation_loss,
     training_preset,
 ):
@@ -499,6 +501,7 @@ def train_model(
     min_timestep,
     max_timestep,
     vae,
+    LyCORIS_preset,
     debiased_estimation_loss,
 ):
     # Get list of function parameters and values
@@ -727,7 +730,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=locon"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=locon"'
 
     if LoRA_type == "LyCORIS/LoHa":
         try:
@@ -738,7 +741,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "algo=loha"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "algo=loha"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -752,7 +755,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -766,7 +769,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "block_size={unit}" "algo=dylora"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "block_size={unit}" "algo=dylora"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -780,10 +783,39 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "factor={factor}" "use_cp={use_cp}" "algo=lokr"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "factor={factor}" "use_tucker={use_cp}" "algo=lokr"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
+            
+    if LoRA_type == "LyCORIS/Native Fine-Tuning":
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f" --network_module=lycoris.kohya"
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "algo=full" "train_norm=True"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+    
+    if LoRA_type == "LyCORIS/Diag-OFT":
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f" --network_module=lycoris.kohya"
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "algo=diag-oft" '
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+    
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -1106,12 +1138,28 @@ def lora_tab(
                             "LoRA-FA",
                             "LyCORIS/DyLoRA",
                             "LyCORIS/iA3",
+                            "LyCORIS/Diag-OFT",
                             "LyCORIS/LoCon",
                             "LyCORIS/LoHa",
                             "LyCORIS/LoKr",
+                            "LyCORIS/Native Fine-Tuning",
                             "Standard",
                         ],
                         value="Standard",
+                    )
+                    LyCORIS_preset = gr.Dropdown(
+                        label="LyCORIS Preset",
+                        choices=[
+                            "attn-mlp",
+                            "attn-only",
+                            "full",
+                            "full-lin",
+                            "unet-transformer-only",
+                            "unet-convblock-only",
+                        ],
+                        value="full",
+                        visible=False, interactive=True
+                        # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                     )
                     with gr.Box():
                         with gr.Row():
@@ -1187,7 +1235,7 @@ def lora_tab(
                 with gr.Row() as LoRA_dim_alpha:
                     network_dim = gr.Slider(
                         minimum=1,
-                        maximum=1024,
+                        maximum=100000, # 512 if not LoRA_type == "LyCORIS/LoKr" else 100000,
                         label="Network Rank (Dimension)",
                         value=8,
                         step=1,
@@ -1206,7 +1254,7 @@ def lora_tab(
                     # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
                     conv_dim = gr.Slider(
                         minimum=0,
-                        maximum=512,
+                        maximum=100000, # 512 if not LoRA_type == "LyCORIS/LoKr" else 100000,
                         value=1,
                         step=1,
                         label="Convolution Rank (Dimension)",
@@ -1272,6 +1320,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoCon",
                                     "LyCORIS/LoHa",
@@ -1286,6 +1335,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoHa",
                                     "LyCORIS/LoKr",
@@ -1313,6 +1363,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoHa",
                                     "LyCORIS/LoCon",
@@ -1327,6 +1378,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoHa",
                                     "LyCORIS/LoCon",
@@ -1341,6 +1393,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoHa",
                                     "LyCORIS/LoCon",
@@ -1380,6 +1433,7 @@ def lora_tab(
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
+                                    "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/LoHa",
                                     "LyCORIS/LoCon",
@@ -1408,6 +1462,18 @@ def lora_tab(
                                 },
                                 gr.Slider,
                             ),
+                            "LyCORIS_preset": (
+                                {
+                                    "LyCORIS/DyLoRA",
+                                    "LyCORIS/iA3",
+                                    "LyCORIS/Diag-OFT",
+                                    "LyCORIS/LoCon",
+                                    "LyCORIS/LoHa",
+                                    "LyCORIS/LoKr",
+                                    "LyCORIS/Native Fine-Tuning",
+                                },
+                                gr.Dropdown,
+                            )
                         }
 
                         results = []
@@ -1498,6 +1564,7 @@ def lora_tab(
                     network_dropout,
                     rank_dropout,
                     module_dropout,
+                    LyCORIS_preset,
                 ],
             )
 
@@ -1650,6 +1717,7 @@ def lora_tab(
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             advanced_training.vae,
+            LyCORIS_preset,
             advanced_training.debiased_estimation_loss,
         ]
 
