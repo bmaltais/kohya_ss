@@ -4,7 +4,7 @@
 call .\venv\Scripts\deactivate.bat
 
 :: Calling external python program to check for local modules
-python .\setup\check_local_modules.py --no_question
+:: python .\setup\check_local_modules.py --no_question
 
 :: Activate the virtual environment
 call .\venv\Scripts\activate.bat

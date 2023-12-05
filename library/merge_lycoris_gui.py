@@ -26,6 +26,7 @@ def merge_lycoris(
     output_name,
     dtype,
     device,
+    is_sdxl,
     is_v2,
 ):
     log.info('Merge model...')
@@ -37,6 +38,8 @@ def merge_lycoris(
     run_cmd += f' --weight {weight}'
     run_cmd += f' --device {device}'
     run_cmd += f' --dtype {dtype}'
+    if is_sdxl:
+        run_cmd += f' --is_sdxl'
     if is_v2:
         run_cmd += f' --is_v2'
 
@@ -149,12 +152,13 @@ def gradio_merge_lycoris_tab(headless=False):
                 label='Device',
                 choices=[
                     'cpu',
-                    #  'cuda',
+                    'cuda',
                 ],
                 value='cpu',
                 interactive=True,
             )
 
+            is_sdxl = gr.Checkbox(label='is sdxl', value=False, interactive=True)
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
 
         merge_button = gr.Button('Merge model')
@@ -168,6 +172,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 output_name,
                 dtype,
                 device,
+                is_sdxl,
                 is_v2,
             ],
             show_progress=False,

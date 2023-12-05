@@ -13,7 +13,7 @@ huggingface-hub==0.15.1
 # for loading Diffusers' SDXL
 invisible-watermark==0.2.0
 lion-pytorch==0.0.6
-lycoris_lora==1.9.0
+lycoris_lora==2.0.0
 # for BLIP captioning
 # requests==2.28.2
 # timm==0.6.12

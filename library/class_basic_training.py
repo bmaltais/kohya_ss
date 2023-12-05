@@ -105,6 +105,7 @@ class BasicTraining:
                     "Lion",
                     "Lion8bit",
                     "PagedAdamW8bit",
+                    "PagedAdamW32bit",
                     "PagedLion8bit",
                     "Prodigy",
                     "SGDNesterov",
