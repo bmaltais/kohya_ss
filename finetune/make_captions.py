@@ -76,6 +76,7 @@ def main(args):
         cwd = os.getcwd()
         print("Current Working Directory is: ", cwd)
         os.chdir("finetune")
+        args.caption_weights = os.path.join("..", args.caption_weights)
 
     print(f"load images from {args.train_data_dir}")
     train_data_dir_path = Path(args.train_data_dir)
