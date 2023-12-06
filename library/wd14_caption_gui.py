@@ -27,7 +27,8 @@ def caption_images(
     postfix,
     onnx,
     append_tags,
-    force_download
+    force_download,
+    caption_separator
 ):
     # Check for images_dir_input
     if train_data_dir == '':
@@ -44,6 +45,7 @@ def caption_images(
     run_cmd += f' --general_threshold={general_threshold}'
     run_cmd += f' --character_threshold={character_threshold}'
     run_cmd += f' --caption_extension="{caption_extension}"'
+    run_cmd += f' --caption_separator="{caption_separator}"'
     run_cmd += f' --model="{model}"'
     run_cmd += (
         f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
@@ -119,6 +121,12 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 label='Caption file extension',
                 placeholder='Extention for caption file. eg: .caption, .txt',
                 value='.txt',
+                interactive=True,
+            )
+            
+            caption_separator = gr.Textbox(
+                label='Caption Separator',
+                value=',',
                 interactive=True,
             )
 
@@ -246,7 +254,8 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 postfix,
                 onnx,
                 append_tags,
-                force_download
+                force_download,
+                caption_separator
             ],
             show_progress=False,
         )
