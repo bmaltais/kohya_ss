@@ -415,15 +415,11 @@ class TextualInversionTrainer:
             text_encoder_or_list, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 text_encoder_or_list, optimizer, train_dataloader, lr_scheduler
             )
-            # transform DDP after prepare
-            text_encoder_or_list, unet = train_util.transform_if_model_is_DDP(text_encoder_or_list, unet)
 
         elif len(text_encoders) == 2:
             text_encoder1, text_encoder2, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 text_encoders[0], text_encoders[1], optimizer, train_dataloader, lr_scheduler
             )
-            # transform DDP after prepare
-            text_encoder1, text_encoder2, unet = train_util.transform_if_model_is_DDP(text_encoder1, text_encoder2, unet)
 
             text_encoder_or_list = text_encoders = [text_encoder1, text_encoder2]
 

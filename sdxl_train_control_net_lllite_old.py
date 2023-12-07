@@ -254,9 +254,6 @@ def train(args):
     )
     network: control_net_lllite.ControlNetLLLite
 
-    # transform DDP after prepare (train_network here only)
-    unet, network = train_util.transform_models_if_DDP([unet, network])
-
     if args.gradient_checkpointing:
         unet.train()  # according to TI example in Diffusers, train is required -> これオリジナルのU-Netしたので本当は外せる
     else:

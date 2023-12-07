@@ -3914,17 +3914,6 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
     return text_encoder, vae, unet, load_stable_diffusion_format
 
 
-# TODO remove this function in the future
-def transform_if_model_is_DDP(text_encoder, unet, network=None):
-    # Transform text_encoder, unet and network from DistributedDataParallel
-    return (model.module if type(model) == DDP else model for model in [text_encoder, unet, network] if model is not None)
-
-
-def transform_models_if_DDP(models):
-    # Transform text_encoder, unet and network from DistributedDataParallel
-    return [model.module if type(model) == DDP else model for model in models if model is not None]
-
-
 def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projection_in_v2=False):
     # load models for each process
     for pi in range(accelerator.state.num_processes):
@@ -3947,8 +3936,6 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
             gc.collect()
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
-
-    text_encoder, unet = transform_if_model_is_DDP(text_encoder, unet)
 
     return text_encoder, vae, unet, load_stable_diffusion_format
 

@@ -12,6 +12,7 @@ import toml
 
 from tqdm import tqdm
 import torch
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 try:
     import intel_extension_for_pytorch as ipex
@@ -126,6 +127,11 @@ class NetworkTrainer:
     def call_unet(self, args, accelerator, unet, noisy_latents, timesteps, text_conds, batch, weight_dtype):
         noise_pred = unet(noisy_latents, timesteps, text_conds).sample
         return noise_pred
+
+    def all_reduce_network(self, accelerator, network):
+        for param in network.parameters():
+            if param.grad is not None:
+                param.grad = accelerator.reduce(param.grad, reduction="mean")
 
     def sample_images(self, accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet):
         train_util.sample_images(accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet)
@@ -390,46 +396,22 @@ class NetworkTrainer:
 
         # acceleratorがなんかよろしくやってくれるらしい
         # TODO めちゃくちゃ冗長なのでコードを整理する
-        if train_unet and train_text_encoder:
+        if train_unet:
+            unet = accelerator.prepare(unet)
+        else:
+            unet.to(accelerator.device, dtype=weight_dtype)  # move to device because unet is not prepared by accelerator
+        if train_text_encoder:
             if len(text_encoders) > 1:
-                unet, t_enc1, t_enc2, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-                    unet, text_encoders[0], text_encoders[1], network, optimizer, train_dataloader, lr_scheduler
-                )
-                text_encoder = text_encoders = [t_enc1, t_enc2]
-                del t_enc1, t_enc2
+                text_encoder = text_encoders = [accelerator.prepare(t_enc) for t_enc in text_encoders]
             else:
-                unet, text_encoder, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-                    unet, text_encoder, network, optimizer, train_dataloader, lr_scheduler
-                )
+                text_encoder = accelerator.prepare(text_encoder)
                 text_encoders = [text_encoder]
-        elif train_unet:
-            unet, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-                unet, network, optimizer, train_dataloader, lr_scheduler
-            )
+        else:
             for t_enc in text_encoders:
                 t_enc.to(accelerator.device, dtype=weight_dtype)
-        elif train_text_encoder:
-            if len(text_encoders) > 1:
-                t_enc1, t_enc2, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-                    text_encoders[0], text_encoders[1], network, optimizer, train_dataloader, lr_scheduler
-                )
-                text_encoder = text_encoders = [t_enc1, t_enc2]
-                del t_enc1, t_enc2
-            else:
-                text_encoder, network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-                    text_encoder, network, optimizer, train_dataloader, lr_scheduler
-                )
-                text_encoders = [text_encoder]
-
-            unet.to(accelerator.device, dtype=weight_dtype)  # move to device because unet is not prepared by accelerator
-        else:
-            network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+        network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 network, optimizer, train_dataloader, lr_scheduler
             )
-
-        # transform DDP after prepare (train_network here only)
-        text_encoders = train_util.transform_models_if_DDP(text_encoders)
-        unet, network = train_util.transform_models_if_DDP([unet, network])
 
         if args.gradient_checkpointing:
             # according to TI example in Diffusers, train is required
@@ -451,7 +433,7 @@ class NetworkTrainer:
 
         del t_enc
 
-        network.prepare_grad_etc(text_encoder, unet)
+        accelerator.unwrap_model(network).prepare_grad_etc(text_encoder, unet)
 
         if not cache_latents:  # キャッシュしない場合はVAEを使うのでVAEを準備する
             vae.requires_grad_(False)
@@ -714,8 +696,8 @@ class NetworkTrainer:
         del train_dataset_group
 
         # callback for step start
-        if hasattr(network, "on_step_start"):
-            on_step_start = network.on_step_start
+        if hasattr(accelerator.unwrap_model(network), "on_step_start"):
+            on_step_start = accelerator.unwrap_model(network).on_step_start
         else:
             on_step_start = lambda *args, **kwargs: None
 
@@ -749,10 +731,10 @@ class NetworkTrainer:
             current_epoch.value = epoch + 1
 
             metadata["ss_epoch"] = str(epoch + 1)
-            
+
             # For --sample_at_first
             self.sample_images(accelerator, args, epoch, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
-            network.on_epoch_start(text_encoder, unet)
+            accelerator.unwrap_model(network).on_epoch_start(text_encoder, unet)
 
             for step, batch in enumerate(train_dataloader):
                 current_step.value = global_step
@@ -825,8 +807,9 @@ class NetworkTrainer:
                     loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
                     accelerator.backward(loss)
+                    self.all_reduce_network(accelerator, network)   # sync DDP grad manually
                     if accelerator.sync_gradients and args.max_grad_norm != 0.0:
-                        params_to_clip = network.get_trainable_params()
+                        params_to_clip = accelerator.unwrap_model(network).get_trainable_params()
                         accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
                     optimizer.step()
@@ -834,7 +817,7 @@ class NetworkTrainer:
                     optimizer.zero_grad(set_to_none=True)
 
                 if args.scale_weight_norms:
-                    keys_scaled, mean_norm, maximum_norm = network.apply_max_norm_regularization(
+                    keys_scaled, mean_norm, maximum_norm = accelerator.unwrap_model(network).apply_max_norm_regularization(
                         args.scale_weight_norms, accelerator.device
                     )
                     max_mean_logs = {"Keys Scaled": keys_scaled, "Average key norm": mean_norm}

@@ -397,13 +397,10 @@ def train(args):
     # acceleratorがなんかよろしくやってくれるらしい
     if train_unet:
         unet = accelerator.prepare(unet)
-        (unet,) = train_util.transform_models_if_DDP([unet])
     if train_text_encoder1:
         text_encoder1 = accelerator.prepare(text_encoder1)
-        (text_encoder1,) = train_util.transform_models_if_DDP([text_encoder1])
     if train_text_encoder2:
         text_encoder2 = accelerator.prepare(text_encoder2)
-        (text_encoder2,) = train_util.transform_models_if_DDP([text_encoder2])
 
     optimizer, train_dataloader, lr_scheduler = accelerator.prepare(optimizer, train_dataloader, lr_scheduler)
 
