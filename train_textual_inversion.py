@@ -7,10 +7,13 @@ import toml
 
 from tqdm import tqdm
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -525,24 +528,24 @@ class TextualInversionTrainer:
                 accelerator.print(f"removing old checkpoint: {old_ckpt_file}")
                 os.remove(old_ckpt_file)
 
+        # For --sample_at_first
+        self.sample_images(
+            accelerator,
+            args,
+            0,
+            global_step,
+            accelerator.device,
+            vae,
+            tokenizer_or_list,
+            text_encoder_or_list,
+            unet,
+            prompt_replacement,
+        )
+
         # training loop
         for epoch in range(num_train_epochs):
             accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
             current_epoch.value = epoch + 1
-
-            # For --sample_at_first
-            self.sample_images(
-                accelerator,
-                args,
-                epoch,
-                global_step,
-                accelerator.device,
-                vae,
-                tokenizer_or_list,
-                text_encoder_or_list,
-                unet,
-                prompt_replacement,
-            )
 
             for text_encoder in text_encoders:
                 text_encoder.train()
