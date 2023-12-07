@@ -397,13 +397,10 @@ def train(args):
     # acceleratorがなんかよろしくやってくれるらしい
     if train_unet:
         unet = accelerator.prepare(unet)
-        (unet,) = train_util.transform_models_if_DDP([unet])
     if train_text_encoder1:
         text_encoder1 = accelerator.prepare(text_encoder1)
-        (text_encoder1,) = train_util.transform_models_if_DDP([text_encoder1])
     if train_text_encoder2:
         text_encoder2 = accelerator.prepare(text_encoder2)
-        (text_encoder2,) = train_util.transform_models_if_DDP([text_encoder2])
 
     optimizer, train_dataloader, lr_scheduler = accelerator.prepare(optimizer, train_dataloader, lr_scheduler)
 
@@ -460,6 +457,11 @@ def train(args):
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
+
+    # For --sample_at_first
+    sdxl_train_util.sample_images(
+        accelerator, args, 0, global_step, accelerator.device, vae, [tokenizer1, tokenizer2], [text_encoder1, text_encoder2], unet
+    )
 
     loss_recorder = train_util.LossRecorder()
     for epoch in range(num_train_epochs):

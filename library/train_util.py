@@ -2665,7 +2665,7 @@ def add_optimizer_arguments(parser: argparse.ArgumentParser):
         "--optimizer_type",
         type=str,
         default="",
-        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, PagedAdamW8bit, PagedAdamW32bit, Lion8bit, PagedLion8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, AdaFactor",
+        help="Optimizer to use / オプティマイザの種類: AdamW (default), AdamW8bit, PagedAdamW, PagedAdamW8bit, PagedAdamW32bit, Lion8bit, PagedLion8bit, Lion, SGDNesterov, SGDNesterov8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, AdaFactor",
     )
 
     # backward compatibility
@@ -2978,6 +2978,9 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
 
     parser.add_argument(
         "--sample_every_n_steps", type=int, default=None, help="generate sample images every N steps / 学習中のモデルで指定ステップごとにサンプル出力する"
+    )
+    parser.add_argument(
+        "--sample_at_first", action='store_true', help="generate sample images before training / 学習前にサンプル出力する"
     )
     parser.add_argument(
         "--sample_every_n_epochs",
@@ -3384,7 +3387,7 @@ def resume_from_local_or_hf_if_specified(accelerator, args):
 
 
 def get_optimizer(args, trainable_params):
-    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, PagedAdamW8bit, PagedAdamW32bit, Lion8bit, PagedLion8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, Adafactor"
+    # "Optimizer to use: AdamW, AdamW8bit, Lion, SGDNesterov, SGDNesterov8bit, PagedAdamW, PagedAdamW8bit, PagedAdamW32bit, Lion8bit, PagedLion8bit, DAdaptation(DAdaptAdamPreprint), DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptLion, DAdaptSGD, Adafactor"
 
     optimizer_type = args.optimizer_type
     if args.use_8bit_adam:
@@ -3486,6 +3489,20 @@ def get_optimizer(args, trainable_params):
                     "No PagedLion8bit. The version of bitsandbytes installed seems to be old. Please install 0.39.0 or later. / PagedLion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.39.0以上をインストールしてください"
                 )
 
+        optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
+
+    elif optimizer_type == "PagedAdamW".lower():
+        print(f"use PagedAdamW optimizer | {optimizer_kwargs}")
+        try:
+            import bitsandbytes as bnb
+        except ImportError:
+            raise ImportError("No bitsandbytes / bitsandbytesがインストールされていないようです")
+        try:
+            optimizer_class = bnb.optim.PagedAdamW
+        except AttributeError:
+            raise AttributeError(
+                "No PagedAdamW. The version of bitsandbytes installed seems to be old. Please install 0.39.0 or later. / PagedAdamWが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.39.0以上をインストールしてください"
+            )
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "PagedAdamW32bit".lower():
@@ -3897,17 +3914,6 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
     return text_encoder, vae, unet, load_stable_diffusion_format
 
 
-# TODO remove this function in the future
-def transform_if_model_is_DDP(text_encoder, unet, network=None):
-    # Transform text_encoder, unet and network from DistributedDataParallel
-    return (model.module if type(model) == DDP else model for model in [text_encoder, unet, network] if model is not None)
-
-
-def transform_models_if_DDP(models):
-    # Transform text_encoder, unet and network from DistributedDataParallel
-    return [model.module if type(model) == DDP else model for model in models if model is not None]
-
-
 def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projection_in_v2=False):
     # load models for each process
     for pi in range(accelerator.state.num_processes):
@@ -3930,8 +3936,6 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
             gc.collect()
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
-
-    text_encoder, unet = transform_if_model_is_DDP(text_encoder, unet)
 
     return text_encoder, vae, unet, load_stable_diffusion_format
 
@@ -4447,10 +4451,117 @@ SCHEDULER_LINEAR_END = 0.0120
 SCHEDULER_TIMESTEPS = 1000
 SCHEDLER_SCHEDULE = "scaled_linear"
 
+def get_my_scheduler(
+    *,
+    sample_sampler: str,
+    v_parameterization: bool,
+):
+    sched_init_args = {}
+    if sample_sampler == "ddim":
+        scheduler_cls = DDIMScheduler
+    elif sample_sampler == "ddpm":  # ddpmはおかしくなるのでoptionから外してある
+        scheduler_cls = DDPMScheduler
+    elif sample_sampler == "pndm":
+        scheduler_cls = PNDMScheduler
+    elif sample_sampler == "lms" or sample_sampler == "k_lms":
+        scheduler_cls = LMSDiscreteScheduler
+    elif sample_sampler == "euler" or sample_sampler == "k_euler":
+        scheduler_cls = EulerDiscreteScheduler
+    elif sample_sampler == "euler_a" or sample_sampler == "k_euler_a":
+        scheduler_cls = EulerAncestralDiscreteScheduler
+    elif sample_sampler == "dpmsolver" or sample_sampler == "dpmsolver++":
+        scheduler_cls = DPMSolverMultistepScheduler
+        sched_init_args["algorithm_type"] = sample_sampler
+    elif sample_sampler == "dpmsingle":
+        scheduler_cls = DPMSolverSinglestepScheduler
+    elif sample_sampler == "heun":
+        scheduler_cls = HeunDiscreteScheduler
+    elif sample_sampler == "dpm_2" or sample_sampler == "k_dpm_2":
+        scheduler_cls = KDPM2DiscreteScheduler
+    elif sample_sampler == "dpm_2_a" or sample_sampler == "k_dpm_2_a":
+        scheduler_cls = KDPM2AncestralDiscreteScheduler
+    else:
+        scheduler_cls = DDIMScheduler
+
+    if v_parameterization:
+        sched_init_args["prediction_type"] = "v_prediction"
+
+    scheduler = scheduler_cls(
+        num_train_timesteps=SCHEDULER_TIMESTEPS,
+        beta_start=SCHEDULER_LINEAR_START,
+        beta_end=SCHEDULER_LINEAR_END,
+        beta_schedule=SCHEDLER_SCHEDULE,
+        **sched_init_args,
+    )
+
+    # clip_sample=Trueにする
+    if (
+        hasattr(scheduler.config, "clip_sample")
+        and scheduler.config.clip_sample is False
+    ):
+        # print("set clip_sample to True")
+        scheduler.config.clip_sample = True
+
+    return scheduler
+
 
 def sample_images(*args, **kwargs):
     return sample_images_common(StableDiffusionLongPromptWeightingPipeline, *args, **kwargs)
 
+
+def line_to_prompt_dict(line: str) -> dict:
+    # subset of gen_img_diffusers
+    prompt_args = line.split(" --")
+    prompt_dict = {}
+    prompt_dict['prompt'] = prompt_args[0]
+
+    for parg in prompt_args:
+        try:
+            m = re.match(r"w (\d+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict['width'] = int(m.group(1))
+                continue
+
+            m = re.match(r"h (\d+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict['height'] = int(m.group(1))
+                continue
+
+            m = re.match(r"d (\d+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict['seed'] = int(m.group(1))
+                continue
+
+            m = re.match(r"s (\d+)", parg, re.IGNORECASE)
+            if m:  # steps
+                prompt_dict['sample_steps'] = max(1, min(1000, int(m.group(1))))
+                continue
+
+            m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
+            if m:  # scale
+                prompt_dict['scale'] = float(m.group(1))
+                continue
+
+            m = re.match(r"n (.+)", parg, re.IGNORECASE)
+            if m:  # negative prompt
+                prompt_dict['negative_prompt'] = m.group(1)
+                continue
+
+            m = re.match(r"ss (.+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict['sample_sampler'] = m.group(1)
+                continue
+
+            m = re.match(r"cn (.+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict['controlnet_image'] = m.group(1)
+                continue
+
+        except ValueError as ex:
+            print(f"Exception in parsing / 解析エラー: {parg}")
+            print(ex)
+
+    return prompt_dict
 
 def sample_images_common(
     pipe_class,
@@ -4469,15 +4580,19 @@ def sample_images_common(
     """
     StableDiffusionLongPromptWeightingPipelineの改造版を使うようにしたので、clip skipおよびプロンプトの重みづけに対応した
     """
-    if args.sample_every_n_steps is None and args.sample_every_n_epochs is None:
-        return
-    if args.sample_every_n_epochs is not None:
-        # sample_every_n_steps は無視する
-        if epoch is None or epoch % args.sample_every_n_epochs != 0:
+    if steps == 0:
+        if not args.sample_at_first:
             return
     else:
-        if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
+        if args.sample_every_n_steps is None and args.sample_every_n_epochs is None:
             return
+        if args.sample_every_n_epochs is not None:
+            # sample_every_n_steps は無視する
+            if epoch is None or epoch % args.sample_every_n_epochs != 0:
+                return
+        else:
+            if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
+                return
 
     print(f"\ngenerating sample images at step / サンプル画像生成 ステップ: {steps}")
     if not os.path.isfile(args.sample_prompts):
@@ -4504,56 +4619,19 @@ def sample_images_common(
         with open(args.sample_prompts, "r", encoding="utf-8") as f:
             prompts = json.load(f)
 
-    # schedulerを用意する
-    sched_init_args = {}
-    if args.sample_sampler == "ddim":
-        scheduler_cls = DDIMScheduler
-    elif args.sample_sampler == "ddpm":  # ddpmはおかしくなるのでoptionから外してある
-        scheduler_cls = DDPMScheduler
-    elif args.sample_sampler == "pndm":
-        scheduler_cls = PNDMScheduler
-    elif args.sample_sampler == "lms" or args.sample_sampler == "k_lms":
-        scheduler_cls = LMSDiscreteScheduler
-    elif args.sample_sampler == "euler" or args.sample_sampler == "k_euler":
-        scheduler_cls = EulerDiscreteScheduler
-    elif args.sample_sampler == "euler_a" or args.sample_sampler == "k_euler_a":
-        scheduler_cls = EulerAncestralDiscreteScheduler
-    elif args.sample_sampler == "dpmsolver" or args.sample_sampler == "dpmsolver++":
-        scheduler_cls = DPMSolverMultistepScheduler
-        sched_init_args["algorithm_type"] = args.sample_sampler
-    elif args.sample_sampler == "dpmsingle":
-        scheduler_cls = DPMSolverSinglestepScheduler
-    elif args.sample_sampler == "heun":
-        scheduler_cls = HeunDiscreteScheduler
-    elif args.sample_sampler == "dpm_2" or args.sample_sampler == "k_dpm_2":
-        scheduler_cls = KDPM2DiscreteScheduler
-    elif args.sample_sampler == "dpm_2_a" or args.sample_sampler == "k_dpm_2_a":
-        scheduler_cls = KDPM2AncestralDiscreteScheduler
-    else:
-        scheduler_cls = DDIMScheduler
-
-    if args.v_parameterization:
-        sched_init_args["prediction_type"] = "v_prediction"
-
-    scheduler = scheduler_cls(
-        num_train_timesteps=SCHEDULER_TIMESTEPS,
-        beta_start=SCHEDULER_LINEAR_START,
-        beta_end=SCHEDULER_LINEAR_END,
-        beta_schedule=SCHEDLER_SCHEDULE,
-        **sched_init_args,
+    schedulers: dict = {}
+    default_scheduler = get_my_scheduler(
+        sample_sampler=args.sample_sampler,
+        v_parameterization=args.v_parameterization,
     )
-
-    # clip_sample=Trueにする
-    if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
-        # print("set clip_sample to True")
-        scheduler.config.clip_sample = True
+    schedulers[args.sample_sampler] = default_scheduler
 
     pipeline = pipe_class(
         text_encoder=text_encoder,
         vae=vae,
         unet=unet,
         tokenizer=tokenizer,
-        scheduler=scheduler,
+        scheduler=default_scheduler,
         safety_checker=None,
         feature_extractor=None,
         requires_safety_checker=False,
@@ -4569,77 +4647,33 @@ def sample_images_common(
 
     with torch.no_grad():
         # with accelerator.autocast():
-        for i, prompt in enumerate(prompts):
+        for i, prompt_dict in enumerate(prompts):
             if not accelerator.is_main_process:
                 continue
 
-            if isinstance(prompt, dict):
-                negative_prompt = prompt.get("negative_prompt")
-                sample_steps = prompt.get("sample_steps", 30)
-                width = prompt.get("width", 512)
-                height = prompt.get("height", 512)
-                scale = prompt.get("scale", 7.5)
-                seed = prompt.get("seed")
-                controlnet_image = prompt.get("controlnet_image")
-                prompt = prompt.get("prompt")
-            else:
-                # prompt = prompt.strip()
-                # if len(prompt) == 0 or prompt[0] == "#":
-                #     continue
+            if isinstance(prompt_dict, str):
+                prompt_dict = line_to_prompt_dict(prompt_dict)
 
-                # subset of gen_img_diffusers
-                prompt_args = prompt.split(" --")
-                prompt = prompt_args[0]
-                negative_prompt = None
-                sample_steps = 30
-                width = height = 512
-                scale = 7.5
-                seed = None
-                controlnet_image = None
-                for parg in prompt_args:
-                    try:
-                        m = re.match(r"w (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            width = int(m.group(1))
-                            continue
-
-                        m = re.match(r"h (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            height = int(m.group(1))
-                            continue
-
-                        m = re.match(r"d (\d+)", parg, re.IGNORECASE)
-                        if m:
-                            seed = int(m.group(1))
-                            continue
-
-                        m = re.match(r"s (\d+)", parg, re.IGNORECASE)
-                        if m:  # steps
-                            sample_steps = max(1, min(1000, int(m.group(1))))
-                            continue
-
-                        m = re.match(r"l ([\d\.]+)", parg, re.IGNORECASE)
-                        if m:  # scale
-                            scale = float(m.group(1))
-                            continue
-
-                        m = re.match(r"n (.+)", parg, re.IGNORECASE)
-                        if m:  # negative prompt
-                            negative_prompt = m.group(1)
-                            continue
-
-                        m = re.match(r"cn (.+)", parg, re.IGNORECASE)
-                        if m:  # negative prompt
-                            controlnet_image = m.group(1)
-                            continue
-
-                    except ValueError as ex:
-                        print(f"Exception in parsing / 解析エラー: {parg}")
-                        print(ex)
+            assert isinstance(prompt_dict, dict)
+            negative_prompt = prompt_dict.get("negative_prompt")
+            sample_steps = prompt_dict.get("sample_steps", 30)
+            width = prompt_dict.get("width", 512)
+            height = prompt_dict.get("height", 512)
+            scale = prompt_dict.get("scale", 7.5)
+            seed = prompt_dict.get("seed")
+            controlnet_image = prompt_dict.get("controlnet_image")
+            prompt: str = prompt_dict.get("prompt", "")
+            sampler_name:str = prompt_dict.get("sample_sampler", args.sample_sampler)
 
             if seed is not None:
                 torch.manual_seed(seed)
                 torch.cuda.manual_seed(seed)
+
+            scheduler = schedulers.get(sampler_name)
+            if scheduler is None:
+                scheduler = get_my_scheduler(sample_sampler=sampler_name, v_parameterization=args.v_parameterization,)
+                schedulers[sampler_name] = scheduler
+            pipeline.scheduler = scheduler
 
             if prompt_replacement is not None:
                 prompt = prompt.replace(prompt_replacement[0], prompt_replacement[1])
@@ -4658,6 +4692,9 @@ def sample_images_common(
             print(f"width: {width}")
             print(f"sample_steps: {sample_steps}")
             print(f"scale: {scale}")
+            print(f"sample_sampler: {sampler_name}")
+            if seed is not None:
+                print(f"seed: {seed}")
             with accelerator.autocast():
                 latents = pipeline(
                     prompt=prompt,
