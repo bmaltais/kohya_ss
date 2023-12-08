@@ -49,6 +49,11 @@ def _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set):
 
 
 def paginate(page, max_page, page_change):
+    try:
+        page = float(page) - 1
+    except:
+        msgbox(f'Invalid page num: {page}')
+        return
     return int(max(min(page + page_change, max_page), 1))
 
 
@@ -313,6 +318,16 @@ def gradio_manual_caption_gui_tab(headless=False):
                 outputs=[page],
             )
             page_count = gr.Label('Page 1', label='Page')
+            page_goto_text = gr.Textbox(
+                label='Goto page',
+                placeholder='Page Number',
+                interactive=True,
+            )
+            gr.Button('Go >', elem_id='open_folder').click(
+                paginate,
+                inputs=[page_goto_text, max_page, gr.Number(1, visible=False)],
+                outputs=[page],
+            )
             gr.Button('Next >', elem_id='open_folder').click(
                 paginate,
                 inputs=[page, max_page, gr.Number(1, visible=False)],
