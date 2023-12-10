@@ -710,6 +710,11 @@ def run_cmd_training(**kwargs):
     lr_scheduler_args = kwargs.get('lr_scheduler_args', '')
     if lr_scheduler_args != '':
         run_cmd += f' --lr_scheduler_args {lr_scheduler_args}'
+    
+    max_grad_norm = kwargs.get('max_grad_norm', '')
+    if max_grad_norm != '':
+        run_cmd += f' --max_grad_norm="{max_grad_norm}"'
+        
     return run_cmd
 
 
