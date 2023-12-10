@@ -1722,6 +1722,7 @@ class ControlNetDataset(BaseDataset):
                 subset.caption_extension,
                 subset.num_repeats,
                 subset.shuffle_caption,
+                subset.caption_separator,
                 subset.keep_tokens,
                 subset.color_aug,
                 subset.flip_aug,
