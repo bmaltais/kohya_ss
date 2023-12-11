@@ -505,6 +505,7 @@ def train(args):
                         # else:
                         input_ids1 = input_ids1.to(accelerator.device)
                         input_ids2 = input_ids2.to(accelerator.device)
+                        # unwrap_model is fine for models not wrapped by accelerator
                         encoder_hidden_states1, encoder_hidden_states2, pool2 = train_util.get_hidden_states_sdxl(
                             args.max_token_length,
                             input_ids1,
@@ -514,6 +515,7 @@ def train(args):
                             text_encoder1,
                             text_encoder2,
                             None if not args.full_fp16 else weight_dtype,
+                            accelerator=accelerator,
                         )
                 else:
                     encoder_hidden_states1 = batch["text_encoder_outputs1_list"].to(accelerator.device).to(weight_dtype)
