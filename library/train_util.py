@@ -664,7 +664,11 @@ class BaseDataset(torch.utils.data.Dataset):
             if subset.shuffle_caption or subset.token_warmup_step > 0 or subset.caption_tag_dropout_rate > 0:
                 fixed_tokens = []
                 flex_tokens = []
-                if hasattr(subset, 'keep_tokens_separator') and subset.keep_tokens_separator in caption:
+                if (
+                    hasattr(subset, "keep_tokens_separator")
+                    and subset.keep_tokens_separator
+                    and subset.keep_tokens_separator in caption
+                ):
                     fixed_part, flex_part = caption.split(subset.keep_tokens_separator, 1)
                     fixed_tokens = [t.strip() for t in fixed_part.split(subset.caption_separator) if t.strip()]
                     flex_tokens = [t.strip() for t in flex_part.split(subset.caption_separator) if t.strip()]
@@ -672,19 +676,19 @@ class BaseDataset(torch.utils.data.Dataset):
                     tokens = [t.strip() for t in caption.strip().split(subset.caption_separator)]
                     flex_tokens = tokens[:]
                     if subset.keep_tokens > 0:
-                        fixed_tokens = flex_tokens[:subset.keep_tokens]
-                        flex_tokens = tokens[subset.keep_tokens:]
-
+                        fixed_tokens = flex_tokens[: subset.keep_tokens]
+                        flex_tokens = tokens[subset.keep_tokens :]
 
                 if subset.token_warmup_step < 1:  # 初回に上書きする
                     subset.token_warmup_step = math.floor(subset.token_warmup_step * self.max_train_steps)
                 if subset.token_warmup_step and self.current_step < subset.token_warmup_step:
                     tokens_len = (
-                        math.floor((self.current_step) * ((len(flex_tokens) - subset.token_warmup_min) / (subset.token_warmup_step)))
+                        math.floor(
+                            (self.current_step) * ((len(flex_tokens) - subset.token_warmup_min) / (subset.token_warmup_step))
+                        )
                         + subset.token_warmup_min
                     )
                     flex_tokens = flex_tokens[:tokens_len]
-
 
                 def dropout_tags(tokens):
                     if subset.caption_tag_dropout_rate <= 0:
@@ -3152,7 +3156,8 @@ def add_dataset_arguments(
         "--keep_tokens_separator",
         type=str,
         default="",
-        help="A custom separator to divide the caption into fixed and flexible parts. Tokens before this separator will not be shuffled. If not specified, '--keep_tokens' will be used to determine the fixed number of tokens.",
+        help="A custom separator to divide the caption into fixed and flexible parts. Tokens before this separator will not be shuffled. If not specified, '--keep_tokens' will be used to determine the fixed number of tokens."
+        + " / captionを固定部分と可変部分に分けるためのカスタム区切り文字。この区切り文字より前のトークンはシャッフルされない。指定しない場合、'--keep_tokens'が固定部分のトークン数として使用される。",
     )
     parser.add_argument(
         "--caption_prefix",
