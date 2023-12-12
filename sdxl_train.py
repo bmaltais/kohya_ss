@@ -398,6 +398,9 @@ def train(args):
     if train_unet:
         unet = accelerator.prepare(unet)
     if train_text_encoder1:
+        # freeze last layer and final_layer_norm in te1 since we use the output of the penultimate layer
+        text_encoder1.text_model.encoder.layers[-1].requires_grad_(False)
+        text_encoder1.text_model.final_layer_norm.requires_grad_(False)
         text_encoder1 = accelerator.prepare(text_encoder1)
     if train_text_encoder2:
         text_encoder2 = accelerator.prepare(text_encoder2)
