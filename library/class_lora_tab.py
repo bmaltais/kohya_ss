@@ -4,6 +4,7 @@ from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
 from library.verify_lora_gui import gradio_verify_lora_tab
 from library.resize_lora_gui import gradio_resize_lora_tab
 from library.extract_lora_gui import gradio_extract_lora_tab
+from library.convert_lcm_gui import gradio_convert_lcm_tab
 from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
 from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
 from library.merge_lycoris_gui import gradio_merge_lycoris_tab
@@ -24,6 +25,7 @@ class LoRATools:
             'This section provide LoRA tools to help setup your dataset...'
         )
         gradio_extract_dylora_tab(headless=headless)
+        gradio_convert_lcm_tab(headless=headless)
         gradio_extract_lora_tab(headless=headless)
         gradio_extract_lycoris_locon_tab(headless=headless)
         gradio_merge_lora_tab = GradioMergeLoRaTab()

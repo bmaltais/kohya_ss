@@ -1284,7 +1284,7 @@ def lora_tab(
                     train_on_input = gr.Checkbox(
                         value=True,
                         label="iA3 train on input",
-                        info="Set if we change the information going into the system (True) or the information coming out of it (False)."
+                        info="Set if we change the information going into the system (True) or the information coming out of it (False).",
                         visible=False,
                     )
 
