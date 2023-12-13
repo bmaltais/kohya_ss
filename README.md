@@ -249,6 +249,10 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### Work in progress
+
+- `--ddp_gradient_as_bucket_view` and `--ddp_bucket_view`options are added to `sdxl_train.py`. With these options, the issues in multi-GPU training will be fixed.
+
 ### Dec 3, 2023 / 2023/12/3
 
 - `finetune\tag_images_by_wd14_tagger.py` now supports the separator other than `,` with `--caption_separator` option. Thanks to KohakuBlueleaf! PR [#913](https://github.com/kohya-ss/sd-scripts/pull/913)
