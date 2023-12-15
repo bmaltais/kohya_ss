@@ -4603,7 +4603,7 @@ def line_to_prompt_dict(line: str) -> dict:
 
 def sample_images_common(
     pipe_class,
-    accelerator,
+    accelerator: Accelerator,
     args: argparse.Namespace,
     epoch,
     steps,
@@ -4639,6 +4639,13 @@ def sample_images_common(
 
     org_vae_device = vae.device  # CPUにいるはず
     vae.to(device)
+
+    # unwrap unet and text_encoder(s)
+    unet = accelerator.unwrap_model(unet)
+    if isinstance(text_encoder, (list, tuple)):
+        text_encoder = [accelerator.unwrap_model(te) for te in text_encoder]
+    else:
+        text_encoder = accelerator.unwrap_model(text_encoder)
 
     # read prompts
 
