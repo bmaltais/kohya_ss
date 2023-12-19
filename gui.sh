@@ -72,14 +72,8 @@ fi
 #Set OneAPI if it's not set by the user
 if [[ "$@" == *"--use-ipex"* ]]
 then
-    echo "Setting OneAPI environment"
-    if [ ! -x "$(command -v sycl-ls)" ]
-    then
-        if [[ -z "$ONEAPI_ROOT" ]]
-        then
-            ONEAPI_ROOT=/opt/intel/oneapi
-        fi
-        source $ONEAPI_ROOT/setvars.sh
+    if [ -d "$SCRIPT_DIR/venv" ]; then
+        export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
