@@ -1505,7 +1505,7 @@ def lora_tab(
                                     "maximum": 100000
                                     if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
                                     else 512,
-                                    "value": 512 if conv_dim > 512 else conv_dim,
+                                    "value": 512, # if conv_dim > 512 else conv_dim,
                                 },
                             },
                             "network_dim": {
@@ -1514,7 +1514,7 @@ def lora_tab(
                                     "maximum": 100000
                                     if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
                                     else 512,
-                                    "value": 512 if network_dim > 512 else network_dim,
+                                    "value": 512, # if network_dim > 512 else network_dim,
                                 },
                             },
                             "use_cp": {
