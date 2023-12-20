@@ -1317,7 +1317,7 @@ def make_bucket_resolutions(max_reso, min_size=256, max_size=1024, divisible=64)
     width = min_size
     while width <= max_size:
         height = min(max_size, int((max_area // width) // divisible) * divisible)
-        if height > 0:
+        if height >= min_size:
             resos.add((width, height))
             resos.add((height, width))
 
