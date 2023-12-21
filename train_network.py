@@ -750,7 +750,7 @@ class NetworkTrainer:
                             # NaNが含まれていれば警告を表示し0に置き換える
                             if torch.any(torch.isnan(latents)):
                                 accelerator.print("NaN found in latents, replacing with zeros")
-                                latents = torch.where(torch.isnan(latents), torch.zeros_like(latents), latents)
+                                latents = torch.nan_to_num(latents, 0, out=latents)
                         latents = latents * self.vae_scale_factor
                     b_size = latents.shape[0]
 
