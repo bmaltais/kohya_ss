@@ -651,11 +651,12 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2023/12/10 (v22.3.1)
+* 2023/12/20 (v22.3.1)
 - Add goto button to manual caption utility
 - Add missing options for various LyCORIS training algorythms
 - Refactor how feilds are shown or hidden
 - Made max value for network and convolution rank 512 except for LyCORIS/LoKr.
+  
 * 2023/12/06 (v22.3.0)
 - Merge sd-scripts updates:
   - `finetune\tag_images_by_wd14_tagger.py` now supports the separator other than `,` with `--caption_separator` option. Thanks to KohakuBlueleaf! PR [#913](https://github.com/kohya-ss/sd-scripts/pull/913)
