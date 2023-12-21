@@ -51,11 +51,11 @@ Enter your choice: 2
 
 当仓库内和note.com有相关文章,请参考那里。(未来可能全部移到这里)
 
-* [关于训练,通用篇](./docs/train_README-ja.md): 数据准备和选项等
+* [关于训练,通用篇](./docs/train_README-zh.md): 数据准备和选项等
     * [数据集设置](./docs/config_README-ja.md)
-* [DreamBooth训练指南](./docs/train_db_README-ja.md) 
+* [DreamBooth训练指南](./docs/train_db_README-zh.md) 
 * [fine-tuning指南](./docs/fine_tune_README_ja.md)
-* [LoRA训练指南](./docs/train_network_README-ja.md)
+* [LoRA训练指南](./docs/train_network_README-zh.md)
 * [文本反转训练指南](./docs/train_ti_README-ja.md)
 * [图像生成脚本](./docs/gen_img_README-ja.md)
 * note.com [模型转换脚本](https://note.com/kohya_ss/n/n374f316fe4ad)
