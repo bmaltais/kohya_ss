@@ -125,7 +125,7 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,
+    lr_scheduler_args,max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -133,7 +133,7 @@ def save_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,
+    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -280,7 +280,7 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,
+    lr_scheduler_args,max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -288,7 +288,7 @@ def open_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,
+    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -455,7 +455,7 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,
+    lr_scheduler_args,max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -463,7 +463,7 @@ def train_model(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,
+    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -721,7 +721,7 @@ def train_model(
     if not float(prior_loss_weight) == 1.0:
         run_cmd += f" --prior_loss_weight={prior_loss_weight}"
 
-    if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
+    if LoRA_type == "LyCORIS/Diag-OFT":
         try:
             import lycoris
         except ModuleNotFoundError:
@@ -730,7 +730,24 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=locon"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" '
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+
+    if LoRA_type == "LyCORIS/DyLoRA":
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f" --network_module=lycoris.kohya"
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
 
     if LoRA_type == "LyCORIS/GLoRA":
         try:
@@ -741,21 +758,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "algo=glora"'
-
-    if LoRA_type == "LyCORIS/LoHa":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_cp}" "algo=loha"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/iA3":
         try:
@@ -771,7 +774,7 @@ def train_model(
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
 
-    if LoRA_type == "LyCORIS/DyLoRA":
+    if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         try:
             import lycoris
         except ModuleNotFoundError:
@@ -780,7 +783,21 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_cp={use_cp}" "block_size={unit}" "algo=dylora"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
+        # This is a hack to fix a train_network LoHA logic issue
+        if not network_dropout > 0.0:
+            run_cmd += f' --network_dropout="{network_dropout}"'
+
+    if LoRA_type == "LyCORIS/LoHa":
+        try:
+            import lycoris
+        except ModuleNotFoundError:
+            log.info(
+                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
+            )
+            return
+        run_cmd += f" --network_module=lycoris.kohya"
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -794,7 +811,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "factor={factor}" "use_tucker={use_cp}" "algo=lokr"'
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -809,22 +826,8 @@ def train_model(
             return
         run_cmd += f" --network_module=lycoris.kohya"
         run_cmd += (
-            f' --network_args "preset={LyCORIS_preset}" "algo=full" "train_norm=True"'
+            f' --network_args "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
         )
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
-
-    if LoRA_type == "LyCORIS/Diag-OFT":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "algo=diag-oft" '
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -999,6 +1002,7 @@ def train_model(
         optimizer=optimizer,
         optimizer_args=optimizer_args,
         lr_scheduler_args=lr_scheduler_args,
+        max_grad_norm=max_grad_norm,
     )
 
     run_cmd += run_cmd_advanced_training(
@@ -1235,21 +1239,59 @@ def lora_tab(
                         info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
                         visible=False,
                     )
+                    use_tucker = gr.Checkbox(
+                        value=False,
+                        label="Use Tucker decomposition",
+                        info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
+                        visible=False,
+                    )
+                    use_scalar = gr.Checkbox(
+                        value=False,
+                        label="Use Scalar",
+                        info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
+                        visible=False,
+                    )
+                    rank_dropout_scale = gr.Checkbox(
+                        value=False,
+                        label="Rank Dropout Scale",
+                        info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
+                        visible=False,
+                    )
+                    constrain = gr.Number(
+                        value="0.0",
+                        label="Constrain OFT",
+                        info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
+                        visible=False,
+                    )
+                    rescaled = gr.Checkbox(
+                        value=False,
+                        label="Rescaled OFT",
+                        info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
+                        visible=False,
+                    )
+                    train_norm = gr.Checkbox(
+                        value=False,
+                        label="Train Norm",
+                        info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
+                        visible=False,
+                    )
                     decompose_both = gr.Checkbox(
                         value=False,
                         label="LoKr decompose both",
+                        info=" Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
                         visible=False,
                     )
                     train_on_input = gr.Checkbox(
                         value=True,
                         label="iA3 train on input",
+                        info="Set if we change the information going into the system (True) or the information coming out of it (False).",
                         visible=False,
                     )
 
-                with gr.Row() as LoRA_dim_alpha:
+                with gr.Row() as network_row:
                     network_dim = gr.Slider(
                         minimum=1,
-                        maximum=100000,  # 512 if not LoRA_type == "LyCORIS/LoKr" else 100000,
+                        maximum=512,
                         label="Network Rank (Dimension)",
                         value=8,
                         step=1,
@@ -1264,11 +1306,11 @@ def lora_tab(
                         interactive=True,
                         info="alpha for LoRA weight scaling",
                     )
-                with gr.Row(visible=False) as LoCon_row:
+                with gr.Row(visible=False) as convolution_row:
                     # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
                     conv_dim = gr.Slider(
                         minimum=0,
-                        maximum=100000,  # 512 if not LoRA_type == "LyCORIS/LoKr" else 100000,
+                        maximum=512,
                         value=1,
                         step=1,
                         label="Convolution Rank (Dimension)",
@@ -1325,187 +1367,348 @@ def lora_tab(
                     )
 
                     # Show or hide LoCon conv settings depending on LoRA type selection
-                    def update_LoRA_settings(LoRA_type):
+                    def update_LoRA_settings(
+                        LoRA_type,
+                        conv_dim,
+                        network_dim,
+                    ):
                         log.info("LoRA type changed...")
 
-                        visibility_and_gr_types = {
-                            "LoRA_dim_alpha": (
-                                {
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "Standard",
+                        lora_settings_config = {
+                            "network_row": {
+                                "gr_type": gr.Row,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "Standard",
+                                    },
                                 },
-                                gr.Row,
-                            ),
-                            "LoCon_row": (
-                                {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/GLoRA",
+                            },
+                            "convolution_row": {
+                                "gr_type": gr.Row,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/GLoRA",
+                                    },
                                 },
-                                gr.Row,
-                            ),
-                            "kohya_advanced_lora": (
-                                {
-                                    "Standard",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
+                            },
+                            "kohya_advanced_lora": {
+                                "gr_type": gr.Row,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Standard",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                    },
                                 },
-                                gr.Row,
-                            ),
-                            "kohya_dylora": (
-                                {"Kohya DyLoRA", "LyCORIS/DyLoRA"},
-                                gr.Row,
-                            ),
-                            "lora_network_weights": (
-                                {
-                                    "Standard",
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
+                            },
+                            "kohya_dylora": {
+                                "gr_type": gr.Row,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Kohya DyLoRA",
+                                        "LyCORIS/DyLoRA",
+                                    },
                                 },
-                                gr.Textbox,
-                            ),
-                            "lora_network_weights_file": (
-                                {
-                                    "Standard",
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
+                            },
+                            "lora_network_weights": {
+                                "gr_type": gr.Textbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Standard",
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoKr",
+                                    },
                                 },
-                                gr.Button,
-                            ),
-                            "dim_from_weights": (
-                                {
-                                    "Standard",
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
+                            },
+                            "lora_network_weights_file": {
+                                "gr_type": gr.Button,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Standard",
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoKr",
+                                    },
                                 },
-                                gr.Checkbox,
-                            ),
-                            "factor": ({"LyCORIS/LoKr"}, gr.Slider),
-                            "use_cp": (
-                                {
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
+                            },
+                            "dim_from_weights": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Standard",
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoKr",
+                                    }
                                 },
-                                gr.Checkbox,
-                            ),
-                            "decompose_both": ({"LyCORIS/LoKr"}, gr.Checkbox),
-                            "train_on_input": ({"LyCORIS/iA3"}, gr.Checkbox),
-                            "scale_weight_norms": (
-                                {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
-                                    "Standard",
+                            },
+                            "factor": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/LoKr",
+                                    },
                                 },
-                                gr.Slider,
-                            ),
-                            "network_dropout": (
-                                {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
-                                    "Standard",
+                            },
+                            "conv_dim": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "maximum": 100000
+                                    if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
+                                    else 512,
+                                    "value": 512, # if conv_dim > 512 else conv_dim,
                                 },
-                                gr.Slider,
-                            ),
-                            "rank_dropout": (
-                                {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "Standard",
+                            },
+                            "network_dim": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "maximum": 100000
+                                    if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
+                                    else 512,
+                                    "value": 512, # if network_dim > 512 else network_dim,
                                 },
-                                gr.Slider,
-                            ),
-                            "module_dropout": (
-                                {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "Standard",
+                            },
+                            "use_cp": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/LoKr",
+                                    },
                                 },
-                                gr.Slider,
-                            ),
-                            "LyCORIS_preset": (
-                                {
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/iA3",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "LyCORIS/Native Fine-Tuning",
+                            },
+                            "use_tucker": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
                                 },
-                                gr.Dropdown,
-                            ),
+                            },
+                            "use_scalar": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
+                                },
+                            },
+                            "rank_dropout_scale": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
+                                },
+                            },
+                            "constrain": {
+                                "gr_type": gr.Number,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/Diag-OFT",
+                                    },
+                                },
+                            },
+                            "rescaled": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/Diag-OFT",
+                                    },
+                                },
+                            },
+                            "train_norm": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
+                                },
+                            },
+                            "decompose_both": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type in {"LyCORIS/LoKr"},
+                                },
+                            },
+                            "train_on_input": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type in {"LyCORIS/iA3"},
+                                },
+                            },
+                            "scale_weight_norms": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoKr",
+                                        "Standard",
+                                    },
+                                },
+                            },
+                            "network_dropout": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                        "Standard",
+                                    },
+                                },
+                            },
+                            "rank_dropout": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LoCon",
+                                        "Kohya DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKR",
+                                        "Kohya LoCon",
+                                        "LoRA-FA",
+                                        "LyCORIS/Native Fine-Tuning",
+                                        "Standard",
+                                    },
+                                },
+                            },
+                            "module_dropout": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LoCon",
+                                        "LyCORIS/Diag-OFT",
+                                        "Kohya DyLoRA",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKR",
+                                        "Kohya LoCon",
+                                        "LyCORIS/Native Fine-Tuning",
+                                        "LoRA-FA",
+                                        "Standard",
+                                    },
+                                },
+                            },
+                            "LyCORIS_preset": {
+                                "gr_type": gr.Dropdown,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/iA3",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
+                                },
+                            },
                         }
 
                         results = []
-                        for attr, (
-                            visibility,
-                            gr_type,
-                        ) in visibility_and_gr_types.items():
-                            visible = LoRA_type in visibility
-                            results.append(gr_type.update(visible=visible))
+                        for attr, settings in lora_settings_config.items():
+                            update_params = settings["update_params"]
+
+                            results.append(settings["gr_type"].update(**update_params))
 
                         return tuple(results)
 
@@ -1570,17 +1773,23 @@ def lora_tab(
 
             LoRA_type.change(
                 update_LoRA_settings,
-                inputs=[LoRA_type],
+                inputs=[
+                    LoRA_type,
+                    conv_dim,
+                    network_dim,
+                ],
                 outputs=[
-                    LoRA_dim_alpha,
-                    LoCon_row,
+                    network_row,
+                    convolution_row,
                     kohya_advanced_lora,
                     kohya_dylora,
                     lora_network_weights,
                     lora_network_weights_file,
                     dim_from_weights,
                     factor,
-                    use_cp,
+                    conv_dim,
+                    network_dim,
+                    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
                     decompose_both,
                     train_on_input,
                     scale_weight_norms,
@@ -1695,6 +1904,7 @@ def lora_tab(
             basic_training.optimizer,
             basic_training.optimizer_args,
             basic_training.lr_scheduler_args,
+            basic_training.max_grad_norm,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.adaptive_noise_scale,
@@ -1702,7 +1912,7 @@ def lora_tab(
             advanced_training.multires_noise_discount,
             LoRA_type,
             factor,
-            use_cp,
+            use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
             decompose_both,
             train_on_input,
             conv_dim,
@@ -1751,7 +1961,7 @@ def lora_tab(
             + [training_preset],
             outputs=[config.config_file_name]
             + settings_list
-            + [training_preset, LoCon_row],
+            + [training_preset, convolution_row],
             show_progress=False,
         )
 
@@ -1762,7 +1972,7 @@ def lora_tab(
             + [training_preset],
             outputs=[config.config_file_name]
             + settings_list
-            + [training_preset, LoCon_row],
+            + [training_preset, convolution_row],
             show_progress=False,
         )
 
@@ -1771,7 +1981,7 @@ def lora_tab(
             inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox()] + settings_list + [training_preset, LoCon_row],
+            outputs=[gr.Textbox()] + settings_list + [training_preset, convolution_row],
             show_progress=False,
         )
 

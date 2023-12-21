@@ -3,17 +3,17 @@ accelerate==0.23.0
 aiofiles==23.2.1
 altair==4.2.2
 dadaptation==3.1
-diffusers[torch]==0.21.4
+diffusers[torch]==0.24.0
 easygui==0.98.3
 einops==0.6.0
 fairscale==0.4.13
 ftfy==6.1.1
 gradio==3.36.1
-huggingface-hub==0.15.1
+huggingface-hub==0.19.4
 # for loading Diffusers' SDXL
 invisible-watermark==0.2.0
 lion-pytorch==0.0.6
-lycoris_lora==2.0.0
+lycoris_lora==2.0.2
 # for BLIP captioning
 # requests==2.28.2
 # timm==0.6.12
@@ -21,6 +21,7 @@ lycoris_lora==2.0.0
 # for WD14 captioning (tensorflow)
 # tensorflow==2.14.0
 # for WD14 captioning (onnx)
+omegaconf==2.3.0
 onnx==1.14.1
 onnxruntime-gpu==1.16.0
 # onnxruntime==1.16.0
@@ -40,5 +41,6 @@ toml==0.10.2
 transformers==4.30.2
 voluptuous==0.13.1
 wandb==0.15.11
+scipy==1.11.4
 # for kohya_ss library
 -e . # no_verify leave this to specify not checking this a verification stage

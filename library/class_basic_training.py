@@ -115,9 +115,15 @@ class BasicTraining:
                 interactive=True,
             )
         with gr.Row():
+            self.max_grad_norm = gr.Slider(
+                label="Max grad norm",
+                value=1.0,
+                minimum=0.0,
+                maximum=1.0
+            )
             self.lr_scheduler_args = gr.Textbox(
                 label="LR scheduler extra arguments",
-                placeholder='(Optional) eg: "lr_end=5e-5"',
+                placeholder='(Optional) eg: "milestones=[1,10,30,50]" "gamma=0.1"',
             )
             self.optimizer_args = gr.Textbox(
                 label="Optimizer extra arguments",

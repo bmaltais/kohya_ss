@@ -202,8 +202,8 @@ This Colab notebook was not created or maintained by me; however, it appears to 
 
 I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
-| Colab                                                                                                                                                                          | Info                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| Colab                                                                                                                                                                          | Info               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
 
 ## Installation
@@ -651,6 +651,12 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2023/12/20 (v22.3.1)
+- Add goto button to manual caption utility
+- Add missing options for various LyCORIS training algorythms
+- Refactor how feilds are shown or hidden
+- Made max value for network and convolution rank 512 except for LyCORIS/LoKr.
+  
 * 2023/12/06 (v22.3.0)
 - Merge sd-scripts updates:
   - `finetune\tag_images_by_wd14_tagger.py` now supports the separator other than `,` with `--caption_separator` option. Thanks to KohakuBlueleaf! PR [#913](https://github.com/kohya-ss/sd-scripts/pull/913)
@@ -664,42 +670,4 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - `--ds_ratio` option denotes the ratio of the Deep Shrink. `0.5` means the half of the original latent size for the Deep Shrink.
     - `--dst1`, `--dst2`, `--dsd1`, `--dsd2` and `--dsr` prompt options are also available.
   - Add GLoRA support
-
-* 2023/12/03 (v22.2.2)
-- Update Lycoris module to 2.0.0 (https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/README.md)
-- Update Lycoris merge and extract tools
-- Remove anoying warning about local pip modules that is not necessary.
-- Adding support for LyCORIS presets
-- Adding Support for LyCORIS Native Fine-Tuning
-- Adding support for Lycoris Diag-OFT
-
-* 2023/11/20 (v22.2.1)
-- Fix issue with `Debiased Estimation loss` not getting properly loaded from json file. Oups.
-
-* 2023/11/15 (v22.2.0)
-- sd-scripts code base update:
-  - `sdxl_train.py` now supports different learning rates for each Text Encoder.
-    - Example:
-      - `--learning_rate 1e-6`: train U-Net only
-      - `--train_text_encoder --learning_rate 1e-6`: train U-Net and two Text Encoders with the same learning rate (same as the previous version)
-      - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train U-Net and two Text Encoders with the different learning rates
-      - `--train_text_encoder --learning_rate 0 --learning_rate_te1 1e-6 --learning_rate_te2 1e-6`: train two Text Encoders only 
-      - `--train_text_encoder --learning_rate 1e-6 --learning_rate_te1 1e-6 --learning_rate_te2 0`: train U-Net and one Text Encoder only
-      - `--train_text_encoder --learning_rate 0 --learning_rate_te1 0 --learning_rate_te2 1e-6`: train one Text Encoder only
-
-  - `train_db.py` and `fine_tune.py` now support different learning rates for Text Encoder. Specify with `--learning_rate_te` option. 
-    - To train Text Encoder with `fine_tune.py`, specify `--train_text_encoder` option too. `train_db.py` trains Text Encoder by default.
-
-  - Fixed the bug that Text Encoder is not trained when block lr is specified in `sdxl_train.py`.
-
-  - Debiased Estimation loss is added to each training script. Thanks to sdbds!
-    - Specify `--debiased_estimation_loss` option to enable it. See PR [#889](https://github.com/kohya-ss/sd-scripts/pull/889) for details.
-  - Training of Text Encoder is improved in `train_network.py` and `sdxl_train_network.py`. Thanks to KohakuBlueleaf! PR [#895](https://github.com/kohya-ss/sd-scripts/pull/895)
-  - The moving average of the loss is now displayed in the progress bar in each training script. Thanks to shirayu! PR [#899](https://github.com/kohya-ss/sd-scripts/pull/899)
-  - PagedAdamW32bit optimizer is supported. Specify `--optimizer_type=PagedAdamW32bit`. Thanks to xzuyn! PR [#900](https://github.com/kohya-ss/sd-scripts/pull/900)
-  - Other bug fixes and improvements.
-- kohya_ss gui updates:
-  - Implement GUI support for SDXL finetune TE1 and TE2 training LR parameters and for non SDXL finetune TE training parameter
-  - Implement GUI support for Dreambooth TE LR parameter
-  - Implement Debiased Estimation loss at the botom of the Advanced Parameters tab.
-
+- 
