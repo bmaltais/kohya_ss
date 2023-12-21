@@ -7,10 +7,13 @@ import toml
 
 from tqdm import tqdm
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -415,15 +418,11 @@ class TextualInversionTrainer:
             text_encoder_or_list, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 text_encoder_or_list, optimizer, train_dataloader, lr_scheduler
             )
-            # transform DDP after prepare
-            text_encoder_or_list, unet = train_util.transform_if_model_is_DDP(text_encoder_or_list, unet)
 
         elif len(text_encoders) == 2:
             text_encoder1, text_encoder2, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
                 text_encoders[0], text_encoders[1], optimizer, train_dataloader, lr_scheduler
             )
-            # transform DDP after prepare
-            text_encoder1, text_encoder2, unet = train_util.transform_if_model_is_DDP(text_encoder1, text_encoder2, unet)
 
             text_encoder_or_list = text_encoders = [text_encoder1, text_encoder2]
 
@@ -528,6 +527,20 @@ class TextualInversionTrainer:
             if os.path.exists(old_ckpt_file):
                 accelerator.print(f"removing old checkpoint: {old_ckpt_file}")
                 os.remove(old_ckpt_file)
+
+        # For --sample_at_first
+        self.sample_images(
+            accelerator,
+            args,
+            0,
+            global_step,
+            accelerator.device,
+            vae,
+            tokenizer_or_list,
+            text_encoder_or_list,
+            unet,
+            prompt_replacement,
+        )
 
         # training loop
         for epoch in range(num_train_epochs):

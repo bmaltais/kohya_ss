@@ -254,9 +254,6 @@ def train(args):
     )
     network: control_net_lllite.ControlNetLLLite
 
-    # transform DDP after prepare (train_network here only)
-    unet, network = train_util.transform_models_if_DDP([unet, network])
-
     if args.gradient_checkpointing:
         unet.train()  # according to TI example in Diffusers, train is required -> これオリジナルのU-Netしたので本当は外せる
     else:
@@ -366,7 +363,7 @@ def train(args):
                         # NaNが含まれていれば警告を表示し0に置き換える
                         if torch.any(torch.isnan(latents)):
                             accelerator.print("NaN found in latents, replacing with zeros")
-                            latents = torch.where(torch.isnan(latents), torch.zeros_like(latents), latents)
+                            latents = torch.nan_to_num(latents, 0, out=latents)
                     latents = latents * sdxl_model_util.VAE_SCALE_FACTOR
 
                 if "text_encoder_outputs1_list" not in batch or batch["text_encoder_outputs1_list"] is None:
