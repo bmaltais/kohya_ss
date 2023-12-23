@@ -51,8 +51,6 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
             torch.cuda.empty_cache()
         accelerator.wait_for_everyone()
 
-    text_encoder1, text_encoder2, unet = train_util.transform_models_if_DDP([text_encoder1, text_encoder2, unet])
-
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
 
 

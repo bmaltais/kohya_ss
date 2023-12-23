@@ -253,9 +253,6 @@ def train(args):
     else:
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
 
-    # transform DDP after prepare
-    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
-
     # 実験的機能：勾配も含めたfp16学習を行う　PyTorchにパッチを当ててfp16でのgrad scaleを有効にする
     if args.full_fp16:
         train_util.patch_accelerator_for_fp16_training(accelerator)
@@ -297,6 +294,9 @@ def train(args):
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
+
+    # For --sample_at_first
+    train_util.sample_images(accelerator, args, 0, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
 
     loss_recorder = train_util.LossRecorder()
     for epoch in range(num_train_epochs):
