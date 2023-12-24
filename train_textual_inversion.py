@@ -441,9 +441,10 @@ class TextualInversionTrainer:
 
             # Freeze all parameters except for the token embeddings in text encoder
             text_encoder.requires_grad_(True)
-            text_encoder.text_model.encoder.requires_grad_(False)
-            text_encoder.text_model.final_layer_norm.requires_grad_(False)
-            text_encoder.text_model.embeddings.position_embedding.requires_grad_(False)
+            unwrapped_text_encoder = accelerator.unwrap_model(text_encoder)
+            unwrapped_text_encoder.text_model.encoder.requires_grad_(False)
+            unwrapped_text_encoder.text_model.final_layer_norm.requires_grad_(False)
+            unwrapped_text_encoder.text_model.embeddings.position_embedding.requires_grad_(False)
             # text_encoder.text_model.embeddings.token_embedding.requires_grad_(True)
 
         unet.requires_grad_(False)
@@ -603,7 +604,7 @@ class TextualInversionTrainer:
 
                     accelerator.backward(loss)
                     if accelerator.sync_gradients and args.max_grad_norm != 0.0:
-                        params_to_clip = text_encoder.get_input_embeddings().parameters()
+                        params_to_clip = accelerator.unwrap_model(text_encoder).get_input_embeddings().parameters()
                         accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
                     optimizer.step()
