@@ -34,7 +34,9 @@ def convert(args):
 
     if is_load_ckpt:
         v2_model = args.v2
-        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(v2_model, args.model_to_load, unet_use_linear_projection_in_v2=args.unet_use_linear_projection)
+        text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(
+            v2_model, args.model_to_load, unet_use_linear_projection_in_v2=args.unet_use_linear_projection
+        )
     else:
         pipe = StableDiffusionPipeline.from_pretrained(
             args.model_to_load, torch_dtype=load_dtype, tokenizer=None, safety_checker=None, variant=args.variant
@@ -57,11 +59,22 @@ def convert(args):
     if is_save_ckpt:
         original_model = args.model_to_load if is_load_ckpt else None
         key_count = model_util.save_stable_diffusion_checkpoint(
-            v2_model, args.model_to_save, text_encoder, unet, original_model, args.epoch, args.global_step, None if args.metadata is None else eval(args.metadata), save_dtype=save_dtype, vae=vae
+            v2_model,
+            args.model_to_save,
+            text_encoder,
+            unet,
+            original_model,
+            args.epoch,
+            args.global_step,
+            None if args.metadata is None else eval(args.metadata),
+            save_dtype=save_dtype,
+            vae=vae,
         )
         print(f"model saved. total converted state_dict keys: {key_count}")
     else:
-        print(f"copy scheduler/tokenizer config from: {args.reference_model if args.reference_model is not None else 'default model'}")
+        print(
+            f"copy scheduler/tokenizer config from: {args.reference_model if args.reference_model is not None else 'default model'}"
+        )
         model_util.save_diffusers_checkpoint(
             v2_model, args.model_to_save, text_encoder, unet, args.reference_model, vae, args.use_safetensors
         )
@@ -77,7 +90,9 @@ def setup_parser() -> argparse.ArgumentParser:
         "--v2", action="store_true", help="load v2.0 model (v1 or v2 is required to load checkpoint) / 2.0のモデルを読み込む"
     )
     parser.add_argument(
-        "--unet_use_linear_projection", action="store_true", help="When saving v2 model as Diffusers, set U-Net config to `use_linear_projection=true` (to match stabilityai's model) / Diffusers形式でv2モデルを保存するときにU-Netの設定を`use_linear_projection=true`にする（stabilityaiのモデルと合わせる）"
+        "--unet_use_linear_projection",
+        action="store_true",
+        help="When saving v2 model as Diffusers, set U-Net config to `use_linear_projection=true` (to match stabilityai's model) / Diffusers形式でv2モデルを保存するときにU-Netの設定を`use_linear_projection=true`にする（stabilityaiのモデルと合わせる）",
     )
     parser.add_argument(
         "--fp16",
@@ -103,13 +118,13 @@ def setup_parser() -> argparse.ArgumentParser:
         "--metadata",
         type=str,
         default=None,
-        help='metadata: metadata written in to the model in Python Dictionary. Example metadata: \'{"name": "model_name", "resolution": "512x512"}\'',
+        help='モデルに保存されるメタデータ、Pythonの辞書形式で指定 / metadata: metadata written in to the model in Python Dictionary. Example metadata: \'{"name": "model_name", "resolution": "512x512"}\'',
     )
     parser.add_argument(
         "--variant",
         type=str,
         default=None,
-        help="variant: Diffusers variant to load. Example: fp16",
+        help="読む込むDiffusersのvariantを指定する、例: fp16 / variant: Diffusers variant to load. Example: fp16",
     )
     parser.add_argument(
         "--reference_model",
