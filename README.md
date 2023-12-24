@@ -652,6 +652,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 ## Change History
 * 2023/12/21 (v22.4.0)
+- Fixed to work `tools/convert_diffusers20_original_sd.py`. Thanks to Disty0! PR [#1016](https://github.com/kohya-ss/sd-scripts/pull/1016)
 - The issues in multi-GPU training are fixed. Thanks to Isotr0py! PR [#989](https://github.com/kohya-ss/sd-scripts/pull/989) and [#1000](https://github.com/kohya-ss/sd-scripts/pull/1000)
   - `--ddp_gradient_as_bucket_view` and `--ddp_bucket_view`options are added to `sdxl_train.py`. Please specify these options for multi-GPU training.
 - IPEX support is updated. Thanks to Disty0!
