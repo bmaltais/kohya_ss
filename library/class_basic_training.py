@@ -94,6 +94,7 @@ class BasicTraining:
                     "AdamW",
                     "AdamW8bit",
                     "Adafactor",
+                    "CAME",
                     "DAdaptation",
                     "DAdaptAdaGrad",
                     "DAdaptAdam",
