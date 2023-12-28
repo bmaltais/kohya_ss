@@ -76,6 +76,8 @@ def main(args):
         cwd = os.getcwd()
         print("Current Working Directory is: ", cwd)
         os.chdir("finetune")
+        if not is_url(args.caption_weights) and not os.path.isfile(args.caption_weights):
+            args.caption_weights = os.path.join("..", args.caption_weights)
 
     print(f"load images from {args.train_data_dir}")
     train_data_dir_path = Path(args.train_data_dir)
