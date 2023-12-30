@@ -37,7 +37,7 @@ def UI(**kwargs):
             README = file.read()
 
     interface = gr.Blocks(
-        css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
+        css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default(), analytics_enabled=False
     )
 
     with interface:
