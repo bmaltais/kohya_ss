@@ -40,7 +40,7 @@ def find_attention_slice_sizes(query_shape, query_element_size, query_device_typ
     do_split_2 = False
     do_split_3 = False
 
-    if query_device_type != "xpu"
+    if query_device_type != "xpu":
         return do_split, do_split_2, do_split_3, split_slice_size, split_2_slice_size, split_3_slice_size
 
     if block_size > attention_slice_rate:
