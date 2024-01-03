@@ -974,11 +974,12 @@ def train_model(
     if network_dropout > 0.0:
         run_cmd += f' --network_dropout="{network_dropout}"'
 
-    if sdxl_cache_text_encoder_outputs:
-        run_cmd += f" --cache_text_encoder_outputs"
+    if sdxl:
+        if sdxl_cache_text_encoder_outputs:
+            run_cmd += f" --cache_text_encoder_outputs"
 
-    if sdxl_no_half_vae:
-        run_cmd += f" --no_half_vae"
+        if sdxl_no_half_vae:
+            run_cmd += f" --no_half_vae"
 
     if full_bf16:
         run_cmd += f" --full_bf16"

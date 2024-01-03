@@ -601,7 +601,7 @@ def train_model(
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
 
-    if sdxl_no_half_vae:
+    if sdxl and sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(

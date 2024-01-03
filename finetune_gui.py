@@ -485,7 +485,7 @@ def train_model(
         #     run_cmd += f' --flip_aug'
         if full_path:
             run_cmd += f' --full_path'
-        if sdxl_no_half_vae:
+        if sdxl_checkbox and sdxl_no_half_vae:
             log.info(
                 'Using mixed_precision = no because no half vae is selected...'
             )
@@ -584,11 +584,12 @@ def train_model(
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
 
-    if sdxl_cache_text_encoder_outputs:
-        run_cmd += f' --cache_text_encoder_outputs'
+    if sdxl_checkbox:
+        if sdxl_cache_text_encoder_outputs:
+            run_cmd += f' --cache_text_encoder_outputs'
 
-    if sdxl_no_half_vae:
-        run_cmd += f' --no_half_vae'
+        if sdxl_no_half_vae:
+            run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
