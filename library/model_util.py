@@ -4,10 +4,13 @@
 import math
 import os
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -571,9 +574,9 @@ def convert_ldm_clip_checkpoint_v1(checkpoint):
         if key.startswith("cond_stage_model.transformer"):
             text_model_dict[key[len("cond_stage_model.transformer.") :]] = checkpoint[key]
 
-    # support checkpoint without position_ids (invalid checkpoint)
-    if "text_model.embeddings.position_ids" not in text_model_dict:
-        text_model_dict["text_model.embeddings.position_ids"] = torch.arange(77).unsqueeze(0)  # 77 is the max length of the text
+    # remove position_ids for newer transformer, which causes error :(
+    if "text_model.embeddings.position_ids" in text_model_dict:
+        text_model_dict.pop("text_model.embeddings.position_ids")
 
     return text_model_dict
 
