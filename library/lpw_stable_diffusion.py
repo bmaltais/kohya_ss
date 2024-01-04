@@ -516,13 +516,13 @@ class StableDiffusionLongPromptWeightingPipeline(StableDiffusionPipeline):
         tokenizer: CLIPTokenizer,
         unet: UNet2DConditionModel,
         scheduler: SchedulerMixin,
+        # clip_skip: int,
         safety_checker: StableDiffusionSafetyChecker,
         feature_extractor: CLIPFeatureExtractor,
-        image_encoder: CLIPVisionModelWithProjection = None,  # Incluindo o image_encoder
         requires_safety_checker: bool = True,
+        image_encoder: CLIPVisionModelWithProjection = None,
         clip_skip: int = 1,
     ):
-        self._clip_skip_internal = clip_skip
         super().__init__(
             vae=vae,
             text_encoder=text_encoder,
@@ -531,46 +531,11 @@ class StableDiffusionLongPromptWeightingPipeline(StableDiffusionPipeline):
             scheduler=scheduler,
             safety_checker=safety_checker,
             feature_extractor=feature_extractor,
-            image_encoder=image_encoder,
             requires_safety_checker=requires_safety_checker,
+            image_encoder=image_encoder,
         )
+        self.custom_clip_skip = clip_skip
         self.__init__additional__()
-
-    @property
-    def clip_skip(self):
-        return self._clip_skip_internal
-
-    @clip_skip.setter
-    def clip_skip(self, value):
-        self._clip_skip_internal = value
-
-    def __setattr__(self, name: str, value):
-        if name == "clip_skip":
-            object.__setattr__(self, "_clip_skip_internal", value)
-        else:
-            super().__setattr__(name, value)
-
-    # else:
-    #     def __init__(
-    #         self,
-    #         vae: AutoencoderKL,
-    #         text_encoder: CLIPTextModel,
-    #         tokenizer: CLIPTokenizer,
-    #         unet: UNet2DConditionModel,
-    #         scheduler: SchedulerMixin,
-    #         safety_checker: StableDiffusionSafetyChecker,
-    #         feature_extractor: CLIPFeatureExtractor,
-    #     ):
-    #         super().__init__(
-    #             vae=vae,
-    #             text_encoder=text_encoder,
-    #             tokenizer=tokenizer,
-    #             unet=unet,
-    #             scheduler=scheduler,
-    #             safety_checker=safety_checker,
-    #             feature_extractor=feature_extractor,
-    #         )
-    #         self.__init__additional__()
 
     def __init__additional__(self):
         if not hasattr(self, "vae_scale_factor"):
@@ -639,7 +604,7 @@ class StableDiffusionLongPromptWeightingPipeline(StableDiffusionPipeline):
             prompt=prompt,
             uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
             max_embeddings_multiples=max_embeddings_multiples,
-            clip_skip=self.clip_skip,
+            clip_skip=self.custom_clip_skip,
         )
         bs_embed, seq_len, _ = text_embeddings.shape
         text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
