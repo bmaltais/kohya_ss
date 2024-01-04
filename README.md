@@ -8,10 +8,15 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
+  - [🦒 Colab](#-colab)
+  - [Installation](#installation)
+    - [Windows](#windows)
+      - [Windows Pre-requirements](#windows-pre-requirements)
+      - [Setup](#setup)
       - [Optional: CUDNN 8.6](#optional-cudnn-86)
     - [Linux and macOS](#linux-and-macos)
       - [Linux Pre-requirements](#linux-pre-requirements)
-      - [Setup](#setup)
+      - [Setup](#setup-1)
       - [Install Location](#install-location)
     - [Runpod](#runpod)
       - [Manual installation](#manual-installation)
@@ -43,11 +48,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
 
-```
-
 ## 🦒 Colab
-
-🚦 WIP 🚦
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: https://github.com/camenduru/kohya_ss-colab.
 
