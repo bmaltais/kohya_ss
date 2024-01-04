@@ -140,6 +140,7 @@ def ipex_init(): # pylint: disable=too-many-statements
 
         # C
         torch._C._cuda_getCurrentRawStream = ipex._C._getCurrentStream
+        ipex._C._DeviceProperties.multi_processor_count = ipex._C._DeviceProperties.gpu_eu_count
         ipex._C._DeviceProperties.major = 2023
         ipex._C._DeviceProperties.minor = 2
 
@@ -156,20 +157,9 @@ def ipex_init(): # pylint: disable=too-many-statements
         torch.cuda.get_device_properties.minor = 7
         torch.cuda.ipc_collect = lambda *args, **kwargs: None
         torch.cuda.utilization = lambda *args, **kwargs: 0
-        if hasattr(torch.xpu, 'getDeviceIdListForCard'):
-            torch.cuda.getDeviceIdListForCard = torch.xpu.getDeviceIdListForCard
-            torch.cuda.get_device_id_list_per_card = torch.xpu.getDeviceIdListForCard
-        else:
-            torch.cuda.getDeviceIdListForCard = torch.xpu.get_device_id_list_per_card
-            torch.cuda.get_device_id_list_per_card = torch.xpu.get_device_id_list_per_card
 
         ipex_hijacks()
         if not torch.xpu.has_fp64_dtype():
-            try:
-                from .attention import attention_init
-                attention_init()
-            except Exception: # pylint: disable=broad-exception-caught
-                pass
             try:
                 from .diffusers import ipex_diffusers
                 ipex_diffusers()

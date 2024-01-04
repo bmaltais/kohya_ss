@@ -4,10 +4,13 @@
 import math
 import os
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -571,9 +574,9 @@ def convert_ldm_clip_checkpoint_v1(checkpoint):
         if key.startswith("cond_stage_model.transformer"):
             text_model_dict[key[len("cond_stage_model.transformer.") :]] = checkpoint[key]
 
-    # support checkpoint without position_ids (invalid checkpoint)
-    if "text_model.embeddings.position_ids" not in text_model_dict:
-        text_model_dict["text_model.embeddings.position_ids"] = torch.arange(77).unsqueeze(0)  # 77 is the max length of the text
+    # remove position_ids for newer transformer, which causes error :(
+    if "text_model.embeddings.position_ids" in text_model_dict:
+        text_model_dict.pop("text_model.embeddings.position_ids")
 
     return text_model_dict
 
@@ -1307,19 +1310,19 @@ def load_vae(vae_id, dtype):
 
 def make_bucket_resolutions(max_reso, min_size=256, max_size=1024, divisible=64):
     max_width, max_height = max_reso
-    max_area = (max_width // divisible) * (max_height // divisible)
+    max_area = max_width * max_height
 
     resos = set()
 
-    size = int(math.sqrt(max_area)) * divisible
-    resos.add((size, size))
+    width = int(math.sqrt(max_area) // divisible) * divisible
+    resos.add((width, width))
 
-    size = min_size
-    while size <= max_size:
-        width = size
-        height = min(max_size, (max_area // (width // divisible)) * divisible)
-        resos.add((width, height))
-        resos.add((height, width))
+    width = min_size
+    while width <= max_size:
+        height = min(max_size, int((max_area // width) // divisible) * divisible)
+        if height >= min_size:
+            resos.add((width, height))
+            resos.add((height, width))
 
         # # make additional resos
         # if width >= height and width - divisible >= min_size:
@@ -1329,7 +1332,7 @@ def make_bucket_resolutions(max_reso, min_size=256, max_size=1024, divisible=64)
         #   resos.add((width, height - divisible))
         #   resos.add((height - divisible, width))
 
-        size += divisible
+        width += divisible
 
     resos = list(resos)
     resos.sort()
