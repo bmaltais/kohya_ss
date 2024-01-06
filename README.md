@@ -503,6 +503,10 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2024/01/10 (v22.5.0)
+- Merged sd-scripts updates
+- Fix LoRA config display after load that would sometime hide some of the feilds
+  
 * 2024/01/02 (v22.4.1)
 - Minor bug fixed and enhancements.
   
