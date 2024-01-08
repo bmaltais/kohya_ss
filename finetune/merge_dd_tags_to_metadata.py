@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 from typing import List
 from tqdm import tqdm
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import library.train_util as train_util
 import os
 

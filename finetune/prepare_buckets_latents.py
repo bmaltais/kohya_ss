@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import sys
 
 from pathlib import Path
 from typing import List
@@ -11,6 +12,7 @@ import cv2
 import torch
 from torchvision import transforms
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import library.model_util as model_util
 import library.train_util as train_util
 

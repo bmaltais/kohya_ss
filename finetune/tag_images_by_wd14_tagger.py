@@ -2,6 +2,7 @@ import argparse
 import csv
 import os
 from pathlib import Path
+import sys
 
 import cv2
 import numpy as np
@@ -10,6 +11,7 @@ from huggingface_hub import hf_hub_download
 from PIL import Image
 from tqdm import tqdm
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import library.train_util as train_util
 
 # from wd14 tagger
