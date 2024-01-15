@@ -47,6 +47,11 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [ControlNet-LLLite](#controlnet-lllite)
     - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
+    - [Jan 15, 2024 / 2024/1/15: v0.8.0](#jan-15-2024--2024115-v080)
+    - [Naming of LoRA](#naming-of-lora)
+    - [LoRAの名称について](#loraの名称について)
+  - [Sample image generation during training](#sample-image-generation-during-training-2)
+  - [Change History](#change-history-1)
 
 ## 🦒 Colab
 
@@ -479,7 +484,78 @@ save_file(state_dict, file)
 
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
+<<<<<<< HEAD
 ### Sample image generation during training
+=======
+
+## Change History
+
+### Jan 15, 2024 / 2024/1/15: v0.8.0
+
+- Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
+  - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
+- `torch.compile` is supported (experimental). PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) Thanks to p1atdev!
+  - This feature works only on Linux or WSL.
+  - Please specify `--torch_compile` option in each training script.
+  - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
+  - Please use `--spda` option instead of `--xformers` option.
+  - PyTorch 2.1 or later is recommended.
+  - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
+- The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
+- IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
+- Fixed a bug that Diffusers format model cannot be saved.
+
+- Diffusers、Accelerate、Transformers 等の関連ライブラリを更新しました。[Upgrade](#upgrade) を参照し更新をお願いします。
+  - 最新の Transformers を前提とした一部のモデルファイル（Text Encoder が position_id を持たないもの）が読み込めるようになりました。
+- `torch.compile` がサポートされしました（実験的）。 PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) p1atdev 氏に感謝します。
+  - Linux または WSL でのみ動作します。
+  - 各学習スクリプトで `--torch_compile` オプションを指定してください。
+  - `--dynamo_backend` オプションで使用される backend を選択できます。デフォルトは `"inductor"` です。 `inductor` または `eager` が動作するようです。
+  - `--xformers` オプションとは互換性がありません。 代わりに `--spda` オプションを使用してください。
+  - PyTorch 2.1以降を推奨します。
+  - 詳細は [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) をご覧ください。
+- wandb 保存時のセッション名が各学習スクリプトの `--wandb_run_name` オプションで指定できるようになりました。 PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) hopl1t 氏に感謝します。
+- IPEX ライブラリが更新されました。[PR #1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Disty0 氏に感謝します。
+- Diffusers 形式でのモデル保存ができなくなっていた不具合を修正しました。
+
+
+Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
+最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
+
+### Naming of LoRA
+
+The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
+
+    LoRA for Linear layers and Conv2d layers with 1x1 kernel
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
+
+    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
+    
+LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
+
+To use LoRA-C3Lier with Web UI, please use our extension.
+
+### LoRAの名称について
+
+`train_network.py` がサポートするLoRAについて、混乱を避けるため名前を付けました。ドキュメントは更新済みです。以下は当リポジトリ内の独自の名称です。
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers、リエラと読みます)
+
+    Linear 層およびカーネルサイズ 1x1 の Conv2d 層に適用されるLoRA
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers、セリアと読みます)
+
+    1.に加え、カーネルサイズ 3x3 の Conv2d 層に適用されるLoRA
+
+LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
+
+LoRA-C3Lierを使いWeb UIで生成するには拡張を使用してください。
+
+## Sample image generation during training
+>>>>>>> 26d35794e3b858e7b5bd20d1e70547c378550b3d
   A prompt file might look like this, for example
 
 ```
@@ -504,7 +580,19 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 ## Change History
 * 2024/01/10 (v22.5.0)
-- Merged sd-scripts updates
+- Merged sd-scripts v0.8.0 updates
+  - Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
+    - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
+  - `torch.compile` is supported (experimental). PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) Thanks to p1atdev!
+    - This feature works only on Linux or WSL.
+    - Please specify `--torch_compile` option in each training script.
+    - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
+    - Please use `--spda` option instead of `--xformers` option.
+    - PyTorch 2.1 or later is recommended.
+    - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
+  - The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
+  - IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
+  - Fixed a bug that Diffusers format model cannot be saved.
 - Fix LoRA config display after load that would sometime hide some of the feilds
   
 * 2024/01/02 (v22.4.1)
