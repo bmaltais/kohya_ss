@@ -18,6 +18,7 @@ import diffusers
 import numpy as np
 import torch
 
+from library.device_utils import clean_memory
 from library.ipex_interop import init_ipex
 
 init_ipex()
@@ -640,8 +641,7 @@ class PipelineLike:
                     init_latent_dist = self.vae.encode(init_image.to(self.vae.dtype)).latent_dist
                     init_latents = init_latent_dist.sample(generator=generator)
                 else:
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
+                    clean_memory()
                     init_latents = []
                     for i in tqdm(range(0, min(batch_size, len(init_image)), vae_batch_size)):
                         init_latent_dist = self.vae.encode(
@@ -780,8 +780,7 @@ class PipelineLike:
         if vae_batch_size >= batch_size:
             image = self.vae.decode(latents.to(self.vae.dtype)).sample
         else:
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            clean_memory()
             images = []
             for i in tqdm(range(0, batch_size, vae_batch_size)):
                 images.append(
@@ -796,8 +795,7 @@ class PipelineLike:
         # we always cast to float32 as this does not cause significant overhead and is compatible with bfloa16
         image = image.cpu().permute(0, 2, 3, 1).float().numpy()
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        clean_memory()
 
         if output_type == "pil":
             # image = self.numpy_to_pil(image)
