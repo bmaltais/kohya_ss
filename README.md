@@ -579,7 +579,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2024/01/10 (v22.5.0)
+* 2024/01/15 (v22.5.0)
 - Merged sd-scripts v0.8.0 updates
   - Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
     - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
