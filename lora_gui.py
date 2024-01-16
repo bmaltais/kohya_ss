@@ -125,7 +125,8 @@ def save_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,max_grad_norm,
+    lr_scheduler_args,
+    max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -133,7 +134,13 @@ def save_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
+    use_cp,
+    use_tucker,
+    use_scalar,
+    rank_dropout_scale,
+    constrain,
+    rescaled,
+    train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -280,7 +287,8 @@ def open_configuration(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,max_grad_norm,
+    lr_scheduler_args,
+    max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -288,7 +296,13 @@ def open_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
+    use_cp,
+    use_tucker,
+    use_scalar,
+    rank_dropout_scale,
+    constrain,
+    rescaled,
+    train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -378,7 +392,18 @@ def open_configuration(
             values.append(json_value if json_value is not None else value)
 
     # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
-    if my_data.get("LoRA_type", "Standard") == "LoCon":
+    if my_data.get("LoRA_type", "Standard") in {
+        "LoCon",
+        "Kohya DyLoRA",
+        "Kohya LoCon",
+        "LoRA-FA",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/DyLoRA",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "LyCORIS/LoCon",
+        "LyCORIS/GLoRA",
+    }:
         values.append(gr.Row.update(visible=True))
     else:
         values.append(gr.Row.update(visible=False))
@@ -455,7 +480,8 @@ def train_model(
     caption_dropout_rate,
     optimizer,
     optimizer_args,
-    lr_scheduler_args,max_grad_norm,
+    lr_scheduler_args,
+    max_grad_norm,
     noise_offset_type,
     noise_offset,
     adaptive_noise_scale,
@@ -463,7 +489,13 @@ def train_model(
     multires_noise_discount,
     LoRA_type,
     factor,
-    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
+    use_cp,
+    use_tucker,
+    use_scalar,
+    rank_dropout_scale,
+    constrain,
+    rescaled,
+    train_norm,
     decompose_both,
     train_on_input,
     conv_dim,
@@ -825,9 +857,7 @@ def train_model(
             )
             return
         run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += (
-            f' --network_args "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
-        )
+        run_cmd += f' --network_args "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
         # This is a hack to fix a train_network LoHA logic issue
         if not network_dropout > 0.0:
             run_cmd += f' --network_dropout="{network_dropout}"'
@@ -974,11 +1004,12 @@ def train_model(
     if network_dropout > 0.0:
         run_cmd += f' --network_dropout="{network_dropout}"'
 
-    if sdxl_cache_text_encoder_outputs:
-        run_cmd += f" --cache_text_encoder_outputs"
+    if sdxl:
+        if sdxl_cache_text_encoder_outputs:
+            run_cmd += f" --cache_text_encoder_outputs"
 
-    if sdxl_no_half_vae:
-        run_cmd += f" --no_half_vae"
+        if sdxl_no_half_vae:
+            run_cmd += f" --no_half_vae"
 
     if full_bf16:
         run_cmd += f" --full_bf16"
@@ -1503,18 +1534,28 @@ def lora_tab(
                                 "gr_type": gr.Slider,
                                 "update_params": {
                                     "maximum": 100000
-                                    if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
+                                    if LoRA_type
+                                    in {
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Diag-OFT",
+                                    }
                                     else 512,
-                                    "value": 512, # if conv_dim > 512 else conv_dim,
+                                    "value": conv_dim,  # if conv_dim > 512 else conv_dim,
                                 },
                             },
                             "network_dim": {
                                 "gr_type": gr.Slider,
                                 "update_params": {
                                     "maximum": 100000
-                                    if LoRA_type in {"LyCORIS/LoHa", "LyCORIS/LoKr", "LyCORIS/Diag-OFT"}
+                                    if LoRA_type
+                                    in {
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Diag-OFT",
+                                    }
                                     else 512,
-                                    "value": 512, # if network_dim > 512 else network_dim,
+                                    "value": network_dim,  # if network_dim > 512 else network_dim,
                                 },
                             },
                             "use_cp": {
@@ -1789,7 +1830,13 @@ def lora_tab(
                     factor,
                     conv_dim,
                     network_dim,
-                    use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
+                    use_cp,
+                    use_tucker,
+                    use_scalar,
+                    rank_dropout_scale,
+                    constrain,
+                    rescaled,
+                    train_norm,
                     decompose_both,
                     train_on_input,
                     scale_weight_norms,
@@ -1912,7 +1959,13 @@ def lora_tab(
             advanced_training.multires_noise_discount,
             LoRA_type,
             factor,
-            use_cp,use_tucker,use_scalar,rank_dropout_scale,constrain,rescaled,train_norm,
+            use_cp,
+            use_tucker,
+            use_scalar,
+            rank_dropout_scale,
+            constrain,
+            rescaled,
+            train_norm,
             decompose_both,
             train_on_input,
             conv_dim,

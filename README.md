@@ -8,9 +8,6 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
-  - [Tutorials](#tutorials)
-    - [About SDXL training](#about-sdxl-training)
-      - [Tips for SDXL training](#tips-for-sdxl-training)
   - [🦒 Colab](#-colab)
   - [Installation](#installation)
     - [Windows](#windows)
@@ -45,158 +42,18 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
     - [Training scripts for SDXL](#training-scripts-for-sdxl)
     - [Utility scripts for SDXL](#utility-scripts-for-sdxl)
-    - [Tips for SDXL training](#tips-for-sdxl-training-1)
+    - [Tips for SDXL training](#tips-for-sdxl-training)
     - [Format of Textual Inversion embeddings for SDXL](#format-of-textual-inversion-embeddings-for-sdxl)
     - [ControlNet-LLLite](#controlnet-lllite)
     - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
-
-
-## Tutorials
-
-[How to Create a LoRA Part 1: Dataset Preparation](https://www.youtube.com/watch?v=N4_-fB62Hwk):
-
-[![LoRA Part 1 Tutorial](https://img.youtube.com/vi/N4_-fB62Hwk/0.jpg)](https://www.youtube.com/watch?v=N4_-fB62Hwk)
-
-[How to Create a LoRA Part 2: Training the Model](https://www.youtube.com/watch?v=k5imq01uvUY):
-
-[![LoRA Part 2 Tutorial](https://img.youtube.com/vi/k5imq01uvUY/0.jpg)](https://www.youtube.com/watch?v=k5imq01uvUY)
-
-[**Generate Studio Quality Realistic Photos By Kohya LoRA Stable Diffusion Training - Full Tutorial**](https://youtu.be/TpuDOsuKIBo)
-
-[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/QA9woGfjeql37J9JepbrW.png)](https://youtu.be/TpuDOsuKIBo)
-
-[**First Ever SDXL Training With Kohya LoRA - Stable Diffusion XL Training Will Replace Older Models**](https://youtu.be/AY6DMBCIZ3A)
-
-[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/mG0CvKAzb8o29nr5ye0Br.png)](https://youtu.be/AY6DMBCIZ3A)
-
-[**Become A Master Of SDXL Training With Kohya SS LoRAs - Combine Power Of Automatic1111 & SDXL LoRAs**](https://youtu.be/sBFGitIvD2A)
-
-[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/rXbRquLxFaDGaGlkl-SUp.png)](https://youtu.be/sBFGitIvD2A)
-
-[**How To Do SDXL LoRA Training On RunPod With Kohya SS GUI Trainer & Use LoRAs With Automatic1111 UI**](https://youtu.be/-xEwaQ54DI4)
-
-[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/-BQQRjP9Maht_n4UHxgBJ.png)](https://youtu.be/-xEwaQ54DI4)
-
-[**How To Do SDXL LoRA Training On RunPod With Kohya SS GUI Trainer & Use LoRAs With Automatic1111 UI**](https://youtu.be/JF2P7BIUpIU?feature=shared)
-
-[![image](https://cdn-uploads.huggingface.co/production/uploads/6345bd89fe134dfd7a0dba40/n82kc7ND2rDmhRmRexLrb.png)](https://youtu.be/JF2P7BIUpIU?feature=shared)
-
-### About SDXL training
-
-The feature of SDXL training is now available in sdxl branch as an experimental feature.
-
-Sep 3, 2023: The feature will be merged into the main branch soon. Following are the changes from the previous version.
-
-- ControlNet-LLLite is added. See [documentation](./docs/train_lllite_README.md) for details.
-- JPEG XL is supported. [#786](https://github.com/kohya-ss/sd-scripts/pull/786)
-- Peak memory usage is reduced. [#791](https://github.com/kohya-ss/sd-scripts/pull/791)
-- Input perturbation noise is added. See [#798](https://github.com/kohya-ss/sd-scripts/pull/798) for details.
-- Dataset subset now has `caption_prefix` and `caption_suffix` options. The strings are added to the beginning and the end of the captions before shuffling. You can specify the options in `.toml`.
-- Other minor changes.
-- Thanks for contributions from Isotr0py, vvern999, lansing  and others!
-
-Aug 13, 2023:
-
-- LoRA-FA is added experimentally. Specify `--network_module networks.lora_fa` option instead of `--network_module networks.lora`. The trained model can be used as a normal LoRA model.
-
-Aug 12, 2023:
-
-- The default value of noise offset when omitted has been changed to 0 from 0.0357.
-- The different learning rates for each U-Net block are now supported. Specify with `--block_lr` option. Specify 23 values separated by commas like `--block_lr 1e-3,1e-3 ... 1e-3`.
-  - 23 values correspond to `0: time/label embed, 1-9: input blocks 0-8, 10-12: mid blocks 0-2, 13-21: output blocks 0-8, 22: out`.
-
-Aug 6, 2023:
-
-- [SAI Model Spec](https://github.com/Stability-AI/ModelSpec) metadata is now supported partially. `hash_sha256` is not supported yet.
-  - The main items are set automatically.
-  - You can set title, author, description, license and tags with `--metadata_xxx` options in each training script.
-  - Merging scripts also support minimum SAI Model Spec metadata. See the help message for the usage.
-  - Metadata editor will be available soon.
-- SDXL LoRA has `sdxl_base_v1-0` now  for `ss_base_model_version` metadata item, instead of `v0-9`.
-
-Aug 4, 2023:
-
-- `bitsandbytes` is now optional. Please install it if you want to use it. The instructions are in the later section.
-- `albumentations` is not required any more.
-- An issue for pooled output for Textual Inversion training is fixed.
-- `--v_pred_like_loss ratio` option is added. This option adds the loss like v-prediction loss in SDXL training. `0.1` means that the loss is added 10% of the v-prediction loss. The default value is None (disabled).
-  - In v-prediction, the loss is higher in the early timesteps (near the noise). This option can be used to increase the loss in the early timesteps.
-- Arbitrary options can be used for Diffusers' schedulers. For example `--lr_scheduler_args "lr_end=1e-8"`.
-- `sdxl_gen_imgs.py` supports batch size > 1.
-- Fix ControlNet to work with attention couple and regional LoRA in `gen_img_diffusers.py`.
-
-Summary of the feature:
-
-- `tools/cache_latents.py` is added. This script can be used to cache the latents to disk in advance.
-  - The options are almost the same as `sdxl_train.py'. See the help message for the usage.
-  - Please launch the script as follows:
-    `accelerate launch  --num_cpu_threads_per_process 1 tools/cache_latents.py ...`
-  - This script should work with multi-GPU, but it is not tested in my environment.
-
-- `tools/cache_text_encoder_outputs.py` is added. This script can be used to cache the text encoder outputs to disk in advance.
-  - The options are almost the same as `cache_latents.py' and `sdxl_train.py'. See the help message for the usage.
-
-- `sdxl_train.py` is a script for SDXL fine-tuning. The usage is almost the same as `fine_tune.py`, but it also supports DreamBooth dataset.
-  - `--full_bf16` option is added. Thanks to KohakuBlueleaf!
-    - This option enables the full bfloat16 training (includes gradients). This option is useful to reduce the GPU memory usage.
-    - However, bitsandbytes==0.35 doesn't seem to support this. Please use a newer version of bitsandbytes or another optimizer.
-    - I cannot find bitsandbytes>0.35.0 that works correctly on Windows.
-    - In addition, the full bfloat16 training might be unstable. Please use it at your own risk.
-- `prepare_buckets_latents.py` now supports SDXL fine-tuning.
-- `sdxl_train_network.py` is a script for LoRA training for SDXL. The usage is almost the same as `train_network.py`.
-- Both scripts has following additional options:
-  - `--cache_text_encoder_outputs` and `--cache_text_encoder_outputs_to_disk`: Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.
-  - `--no_half_vae`: Disable the half-precision (mixed-precision) VAE. VAE for SDXL seems to produce NaNs in some cases. This option is useful to avoid the NaNs.
-- The image generation during training is now available. `--no_half_vae` option also works to avoid black images.
-
-- `--weighted_captions` option is not supported yet for both scripts.
-- `--min_timestep` and `--max_timestep` options are added to each training script. These options can be used to train U-Net with different timesteps. The default values are 0 and 1000.
-
-- `sdxl_train_textual_inversion.py` is a script for Textual Inversion training for SDXL. The usage is almost the same as `train_textual_inversion.py`.
-  - `--cache_text_encoder_outputs` is not supported.
-  - `token_string` must be alphabet only currently, due to the limitation of the open-clip tokenizer.
-  - There are two options for captions:
-    1. Training with captions. All captions must include the token string. The token string is replaced with multiple tokens.
-    2. Use `--use_object_template` or `--use_style_template` option. The captions are generated from the template. The existing captions are ignored.
-  - See below for the format of the embeddings.
-
-- `sdxl_gen_img.py` is added. This script can be used to generate images with SDXL, including LoRA. See the help message for the usage.
-  - Textual Inversion is supported, but the name for the embeds in the caption becomes alphabet only. For example, `neg_hand_v1.safetensors` can be activated with `neghandv`.
-
-`requirements.txt` is updated to support SDXL training.
-
-#### Tips for SDXL training
-
-- The default resolution of SDXL is 1024x1024.
-- The fine-tuning can be done with 24GB GPU memory with the batch size of 1. For 24GB GPU, the following options are recommended __for the fine-tuning with 24GB GPU memory__:
-  - Train U-Net only.
-  - Use gradient checkpointing.
-  - Use `--cache_text_encoder_outputs` option and caching latents.
-  - Use Adafactor optimizer. RMSprop 8bit or Adagrad 8bit may work. AdamW 8bit doesn't seem to work.
-- The LoRA training can be done with 8GB GPU memory (10GB recommended). For reducing the GPU memory usage, the following options are recommended:
-  - Train U-Net only.
-  - Use gradient checkpointing.
-  - Use `--cache_text_encoder_outputs` option and caching latents.
-  - Use one of 8bit optimizers or Adafactor optimizer.
-  - Use lower dim (-8 for 8GB GPU).
-- `--network_train_unet_only` option is highly recommended for SDXL LoRA. Because SDXL has two text encoders, the result of the training will be unexpected.
-- PyTorch 2 seems to use slightly less GPU memory than PyTorch 1.
-- `--bucket_reso_steps` can be set to 32 instead of the default value 64. Smaller values than 32 will not work for SDXL training.
-
-Example of the optimizer settings for Adafactor with the fixed learning rate:
-
-```toml
-optimizer_type = "adafactor"
-optimizer_args = [ "scale_parameter=False", "relative_step=False", "warmup_init=False" ]
-lr_scheduler = "constant_with_warmup"
-lr_warmup_steps = 100
-learning_rate = 4e-7 # SDXL original learning rate
-```
+    - [Jan 15, 2024 / 2024/1/15: v0.8.0](#jan-15-2024--2024115-v080)
+    - [Naming of LoRA](#naming-of-lora)
+    - [LoRAの名称について](#loraの名称について)
+  - [Sample image generation during training](#sample-image-generation-during-training-2)
+  - [Change History](#change-history-1)
 
 ## 🦒 Colab
-
-🚦 WIP 🚦
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: https://github.com/camenduru/kohya_ss-colab.
 
@@ -627,7 +484,78 @@ save_file(state_dict, file)
 
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
+<<<<<<< HEAD
 ### Sample image generation during training
+=======
+
+## Change History
+
+### Jan 15, 2024 / 2024/1/15: v0.8.0
+
+- Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
+  - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
+- `torch.compile` is supported (experimental). PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) Thanks to p1atdev!
+  - This feature works only on Linux or WSL.
+  - Please specify `--torch_compile` option in each training script.
+  - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
+  - Please use `--spda` option instead of `--xformers` option.
+  - PyTorch 2.1 or later is recommended.
+  - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
+- The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
+- IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
+- Fixed a bug that Diffusers format model cannot be saved.
+
+- Diffusers、Accelerate、Transformers 等の関連ライブラリを更新しました。[Upgrade](#upgrade) を参照し更新をお願いします。
+  - 最新の Transformers を前提とした一部のモデルファイル（Text Encoder が position_id を持たないもの）が読み込めるようになりました。
+- `torch.compile` がサポートされしました（実験的）。 PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) p1atdev 氏に感謝します。
+  - Linux または WSL でのみ動作します。
+  - 各学習スクリプトで `--torch_compile` オプションを指定してください。
+  - `--dynamo_backend` オプションで使用される backend を選択できます。デフォルトは `"inductor"` です。 `inductor` または `eager` が動作するようです。
+  - `--xformers` オプションとは互換性がありません。 代わりに `--spda` オプションを使用してください。
+  - PyTorch 2.1以降を推奨します。
+  - 詳細は [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) をご覧ください。
+- wandb 保存時のセッション名が各学習スクリプトの `--wandb_run_name` オプションで指定できるようになりました。 PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) hopl1t 氏に感謝します。
+- IPEX ライブラリが更新されました。[PR #1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Disty0 氏に感謝します。
+- Diffusers 形式でのモデル保存ができなくなっていた不具合を修正しました。
+
+
+Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
+最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
+
+### Naming of LoRA
+
+The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
+
+    LoRA for Linear layers and Conv2d layers with 1x1 kernel
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
+
+    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
+    
+LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
+
+To use LoRA-C3Lier with Web UI, please use our extension.
+
+### LoRAの名称について
+
+`train_network.py` がサポートするLoRAについて、混乱を避けるため名前を付けました。ドキュメントは更新済みです。以下は当リポジトリ内の独自の名称です。
+
+1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers、リエラと読みます)
+
+    Linear 層およびカーネルサイズ 1x1 の Conv2d 層に適用されるLoRA
+
+2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers、セリアと読みます)
+
+    1.に加え、カーネルサイズ 3x3 の Conv2d 層に適用されるLoRA
+
+LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
+
+LoRA-C3Lierを使いWeb UIで生成するには拡張を使用してください。
+
+## Sample image generation during training
+>>>>>>> 26d35794e3b858e7b5bd20d1e70547c378550b3d
   A prompt file might look like this, for example
 
 ```
@@ -651,6 +579,22 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2024/01/15 (v22.5.0)
+- Merged sd-scripts v0.8.0 updates
+  - Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
+    - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
+  - `torch.compile` is supported (experimental). PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) Thanks to p1atdev!
+    - This feature works only on Linux or WSL.
+    - Please specify `--torch_compile` option in each training script.
+    - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
+    - Please use `--spda` option instead of `--xformers` option.
+    - PyTorch 2.1 or later is recommended.
+    - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
+  - The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
+  - IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
+  - Fixed a bug that Diffusers format model cannot be saved.
+- Fix LoRA config display after load that would sometime hide some of the feilds
+  
 * 2024/01/02 (v22.4.1)
 - Minor bug fixed and enhancements.
   

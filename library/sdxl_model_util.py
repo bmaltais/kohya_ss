@@ -100,7 +100,7 @@ def convert_sdxl_text_encoder_2_checkpoint(checkpoint, max_length):
             key = key.replace(".ln_final", ".final_layer_norm")
         # ckpt from comfy has this key: text_model.encoder.text_model.embeddings.position_ids
         elif ".embeddings.position_ids" in key:
-            key = None  # remove this key: make position_ids by ourselves
+            key = None  # remove this key: position_ids is not used in newer transformers
         return key
 
     keys = list(checkpoint.keys())
@@ -125,10 +125,6 @@ def convert_sdxl_text_encoder_2_checkpoint(checkpoint, max_length):
             new_sd[key_pfx + "q_proj" + key_suffix] = values[0]
             new_sd[key_pfx + "k_proj" + key_suffix] = values[1]
             new_sd[key_pfx + "v_proj" + key_suffix] = values[2]
-
-    # original SD にはないので、position_idsを追加
-    position_ids = torch.Tensor([list(range(max_length))]).to(torch.int64)
-    new_sd["text_model.embeddings.position_ids"] = position_ids
 
     # logit_scale はDiffusersには含まれないが、保存時に戻したいので別途返す
     logit_scale = checkpoint.get(SDXL_KEY_PREFIX + "logit_scale", None)
@@ -265,9 +261,9 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
         elif k.startswith("conditioner.embedders.1.model."):
             te2_sd[k] = state_dict.pop(k)
 
-    # 一部のposition_idsがないモデルへの対応 / add position_ids for some models
-    if "text_model.embeddings.position_ids" not in te1_sd:
-        te1_sd["text_model.embeddings.position_ids"] = torch.arange(77).unsqueeze(0)
+    # 最新の transformers では position_ids を含むとエラーになるので削除 / remove position_ids for latest transformers
+    if "text_model.embeddings.position_ids" in te1_sd:
+        te1_sd.pop("text_model.embeddings.position_ids")
 
     info1 = _load_state_dict_on_device(text_model1, te1_sd, device=map_location)  # remain fp32
     print("text encoder 1:", info1)

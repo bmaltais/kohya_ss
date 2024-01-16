@@ -72,7 +72,7 @@ fi
 #Set OneAPI if it's not set by the user
 if [[ "$@" == *"--use-ipex"* ]]
 then
-    if [ -d "$SCRIPT_DIR/venv" ]; then
+    if [ -d "$SCRIPT_DIR/venv" ] && [[ -z "${DISABLE_VENV_LIBS}" ]]; then
         export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
     fi
     export NEOReadDebugKeys=1
@@ -82,7 +82,7 @@ then
         STARTUP_CMD=ipexrun
         if [[ -z "$STARTUP_CMD_ARGS" ]]
         then
-            STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator jemalloc"
+            STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator tcmalloc"
         fi
     fi
 fi

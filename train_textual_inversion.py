@@ -441,9 +441,10 @@ class TextualInversionTrainer:
 
             # Freeze all parameters except for the token embeddings in text encoder
             text_encoder.requires_grad_(True)
-            text_encoder.text_model.encoder.requires_grad_(False)
-            text_encoder.text_model.final_layer_norm.requires_grad_(False)
-            text_encoder.text_model.embeddings.position_embedding.requires_grad_(False)
+            unwrapped_text_encoder = accelerator.unwrap_model(text_encoder)
+            unwrapped_text_encoder.text_model.encoder.requires_grad_(False)
+            unwrapped_text_encoder.text_model.final_layer_norm.requires_grad_(False)
+            unwrapped_text_encoder.text_model.embeddings.position_embedding.requires_grad_(False)
             # text_encoder.text_model.embeddings.token_embedding.requires_grad_(True)
 
         unet.requires_grad_(False)
@@ -503,6 +504,8 @@ class TextualInversionTrainer:
 
         if accelerator.is_main_process:
             init_kwargs = {}
+            if args.wandb_run_name:
+                init_kwargs['wandb'] = {'name': args.wandb_run_name}
             if args.log_tracker_config is not None:
                 init_kwargs = toml.load(args.log_tracker_config)
             accelerator.init_trackers(
@@ -603,7 +606,7 @@ class TextualInversionTrainer:
 
                     accelerator.backward(loss)
                     if accelerator.sync_gradients and args.max_grad_norm != 0.0:
-                        params_to_clip = text_encoder.get_input_embeddings().parameters()
+                        params_to_clip = accelerator.unwrap_model(text_encoder).get_input_embeddings().parameters()
                         accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
 
                     optimizer.step()
@@ -615,9 +618,11 @@ class TextualInversionTrainer:
                         for text_encoder, orig_embeds_params, index_no_updates in zip(
                             text_encoders, orig_embeds_params_list, index_no_updates_list
                         ):
-                            accelerator.unwrap_model(text_encoder).get_input_embeddings().weight[
+                            # if full_fp16/bf16, input_embeddings_weight is fp16/bf16, orig_embeds_params is fp32
+                            input_embeddings_weight = accelerator.unwrap_model(text_encoder).get_input_embeddings().weight
+                            input_embeddings_weight[index_no_updates] = orig_embeds_params.to(input_embeddings_weight.dtype)[
                                 index_no_updates
-                            ] = orig_embeds_params[index_no_updates]
+                            ]
 
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
