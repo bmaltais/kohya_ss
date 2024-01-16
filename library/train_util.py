@@ -3919,6 +3919,7 @@ def prepare_accelerator(args: argparse.Namespace):
         kwargs_handlers=kwargs_handlers,
         dynamo_backend=dynamo_backend,
     )
+    print("accelerator device:", accelerator.device)
     return accelerator
 
 
