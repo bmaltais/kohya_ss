@@ -15,8 +15,9 @@ from torchvision.transforms.functional import InterpolationMode
 sys.path.append(os.path.dirname(__file__))
 from blip.blip import blip_decoder, is_url
 import library.train_util as train_util
+from library.device_utils import get_preferred_device
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = get_preferred_device()
 
 
 IMAGE_SIZE = 384

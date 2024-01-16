@@ -18,7 +18,7 @@ import diffusers
 import numpy as np
 import torch
 
-from library.device_utils import clean_memory
+from library.device_utils import clean_memory, get_preferred_device
 from library.ipex_interop import init_ipex
 
 init_ipex()
@@ -1495,7 +1495,7 @@ def main(args):
     #     scheduler.config.clip_sample = True
 
     # deviceを決定する
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # "mps"を考量してない
+    device = get_preferred_device()
 
     # custom pipelineをコピったやつを生成する
     if args.vae_slices:

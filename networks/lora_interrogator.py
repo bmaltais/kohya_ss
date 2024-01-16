@@ -9,11 +9,12 @@ import torch
 
 import library.model_util as model_util
 import lora
+from library.device_utils import get_preferred_device
 
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = get_preferred_device()
 
 
 def interrogate(args):

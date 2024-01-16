@@ -11,6 +11,8 @@ from tqdm import tqdm
 from transformers import CLIPTextModel
 import torch
 
+from library.device_utils import get_preferred_device
+
 
 def make_unet_conversion_map() -> Dict[str, str]:
     unet_conversion_map_layer = []
@@ -476,7 +478,7 @@ if __name__ == "__main__":
     from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
     import torch
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_preferred_device()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", type=str, default=None, help="model id for huggingface")
