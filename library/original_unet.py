@@ -1262,9 +1262,9 @@ class CrossAttnUpBlock2D(nn.Module):
         for attn in self.attentions:
             attn.set_use_memory_efficient_attention(xformers, mem_eff)
 
-    def set_use_sdpa(self, spda):
+    def set_use_sdpa(self, sdpa):
         for attn in self.attentions:
-            attn.set_use_sdpa(spda)
+            attn.set_use_sdpa(sdpa)
 
     def forward(
         self,

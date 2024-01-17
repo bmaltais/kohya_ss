@@ -267,7 +267,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - This feature works only on Linux or WSL.
   - Please specify `--torch_compile` option in each training script.
   - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
-  - Please use `--spda` option instead of `--xformers` option.
+  - Please use `--sdpa` option instead of `--xformers` option.
   - PyTorch 2.1 or later is recommended.
   - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
 - The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
@@ -280,7 +280,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - Linux または WSL でのみ動作します。
   - 各学習スクリプトで `--torch_compile` オプションを指定してください。
   - `--dynamo_backend` オプションで使用される backend を選択できます。デフォルトは `"inductor"` です。 `inductor` または `eager` が動作するようです。
-  - `--xformers` オプションとは互換性がありません。 代わりに `--spda` オプションを使用してください。
+  - `--xformers` オプションとは互換性がありません。 代わりに `--sdpa` オプションを使用してください。
   - PyTorch 2.1以降を推奨します。
   - 詳細は [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) をご覧ください。
 - wandb 保存時のセッション名が各学習スクリプトの `--wandb_run_name` オプションで指定できるようになりました。 PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) hopl1t 氏に感謝します。
