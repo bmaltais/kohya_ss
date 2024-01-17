@@ -117,7 +117,7 @@ class NetworkTrainer:
         self, args, accelerator, unet, vae, tokenizers, text_encoders, data_loader, weight_dtype
     ):
         for t_enc in text_encoders:
-            t_enc.to(accelerator.device)
+            t_enc.to(accelerator.device, dtype=weight_dtype)
 
     def get_text_cond(self, args, accelerator, batch, tokenizers, text_encoders, weight_dtype):
         input_ids = batch["input_ids"].to(accelerator.device)
@@ -278,6 +278,7 @@ class NetworkTrainer:
             accelerator.wait_for_everyone()
 
         # 必要ならテキストエンコーダーの出力をキャッシュする: Text Encoderはcpuまたはgpuへ移される
+        # cache text encoder outputs if needed: Text Encoder is moved to cpu or gpu
         self.cache_text_encoder_outputs_if_needed(
             args, accelerator, unet, vae, tokenizers, text_encoders, train_dataset_group, weight_dtype
         )
@@ -394,8 +395,7 @@ class NetworkTrainer:
         for t_enc in text_encoders:
             t_enc.requires_grad_(False)
 
-        # acceleratorがなんかよろしくやってくれるらしい
-        # TODO めちゃくちゃ冗長なのでコードを整理する
+        # acceleratorがなんかよろしくやってくれるらしい / accelerator will do something good
         if train_unet:
             unet = accelerator.prepare(unet)
         else:
@@ -407,8 +407,8 @@ class NetworkTrainer:
                 text_encoder = accelerator.prepare(text_encoder)
                 text_encoders = [text_encoder]
         else:
-            for t_enc in text_encoders:
-                t_enc.to(accelerator.device, dtype=weight_dtype)
+            pass  # if text_encoder is not trained, no need to prepare. and device and dtype are already set
+
         network, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(network, optimizer, train_dataloader, lr_scheduler)
 
         if args.gradient_checkpointing:
@@ -685,7 +685,7 @@ class NetworkTrainer:
         if accelerator.is_main_process:
             init_kwargs = {}
             if args.wandb_run_name:
-                init_kwargs['wandb'] = {'name': args.wandb_run_name}
+                init_kwargs["wandb"] = {"name": args.wandb_run_name}
             if args.log_tracker_config is not None:
                 init_kwargs = toml.load(args.log_tracker_config)
             accelerator.init_trackers(
