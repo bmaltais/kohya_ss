@@ -66,15 +66,10 @@ import diffusers
 import numpy as np
 import torch
 
-try:
-    import intel_extension_for_pytorch as ipex
+from library.ipex_interop import init_ipex
 
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
+init_ipex()
 
-        ipex_init()
-except Exception:
-    pass
 import torchvision
 from diffusers import (
     AutoencoderKL,

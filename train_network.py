@@ -14,15 +14,10 @@ from tqdm import tqdm
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-try:
-    import intel_extension_for_pytorch as ipex
+from library.ipex_interop import init_ipex
 
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
+init_ipex()
 
-        ipex_init()
-except Exception:
-    pass
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from library import model_util
