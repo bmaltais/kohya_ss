@@ -249,6 +249,20 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### 作業中の内容 / Work in progress
+
+- [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
+  - Please specify `--fp8_base` in `train_network.py` or `sdxl_train_network.py`.
+  - PyTorch 2.1 or later is required.
+  - If you use xformers with PyTorch 2.1, please see [xformers repository](https://github.com/facebookresearch/xformers) and install the appropriate version according to your CUDA version.
+  - The sample image generation during training consumes a lot of memory. It is recommended to turn it off.
+
+- （実験的）　LoRA等の学習スクリプトで、ベースモデル（U-Net、および Text Encoder のモジュール学習時は Text Encoder も）の重みを fp8 にして学習するオプションが追加されました。 PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) KohakuBlueleaf 氏に感謝します。
+  - `train_network.py` または `sdxl_train_network.py` で `--fp8_base` を指定してください。
+  - PyTorch 2.1 以降が必要です。
+  - PyTorch 2.1 で xformers を使用する場合は、[xformers のリポジトリ](https://github.com/facebookresearch/xformers) を参照し、CUDA バージョンに応じて適切なバージョンをインストールしてください。
+  - 学習中のサンプル画像生成はメモリを大量に消費するため、オフにすることをお勧めします。
+
 ### Jan 17, 2024 / 2024/1/17: v0.8.1
 
 - Fixed a bug that the VRAM usage without Text Encoder training is larger than before in training scripts for LoRA etc (`train_network.py`, `sdxl_train_network.py`).
