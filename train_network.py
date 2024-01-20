@@ -310,6 +310,7 @@ class NetworkTrainer:
             )
         if network is None:
             return
+        network_has_multiplier = hasattr(network, "set_multiplier")
 
         if hasattr(network, "prepare_network"):
             network.prepare_network(args)
@@ -768,7 +769,17 @@ class NetworkTrainer:
                                 accelerator.print("NaN found in latents, replacing with zeros")
                                 latents = torch.nan_to_num(latents, 0, out=latents)
                         latents = latents * self.vae_scale_factor
-                    b_size = latents.shape[0]
+
+                    # get multiplier for each sample
+                    if network_has_multiplier:
+                        multipliers = batch["network_multipliers"]
+                        # if all multipliers are same, use single multiplier
+                        if torch.all(multipliers == multipliers[0]):
+                            multipliers = multipliers[0].item()
+                        else:
+                            raise NotImplementedError("multipliers for each sample is not supported yet")
+                        # print(f"set multiplier: {multipliers}")
+                        network.set_multiplier(multipliers)
 
                     with torch.set_grad_enabled(train_text_encoder), accelerator.autocast():
                         # Get the text embedding for conditioning

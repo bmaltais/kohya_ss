@@ -93,6 +93,7 @@ class BaseDatasetParams:
     tokenizer: Union[CLIPTokenizer, List[CLIPTokenizer]] = None
     max_token_length: int = None
     resolution: Optional[Tuple[int, int]] = None
+    network_multiplier: float = 1.0
     debug_dataset: bool = False
 
 
@@ -219,6 +220,7 @@ class ConfigSanitizer:
         "max_bucket_reso": int,
         "min_bucket_reso": int,
         "resolution": functools.partial(__validate_and_convert_scalar_or_twodim.__func__, int),
+        "network_multiplier": float,
     }
 
     # options handled by argparse but not handled by user config
@@ -469,6 +471,7 @@ def generate_dataset_group_by_blueprint(dataset_group_blueprint: DatasetGroupBlu
         batch_size: {dataset.batch_size}
         resolution: {(dataset.width, dataset.height)}
         enable_bucket: {dataset.enable_bucket}
+        network_multiplier: {dataset.network_multiplier}
     """
         )
 

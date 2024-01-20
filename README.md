@@ -257,11 +257,42 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - If you use xformers with PyTorch 2.1, please see [xformers repository](https://github.com/facebookresearch/xformers) and install the appropriate version according to your CUDA version.
   - The sample image generation during training consumes a lot of memory. It is recommended to turn it off.
 
+- [Experimental] The network multiplier can be specified for each dataset in the training scripts for LoRA etc.
+  - This is an experimental option and may be removed or changed in the future.
+  - For example, if you train with state A as `1.0` and state B as `-1.0`, you may be able to generate by switching between state A and B depending on the LoRA application rate.
+  - Also, if you prepare five states and train them as `0.2`, `0.4`, `0.6`, `0.8`, and `1.0`, you may be able to generate by switching the states smoothly depending on the application rate.
+  - Please specify `network_multiplier` in `[[datasets]]` in `.toml` file.
+
 - （実験的）　LoRA等の学習スクリプトで、ベースモデル（U-Net、および Text Encoder のモジュール学習時は Text Encoder も）の重みを fp8 にして学習するオプションが追加されました。 PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) KohakuBlueleaf 氏に感謝します。
   - `train_network.py` または `sdxl_train_network.py` で `--fp8_base` を指定してください。
   - PyTorch 2.1 以降が必要です。
   - PyTorch 2.1 で xformers を使用する場合は、[xformers のリポジトリ](https://github.com/facebookresearch/xformers) を参照し、CUDA バージョンに応じて適切なバージョンをインストールしてください。
   - 学習中のサンプル画像生成はメモリを大量に消費するため、オフにすることをお勧めします。
+- (実験的)　LoRA 等の学習で、データセットごとに異なるネットワーク適用率を指定できるようになりました。 
+  - 実験的オプションのため、将来的に削除または仕様変更される可能性があります。
+  - たとえば状態 A を `1.0`、状態 B を `-1.0` として学習すると、LoRA の適用率に応じて状態 A と B を切り替えつつ生成できるかもしれません。
+  - また、五段階の状態を用意し、それぞれ `0.2`、`0.4`、`0.6`、`0.8`、`1.0` として学習すると、適用率でなめらかに状態を切り替えて生成できるかもしれません。 
+  - `.toml` ファイルで `[[datasets]]` に `network_multiplier` を指定してください。
+
+- `.toml` example for network multiplier / ネットワーク適用率の `.toml` の記述例
+
+```toml
+[general]
+[[datasets]]
+resolution = 512
+batch_size = 8
+network_multiplier = 1.0
+
+... subset settings ...
+
+[[datasets]]
+resolution = 512
+batch_size = 8
+network_multiplier = -1.0
+
+... subset settings ...
+```
+
 
 ### Jan 17, 2024 / 2024/1/17: v0.8.1
 
