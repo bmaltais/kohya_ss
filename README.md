@@ -264,7 +264,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - Please specify `network_multiplier` in `[[datasets]]` in `.toml` file.
 - Some options are added to `networks/extract_lora_from_models.py` to reduce the memory usage.
   - `--load_precision` option can be used to specify the precision when loading the model. If the model is saved in fp16, you can reduce the memory usage by specifying `--load_precision fp16` without losing precision.
-  - `--load_original_model_to` option can be used to specify the device to load the original model. `--load_tuned_model_to` option can be used to specify the device to load the derived model. The default is `cpu` for both options, but you can specify `cuda` etc. You can reduce the memory usage by loading one of them to GPU.
+  - `--load_original_model_to` option can be used to specify the device to load the original model. `--load_tuned_model_to` option can be used to specify the device to load the derived model. The default is `cpu` for both options, but you can specify `cuda` etc. You can reduce the memory usage by loading one of them to GPU. This option is available only for SDXL.
 
 - （実験的）　LoRA等の学習スクリプトで、ベースモデル（U-Net、および Text Encoder のモジュール学習時は Text Encoder も）の重みを fp8 にして学習するオプションが追加されました。 PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) KohakuBlueleaf 氏に感謝します。
   - `train_network.py` または `sdxl_train_network.py` で `--fp8_base` を指定してください。
@@ -278,7 +278,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - `.toml` ファイルで `[[datasets]]` に `network_multiplier` を指定してください。
 - `networks/extract_lora_from_models.py` に使用メモリ量を削減するいくつかのオプションを追加しました。 
   - `--load_precision` で読み込み時の精度を指定できます。モデルが fp16 で保存されている場合は `--load_precision fp16` を指定して精度を変えずにメモリ量を削減できます。
-  - `--load_original_model_to` で元モデルを読み込むデバイスを、`--load_tuned_model_to` で派生モデルを読み込むデバイスを指定できます。デフォルトは両方とも `cpu` ですがそれぞれ `cuda` 等を指定できます。片方を GPU に読み込むことでメモリ量を削減できます。
+  - `--load_original_model_to` で元モデルを読み込むデバイスを、`--load_tuned_model_to` で派生モデルを読み込むデバイスを指定できます。デフォルトは両方とも `cpu` ですがそれぞれ `cuda` 等を指定できます。片方を GPU に読み込むことでメモリ量を削減できます。SDXL の場合のみ有効です。
 
 
 - `.toml` example for network multiplier / ネットワーク適用率の `.toml` の記述例
