@@ -925,7 +925,7 @@ class SdxlStableDiffusionLongPromptWeightingPipeline:
 
         unet_dtype = self.unet.dtype
         dtype = unet_dtype
-        if dtype.itemsize == 1:  # fp8
+        if hasattr(dtype, "itemsize") and dtype.itemsize == 1:  # fp8
             dtype = torch.float16
             self.unet.to(dtype)
 
