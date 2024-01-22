@@ -64,6 +64,7 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
                 text_encoders[0],
                 text_encoders[1],
                 None if not args.full_fp16 else weight_dtype,
+                accelerator=accelerator,
             )
         return encoder_hidden_states1, encoder_hidden_states2, pool2
 

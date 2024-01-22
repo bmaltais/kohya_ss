@@ -195,12 +195,24 @@ def check_torch():
         '/opt/rocm/bin/rocminfo'
     ):
         log.info('AMD toolkit detected')
+    elif (shutil.which('sycl-ls') is not None
+    or os.environ.get('ONEAPI_ROOT') is not None
+    or os.path.exists('/opt/intel/oneapi')):
+        log.info('Intel OneAPI toolkit detected')
     else:
         log.info('Using CPU-only Torch')
 
     try:
         import torch
-
+        try:
+            import intel_extension_for_pytorch as ipex
+            if torch.xpu.is_available():
+                from library.ipex import ipex_init
+                ipex_init()
+                os.environ.setdefault('NEOReadDebugKeys', '1')
+                os.environ.setdefault('ClDeviceGlobalMemSizeAvailablePercent', '100')
+        except Exception:
+            pass
         log.info(f'Torch {torch.__version__}')
 
         # Check if CUDA is available
@@ -208,10 +220,14 @@ def check_torch():
             log.warning('Torch reports CUDA not available')
         else:
             if torch.version.cuda:
-                # Log nVidia CUDA and cuDNN versions
-                log.info(
-                    f'Torch backend: nVidia CUDA {torch.version.cuda} cuDNN {torch.backends.cudnn.version() if torch.backends.cudnn.is_available() else "N/A"}'
-                )
+                if hasattr(torch, "xpu") and torch.xpu.is_available():
+                    # Log Intel IPEX OneAPI version
+                    log.info(f'Torch backend: Intel IPEX OneAPI {ipex.__version__}')
+                else:
+                    # Log nVidia CUDA and cuDNN versions
+                    log.info(
+                        f'Torch backend: nVidia CUDA {torch.version.cuda} cuDNN {torch.backends.cudnn.version() if torch.backends.cudnn.is_available() else "N/A"}'
+                    )
             elif torch.version.hip:
                 # Log AMD ROCm HIP version
                 log.info(f'Torch backend: AMD ROCm HIP {torch.version.hip}')
@@ -222,9 +238,14 @@ def check_torch():
             for device in [
                 torch.cuda.device(i) for i in range(torch.cuda.device_count())
             ]:
-                log.info(
-                    f'Torch detected GPU: {torch.cuda.get_device_name(device)} VRAM {round(torch.cuda.get_device_properties(device).total_memory / 1024 / 1024)} Arch {torch.cuda.get_device_capability(device)} Cores {torch.cuda.get_device_properties(device).multi_processor_count}'
-                )
+                if hasattr(torch, "xpu") and torch.xpu.is_available():
+                    log.info(
+                        f'Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
+                    )
+                else:
+                    log.info(
+                        f'Torch detected GPU: {torch.cuda.get_device_name(device)} VRAM {round(torch.cuda.get_device_properties(device).total_memory / 1024 / 1024)} Arch {torch.cuda.get_device_capability(device)} Cores {torch.cuda.get_device_properties(device).multi_processor_count}'
+                    )
                 return int(torch.__version__[0])
     except Exception as e:
         # log.warning(f'Could not load torch: {e}')
@@ -373,7 +394,7 @@ def process_requirements_line(line, show_stdout: bool = False):
 
 def install_requirements(requirements_file, check_no_verify_flag=False, show_stdout: bool = False):
     if check_no_verify_flag:
-        log.info(f'Verifying modules instalation status from {requirements_file}...')
+        log.info(f'Verifying modules installation status from {requirements_file}...')
     else:
         log.info(f'Installing modules from {requirements_file}...')
     with open(requirements_file, 'r', encoding='utf8') as f:

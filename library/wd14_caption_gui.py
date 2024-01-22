@@ -25,6 +25,10 @@ def caption_images(
     frequency_tags,
     prefix,
     postfix,
+    onnx,
+    append_tags,
+    force_download,
+    caption_separator
 ):
     # Check for images_dir_input
     if train_data_dir == '':
@@ -41,6 +45,7 @@ def caption_images(
     run_cmd += f' --general_threshold={general_threshold}'
     run_cmd += f' --character_threshold={character_threshold}'
     run_cmd += f' --caption_extension="{caption_extension}"'
+    run_cmd += f' --caption_separator="{caption_separator}"'
     run_cmd += f' --model="{model}"'
     run_cmd += (
         f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
@@ -54,6 +59,12 @@ def caption_images(
         run_cmd += f' --remove_underscore'
     if frequency_tags:
         run_cmd += f' --frequency_tags'
+    if onnx:
+        run_cmd += f' --onnx'
+    if append_tags:
+        run_cmd += f' --append_tags'
+    if force_download:
+        run_cmd += f' --force_download'
 
     if not undesired_tags == '':
         run_cmd += f' --undesired_tags="{undesired_tags}"'
@@ -112,6 +123,12 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 value='.txt',
                 interactive=True,
             )
+            
+            caption_separator = gr.Textbox(
+                label='Caption Separator',
+                value=',',
+                interactive=True,
+            )
 
         undesired_tags = gr.Textbox(
             label='Undesired tags',
@@ -130,6 +147,20 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 label='Postfix to add to WD14 caption',
                 placeholder='(Optional)',
                 interactive=True,
+            )
+
+        with gr.Row():
+            onnx = gr.Checkbox(
+                label='Use onnx',
+                value=False,
+                interactive=True,
+                info="https://github.com/onnx/onnx"
+            )
+            append_tags = gr.Checkbox(
+                label='Append TAGs',
+                value=False,
+                interactive=True,
+                info="This option appends the tags to the existing tags, instead of replacing them."
             )
 
         with gr.Row():
@@ -167,6 +198,12 @@ def gradio_wd14_caption_gui_tab(headless=False):
                     'SmilingWolf/wd-v1-4-moat-tagger-v2',
                 ],
                 value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
+            )
+            
+            force_download = gr.Checkbox(
+                label='Force model re-download',
+                value=False,
+                info='Usefull to force model re download when switching to onnx',
             )
 
             general_threshold = gr.Slider(
@@ -215,6 +252,10 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 frequency_tags,
                 prefix,
                 postfix,
+                onnx,
+                append_tags,
+                force_download,
+                caption_separator
             ],
             show_progress=False,
         )

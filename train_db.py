@@ -11,10 +11,13 @@ import toml
 
 from tqdm import tqdm
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -35,6 +38,7 @@ from library.custom_train_functions import (
     pyramid_noise_like,
     apply_noise_offset,
     scale_v_prediction_loss_like_noise_prediction,
+    apply_debiased_estimation,
 )
 
 # perlin_noise,
@@ -78,8 +82,8 @@ def train(args):
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
-    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
-    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
+    ds_for_collator = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collator = train_util.collator_class(current_epoch, current_step, ds_for_collator)
 
     if args.no_token_padding:
         train_dataset_group.disable_token_padding()
@@ -108,6 +112,7 @@ def train(args):
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, save_dtype = train_util.prepare_dtype(args)
+    vae_dtype = torch.float32 if args.no_half_vae else weight_dtype
 
     # モデルを読み込む
     text_encoder, vae, unet, load_stable_diffusion_format = train_util.load_target_model(args, weight_dtype, accelerator)
@@ -132,7 +137,7 @@ def train(args):
 
     # 学習を準備する
     if cache_latents:
-        vae.to(accelerator.device, dtype=weight_dtype)
+        vae.to(accelerator.device, dtype=vae_dtype)
         vae.requires_grad_(False)
         vae.eval()
         with torch.no_grad():
@@ -163,11 +168,17 @@ def train(args):
     # 学習に必要なクラスを準備する
     accelerator.print("prepare optimizer, data loader etc.")
     if train_text_encoder:
-        # wightout list, adamw8bit is crashed
-        trainable_params = list(itertools.chain(unet.parameters(), text_encoder.parameters()))
+        if args.learning_rate_te is None:
+            # wightout list, adamw8bit is crashed
+            trainable_params = list(itertools.chain(unet.parameters(), text_encoder.parameters()))
+        else:
+            trainable_params = [
+                {"params": list(unet.parameters()), "lr": args.learning_rate},
+                {"params": list(text_encoder.parameters()), "lr": args.learning_rate_te},
+            ]
     else:
         trainable_params = unet.parameters()
-    
+
     _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
     # dataloaderを準備する
@@ -177,7 +188,7 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collater,
+        collate_fn=collator,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
@@ -214,9 +225,6 @@ def train(args):
         )
     else:
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(unet, optimizer, train_dataloader, lr_scheduler)
-
-    # transform DDP after prepare
-    text_encoder, unet = train_util.transform_if_model_is_DDP(text_encoder, unet)
 
     if not train_text_encoder:
         text_encoder.to(accelerator.device, dtype=weight_dtype)  # to avoid 'cpu' vs 'cuda' error
@@ -260,12 +268,16 @@ def train(args):
 
     if accelerator.is_main_process:
         init_kwargs = {}
+        if args.wandb_run_name:
+            init_kwargs['wandb'] = {'name': args.wandb_run_name}
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("dreambooth" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
-    loss_list = []
-    loss_total = 0.0
+    # For --sample_at_first
+    train_util.sample_images(accelerator, args, 0, global_step, accelerator.device, vae, tokenizer, text_encoder, unet)
+
+    loss_recorder = train_util.LossRecorder()
     for epoch in range(num_train_epochs):
         accelerator.print(f"\nepoch {epoch+1}/{num_train_epochs}")
         current_epoch.value = epoch + 1
@@ -333,9 +345,11 @@ def train(args):
                 loss = loss * loss_weights
 
                 if args.min_snr_gamma:
-                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma, args.v_parameterization)
                 if args.scale_v_pred_loss_like_noise_pred:
                     loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
+                if args.debiased_estimation_loss:
+                    loss = apply_debiased_estimation(loss, timesteps, noise_scheduler)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -383,30 +397,20 @@ def train(args):
 
             current_loss = loss.detach().item()
             if args.logging_dir is not None:
-                logs = {"loss": current_loss, "lr": float(lr_scheduler.get_last_lr()[0])}
-                if (
-                    args.optimizer_type.lower().startswith("DAdapt".lower()) or args.optimizer_type.lower() == "Prodigy".lower()
-                ):  # tracking d*lr value
-                    logs["lr/d*lr"] = (
-                        lr_scheduler.optimizers[0].param_groups[0]["d"] * lr_scheduler.optimizers[0].param_groups[0]["lr"]
-                    )
+                logs = {"loss": current_loss}
+                train_util.append_lr_to_logs(logs, lr_scheduler, args.optimizer_type, including_unet=True)
                 accelerator.log(logs, step=global_step)
 
-            if epoch == 0:
-                loss_list.append(current_loss)
-            else:
-                loss_total -= loss_list[step]
-                loss_list[step] = current_loss
-            loss_total += current_loss
-            avr_loss = loss_total / len(loss_list)
-            logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+            loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
+            avr_loss: float = loss_recorder.moving_average
+            logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)
 
             if global_step >= args.max_train_steps:
                 break
 
         if args.logging_dir is not None:
-            logs = {"loss/epoch": loss_total / len(loss_list)}
+            logs = {"loss/epoch": loss_recorder.moving_average}
             accelerator.log(logs, step=epoch + 1)
 
         accelerator.wait_for_everyone()
@@ -465,6 +469,12 @@ def setup_parser() -> argparse.ArgumentParser:
     custom_train_functions.add_custom_train_arguments(parser)
 
     parser.add_argument(
+        "--learning_rate_te",
+        type=float,
+        default=None,
+        help="learning rate for text encoder, default is same as unet / Text Encoderの学習率、デフォルトはunetと同じ",
+    )
+    parser.add_argument(
         "--no_token_padding",
         action="store_true",
         help="disable token padding (same as Diffuser's DreamBooth) / トークンのpaddingを無効にする（Diffusers版DreamBoothと同じ動作）",
@@ -474,6 +484,11 @@ def setup_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="steps to stop text encoder training, -1 for no training / Text Encoderの学習を止めるステップ数、-1で最初から学習しない",
+    )
+    parser.add_argument(
+        "--no_half_vae",
+        action="store_true",
+        help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
     )
 
     return parser

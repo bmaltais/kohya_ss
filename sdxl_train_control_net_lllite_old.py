@@ -40,6 +40,7 @@ from library.custom_train_functions import (
     pyramid_noise_like,
     apply_noise_offset,
     scale_v_prediction_loss_like_noise_prediction,
+    apply_debiased_estimation,
 )
 import networks.control_net_lllite as control_net_lllite
 
@@ -102,8 +103,8 @@ def train(args):
 
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
-    ds_for_collater = train_dataset_group if args.max_data_loader_n_workers == 0 else None
-    collater = train_util.collater_class(current_epoch, current_step, ds_for_collater)
+    ds_for_collator = train_dataset_group if args.max_data_loader_n_workers == 0 else None
+    collator = train_util.collator_class(current_epoch, current_step, ds_for_collator)
 
     train_dataset_group.verify_bucket_reso_steps(32)
 
@@ -213,7 +214,7 @@ def train(args):
         train_dataset_group,
         batch_size=1,
         shuffle=True,
-        collate_fn=collater,
+        collate_fn=collator,
         num_workers=n_workers,
         persistent_workers=args.persistent_data_loader_workers,
     )
@@ -252,9 +253,6 @@ def train(args):
         unet, network, optimizer, train_dataloader, lr_scheduler
     )
     network: control_net_lllite.ControlNetLLLite
-
-    # transform DDP after prepare (train_network here only)
-    unet, network = train_util.transform_models_if_DDP([unet, network])
 
     if args.gradient_checkpointing:
         unet.train()  # according to TI example in Diffusers, train is required -> これオリジナルのU-Netしたので本当は外せる
@@ -323,8 +321,7 @@ def train(args):
             "lllite_control_net_train" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs
         )
 
-    loss_list = []
-    loss_total = 0.0
+    loss_recorder = train_util.LossRecorder()
     del train_dataset_group
 
     # function for saving/removing
@@ -366,7 +363,7 @@ def train(args):
                         # NaNが含まれていれば警告を表示し0に置き換える
                         if torch.any(torch.isnan(latents)):
                             accelerator.print("NaN found in latents, replacing with zeros")
-                            latents = torch.where(torch.isnan(latents), torch.zeros_like(latents), latents)
+                            latents = torch.nan_to_num(latents, 0, out=latents)
                     latents = latents * sdxl_model_util.VAE_SCALE_FACTOR
 
                 if "text_encoder_outputs1_list" not in batch or batch["text_encoder_outputs1_list"] is None:
@@ -430,11 +427,13 @@ def train(args):
                 loss = loss * loss_weights
 
                 if args.min_snr_gamma:
-                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma)
+                    loss = apply_snr_weight(loss, timesteps, noise_scheduler, args.min_snr_gamma, args.v_parameterization)
                 if args.scale_v_pred_loss_like_noise_pred:
                     loss = scale_v_prediction_loss_like_noise_prediction(loss, timesteps, noise_scheduler)
                 if args.v_pred_like_loss:
                     loss = add_v_prediction_like_loss(loss, timesteps, noise_scheduler, args.v_pred_like_loss)
+                if args.debiased_estimation_loss:
+                    loss = apply_debiased_estimation(loss, timesteps, noise_scheduler)
 
                 loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
 
@@ -470,14 +469,9 @@ def train(args):
                             remove_model(remove_ckpt_name)
 
             current_loss = loss.detach().item()
-            if epoch == 0:
-                loss_list.append(current_loss)
-            else:
-                loss_total -= loss_list[step]
-                loss_list[step] = current_loss
-            loss_total += current_loss
-            avr_loss = loss_total / len(loss_list)
-            logs = {"loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+            loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
+            avr_loss: float = loss_recorder.moving_average
+            logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)
 
             if args.logging_dir is not None:
@@ -488,7 +482,7 @@ def train(args):
                 break
 
         if args.logging_dir is not None:
-            logs = {"loss/epoch": loss_total / len(loss_list)}
+            logs = {"loss/epoch": loss_recorder.moving_average}
             accelerator.log(logs, step=epoch + 1)
 
         accelerator.wait_for_everyone()

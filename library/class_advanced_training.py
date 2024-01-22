@@ -305,3 +305,8 @@ class AdvancedTraining:
                 value=False,
                 info='Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.',
             )
+            self.debiased_estimation_loss = gr.Checkbox(
+                label='Debiased Estimation loss',
+                value=False,
+                info='Automates the processing of noise, allowing for faster model fitting, as well as balancing out color issues',
+            )

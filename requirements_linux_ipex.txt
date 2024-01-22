@@ -1,0 +1,4 @@
+torch==2.1.0a0+cxx11.abi torchvision==0.16.0a0+cxx11.abi intel-extension-for-pytorch==2.1.10+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/
+tensorboard==2.14.1 tensorflow==2.14.0 intel-extension-for-tensorflow[xpu]==2.14.0.1
+mkl==2024.0.0 mkl-dpcpp==2024.0.0
+-r requirements.txt

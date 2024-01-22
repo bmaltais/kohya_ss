@@ -45,7 +45,7 @@ from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
@@ -601,7 +601,7 @@ def train_model(
     if int(gradient_accumulation_steps) > 1:
         run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
 
-    if sdxl_no_half_vae:
+    if sdxl and sdxl_no_half_vae:
         run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
@@ -792,6 +792,7 @@ def ti_tab(
                     learning_rate_value='1e-5',
                     lr_scheduler_value='cosine',
                     lr_warmup_value='10',
+                    sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 # Add SDXL Parameters
@@ -839,7 +840,7 @@ def ti_tab(
 
         button_start_tensorboard.click(
             start_tensorboard,
-            inputs=folders.logging_dir,
+            inputs=[dummy_headless, folders.logging_dir],
             show_progress=False,
         )
 

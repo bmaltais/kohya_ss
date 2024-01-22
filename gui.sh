@@ -59,13 +59,41 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     fi
 else
     if [ "$RUNPOD" = false ]; then
-        REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+        if [[ "$@" == *"--use-ipex"* ]]; then
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_ipex.txt"
+        else
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
+        fi
     else
         REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_runpod.txt"
     fi
 fi
 
+#Set OneAPI if it's not set by the user
+if [[ "$@" == *"--use-ipex"* ]]
+then
+    if [ -d "$SCRIPT_DIR/venv" ] && [[ -z "${DISABLE_VENV_LIBS}" ]]; then
+        export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
+    fi
+    export NEOReadDebugKeys=1
+    export ClDeviceGlobalMemSizeAvailablePercent=100
+    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]] && [ -x "$(command -v ipexrun)" ]
+    then
+        STARTUP_CMD=ipexrun
+        if [[ -z "$STARTUP_CMD_ARGS" ]]
+        then
+            STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator tcmalloc"
+        fi
+    fi
+fi
+
+#Set STARTUP_CMD as normal python if not specified
+if [[ -z "$STARTUP_CMD" ]]
+then
+    STARTUP_CMD=python
+fi
+
 # Validate the requirements and run the script if successful
 if python "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
-    python "$SCRIPT_DIR/kohya_gui.py" "$@"
+    "${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "$@"
 fi

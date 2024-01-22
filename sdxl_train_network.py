@@ -1,9 +1,12 @@
 import argparse
 import torch
+
 try:
     import intel_extension_for_pytorch as ipex
+
     if torch.xpu.is_available():
         from library.ipex import ipex_init
+
         ipex_init()
 except Exception:
     pass
@@ -70,14 +73,16 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-            dataset.cache_text_encoder_outputs(
-                tokenizers,
-                text_encoders,
-                accelerator.device,
-                weight_dtype,
-                args.cache_text_encoder_outputs_to_disk,
-                accelerator.is_main_process,
-            )
+            # When TE is not be trained, it will not be prepared so we need to use explicit autocast
+            with accelerator.autocast():
+                dataset.cache_text_encoder_outputs(
+                    tokenizers,
+                    text_encoders,
+                    accelerator.device,
+                    weight_dtype,
+                    args.cache_text_encoder_outputs_to_disk,
+                    accelerator.is_main_process,
+                )
 
             text_encoders[0].to("cpu", dtype=torch.float32)  # Text Encoder doesn't work with fp16 on CPU
             text_encoders[1].to("cpu", dtype=torch.float32)
@@ -121,6 +126,7 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
                     text_encoders[0],
                     text_encoders[1],
                     None if not args.full_fp16 else weight_dtype,
+                    accelerator=accelerator,
                 )
         else:
             encoder_hidden_states1 = batch["text_encoder_outputs1_list"].to(accelerator.device).to(weight_dtype)

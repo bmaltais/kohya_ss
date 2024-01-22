@@ -1,4 +1,4 @@
-## About learning Textual Inversion
+# About learning Textual Inversion
 
 [Textual Inversion](https://textual-inversion.github.io/). I heavily referenced https://github.com/huggingface/diffusers/tree/main/examples/textual_inversion for the implementation.
 
@@ -16,7 +16,7 @@ Data preparation is exactly the same as ``train_network.py``, so please refer to
 
 Below is an example command line (DreamBooth technique).
 
-```
+```shell
 accelerate launch --num_cpu_threads_per_process 1 train_textual_inversion.py
      --pretrained_model_name_or_path=..\models\model.ckpt
      --train_data_dir=..\data\db\char1 --output_dir=..\ti_train1
@@ -30,7 +30,7 @@ accelerate launch --num_cpu_threads_per_process 1 train_textual_inversion.py
 
 ``--debug_dataset`` will display the token id after substitution, so you can check if the token string after ``49408`` exists as shown below. I can confirm.
 
-```
+```python
 input ids: tensor([[49406, 49408, 49409, 49410, 49411, 49412, 49413, 49414, 49415, 49407,
           49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
           49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
@@ -46,7 +46,6 @@ Words that the tokenizer already has (common words) cannot be used.
 In ``--init_word``, specify the string of the copy source token when initializing embeddings. It seems to be a good idea to choose something that has a similar concept to what you want to learn. You cannot specify a character string that becomes two or more tokens.
 
 ``--num_vectors_per_token`` specifies how many tokens to use for this training. The higher the number, the more expressive it is, but it consumes more tokens. For example, if num_vectors_per_token=8, then the specified token string will consume 8 tokens (out of the 77 token limit for a typical prompt).
-
 
 In addition, the following options can be specified.
 

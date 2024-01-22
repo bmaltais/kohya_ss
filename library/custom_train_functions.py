@@ -57,10 +57,13 @@ def fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler):
     noise_scheduler.alphas_cumprod = alphas_cumprod
 
 
-def apply_snr_weight(loss, timesteps, noise_scheduler, gamma):
+def apply_snr_weight(loss, timesteps, noise_scheduler, gamma, v_prediction=False):
     snr = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])
-    gamma_over_snr = torch.div(torch.ones_like(snr) * gamma, snr)
-    snr_weight = torch.minimum(gamma_over_snr, torch.ones_like(gamma_over_snr)).float().to(loss.device)  # from paper
+    min_snr_gamma = torch.minimum(snr, torch.full_like(snr, gamma))
+    if v_prediction:
+        snr_weight = torch.div(min_snr_gamma, snr+1).float().to(loss.device)
+    else:
+        snr_weight = torch.div(min_snr_gamma, snr).float().to(loss.device)
     loss = loss * snr_weight
     return loss
 
@@ -86,6 +89,12 @@ def add_v_prediction_like_loss(loss, timesteps, noise_scheduler, v_pred_like_los
     loss = loss + loss / scale * v_pred_like_loss
     return loss
 
+def apply_debiased_estimation(loss, timesteps, noise_scheduler):
+    snr_t = torch.stack([noise_scheduler.all_snr[t] for t in timesteps])  # batch_size
+    snr_t = torch.minimum(snr_t, torch.ones_like(snr_t) * 1000)  # if timestep is 0, snr_t is inf, so limit it to 1000
+    weight = 1/torch.sqrt(snr_t)
+    loss = weight * loss
+    return loss
 
 # TODO train_utilと分散しているのでどちらかに寄せる
 
@@ -107,6 +116,11 @@ def add_custom_train_arguments(parser: argparse.ArgumentParser, support_weighted
         type=float,
         default=None,
         help="add v-prediction like loss multiplied by this value / v-prediction lossをこの値をかけたものをlossに加算する",
+    )
+    parser.add_argument(
+        "--debiased_estimation_loss",
+        action="store_true",
+        help="debiased estimation loss / debiased estimation loss",
     )
     if support_weighted_captions:
         parser.add_argument(

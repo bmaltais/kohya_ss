@@ -41,8 +41,8 @@ V1_MODELS = [
 
 # define a list of substrings to search for SDXL base models
 SDXL_MODELS = [
-    'stabilityai/stable-diffusion-xl-base-0.9',
-    'stabilityai/stable-diffusion-xl-refiner-0.9',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-xl-refiner-1.0',
 ]
 
 # define a list of substrings to search for
@@ -550,7 +550,7 @@ def set_pretrained_model_name_or_path_input(
 
     # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
-        log.info('SD v1.4 model selected.')
+        log.info(f'{model_list} model selected.')
         v2 = gr.Checkbox.update(value=False, visible=False)
         v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=False, visible=False)
@@ -710,6 +710,11 @@ def run_cmd_training(**kwargs):
     lr_scheduler_args = kwargs.get('lr_scheduler_args', '')
     if lr_scheduler_args != '':
         run_cmd += f' --lr_scheduler_args {lr_scheduler_args}'
+    
+    max_grad_norm = kwargs.get('max_grad_norm', '')
+    if max_grad_norm != '':
+        run_cmd += f' --max_grad_norm="{max_grad_norm}"'
+        
     return run_cmd
 
 
@@ -881,6 +886,12 @@ def run_cmd_advanced_training(**kwargs):
     wandb_api_key = kwargs.get('wandb_api_key', '')
     if wandb_api_key:
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        
+    vae = kwargs.get(
+        'vae'
+    )
+    if vae:
+        run_cmd += f' --vae="{vae}"'
 
     return run_cmd
 

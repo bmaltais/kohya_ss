@@ -34,7 +34,7 @@ from library.utilities import utilities_tab
 from library.class_sample_images import SampleImages, run_cmd_sample
 
 from library.custom_logging import setup_logging
-from localization_ext import add_javascript
+from library.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
@@ -82,6 +82,9 @@ def save_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     create_caption,
@@ -209,6 +212,9 @@ def open_configuration(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     create_caption,
@@ -345,6 +351,9 @@ def train_model(
     save_precision,
     seed,
     num_cpu_threads_per_process,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     train_text_encoder,
     full_bf16,
     generate_caption_database,
@@ -476,7 +485,7 @@ def train_model(
         #     run_cmd += f' --flip_aug'
         if full_path:
             run_cmd += f' --full_path'
-        if sdxl_no_half_vae:
+        if sdxl_checkbox and sdxl_no_half_vae:
             log.info(
                 'Using mixed_precision = no because no half vae is selected...'
             )
@@ -536,6 +545,11 @@ def train_model(
         run_cmd += ' --v_parameterization'
     if train_text_encoder:
         run_cmd += ' --train_text_encoder'
+        if sdxl_checkbox:
+            run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
+            run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
+        else:
+            run_cmd += f' --learning_rate_te="{learning_rate_te}"'
     if full_bf16:
         run_cmd += ' --full_bf16'
     if weighted_captions:
@@ -552,7 +566,6 @@ def train_model(
     if not logging_dir == '':
         run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --dataset_repeats={dataset_repeats}'
-    run_cmd += f' --learning_rate={learning_rate}'
 
     run_cmd += ' --enable_bucket'
     run_cmd += f' --resolution="{max_resolution}"'
@@ -571,11 +584,12 @@ def train_model(
     if int(max_token_length) > 75:
         run_cmd += f' --max_token_length={max_token_length}'
 
-    if sdxl_cache_text_encoder_outputs:
-        run_cmd += f' --cache_text_encoder_outputs'
+    if sdxl_checkbox:
+        if sdxl_cache_text_encoder_outputs:
+            run_cmd += f' --cache_text_encoder_outputs'
 
-    if sdxl_no_half_vae:
-        run_cmd += f' --no_half_vae'
+        if sdxl_no_half_vae:
+            run_cmd += f' --no_half_vae'
 
     run_cmd += run_cmd_training(
         learning_rate=learning_rate,
@@ -853,7 +867,7 @@ def finetune_tab(headless=False):
             
             with gr.Tab('Basic', elem_id='basic_tab'):
                 basic_training = BasicTraining(
-                    learning_rate_value='1e-5', finetuning=True
+                    learning_rate_value='1e-5', finetuning=True, sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 # Add SDXL Parameters
@@ -906,7 +920,7 @@ def finetune_tab(headless=False):
 
         button_start_tensorboard.click(
             start_tensorboard,
-            inputs=logging_dir,
+            inputs=[dummy_headless, logging_dir],
         )
 
         button_stop_tensorboard.click(
@@ -942,6 +956,9 @@ def finetune_tab(headless=False):
             basic_training.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
+            basic_training.learning_rate_te,
+            basic_training.learning_rate_te1,
+            basic_training.learning_rate_te2,
             train_text_encoder,
             advanced_training.full_bf16,
             create_caption,
