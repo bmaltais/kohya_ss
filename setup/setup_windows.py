@@ -15,7 +15,9 @@ RESET_COLOR = "\033[0m"
 
 
 def cudnn_install():
-    cudnn_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows")
+    cudnn_src = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows"
+    )
     cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
 
     log.info(f"Checking for CUDNN files in {cudnn_dest}...")
@@ -75,8 +77,12 @@ def sync_bits_and_bytes_files():
             dest_file_path = os.path.join(dest_dir, file)
 
             # Compare the source file with the destination file
-            if os.path.exists(dest_file_path) and filecmp.cmp(source_file_path, dest_file_path):
-                log.debug(f"Skipping {source_file_path} as it already exists in {dest_dir}")
+            if os.path.exists(dest_file_path) and filecmp.cmp(
+                source_file_path, dest_file_path
+            ):
+                log.debug(
+                    f"Skipping {source_file_path} as it already exists in {dest_dir}"
+                )
             else:
                 # Copy file from source to destination, maintaining original file's metadata
                 log.debug(f"Copy {source_file_path} to {dest_dir}")
@@ -97,7 +103,9 @@ def install_kohya_ss_torch2():
     # Upgrade pip if needed
     setup_common.install("--upgrade pip")
 
-    setup_common.install_requirements("requirements_windows_torch2.txt", check_no_verify_flag=False)
+    setup_common.install_requirements(
+        "requirements_windows_torch2.txt", check_no_verify_flag=False
+    )
 
     sync_bits_and_bytes_files()
     setup_common.configure_accelerate(run_accelerate=True)
@@ -107,7 +115,9 @@ def install_kohya_ss_torch2():
 
 def install_bitsandbytes_0_35_0():
     log.info("Installing bitsandbytes 0.35.0...")
-    setup_common.install("--upgrade bitsandbytes==0.35.0", "bitsandbytes 0.35.0", reinstall=True)
+    setup_common.install(
+        "--upgrade bitsandbytes==0.35.0", "bitsandbytes 0.35.0", reinstall=True
+    )
     sync_bits_and_bytes_files()
 
 
@@ -134,7 +144,7 @@ def main_menu():
     while True:
         print("\nKohya_ss GUI setup menu:\n")
         print("1. Install kohya_ss gui")
-        print("2. (Optional) Install cuDNN files (avoid unless you really need it)")
+        print("2. (Optional) Install cudnn files (avoid unless you really need it)")
         print("3. (Optional) Install specific bitsandbytes versions")
         print("4. (Optional) Manually configure accelerate")
         print("5. (Optional) Start Kohya_ss GUI in browser")
@@ -153,7 +163,9 @@ def main_menu():
                 print(
                     "2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results"
                 )
-                print("3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support")
+                print(
+                    "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
+                )
                 print(
                     "4. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
                 )
@@ -171,7 +183,9 @@ def main_menu():
                     install_bitsandbytes_0_41_1()
                     break
                 elif choice_torch == "4":
-                    setup_common.install("--upgrade bitsandbytes-windows", reinstall=True)
+                    setup_common.install(
+                        "--upgrade bitsandbytes-windows", reinstall=True
+                    )
                     break
                 elif choice_torch == "5":
                     break

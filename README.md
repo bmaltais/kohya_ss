@@ -122,7 +122,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the cuDNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
+- Install the cudNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.6 or higher (but lower than 3.11.0) installed on your system.
 

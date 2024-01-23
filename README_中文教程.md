@@ -21,7 +21,7 @@ GUI和PowerShell脚本等使其更易用的功能在[bmaltais的仓库](https://
 Kohya_ss GUI setup menu:
 
 1. Install kohya_ss gui
-2. (Optional) Install cuDNN files (avoid unless you really need it)
+2. (Optional) Install cudnn files (avoid unless you really need it)
 3. (Optional) Install specific bitsandbytes versions
 4. (Optional) Manually configure accelerate
 5. (Optional) Start Kohya_ss GUI in browser
