@@ -109,7 +109,7 @@ Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on 
 
 1. Unzip the downloaded file and place the `cudnn_windows` folder in the root directory of the `kohya_ss` repository.
 
-2. Run .\setup.bat and select the option to install cudann.
+2. Run .\setup.bat and select the option to install cudnn.
 
 ### Linux and macOS
 
@@ -122,7 +122,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the cudaNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
+- Install the cuDNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.6 or higher (but lower than 3.11.0) installed on your system.
 
