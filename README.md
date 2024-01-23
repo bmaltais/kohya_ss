@@ -249,7 +249,7 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
-### 作業中の内容 / Work in progress
+### Jan 23, 2024 / 2024/1/23: v0.8.2
 
 - [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
   - Please specify `--fp8_base` in `train_network.py` or `sdxl_train_network.py`.
@@ -266,6 +266,10 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
   - `--load_precision` option can be used to specify the precision when loading the model. If the model is saved in fp16, you can reduce the memory usage by specifying `--load_precision fp16` without losing precision.
   - `--load_original_model_to` option can be used to specify the device to load the original model. `--load_tuned_model_to` option can be used to specify the device to load the derived model. The default is `cpu` for both options, but you can specify `cuda` etc. You can reduce the memory usage by loading one of them to GPU. This option is available only for SDXL.
 
+- The gradient synchronization in LoRA training with multi-GPU is improved. PR [#1064](https://github.com/kohya-ss/sd-scripts/pull/1064) Thanks to KohakuBlueleaf!
+- The code for Intel IPEX support is improved. PR [#1060](https://github.com/kohya-ss/sd-scripts/pull/1060) Thanks to akx!
+- Fixed a bug in multi-GPU Textual Inversion training.
+
 - （実験的）　LoRA等の学習スクリプトで、ベースモデル（U-Net、および Text Encoder のモジュール学習時は Text Encoder も）の重みを fp8 にして学習するオプションが追加されました。 PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) KohakuBlueleaf 氏に感謝します。
   - `train_network.py` または `sdxl_train_network.py` で `--fp8_base` を指定してください。
   - PyTorch 2.1 以降が必要です。
@@ -279,7 +283,9 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 - `networks/extract_lora_from_models.py` に使用メモリ量を削減するいくつかのオプションを追加しました。 
   - `--load_precision` で読み込み時の精度を指定できます。モデルが fp16 で保存されている場合は `--load_precision fp16` を指定して精度を変えずにメモリ量を削減できます。
   - `--load_original_model_to` で元モデルを読み込むデバイスを、`--load_tuned_model_to` で派生モデルを読み込むデバイスを指定できます。デフォルトは両方とも `cpu` ですがそれぞれ `cuda` 等を指定できます。片方を GPU に読み込むことでメモリ量を削減できます。SDXL の場合のみ有効です。
-
+- マルチ GPU での LoRA 等の学習時に勾配の同期が改善されました。 PR [#1064](https://github.com/kohya-ss/sd-scripts/pull/1064) KohakuBlueleaf 氏に感謝します。
+- Intel IPEX サポートのコードが改善されました。PR [#1060](https://github.com/kohya-ss/sd-scripts/pull/1060) akx 氏に感謝します。
+- マルチ GPU での Textual Inversion 学習の不具合を修正しました。
 
 - `.toml` example for network multiplier / ネットワーク適用率の `.toml` の記述例
 
