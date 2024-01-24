@@ -1,11 +1,7 @@
 import torch
-try:
-    import intel_extension_for_pytorch as ipex
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
-        ipex_init()
-except Exception:
-    pass
+from library.ipex_interop import init_ipex
+
+init_ipex()
 from typing import Union, List, Optional, Dict, Any, Tuple
 from diffusers.models.unet_2d_condition import UNet2DConditionOutput
 
