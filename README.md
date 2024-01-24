@@ -546,7 +546,6 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     ... subset settings ...
     ```
 
-
 - Merge sd-scripts v0.8.1 code update
 
   - Fixed a bug that the VRAM usage without Text Encoder training is larger than before in training scripts for LoRA etc (`train_network.py`, `sdxl_train_network.py`).
