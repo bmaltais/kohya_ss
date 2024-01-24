@@ -503,7 +503,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2024/01/02 (v22.5.0)
+* 2024/01/02 (v22.6.0)
 - Merge sd-scripts v0.8.2 code update
   - [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
     - Please specify `--fp8_base` in `train_network.py` or `sdxl_train_network.py`.
