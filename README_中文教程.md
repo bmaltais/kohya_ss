@@ -1,141 +1,127 @@
-嗨!我把日语 README 文件的主要内容翻译成中文如下:
+SDXL已得到支持。sdxl分支已合并到main分支。当更新仓库时,请执行升级步骤。由于accelerate版本也已经升级,请重新运行accelerate config。
 
-## 关于这个仓库
+有关SDXL训练的信息,请参见[此处](./README.md#sdxl-training)(英文)。
 
-这个是用于Stable Diffusion模型训练、图像生成和其他脚本的仓库。 
+## 关于本仓库
 
-[英文版 README](./README.md) <-- 更新信息在这里
+用于Stable Diffusion的训练、图像生成和其他脚本的仓库。
 
-GUI和PowerShell脚本等使其更易用的功能在[bmaltais的仓库](https://github.com/bmaltais/kohya_ss)(英语)中提供,一并参考。感谢bmaltais。
+[英文README](./README.md) <- 更新信息在这里
+
+[bmaltais的仓库](https://github.com/bmaltais/kohya_ss)中提供了GUI和PowerShell脚本等使其更易于使用的功能(英文),也请一并参阅。衷心感谢bmaltais。
 
 包含以下脚本:
 
-* 支持DreamBooth、U-Net和文本编码器的训练
-* fine-tuning的支持
+* 支持DreamBooth、U-Net和Text Encoder的训练
+* 微调,同上
+* 支持LoRA的训练
 * 图像生成
-* 模型转换(Stable Diffusion ckpt/safetensors 和 Diffusers之间的相互转换)
+* 模型转换(在Stable Diffision ckpt/safetensors与Diffusers之间转换)
 
-## 使用方法 (中国用户只需要按照这个安装教程操作）
-- 进入kohya_ss文件夹根目录下，点击 setup.bat 启动安装程序 *（需要科学上网）
-- 根据界面上给出的英文选项：
-Kohya_ss GUI setup menu:
+## 使用方法
 
-1. Install kohya_ss gui
-2. (Optional) Install cudnn files (avoid unless you really need it)
-3. (Optional) Install specific bitsandbytes versions
-4. (Optional) Manually configure accelerate
-5. (Optional) Start Kohya_ss GUI in browser
-6. Quit
-
-Enter your choice: 1
-
-1. Torch 1 (legacy, no longer supported. Will be removed in v21.9.x)
-2. Torch 2 (recommended)
-3. Cancel
-
-Enter your choice: 2
-
-开始安装环境依赖，接着再出来的选项，按照下列选项操作：
-```txt
-- This machine
-- No distributed training
-- NO
-- NO
-- NO
-- all
-- bf16
-```
---------------------------------------------------------------------
-这里都选择完毕，即可关闭终端窗口，直接点击 gui.bat或者 kohya中文启动器.bat 即可运行kohya
-
-
-当仓库内和note.com有相关文章,请参考那里。(未来可能全部移到这里)
-
-* [关于训练,通用篇](./docs/train_README-zh.md): 数据准备和选项等
-    * [数据集设置](./docs/config_README-ja.md)
-* [DreamBooth训练指南](./docs/train_db_README-zh.md) 
-* [fine-tuning指南](./docs/fine_tune_README_ja.md)
-* [LoRA训练指南](./docs/train_network_README-zh.md)
-* [文本反转训练指南](./docs/train_ti_README-ja.md)
+* [通用部分的训练信息](./docs/train_README-ja.md): 数据准备和选项等
+* [数据集设置](./docs/config_README-ja.md)
+* [DreamBooth的训练信息](./docs/train_db_README-ja.md)  
+* [微调指南](./docs/fine_tune_README_ja.md)
+* [LoRA的训练信息](./docs/train_network_README-ja.md)
+* [Textual Inversion的训练信息](./docs/train_ti_README-ja.md)
 * [图像生成脚本](./docs/gen_img_README-ja.md)
 * note.com [模型转换脚本](https://note.com/kohya_ss/n/n374f316fe4ad)
 
-## Windows环境所需程序
+## Windows上需要的程序
 
 需要Python 3.10.6和Git。
 
 - Python 3.10.6: https://www.python.org/ftp/python/3.10.6/python-3.10.6-amd64.exe
-- git: https://git-scm.com/download/win
+- git: https://git-scm.com/download/win  
 
-如果要在PowerShell中使用venv,需要按以下步骤更改安全设置:
-(不仅仅是venv,使脚本可以执行。请注意。)
+如果要在PowerShell中使用,请按以下步骤更改安全设置以使用venv。
+(不仅仅是venv,这使得脚本的执行成为可能,所以请注意。)
 
-- 以管理员身份打开PowerShell
-- 输入"Set-ExecutionPolicy Unrestricted",选择Y
-- 关闭管理员PowerShell
+- 以管理员身份打开PowerShell。
+- 输入“Set-ExecutionPolicy Unrestricted”,并回答Y。  
+- 关闭管理员PowerShell。
 
 ## 在Windows环境下安装
 
-下例中安装的是PyTorch 1.12.1/CUDA 11.6版。如果要使用CUDA 11.3或PyTorch 1.13,请适当修改。
+脚本已在PyTorch 2.0.1上通过测试。PyTorch 1.12.1也应该可以工作。
 
-(如果只显示"python",请将下例中的"python"改为"py")  
+下例中,将安装PyTorch 2.0.1/CUDA 11.8版。如果使用CUDA 11.6版或PyTorch 1.12.1,请酌情更改。  
 
-在普通(非管理员)PowerShell中依次执行以下命令:
+(注意,如果python -m venv~这行只显示“python”,请将其更改为py -m venv~。)
+
+如果使用PowerShell,请打开常规(非管理员)PowerShell并按顺序执行以下操作:  
 
 ```powershell
-git clone https://github.com/kohya-ss/sd-scripts.git
+git clone https://github.com/kohya-ss/sd-scripts.git 
 cd sd-scripts
 
 python -m venv venv
-.\venv\Scripts\activate
+.\venv\Scripts\activate  
 
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118
 pip install --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
-
-cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+pip install xformers==0.0.20  
 
 accelerate config
 ```
 
-在命令提示符中:
+在命令提示符下也相同。  
 
-```bat
-git clone https://github.com/kohya-ss/sd-scripts.git
-cd sd-scripts
+(注:由于 ``python -m venv venv`` 比 ``python -m venv --system-site-packages venv`` 更安全,已进行更改。如果global python中安装了package,后者会引发各种问题。) 
 
-python -m venv venv 
-.\venv\Scripts\activate
+在accelerate config的提示中,请按以下方式回答。(如果以bf16学习,最后一个问题回答bf16。)  
 
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install --upgrade -r requirements.txt
-pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/f/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
+※从0.15.0开始,在日语环境中按方向键选择会崩溃(......)。请使用数字键0、1、2......进行选择。  
 
-copy /y .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
-copy /y .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
-copy /y .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
-
-accelerate config
-```
-
-accelerate config的问题请按以下回答:
-(如果要用bf16训练,最后一个问题选择bf16)
-
-```
-- 此计算机
-- 不进行分布式训练  
-- 否
-- 否 
-- 否
-- 所有
+```txt
+- This machine  
+- No distributed training
+- NO  
+- NO
+- NO
+- all
 - fp16
 ```
 
-### PyTorch和xformers版本注意事项
+※有时可能会出现 ``ValueError: fp16 mixed precision requires a GPU`` 错误。在这种情况下,对第6个问题 ``(What GPU(s) (by id) should be used for training on this machine as a comma-separated list? [all]:``
+)回答“0”。(将使用id `0`的GPU)。
 
-在其他版本中训练可能失败。如果没有特殊原因,请使用指定版本。
+### 可选:``bitsandbytes``(8位优化器)
+
+`bitsandbytes`现在是可选的。在Linux上,可以通过pip正常安装(推荐0.41.1或更高版本)。  
+
+在Windows上,推荐0.35.0或0.41.1。
+
+- `bitsandbytes` 0.35.0: 似乎是稳定的版本。可以使用AdamW8bit,但不能使用其他一些8位优化器和`full_bf16`学习时的选项。
+- `bitsandbytes` 0.41.1: 支持 Lion8bit、PagedAdamW8bit、PagedLion8bit。可以使用`full_bf16`。   
+
+注意:`bitsandbytes` 从0.35.0到0.41.0之间的版本似乎存在问题。 https://github.com/TimDettmers/bitsandbytes/issues/659  
+
+请按以下步骤安装`bitsandbytes`。   
+
+### 使用0.35.0  
+
+以下是PowerShell的例子。在命令提示符中,请使用copy代替cp。   
+
+```powershell    
+cd sd-scripts
+.\venv\Scripts\activate
+pip install bitsandbytes==0.35.0  
+
+cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\  
+cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
+cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
+```  
+
+### 使用0.41.1  
+
+请从[此处](https://github.com/jllllll/bitsandbytes-windows-webui)或其他地方安装jllllll发布的Windows whl文件。   
+
+```powershell   
+python -m pip install bitsandbytes==0.41.1 --prefer-binary --extra-index-url=https://jllllll.github.io/bitsandbytes-windows-webui 
+```
 
 
 ### 可选:使用Lion8bit 
