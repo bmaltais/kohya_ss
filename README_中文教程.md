@@ -1,4 +1,4 @@
- SDXL已得到支持。sdxl分支已合并到main分支。当更新仓库时,请执行升级步骤。由于accelerate版本也已经升级,请重新运行accelerate config。
+SDXL已得到支持。sdxl分支已合并到main分支。当更新仓库时,请执行升级步骤。由于accelerate版本也已经升级,请重新运行accelerate config。
 
 有关SDXL训练的信息,请参见[此处](./README.md#sdxl-training)(英文)。
 
