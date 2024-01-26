@@ -774,7 +774,8 @@ class NetworkTrainer:
                         else:
                             raise NotImplementedError("multipliers for each sample is not supported yet")
                         # print(f"set multiplier: {multipliers}")
-                        print(network)
+                        print(type(network))
+
                         network.set_multiplier(multipliers)
 
                     with torch.set_grad_enabled(train_text_encoder), accelerator.autocast():
