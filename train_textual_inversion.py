@@ -8,15 +8,10 @@ import toml
 from tqdm import tqdm
 import torch
 
-try:
-    import intel_extension_for_pytorch as ipex
+from library.ipex_interop import init_ipex
 
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
+init_ipex()
 
-        ipex_init()
-except Exception:
-    pass
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from transformers import CLIPTokenizer
@@ -505,7 +500,7 @@ class TextualInversionTrainer:
         if accelerator.is_main_process:
             init_kwargs = {}
             if args.wandb_run_name:
-                init_kwargs['wandb'] = {'name': args.wandb_run_name}
+                init_kwargs["wandb"] = {"name": args.wandb_run_name}
             if args.log_tracker_config is not None:
                 init_kwargs = toml.load(args.log_tracker_config)
             accelerator.init_trackers(
@@ -730,13 +725,12 @@ class TextualInversionTrainer:
         is_main_process = accelerator.is_main_process
         if is_main_process:
             text_encoder = accelerator.unwrap_model(text_encoder)
+            updated_embs = text_encoder.get_input_embeddings().weight[token_ids].data.detach().clone()
 
         accelerator.end_training()
 
         if args.save_state and is_main_process:
             train_util.save_state_on_train_end(args, accelerator)
-
-        updated_embs = text_encoder.get_input_embeddings().weight[token_ids].data.detach().clone()
 
         if is_main_process:
             ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)

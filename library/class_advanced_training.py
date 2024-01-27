@@ -3,9 +3,10 @@ from .common_gui import get_folder_path, get_any_file_path
 
 
 class AdvancedTraining:
-    def __init__(self, headless=False, finetuning: bool = False):
+    def __init__(self, headless=False, finetuning: bool = False, training_type: str = ""):
         self.headless = headless
         self.finetuning = finetuning
+        self.training_type = training_type
 
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
@@ -105,6 +106,14 @@ class AdvancedTraining:
                 ],
                 value='75',
             )
+        
+        with gr.Row():
+            if training_type == "lora":
+                self.fp8_base = gr.Checkbox(
+                    label='fp8 base training (experimental)',
+                    info="U-Net and Text Encoder can be trained with fp8 (experimental)",
+                    value=False,
+                )
             self.full_fp16 = gr.Checkbox(
                 label='Full fp16 training (experimental)',
                 value=False,
@@ -114,6 +123,7 @@ class AdvancedTraining:
                 value=False,
                 info='Required bitsandbytes >= 0.36.0',
             )
+            
             self.full_fp16.change(
                 full_options_update,
                 inputs=[self.full_fp16, self.full_bf16],

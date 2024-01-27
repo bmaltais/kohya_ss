@@ -47,11 +47,6 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [ControlNet-LLLite](#controlnet-lllite)
     - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
-    - [Jan 15, 2024 / 2024/1/15: v0.8.0](#jan-15-2024--2024115-v080)
-    - [Naming of LoRA](#naming-of-lora)
-    - [LoRAの名称について](#loraの名称について)
-  - [Sample image generation during training](#sample-image-generation-during-training-2)
-  - [Change History](#change-history-1)
 
 ## 🦒 Colab
 
@@ -109,7 +104,7 @@ Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on 
 
 1. Unzip the downloaded file and place the `cudnn_windows` folder in the root directory of the `kohya_ss` repository.
 
-2. Run .\setup.bat and select the option to install cudann.
+2. Run .\setup.bat and select the option to install cudnn.
 
 ### Linux and macOS
 
@@ -122,7 +117,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the cudaNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
+- Install the cudNN drivers by following the instructions provided in [this link](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.6 or higher (but lower than 3.11.0) installed on your system.
 
@@ -484,78 +479,7 @@ save_file(state_dict, file)
 
 ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [documentation](./docs/train_lllite_README.md) for details.
 
-<<<<<<< HEAD
 ### Sample image generation during training
-=======
-
-## Change History
-
-### Jan 15, 2024 / 2024/1/15: v0.8.0
-
-- Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
-  - Some model files (Text Encoder without position_id) based on the latest Transformers can be loaded.
-- `torch.compile` is supported (experimental). PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) Thanks to p1atdev!
-  - This feature works only on Linux or WSL.
-  - Please specify `--torch_compile` option in each training script.
-  - You can select the backend with `--dynamo_backend` option. The default is `"inductor"`. `inductor` or `eager` seems to work.
-  - Please use `--spda` option instead of `--xformers` option.
-  - PyTorch 2.1 or later is recommended.
-  - Please see [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) for details.
-- The session name for wandb can be specified with `--wandb_run_name` option. PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) Thanks to hopl1t!
-- IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
-- Fixed a bug that Diffusers format model cannot be saved.
-
-- Diffusers、Accelerate、Transformers 等の関連ライブラリを更新しました。[Upgrade](#upgrade) を参照し更新をお願いします。
-  - 最新の Transformers を前提とした一部のモデルファイル（Text Encoder が position_id を持たないもの）が読み込めるようになりました。
-- `torch.compile` がサポートされしました（実験的）。 PR [#1024](https://github.com/kohya-ss/sd-scripts/pull/1024) p1atdev 氏に感謝します。
-  - Linux または WSL でのみ動作します。
-  - 各学習スクリプトで `--torch_compile` オプションを指定してください。
-  - `--dynamo_backend` オプションで使用される backend を選択できます。デフォルトは `"inductor"` です。 `inductor` または `eager` が動作するようです。
-  - `--xformers` オプションとは互換性がありません。 代わりに `--spda` オプションを使用してください。
-  - PyTorch 2.1以降を推奨します。
-  - 詳細は [PR](https://github.com/kohya-ss/sd-scripts/pull/1024) をご覧ください。
-- wandb 保存時のセッション名が各学習スクリプトの `--wandb_run_name` オプションで指定できるようになりました。 PR [#1032](https://github.com/kohya-ss/sd-scripts/pull/1032) hopl1t 氏に感謝します。
-- IPEX ライブラリが更新されました。[PR #1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Disty0 氏に感謝します。
-- Diffusers 形式でのモデル保存ができなくなっていた不具合を修正しました。
-
-
-Please read [Releases](https://github.com/kohya-ss/sd-scripts/releases) for recent updates.
-最近の更新情報は [Release](https://github.com/kohya-ss/sd-scripts/releases) をご覧ください。
-
-### Naming of LoRA
-
-The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
-
-1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
-
-    LoRA for Linear layers and Conv2d layers with 1x1 kernel
-
-2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
-
-    In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
-    
-LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
-
-To use LoRA-C3Lier with Web UI, please use our extension.
-
-### LoRAの名称について
-
-`train_network.py` がサポートするLoRAについて、混乱を避けるため名前を付けました。ドキュメントは更新済みです。以下は当リポジトリ内の独自の名称です。
-
-1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers、リエラと読みます)
-
-    Linear 層およびカーネルサイズ 1x1 の Conv2d 層に適用されるLoRA
-
-2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers、セリアと読みます)
-
-    1.に加え、カーネルサイズ 3x3 の Conv2d 層に適用されるLoRA
-
-LoRA-LierLa は[Web UI向け拡張](https://github.com/kohya-ss/sd-webui-additional-networks)、またはAUTOMATIC1111氏のWeb UIのLoRA機能で使用することができます。
-
-LoRA-C3Lierを使いWeb UIで生成するには拡張を使用してください。
-
-## Sample image generation during training
->>>>>>> 26d35794e3b858e7b5bd20d1e70547c378550b3d
   A prompt file might look like this, for example
 
 ```
@@ -579,6 +503,62 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2024/01/27 (v22.6.0)
+- Merge sd-scripts v0.8.3 code update
+  - Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
+    - `safetensors` is updated. Please see [Upgrade](#upgrade) and update the library.
+  - Fixed a bug that the training crashes when `network_multiplier` is specified with multi-GPU training. PR [#1084](https://github.com/kohya-ss/sd-scripts/pull/1084) Thanks to fireicewolf!
+  - Fixed a bug that the training crashes when training ControlNet-LLLite.
+  
+- Merge sd-scripts v0.8.2 code update
+  - [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
+    - Please specify `--fp8_base` in `train_network.py` or `sdxl_train_network.py`.
+    - PyTorch 2.1 or later is required.
+    - If you use xformers with PyTorch 2.1, please see [xformers repository](https://github.com/facebookresearch/xformers) and install the appropriate version according to your CUDA version.
+    - The sample image generation during training consumes a lot of memory. It is recommended to turn it off.
+
+  - [Experimental] The network multiplier can be specified for each dataset in the training scripts for LoRA etc.
+    - This is an experimental option and may be removed or changed in the future.
+    - For example, if you train with state A as `1.0` and state B as `-1.0`, you may be able to generate by switching between state A and B depending on the LoRA application rate.
+    - Also, if you prepare five states and train them as `0.2`, `0.4`, `0.6`, `0.8`, and `1.0`, you may be able to generate by switching the states smoothly depending on the application rate.
+    - Please specify `network_multiplier` in `[[datasets]]` in `.toml` file.
+  
+  - Some options are added to `networks/extract_lora_from_models.py` to reduce the memory usage.
+    - `--load_precision` option can be used to specify the precision when loading the model. If the model is saved in fp16, you can reduce the memory usage by specifying `--load_precision fp16` without losing precision.
+    - `--load_original_model_to` option can be used to specify the device to load the original model. `--load_tuned_model_to` option can be used to specify the device to load the derived model. The default is `cpu` for both options, but you can specify `cuda` etc. You can reduce the memory usage by loading one of them to GPU. This option is available only for SDXL.
+
+  - The gradient synchronization in LoRA training with multi-GPU is improved. PR [#1064](https://github.com/kohya-ss/sd-scripts/pull/1064) Thanks to KohakuBlueleaf!
+  
+  - The code for Intel IPEX support is improved. PR [#1060](https://github.com/kohya-ss/sd-scripts/pull/1060) Thanks to akx!
+  
+  - Fixed a bug in multi-GPU Textual Inversion training.
+
+  - `.toml` example for network multiplier
+
+    ```toml
+    [general]
+    [[datasets]]
+    resolution = 512
+    batch_size = 8
+    network_multiplier = 1.0
+
+    ... subset settings ...
+
+    [[datasets]]
+    resolution = 512
+    batch_size = 8
+    network_multiplier = -1.0
+
+    ... subset settings ...
+    ```
+
+- Merge sd-scripts v0.8.1 code update
+
+  - Fixed a bug that the VRAM usage without Text Encoder training is larger than before in training scripts for LoRA etc (`train_network.py`, `sdxl_train_network.py`).
+    - Text Encoders were not moved to CPU.
+  
+  - Fixed typos. Thanks to akx! [PR #1053](https://github.com/kohya-ss/sd-scripts/pull/1053)
+
 * 2024/01/15 (v22.5.0)
 - Merged sd-scripts v0.8.0 updates
   - Diffusers, Accelerate, Transformers and other related libraries have been updated. Please update the libraries with [Upgrade](#upgrade).
