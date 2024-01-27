@@ -249,6 +249,18 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 ## Change History
 
+### Jan 27, 2024 / 2024/1/27: v0.8.3
+
+- Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
+  - `safetensors` is updated. Please see [Upgrade](#upgrade) and update the library.
+- Fixed a bug that the training crashes when `network_multiplier` is specified with multi-GPU training. PR [#1084](https://github.com/kohya-ss/sd-scripts/pull/1084) Thanks to fireicewolf!
+- Fixed a bug that the training crashes when training ControlNet-LLLite.
+
+- `--fp8_base` 指定時に `--save_state` での保存がエラーになる不具合が修正されました。 PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) feffy380 氏に感謝します。
+  - `safetensors` がバージョンアップされていますので、[Upgrade](#upgrade) を参照し更新をお願いします。
+- 複数 GPU での学習時に `network_multiplier` を指定するとクラッシュする不具合が修正されました。 PR [#1084](https://github.com/kohya-ss/sd-scripts/pull/1084) fireicewolf 氏に感謝します。
+- ControlNet-LLLite の学習がエラーになる不具合を修正しました。 
+
 ### Jan 23, 2024 / 2024/1/23: v0.8.2
 
 - [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
