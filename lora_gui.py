@@ -83,6 +83,7 @@ def save_configuration(
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
+    fp8_base,
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
@@ -245,6 +246,7 @@ def open_configuration(
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
+    fp8_base,
     full_fp16,
     no_token_padding,
     stop_text_encoder_training,
@@ -438,6 +440,7 @@ def train_model(
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
+    fp8_base,
     full_fp16,
     no_token_padding,
     stop_text_encoder_training_pct,
@@ -1048,6 +1051,7 @@ def train_model(
         color_aug=color_aug,
         shuffle_caption=shuffle_caption,
         gradient_checkpointing=gradient_checkpointing,
+        fp8_base=fp8_base,
         full_fp16=full_fp16,
         xformers=xformers,
         # use_8bit_adam=use_8bit_adam,
@@ -1802,7 +1806,7 @@ def lora_tab(
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.",
                             )
-                advanced_training = AdvancedTraining(headless=headless)
+                advanced_training = AdvancedTraining(headless=headless, training_type="lora")
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -1909,6 +1913,7 @@ def lora_tab(
             basic_training.caption_extension,
             basic_training.enable_bucket,
             advanced_training.gradient_checkpointing,
+            advanced_training.fp8_base,
             advanced_training.full_fp16,
             advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,

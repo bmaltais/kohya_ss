@@ -816,6 +816,10 @@ def run_cmd_advanced_training(**kwargs):
     if gradient_checkpointing:
         run_cmd += ' --gradient_checkpointing'
 
+    fp8_base = kwargs.get('fp8_base')
+    if fp8_base:
+        run_cmd += ' --fp8_base'
+
     full_fp16 = kwargs.get('full_fp16')
     if full_fp16:
         run_cmd += ' --full_fp16'
