@@ -503,7 +503,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2024/01/02 (v22.6.0)
+* 2024/01/27 (v22.6.0)
 - Merge sd-scripts v0.8.3 code update
   - Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
     - `safetensors` is updated. Please see [Upgrade](#upgrade) and update the library.
