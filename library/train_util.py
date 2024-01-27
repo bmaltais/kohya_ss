@@ -1774,6 +1774,7 @@ class ControlNetDataset(BaseDataset):
             tokenizer,
             max_token_length,
             resolution,
+            network_multiplier,
             enable_bucket,
             min_bucket_reso,
             max_bucket_reso,
