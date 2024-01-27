@@ -8,13 +8,11 @@ from multiprocessing import Value
 
 from tqdm import tqdm
 import torch
-try:
-    import intel_extension_for_pytorch as ipex
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
-        ipex_init()
-except Exception:
-    pass
+
+from library.ipex_interop import init_ipex
+
+init_ipex()
+
 from accelerate.utils import set_seed
 import diffusers
 from diffusers import DDPMScheduler
@@ -394,6 +392,8 @@ def train(args):
 
     if accelerator.is_main_process:
         init_kwargs = {}
+        if args.wandb_run_name:
+            init_kwargs['wandb'] = {'name': args.wandb_run_name}
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)

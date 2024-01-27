@@ -5,15 +5,9 @@ import math
 import os
 import torch
 
-try:
-    import intel_extension_for_pytorch as ipex
+from library.ipex_interop import init_ipex
 
-    if torch.xpu.is_available():
-        from library.ipex import ipex_init
-
-        ipex_init()
-except Exception:
-    pass
+init_ipex()
 import diffusers
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig, logging
 from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline  # , UNet2DConditionModel
@@ -1245,8 +1239,13 @@ def save_diffusers_checkpoint(v2, output_dir, text_encoder, unet, pretrained_mod
     if vae is None:
         vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae")
 
+    # original U-Net cannot be saved, so we need to convert it to the Diffusers version
+    # TODO this consumes a lot of memory
+    diffusers_unet = diffusers.UNet2DConditionModel.from_pretrained(pretrained_model_name_or_path, subfolder="unet")
+    diffusers_unet.load_state_dict(unet.state_dict())
+
     pipeline = StableDiffusionPipeline(
-        unet=unet,
+        unet=diffusers_unet,
         text_encoder=text_encoder,
         vae=vae,
         scheduler=scheduler,

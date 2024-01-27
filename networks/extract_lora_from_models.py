@@ -43,6 +43,9 @@ def svd(
     clamp_quantile=0.99,
     min_diff=0.01,
     no_metadata=False,
+    load_precision=None,
+    load_original_model_to=None,
+    load_tuned_model_to=None,
 ):
     def str_to_dtype(p):
         if p == "float":
@@ -57,28 +60,51 @@ def svd(
     if v_parameterization is None:
         v_parameterization = v2
 
+    load_dtype = str_to_dtype(load_precision) if load_precision else None
     save_dtype = str_to_dtype(save_precision)
+    work_device = "cpu"
 
     # load models
     if not sdxl:
         print(f"loading original SD model : {model_org}")
         text_encoder_o, _, unet_o = model_util.load_models_from_stable_diffusion_checkpoint(v2, model_org)
         text_encoders_o = [text_encoder_o]
+        if load_dtype is not None:
+            text_encoder_o = text_encoder_o.to(load_dtype)
+            unet_o = unet_o.to(load_dtype)
+
         print(f"loading tuned SD model : {model_tuned}")
         text_encoder_t, _, unet_t = model_util.load_models_from_stable_diffusion_checkpoint(v2, model_tuned)
         text_encoders_t = [text_encoder_t]
+        if load_dtype is not None:
+            text_encoder_t = text_encoder_t.to(load_dtype)
+            unet_t = unet_t.to(load_dtype)
+
         model_version = model_util.get_model_version_str_for_sd1_sd2(v2, v_parameterization)
     else:
+        device_org = load_original_model_to if load_original_model_to else "cpu"
+        device_tuned = load_tuned_model_to if load_tuned_model_to else "cpu"
+
         print(f"loading original SDXL model : {model_org}")
         text_encoder_o1, text_encoder_o2, _, unet_o, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_org, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_org, device_org
         )
         text_encoders_o = [text_encoder_o1, text_encoder_o2]
+        if load_dtype is not None:
+            text_encoder_o1 = text_encoder_o1.to(load_dtype)
+            text_encoder_o2 = text_encoder_o2.to(load_dtype)
+            unet_o = unet_o.to(load_dtype)
+
         print(f"loading original SDXL model : {model_tuned}")
         text_encoder_t1, text_encoder_t2, _, unet_t, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
-            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_tuned, "cpu"
+            sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_tuned, device_tuned
         )
         text_encoders_t = [text_encoder_t1, text_encoder_t2]
+        if load_dtype is not None:
+            text_encoder_t1 = text_encoder_t1.to(load_dtype)
+            text_encoder_t2 = text_encoder_t2.to(load_dtype)
+            unet_t = unet_t.to(load_dtype)
+
         model_version = sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0
 
     # create LoRA network to extract weights: Use dim (rank) as alpha
@@ -100,38 +126,54 @@ def svd(
         lora_name = lora_o.lora_name
         module_o = lora_o.org_module
         module_t = lora_t.org_module
-        diff = module_t.weight - module_o.weight
+        diff = module_t.weight.to(work_device) - module_o.weight.to(work_device)
+
+        # clear weight to save memory
+        module_o.weight = None
+        module_t.weight = None
 
         # Text Encoder might be same
         if not text_encoder_different and torch.max(torch.abs(diff)) > min_diff:
             text_encoder_different = True
             print(f"Text encoder is different. {torch.max(torch.abs(diff))} > {min_diff}")
 
-        diff = diff.float()
         diffs[lora_name] = diff
+
+    # clear target Text Encoder to save memory
+    for text_encoder in text_encoders_t:
+        del text_encoder
 
     if not text_encoder_different:
         print("Text encoder is same. Extract U-Net only.")
         lora_network_o.text_encoder_loras = []
-        diffs = {}
+        diffs = {}  # clear diffs
 
     for i, (lora_o, lora_t) in enumerate(zip(lora_network_o.unet_loras, lora_network_t.unet_loras)):
         lora_name = lora_o.lora_name
         module_o = lora_o.org_module
         module_t = lora_t.org_module
-        diff = module_t.weight - module_o.weight
-        diff = diff.float()
+        diff = module_t.weight.to(work_device) - module_o.weight.to(work_device)
 
-        if args.device:
-            diff = diff.to(args.device)
+        # clear weight to save memory
+        module_o.weight = None
+        module_t.weight = None
 
         diffs[lora_name] = diff
+
+    # clear LoRA network, target U-Net to save memory
+    del lora_network_o
+    del lora_network_t
+    del unet_t
 
     # make LoRA with svd
     print("calculating by svd")
     lora_weights = {}
     with torch.no_grad():
         for lora_name, mat in tqdm(list(diffs.items())):
+            if args.device:
+                mat = mat.to(args.device)
+            mat = mat.to(torch.float)  # calc by float
+
             # if conv_dim is None, diffs do not include LoRAs for conv2d-3x3
             conv2d = len(mat.size()) == 4
             kernel_size = None if not conv2d else mat.size()[2:4]
@@ -171,8 +213,8 @@ def svd(
                 U = U.reshape(out_dim, rank, 1, 1)
                 Vh = Vh.reshape(rank, in_dim, kernel_size[0], kernel_size[1])
 
-            U = U.to("cpu").contiguous()
-            Vh = Vh.to("cpu").contiguous()
+            U = U.to(work_device, dtype=save_dtype).contiguous()
+            Vh = Vh.to(work_device, dtype=save_dtype).contiguous()
 
             lora_weights[lora_name] = (U, Vh)
 
@@ -231,6 +273,13 @@ def setup_parser() -> argparse.ArgumentParser:
         "--sdxl", action="store_true", help="load Stable Diffusion SDXL base model / Stable Diffusion SDXL baseのモデルを読み込む"
     )
     parser.add_argument(
+        "--load_precision",
+        type=str,
+        default=None,
+        choices=[None, "float", "fp16", "bf16"],
+        help="precision in loading, model default if omitted / 読み込み時に精度を変更して読み込む、省略時はモデルファイルによる"
+    )
+    parser.add_argument(
         "--save_precision",
         type=str,
         default=None,
@@ -284,6 +333,18 @@ def setup_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="do not save sai modelspec metadata (minimum ss_metadata for LoRA is saved) / "
         + "sai modelspecのメタデータを保存しない（LoRAの最低限のss_metadataは保存される）",
+    )
+    parser.add_argument(
+        "--load_original_model_to",
+        type=str,
+        default=None,
+        help="location to load original model, cpu or cuda, cuda:0, etc, default is cpu, only for SDXL / 元モデル読み込み先、cpuまたはcuda、cuda:0など、省略時はcpu、SDXLのみ有効",
+    )
+    parser.add_argument(
+        "--load_tuned_model_to",
+        type=str,
+        default=None,
+        help="location to load tuned model, cpu or cuda, cuda:0, etc, default is cpu, only for SDXL / 派生モデル読み込み先、cpuまたはcuda、cuda:0など、省略時はcpu、SDXLのみ有効",
     )
 
     return parser
