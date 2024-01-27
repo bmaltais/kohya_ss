@@ -14,7 +14,7 @@ YELLOW = "\033[93m"
 RESET_COLOR = "\033[0m"
 
 
-def cudann_install():
+def cudnn_install():
     cudnn_src = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows"
     )
@@ -144,7 +144,7 @@ def main_menu():
     while True:
         print("\nKohya_ss GUI setup menu:\n")
         print("1. Install kohya_ss gui")
-        print("2. (Optional) Install cudann files (avoid unless you really need it)")
+        print("2. (Optional) Install cudnn files (avoid unless you really need it)")
         print("3. (Optional) Install specific bitsandbytes versions")
         print("4. (Optional) Manually configure accelerate")
         print("5. (Optional) Start Kohya_ss GUI in browser")
@@ -156,7 +156,7 @@ def main_menu():
         if choice == "1":
             install_kohya_ss_torch2()
         elif choice == "2":
-            cudann_install()
+            cudnn_install()
         elif choice == "3":
             while True:
                 print("1. (Optional) Force installation of bitsandbytes 0.35.0")
