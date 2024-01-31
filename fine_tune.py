@@ -2,7 +2,6 @@
 # XXX dropped option: hypernetwork training
 
 import argparse
-import gc
 import math
 import os
 from multiprocessing import Value
@@ -11,6 +10,7 @@ import toml
 from tqdm import tqdm
 import torch
 
+from library.device_utils import clean_memory
 from library.ipex_interop import init_ipex
 
 init_ipex()
@@ -158,9 +158,7 @@ def train(args):
         with torch.no_grad():
             train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
         vae.to("cpu")
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()
+        clean_memory()
 
         accelerator.wait_for_everyone()
 

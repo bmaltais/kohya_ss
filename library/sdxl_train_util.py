@@ -1,5 +1,4 @@
 import argparse
-import gc
 import math
 import os
 from typing import Optional
@@ -8,6 +7,7 @@ from accelerate import init_empty_weights
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 from library import model_util, sdxl_model_util, train_util, sdxl_original_unet
+from library.device_utils import clean_memory
 from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeightingPipeline
 
 TOKENIZER1_PATH = "openai/clip-vit-large-patch14"
@@ -47,8 +47,7 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
                 unet.to(accelerator.device)
                 vae.to(accelerator.device)
 
-            gc.collect()
-            torch.cuda.empty_cache()
+            clean_memory()
         accelerator.wait_for_everyone()
 
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
