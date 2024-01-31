@@ -3,11 +3,11 @@
 
 import math
 import os
+
 import torch
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex
 init_ipex()
+
 import diffusers
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPTextConfig, logging
 from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline  # , UNet2DConditionModel

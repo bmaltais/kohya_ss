@@ -8,13 +8,15 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import cv2
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torchvision import transforms
 
 import library.model_util as model_util
 import library.train_util as train_util
-
-from library.device_utils import get_preferred_device
 
 DEVICE = get_preferred_device()
 

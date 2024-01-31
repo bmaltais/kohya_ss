@@ -1,9 +1,7 @@
 import argparse
+
 import torch
-
-from library.device_utils import clean_memory
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory
 init_ipex()
 
 from library import sdxl_model_util, sdxl_train_util, train_util
