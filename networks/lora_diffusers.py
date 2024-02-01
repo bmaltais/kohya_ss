@@ -9,9 +9,10 @@ from diffusers import UNet2DConditionModel
 import numpy as np
 from tqdm import tqdm
 from transformers import CLIPTextModel
-import torch
 
-from library.device_utils import get_preferred_device
+import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
 
 
 def make_unet_conversion_map() -> Dict[str, str]:

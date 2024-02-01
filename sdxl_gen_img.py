@@ -16,11 +16,9 @@ import re
 
 import diffusers
 import numpy as np
+
 import torch
-
-from library.device_utils import clean_memory, get_preferred_device
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory, get_preferred_device
 init_ipex()
 
 import torchvision

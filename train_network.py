@@ -10,13 +10,12 @@ from multiprocessing import Value
 import toml
 
 from tqdm import tqdm
+
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
-
-from library.device_utils import clean_memory
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory
 init_ipex()
+
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler

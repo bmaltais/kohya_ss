@@ -9,13 +9,16 @@ from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 sys.path.append(os.path.dirname(__file__))
 from blip.blip import blip_decoder, is_url
 import library.train_util as train_util
-from library.device_utils import get_preferred_device
 
 DEVICE = get_preferred_device()
 

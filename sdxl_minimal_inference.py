@@ -8,11 +8,9 @@ import os
 import random
 from einops import repeat
 import numpy as np
+
 import torch
-
-from library.device_utils import get_preferred_device
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, get_preferred_device
 init_ipex()
 
 from tqdm import tqdm

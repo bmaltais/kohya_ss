@@ -11,11 +11,12 @@ from typing import Dict, List
 import numpy as np
 
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torch import nn
 from tqdm import tqdm
 from PIL import Image
-
-from library.device_utils import get_preferred_device
 
 
 class ResidualBlock(nn.Module):
