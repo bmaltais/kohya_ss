@@ -10,7 +10,6 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     run_cmd_advanced_training,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     output_message,
@@ -746,33 +745,9 @@ def train_model(
     else:
         run_cmd += f' "./train_network.py"'
 
-    if v2:
-        run_cmd += " --v2"
-    if v_parameterization:
-        run_cmd += " --v_parameterization"
-    if enable_bucket:
-        run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
-    if no_token_padding:
-        run_cmd += " --no_token_padding"
-    if weighted_captions:
-        run_cmd += " --weighted_captions"
-    run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    run_cmd += f' --train_data_dir="{train_data_dir}"'
-    if len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == "":
-        run_cmd += f' --logging_dir="{logging_dir}"'
     run_cmd += f' --network_alpha="{network_alpha}"'
     if not training_comment == "":
         run_cmd += f' --training_comment="{training_comment}"'
-    if not stop_text_encoder_training == 0:
-        run_cmd += f" --stop_text_encoder_training={stop_text_encoder_training}"
-    if not save_model_as == "same as source model":
-        run_cmd += f" --save_model_as={save_model_as}"
-    if not float(prior_loss_weight) == 1.0:
-        run_cmd += f" --prior_loss_weight={prior_loss_weight}"
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         try:
@@ -1008,17 +983,6 @@ def train_model(
         if dim_from_weights:
             run_cmd += f" --dim_from_weights"
 
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
-    if not output_name == "":
-        run_cmd += f' --output_name="{output_name}"'
-    if not lr_scheduler_num_cycles == "":
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
-    else:
-        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-    if not lr_scheduler_power == "":
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
-
     if scale_weight_norms > 0.0:
         run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
 
@@ -1032,13 +996,10 @@ def train_model(
         if sdxl_no_half_vae:
             run_cmd += f" --no_half_vae"
 
-    if full_bf16:
-        run_cmd += f" --full_bf16"
-
     if debiased_estimation_loss:
         run_cmd += " --debiased_estimation_loss"
 
-    run_cmd += run_cmd_training(
+    run_cmd += run_cmd_advanced_training(
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
         lr_warmup_steps=lr_warmup_steps,
@@ -1055,9 +1016,6 @@ def train_model(
         optimizer_args=optimizer_args,
         lr_scheduler_args=lr_scheduler_args,
         max_grad_norm=max_grad_norm,
-    )
-
-    run_cmd += run_cmd_advanced_training(
         max_train_epochs=max_train_epochs,
         max_data_loader_n_workers=max_data_loader_n_workers,
         max_token_length=max_token_length,
@@ -1072,7 +1030,6 @@ def train_model(
         fp8_base=fp8_base,
         full_fp16=full_fp16,
         xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -1098,6 +1055,28 @@ def train_model(
         min_timestep=min_timestep,
         max_timestep=max_timestep,
         vae=vae,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        enable_bucket=enable_bucket,
+        min_bucket_reso=min_bucket_reso,
+        max_bucket_reso=max_bucket_reso,
+        max_resolution=max_resolution,
+        no_token_padding=no_token_padding,
+        weighted_captions=weighted_captions,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=train_data_dir,
+        reg_data_dir=reg_data_dir,
+        output_dir=output_dir,
+        logging_dir=logging_dir,
+        stop_text_encoder_training=stop_text_encoder_training,
+        save_model_as=save_model_as,
+        prior_loss_weight=prior_loss_weight,
+        full_bf16=full_bf16,
+        output_name=output_name,
+        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
+        epoch=epoch,
+        lr_scheduler_power=lr_scheduler_power,
+        gradient_accumulation_steps=gradient_accumulation_steps,
     )
 
     run_cmd += run_cmd_sample(

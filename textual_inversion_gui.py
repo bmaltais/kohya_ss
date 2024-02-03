@@ -17,7 +17,6 @@ from library.common_gui import (
     color_aug_changed,
     save_inference_file,
     run_cmd_advanced_training,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     output_message,
@@ -572,59 +571,7 @@ def train_model(
     else:
         run_cmd += f' "./train_textual_inversion.py"'
 
-    if v2:
-        run_cmd += ' --v2'
-    if v_parameterization:
-        run_cmd += ' --v_parameterization'
-    if enable_bucket:
-        run_cmd += f' --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}'
-    if no_token_padding:
-        run_cmd += ' --no_token_padding'
-    run_cmd += (
-        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    )
-    run_cmd += f' --train_data_dir="{train_data_dir}"'
-    if len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    if not stop_text_encoder_training == 0:
-        run_cmd += (
-            f' --stop_text_encoder_training={stop_text_encoder_training}'
-        )
-    if not save_model_as == 'same as source model':
-        run_cmd += f' --save_model_as={save_model_as}'
-    # if not resume == '':
-    #     run_cmd += f' --resume={resume}'
-    if not float(prior_loss_weight) == 1.0:
-        run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if not vae == '':
-        run_cmd += f' --vae="{vae}"'
-    if not output_name == '':
-        run_cmd += f' --output_name="{output_name}"'
-    if not lr_scheduler_num_cycles == '':
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
-    else:
-        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-    if not lr_scheduler_power == '':
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
-    if int(max_token_length) > 75:
-        run_cmd += f' --max_token_length={max_token_length}'
-    if not max_train_epochs == '':
-        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
-    if not max_data_loader_n_workers == '':
-        run_cmd += (
-            f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
-        )
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-
-    if sdxl and sdxl_no_half_vae:
-        run_cmd += f' --no_half_vae'
-
-    run_cmd += run_cmd_training(
+    run_cmd += run_cmd_advanced_training(
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
         lr_warmup_steps=lr_warmup_steps,
@@ -640,9 +587,6 @@ def train_model(
         optimizer=optimizer,
         optimizer_args=optimizer_args,
         lr_scheduler_args=lr_scheduler_args,
-    )
-
-    run_cmd += run_cmd_advanced_training(
         max_train_epochs=max_train_epochs,
         max_data_loader_n_workers=max_data_loader_n_workers,
         max_token_length=max_token_length,
@@ -656,7 +600,6 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -681,6 +624,28 @@ def train_model(
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
         min_timestep=min_timestep,
         max_timestep=max_timestep,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        enable_bucket=enable_bucket,
+        min_bucket_reso=min_bucket_reso,
+        max_bucket_reso=max_bucket_reso,
+        max_resolution=max_resolution,
+        no_token_padding=no_token_padding,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=train_data_dir,
+        reg_data_dir=reg_data_dir,
+        output_dir=output_dir,
+        logging_dir=logging_dir,
+        stop_text_encoder_training=stop_text_encoder_training,
+        save_model_as=save_model_as,
+        prior_loss_weight=prior_loss_weight,
+        vae=vae,
+        output_name=output_name,
+        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
+        epoch=epoch,
+        lr_scheduler_power=lr_scheduler_power,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'

@@ -608,84 +608,84 @@ def get_str_or_default(kwargs, key, default_value=""):
         return default_value
 
 
-def run_cmd_training(**kwargs):
-    run_cmd = ""
+# def run_cmd_training(**kwargs):
+#     run_cmd = ""
 
-    learning_rate = kwargs.get("learning_rate", "")
-    if learning_rate:
-        run_cmd += f' --learning_rate="{learning_rate}"'
+#     lr_scheduler = kwargs.get("lr_scheduler", "")
+#     if lr_scheduler:
+#         run_cmd += f' --lr_scheduler="{lr_scheduler}"'
 
-    lr_scheduler = kwargs.get("lr_scheduler", "")
-    if lr_scheduler:
-        run_cmd += f' --lr_scheduler="{lr_scheduler}"'
+#     lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
+#     if lr_warmup_steps:
+#         if lr_scheduler == "constant":
+#             log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
+#         else:
+#             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
-    lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
-    if lr_warmup_steps:
-        if lr_scheduler == "constant":
-            log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
-        else:
-            run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
+#     train_batch_size = kwargs.get("train_batch_size", "")
+#     if train_batch_size:
+#         run_cmd += f' --train_batch_size="{train_batch_size}"'
 
-    train_batch_size = kwargs.get("train_batch_size", "")
-    if train_batch_size:
-        run_cmd += f' --train_batch_size="{train_batch_size}"'
+#     max_train_steps = kwargs.get("max_train_steps", "")
+#     if max_train_steps:
+#         run_cmd += f' --max_train_steps="{max_train_steps}"'
 
-    max_train_steps = kwargs.get("max_train_steps", "")
-    if max_train_steps:
-        run_cmd += f' --max_train_steps="{max_train_steps}"'
+#     save_every_n_epochs = kwargs.get("save_every_n_epochs")
+#     if save_every_n_epochs:
+#         run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
 
-    save_every_n_epochs = kwargs.get("save_every_n_epochs")
-    if save_every_n_epochs:
-        run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
+#     mixed_precision = kwargs.get("mixed_precision", "")
+#     if mixed_precision:
+#         run_cmd += f' --mixed_precision="{mixed_precision}"'
 
-    mixed_precision = kwargs.get("mixed_precision", "")
-    if mixed_precision:
-        run_cmd += f' --mixed_precision="{mixed_precision}"'
+#     save_precision = kwargs.get("save_precision", "")
+#     if save_precision:
+#         run_cmd += f' --save_precision="{save_precision}"'
 
-    save_precision = kwargs.get("save_precision", "")
-    if save_precision:
-        run_cmd += f' --save_precision="{save_precision}"'
+#     seed = kwargs.get("seed", "")
+#     if seed != "":
+#         run_cmd += f' --seed="{seed}"'
 
-    seed = kwargs.get("seed", "")
-    if seed != "":
-        run_cmd += f' --seed="{seed}"'
+#     caption_extension = kwargs.get("caption_extension", "")
+#     if caption_extension:
+#         run_cmd += f' --caption_extension="{caption_extension}"'
 
-    caption_extension = kwargs.get("caption_extension", "")
-    if caption_extension:
-        run_cmd += f' --caption_extension="{caption_extension}"'
+#     cache_latents = kwargs.get("cache_latents")
+#     if cache_latents:
+#         run_cmd += " --cache_latents"
 
-    cache_latents = kwargs.get("cache_latents")
-    if cache_latents:
-        run_cmd += " --cache_latents"
+#     cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
+#     if cache_latents_to_disk:
+#         run_cmd += " --cache_latents_to_disk"
 
-    cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
-    if cache_latents_to_disk:
-        run_cmd += " --cache_latents_to_disk"
+#     optimizer_type = kwargs.get("optimizer", "AdamW")
+#     run_cmd += f' --optimizer_type="{optimizer_type}"'
 
-    optimizer_type = kwargs.get("optimizer", "AdamW")
-    run_cmd += f' --optimizer_type="{optimizer_type}"'
+#     optimizer_args = kwargs.get("optimizer_args", "")
+#     if optimizer_args != "":
+#         run_cmd += f" --optimizer_args {optimizer_args}"
 
-    optimizer_args = kwargs.get("optimizer_args", "")
-    if optimizer_args != "":
-        run_cmd += f" --optimizer_args {optimizer_args}"
+#     lr_scheduler_args = kwargs.get("lr_scheduler_args", "")
+#     if lr_scheduler_args != "":
+#         run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
 
-    lr_scheduler_args = kwargs.get("lr_scheduler_args", "")
-    if lr_scheduler_args != "":
-        run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
+#     max_grad_norm = kwargs.get("max_grad_norm", "")
+#     if max_grad_norm != "":
+#         run_cmd += f' --max_grad_norm="{max_grad_norm}"'
 
-    max_grad_norm = kwargs.get("max_grad_norm", "")
-    if max_grad_norm != "":
-        run_cmd += f' --max_grad_norm="{max_grad_norm}"'
-
-    return run_cmd
+#     return run_cmd
 
 
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ""
-
+    
     additional_parameters = kwargs.get("additional_parameters")
     if additional_parameters:
         run_cmd += f" {additional_parameters}"
+    
+    block_lr = kwargs.get("block_lr")
+    if block_lr:
+        run_cmd += f' --block_lr="(block_lr)"'
 
     bucket_no_upscale = kwargs.get("bucket_no_upscale")
     if bucket_no_upscale:
@@ -694,6 +694,18 @@ def run_cmd_advanced_training(**kwargs):
     bucket_reso_steps = kwargs.get("bucket_reso_steps")
     if bucket_reso_steps:
         run_cmd += f" --bucket_reso_steps={int(bucket_reso_steps)}"
+
+    cache_latents = kwargs.get("cache_latents")
+    if cache_latents:
+        run_cmd += " --cache_latents"
+
+    cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
+    if cache_latents_to_disk:
+        run_cmd += " --cache_latents_to_disk"
+    
+    cache_text_encoder_outputs = kwargs.get("cache_text_encoder_outputs")
+    if cache_text_encoder_outputs:
+        run_cmd += " --cache_text_encoder_outputs"
 
     caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs")
     if caption_dropout_every_n_epochs and int(caption_dropout_every_n_epochs) > 0:
@@ -705,6 +717,10 @@ def run_cmd_advanced_training(**kwargs):
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
         run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
 
+    caption_extension = kwargs.get("caption_extension")
+    if caption_extension:
+        run_cmd += f' --caption_extension="{caption_extension}"'
+
     clip_skip = kwargs.get("clip_skip")
     if clip_skip and int(clip_skip) > 1:
         run_cmd += f" --clip_skip={int(clip_skip)}"
@@ -712,6 +728,21 @@ def run_cmd_advanced_training(**kwargs):
     color_aug = kwargs.get("color_aug")
     if color_aug:
         run_cmd += " --color_aug"
+        
+    dataset_repeats = kwargs.get("dataset_repeats")
+    if dataset_repeats:
+        run_cmd += f' --dataset_repeats="{dataset_repeats}"'
+        
+    enable_bucket = kwargs.get("enable_bucket")
+    if enable_bucket:
+        min_bucket_reso = kwargs.get("min_bucket_reso")
+        max_bucket_reso = kwargs.get("max_bucket_reso")
+        if min_bucket_reso and max_bucket_reso:
+            run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
+            
+    in_json = kwargs.get("in_json")
+    if in_json:
+        run_cmd += f' --in_json="{in_json}"'
 
     flip_aug = kwargs.get("flip_aug")
     if flip_aug:
@@ -720,10 +751,18 @@ def run_cmd_advanced_training(**kwargs):
     fp8_base = kwargs.get("fp8_base")
     if fp8_base:
         run_cmd += " --fp8_base"
+        
+    full_bf16 = kwargs.get("full_bf16")
+    if full_bf16:
+        run_cmd += " --full_bf16"
 
     full_fp16 = kwargs.get("full_fp16")
     if full_fp16:
         run_cmd += " --full_fp16"
+    
+    gradient_accumulation_steps = kwargs.get("gradient_accumulation_steps")
+    if gradient_accumulation_steps and int(gradient_accumulation_steps) > 1:
+        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
 
     gradient_checkpointing = kwargs.get("gradient_checkpointing")
     if gradient_checkpointing:
@@ -733,43 +772,113 @@ def run_cmd_advanced_training(**kwargs):
     if keep_tokens and int(keep_tokens) > 0:
         run_cmd += f' --keep_tokens="{int(keep_tokens)}"'
 
+    learning_rate = kwargs.get("learning_rate")
+    if learning_rate:
+        run_cmd += f' --learning_rate="{learning_rate}"'
+    
+    learning_rate_te = kwargs.get("learning_rate_te")
+    if learning_rate_te:
+        run_cmd += f' --learning_rate_te="{learning_rate_te}"'
+        
+    learning_rate_te1 = kwargs.get("learning_rate_te1")
+    if learning_rate_te1:
+        run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
+        
+    learning_rate_te2 = kwargs.get("learning_rate_te2")
+    if learning_rate_te2:
+        run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
+        
+    logging_dir = kwargs.get("logging_dir")
+    if logging_dir:
+        run_cmd += f' --logging_dir="{logging_dir}"'
+
+    lr_scheduler = kwargs.get("lr_scheduler")
+    if lr_scheduler:
+        run_cmd += f' --lr_scheduler="{lr_scheduler}"'
+
+    lr_scheduler_args = kwargs.get("lr_scheduler_args")
+    if lr_scheduler_args and lr_scheduler_args != "":
+        run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
+    
+    lr_scheduler_num_cycles = kwargs.get("lr_scheduler_num_cycles")
+    if lr_scheduler_num_cycles and not lr_scheduler_num_cycles == "":
+        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
+    else:
+        epoch = kwargs.get("epoch")
+        if epoch:
+            run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
+        
+    lr_scheduler_power = kwargs.get("lr_scheduler_power")
+    if lr_scheduler_power and not lr_scheduler_power == "":
+        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
+
+    lr_warmup_steps = kwargs.get("lr_warmup_steps")
+    if lr_warmup_steps:
+        if lr_scheduler == "constant":
+            log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
+        else:
+            run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
     gpu_ids = kwargs.get("gpu_ids")
     if gpu_ids:
         run_cmd += f' --gpu_ids="{gpu_ids}"'
 
     max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
-    if max_data_loader_n_workers:
+    if max_data_loader_n_workers and not max_data_loader_n_workers == "":
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+
+    max_grad_norm = kwargs.get("max_grad_norm")
+    if max_grad_norm and max_grad_norm != "":
+        run_cmd += f' --max_grad_norm="{max_grad_norm}"'
+        
+    max_resolution = kwargs.get("max_resolution")
+    if max_resolution:
+        run_cmd += f' --resolution="{max_resolution}"'
+
+    max_timestep = kwargs.get("max_timestep")
+    if max_timestep and int(max_timestep) < 1000:
+        run_cmd += f" --max_timestep={int(max_timestep)}"
 
     max_token_length = kwargs.get("max_token_length")
     if max_token_length and int(max_token_length) > 75:
         run_cmd += f" --max_token_length={int(max_token_length)}"
 
     max_train_epochs = kwargs.get("max_train_epochs")
-    if max_train_epochs:
+    if max_train_epochs and not max_train_epochs == '':
         run_cmd += f" --max_train_epochs={max_train_epochs}"
 
-    min_snr_gamma = kwargs.get("min_snr_gamma")
-    if min_snr_gamma and int(min_snr_gamma) >= 1:
-        run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
-
-    max_timestep = kwargs.get("max_timestep")
-    if max_timestep and int(max_timestep) < 1000:
-        run_cmd += f" --max_timestep={int(max_timestep)}"
+    max_train_steps = kwargs.get("max_train_steps")
+    if max_train_steps:
+        run_cmd += f' --max_train_steps="{max_train_steps}"'
 
     mem_eff_attn = kwargs.get("mem_eff_attn")
     if mem_eff_attn:
         run_cmd += " --mem_eff_attn"
 
+    min_snr_gamma = kwargs.get("min_snr_gamma")
+    if min_snr_gamma and int(min_snr_gamma) >= 1:
+        run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
+
     min_timestep = kwargs.get("min_timestep")
     if min_timestep and int(min_timestep) > 0:
         run_cmd += f" --min_timestep={int(min_timestep)}"
 
+    mixed_precision = kwargs.get("mixed_precision")
+    if mixed_precision:
+        run_cmd += f' --mixed_precision="{mixed_precision}"'
+
     multi_gpu = kwargs.get("multi_gpu")
     if multi_gpu:
         run_cmd += " --multi_gpu"
-
+        
+    no_half_vae = kwargs.get("no_half_vae")
+    if no_half_vae:
+        run_cmd += " --no_half_vae"
+        
+    no_token_padding = kwargs.get("no_token_padding")
+    if no_token_padding:
+        run_cmd += " --no_token_padding"
+        
     noise_offset_type = kwargs.get("noise_offset_type")
     if noise_offset_type and noise_offset_type == "Original":
         noise_offset = kwargs.get("noise_offset")
@@ -800,17 +909,49 @@ def run_cmd_advanced_training(**kwargs):
     if num_cpu_threads_per_process and int(num_cpu_threads_per_process) > 1:
         run_cmd += f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
 
+    optimizer_args = kwargs.get("optimizer_args")
+    if optimizer_args and optimizer_args != "":
+        run_cmd += f" --optimizer_args {optimizer_args}"
+
+    optimizer_type = kwargs.get("optimizer")
+    if optimizer_type:
+        run_cmd += f' --optimizer_type="{optimizer_type}"'
+        
+    output_dir = kwargs.get("output_dir")
+    if output_dir:
+        run_cmd += f' --output_dir="{output_dir}"'
+    
+    output_name = kwargs.get("output_name")        
+    if output_name and not output_name == "":
+        run_cmd += f' --output_name="{output_name}"'
+
     persistent_data_loader_workers = kwargs.get("persistent_data_loader_workers")
     if persistent_data_loader_workers:
         run_cmd += " --persistent_data_loader_workers"
+
+    pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
+    if pretrained_model_name_or_path:
+        run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        
+    prior_loss_weight = kwargs.get("prior_loss_weight")
+    if prior_loss_weight and not float(prior_loss_weight) == 1.0:
+        run_cmd += f" --prior_loss_weight={prior_loss_weight}"
 
     random_crop = kwargs.get("random_crop")
     if random_crop:
         run_cmd += " --random_crop"
 
+    reg_data_dir = kwargs.get("reg_data_dir")
+    if reg_data_dir and len(reg_data_dir):
+        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
+
     resume = kwargs.get("resume")
     if resume:
         run_cmd += f' --resume="{resume}"'
+
+    save_every_n_epochs = kwargs.get("save_every_n_epochs")
+    if save_every_n_epochs:
+        run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
 
     save_every_n_steps = kwargs.get("save_every_n_steps")
     if save_every_n_steps and int(save_every_n_steps) > 0:
@@ -823,6 +964,14 @@ def run_cmd_advanced_training(**kwargs):
     save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
     if save_last_n_steps_state and int(save_last_n_steps_state) > 0:
         run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
+    
+    save_model_as = kwargs.get("save_model_as")
+    if save_model_as and not save_model_as == "same as source model":
+        run_cmd += f" --save_model_as={save_model_as}"
+
+    save_precision = kwargs.get("save_precision")
+    if save_precision:
+        run_cmd += f' --save_precision="{save_precision}"'
 
     save_state = kwargs.get("save_state")
     if save_state:
@@ -832,20 +981,48 @@ def run_cmd_advanced_training(**kwargs):
     if scale_v_pred_loss_like_noise_pred:
         run_cmd += " --scale_v_pred_loss_like_noise_pred"
 
+    seed = kwargs.get("seed")
+    if seed and seed != "":
+        run_cmd += f' --seed="{seed}"'
+
     shuffle_caption = kwargs.get("shuffle_caption")
     if shuffle_caption:
         run_cmd += " --shuffle_caption"
+        
+    stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
+    if stop_text_encoder_training and stop_text_encoder_training > 0:
+        run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
+
+    train_batch_size = kwargs.get("train_batch_size")
+    if train_batch_size:
+        run_cmd += f' --train_batch_size="{train_batch_size}"'
+        
+    train_data_dir = kwargs.get("train_data_dir")
+    if train_data_dir:
+        run_cmd += f' --train_data_dir="{train_data_dir}"'
+    
+    train_text_encoder = kwargs.get("train_text_encoder")
+    if train_text_encoder:
+        run_cmd += " --train_text_encoder"
 
     use_wandb = kwargs.get("use_wandb")
     if use_wandb:
         run_cmd += " --log_with wandb"
+        
+    v_parameterization = kwargs.get("v_parameterization")
+    if v_parameterization:
+        run_cmd += " --v_parameterization"
 
     v_pred_like_loss = kwargs.get("v_pred_like_loss")
     if v_pred_like_loss and float(v_pred_like_loss) > 0:
         run_cmd += f' --v_pred_like_loss="{float(v_pred_like_loss)}"'
+        
+    v2 = kwargs.get("v2")
+    if v2:
+        run_cmd += " --v2"
 
     vae = kwargs.get("vae")
-    if vae:
+    if vae and not vae == "":
         run_cmd += f' --vae="{vae}"'
 
     vae_batch_size = kwargs.get("vae_batch_size")
@@ -855,6 +1032,10 @@ def run_cmd_advanced_training(**kwargs):
     wandb_api_key = kwargs.get("wandb_api_key")
     if wandb_api_key:
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        
+    weighted_captions = kwargs.get("weighted_captions")
+    if weighted_captions:
+        run_cmd += " --weighted_captions"
 
     xformers = kwargs.get("xformers")
     if xformers and xformers == "xformers":

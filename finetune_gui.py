@@ -13,7 +13,6 @@ from library.common_gui import (
     save_inference_file,
     run_cmd_advanced_training,
     color_aug_changed,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     SaveConfigFile,
@@ -558,60 +557,12 @@ def train_model(
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./fine_tune.py"'
+        
+    in_json = f'{train_dir}/{latent_metadata_filename}' if use_latent_files == 'Yes' else f'{train_dir}/{caption_metadata_filename}'
+    cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
-    if v2:
-        run_cmd += ' --v2'
-    if v_parameterization:
-        run_cmd += ' --v_parameterization'
-    if train_text_encoder:
-        run_cmd += ' --train_text_encoder'
-        if sdxl_checkbox:
-            run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
-            run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
-        else:
-            run_cmd += f' --learning_rate_te="{learning_rate_te}"'
-    if full_bf16:
-        run_cmd += ' --full_bf16'
-    if weighted_captions:
-        run_cmd += ' --weighted_captions'
-    run_cmd += (
-        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    )
-    if use_latent_files == 'Yes':
-        run_cmd += f' --in_json="{train_dir}/{latent_metadata_filename}"'
-    else:
-        run_cmd += f' --in_json="{train_dir}/{caption_metadata_filename}"'
-    run_cmd += f' --train_data_dir="{image_folder}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    run_cmd += f' --dataset_repeats={dataset_repeats}'
-
-    run_cmd += ' --enable_bucket'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --min_bucket_reso={min_bucket_reso}'
-    run_cmd += f' --max_bucket_reso={max_bucket_reso}'
-
-    if not save_model_as == 'same as source model':
-        run_cmd += f' --save_model_as={save_model_as}'
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    if not block_lr == '':
-        run_cmd += f' --block_lr="{block_lr}"'
-    
-    if not output_name == '':
-        run_cmd += f' --output_name="{output_name}"'
-    if int(max_token_length) > 75:
-        run_cmd += f' --max_token_length={max_token_length}'
-
-    if sdxl_checkbox:
-        if sdxl_cache_text_encoder_outputs:
-            run_cmd += f' --cache_text_encoder_outputs'
-
-        if sdxl_no_half_vae:
-            run_cmd += f' --no_half_vae'
-
-    run_cmd += run_cmd_training(
+    run_cmd += run_cmd_advanced_training(
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
         lr_warmup_steps=lr_warmup_steps,
@@ -627,9 +578,6 @@ def train_model(
         optimizer=optimizer,
         optimizer_args=optimizer_args,
         lr_scheduler_args=lr_scheduler_args,
-    )
-
-    run_cmd += run_cmd_advanced_training(
         max_train_epochs=max_train_epochs,
         max_data_loader_n_workers=max_data_loader_n_workers,
         max_token_length=max_token_length,
@@ -643,7 +591,6 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         full_fp16=full_fp16,
         xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
         keep_tokens=keep_tokens,
         persistent_data_loader_workers=persistent_data_loader_workers,
         bucket_no_upscale=bucket_no_upscale,
@@ -668,6 +615,31 @@ def train_model(
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
         min_timestep=min_timestep,
         max_timestep=max_timestep,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        enable_bucket=True,
+        min_bucket_reso=min_bucket_reso,
+        max_bucket_reso=max_bucket_reso,
+        max_resolution=max_resolution,
+        weighted_captions=weighted_captions,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=image_folder,
+        output_dir=output_dir,
+        logging_dir=logging_dir,
+        save_model_as=save_model_as,
+        full_bf16=full_bf16,
+        output_name=output_name,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        learning_rate_te1=learning_rate_te1 if sdxl_checkbox else None,
+        learning_rate_te2=learning_rate_te2 if sdxl_checkbox else None,
+        learning_rate_te=learning_rate_te if not sdxl_checkbox else None,
+        train_text_encoder=train_text_encoder,
+        in_json=in_json,
+        dataset_repeats=dataset_repeats,
+        block_lr=block_lr,
+        no_half_vae=no_half_vae if sdxl_checkbox else None,
+        cache_text_encoder_outputs=cache_text_encoder_outputs if sdxl_checkbox else None,
+        
     )
 
     run_cmd += run_cmd_sample(
