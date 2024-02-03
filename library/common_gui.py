@@ -678,11 +678,11 @@ def get_str_or_default(kwargs, key, default_value=""):
 
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ""
-    
+
     additional_parameters = kwargs.get("additional_parameters")
     if additional_parameters:
         run_cmd += f" {additional_parameters}"
-    
+
     block_lr = kwargs.get("block_lr")
     if block_lr:
         run_cmd += f' --block_lr="(block_lr)"'
@@ -702,7 +702,7 @@ def run_cmd_advanced_training(**kwargs):
     cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
     if cache_latents_to_disk:
         run_cmd += " --cache_latents_to_disk"
-    
+
     cache_text_encoder_outputs = kwargs.get("cache_text_encoder_outputs")
     if cache_text_encoder_outputs:
         run_cmd += " --cache_text_encoder_outputs"
@@ -728,18 +728,18 @@ def run_cmd_advanced_training(**kwargs):
     color_aug = kwargs.get("color_aug")
     if color_aug:
         run_cmd += " --color_aug"
-        
+
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
         run_cmd += f' --dataset_repeats="{dataset_repeats}"'
-        
+
     enable_bucket = kwargs.get("enable_bucket")
     if enable_bucket:
         min_bucket_reso = kwargs.get("min_bucket_reso")
         max_bucket_reso = kwargs.get("max_bucket_reso")
         if min_bucket_reso and max_bucket_reso:
             run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
-            
+
     in_json = kwargs.get("in_json")
     if in_json:
         run_cmd += f' --in_json="{in_json}"'
@@ -751,7 +751,7 @@ def run_cmd_advanced_training(**kwargs):
     fp8_base = kwargs.get("fp8_base")
     if fp8_base:
         run_cmd += " --fp8_base"
-        
+
     full_bf16 = kwargs.get("full_bf16")
     if full_bf16:
         run_cmd += " --full_bf16"
@@ -759,7 +759,7 @@ def run_cmd_advanced_training(**kwargs):
     full_fp16 = kwargs.get("full_fp16")
     if full_fp16:
         run_cmd += " --full_fp16"
-    
+
     gradient_accumulation_steps = kwargs.get("gradient_accumulation_steps")
     if gradient_accumulation_steps and int(gradient_accumulation_steps) > 1:
         run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
@@ -775,19 +775,19 @@ def run_cmd_advanced_training(**kwargs):
     learning_rate = kwargs.get("learning_rate")
     if learning_rate:
         run_cmd += f' --learning_rate="{learning_rate}"'
-    
+
     learning_rate_te = kwargs.get("learning_rate_te")
     if learning_rate_te:
         run_cmd += f' --learning_rate_te="{learning_rate_te}"'
-        
+
     learning_rate_te1 = kwargs.get("learning_rate_te1")
     if learning_rate_te1:
         run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
-        
+
     learning_rate_te2 = kwargs.get("learning_rate_te2")
     if learning_rate_te2:
         run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
-        
+
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
         run_cmd += f' --logging_dir="{logging_dir}"'
@@ -799,7 +799,7 @@ def run_cmd_advanced_training(**kwargs):
     lr_scheduler_args = kwargs.get("lr_scheduler_args")
     if lr_scheduler_args and lr_scheduler_args != "":
         run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
-    
+
     lr_scheduler_num_cycles = kwargs.get("lr_scheduler_num_cycles")
     if lr_scheduler_num_cycles and not lr_scheduler_num_cycles == "":
         run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
@@ -807,7 +807,7 @@ def run_cmd_advanced_training(**kwargs):
         epoch = kwargs.get("epoch")
         if epoch:
             run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-        
+
     lr_scheduler_power = kwargs.get("lr_scheduler_power")
     if lr_scheduler_power and not lr_scheduler_power == "":
         run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
@@ -830,7 +830,7 @@ def run_cmd_advanced_training(**kwargs):
     max_grad_norm = kwargs.get("max_grad_norm")
     if max_grad_norm and max_grad_norm != "":
         run_cmd += f' --max_grad_norm="{max_grad_norm}"'
-        
+
     max_resolution = kwargs.get("max_resolution")
     if max_resolution:
         run_cmd += f' --resolution="{max_resolution}"'
@@ -844,7 +844,7 @@ def run_cmd_advanced_training(**kwargs):
         run_cmd += f" --max_token_length={int(max_token_length)}"
 
     max_train_epochs = kwargs.get("max_train_epochs")
-    if max_train_epochs and not max_train_epochs == '':
+    if max_train_epochs and not max_train_epochs == "":
         run_cmd += f" --max_train_epochs={max_train_epochs}"
 
     max_train_steps = kwargs.get("max_train_steps")
@@ -870,15 +870,15 @@ def run_cmd_advanced_training(**kwargs):
     multi_gpu = kwargs.get("multi_gpu")
     if multi_gpu:
         run_cmd += " --multi_gpu"
-        
+
     no_half_vae = kwargs.get("no_half_vae")
     if no_half_vae:
         run_cmd += " --no_half_vae"
-        
+
     no_token_padding = kwargs.get("no_token_padding")
     if no_token_padding:
         run_cmd += " --no_token_padding"
-        
+
     noise_offset_type = kwargs.get("noise_offset_type")
     if noise_offset_type and noise_offset_type == "Original":
         noise_offset = kwargs.get("noise_offset")
@@ -886,17 +886,23 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f" --noise_offset={float(noise_offset)}"
 
         adaptive_noise_scale = kwargs.get("adaptive_noise_scale")
-        if adaptive_noise_scale and float(adaptive_noise_scale) != 0 and float(noise_offset) > 0:
+        if (
+            adaptive_noise_scale
+            and float(adaptive_noise_scale) != 0
+            and float(noise_offset) > 0
+        ):
             run_cmd += f" --adaptive_noise_scale={float(adaptive_noise_scale)}"
     elif noise_offset_type and noise_offset_type == "Multires":
         multires_noise_iterations = kwargs.get("multires_noise_iterations")
         if int(multires_noise_iterations) > 0:
-            run_cmd += f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
+            run_cmd += (
+                f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
+            )
 
         multires_noise_discount = kwargs.get("multires_noise_discount")
         if multires_noise_discount and float(multires_noise_discount) > 0:
             run_cmd += f' --multires_noise_discount="{float(multires_noise_discount)}"'
-    
+
     num_machines = kwargs.get("num_machines")
     if num_machines and int(num_machines) > 1:
         run_cmd += f" --num_machines={int(num_machines)}"
@@ -916,12 +922,12 @@ def run_cmd_advanced_training(**kwargs):
     optimizer_type = kwargs.get("optimizer")
     if optimizer_type:
         run_cmd += f' --optimizer_type="{optimizer_type}"'
-        
+
     output_dir = kwargs.get("output_dir")
     if output_dir:
         run_cmd += f' --output_dir="{output_dir}"'
-    
-    output_name = kwargs.get("output_name")        
+
+    output_name = kwargs.get("output_name")
     if output_name and not output_name == "":
         run_cmd += f' --output_name="{output_name}"'
 
@@ -932,7 +938,7 @@ def run_cmd_advanced_training(**kwargs):
     pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
     if pretrained_model_name_or_path:
         run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-        
+
     prior_loss_weight = kwargs.get("prior_loss_weight")
     if prior_loss_weight and not float(prior_loss_weight) == 1.0:
         run_cmd += f" --prior_loss_weight={prior_loss_weight}"
@@ -964,7 +970,7 @@ def run_cmd_advanced_training(**kwargs):
     save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
     if save_last_n_steps_state and int(save_last_n_steps_state) > 0:
         run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
-    
+
     save_model_as = kwargs.get("save_model_as")
     if save_model_as and not save_model_as == "same as source model":
         run_cmd += f" --save_model_as={save_model_as}"
@@ -988,7 +994,7 @@ def run_cmd_advanced_training(**kwargs):
     shuffle_caption = kwargs.get("shuffle_caption")
     if shuffle_caption:
         run_cmd += " --shuffle_caption"
-        
+
     stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
     if stop_text_encoder_training and stop_text_encoder_training > 0:
         run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
@@ -996,11 +1002,11 @@ def run_cmd_advanced_training(**kwargs):
     train_batch_size = kwargs.get("train_batch_size")
     if train_batch_size:
         run_cmd += f' --train_batch_size="{train_batch_size}"'
-        
+
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
         run_cmd += f' --train_data_dir="{train_data_dir}"'
-    
+
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:
         run_cmd += " --train_text_encoder"
@@ -1008,7 +1014,7 @@ def run_cmd_advanced_training(**kwargs):
     use_wandb = kwargs.get("use_wandb")
     if use_wandb:
         run_cmd += " --log_with wandb"
-        
+
     v_parameterization = kwargs.get("v_parameterization")
     if v_parameterization:
         run_cmd += " --v_parameterization"
@@ -1016,7 +1022,7 @@ def run_cmd_advanced_training(**kwargs):
     v_pred_like_loss = kwargs.get("v_pred_like_loss")
     if v_pred_like_loss and float(v_pred_like_loss) > 0:
         run_cmd += f' --v_pred_like_loss="{float(v_pred_like_loss)}"'
-        
+
     v2 = kwargs.get("v2")
     if v2:
         run_cmd += " --v2"
@@ -1032,7 +1038,7 @@ def run_cmd_advanced_training(**kwargs):
     wandb_api_key = kwargs.get("wandb_api_key")
     if wandb_api_key:
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
-        
+
     weighted_captions = kwargs.get("weighted_captions")
     if weighted_captions:
         run_cmd += " --weighted_captions"

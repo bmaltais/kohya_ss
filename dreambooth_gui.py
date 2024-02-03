@@ -551,14 +551,15 @@ def train_model(
 
     # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
     run_cmd = "accelerate launch"
-        
+
     run_cmd += run_cmd_advanced_training(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
-        num_cpu_threads_per_process=num_cpu_threads_per_process)
-    
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
+    )
+
     if sdxl:
         run_cmd += f' "./sdxl_train.py"'
     else:

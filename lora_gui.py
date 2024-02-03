@@ -732,14 +732,15 @@ def train_model(
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
-        
+
     run_cmd += run_cmd_advanced_training(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
-        num_cpu_threads_per_process=num_cpu_threads_per_process)
-    
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
+    )
+
     if sdxl:
         run_cmd += f' "./sdxl_train_network.py"'
     else:
@@ -1803,7 +1804,9 @@ def lora_tab(
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.",
                             )
-                advanced_training = AdvancedTraining(headless=headless, training_type="lora")
+                advanced_training = AdvancedTraining(
+                    headless=headless, training_type="lora"
+                )
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
