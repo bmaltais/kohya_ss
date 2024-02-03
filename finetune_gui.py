@@ -94,6 +94,10 @@ def save_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
@@ -224,6 +228,10 @@ def open_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
@@ -363,6 +371,10 @@ def train_model(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
@@ -533,7 +545,15 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     log.info(f'lr_warmup_steps = {lr_warmup_steps}')
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
+    run_cmd = "accelerate launch"
+        
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process)
+    
     if sdxl_checkbox:
         run_cmd += f' "./sdxl_train.py"'
     else:
@@ -967,6 +987,10 @@ def finetune_tab(headless=False):
             basic_training.caption_extension,
             advanced_training.xformers,
             advanced_training.clip_skip,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             advanced_training.save_state,
             advanced_training.resume,
             advanced_training.gradient_checkpointing,

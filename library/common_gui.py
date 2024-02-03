@@ -14,71 +14,63 @@ from datetime import datetime
 # Set up logging
 log = setup_logging()
 
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
 
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
-    'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
-    'stabilityai/stable-diffusion-2-1-base',
-    'stabilityai/stable-diffusion-2-base',
+    "stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned",
+    "stabilityai/stable-diffusion-2-1-base",
+    "stabilityai/stable-diffusion-2-base",
 ]
 
 # define a list of substrings to search for v_parameterization models
 V_PARAMETERIZATION_MODELS = [
-    'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
-    'stabilityai/stable-diffusion-2-1',
-    'stabilityai/stable-diffusion-2',
+    "stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned",
+    "stabilityai/stable-diffusion-2-1",
+    "stabilityai/stable-diffusion-2",
 ]
 
 # define a list of substrings to v1.x models
 V1_MODELS = [
-    'CompVis/stable-diffusion-v1-4',
-    'runwayml/stable-diffusion-v1-5',
+    "CompVis/stable-diffusion-v1-4",
+    "runwayml/stable-diffusion-v1-5",
 ]
 
 # define a list of substrings to search for SDXL base models
 SDXL_MODELS = [
-    'stabilityai/stable-diffusion-xl-base-1.0',
-    'stabilityai/stable-diffusion-xl-refiner-1.0',
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    "stabilityai/stable-diffusion-xl-refiner-1.0",
 ]
 
 # define a list of substrings to search for
-ALL_PRESET_MODELS = (
-    V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDXL_MODELS
-)
+ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDXL_MODELS
 
-ENV_EXCLUSION = ['COLAB_GPU', 'RUNPOD_POD_ID']
+ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
 
-def check_if_model_exist(
-    output_name, output_dir, save_model_as, headless=False
-):
+def check_if_model_exist(output_name, output_dir, save_model_as, headless=False):
     if headless:
         log.info(
-            'Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...'
+            "Headless mode, skipping verification if model already exist... if model already exist it will be overwritten..."
         )
         return False
 
-    if save_model_as in ['diffusers', 'diffusers_safetendors']:
+    if save_model_as in ["diffusers", "diffusers_safetendors"]:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
-            msg = f'A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?'
-            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
-                log.info(
-                    'Aborting training due to existing model with same name...'
-                )
+            msg = f"A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?"
+            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
+                log.info("Aborting training due to existing model with same name...")
                 return True
-    elif save_model_as in ['ckpt', 'safetensors']:
-        ckpt_file = os.path.join(output_dir, output_name + '.' + save_model_as)
+    elif save_model_as in ["ckpt", "safetensors"]:
+        ckpt_file = os.path.join(output_dir, output_name + "." + save_model_as)
         if os.path.isfile(ckpt_file):
-            msg = f'A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?'
-            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
-                log.info(
-                    'Aborting training due to existing model with same name...'
-                )
+            msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
+            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
+                log.info("Aborting training due to existing model with same name...")
                 return True
     else:
         log.info(
@@ -89,7 +81,7 @@ def check_if_model_exist(
     return False
 
 
-def output_message(msg='', title='', headless=False):
+def output_message(msg="", title="", headless=False):
     if headless:
         log.info(msg)
     else:
@@ -98,22 +90,17 @@ def output_message(msg='', title='', headless=False):
 
 def update_my_data(my_data):
     # Update the optimizer based on the use_8bit_adam flag
-    use_8bit_adam = my_data.get('use_8bit_adam', False)
-    my_data.setdefault('optimizer', 'AdamW8bit' if use_8bit_adam else 'AdamW')
+    use_8bit_adam = my_data.get("use_8bit_adam", False)
+    my_data.setdefault("optimizer", "AdamW8bit" if use_8bit_adam else "AdamW")
 
     # Update model_list to custom if empty or pretrained_model_name_or_path is not a preset model
-    model_list = my_data.get('model_list', [])
-    pretrained_model_name_or_path = my_data.get(
-        'pretrained_model_name_or_path', ''
-    )
-    if (
-        not model_list
-        or pretrained_model_name_or_path not in ALL_PRESET_MODELS
-    ):
-        my_data['model_list'] = 'custom'
+    model_list = my_data.get("model_list", [])
+    pretrained_model_name_or_path = my_data.get("pretrained_model_name_or_path", "")
+    if not model_list or pretrained_model_name_or_path not in ALL_PRESET_MODELS:
+        my_data["model_list"] = "custom"
 
     # Convert values to int if they are strings
-    for key in ['epoch', 'save_every_n_epochs', 'lr_warmup']:
+    for key in ["epoch", "save_every_n_epochs", "lr_warmup"]:
         value = my_data.get(key, 0)
         if isinstance(value, str) and value.strip().isdigit():
             my_data[key] = int(value)
@@ -121,7 +108,7 @@ def update_my_data(my_data):
             my_data[key] = 0
 
     # Convert values to float if they are strings
-    for key in ['noise_offset', 'learning_rate', 'text_encoder_lr', 'unet_lr']:
+    for key in ["noise_offset", "learning_rate", "text_encoder_lr", "unet_lr"]:
         value = my_data.get(key, 0)
         if isinstance(value, str) and value.strip().isdigit():
             my_data[key] = float(value)
@@ -129,28 +116,28 @@ def update_my_data(my_data):
             my_data[key] = 0
 
     # Update LoRA_type if it is set to LoCon
-    if my_data.get('LoRA_type', 'Standard') == 'LoCon':
-        my_data['LoRA_type'] = 'LyCORIS/LoCon'
+    if my_data.get("LoRA_type", "Standard") == "LoCon":
+        my_data["LoRA_type"] = "LyCORIS/LoCon"
 
     # Update model save choices due to changes for LoRA and TI training
-    if 'save_model_as' in my_data:
+    if "save_model_as" in my_data:
         if (
-            my_data.get('LoRA_type') or my_data.get('num_vectors_per_token')
-        ) and my_data.get('save_model_as') not in ['safetensors', 'ckpt']:
-            message = 'Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}'
-            if my_data.get('LoRA_type'):
-                log.info(message.format('LoRA'))
-            if my_data.get('num_vectors_per_token'):
-                log.info(message.format('TI'))
-            my_data['save_model_as'] = 'safetensors'
+            my_data.get("LoRA_type") or my_data.get("num_vectors_per_token")
+        ) and my_data.get("save_model_as") not in ["safetensors", "ckpt"]:
+            message = "Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}"
+            if my_data.get("LoRA_type"):
+                log.info(message.format("LoRA"))
+            if my_data.get("num_vectors_per_token"):
+                log.info(message.format("TI"))
+            my_data["save_model_as"] = "safetensors"
 
     # Update xformers if it is set to True and is a boolean
-    xformers_value = my_data.get('xformers', None)
+    xformers_value = my_data.get("xformers", None)
     if isinstance(xformers_value, bool):
         if xformers_value:
-            my_data['xformers'] = 'xformers'
+            my_data["xformers"] = "xformers"
         else:
-            my_data['xformers'] = 'none'
+            my_data["xformers"] = "none"
 
     return my_data
 
@@ -161,12 +148,9 @@ def get_dir_and_file(file_path):
 
 
 def get_file_path(
-    file_path='', default_extension='.json', extension_name='Config files'
+    file_path="", default_extension=".json", extension_name="Config files"
 ):
-    if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
-        and sys.platform != 'darwin'
-    ):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
 
@@ -174,14 +158,14 @@ def get_file_path(
 
         # Create a hidden Tkinter root window
         root = Tk()
-        root.wm_attributes('-topmost', 1)
+        root.wm_attributes("-topmost", 1)
         root.withdraw()
 
         # Show the open file dialog and get the selected file path
         file_path = filedialog.askopenfilename(
             filetypes=(
-                (extension_name, f'*{default_extension}'),
-                ('All files', '*.*'),
+                (extension_name, f"*{default_extension}"),
+                ("All files", "*.*"),
             ),
             defaultextension=default_extension,
             initialfile=initial_file,
@@ -200,18 +184,15 @@ def get_file_path(
     return file_path
 
 
-def get_any_file_path(file_path=''):
-    if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
-        and sys.platform != 'darwin'
-    ):
+def get_any_file_path(file_path=""):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
         root = Tk()
-        root.wm_attributes('-topmost', 1)
+        root.wm_attributes("-topmost", 1)
         root.withdraw()
         file_path = filedialog.askopenfilename(
             initialdir=initial_dir,
@@ -219,7 +200,7 @@ def get_any_file_path(file_path=''):
         )
         root.destroy()
 
-        if file_path == '':
+        if file_path == "":
             file_path = current_file_path
 
     return file_path
@@ -227,51 +208,45 @@ def get_any_file_path(file_path=''):
 
 def remove_doublequote(file_path):
     if file_path != None:
-        file_path = file_path.replace('"', '')
+        file_path = file_path.replace('"', "")
 
     return file_path
 
 
-def get_folder_path(folder_path=''):
-    if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
-        and sys.platform != 'darwin'
-    ):
+def get_folder_path(folder_path=""):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_folder_path = folder_path
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
 
         root = Tk()
-        root.wm_attributes('-topmost', 1)
+        root.wm_attributes("-topmost", 1)
         root.withdraw()
         folder_path = filedialog.askdirectory(initialdir=initial_dir)
         root.destroy()
 
-        if folder_path == '':
+        if folder_path == "":
             folder_path = current_folder_path
 
     return folder_path
 
 
 def get_saveasfile_path(
-    file_path='', defaultextension='.json', extension_name='Config files'
+    file_path="", defaultextension=".json", extension_name="Config files"
 ):
-    if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
-        and sys.platform != 'darwin'
-    ):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
         root = Tk()
-        root.wm_attributes('-topmost', 1)
+        root.wm_attributes("-topmost", 1)
         root.withdraw()
         save_file_path = filedialog.asksaveasfile(
             filetypes=(
-                (f'{extension_name}', f'{defaultextension}'),
-                ('All files', '*'),
+                (f"{extension_name}", f"{defaultextension}"),
+                ("All files", "*"),
             ),
             defaultextension=defaultextension,
             initialdir=initial_dir,
@@ -293,24 +268,21 @@ def get_saveasfile_path(
 
 
 def get_saveasfilename_path(
-    file_path='', extensions='*', extension_name='Config files'
+    file_path="", extensions="*", extension_name="Config files"
 ):
-    if (
-        not any(var in os.environ for var in ENV_EXCLUSION)
-        and sys.platform != 'darwin'
-    ):
+    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
         root = Tk()
-        root.wm_attributes('-topmost', 1)
+        root.wm_attributes("-topmost", 1)
         root.withdraw()
         save_file_path = filedialog.asksaveasfilename(
             filetypes=(
-                (f'{extension_name}', f'{extensions}'),
-                ('All files', '*'),
+                (f"{extension_name}", f"{extensions}"),
+                ("All files", "*"),
             ),
             defaultextension=extensions,
             initialdir=initial_dir,
@@ -318,7 +290,7 @@ def get_saveasfilename_path(
         )
         root.destroy()
 
-        if save_file_path == '':
+        if save_file_path == "":
             file_path = current_file_path
         else:
             # log.info(save_file_path)
@@ -328,10 +300,10 @@ def get_saveasfilename_path(
 
 
 def add_pre_postfix(
-    folder: str = '',
-    prefix: str = '',
-    postfix: str = '',
-    caption_file_ext: str = '.caption',
+    folder: str = "",
+    prefix: str = "",
+    postfix: str = "",
+    caption_file_ext: str = ".caption",
 ) -> None:
     """
     Add prefix and/or postfix to the content of caption files within a folder.
@@ -344,10 +316,10 @@ def add_pre_postfix(
         caption_file_ext (str, optional): Extension of the caption files.
     """
 
-    if prefix == '' and postfix == '':
+    if prefix == "" and postfix == "":
         return
 
-    image_extensions = ('.jpg', '.jpeg', '.png', '.webp')
+    image_extensions = (".jpg", ".jpeg", ".png", ".webp")
     image_files = [
         f for f in os.listdir(folder) if f.lower().endswith(image_extensions)
     ]
@@ -357,19 +329,19 @@ def add_pre_postfix(
         caption_file_path = os.path.join(folder, caption_file_name)
 
         if not os.path.exists(caption_file_path):
-            with open(caption_file_path, 'w', encoding='utf8') as f:
-                separator = ' ' if prefix and postfix else ''
-                f.write(f'{prefix}{separator}{postfix}')
+            with open(caption_file_path, "w", encoding="utf8") as f:
+                separator = " " if prefix and postfix else ""
+                f.write(f"{prefix}{separator}{postfix}")
         else:
-            with open(caption_file_path, 'r+', encoding='utf8') as f:
+            with open(caption_file_path, "r+", encoding="utf8") as f:
                 content = f.read()
                 content = content.rstrip()
                 f.seek(0, 0)
 
-                prefix_separator = ' ' if prefix else ''
-                postfix_separator = ' ' if postfix else ''
+                prefix_separator = " " if prefix else ""
+                postfix_separator = " " if postfix else ""
                 f.write(
-                    f'{prefix}{prefix_separator}{content}{postfix_separator}{postfix}'
+                    f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
                 )
 
 
@@ -391,10 +363,10 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
 
 
 def find_replace(
-    folder_path: str = '',
-    caption_file_ext: str = '.caption',
-    search_text: str = '',
-    replace_text: str = '',
+    folder_path: str = "",
+    caption_file_ext: str = ".caption",
+    search_text: str = "",
+    replace_text: str = "",
 ) -> None:
     """
     Find and replace text in caption files within a folder.
@@ -405,30 +377,26 @@ def find_replace(
         search_text (str, optional): Text to search for in the caption files.
         replace_text (str, optional): Text to replace the search text with.
     """
-    log.info('Running caption find/replace')
+    log.info("Running caption find/replace")
 
     if not has_ext_files(folder_path, caption_file_ext):
         msgbox(
-            f'No files with extension {caption_file_ext} were found in {folder_path}...'
+            f"No files with extension {caption_file_ext} were found in {folder_path}..."
         )
         return
 
-    if search_text == '':
+    if search_text == "":
         return
 
-    caption_files = [
-        f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)
-    ]
+    caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
 
     for caption_file in caption_files:
-        with open(
-            os.path.join(folder_path, caption_file), 'r', errors='ignore'
-        ) as f:
+        with open(os.path.join(folder_path, caption_file), "r", errors="ignore") as f:
             content = f.read()
 
         content = content.replace(search_text, replace_text)
 
-        with open(os.path.join(folder_path, caption_file), 'w') as f:
+        with open(os.path.join(folder_path, caption_file), "w") as f:
             f.write(content)
 
 
@@ -458,19 +426,19 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                 # Copy the v2-inference-v.yaml file to the current file, with a .yaml extension
                 if v2 and v_parameterization:
                     log.info(
-                        f'Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml'
+                        f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        f'./v2_inference/v2-inference-v.yaml',
-                        f'{output_dir}/{file_name}.yaml',
+                        f"./v2_inference/v2-inference-v.yaml",
+                        f"{output_dir}/{file_name}.yaml",
                     )
                 elif v2:
                     log.info(
-                        f'Saving v2-inference.yaml as {output_dir}/{file_name}.yaml'
+                        f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        f'./v2_inference/v2-inference.yaml',
-                        f'{output_dir}/{file_name}.yaml',
+                        f"./v2_inference/v2-inference.yaml",
+                        f"{output_dir}/{file_name}.yaml",
                     )
 
 
@@ -485,7 +453,7 @@ def set_pretrained_model_name_or_path_input(
 ):
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
-        log.info('SDXL model selected. Setting sdxl parameters')
+        log.info("SDXL model selected. Setting sdxl parameters")
         v2 = gr.Checkbox.update(value=False, visible=False)
         v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=True, visible=False)
@@ -506,7 +474,7 @@ def set_pretrained_model_name_or_path_input(
 
     # Check if the given model_list is in the list of V2 base models
     if str(model_list) in V2_BASE_MODELS:
-        log.info('SD v2 base model selected. Setting --v2 parameter')
+        log.info("SD v2 base model selected. Setting --v2 parameter")
         v2 = gr.Checkbox.update(value=True, visible=False)
         v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=False, visible=False)
@@ -528,7 +496,7 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given model_list is in the list of V parameterization models
     if str(model_list) in V_PARAMETERIZATION_MODELS:
         log.info(
-            'SD v2 model selected. Setting --v2 and --v_parameterization parameters'
+            "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
         v2 = gr.Checkbox.update(value=True, visible=False)
         v_parameterization = gr.Checkbox.update(value=True, visible=False)
@@ -550,7 +518,7 @@ def set_pretrained_model_name_or_path_input(
 
     # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
-        log.info(f'{model_list} model selected.')
+        log.info(f"{model_list} model selected.")
         v2 = gr.Checkbox.update(value=False, visible=False)
         v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=False, visible=False)
@@ -570,7 +538,7 @@ def set_pretrained_model_name_or_path_input(
         )
 
     # Check if the model_list is set to 'custom'
-    if model_list == 'custom':
+    if model_list == "custom":
         v2 = gr.Checkbox.update(visible=True)
         v_parameterization = gr.Checkbox.update(visible=True)
         sdxl = gr.Checkbox.update(visible=True)
@@ -593,12 +561,8 @@ def set_pretrained_model_name_or_path_input(
 ###
 
 
-def get_pretrained_model_name_or_path_file(
-    model_list, pretrained_model_name_or_path
-):
-    pretrained_model_name_or_path = get_any_file_path(
-        pretrained_model_name_or_path
-    )
+def get_pretrained_model_name_or_path_file(model_list, pretrained_model_name_or_path):
+    pretrained_model_name_or_path = get_any_file_path(pretrained_model_name_or_path)
     # set_model_list(model_list, pretrained_model_name_or_path)
 
 
@@ -612,7 +576,7 @@ def get_int_or_default(kwargs, key, default_value=0):
         return int(value)
     else:
         log.info(
-            f'{key} is not an int, float or a string, setting value to {default_value}'
+            f"{key} is not an int, float or a string, setting value to {default_value}"
         )
         return default_value
 
@@ -627,12 +591,12 @@ def get_float_or_default(kwargs, key, default_value=0.0):
         return float(value)
     else:
         log.info(
-            f'{key} is not an int, float or a string, setting value to {default_value}'
+            f"{key} is not an int, float or a string, setting value to {default_value}"
         )
         return default_value
 
 
-def get_str_or_default(kwargs, key, default_value=''):
+def get_str_or_default(kwargs, key, default_value=""):
     value = kwargs.get(key, default_value)
     if isinstance(value, str):
         return value
@@ -645,263 +609,264 @@ def get_str_or_default(kwargs, key, default_value=''):
 
 
 def run_cmd_training(**kwargs):
-    run_cmd = ''
+    run_cmd = ""
 
-    learning_rate = kwargs.get('learning_rate', '')
+    learning_rate = kwargs.get("learning_rate", "")
     if learning_rate:
         run_cmd += f' --learning_rate="{learning_rate}"'
 
-    lr_scheduler = kwargs.get('lr_scheduler', '')
+    lr_scheduler = kwargs.get("lr_scheduler", "")
     if lr_scheduler:
         run_cmd += f' --lr_scheduler="{lr_scheduler}"'
 
-    lr_warmup_steps = kwargs.get('lr_warmup_steps', '')
+    lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
     if lr_warmup_steps:
-        if lr_scheduler == 'constant':
-            log.info(
-                "Can't use LR warmup with LR Scheduler constant... ignoring..."
-            )
+        if lr_scheduler == "constant":
+            log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
         else:
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
-    train_batch_size = kwargs.get('train_batch_size', '')
+    train_batch_size = kwargs.get("train_batch_size", "")
     if train_batch_size:
         run_cmd += f' --train_batch_size="{train_batch_size}"'
 
-    max_train_steps = kwargs.get('max_train_steps', '')
+    max_train_steps = kwargs.get("max_train_steps", "")
     if max_train_steps:
         run_cmd += f' --max_train_steps="{max_train_steps}"'
 
-    save_every_n_epochs = kwargs.get('save_every_n_epochs')
+    save_every_n_epochs = kwargs.get("save_every_n_epochs")
     if save_every_n_epochs:
         run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
 
-    mixed_precision = kwargs.get('mixed_precision', '')
+    mixed_precision = kwargs.get("mixed_precision", "")
     if mixed_precision:
         run_cmd += f' --mixed_precision="{mixed_precision}"'
 
-    save_precision = kwargs.get('save_precision', '')
+    save_precision = kwargs.get("save_precision", "")
     if save_precision:
         run_cmd += f' --save_precision="{save_precision}"'
 
-    seed = kwargs.get('seed', '')
-    if seed != '':
+    seed = kwargs.get("seed", "")
+    if seed != "":
         run_cmd += f' --seed="{seed}"'
 
-    caption_extension = kwargs.get('caption_extension', '')
+    caption_extension = kwargs.get("caption_extension", "")
     if caption_extension:
         run_cmd += f' --caption_extension="{caption_extension}"'
 
-    cache_latents = kwargs.get('cache_latents')
+    cache_latents = kwargs.get("cache_latents")
     if cache_latents:
-        run_cmd += ' --cache_latents'
+        run_cmd += " --cache_latents"
 
-    cache_latents_to_disk = kwargs.get('cache_latents_to_disk')
+    cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
     if cache_latents_to_disk:
-        run_cmd += ' --cache_latents_to_disk'
+        run_cmd += " --cache_latents_to_disk"
 
-    optimizer_type = kwargs.get('optimizer', 'AdamW')
+    optimizer_type = kwargs.get("optimizer", "AdamW")
     run_cmd += f' --optimizer_type="{optimizer_type}"'
 
-    optimizer_args = kwargs.get('optimizer_args', '')
-    if optimizer_args != '':
-        run_cmd += f' --optimizer_args {optimizer_args}'
+    optimizer_args = kwargs.get("optimizer_args", "")
+    if optimizer_args != "":
+        run_cmd += f" --optimizer_args {optimizer_args}"
 
-    lr_scheduler_args = kwargs.get('lr_scheduler_args', '')
-    if lr_scheduler_args != '':
-        run_cmd += f' --lr_scheduler_args {lr_scheduler_args}'
-    
-    max_grad_norm = kwargs.get('max_grad_norm', '')
-    if max_grad_norm != '':
+    lr_scheduler_args = kwargs.get("lr_scheduler_args", "")
+    if lr_scheduler_args != "":
+        run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
+
+    max_grad_norm = kwargs.get("max_grad_norm", "")
+    if max_grad_norm != "":
         run_cmd += f' --max_grad_norm="{max_grad_norm}"'
-        
+
     return run_cmd
 
 
 def run_cmd_advanced_training(**kwargs):
-    run_cmd = ''
+    run_cmd = ""
 
-    max_train_epochs = kwargs.get('max_train_epochs', '')
-    if max_train_epochs:
-        run_cmd += f' --max_train_epochs={max_train_epochs}'
+    additional_parameters = kwargs.get("additional_parameters")
+    if additional_parameters:
+        run_cmd += f" {additional_parameters}"
 
-    max_data_loader_n_workers = kwargs.get('max_data_loader_n_workers', '')
-    if max_data_loader_n_workers:
+    bucket_no_upscale = kwargs.get("bucket_no_upscale")
+    if bucket_no_upscale:
+        run_cmd += " --bucket_no_upscale"
+
+    bucket_reso_steps = kwargs.get("bucket_reso_steps")
+    if bucket_reso_steps:
+        run_cmd += f" --bucket_reso_steps={int(bucket_reso_steps)}"
+
+    caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs")
+    if caption_dropout_every_n_epochs and int(caption_dropout_every_n_epochs) > 0:
         run_cmd += (
-            f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+            f' --caption_dropout_every_n_epochs="{int(caption_dropout_every_n_epochs)}"'
         )
 
-    max_token_length = int(kwargs.get('max_token_length', 75))
-    if max_token_length > 75:
-        run_cmd += f' --max_token_length={max_token_length}'
+    caption_dropout_rate = kwargs.get("caption_dropout_rate")
+    if caption_dropout_rate and float(caption_dropout_rate) > 0:
+        run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
 
-    clip_skip = int(kwargs.get('clip_skip', 1))
-    if clip_skip > 1:
-        run_cmd += f' --clip_skip={clip_skip}'
+    clip_skip = kwargs.get("clip_skip")
+    if clip_skip and int(clip_skip) > 1:
+        run_cmd += f" --clip_skip={int(clip_skip)}"
 
-    resume = kwargs.get('resume', '')
+    color_aug = kwargs.get("color_aug")
+    if color_aug:
+        run_cmd += " --color_aug"
+
+    flip_aug = kwargs.get("flip_aug")
+    if flip_aug:
+        run_cmd += " --flip_aug"
+
+    fp8_base = kwargs.get("fp8_base")
+    if fp8_base:
+        run_cmd += " --fp8_base"
+
+    full_fp16 = kwargs.get("full_fp16")
+    if full_fp16:
+        run_cmd += " --full_fp16"
+
+    gradient_checkpointing = kwargs.get("gradient_checkpointing")
+    if gradient_checkpointing:
+        run_cmd += " --gradient_checkpointing"
+
+    keep_tokens = kwargs.get("keep_tokens")
+    if keep_tokens and int(keep_tokens) > 0:
+        run_cmd += f' --keep_tokens="{int(keep_tokens)}"'
+
+
+    gpu_ids = kwargs.get("gpu_ids")
+    if gpu_ids:
+        run_cmd += f' --gpu_ids="{gpu_ids}"'
+
+    max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
+    if max_data_loader_n_workers:
+        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+
+    max_token_length = kwargs.get("max_token_length")
+    if max_token_length and int(max_token_length) > 75:
+        run_cmd += f" --max_token_length={int(max_token_length)}"
+
+    max_train_epochs = kwargs.get("max_train_epochs")
+    if max_train_epochs:
+        run_cmd += f" --max_train_epochs={max_train_epochs}"
+
+    min_snr_gamma = kwargs.get("min_snr_gamma")
+    if min_snr_gamma and int(min_snr_gamma) >= 1:
+        run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
+
+    max_timestep = kwargs.get("max_timestep")
+    if max_timestep and int(max_timestep) < 1000:
+        run_cmd += f" --max_timestep={int(max_timestep)}"
+
+    mem_eff_attn = kwargs.get("mem_eff_attn")
+    if mem_eff_attn:
+        run_cmd += " --mem_eff_attn"
+
+    min_timestep = kwargs.get("min_timestep")
+    if min_timestep and int(min_timestep) > 0:
+        run_cmd += f" --min_timestep={int(min_timestep)}"
+
+    multi_gpu = kwargs.get("multi_gpu")
+    if multi_gpu:
+        run_cmd += " --multi_gpu"
+
+    noise_offset_type = kwargs.get("noise_offset_type")
+    if noise_offset_type and noise_offset_type == "Original":
+        noise_offset = kwargs.get("noise_offset")
+        if noise_offset and float(noise_offset) > 0:
+            run_cmd += f" --noise_offset={float(noise_offset)}"
+
+        adaptive_noise_scale = kwargs.get("adaptive_noise_scale")
+        if adaptive_noise_scale and float(adaptive_noise_scale) != 0 and float(noise_offset) > 0:
+            run_cmd += f" --adaptive_noise_scale={float(adaptive_noise_scale)}"
+    elif noise_offset_type and noise_offset_type == "Multires":
+        multires_noise_iterations = kwargs.get("multires_noise_iterations")
+        if int(multires_noise_iterations) > 0:
+            run_cmd += f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
+
+        multires_noise_discount = kwargs.get("multires_noise_discount")
+        if multires_noise_discount and float(multires_noise_discount) > 0:
+            run_cmd += f' --multires_noise_discount="{float(multires_noise_discount)}"'
+    
+    num_machines = kwargs.get("num_machines")
+    if num_machines and int(num_machines) > 1:
+        run_cmd += f" --num_machines={int(num_machines)}"
+
+    num_processes = kwargs.get("num_processes")
+    if num_processes and int(num_processes) > 1:
+        run_cmd += f" --num_processes={int(num_processes)}"
+
+    num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
+    if num_cpu_threads_per_process and int(num_cpu_threads_per_process) > 1:
+        run_cmd += f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
+
+    persistent_data_loader_workers = kwargs.get("persistent_data_loader_workers")
+    if persistent_data_loader_workers:
+        run_cmd += " --persistent_data_loader_workers"
+
+    random_crop = kwargs.get("random_crop")
+    if random_crop:
+        run_cmd += " --random_crop"
+
+    resume = kwargs.get("resume")
     if resume:
         run_cmd += f' --resume="{resume}"'
 
-    keep_tokens = int(kwargs.get('keep_tokens', 0))
-    if keep_tokens > 0:
-        run_cmd += f' --keep_tokens="{keep_tokens}"'
+    save_every_n_steps = kwargs.get("save_every_n_steps")
+    if save_every_n_steps and int(save_every_n_steps) > 0:
+        run_cmd += f' --save_every_n_steps="{int(save_every_n_steps)}"'
 
-    caption_dropout_every_n_epochs = int(
-        kwargs.get('caption_dropout_every_n_epochs', 0)
-    )
-    if caption_dropout_every_n_epochs > 0:
-        run_cmd += f' --caption_dropout_every_n_epochs="{caption_dropout_every_n_epochs}"'
+    save_last_n_steps = kwargs.get("save_last_n_steps")
+    if save_last_n_steps and int(save_last_n_steps) > 0:
+        run_cmd += f' --save_last_n_steps="{int(save_last_n_steps)}"'
 
-    caption_dropout_rate = float(kwargs.get('caption_dropout_rate', 0))
-    if caption_dropout_rate > 0:
-        run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
+    save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
+    if save_last_n_steps_state and int(save_last_n_steps_state) > 0:
+        run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
 
-    vae_batch_size = int(kwargs.get('vae_batch_size', 0))
-    if vae_batch_size > 0:
-        run_cmd += f' --vae_batch_size="{vae_batch_size}"'
-
-    bucket_reso_steps = int(kwargs.get('bucket_reso_steps', 64))
-    run_cmd += f' --bucket_reso_steps={bucket_reso_steps}'
-
-    v_pred_like_loss = float(kwargs.get('v_pred_like_loss', 0))
-    if v_pred_like_loss > 0:
-        run_cmd += f' --v_pred_like_loss="{v_pred_like_loss}"'
-
-    save_every_n_steps = int(kwargs.get('save_every_n_steps', 0))
-    if save_every_n_steps > 0:
-        run_cmd += f' --save_every_n_steps="{save_every_n_steps}"'
-
-    save_last_n_steps = int(kwargs.get('save_last_n_steps', 0))
-    if save_last_n_steps > 0:
-        run_cmd += f' --save_last_n_steps="{save_last_n_steps}"'
-
-    save_last_n_steps_state = int(kwargs.get('save_last_n_steps_state', 0))
-    if save_last_n_steps_state > 0:
-        run_cmd += f' --save_last_n_steps_state="{save_last_n_steps_state}"'
-
-    min_snr_gamma = int(kwargs.get('min_snr_gamma', 0))
-    if min_snr_gamma >= 1:
-        run_cmd += f' --min_snr_gamma={min_snr_gamma}'
-
-    min_timestep = int(kwargs.get('min_timestep', 0))
-    if min_timestep > 0:
-        run_cmd += f' --min_timestep={min_timestep}'
-
-    max_timestep = int(kwargs.get('max_timestep', 1000))
-    if max_timestep < 1000:
-        run_cmd += f' --max_timestep={max_timestep}'
-
-    save_state = kwargs.get('save_state')
+    save_state = kwargs.get("save_state")
     if save_state:
-        run_cmd += ' --save_state'
+        run_cmd += " --save_state"
 
-    mem_eff_attn = kwargs.get('mem_eff_attn')
-    if mem_eff_attn:
-        run_cmd += ' --mem_eff_attn'
-
-    color_aug = kwargs.get('color_aug')
-    if color_aug:
-        run_cmd += ' --color_aug'
-
-    flip_aug = kwargs.get('flip_aug')
-    if flip_aug:
-        run_cmd += ' --flip_aug'
-
-    shuffle_caption = kwargs.get('shuffle_caption')
-    if shuffle_caption:
-        run_cmd += ' --shuffle_caption'
-
-    gradient_checkpointing = kwargs.get('gradient_checkpointing')
-    if gradient_checkpointing:
-        run_cmd += ' --gradient_checkpointing'
-
-    fp8_base = kwargs.get('fp8_base')
-    if fp8_base:
-        run_cmd += ' --fp8_base'
-
-    full_fp16 = kwargs.get('full_fp16')
-    if full_fp16:
-        run_cmd += ' --full_fp16'
-
-    xformers = kwargs.get('xformers')
-    if xformers == 'xformers':
-        run_cmd += ' --xformers'
-    elif xformers == 'sdpa':
-        run_cmd += ' --sdpa'
-
-    # sdpa = kwargs.get('sdpa')
-    # if sdpa:
-    #     run_cmd += ' --sdpa'
-
-    persistent_data_loader_workers = kwargs.get(
-        'persistent_data_loader_workers'
-    )
-    if persistent_data_loader_workers:
-        run_cmd += ' --persistent_data_loader_workers'
-
-    bucket_no_upscale = kwargs.get('bucket_no_upscale')
-    if bucket_no_upscale:
-        run_cmd += ' --bucket_no_upscale'
-
-    random_crop = kwargs.get('random_crop')
-    if random_crop:
-        run_cmd += ' --random_crop'
-
-    scale_v_pred_loss_like_noise_pred = kwargs.get(
-        'scale_v_pred_loss_like_noise_pred'
-    )
+    scale_v_pred_loss_like_noise_pred = kwargs.get("scale_v_pred_loss_like_noise_pred")
     if scale_v_pred_loss_like_noise_pred:
-        run_cmd += ' --scale_v_pred_loss_like_noise_pred'
+        run_cmd += " --scale_v_pred_loss_like_noise_pred"
 
-    noise_offset_type = kwargs.get('noise_offset_type', 'Original')
-    if noise_offset_type == 'Original':
-        noise_offset = float(kwargs.get('noise_offset', 0))
-        run_cmd += f' --noise_offset={noise_offset}'
+    shuffle_caption = kwargs.get("shuffle_caption")
+    if shuffle_caption:
+        run_cmd += " --shuffle_caption"
 
-        adaptive_noise_scale = float(kwargs.get('adaptive_noise_scale', 0))
-        if adaptive_noise_scale != 0 and noise_offset > 0:
-            run_cmd += f' --adaptive_noise_scale={adaptive_noise_scale}'
-    else:
-        multires_noise_iterations = int(
-            kwargs.get('multires_noise_iterations', 0)
-        )
-        if multires_noise_iterations > 0:
-            run_cmd += (
-                f' --multires_noise_iterations="{multires_noise_iterations}"'
-            )
-
-        multires_noise_discount = float(
-            kwargs.get('multires_noise_discount', 0)
-        )
-        if multires_noise_discount > 0:
-            run_cmd += (
-                f' --multires_noise_discount="{multires_noise_discount}"'
-            )
-
-    additional_parameters = kwargs.get('additional_parameters', '')
-    if additional_parameters:
-        run_cmd += f' {additional_parameters}'
-
-    use_wandb = kwargs.get('use_wandb')
+    use_wandb = kwargs.get("use_wandb")
     if use_wandb:
-        run_cmd += ' --log_with wandb'
+        run_cmd += " --log_with wandb"
 
-    wandb_api_key = kwargs.get('wandb_api_key', '')
-    if wandb_api_key:
-        run_cmd += f' --wandb_api_key="{wandb_api_key}"'
-        
-    vae = kwargs.get(
-        'vae'
-    )
+    v_pred_like_loss = kwargs.get("v_pred_like_loss")
+    if v_pred_like_loss and float(v_pred_like_loss) > 0:
+        run_cmd += f' --v_pred_like_loss="{float(v_pred_like_loss)}"'
+
+    vae = kwargs.get("vae")
     if vae:
         run_cmd += f' --vae="{vae}"'
+
+    vae_batch_size = kwargs.get("vae_batch_size")
+    if vae_batch_size and int(vae_batch_size) > 0:
+        run_cmd += f' --vae_batch_size="{int(vae_batch_size)}"'
+
+    wandb_api_key = kwargs.get("wandb_api_key")
+    if wandb_api_key:
+        run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+
+    xformers = kwargs.get("xformers")
+    if xformers and xformers == "xformers":
+        run_cmd += " --xformers"
+    elif xformers and xformers == "sdpa":
+        run_cmd += " --sdpa"
 
     return run_cmd
 
 
 def verify_image_folder_pattern(folder_path):
-    false_response = True   # temporarily set to true to prevent stopping training in case of false positive
+    false_response = True  # temporarily set to true to prevent stopping training in case of false positive
     true_response = True
 
     # Check if the folder exists
@@ -915,7 +880,7 @@ def verify_image_folder_pattern(folder_path):
     # The pattern should start with one or more digits (\d+) followed by an underscore (_)
     # After the underscore, it should match one or more word characters (\w+), which can be letters, numbers, or underscores
     # Example of a valid pattern matching name: 123_example_folder
-    pattern = r'^\d+_\w+'
+    pattern = r"^\d+_\w+"
 
     # Get the list of sub-folders in the directory
     subfolders = [
@@ -938,25 +903,25 @@ def verify_image_folder_pattern(folder_path):
             f"The following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}"
         )
         log.error(
-            f'Please follow the folder structure documentation found at docs\image_folder_structure.md ...'
+            f"Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
         )
         return false_response
 
     # Check if no sub-folders exist
     if not matching_subfolders:
         log.error(
-            f'No image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ...'
+            f"No image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
         )
         return false_response
 
-    log.info(f'Valid image folder names found in: {folder_path}')
+    log.info(f"Valid image folder names found in: {folder_path}")
     return true_response
 
 
 def SaveConfigFile(
     parameters,
     file_path: str,
-    exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+    exclusion=["file_path", "save_as", "headless", "print_only"],
 ):
     # Return the values of the variables as a dictionary
     variables = {
@@ -966,33 +931,31 @@ def SaveConfigFile(
     }
 
     # Save the data to the selected file
-    with open(file_path, 'w') as file:
+    with open(file_path, "w") as file:
         json.dump(variables, file, indent=2)
 
 
 def save_to_file(content):
-    logs_directory = 'logs'
-    file_path = os.path.join(logs_directory, 'print_command.txt')
+    logs_directory = "logs"
+    file_path = os.path.join(logs_directory, "print_command.txt")
 
     try:
         # Create the 'logs' directory if it does not exist
         if not os.path.exists(logs_directory):
             os.makedirs(logs_directory)
 
-        with open(file_path, 'a') as file:
-            file.write(content + '\n')
+        with open(file_path, "a") as file:
+            file.write(content + "\n")
     except IOError as e:
-        print(f'Error: Could not write to file - {e}')
+        print(f"Error: Could not write to file - {e}")
     except OSError as e:
         print(f"Error: Could not create 'logs' directory - {e}")
 
 
 def check_duplicate_filenames(
-    folder_path, image_extension=['.gif', '.png', '.jpg', '.jpeg', '.webp']
+    folder_path, image_extension=[".gif", ".png", ".jpg", ".jpeg", ".webp"]
 ):
-    log.info(
-        'Checking for duplicate image filenames in training data directory...'
-    )
+    log.info("Checking for duplicate image filenames in training data directory...")
     for root, dirs, files in os.walk(folder_path):
         filenames = {}
         for file in files:
@@ -1005,8 +968,8 @@ def check_duplicate_filenames(
                         print(
                             f"Warning: Same filename '{filename}' with different image extension found. This will cause training issues. Rename one of the file."
                         )
-                        print(f'Existing file: {existing_path}')
-                        print(f'Current file: {full_path}')
+                        print(f"Existing file: {existing_path}")
+                        print(f"Current file: {full_path}")
                 else:
                     filenames[filename] = full_path
 
@@ -1017,11 +980,9 @@ def is_file_writable(file_path):
         return True
 
     try:
-        log.warning(
-            f"File '{file_path}' already exist... it will be overwritten..."
-        )
+        log.warning(f"File '{file_path}' already exist... it will be overwritten...")
         # Check if the file can be opened in write mode (which implies it's not open by another process)
-        with open(file_path, 'a'):
+        with open(file_path, "a"):
             pass
         return True
     except IOError:

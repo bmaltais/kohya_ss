@@ -299,6 +299,28 @@ class AdvancedTraining:
                 value='0',
             )
         with gr.Row():
+            self.num_processes = gr.Number(
+                label='Number of processes',
+                value=1,
+                precision=0,
+                minimum=1
+            )
+            self.num_machines = gr.Number(
+                label='Number of machines',
+                value=1,
+                precision=0,
+                minimum=1
+            )
+            self.multi_gpu = gr.Checkbox(
+                label='Multi GPU',
+                value=False
+            )
+            self.gpu_ids = gr.Textbox(
+                label='GPU IDs',
+                value="",
+                placeholder="example: 0,1"
+            )
+        with gr.Row():
             self.wandb_api_key = gr.Textbox(
                 label='WANDB API Key',
                 value='',

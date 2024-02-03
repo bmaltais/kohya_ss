@@ -101,6 +101,10 @@ def save_configuration(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -225,6 +229,10 @@ def open_configuration(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -344,6 +352,10 @@ def train_model(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -539,9 +551,15 @@ def train_model(
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
-    run_cmd = (
-        f"accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}"
-    )
+    run_cmd = "accelerate launch"
+        
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process)
+    
     if sdxl:
         run_cmd += f' "./sdxl_train.py"'
     else:
@@ -827,6 +845,10 @@ def dreambooth_tab(
             advanced_training.flip_aug,
             advanced_training.clip_skip,
             advanced_training.vae,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             folders.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
