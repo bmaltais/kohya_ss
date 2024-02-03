@@ -3,6 +3,7 @@ import json
 import math
 import os
 import argparse
+import lycoris
 from datetime import datetime
 from library.common_gui import (
     get_file_path,
@@ -746,118 +747,37 @@ def train_model(
     else:
         run_cmd += f' "./train_network.py"'
 
-    run_cmd += f' --network_alpha="{network_alpha}"'
-    if not training_comment == "":
-        run_cmd += f' --training_comment="{training_comment}"'
-
     if LoRA_type == "LyCORIS/Diag-OFT":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" '
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" '
 
     if LoRA_type == "LyCORIS/DyLoRA":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/GLoRA":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/iA3":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoHa":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoKr":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -873,7 +793,7 @@ def train_model(
             "module_dropout",
         ]
 
-        run_cmd += f" --network_module=networks.lora"
+        network_module = "networks.lora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -887,9 +807,6 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f' {key}="{value}"'
-
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
 
     if LoRA_type in [
         "LoRA-FA",
@@ -907,7 +824,7 @@ def train_model(
             "module_dropout",
         ]
 
-        run_cmd += f" --network_module=networks.lora_fa"
+        network_module = "networks.lora_fa"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -921,9 +838,6 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f' {key}="{value}"'
-
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
 
     if LoRA_type in ["Kohya DyLoRA"]:
         kohya_lora_var_list = [
@@ -942,7 +856,7 @@ def train_model(
             "unit",
         ]
 
-        run_cmd += f" --network_module=networks.dylora"
+        network_module = "networks.dylora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -955,50 +869,37 @@ def train_model(
             if value:
                 network_args += f' {key}="{value}"'
 
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
+    network_train_text_encoder_only = False
+    network_train_unet_only = False
 
-    if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
-        if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
-            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
-            run_cmd += f" --unet_lr={unet_lr}"
-        elif not (float(text_encoder_lr) == 0):
-            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
-            run_cmd += f" --network_train_text_encoder_only"
-        else:
-            run_cmd += f" --unet_lr={unet_lr}"
-            run_cmd += f" --network_train_unet_only"
-    else:
+    # Convert learning rates to float once and store the result for re-use
+    if text_encoder_lr is None:
+        output_message(
+            msg="Please input valid Text Encoder learning rate (between 0 and 1)", headless=headless_bool
+        )
+        return
+    if unet_lr is None:
+        output_message(
+            msg="Please input valid Unet learning rate (between 0 and 1)", headless=headless_bool
+        )
+        return
+    text_encoder_lr_float = float(text_encoder_lr)
+    unet_lr_float = float(unet_lr)
+    
+    
+
+    # Determine the training configuration based on learning rate values
+    if text_encoder_lr_float == 0 and unet_lr_float == 0:
         if float(learning_rate) == 0:
             output_message(
-                msg="Please input learning rate values.",
-                headless=headless_bool,
+                msg="Please input learning rate values.", headless=headless_bool
             )
             return
-
-    run_cmd += f" --network_dim={network_dim}"
-
-    # if LoRA_type not in ['LyCORIS/LoCon']:
-    if not lora_network_weights == "":
-        run_cmd += f' --network_weights="{lora_network_weights}"'
-        if dim_from_weights:
-            run_cmd += f" --dim_from_weights"
-
-    if scale_weight_norms > 0.0:
-        run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
-
-    if network_dropout > 0.0:
-        run_cmd += f' --network_dropout="{network_dropout}"'
-
-    if sdxl:
-        if sdxl_cache_text_encoder_outputs:
-            run_cmd += f" --cache_text_encoder_outputs"
-
-        if sdxl_no_half_vae:
-            run_cmd += f" --no_half_vae"
-
-    if debiased_estimation_loss:
-        run_cmd += " --debiased_estimation_loss"
+    elif text_encoder_lr_float != 0 and unet_lr_float == 0:
+        network_train_text_encoder_only = True
+    elif text_encoder_lr_float == 0 and unet_lr_float != 0:
+        network_train_unet_only = True
+    # If both learning rates are non-zero, no specific flags need to be set
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -1007,11 +908,14 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
+        cache_text_encoder_outputs=True if sdxl and sdxl_cache_text_encoder_outputs else None,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         caption_extension=caption_extension,
         clip_skip=clip_skip,
         color_aug=color_aug,
+        debiased_estimation_loss=debiased_estimation_loss,
+        dim_from_weights=dim_from_weights,
         enable_bucket=enable_bucket,
         epoch=epoch,
         flip_aug=flip_aug,
@@ -1023,6 +927,7 @@ def train_model(
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
         logging_dir=logging_dir,
+        lora_network_weights=lora_network_weights,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
         lr_scheduler_num_cycles=lr_scheduler_num_cycles,
@@ -1043,6 +948,14 @@ def train_model(
         mixed_precision=mixed_precision,
         multires_noise_discount=multires_noise_discount,
         multires_noise_iterations=multires_noise_iterations,
+        network_alpha=network_alpha,
+        network_args=network_args,
+        network_dim=network_dim,
+        network_dropout=network_dropout,
+        network_module=network_module,
+        network_train_unet_only=network_train_unet_only,
+        network_train_text_encoder_only=network_train_text_encoder_only,
+        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
         no_token_padding=no_token_padding,
         noise_offset=noise_offset,
         noise_offset_type=noise_offset_type,
@@ -1064,11 +977,15 @@ def train_model(
         save_precision=save_precision,
         save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
+        scale_weight_norms=scale_weight_norms,
         seed=seed,
         shuffle_caption=shuffle_caption,
         stop_text_encoder_training=stop_text_encoder_training,
+        text_encoder_lr=text_encoder_lr,
         train_batch_size=train_batch_size,
         train_data_dir=train_data_dir,
+        training_comment=training_comment,
+        unet_lr=unet_lr,
         use_wandb=use_wandb,
         v2=v2,
         v_parameterization=v_parameterization,
@@ -1245,13 +1162,18 @@ def lora_tab(
                 with gr.Row():
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
-                        value="5e-5",
-                        info="Optional. Se",
+                        value="0.0001",
+                        info="Optional",
+                        minimum=0,
+                        maximum=1,
                     )
+                    
                     unet_lr = gr.Number(
                         label="Unet learning rate",
                         value="0.0001",
                         info="Optional",
+                        minimum=0,
+                        maximum=1,
                     )
 
                 # Add SDXL Parameters

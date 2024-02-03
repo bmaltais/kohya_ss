@@ -733,6 +733,16 @@ def run_cmd_advanced_training(**kwargs):
     if dataset_repeats:
         run_cmd += f' --dataset_repeats="{dataset_repeats}"'
 
+    debiased_estimation_loss = kwargs.get("debiased_estimation_loss")
+    if debiased_estimation_loss:
+        run_cmd += " --debiased_estimation_loss"
+
+    dim_from_weights = kwargs.get("dim_from_weights")
+    if dim_from_weights and kwargs.get(
+        "lora_network_weights"
+    ):  # Only if lora_network_weights is true
+        run_cmd += f" --dim_from_weights"
+
     enable_bucket = kwargs.get("enable_bucket")
     if enable_bucket:
         min_bucket_reso = kwargs.get("min_bucket_reso")
@@ -791,6 +801,10 @@ def run_cmd_advanced_training(**kwargs):
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
         run_cmd += f' --logging_dir="{logging_dir}"'
+
+    lora_network_weights = kwargs.get("lora_network_weights")
+    if lora_network_weights:
+        run_cmd += f' --lora_network_weights="{lora_network_weights}"'
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
@@ -870,6 +884,34 @@ def run_cmd_advanced_training(**kwargs):
     multi_gpu = kwargs.get("multi_gpu")
     if multi_gpu:
         run_cmd += " --multi_gpu"
+
+    network_alpha = kwargs.get("network_alpha")
+    if network_alpha:
+        run_cmd += f' --network_alpha="{network_alpha}"'
+
+    network_args = kwargs.get("network_args")
+    if network_args and len(network_args):
+        run_cmd += f" --network_args{network_args}"
+
+    network_dim = kwargs.get("network_dim")
+    if network_dim:
+        run_cmd += f" --network_dim={network_dim}"
+
+    network_dropout = kwargs.get("network_dropout")
+    if network_dropout and network_dropout > 0.0:
+        run_cmd += f" --network_dropout={network_dropout}"
+
+    network_module = kwargs.get("network_module")
+    if network_module:
+        run_cmd += f" --network_module={network_module}"
+
+    network_train_text_encoder_only = kwargs.get("network_train_text_encoder_only")
+    if network_train_text_encoder_only:
+        run_cmd += " --network_train_text_encoder_only"
+
+    network_train_unet_only = kwargs.get("network_train_unet_only")
+    if network_train_unet_only:
+        run_cmd += " --network_train_unet_only"
 
     no_half_vae = kwargs.get("no_half_vae")
     if no_half_vae:
@@ -987,6 +1029,10 @@ def run_cmd_advanced_training(**kwargs):
     if scale_v_pred_loss_like_noise_pred:
         run_cmd += " --scale_v_pred_loss_like_noise_pred"
 
+    scale_weight_norms = kwargs.get("scale_weight_norms")
+    if scale_weight_norms and scale_weight_norms > 0.0:
+        run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
+
     seed = kwargs.get("seed")
     if seed and seed != "":
         run_cmd += f' --seed="{seed}"'
@@ -999,9 +1045,17 @@ def run_cmd_advanced_training(**kwargs):
     if stop_text_encoder_training and stop_text_encoder_training > 0:
         run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
 
+    text_encoder_lr = kwargs.get("text_encoder_lr")
+    if text_encoder_lr and (float(text_encoder_lr) > 0):
+        run_cmd += f" --text_encoder_lr={text_encoder_lr}"
+
     train_batch_size = kwargs.get("train_batch_size")
     if train_batch_size:
         run_cmd += f' --train_batch_size="{train_batch_size}"'
+
+    training_comment = kwargs.get("training_comment")
+    if training_comment and len(training_comment):
+        run_cmd += f' --training_comment="{training_comment}"'
 
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
@@ -1010,6 +1064,10 @@ def run_cmd_advanced_training(**kwargs):
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:
         run_cmd += " --train_text_encoder"
+
+    unet_lr = kwargs.get("unet_lr")
+    if unet_lr and (float(unet_lr) > 0):
+        run_cmd += f" --unet_lr={unet_lr}"
 
     use_wandb = kwargs.get("use_wandb")
     if use_wandb:
