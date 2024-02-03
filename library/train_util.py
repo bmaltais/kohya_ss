@@ -4741,7 +4741,7 @@ def sample_images_common(
             for prompt_dict in prompts:
                 sample_image_inference(accelerator, args, pipeline, save_dir, prompt_dict, epoch, steps, prompt_replacement, controlnet=controlnet)
     else:
-        # Creating list with N elements, where each element is a list of prompt_dicts, and N is the number of processess available (number of devices available)
+        # Creating list with N elements, where each element is a list of prompt_dicts, and N is the number of processes available (number of devices available)
         # prompt_dicts are assigned to lists based on order of processes, to attempt to time the image creation time to match enum order. Probably only works when steps and sampler are identical.
         per_process_prompts = [] # list of lists
         for i in range(distributed_state.num_processes):
