@@ -2,11 +2,12 @@
 # This code is based off the extract_lora_from_models.py file which is based on https://github.com/cloneofsimo/lora/blob/develop/lora_diffusion/cli_svd.py
 # Thanks to cloneofsimo
 
+import os
 import argparse
 import torch
-from safetensors.torch import load_file, save_file, safe_open
+from safetensors.torch import load_file, save_file
 from tqdm import tqdm
-from library import train_util, model_util
+from library import train_util
 import numpy as np
 
 MIN_SV = 1e-6
@@ -14,32 +15,29 @@ MIN_SV = 1e-6
 # Model save and load functions
 
 def load_state_dict(file_name, dtype):
-    if model_util.is_safetensors(file_name):
+    if os.path.splitext(file_name)[1] == ".safetensors":
         sd = load_file(file_name)
-        with safe_open(file_name, framework="pt") as f:
-            metadata = f.metadata()
+        metadata = train_util.load_metadata_from_safetensors(file_name)
     else:
-        sd = torch.load(file_name, map_location='cpu')
-        metadata = None
+        sd = torch.load(file_name, map_location="cpu")
+        metadata = {}
 
     for key in list(sd.keys()):
-        if type(sd[key]) == torch.Tensor:
+        if isinstance(sd[key], torch.Tensor):
             sd[key] = sd[key].to(dtype)
 
     return sd, metadata
 
-
-def save_to_file(file_name, model, state_dict, dtype, metadata):
+def save_to_file(file_name, state_dict, dtype, metadata):
     if dtype is not None:
         for key in list(state_dict.keys()):
-            if type(state_dict[key]) == torch.Tensor:
+            if isinstance(state_dict[key], torch.Tensor):
                 state_dict[key] = state_dict[key].to(dtype)
 
-    if model_util.is_safetensors(file_name):
-        save_file(model, file_name, metadata)
+    if os.path.splitext(file_name)[1] == ".safetensors":
+        save_file(state_dict, file_name, metadata=metadata)
     else:
-        torch.save(model, file_name)
-
+        torch.save(state_dict, file_name)
 
 # Indexing functions
 
@@ -54,8 +52,8 @@ def index_sv_cumulative(S, target):
 
 def index_sv_fro(S, target):
     S_squared = S.pow(2)
-    s_fro_sq = float(torch.sum(S_squared))
-    sum_S_squared = torch.cumsum(S_squared, dim=0)/s_fro_sq
+    S_fro_sq = float(torch.sum(S_squared))
+    sum_S_squared = torch.cumsum(S_squared, dim=0)/S_fro_sq
     index = int(torch.searchsorted(sum_S_squared, target**2)) + 1
     index = max(1, min(index, len(S)-1))
 
@@ -184,7 +182,7 @@ def rank_resize(S, rank, dynamic_method, dynamic_param, scale=1):
     return param_dict
 
 
-def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dynamic_param, verbose):
+def resize_lora_model(lora_sd, new_rank, new_conv_rank, save_dtype, device, dynamic_method, dynamic_param, verbose):
     network_alpha = None
     network_dim = None
     verbose_str = "\n"
@@ -240,7 +238,7 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
 
                 if conv2d:
                     full_weight_matrix = merge_conv(lora_down_weight, lora_up_weight, device)
-                    param_dict = extract_conv(full_weight_matrix, new_rank, dynamic_method, dynamic_param, device, scale)
+                    param_dict = extract_conv(full_weight_matrix, new_conv_rank, dynamic_method, dynamic_param, device, scale)
                 else:
                     full_weight_matrix = merge_linear(lora_down_weight, lora_up_weight, device)
                     param_dict = extract_linear(full_weight_matrix, new_rank, dynamic_method, dynamic_param, device, scale)
@@ -290,6 +288,8 @@ def resize(args):
              ):
         raise Exception("The --save_to argument must be specified and must be a .ckpt , .pt, .pth or .safetensors file.")
 
+    args.new_conv_rank = args.new_conv_rank if args.new_conv_rank is not None else args.new_rank
+
     def str_to_dtype(p):
         if p == 'float':
             return torch.float
@@ -311,7 +311,7 @@ def resize(args):
     lora_sd, metadata = load_state_dict(args.model, merge_dtype)
 
     print("Resizing Lora...")
-    state_dict, old_dim, new_alpha = resize_lora_model(lora_sd, args.new_rank, save_dtype, args.device, args.dynamic_method, args.dynamic_param, args.verbose)
+    state_dict, old_dim, new_alpha = resize_lora_model(lora_sd, args.new_rank, args.new_conv_rank, save_dtype, args.device, args.dynamic_method, args.dynamic_param, args.verbose)
 
     # update metadata
     if metadata is None:
@@ -333,7 +333,7 @@ def resize(args):
     metadata["sshs_legacy_hash"] = legacy_hash
 
     print(f"saving model to: {args.save_to}")
-    save_to_file(args.save_to, state_dict, state_dict, save_dtype, metadata)
+    save_to_file(args.save_to, state_dict, save_dtype, metadata)
 
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -343,6 +343,8 @@ def setup_parser() -> argparse.ArgumentParser:
                         choices=[None, "float", "fp16", "bf16"], help="precision in saving, float if omitted / 保存時の精度、未指定時はfloat")
     parser.add_argument("--new_rank", type=int, default=4,
                         help="Specify rank of output LoRA / 出力するLoRAのrank (dim)")
+    parser.add_argument("--new_conv_rank", type=int, default=None,
+                        help="Specify rank of output LoRA for Conv2d 3x3, None for same as new_rank / 出力するConv2D 3x3 LoRAのrank (dim)、Noneでnew_rankと同じ")
     parser.add_argument("--save_to", type=str, default=None,
                         help="destination file name: ckpt or safetensors file / 保存先のファイル名、ckptまたはsafetensors")
     parser.add_argument("--model", type=str, default=None,
