@@ -29,5 +29,7 @@ huggingface-hub==0.20.1
 # protobuf==3.20.3
 # open clip for SDXL
 open-clip-torch==2.20.0
+# For logging
+rich==13.7.0
 # for kohya_ss library
 -e .

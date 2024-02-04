@@ -26,7 +26,10 @@ from diffusers.models.modeling_utils import ModelMixin
 from diffusers.models.unet_2d_blocks import UNetMidBlock2D, get_down_block, get_up_block
 from diffusers.models.vae import DecoderOutput, DiagonalGaussianDistribution
 from diffusers.models.autoencoder_kl import AutoencoderKLOutput
-
+from .utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def slice_h(x, num_slices):
     # slice with pad 1 both sides: to eliminate side effect of padding of conv2d
@@ -89,7 +92,7 @@ def resblock_forward(_self, num_slices, input_tensor, temb, **kwargs):
     #     sliced_tensor = torch.chunk(x, num_div, dim=1)
     #     sliced_weight = torch.chunk(norm.weight, num_div, dim=0)
     #     sliced_bias = torch.chunk(norm.bias, num_div, dim=0)
-    #     print(sliced_tensor[0].shape, num_div, sliced_weight[0].shape, sliced_bias[0].shape)
+    #     logger.info(sliced_tensor[0].shape, num_div, sliced_weight[0].shape, sliced_bias[0].shape)
     #     normed_tensor = []
     #     for i in range(num_div):
     #         n = torch.group_norm(sliced_tensor[i], norm.num_groups, sliced_weight[i], sliced_bias[i], norm.eps)
@@ -243,7 +246,7 @@ class SlicingEncoder(nn.Module):
 
         self.num_slices = num_slices
         div = num_slices / (2 ** (len(self.down_blocks) - 1))  # 深い層はそこまで分割しなくていいので適宜減らす
-        # print(f"initial divisor: {div}")
+        # logger.info(f"initial divisor: {div}")
         if div >= 2:
             div = int(div)
             for resnet in self.mid_block.resnets:
@@ -253,11 +256,11 @@ class SlicingEncoder(nn.Module):
         for i, down_block in enumerate(self.down_blocks[::-1]):
             if div >= 2:
                 div = int(div)
-                # print(f"down block: {i} divisor: {div}")
+                # logger.info(f"down block: {i} divisor: {div}")
                 for resnet in down_block.resnets:
                     resnet.forward = wrapper(resblock_forward, resnet, div)
                 if down_block.downsamplers is not None:
-                    # print("has downsample")
+                    # logger.info("has downsample")
                     for downsample in down_block.downsamplers:
                         downsample.forward = wrapper(self.downsample_forward, downsample, div * 2)
             div *= 2
@@ -307,7 +310,7 @@ class SlicingEncoder(nn.Module):
     def downsample_forward(self, _self, num_slices, hidden_states):
         assert hidden_states.shape[1] == _self.channels
         assert _self.use_conv and _self.padding == 0
-        print("downsample forward", num_slices, hidden_states.shape)
+        logger.info(f"downsample forward {num_slices} {hidden_states.shape}")
 
         org_device = hidden_states.device
         cpu_device = torch.device("cpu")
@@ -350,7 +353,7 @@ class SlicingEncoder(nn.Module):
                 hidden_states = torch.cat([hidden_states, x], dim=2)
 
         hidden_states = hidden_states.to(org_device)
-        # print("downsample forward done", hidden_states.shape)
+        # logger.info(f"downsample forward done {hidden_states.shape}")
         return hidden_states
 
 
@@ -426,7 +429,7 @@ class SlicingDecoder(nn.Module):
 
         self.num_slices = num_slices
         div = num_slices / (2 ** (len(self.up_blocks) - 1))
-        print(f"initial divisor: {div}")
+        logger.info(f"initial divisor: {div}")
         if div >= 2:
             div = int(div)
             for resnet in self.mid_block.resnets:
@@ -436,11 +439,11 @@ class SlicingDecoder(nn.Module):
         for i, up_block in enumerate(self.up_blocks):
             if div >= 2:
                 div = int(div)
-                # print(f"up block: {i} divisor: {div}")
+                # logger.info(f"up block: {i} divisor: {div}")
                 for resnet in up_block.resnets:
                     resnet.forward = wrapper(resblock_forward, resnet, div)
                 if up_block.upsamplers is not None:
-                    # print("has upsample")
+                    # logger.info("has upsample")
                     for upsample in up_block.upsamplers:
                         upsample.forward = wrapper(self.upsample_forward, upsample, div * 2)
             div *= 2
@@ -528,7 +531,7 @@ class SlicingDecoder(nn.Module):
             del x
 
         hidden_states = torch.cat(sliced, dim=2)
-        # print("us hidden_states", hidden_states.shape)
+        # logger.info(f"us hidden_states {hidden_states.shape}")
         del sliced
 
         hidden_states = hidden_states.to(org_device)
