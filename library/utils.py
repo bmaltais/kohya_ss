@@ -1,4 +1,5 @@
 import logging
+import sys
 import threading
 from typing import *
 
@@ -11,9 +12,15 @@ def setup_logging(log_level=logging.INFO):
     if logging.root.handlers:  # Already configured
         return
 
-    from rich.logging import RichHandler
+    try:
+        from rich.logging import RichHandler
 
-    handler = RichHandler()
+        handler = RichHandler()
+    except ImportError:
+        print("rich is not installed, using basic logging")
+        handler = logging.StreamHandler(sys.stdout)  # same as print
+        handler.propagate = False
+
     formatter = logging.Formatter(
         fmt="%(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
