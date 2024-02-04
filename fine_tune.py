@@ -18,9 +18,11 @@ init_ipex()
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 
-from library.utils import setup_logging
+from library.utils import setup_logging, add_logging_arguments
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 import library.train_util as train_util
 import library.config_util as config_util
@@ -41,6 +43,7 @@ from library.custom_train_functions import (
 def train(args):
     train_util.verify_training_args(args)
     train_util.prepare_dataset_args(args, True)
+    setup_logging(args, reset=True)
 
     cache_latents = args.cache_latents
 
@@ -227,7 +230,9 @@ def train(args):
         args.max_train_steps = args.max_train_epochs * math.ceil(
             len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
         )
-        accelerator.print(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+        accelerator.print(
+            f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}"
+        )
 
     # データセット側にも学習ステップを送信
     train_dataset_group.set_max_train_steps(args.max_train_steps)
@@ -291,7 +296,7 @@ def train(args):
     if accelerator.is_main_process:
         init_kwargs = {}
         if args.wandb_run_name:
-            init_kwargs['wandb'] = {'name': args.wandb_run_name}
+            init_kwargs["wandb"] = {"name": args.wandb_run_name}
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
@@ -471,6 +476,7 @@ def train(args):
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)  # モジュール指定がないのがちょっと気持ち悪い / bit weird that this does not have module prefix
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, False, True, True)
     train_util.add_training_arguments(parser, False)
@@ -479,7 +485,9 @@ def setup_parser() -> argparse.ArgumentParser:
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)
 
-    parser.add_argument("--diffusers_xformers", action="store_true", help="use xformers by diffusers / Diffusersでxformersを使用する")
+    parser.add_argument(
+        "--diffusers_xformers", action="store_true", help="use xformers by diffusers / Diffusersでxformersを使用する"
+    )
     parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
     parser.add_argument(
         "--learning_rate_te",
