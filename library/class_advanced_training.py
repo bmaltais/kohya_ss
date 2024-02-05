@@ -21,9 +21,10 @@ class AdvancedTraining:
                 )
 
         with gr.Row(visible=not finetuning):
-            self.no_token_padding = gr.Checkbox(
-                label='No token padding', value=False
-            )
+            if training_type != "lora": # Not avaible for LoRA
+                self.no_token_padding = gr.Checkbox(
+                    label='No token padding', value=False
+                )
             self.gradient_accumulation_steps = gr.Slider(
                 label='Gradient accumulate steps',
                 info='Number of updates steps to accumulate before performing a backward/update pass',

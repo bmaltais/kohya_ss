@@ -956,7 +956,7 @@ def train_model(
         network_train_unet_only=network_train_unet_only,
         network_train_text_encoder_only=network_train_text_encoder_only,
         no_half_vae=True if sdxl and sdxl_no_half_vae else None,
-        no_token_padding=no_token_padding,
+        # no_token_padding=no_token_padding,
         noise_offset=noise_offset,
         noise_offset_type=noise_offset_type,
         optimizer=optimizer,
