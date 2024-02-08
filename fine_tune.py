@@ -24,6 +24,7 @@ setup_logging()
 import logging
 
 logger = logging.getLogger(__name__)
+
 import library.train_util as train_util
 import library.config_util as config_util
 from library.config_util import (
@@ -476,7 +477,7 @@ def train(args):
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
-    add_logging_arguments(parser)  # モジュール指定がないのがちょっと気持ち悪い / bit weird that this does not have module prefix
+    add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, False, True, True)
     train_util.add_training_arguments(parser, False)

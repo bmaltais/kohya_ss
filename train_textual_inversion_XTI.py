@@ -36,9 +36,11 @@ from library.custom_train_functions import (
 )
 import library.original_unet as original_unet
 from XTI_hijack import unet_forward_XTI, downblock_forward_XTI, upblock_forward_XTI
-from library.utils import setup_logging
+from library.utils import setup_logging, add_logging_arguments
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 imagenet_templates_small = [
@@ -322,7 +324,9 @@ def train(args):
         args.max_train_steps = args.max_train_epochs * math.ceil(
             len(train_dataloader) / accelerator.num_processes / args.gradient_accumulation_steps
         )
-        logger.info(f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}")
+        logger.info(
+            f"override steps. steps for {args.max_train_epochs} epochs is / 指定エポックまでのステップ数: {args.max_train_steps}"
+        )
 
     # データセット側にも学習ステップを送信
     train_dataset_group.set_max_train_steps(args.max_train_steps)
@@ -380,7 +384,9 @@ def train(args):
     logger.info(f"  num batches per epoch / 1epochのバッチ数: {len(train_dataloader)}")
     logger.info(f"  num epochs / epoch数: {num_train_epochs}")
     logger.info(f"  batch size per device / バッチサイズ: {args.train_batch_size}")
-    logger.info(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
+    logger.info(
+        f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}"
+    )
     logger.info(f"  gradient ccumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
     logger.info(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
 
@@ -397,10 +403,12 @@ def train(args):
     if accelerator.is_main_process:
         init_kwargs = {}
         if args.wandb_run_name:
-            init_kwargs['wandb'] = {'name': args.wandb_run_name}
+            init_kwargs["wandb"] = {"name": args.wandb_run_name}
         if args.log_tracker_config is not None:
             init_kwargs = toml.load(args.log_tracker_config)
-        accelerator.init_trackers("textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
+        accelerator.init_trackers(
+            "textual_inversion" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs
+        )
 
     # function for saving/removing
     def save_model(ckpt_name, embs, steps, epoch_no, force_sync_upload=False):
@@ -653,6 +661,7 @@ def load_weights(file):
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, False)
     train_util.add_training_arguments(parser, True)
@@ -668,7 +677,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）",
     )
 
-    parser.add_argument("--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み")
+    parser.add_argument(
+        "--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み"
+    )
     parser.add_argument(
         "--num_vectors_per_token", type=int, default=1, help="number of vectors per token / トークンに割り当てるembeddingsの要素数"
     )
@@ -678,7 +689,9 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         help="token string used in training, must not exist in tokenizer / 学習時に使用されるトークン文字列、tokenizerに存在しない文字であること",
     )
-    parser.add_argument("--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可")
+    parser.add_argument(
+        "--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可"
+    )
     parser.add_argument(
         "--use_object_template",
         action="store_true",
