@@ -34,12 +34,14 @@ def setup_logging(args=None, log_level=None, reset=False):
         else:
             return
 
+    # log_level can be set by the caller or by the args, the caller has priority. If not set, use INFO
     if log_level is None and args is not None:
         log_level = args.console_log_level
     if log_level is None:
         log_level = "INFO"
     log_level = getattr(logging, log_level)
 
+    msg_init = None
     if args is not None and args.console_log_file:
         handler = logging.FileHandler(args.console_log_file, mode="w")
     else:
@@ -50,7 +52,8 @@ def setup_logging(args=None, log_level=None, reset=False):
 
                 handler = RichHandler()
             except ImportError:
-                print("rich is not installed, using basic logging")
+                # print("rich is not installed, using basic logging")
+                msg_init = "rich is not installed, using basic logging"
 
         if handler is None:
             handler = logging.StreamHandler(sys.stdout)  # same as print
@@ -63,3 +66,7 @@ def setup_logging(args=None, log_level=None, reset=False):
     handler.setFormatter(formatter)
     logging.root.setLevel(log_level)
     logging.root.addHandler(handler)
+
+    if msg_init is not None:
+        logger = logging.getLogger(__name__)
+        logger.info(msg_init)
