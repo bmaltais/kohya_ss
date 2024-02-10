@@ -291,9 +291,9 @@ def main(args):
 
     if args.frequency_tags:
         sorted_tags = sorted(tag_freq.items(), key=lambda x: x[1], reverse=True)
-        logger.info("Tag frequencies:")
+        print("Tag frequencies:")
         for tag, freq in sorted_tags:
-            logger.info(f"{tag}: {freq}")
+            print(f"{tag}: {freq}")
 
     logger.info("done!")
 
