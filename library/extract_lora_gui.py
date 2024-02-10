@@ -95,7 +95,7 @@ def extract_lora(
 
 def gradio_extract_lora_tab(headless=False):
     def change_sdxl(sdxl):
-        return gr.update(visible=sdxl), gr.update(visible=sdxl)
+        return gr(visible=sdxl), gr(visible=sdxl)
             
     
     

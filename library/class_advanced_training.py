@@ -11,13 +11,13 @@ class AdvancedTraining:
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (
-                    gr.Group.update(visible=True),
-                    gr.Group.update(visible=False),
+                    gr.Group(visible=True),
+                    gr.Group(visible=False),
                 )
             else:
                 return (
-                    gr.Group.update(visible=False),
-                    gr.Group.update(visible=True),
+                    gr.Group(visible=False),
+                    gr.Group(visible=True),
                 )
 
         with gr.Row(visible=not finetuning):
@@ -88,9 +88,9 @@ class AdvancedTraining:
                     full_bf16_active = False
                 if full_bf16:
                     full_fp16_active = False
-                return gr.Checkbox.update(
+                return gr.Checkbox(
                     interactive=full_fp16_active,
-                ), gr.Checkbox.update(interactive=full_bf16_active)
+                ), gr.Checkbox(interactive=full_bf16_active)
 
             self.keep_tokens = gr.Slider(
                 label='Keep n tokens', value='0', minimum=0, maximum=32, step=1

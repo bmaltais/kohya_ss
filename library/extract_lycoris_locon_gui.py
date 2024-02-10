@@ -104,13 +104,13 @@ def extract_lycoris_locon(
 # def update_mode(mode):
 #     # 'fixed', 'threshold','ratio','quantile'
 #     if mode == 'fixed':
-#         return gr.Row.update(visible=True), gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=False)
+#         return gr.Row(visible=True), gr.Row(visible=False), gr.Row(visible=False), gr.Row(visible=False)
 #     if mode == 'threshold':
-#         return gr.Row.update(visible=False), gr.Row.update(visible=True), gr.Row.update(visible=False), gr.Row.update(visible=False)
+#         return gr.Row(visible=False), gr.Row(visible=True), gr.Row(visible=False), gr.Row(visible=False)
 #     if mode == 'ratio':
-#         return gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=True), gr.Row.update(visible=False)
+#         return gr.Row(visible=False), gr.Row(visible=False), gr.Row(visible=True), gr.Row(visible=False)
 #     if mode == 'threshold':
-#         return gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=False), gr.Row.update(visible=True)
+#         return gr.Row(visible=False), gr.Row(visible=False), gr.Row(visible=False), gr.Row(visible=True)
 
 
 def update_mode(mode):
@@ -123,7 +123,7 @@ def update_mode(mode):
     # Iterate through the possible modes
     for m in modes:
         # Add a visibility update for each mode, setting it to True if the input mode matches the current mode in the loop
-        updates.append(gr.Row.update(visible=(mode == m)))
+        updates.append(gr.Row(visible=(mode == m)))
 
     # Return the visibility updates as a tuple
     return tuple(updates)

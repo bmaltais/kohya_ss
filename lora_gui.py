@@ -362,15 +362,16 @@ def open_configuration(
 
     # Check if we are "applying" a preset or a config
     if apply_preset:
-        log.info(f"Applying preset {training_preset}...")
-        file_path = f"./presets/lora/{training_preset}.json"
+        if training_preset != "none":
+            log.info(f"Applying preset {training_preset}...")
+            file_path = f"./presets/lora/{training_preset}.json"
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
         training_preset_index = parameters.index(("training_preset", training_preset))
 
         # Update the value of `training_preset` by directly assigning an empty string value
-        parameters[training_preset_index] = ("training_preset", "")
+        parameters[training_preset_index] = ("training_preset", "none")
 
     original_file_path = file_path
 
@@ -414,9 +415,9 @@ def open_configuration(
         "LyCORIS/LoCon",
         "LyCORIS/GLoRA",
     }:
-        values.append(gr.Row.update(visible=True))
+        values.append(gr.Row(visible=True))
     else:
-        values.append(gr.Row.update(visible=False))
+        values.append(gr.Row(visible=False))
 
     return tuple(values)
 
@@ -1074,6 +1075,9 @@ def lora_tab(
 
             def list_presets(path):
                 json_files = []
+                
+                # Insert an empty string at the beginning
+                json_files.insert(0, "none")
 
                 for file in os.listdir(path):
                     if file.endswith(".json"):
@@ -1092,6 +1096,7 @@ def lora_tab(
                 label="Presets",
                 choices=list_presets("./presets/lora"),
                 elem_id="myDropdown",
+                value="none"
             )
 
             with gr.Tab("Basic", elem_id="basic_tab"):
@@ -1129,7 +1134,7 @@ def lora_tab(
                         interactive=True
                         # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                     )
-                    with gr.Box():
+                    with gr.Group():
                         with gr.Row():
                             lora_network_weights = gr.Textbox(
                                 label="LoRA network weights",
@@ -1673,7 +1678,7 @@ def lora_tab(
                         for attr, settings in lora_settings_config.items():
                             update_params = settings["update_params"]
 
-                            results.append(settings["gr_type"].update(**update_params))
+                            results.append(settings["gr_type"](**update_params))
 
                         return tuple(results)
 

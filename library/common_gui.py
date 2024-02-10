@@ -405,9 +405,9 @@ def color_aug_changed(color_aug):
         msgbox(
             'Disabling "Cache latent" because "Color augmentation" has been selected...'
         )
-        return gr.Checkbox.update(value=False, interactive=False)
+        return gr.Checkbox(value=False, interactive=False)
     else:
-        return gr.Checkbox.update(value=True, interactive=True)
+        return gr.Checkbox(value=True, interactive=True)
 
 
 def save_inference_file(output_dir, v2, v_parameterization, output_name):
@@ -454,14 +454,14 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
-        v2 = gr.Checkbox.update(value=False, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=True, visible=False)
-        pretrained_model_name_or_path = gr.Textbox.update(
+        v2 = gr.Checkbox(value=False, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=True, visible=False)
+        pretrained_model_name_or_path = gr.Textbox(
             value=str(model_list), visible=False
         )
-        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_file = gr.Button(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
             model_list,
             pretrained_model_name_or_path,
@@ -475,14 +475,14 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given model_list is in the list of V2 base models
     if str(model_list) in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
-        v2 = gr.Checkbox.update(value=True, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox.update(
+        v2 = gr.Checkbox(value=True, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox(
             value=str(model_list), visible=False
         )
-        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_file = gr.Button(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
             model_list,
             pretrained_model_name_or_path,
@@ -498,14 +498,14 @@ def set_pretrained_model_name_or_path_input(
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
-        v2 = gr.Checkbox.update(value=True, visible=False)
-        v_parameterization = gr.Checkbox.update(value=True, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox.update(
+        v2 = gr.Checkbox(value=True, visible=False)
+        v_parameterization = gr.Checkbox(value=True, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox(
             value=str(model_list), visible=False
         )
-        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_file = gr.Button(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
             model_list,
             pretrained_model_name_or_path,
@@ -519,14 +519,14 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given model_list is in the list of V1 models
     if str(model_list) in V1_MODELS:
         log.info(f"{model_list} model selected.")
-        v2 = gr.Checkbox.update(value=False, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox.update(
+        v2 = gr.Checkbox(value=False, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
+        pretrained_model_name_or_path = gr.Textbox(
             value=str(model_list), visible=False
         )
-        pretrained_model_name_or_path_file = gr.Button.update(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button.update(visible=False)
+        pretrained_model_name_or_path_file = gr.Button(visible=False)
+        pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
             model_list,
             pretrained_model_name_or_path,
@@ -539,12 +539,12 @@ def set_pretrained_model_name_or_path_input(
 
     # Check if the model_list is set to 'custom'
     if model_list == "custom":
-        v2 = gr.Checkbox.update(visible=True)
-        v_parameterization = gr.Checkbox.update(visible=True)
-        sdxl = gr.Checkbox.update(visible=True)
-        pretrained_model_name_or_path = gr.Textbox.update(visible=True)
-        pretrained_model_name_or_path_file = gr.Button.update(visible=True)
-        pretrained_model_name_or_path_folder = gr.Button.update(visible=True)
+        v2 = gr.Checkbox(visible=True)
+        v_parameterization = gr.Checkbox(visible=True)
+        sdxl = gr.Checkbox(visible=True)
+        pretrained_model_name_or_path = gr.Textbox(visible=True)
+        pretrained_model_name_or_path_file = gr.Button(visible=True)
+        pretrained_model_name_or_path_folder = gr.Button(visible=True)
         return (
             model_list,
             pretrained_model_name_or_path,
