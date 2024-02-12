@@ -15,6 +15,10 @@ import os
 from anime_face_detector import create_detector
 from tqdm import tqdm
 import numpy as np
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 KP_REYE = 11
 KP_LEYE = 19
@@ -24,7 +28,7 @@ SCORE_THRES = 0.90
 
 def detect_faces(detector, image, min_size):
   preds = detector(image)                     # bgr
-  # print(len(preds))
+  # logger.info(len(preds))
 
   faces = []
   for pred in preds:
@@ -78,7 +82,7 @@ def process(args):
   assert args.crop_ratio is None or args.resize_face_size is None, f"crop_ratio指定時はresize_face_sizeは指定できません"
 
   # アニメ顔検出モデルを読み込む
-  print("loading face detector.")
+  logger.info("loading face detector.")
   detector = create_detector('yolov3')
 
   # cropの引数を解析する
@@ -97,7 +101,7 @@ def process(args):
     crop_h_ratio, crop_v_ratio = [float(t) for t in tokens]
 
   # 画像を処理する
-  print("processing.")
+  logger.info("processing.")
   output_extension = ".png"
 
   os.makedirs(args.dst_dir, exist_ok=True)
@@ -111,7 +115,7 @@ def process(args):
     if len(image.shape) == 2:
       image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     if image.shape[2] == 4:
-      print(f"image has alpha. ignore / 画像の透明度が設定されているため無視します: {path}")
+      logger.warning(f"image has alpha. ignore / 画像の透明度が設定されているため無視します: {path}")
       image = image[:, :, :3].copy()                    # copyをしないと内部的に透明度情報が付いたままになるらしい
 
     h, w = image.shape[:2]
@@ -144,11 +148,11 @@ def process(args):
           # 顔サイズを基準にリサイズする
           scale = args.resize_face_size / face_size
           if scale < cur_crop_width / w:
-            print(
+            logger.warning(
                 f"image width too small in face size based resizing / 顔を基準にリサイズすると画像の幅がcrop sizeより小さい（顔が相対的に大きすぎる）ので顔サイズが変わります: {path}")
             scale = cur_crop_width / w
           if scale < cur_crop_height / h:
-            print(
+            logger.warning(
                 f"image height too small in face size based resizing / 顔を基準にリサイズすると画像の高さがcrop sizeより小さい（顔が相対的に大きすぎる）ので顔サイズが変わります: {path}")
             scale = cur_crop_height / h
         elif crop_h_ratio is not None:
@@ -157,10 +161,10 @@ def process(args):
         else:
           # 切り出しサイズ指定あり
           if w < cur_crop_width:
-            print(f"image width too small/ 画像の幅がcrop sizeより小さいので画質が劣化します: {path}")
+            logger.warning(f"image width too small/ 画像の幅がcrop sizeより小さいので画質が劣化します: {path}")
             scale = cur_crop_width / w
           if h < cur_crop_height:
-            print(f"image height too small/ 画像の高さがcrop sizeより小さいので画質が劣化します: {path}")
+            logger.warning(f"image height too small/ 画像の高さがcrop sizeより小さいので画質が劣化します: {path}")
             scale = cur_crop_height / h
           if args.resize_fit:
             scale = max(cur_crop_width / w, cur_crop_height / h)
@@ -198,7 +202,7 @@ def process(args):
         face_img = face_img[y:y + cur_crop_height]
 
       # # debug
-      # print(path, cx, cy, angle)
+      # logger.info(path, cx, cy, angle)
       # crp = cv2.resize(image, (image.shape[1]//8, image.shape[0]//8))
       # cv2.imshow("image", crp)
       # if cv2.waitKey() == 27:
