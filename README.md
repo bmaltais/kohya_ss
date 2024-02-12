@@ -1,35 +1,3 @@
-# Gradual Latent について
-
-latentのサイズを徐々に大きくしていくHires fixです。`sdxl_gen_img.py` に以下のオプションが追加されています。
-
-- `--gradual_latent_timesteps` : latentのサイズを大きくし始めるタイムステップを指定します。デフォルトは None で、Gradual Latentを使用しません。750 くらいから始めてみてください。
-- `--gradual_latent_ratio` : latentの初期サイズを指定します。デフォルトは 0.5 で、デフォルトの latent サイズの半分のサイズから始めます。
-- `--gradual_latent_ratio_step`: latentのサイズを大きくする割合を指定します。デフォルトは 0.125 で、latentのサイズを 0.625, 0.75, 0.875, 1.0 と徐々に大きくします。
-- `--gradual_latent_ratio_every_n_steps`: latentのサイズを大きくする間隔を指定します。デフォルトは 3 で、3ステップごとに latent のサイズを大きくします。
-
-それぞれのオプションは、プロンプトオプション、`--glt`、`--glr`、`--gls`、`--gle` でも指定できます。
-
-サンプラーに手を加えているため、__サンプラーに `euler_a` を指定してください。__ 他のサンプラーでは動作しません。
-
-`gen_img_diffusers.py` にも同様のオプションが追加されていますが、試した範囲ではどうやっても乱れた画像しか生成できませんでした。
-
-# About Gradual Latent
-
-Gradual Latent is a Hires fix that gradually increases the size of the latent. `sdxl_gen_img.py` has the following options added.
-
-- `--gradual_latent_timesteps`: Specifies the timestep to start increasing the size of the latent. The default is None, which means Gradual Latent is not used. Please try around 750 at first.
-- `--gradual_latent_ratio`: Specifies the initial size of the latent. The default is 0.5, which means it starts with half the default latent size.
-- `--gradual_latent_ratio_step`: Specifies the ratio to increase the size of the latent. The default is 0.125, which means the latent size is gradually increased to 0.625, 0.75, 0.875, 1.0.
-- `--gradual_latent_ratio_every_n_steps`: Specifies the interval to increase the size of the latent. The default is 3, which means the latent size is increased every 3 steps.
-
-Each option can also be specified with prompt options, `--glt`, `--glr`, `--gls`, `--gle`.
-
-__Please specify `euler_a` for the sampler.__ Because the source code of the sampler is modified. It will not work with other samplers.
-
-`gen_img_diffusers.py` also has the same options, but in the range I tried, it only generated distorted images no matter what I did.
-
----
-
 __SDXL is now supported. The sdxl branch has been merged into the main branch. If you update the repository, please follow the upgrade instructions. Also, the version of accelerate has been updated, so please run accelerate config again.__ The documentation for SDXL training is [here](./README.md#sdxl-training).
 
 This repository contains training, generation and utility scripts for Stable Diffusion.
@@ -280,6 +248,39 @@ ControlNet-LLLite, a novel method for ControlNet with SDXL, is added. See [docum
 
 
 ## Change History
+
+### Working in progress
+
+- The log output has been improved. PR [#905](https://github.com/kohya-ss/sd-scripts/pull/905) Thanks to shirayu!
+  - The log is formatted by default. The `rich` library is required. Please see [Upgrade](#upgrade) and update the library.
+  - If `rich` is not installed, the log output will be the same as before.
+  - The following options are available in each training script:
+  - `--console_log_simple` option can be used to switch to the previous log output.
+  - `--console_log_level` option can be used to specify the log level. The default is `INFO`.
+  - `--console_log_file` option can be used to output the log to a file. The default is `None` (output to the console).
+- The sample image generation during multi-GPU training is now done with multiple GPUs. PR [#1061](https://github.com/kohya-ss/sd-scripts/pull/1061) Thanks to DKnight54!
+- The IPEX support is improved. PR [#1086](https://github.com/kohya-ss/sd-scripts/pull/1086) Thanks to Disty0!
+- Fixed a bug that `svd_merge_lora.py` crashes in some cases. PR [#1087](https://github.com/kohya-ss/sd-scripts/pull/1087) Thanks to mgz-dev!
+- The common image generation script `gen_img.py` for SD 1/2 and SDXL is added. The basic functions are the same as the scripts for SD 1/2 and SDXL, but some new features are added.
+  - External scripts to generate prompts can be supported. It can be called with `--from_module` option. (The documentation will be added later)
+  - The normalization method after prompt weighting can be specified with `--emb_normalize_mode` option. `original` is the original method, `abs` is the normalization with the average of the absolute values, `none` is no normalization.
+- Gradual Latent Hires fix is added to each generation script. See [here](./docs/gen_img_README-ja.md#about-gradual-latent) for details.
+
+- ログ出力が改善されました。 PR [#905](https://github.com/kohya-ss/sd-scripts/pull/905) shirayu 氏に感謝します。
+  - デフォルトでログが成形されます。`rich` ライブラリが必要なため、[Upgrade](#upgrade) を参照し更新をお願いします。
+  - `rich` がインストールされていない場合は、従来のログ出力になります。
+  - 各学習スクリプトでは以下のオプションが有効です。
+  - `--console_log_simple` オプションで従来のログ出力に切り替えられます。
+  - `--console_log_level` でログレベルを指定できます。デフォルトは `INFO` です。
+  - `--console_log_file` でログファイルを出力できます。デフォルトは `None`（コンソールに出力） です。
+- 複数 GPU 学習時に学習中のサンプル画像生成を複数 GPU で行うようになりました。 PR [#1061](https://github.com/kohya-ss/sd-scripts/pull/1061) DKnight54 氏に感謝します。
+- IPEX サポートが改善されました。 PR [#1086](https://github.com/kohya-ss/sd-scripts/pull/1086) Disty0 氏に感謝します。
+- `svd_merge_lora.py` が場合によってエラーになる不具合が修正されました。 PR [#1087](https://github.com/kohya-ss/sd-scripts/pull/1087) mgz-dev 氏に感謝します。
+- SD 1/2 および SDXL 共通の生成スクリプト `gen_img.py` を追加しました。基本的な機能は SD 1/2、SDXL 向けスクリプトと同じですが、いくつかの新機能が追加されています。
+  - プロンプトを動的に生成する外部スクリプトをサポートしました。 `--from_module` で呼び出せます。（ドキュメントはのちほど追加します）
+  - プロンプト重みづけ後の正規化方法を `--emb_normalize_mode` で指定できます。`original` は元の方法、`abs` は絶対値の平均値で正規化、`none` は正規化を行いません。
+- Gradual Latent Hires fix を各生成スクリプトに追加しました。詳細は [こちら](./docs/gen_img_README-ja.md#about-gradual-latent)。
+
 
 ### Jan 27, 2024 / 2024/1/27: v0.8.3
 
