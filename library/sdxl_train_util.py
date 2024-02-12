@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 import torch
-from library.device_utils import init_ipex, clean_memory
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
 
 from accelerate import init_empty_weights
@@ -50,7 +50,7 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
                 unet.to(accelerator.device)
                 vae.to(accelerator.device)
 
-            clean_memory()
+            clean_memory_on_device(accelerator.device)
         accelerator.wait_for_everyone()
 
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
