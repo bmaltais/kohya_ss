@@ -30,6 +30,12 @@ from library.custom_train_functions import (
     add_v_prediction_like_loss,
     apply_debiased_estimation,
 )
+from library.utils import setup_logging, add_logging_arguments
+
+setup_logging()
+import logging
+
+logger = logging.getLogger(__name__)
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -176,7 +182,7 @@ class TextualInversionTrainer:
         tokenizers = tokenizer_or_list if isinstance(tokenizer_or_list, list) else [tokenizer_or_list]
 
         # acceleratorを準備する
-        print("prepare accelerator")
+        logger.info("prepare accelerator")
         accelerator = train_util.prepare_accelerator(args)
 
         # mixed precisionに対応した型を用意しておき適宜castする
@@ -286,7 +292,7 @@ class TextualInversionTrainer:
                         ]
                     }
                 else:
-                    print("Train with captions.")
+                    logger.info("Train with captions.")
                     user_config = {
                         "datasets": [
                             {
@@ -732,12 +738,13 @@ class TextualInversionTrainer:
             ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
             save_model(ckpt_name, updated_embs_list, global_step, num_train_epochs, force_sync_upload=True)
 
-            print("model saved.")
+            logger.info("model saved.")
 
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, False)
     train_util.add_training_arguments(parser, True)
@@ -753,7 +760,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）",
     )
 
-    parser.add_argument("--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み")
+    parser.add_argument(
+        "--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み"
+    )
     parser.add_argument(
         "--num_vectors_per_token", type=int, default=1, help="number of vectors per token / トークンに割り当てるembeddingsの要素数"
     )
@@ -763,7 +772,9 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         help="token string used in training, must not exist in tokenizer / 学習時に使用されるトークン文字列、tokenizerに存在しない文字であること",
     )
-    parser.add_argument("--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可")
+    parser.add_argument(
+        "--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可"
+    )
     parser.add_argument(
         "--use_object_template",
         action="store_true",

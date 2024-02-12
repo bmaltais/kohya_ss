@@ -6,6 +6,7 @@ import asyncio
 import datetime
 import importlib
 import json
+import logging
 import pathlib
 import re
 import shutil
@@ -68,7 +69,10 @@ from library.lpw_stable_diffusion import StableDiffusionLongPromptWeightingPipel
 import library.model_util as model_util
 import library.huggingface_util as huggingface_util
 import library.sai_model_spec as sai_model_spec
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 # from library.attention_processors import FlashAttnProcessor
 # from library.hypernetwork import replace_attentions_for_hypernetwork
 from library.original_unet import UNet2DConditionModel
@@ -217,7 +221,7 @@ class BucketManager:
             self.reso_to_id[reso] = bucket_id
             self.resos.append(reso)
             self.buckets.append([])
-            # print(reso, bucket_id, len(self.buckets))
+            # logger.info(reso, bucket_id, len(self.buckets))
 
     def round_to_steps(self, x):
         x = int(x + 0.5)
@@ -243,7 +247,7 @@ class BucketManager:
                 scale = reso[0] / image_width
 
             resized_size = (int(image_width * scale + 0.5), int(image_height * scale + 0.5))
-            # print("use predef", image_width, image_height, reso, resized_size)
+            # logger.info(f"use predef, {image_width}, {image_height}, {reso}, {resized_size}")
         else:
             # 縮小のみを行う
             if image_width * image_height > self.max_area:
@@ -262,21 +266,21 @@ class BucketManager:
                 b_width_in_hr = self.round_to_steps(b_height_rounded * aspect_ratio)
                 ar_height_rounded = b_width_in_hr / b_height_rounded
 
-                # print(b_width_rounded, b_height_in_wr, ar_width_rounded)
-                # print(b_width_in_hr, b_height_rounded, ar_height_rounded)
+                # logger.info(b_width_rounded, b_height_in_wr, ar_width_rounded)
+                # logger.info(b_width_in_hr, b_height_rounded, ar_height_rounded)
 
                 if abs(ar_width_rounded - aspect_ratio) < abs(ar_height_rounded - aspect_ratio):
                     resized_size = (b_width_rounded, int(b_width_rounded / aspect_ratio + 0.5))
                 else:
                     resized_size = (int(b_height_rounded * aspect_ratio + 0.5), b_height_rounded)
-                # print(resized_size)
+                # logger.info(resized_size)
             else:
                 resized_size = (image_width, image_height)  # リサイズは不要
 
             # 画像のサイズ未満をbucketのサイズとする（paddingせずにcroppingする）
             bucket_width = resized_size[0] - resized_size[0] % self.reso_steps
             bucket_height = resized_size[1] - resized_size[1] % self.reso_steps
-            # print("use arbitrary", image_width, image_height, resized_size, bucket_width, bucket_height)
+            # logger.info(f"use arbitrary {image_width}, {image_height}, {resized_size}, {bucket_width}, {bucket_height}")
 
             reso = (bucket_width, bucket_height)
 
@@ -785,15 +789,15 @@ class BaseDataset(torch.utils.data.Dataset):
         bucketingを行わない場合も呼び出し必須（ひとつだけbucketを作る）
         min_size and max_size are ignored when enable_bucket is False
         """
-        print("loading image sizes.")
+        logger.info("loading image sizes.")
         for info in tqdm(self.image_data.values()):
             if info.image_size is None:
                 info.image_size = self.get_image_size(info.absolute_path)
 
         if self.enable_bucket:
-            print("make buckets")
+            logger.info("make buckets")
         else:
-            print("prepare dataset")
+            logger.info("prepare dataset")
 
         # bucketを作成し、画像をbucketに振り分ける
         if self.enable_bucket:
@@ -808,7 +812,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 if not self.bucket_no_upscale:
                     self.bucket_manager.make_buckets()
                 else:
-                    print(
+                    logger.warning(
                         "min_bucket_reso and max_bucket_reso are ignored if bucket_no_upscale is set, because bucket reso is defined by image size automatically / bucket_no_upscaleが指定された場合は、bucketの解像度は画像サイズから自動計算されるため、min_bucket_resoとmax_bucket_resoは無視されます"
                     )
 
@@ -819,7 +823,7 @@ class BaseDataset(torch.utils.data.Dataset):
                     image_width, image_height
                 )
 
-                # print(image_info.image_key, image_info.bucket_reso)
+                # logger.info(image_info.image_key, image_info.bucket_reso)
                 img_ar_errors.append(abs(ar_error))
 
             self.bucket_manager.sort()
@@ -837,17 +841,17 @@ class BaseDataset(torch.utils.data.Dataset):
         # bucket情報を表示、格納する
         if self.enable_bucket:
             self.bucket_info = {"buckets": {}}
-            print("number of images (including repeats) / 各bucketの画像枚数（繰り返し回数を含む）")
+            logger.info("number of images (including repeats) / 各bucketの画像枚数（繰り返し回数を含む）")
             for i, (reso, bucket) in enumerate(zip(self.bucket_manager.resos, self.bucket_manager.buckets)):
                 count = len(bucket)
                 if count > 0:
                     self.bucket_info["buckets"][i] = {"resolution": reso, "count": len(bucket)}
-                    print(f"bucket {i}: resolution {reso}, count: {len(bucket)}")
+                    logger.info(f"bucket {i}: resolution {reso}, count: {len(bucket)}")
 
             img_ar_errors = np.array(img_ar_errors)
             mean_img_ar_error = np.mean(np.abs(img_ar_errors))
             self.bucket_info["mean_img_ar_error"] = mean_img_ar_error
-            print(f"mean ar error (without repeats): {mean_img_ar_error}")
+            logger.info(f"mean ar error (without repeats): {mean_img_ar_error}")
 
         # データ参照用indexを作る。このindexはdatasetのshuffleに用いられる
         self.buckets_indices: List(BucketBatchIndex) = []
@@ -867,7 +871,7 @@ class BaseDataset(torch.utils.data.Dataset):
             # num_of_image_types = len(set(bucket))
             # bucket_batch_size = min(self.batch_size, num_of_image_types)
             # batch_count = int(math.ceil(len(bucket) / bucket_batch_size))
-            # # print(bucket_index, num_of_image_types, bucket_batch_size, batch_count)
+            # # logger.info(bucket_index, num_of_image_types, bucket_batch_size, batch_count)
             # for batch_index in range(batch_count):
             #   self.buckets_indices.append(BucketBatchIndex(bucket_index, bucket_batch_size, batch_index))
             # ↑ここまで
@@ -906,7 +910,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
     def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
         # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
-        print("caching latents.")
+        logger.info("caching latents.")
 
         image_infos = list(self.image_data.values())
 
@@ -916,7 +920,7 @@ class BaseDataset(torch.utils.data.Dataset):
         # split by resolution
         batches = []
         batch = []
-        print("checking cache validity...")
+        logger.info("checking cache validity...")
         for info in tqdm(image_infos):
             subset = self.image_to_subset[info.image_key]
 
@@ -953,7 +957,7 @@ class BaseDataset(torch.utils.data.Dataset):
             return
 
         # iterate batches: batch doesn't have image, image will be loaded in cache_batch_latents and discarded
-        print("caching latents...")
+        logger.info("caching latents...")
         for batch in tqdm(batches, smoothing=1, total=len(batches)):
             cache_batch_latents(vae, cache_to_disk, batch, subset.flip_aug, subset.random_crop)
 
@@ -967,10 +971,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
         # latentsのキャッシュと同様に、ディスクへのキャッシュに対応する
         # またマルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
-        print("caching text encoder outputs.")
+        logger.info("caching text encoder outputs.")
         image_infos = list(self.image_data.values())
 
-        print("checking cache existence...")
+        logger.info("checking cache existence...")
         image_infos_to_cache = []
         for info in tqdm(image_infos):
             # subset = self.image_to_subset[info.image_key]
@@ -1011,7 +1015,7 @@ class BaseDataset(torch.utils.data.Dataset):
             batches.append(batch)
 
         # iterate batches: call text encoder and cache outputs for memory or disk
-        print("caching text encoder outputs...")
+        logger.info("caching text encoder outputs...")
         for batch in tqdm(batches):
             infos, input_ids1, input_ids2 = zip(*batch)
             input_ids1 = torch.stack(input_ids1, dim=0)
@@ -1410,7 +1414,7 @@ class DreamBoothDataset(BaseDataset):
                         try:
                             lines = f.readlines()
                         except UnicodeDecodeError as e:
-                            print(f"illegal char in file (not UTF-8) / ファイルにUTF-8以外の文字があります: {cap_path}")
+                            logger.error(f"illegal char in file (not UTF-8) / ファイルにUTF-8以外の文字があります: {cap_path}")
                             raise e
                         assert len(lines) > 0, f"caption file is empty / キャプションファイルが空です: {cap_path}"
                         caption = lines[0].strip()
@@ -1419,11 +1423,11 @@ class DreamBoothDataset(BaseDataset):
 
         def load_dreambooth_dir(subset: DreamBoothSubset):
             if not os.path.isdir(subset.image_dir):
-                print(f"not directory: {subset.image_dir}")
+                logger.warning(f"not directory: {subset.image_dir}")
                 return [], []
 
             img_paths = glob_images(subset.image_dir, "*")
-            print(f"found directory {subset.image_dir} contains {len(img_paths)} image files")
+            logger.info(f"found directory {subset.image_dir} contains {len(img_paths)} image files")
 
             # 画像ファイルごとにプロンプトを読み込み、もしあればそちらを使う
             captions = []
@@ -1431,7 +1435,7 @@ class DreamBoothDataset(BaseDataset):
             for img_path in img_paths:
                 cap_for_img = read_caption(img_path, subset.caption_extension)
                 if cap_for_img is None and subset.class_tokens is None:
-                    print(
+                    logger.warning(
                         f"neither caption file nor class tokens are found. use empty caption for {img_path} / キャプションファイルもclass tokenも見つかりませんでした。空のキャプションを使用します: {img_path}"
                     )
                     captions.append("")
@@ -1450,36 +1454,36 @@ class DreamBoothDataset(BaseDataset):
                 number_of_missing_captions_to_show = 5
                 remaining_missing_captions = number_of_missing_captions - number_of_missing_captions_to_show
 
-                print(
+                logger.warning(
                     f"No caption file found for {number_of_missing_captions} images. Training will continue without captions for these images. If class token exists, it will be used. / {number_of_missing_captions}枚の画像にキャプションファイルが見つかりませんでした。これらの画像についてはキャプションなしで学習を続行します。class tokenが存在する場合はそれを使います。"
                 )
                 for i, missing_caption in enumerate(missing_captions):
                     if i >= number_of_missing_captions_to_show:
-                        print(missing_caption + f"... and {remaining_missing_captions} more")
+                        logger.warning(missing_caption + f"... and {remaining_missing_captions} more")
                         break
-                    print(missing_caption)
+                    logger.warning(missing_caption)
             return img_paths, captions
 
-        print("prepare images.")
+        logger.info("prepare images.")
         num_train_images = 0
         num_reg_images = 0
         reg_infos: List[ImageInfo] = []
         for subset in subsets:
             if subset.num_repeats < 1:
-                print(
+                logger.warning(
                     f"ignore subset with image_dir='{subset.image_dir}': num_repeats is less than 1 / num_repeatsが1を下回っているためサブセットを無視します: {subset.num_repeats}"
                 )
                 continue
 
             if subset in self.subsets:
-                print(
+                logger.warning(
                     f"ignore duplicated subset with image_dir='{subset.image_dir}': use the first one / 既にサブセットが登録されているため、重複した後発のサブセットを無視します"
                 )
                 continue
 
             img_paths, captions = load_dreambooth_dir(subset)
             if len(img_paths) < 1:
-                print(f"ignore subset with image_dir='{subset.image_dir}': no images found / 画像が見つからないためサブセットを無視します")
+                logger.warning(f"ignore subset with image_dir='{subset.image_dir}': no images found / 画像が見つからないためサブセットを無視します")
                 continue
 
             if subset.is_reg:
@@ -1497,15 +1501,15 @@ class DreamBoothDataset(BaseDataset):
             subset.img_count = len(img_paths)
             self.subsets.append(subset)
 
-        print(f"{num_train_images} train images with repeating.")
+        logger.info(f"{num_train_images} train images with repeating.")
         self.num_train_images = num_train_images
 
-        print(f"{num_reg_images} reg images.")
+        logger.info(f"{num_reg_images} reg images.")
         if num_train_images < num_reg_images:
-            print("some of reg images are not used / 正則化画像の数が多いので、一部使用されない正則化画像があります")
+            logger.warning("some of reg images are not used / 正則化画像の数が多いので、一部使用されない正則化画像があります")
 
         if num_reg_images == 0:
-            print("no regularization images / 正則化画像が見つかりませんでした")
+            logger.warning("no regularization images / 正則化画像が見つかりませんでした")
         else:
             # num_repeatsを計算する：どうせ大した数ではないのでループで処理する
             n = 0
@@ -1550,27 +1554,27 @@ class FineTuningDataset(BaseDataset):
 
         for subset in subsets:
             if subset.num_repeats < 1:
-                print(
+                logger.warning(
                     f"ignore subset with metadata_file='{subset.metadata_file}': num_repeats is less than 1 / num_repeatsが1を下回っているためサブセットを無視します: {subset.num_repeats}"
                 )
                 continue
 
             if subset in self.subsets:
-                print(
+                logger.warning(
                     f"ignore duplicated subset with metadata_file='{subset.metadata_file}': use the first one / 既にサブセットが登録されているため、重複した後発のサブセットを無視します"
                 )
                 continue
 
             # メタデータを読み込む
             if os.path.exists(subset.metadata_file):
-                print(f"loading existing metadata: {subset.metadata_file}")
+                logger.info(f"loading existing metadata: {subset.metadata_file}")
                 with open(subset.metadata_file, "rt", encoding="utf-8") as f:
                     metadata = json.load(f)
             else:
                 raise ValueError(f"no metadata / メタデータファイルがありません: {subset.metadata_file}")
 
             if len(metadata) < 1:
-                print(f"ignore subset with '{subset.metadata_file}': no image entries found / 画像に関するデータが見つからないためサブセットを無視します")
+                logger.warning(f"ignore subset with '{subset.metadata_file}': no image entries found / 画像に関するデータが見つからないためサブセットを無視します")
                 continue
 
             tags_list = []
@@ -1648,14 +1652,14 @@ class FineTuningDataset(BaseDataset):
 
             if not npz_any:
                 use_npz_latents = False
-                print(f"npz file does not exist. ignore npz files / npzファイルが見つからないためnpzファイルを無視します")
+                logger.warning(f"npz file does not exist. ignore npz files / npzファイルが見つからないためnpzファイルを無視します")
             elif not npz_all:
                 use_npz_latents = False
-                print(f"some of npz file does not exist. ignore npz files / いくつかのnpzファイルが見つからないためnpzファイルを無視します")
+                logger.warning(f"some of npz file does not exist. ignore npz files / いくつかのnpzファイルが見つからないためnpzファイルを無視します")
                 if flip_aug_in_subset:
-                    print("maybe no flipped files / 反転されたnpzファイルがないのかもしれません")
+                    logger.warning("maybe no flipped files / 反転されたnpzファイルがないのかもしれません")
         # else:
-        #   print("npz files are not used with color_aug and/or random_crop / color_augまたはrandom_cropが指定されているためnpzファイルは使用されません")
+        #   logger.info("npz files are not used with color_aug and/or random_crop / color_augまたはrandom_cropが指定されているためnpzファイルは使用されません")
 
         # check min/max bucket size
         sizes = set()
@@ -1671,7 +1675,7 @@ class FineTuningDataset(BaseDataset):
         if sizes is None:
             if use_npz_latents:
                 use_npz_latents = False
-                print(f"npz files exist, but no bucket info in metadata. ignore npz files / メタデータにbucket情報がないためnpzファイルを無視します")
+                logger.warning(f"npz files exist, but no bucket info in metadata. ignore npz files / メタデータにbucket情報がないためnpzファイルを無視します")
 
             assert (
                 resolution is not None
@@ -1685,8 +1689,8 @@ class FineTuningDataset(BaseDataset):
                 self.bucket_no_upscale = bucket_no_upscale
         else:
             if not enable_bucket:
-                print("metadata has bucket info, enable bucketing / メタデータにbucket情報があるためbucketを有効にします")
-            print("using bucket info in metadata / メタデータ内のbucket情報を使います")
+                logger.info("metadata has bucket info, enable bucketing / メタデータにbucket情報があるためbucketを有効にします")
+            logger.info("using bucket info in metadata / メタデータ内のbucket情報を使います")
             self.enable_bucket = True
 
             assert (
@@ -1809,7 +1813,7 @@ class ControlNetDataset(BaseDataset):
             assert subset is not None, "internal error: subset not found"
 
             if not os.path.isdir(subset.conditioning_data_dir):
-                print(f"not directory: {subset.conditioning_data_dir}")
+                logger.warning(f"not directory: {subset.conditioning_data_dir}")
                 continue
 
             img_basename = os.path.basename(info.absolute_path)
@@ -1929,14 +1933,14 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
 
     def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
         for i, dataset in enumerate(self.datasets):
-            print(f"[Dataset {i}]")
+            logger.info(f"[Dataset {i}]")
             dataset.cache_latents(vae, vae_batch_size, cache_to_disk, is_main_process)
 
     def cache_text_encoder_outputs(
         self, tokenizers, text_encoders, device, weight_dtype, cache_to_disk=False, is_main_process=True
     ):
         for i, dataset in enumerate(self.datasets):
-            print(f"[Dataset {i}]")
+            logger.info(f"[Dataset {i}]")
             dataset.cache_text_encoder_outputs(tokenizers, text_encoders, device, weight_dtype, cache_to_disk, is_main_process)
 
     def set_caching_mode(self, caching_mode):
@@ -2020,12 +2024,13 @@ def save_latents_to_disk(npz_path, latents_tensor, original_size, crop_ltrb, fli
 
 
 def debug_dataset(train_dataset, show_input_ids=False):
-    print(f"Total dataset length (steps) / データセットの長さ（ステップ数）: {len(train_dataset)}")
-    print("`S` for next step, `E` for next epoch no. , Escape for exit. / Sキーで次のステップ、Eキーで次のエポック、Escキーで中断、終了します")
+    logger.info(f"Total dataset length (steps) / データセットの長さ（ステップ数）: {len(train_dataset)}")
+    logger.info("`S` for next step, `E` for next epoch no. , Escape for exit. / Sキーで次のステップ、Eキーで次のエポック、Escキーで中断、終了します")
 
     epoch = 1
     while True:
-        print(f"\nepoch: {epoch}")
+        logger.info(f"")
+        logger.info(f"epoch: {epoch}")
 
         steps = (epoch - 1) * len(train_dataset) + 1
         indices = list(range(len(train_dataset)))
@@ -2035,11 +2040,11 @@ def debug_dataset(train_dataset, show_input_ids=False):
         for i, idx in enumerate(indices):
             train_dataset.set_current_epoch(epoch)
             train_dataset.set_current_step(steps)
-            print(f"steps: {steps} ({i + 1}/{len(train_dataset)})")
+            logger.info(f"steps: {steps} ({i + 1}/{len(train_dataset)})")
 
             example = train_dataset[idx]
             if example["latents"] is not None:
-                print(f"sample has latents from npz file: {example['latents'].size()}")
+                logger.info(f"sample has latents from npz file: {example['latents'].size()}")
             for j, (ik, cap, lw, iid, orgsz, crptl, trgsz, flpdz) in enumerate(
                 zip(
                     example["image_keys"],
@@ -2052,26 +2057,26 @@ def debug_dataset(train_dataset, show_input_ids=False):
                     example["flippeds"],
                 )
             ):
-                print(
+                logger.info(
                     f'{ik}, size: {train_dataset.image_data[ik].image_size}, loss weight: {lw}, caption: "{cap}", original size: {orgsz}, crop top left: {crptl}, target size: {trgsz}, flipped: {flpdz}'
                 )
                 if "network_multipliers" in example:
                     print(f"network multiplier: {example['network_multipliers'][j]}")
 
                 if show_input_ids:
-                    print(f"input ids: {iid}")
+                    logger.info(f"input ids: {iid}")
                     if "input_ids2" in example:
-                        print(f"input ids2: {example['input_ids2'][j]}")
+                        logger.info(f"input ids2: {example['input_ids2'][j]}")
                 if example["images"] is not None:
                     im = example["images"][j]
-                    print(f"image size: {im.size()}")
+                    logger.info(f"image size: {im.size()}")
                     im = ((im.numpy() + 1.0) * 127.5).astype(np.uint8)
                     im = np.transpose(im, (1, 2, 0))  # c,H,W -> H,W,c
                     im = im[:, :, ::-1]  # RGB -> BGR (OpenCV)
 
                     if "conditioning_images" in example:
                         cond_img = example["conditioning_images"][j]
-                        print(f"conditioning image size: {cond_img.size()}")
+                        logger.info(f"conditioning image size: {cond_img.size()}")
                         cond_img = ((cond_img.numpy() + 1.0) * 127.5).astype(np.uint8)
                         cond_img = np.transpose(cond_img, (1, 2, 0))
                         cond_img = cond_img[:, :, ::-1]
@@ -2219,12 +2224,12 @@ def trim_and_resize_if_required(
     if image_width > reso[0]:
         trim_size = image_width - reso[0]
         p = trim_size // 2 if not random_crop else random.randint(0, trim_size)
-        # print("w", trim_size, p)
+        # logger.info(f"w {trim_size} {p}")
         image = image[:, p : p + reso[0]]
     if image_height > reso[1]:
         trim_size = image_height - reso[1]
         p = trim_size // 2 if not random_crop else random.randint(0, trim_size)
-        # print("h", trim_size, p)
+        # logger.info(f"h {trim_size} {p})
         image = image[p : p + reso[1]]
 
     # random cropの場合のcropされた値をどうcrop left/topに反映するべきか全くアイデアがない
@@ -2461,7 +2466,7 @@ def get_git_revision_hash() -> str:
 
 
 # def replace_unet_cross_attn_to_xformers():
-#     print("CrossAttention.forward has been replaced to enable xformers.")
+#     logger.info("CrossAttention.forward has been replaced to enable xformers.")
 #     try:
 #         import xformers.ops
 #     except ImportError:
@@ -2504,10 +2509,10 @@ def get_git_revision_hash() -> str:
 #     diffusers.models.attention.CrossAttention.forward = forward_xformers
 def replace_unet_modules(unet: UNet2DConditionModel, mem_eff_attn, xformers, sdpa):
     if mem_eff_attn:
-        print("Enable memory efficient attention for U-Net")
+        logger.info("Enable memory efficient attention for U-Net")
         unet.set_use_memory_efficient_attention(False, True)
     elif xformers:
-        print("Enable xformers for U-Net")
+        logger.info("Enable xformers for U-Net")
         try:
             import xformers.ops
         except ImportError:
@@ -2515,7 +2520,7 @@ def replace_unet_modules(unet: UNet2DConditionModel, mem_eff_attn, xformers, sdp
 
         unet.set_use_memory_efficient_attention(True, False)
     elif sdpa:
-        print("Enable SDPA for U-Net")
+        logger.info("Enable SDPA for U-Net")
         unet.set_use_sdpa(True)
 
 
@@ -2526,17 +2531,17 @@ def replace_vae_modules(vae: diffusers.models.AutoencoderKL, mem_eff_attn, xform
         replace_vae_attn_to_memory_efficient()
     elif xformers:
         # とりあえずDiffusersのxformersを使う。AttentionがあるのはMidBlockのみ
-        print("Use Diffusers xformers for VAE")
+        logger.info("Use Diffusers xformers for VAE")
         vae.encoder.mid_block.attentions[0].set_use_memory_efficient_attention_xformers(True)
         vae.decoder.mid_block.attentions[0].set_use_memory_efficient_attention_xformers(True)
 
 
 def replace_vae_attn_to_memory_efficient():
-    print("AttentionBlock.forward has been replaced to FlashAttention (not xformers)")
+    logger.info("AttentionBlock.forward has been replaced to FlashAttention (not xformers)")
     flash_func = FlashAttentionFunction
 
     def forward_flash_attn(self, hidden_states):
-        print("forward_flash_attn")
+        logger.info("forward_flash_attn")
         q_bucket_size = 512
         k_bucket_size = 1024
 
@@ -3147,13 +3152,13 @@ def verify_training_args(args: argparse.Namespace):
         HIGH_VRAM = True
 
     if args.v_parameterization and not args.v2:
-        print("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
+        logger.warning("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
     if args.v2 and args.clip_skip is not None:
-        print("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
+        logger.warning("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
     if args.cache_latents_to_disk and not args.cache_latents:
         args.cache_latents = True
-        print(
+        logger.warning(
             "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
         )
 
@@ -3184,7 +3189,7 @@ def verify_training_args(args: argparse.Namespace):
         )
 
     if args.zero_terminal_snr and not args.v_parameterization:
-        print(
+        logger.warning(
             f"zero_terminal_snr is enabled, but v_parameterization is not enabled. training will be unexpected"
             + " / zero_terminal_snrが有効ですが、v_parameterizationが有効ではありません。学習結果は想定外になる可能性があります"
         )
@@ -3354,7 +3359,7 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
     if args.output_config:
         # check if config file exists
         if os.path.exists(config_path):
-            print(f"Config file already exists. Aborting... / 出力先の設定ファイルが既に存在します: {config_path}")
+            logger.error(f"Config file already exists. Aborting... / 出力先の設定ファイルが既に存在します: {config_path}")
             exit(1)
 
         # convert args to dictionary
@@ -3382,14 +3387,14 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
         with open(config_path, "w") as f:
             toml.dump(args_dict, f)
 
-        print(f"Saved config file / 設定ファイルを保存しました: {config_path}")
+        logger.info(f"Saved config file / 設定ファイルを保存しました: {config_path}")
         exit(0)
 
     if not os.path.exists(config_path):
-        print(f"{config_path} not found.")
+        logger.info(f"{config_path} not found.")
         exit(1)
 
-    print(f"Loading settings from {config_path}...")
+    logger.info(f"Loading settings from {config_path}...")
     with open(config_path, "r") as f:
         config_dict = toml.load(f)
 
@@ -3408,7 +3413,7 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
     config_args = argparse.Namespace(**ignore_nesting_dict)
     args = parser.parse_args(namespace=config_args)
     args.config_file = os.path.splitext(args.config_file)[0]
-    print(args.config_file)
+    logger.info(args.config_file)
 
     return args
 
@@ -3423,11 +3428,11 @@ def resume_from_local_or_hf_if_specified(accelerator, args):
         return
 
     if not args.resume_from_huggingface:
-        print(f"resume training from local state: {args.resume}")
+        logger.info(f"resume training from local state: {args.resume}")
         accelerator.load_state(args.resume)
         return
 
-    print(f"resume training from huggingface state: {args.resume}")
+    logger.info(f"resume training from huggingface state: {args.resume}")
     repo_id = args.resume.split("/")[0] + "/" + args.resume.split("/")[1]
     path_in_repo = "/".join(args.resume.split("/")[2:])
     revision = None
@@ -3439,7 +3444,7 @@ def resume_from_local_or_hf_if_specified(accelerator, args):
             repo_type = "model"
         else:
             path_in_repo, revision, repo_type = divided
-    print(f"Downloading state from huggingface: {repo_id}/{path_in_repo}@{revision}")
+    logger.info(f"Downloading state from huggingface: {repo_id}/{path_in_repo}@{revision}")
 
     list_files = huggingface_util.list_dir(
         repo_id=repo_id,
@@ -3511,7 +3516,7 @@ def get_optimizer(args, trainable_params):
             #     value = tuple(value)
 
             optimizer_kwargs[key] = value
-    # print("optkwargs:", optimizer_kwargs)
+    # logger.info(f"optkwargs {optimizer}_{kwargs}")
 
     lr = args.learning_rate
     optimizer = None
@@ -3521,7 +3526,7 @@ def get_optimizer(args, trainable_params):
             import lion_pytorch
         except ImportError:
             raise ImportError("No lion_pytorch / lion_pytorch がインストールされていないようです")
-        print(f"use Lion optimizer | {optimizer_kwargs}")
+        logger.info(f"use Lion optimizer | {optimizer_kwargs}")
         optimizer_class = lion_pytorch.Lion
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
@@ -3532,14 +3537,14 @@ def get_optimizer(args, trainable_params):
             raise ImportError("No bitsandbytes / bitsandbytesがインストールされていないようです")
 
         if optimizer_type == "AdamW8bit".lower():
-            print(f"use 8-bit AdamW optimizer | {optimizer_kwargs}")
+            logger.info(f"use 8-bit AdamW optimizer | {optimizer_kwargs}")
             optimizer_class = bnb.optim.AdamW8bit
             optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
         elif optimizer_type == "SGDNesterov8bit".lower():
-            print(f"use 8-bit SGD with Nesterov optimizer | {optimizer_kwargs}")
+            logger.info(f"use 8-bit SGD with Nesterov optimizer | {optimizer_kwargs}")
             if "momentum" not in optimizer_kwargs:
-                print(
+                logger.warning(
                     f"8-bit SGD with Nesterov must be with momentum, set momentum to 0.9 / 8-bit SGD with Nesterovはmomentum指定が必須のため0.9に設定します"
                 )
                 optimizer_kwargs["momentum"] = 0.9
@@ -3548,7 +3553,7 @@ def get_optimizer(args, trainable_params):
             optimizer = optimizer_class(trainable_params, lr=lr, nesterov=True, **optimizer_kwargs)
 
         elif optimizer_type == "Lion8bit".lower():
-            print(f"use 8-bit Lion optimizer | {optimizer_kwargs}")
+            logger.info(f"use 8-bit Lion optimizer | {optimizer_kwargs}")
             try:
                 optimizer_class = bnb.optim.Lion8bit
             except AttributeError:
@@ -3556,7 +3561,7 @@ def get_optimizer(args, trainable_params):
                     "No Lion8bit. The version of bitsandbytes installed seems to be old. Please install 0.38.0 or later. / Lion8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.38.0以上をインストールしてください"
                 )
         elif optimizer_type == "PagedAdamW8bit".lower():
-            print(f"use 8-bit PagedAdamW optimizer | {optimizer_kwargs}")
+            logger.info(f"use 8-bit PagedAdamW optimizer | {optimizer_kwargs}")
             try:
                 optimizer_class = bnb.optim.PagedAdamW8bit
             except AttributeError:
@@ -3564,7 +3569,7 @@ def get_optimizer(args, trainable_params):
                     "No PagedAdamW8bit. The version of bitsandbytes installed seems to be old. Please install 0.39.0 or later. / PagedAdamW8bitが定義されていません。インストールされているbitsandbytesのバージョンが古いようです。0.39.0以上をインストールしてください"
                 )
         elif optimizer_type == "PagedLion8bit".lower():
-            print(f"use 8-bit Paged Lion optimizer | {optimizer_kwargs}")
+            logger.info(f"use 8-bit Paged Lion optimizer | {optimizer_kwargs}")
             try:
                 optimizer_class = bnb.optim.PagedLion8bit
             except AttributeError:
@@ -3575,7 +3580,7 @@ def get_optimizer(args, trainable_params):
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "PagedAdamW".lower():
-        print(f"use PagedAdamW optimizer | {optimizer_kwargs}")
+        logger.info(f"use PagedAdamW optimizer | {optimizer_kwargs}")
         try:
             import bitsandbytes as bnb
         except ImportError:
@@ -3589,7 +3594,7 @@ def get_optimizer(args, trainable_params):
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "PagedAdamW32bit".lower():
-        print(f"use 32-bit PagedAdamW optimizer | {optimizer_kwargs}")
+        logger.info(f"use 32-bit PagedAdamW optimizer | {optimizer_kwargs}")
         try:
             import bitsandbytes as bnb
         except ImportError:
@@ -3603,16 +3608,16 @@ def get_optimizer(args, trainable_params):
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "SGDNesterov".lower():
-        print(f"use SGD with Nesterov optimizer | {optimizer_kwargs}")
+        logger.info(f"use SGD with Nesterov optimizer | {optimizer_kwargs}")
         if "momentum" not in optimizer_kwargs:
-            print(f"SGD with Nesterov must be with momentum, set momentum to 0.9 / SGD with Nesterovはmomentum指定が必須のため0.9に設定します")
+            logger.info(f"SGD with Nesterov must be with momentum, set momentum to 0.9 / SGD with Nesterovはmomentum指定が必須のため0.9に設定します")
             optimizer_kwargs["momentum"] = 0.9
 
         optimizer_class = torch.optim.SGD
         optimizer = optimizer_class(trainable_params, lr=lr, nesterov=True, **optimizer_kwargs)
 
     elif optimizer_type.startswith("DAdapt".lower()) or optimizer_type == "Prodigy".lower():
-        # check lr and lr_count, and print warning
+        # check lr and lr_count, and logger.info warning
         actual_lr = lr
         lr_count = 1
         if type(trainable_params) == list and type(trainable_params[0]) == dict:
@@ -3623,12 +3628,12 @@ def get_optimizer(args, trainable_params):
             lr_count = len(lrs)
 
         if actual_lr <= 0.1:
-            print(
+            logger.warning(
                 f"learning rate is too low. If using D-Adaptation or Prodigy, set learning rate around 1.0 / 学習率が低すぎるようです。D-AdaptationまたはProdigyの使用時は1.0前後の値を指定してください: lr={actual_lr}"
             )
-            print("recommend option: lr=1.0 / 推奨は1.0です")
+            logger.warning("recommend option: lr=1.0 / 推奨は1.0です")
         if lr_count > 1:
-            print(
+            logger.warning(
                 f"when multiple learning rates are specified with dadaptation (e.g. for Text Encoder and U-Net), only the first one will take effect / D-AdaptationまたはProdigyで複数の学習率を指定した場合（Text EncoderとU-Netなど）、最初の学習率のみが有効になります: lr={actual_lr}"
             )
 
@@ -3644,25 +3649,25 @@ def get_optimizer(args, trainable_params):
             # set optimizer
             if optimizer_type == "DAdaptation".lower() or optimizer_type == "DAdaptAdamPreprint".lower():
                 optimizer_class = experimental.DAdaptAdamPreprint
-                print(f"use D-Adaptation AdamPreprint optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation AdamPreprint optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptAdaGrad".lower():
                 optimizer_class = dadaptation.DAdaptAdaGrad
-                print(f"use D-Adaptation AdaGrad optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation AdaGrad optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptAdam".lower():
                 optimizer_class = dadaptation.DAdaptAdam
-                print(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation Adam optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptAdan".lower():
                 optimizer_class = dadaptation.DAdaptAdan
-                print(f"use D-Adaptation Adan optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation Adan optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptAdanIP".lower():
                 optimizer_class = experimental.DAdaptAdanIP
-                print(f"use D-Adaptation AdanIP optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation AdanIP optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptLion".lower():
                 optimizer_class = dadaptation.DAdaptLion
-                print(f"use D-Adaptation Lion optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation Lion optimizer | {optimizer_kwargs}")
             elif optimizer_type == "DAdaptSGD".lower():
                 optimizer_class = dadaptation.DAdaptSGD
-                print(f"use D-Adaptation SGD optimizer | {optimizer_kwargs}")
+                logger.info(f"use D-Adaptation SGD optimizer | {optimizer_kwargs}")
             else:
                 raise ValueError(f"Unknown optimizer type: {optimizer_type}")
 
@@ -3675,7 +3680,7 @@ def get_optimizer(args, trainable_params):
             except ImportError:
                 raise ImportError("No Prodigy / Prodigy がインストールされていないようです")
 
-            print(f"use Prodigy optimizer | {optimizer_kwargs}")
+            logger.info(f"use Prodigy optimizer | {optimizer_kwargs}")
             optimizer_class = prodigyopt.Prodigy
             optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
@@ -3684,14 +3689,14 @@ def get_optimizer(args, trainable_params):
         if "relative_step" not in optimizer_kwargs:
             optimizer_kwargs["relative_step"] = True  # default
         if not optimizer_kwargs["relative_step"] and optimizer_kwargs.get("warmup_init", False):
-            print(f"set relative_step to True because warmup_init is True / warmup_initがTrueのためrelative_stepをTrueにします")
+            logger.info(f"set relative_step to True because warmup_init is True / warmup_initがTrueのためrelative_stepをTrueにします")
             optimizer_kwargs["relative_step"] = True
-        print(f"use Adafactor optimizer | {optimizer_kwargs}")
+        logger.info(f"use Adafactor optimizer | {optimizer_kwargs}")
 
         if optimizer_kwargs["relative_step"]:
-            print(f"relative_step is true / relative_stepがtrueです")
+            logger.info(f"relative_step is true / relative_stepがtrueです")
             if lr != 0.0:
-                print(f"learning rate is used as initial_lr / 指定したlearning rateはinitial_lrとして使用されます")
+                logger.warning(f"learning rate is used as initial_lr / 指定したlearning rateはinitial_lrとして使用されます")
             args.learning_rate = None
 
             # trainable_paramsがgroupだった時の処理：lrを削除する
@@ -3703,37 +3708,37 @@ def get_optimizer(args, trainable_params):
 
                 if has_group_lr:
                     # 一応argsを無効にしておく TODO 依存関係が逆転してるのであまり望ましくない
-                    print(f"unet_lr and text_encoder_lr are ignored / unet_lrとtext_encoder_lrは無視されます")
+                    logger.warning(f"unet_lr and text_encoder_lr are ignored / unet_lrとtext_encoder_lrは無視されます")
                     args.unet_lr = None
                     args.text_encoder_lr = None
 
             if args.lr_scheduler != "adafactor":
-                print(f"use adafactor_scheduler / スケジューラにadafactor_schedulerを使用します")
+                logger.info(f"use adafactor_scheduler / スケジューラにadafactor_schedulerを使用します")
             args.lr_scheduler = f"adafactor:{lr}"  # ちょっと微妙だけど
 
             lr = None
         else:
             if args.max_grad_norm != 0.0:
-                print(
+                logger.warning(
                     f"because max_grad_norm is set, clip_grad_norm is enabled. consider set to 0 / max_grad_normが設定されているためclip_grad_normが有効になります。0に設定して無効にしたほうがいいかもしれません"
                 )
             if args.lr_scheduler != "constant_with_warmup":
-                print(f"constant_with_warmup will be good / スケジューラはconstant_with_warmupが良いかもしれません")
+                logger.warning(f"constant_with_warmup will be good / スケジューラはconstant_with_warmupが良いかもしれません")
             if optimizer_kwargs.get("clip_threshold", 1.0) != 1.0:
-                print(f"clip_threshold=1.0 will be good / clip_thresholdは1.0が良いかもしれません")
+                logger.warning(f"clip_threshold=1.0 will be good / clip_thresholdは1.0が良いかもしれません")
 
         optimizer_class = transformers.optimization.Adafactor
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     elif optimizer_type == "AdamW".lower():
-        print(f"use AdamW optimizer | {optimizer_kwargs}")
+        logger.info(f"use AdamW optimizer | {optimizer_kwargs}")
         optimizer_class = torch.optim.AdamW
         optimizer = optimizer_class(trainable_params, lr=lr, **optimizer_kwargs)
 
     if optimizer is None:
         # 任意のoptimizerを使う
         optimizer_type = args.optimizer_type  # lowerでないやつ（微妙）
-        print(f"use {optimizer_type} | {optimizer_kwargs}")
+        logger.info(f"use {optimizer_type} | {optimizer_kwargs}")
         if "." not in optimizer_type:
             optimizer_module = torch.optim
         else:
@@ -3779,7 +3784,7 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
     # using any lr_scheduler from other library
     if args.lr_scheduler_type:
         lr_scheduler_type = args.lr_scheduler_type
-        print(f"use {lr_scheduler_type} | {lr_scheduler_kwargs} as lr_scheduler")
+        logger.info(f"use {lr_scheduler_type} | {lr_scheduler_kwargs} as lr_scheduler")
         if "." not in lr_scheduler_type:  # default to use torch.optim
             lr_scheduler_module = torch.optim.lr_scheduler
         else:
@@ -3795,7 +3800,7 @@ def get_scheduler_fix(args, optimizer: Optimizer, num_processes: int):
             type(optimizer) == transformers.optimization.Adafactor
         ), f"adafactor scheduler must be used with Adafactor optimizer / adafactor schedulerはAdafactorオプティマイザと同時に使ってください"
         initial_lr = float(name.split(":")[1])
-        # print("adafactor scheduler init lr", initial_lr)
+        # logger.info(f"adafactor scheduler init lr {initial_lr}")
         return wrap_check_needless_num_warmup_steps(transformers.optimization.AdafactorSchedule(optimizer, initial_lr))
 
     name = SchedulerType(name)
@@ -3860,20 +3865,20 @@ def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
 
     if support_metadata:
         if args.in_json is not None and (args.color_aug or args.random_crop):
-            print(
+            logger.warning(
                 f"latents in npz is ignored when color_aug or random_crop is True / color_augまたはrandom_cropを有効にした場合、npzファイルのlatentsは無視されます"
             )
 
 
 def load_tokenizer(args: argparse.Namespace):
-    print("prepare tokenizer")
+    logger.info("prepare tokenizer")
     original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
 
     tokenizer: CLIPTokenizer = None
     if args.tokenizer_cache_dir:
         local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
         if os.path.exists(local_tokenizer_path):
-            print(f"load tokenizer from cache: {local_tokenizer_path}")
+            logger.info(f"load tokenizer from cache: {local_tokenizer_path}")
             tokenizer = CLIPTokenizer.from_pretrained(local_tokenizer_path)  # same for v1 and v2
 
     if tokenizer is None:
@@ -3883,10 +3888,10 @@ def load_tokenizer(args: argparse.Namespace):
             tokenizer = CLIPTokenizer.from_pretrained(original_path)
 
     if hasattr(args, "max_token_length") and args.max_token_length is not None:
-        print(f"update token length: {args.max_token_length}")
+        logger.info(f"update token length: {args.max_token_length}")
 
     if args.tokenizer_cache_dir and not os.path.exists(local_tokenizer_path):
-        print(f"save Tokenizer to cache: {local_tokenizer_path}")
+        logger.info(f"save Tokenizer to cache: {local_tokenizer_path}")
         tokenizer.save_pretrained(local_tokenizer_path)
 
     return tokenizer
@@ -3967,17 +3972,17 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
     name_or_path = os.path.realpath(name_or_path) if os.path.islink(name_or_path) else name_or_path
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
     if load_stable_diffusion_format:
-        print(f"load StableDiffusion checkpoint: {name_or_path}")
+        logger.info(f"load StableDiffusion checkpoint: {name_or_path}")
         text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(
             args.v2, name_or_path, device, unet_use_linear_projection_in_v2=unet_use_linear_projection_in_v2
         )
     else:
         # Diffusers model is loaded to CPU
-        print(f"load Diffusers pretrained models: {name_or_path}")
+        logger.info(f"load Diffusers pretrained models: {name_or_path}")
         try:
             pipe = StableDiffusionPipeline.from_pretrained(name_or_path, tokenizer=None, safety_checker=None)
         except EnvironmentError as ex:
-            print(
+            logger.error(
                 f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
             )
             raise ex
@@ -3988,7 +3993,7 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
 
         # Diffusers U-Net to original U-Net
         # TODO *.ckpt/*.safetensorsのv2と同じ形式にここで変換すると良さそう
-        # print(f"unet config: {unet.config}")
+        # logger.info(f"unet config: {unet.config}")
         original_unet = UNet2DConditionModel(
             unet.config.sample_size,
             unet.config.attention_head_dim,
@@ -3998,12 +4003,12 @@ def _load_target_model(args: argparse.Namespace, weight_dtype, device="cpu", une
         )
         original_unet.load_state_dict(unet.state_dict())
         unet = original_unet
-        print("U-Net converted to original U-Net")
+        logger.info("U-Net converted to original U-Net")
 
     # VAEを読み込む
     if args.vae is not None:
         vae = model_util.load_vae(args.vae, weight_dtype)
-        print("additional VAE loaded")
+        logger.info("additional VAE loaded")
 
     return text_encoder, vae, unet, load_stable_diffusion_format
 
@@ -4012,7 +4017,7 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
     # load models for each process
     for pi in range(accelerator.state.num_processes):
         if pi == accelerator.state.local_process_index:
-            print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
+            logger.info(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
 
             text_encoder, vae, unet, load_stable_diffusion_format = _load_target_model(
                 args,
@@ -4320,7 +4325,8 @@ def save_sd_model_on_epoch_end_or_stepwise_common(
             ckpt_name = get_step_ckpt_name(args, ext, global_step)
 
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
-        print(f"\nsaving checkpoint: {ckpt_file}")
+        logger.info("")
+        logger.info(f"saving checkpoint: {ckpt_file}")
         sd_saver(ckpt_file, epoch_no, global_step)
 
         if args.huggingface_repo_id is not None:
@@ -4335,7 +4341,7 @@ def save_sd_model_on_epoch_end_or_stepwise_common(
 
             remove_ckpt_file = os.path.join(args.output_dir, remove_ckpt_name)
             if os.path.exists(remove_ckpt_file):
-                print(f"removing old checkpoint: {remove_ckpt_file}")
+                logger.info(f"removing old checkpoint: {remove_ckpt_file}")
                 os.remove(remove_ckpt_file)
 
     else:
@@ -4344,7 +4350,8 @@ def save_sd_model_on_epoch_end_or_stepwise_common(
         else:
             out_dir = os.path.join(args.output_dir, STEP_DIFFUSERS_DIR_NAME.format(model_name, global_step))
 
-        print(f"\nsaving model: {out_dir}")
+        logger.info("")
+        logger.info(f"saving model: {out_dir}")
         diffusers_saver(out_dir)
 
         if args.huggingface_repo_id is not None:
@@ -4358,7 +4365,7 @@ def save_sd_model_on_epoch_end_or_stepwise_common(
                 remove_out_dir = os.path.join(args.output_dir, STEP_DIFFUSERS_DIR_NAME.format(model_name, remove_no))
 
             if os.path.exists(remove_out_dir):
-                print(f"removing old model: {remove_out_dir}")
+                logger.info(f"removing old model: {remove_out_dir}")
                 shutil.rmtree(remove_out_dir)
 
     if args.save_state:
@@ -4371,13 +4378,14 @@ def save_sd_model_on_epoch_end_or_stepwise_common(
 def save_and_remove_state_on_epoch_end(args: argparse.Namespace, accelerator, epoch_no):
     model_name = default_if_none(args.output_name, DEFAULT_EPOCH_NAME)
 
-    print(f"\nsaving state at epoch {epoch_no}")
+    logger.info("")
+    logger.info(f"saving state at epoch {epoch_no}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, epoch_no))
     accelerator.save_state(state_dir)
     if args.save_state_to_huggingface:
-        print("uploading state to huggingface.")
+        logger.info("uploading state to huggingface.")
         huggingface_util.upload(args, state_dir, "/" + EPOCH_STATE_NAME.format(model_name, epoch_no))
 
     last_n_epochs = args.save_last_n_epochs_state if args.save_last_n_epochs_state else args.save_last_n_epochs
@@ -4385,20 +4393,21 @@ def save_and_remove_state_on_epoch_end(args: argparse.Namespace, accelerator, ep
         remove_epoch_no = epoch_no - args.save_every_n_epochs * last_n_epochs
         state_dir_old = os.path.join(args.output_dir, EPOCH_STATE_NAME.format(model_name, remove_epoch_no))
         if os.path.exists(state_dir_old):
-            print(f"removing old state: {state_dir_old}")
+            logger.info(f"removing old state: {state_dir_old}")
             shutil.rmtree(state_dir_old)
 
 
 def save_and_remove_state_stepwise(args: argparse.Namespace, accelerator, step_no):
     model_name = default_if_none(args.output_name, DEFAULT_STEP_NAME)
 
-    print(f"\nsaving state at step {step_no}")
+    logger.info("")
+    logger.info(f"saving state at step {step_no}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, STEP_STATE_NAME.format(model_name, step_no))
     accelerator.save_state(state_dir)
     if args.save_state_to_huggingface:
-        print("uploading state to huggingface.")
+        logger.info("uploading state to huggingface.")
         huggingface_util.upload(args, state_dir, "/" + STEP_STATE_NAME.format(model_name, step_no))
 
     last_n_steps = args.save_last_n_steps_state if args.save_last_n_steps_state else args.save_last_n_steps
@@ -4410,21 +4419,22 @@ def save_and_remove_state_stepwise(args: argparse.Namespace, accelerator, step_n
         if remove_step_no > 0:
             state_dir_old = os.path.join(args.output_dir, STEP_STATE_NAME.format(model_name, remove_step_no))
             if os.path.exists(state_dir_old):
-                print(f"removing old state: {state_dir_old}")
+                logger.info(f"removing old state: {state_dir_old}")
                 shutil.rmtree(state_dir_old)
 
 
 def save_state_on_train_end(args: argparse.Namespace, accelerator):
     model_name = default_if_none(args.output_name, DEFAULT_LAST_OUTPUT_NAME)
 
-    print("\nsaving last state.")
+    logger.info("")
+    logger.info("saving last state.")
     os.makedirs(args.output_dir, exist_ok=True)
 
     state_dir = os.path.join(args.output_dir, LAST_STATE_NAME.format(model_name))
     accelerator.save_state(state_dir)
 
     if args.save_state_to_huggingface:
-        print("uploading last state to huggingface.")
+        logger.info("uploading last state to huggingface.")
         huggingface_util.upload(args, state_dir, "/" + LAST_STATE_NAME.format(model_name))
 
 
@@ -4473,7 +4483,7 @@ def save_sd_model_on_train_end_common(
         ckpt_name = model_name + (".safetensors" if use_safetensors else ".ckpt")
         ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
-        print(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
+        logger.info(f"save trained model as StableDiffusion checkpoint to {ckpt_file}")
         sd_saver(ckpt_file, epoch, global_step)
 
         if args.huggingface_repo_id is not None:
@@ -4482,7 +4492,7 @@ def save_sd_model_on_train_end_common(
         out_dir = os.path.join(args.output_dir, model_name)
         os.makedirs(out_dir, exist_ok=True)
 
-        print(f"save trained model as Diffusers to {out_dir}")
+        logger.info(f"save trained model as Diffusers to {out_dir}")
         diffusers_saver(out_dir)
 
         if args.huggingface_repo_id is not None:
@@ -4592,7 +4602,7 @@ def get_my_scheduler(
 
     # clip_sample=Trueにする
     if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is False:
-        # print("set clip_sample to True")
+        # logger.info("set clip_sample to True")
         scheduler.config.clip_sample = True
 
     return scheduler
@@ -4651,8 +4661,8 @@ def line_to_prompt_dict(line: str) -> dict:
                 continue
 
         except ValueError as ex:
-            print(f"Exception in parsing / 解析エラー: {parg}")
-            print(ex)
+            logger.error(f"Exception in parsing / 解析エラー: {parg}")
+            logger.error(ex)
 
     return prompt_dict
 
@@ -4688,9 +4698,10 @@ def sample_images_common(
             if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
                 return
 
-    print(f"\ngenerating sample images at step / サンプル画像生成 ステップ: {steps}")
+    logger.info("")
+    logger.info(f"generating sample images at step / サンプル画像生成 ステップ: {steps}")
     if not os.path.isfile(args.sample_prompts):
-        print(f"No prompt file / プロンプトファイルがありません: {args.sample_prompts}")
+        logger.error(f"No prompt file / プロンプトファイルがありません: {args.sample_prompts}")
         return
 
     distributed_state = PartialState() # for multi gpu distributed inference. this is a singleton, so it's safe to use it here
@@ -4826,15 +4837,15 @@ def sample_image_inference(accelerator: Accelerator, args: argparse.Namespace, p
 
     height = max(64, height - height % 8)  # round to divisible by 8
     width = max(64, width - width % 8)  # round to divisible by 8
-    print(f"\nprompt: {prompt}")
-    print(f"negative_prompt: {negative_prompt}")
-    print(f"height: {height}")
-    print(f"width: {width}")
-    print(f"sample_steps: {sample_steps}")
-    print(f"scale: {scale}")
-    print(f"sample_sampler: {sampler_name}")
+    logger.info(f"prompt: {prompt}")
+    logger.info(f"negative_prompt: {negative_prompt}")
+    logger.info(f"height: {height}")
+    logger.info(f"width: {width}")
+    logger.info(f"sample_steps: {sample_steps}")
+    logger.info(f"scale: {scale}")
+    logger.info(f"sample_sampler: {sampler_name}")
     if seed is not None:
-        print(f"seed: {seed}")
+        logger.info(f"seed: {seed}")
     with accelerator.autocast():
         latents = pipeline(
             prompt=prompt,
@@ -4897,7 +4908,7 @@ class ImageLoadingDataset(torch.utils.data.Dataset):
             # convert to tensor temporarily so dataloader will accept it
             tensor_pil = transforms.functional.pil_to_tensor(image)
         except Exception as e:
-            print(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
+            logger.error(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
             return None
 
         return (tensor_pil, img_path)

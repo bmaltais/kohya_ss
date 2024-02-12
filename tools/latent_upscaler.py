@@ -17,7 +17,10 @@ init_ipex()
 from torch import nn
 from tqdm import tqdm
 from PIL import Image
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels=None, kernel_size=3, stride=1, padding=1):
@@ -219,7 +222,7 @@ class Upscaler(nn.Module):
         upsampled_images = upsampled_images / 127.5 - 1.0
 
         # convert upsample images to latents with batch size
-        # print("Encoding upsampled (LANCZOS4) images...")
+        # logger.info("Encoding upsampled (LANCZOS4) images...")
         upsampled_latents = []
         for i in tqdm(range(0, upsampled_images.shape[0], vae_batch_size)):
             batch = upsampled_images[i : i + vae_batch_size].to(vae.device)
@@ -230,7 +233,7 @@ class Upscaler(nn.Module):
         upsampled_latents = torch.cat(upsampled_latents, dim=0)
 
         # upscale (refine) latents with this model with batch size
-        print("Upscaling latents...")
+        logger.info("Upscaling latents...")
         upscaled_latents = []
         for i in range(0, upsampled_latents.shape[0], batch_size):
             with torch.no_grad():
@@ -245,7 +248,7 @@ def create_upscaler(**kwargs):
     weights = kwargs["weights"]
     model = Upscaler()
 
-    print(f"Loading weights from {weights}...")
+    logger.info(f"Loading weights from {weights}...")
     if os.path.splitext(weights)[1] == ".safetensors":
         from safetensors.torch import load_file
 
@@ -264,14 +267,14 @@ def upscale_images(args: argparse.Namespace):
 
     # load VAE with Diffusers
     assert args.vae_path is not None, "VAE path is required"
-    print(f"Loading VAE from {args.vae_path}...")
+    logger.info(f"Loading VAE from {args.vae_path}...")
     vae = AutoencoderKL.from_pretrained(args.vae_path, subfolder="vae")
     vae.to(DEVICE, dtype=us_dtype)
 
     # prepare model
-    print("Preparing model...")
+    logger.info("Preparing model...")
     upscaler: Upscaler = create_upscaler(weights=args.weights)
-    # print("Loading weights from", args.weights)
+    # logger.info("Loading weights from", args.weights)
     # upscaler.load_state_dict(torch.load(args.weights))
     upscaler.eval()
     upscaler.to(DEVICE, dtype=us_dtype)
@@ -306,14 +309,14 @@ def upscale_images(args: argparse.Namespace):
             image_debug.save(dest_file_name)
 
     # upscale
-    print("Upscaling...")
+    logger.info("Upscaling...")
     upscaled_latents = upscaler.upscale(
         vae, images, None, us_dtype, width * 2, height * 2, batch_size=args.batch_size, vae_batch_size=args.vae_batch_size
     )
     upscaled_latents /= 0.18215
 
     # decode with batch
-    print("Decoding...")
+    logger.info("Decoding...")
     upscaled_images = []
     for i in tqdm(range(0, upscaled_latents.shape[0], args.vae_batch_size)):
         with torch.no_grad():
