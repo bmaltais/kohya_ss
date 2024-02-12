@@ -3299,7 +3299,7 @@ def main(args):
                             m = re.match(r"dsr ([\d\.]+)", parg, re.IGNORECASE)
                             if m:  # deep shrink ratio
                                 ds_ratio = float(m.group(1))
-                                 ds_depth_1 = ds_depth_1 if ds_depth_1 is not None else -1  # -1 means override
+                                ds_depth_1 = ds_depth_1 if ds_depth_1 is not None else -1  # -1 means override
                                 logger.info(f"deep shrink ratio: {ds_ratio}")
                                 continue
 
