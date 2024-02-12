@@ -12,8 +12,10 @@ import numpy as np
 import torch
 import re
 from library.utils import setup_logging
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 RE_UPDOWN = re.compile(r"(up|down)_blocks_(\d+)_(resnets|upsamplers|downsamplers|attentions)_(\d+)_")
@@ -248,7 +250,8 @@ class LoRAInfModule(LoRAModule):
         if mask is None:
             # raise ValueError(f"mask is None for resolution {area}")
             # emb_layers in SDXL doesn't have mask
-            # logger.info(f"mask is None for resolution {area}, {x.size()}")
+            # if "emb" not in self.lora_name:
+            #     print(f"mask is None for resolution {self.lora_name}, {area}, {x.size()}")
             mask_size = (1, x.size()[1]) if len(x.size()) == 2 else (1, *x.size()[1:-1], 1)
             return torch.ones(mask_size, dtype=x.dtype, device=x.device) / self.network.num_sub_prompts
         if len(x.size()) != 4:
@@ -265,7 +268,9 @@ class LoRAInfModule(LoRAModule):
         # apply mask for LoRA result
         lx = self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
         mask = self.get_mask_for_x(lx)
-        # logger.info(f"regional {self.lora_name} {self.network.sub_prompt_index} {lx.size()} {mask.size()}")
+        # print("regional", self.lora_name, self.network.sub_prompt_index, lx.size(), mask.size())
+        # if mask.ndim > lx.ndim:  # in some resolution, lx is 2d and mask is 3d (the reason is not checked)
+        #     mask = mask.squeeze(-1)
         lx = lx * mask
 
         x = self.org_forward(x)
@@ -514,7 +519,9 @@ def get_block_dims_and_alphas(
             len(block_dims) == num_total_blocks
         ), f"block_dims must have {num_total_blocks} elements / block_dimsは{num_total_blocks}個指定してください"
     else:
-        logger.warning(f"block_dims is not specified. all dims are set to {network_dim} / block_dimsが指定されていません。すべてのdimは{network_dim}になります")
+        logger.warning(
+            f"block_dims is not specified. all dims are set to {network_dim} / block_dimsが指定されていません。すべてのdimは{network_dim}になります"
+        )
         block_dims = [network_dim] * num_total_blocks
 
     if block_alphas is not None:
@@ -792,7 +799,9 @@ class LoRANetwork(torch.nn.Module):
             logger.info(f"create LoRA network from weights")
         elif block_dims is not None:
             logger.info(f"create LoRA network from block_dims")
-            logger.info(f"neuron dropout: p={self.dropout}, rank dropout: p={self.rank_dropout}, module dropout: p={self.module_dropout}")
+            logger.info(
+                f"neuron dropout: p={self.dropout}, rank dropout: p={self.rank_dropout}, module dropout: p={self.module_dropout}"
+            )
             logger.info(f"block_dims: {block_dims}")
             logger.info(f"block_alphas: {block_alphas}")
             if conv_block_dims is not None:
@@ -800,9 +809,13 @@ class LoRANetwork(torch.nn.Module):
                 logger.info(f"conv_block_alphas: {conv_block_alphas}")
         else:
             logger.info(f"create LoRA network. base dim (rank): {lora_dim}, alpha: {alpha}")
-            logger.info(f"neuron dropout: p={self.dropout}, rank dropout: p={self.rank_dropout}, module dropout: p={self.module_dropout}")
+            logger.info(
+                f"neuron dropout: p={self.dropout}, rank dropout: p={self.rank_dropout}, module dropout: p={self.module_dropout}"
+            )
             if self.conv_lora_dim is not None:
-                logger.info(f"apply LoRA to Conv2d with kernel size (3,3). dim (rank): {self.conv_lora_dim}, alpha: {self.conv_alpha}")
+                logger.info(
+                    f"apply LoRA to Conv2d with kernel size (3,3). dim (rank): {self.conv_lora_dim}, alpha: {self.conv_alpha}"
+                )
 
         # create module instances
         def create_modules(
@@ -928,6 +941,10 @@ class LoRANetwork(torch.nn.Module):
         self.multiplier = multiplier
         for lora in self.text_encoder_loras + self.unet_loras:
             lora.multiplier = self.multiplier
+
+    def set_enabled(self, is_enabled):
+        for lora in self.text_encoder_loras + self.unet_loras:
+            lora.enabled = is_enabled
 
     def load_weights(self, file):
         if os.path.splitext(file)[1] == ".safetensors":
@@ -1116,7 +1133,7 @@ class LoRANetwork(torch.nn.Module):
         for lora in self.text_encoder_loras + self.unet_loras:
             lora.set_network(self)
 
-    def set_current_generation(self, batch_size, num_sub_prompts, width, height, shared):
+    def set_current_generation(self, batch_size, num_sub_prompts, width, height, shared, ds_ratio=None):
         self.batch_size = batch_size
         self.num_sub_prompts = num_sub_prompts
         self.current_size = (height, width)
@@ -1142,6 +1159,13 @@ class LoRANetwork(torch.nn.Module):
             resize_add(h, w)
             if h % 2 == 1 or w % 2 == 1:  # add extra shape if h/w is not divisible by 2
                 resize_add(h + h % 2, w + w % 2)
+
+            # deep shrink
+            if ds_ratio is not None:
+                hd = int(h * ds_ratio)
+                wd = int(w * ds_ratio)
+                resize_add(hd, wd)
+
             h = (h + 1) // 2
             w = (w + 1) // 2
 
