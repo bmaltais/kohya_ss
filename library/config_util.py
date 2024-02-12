@@ -40,7 +40,10 @@ from .train_util import (
     ControlNetDataset,
     DatasetGroup,
 )
-
+from .utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def add_config_arguments(parser: argparse.ArgumentParser):
     parser.add_argument("--dataset_config", type=Path, default=None, help="config file for detail settings / 詳細な設定用の設定ファイル")
@@ -345,7 +348,7 @@ class ConfigSanitizer:
             return self.user_config_validator(user_config)
         except MultipleInvalid:
             # TODO: エラー発生時のメッセージをわかりやすくする
-            print("Invalid user config / ユーザ設定の形式が正しくないようです")
+            logger.error("Invalid user config / ユーザ設定の形式が正しくないようです")
             raise
 
     # NOTE: In nature, argument parser result is not needed to be sanitize
@@ -355,7 +358,7 @@ class ConfigSanitizer:
             return self.argparse_config_validator(argparse_namespace)
         except MultipleInvalid:
             # XXX: this should be a bug
-            print("Invalid cmdline parsed arguments. This should be a bug. / コマンドラインのパース結果が正しくないようです。プログラムのバグの可能性が高いです。")
+            logger.error("Invalid cmdline parsed arguments. This should be a bug. / コマンドラインのパース結果が正しくないようです。プログラムのバグの可能性が高いです。")
             raise
 
     # NOTE: value would be overwritten by latter dict if there is already the same key
@@ -538,13 +541,13 @@ def generate_dataset_group_by_blueprint(dataset_group_blueprint: DatasetGroupBlu
                     "    ",
                 )
 
-    print(info)
+    logger.info(f'{info}')
 
     # make buckets first because it determines the length of dataset
     # and set the same seed for all datasets
-    seed = random.randint(0, 2**31)  # actual seed is seed + epoch_no
+    seed = random.randint(0, 2**31) # actual seed is seed + epoch_no
     for i, dataset in enumerate(datasets):
-        print(f"[Dataset {i}]")
+        logger.info(f"[Dataset {i}]")
         dataset.make_buckets()
         dataset.set_seed(seed)
 
@@ -557,7 +560,7 @@ def generate_dreambooth_subsets_config_by_subdirs(train_data_dir: Optional[str] 
         try:
             n_repeats = int(tokens[0])
         except ValueError as e:
-            print(f"ignore directory without repeats / 繰り返し回数のないディレクトリを無視します: {name}")
+            logger.warning(f"ignore directory without repeats / 繰り返し回数のないディレクトリを無視します: {name}")
             return 0, ""
         caption_by_folder = "_".join(tokens[1:])
         return n_repeats, caption_by_folder
@@ -629,17 +632,13 @@ def load_user_config(file: str) -> dict:
             with open(file, "r") as f:
                 config = json.load(f)
         except Exception:
-            print(
-                f"Error on parsing JSON config file. Please check the format. / JSON 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}"
-            )
+            logger.error(f"Error on parsing JSON config file. Please check the format. / JSON 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}")
             raise
     elif file.name.lower().endswith(".toml"):
         try:
             config = toml.load(file)
         except Exception:
-            print(
-                f"Error on parsing TOML config file. Please check the format. / TOML 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}"
-            )
+            logger.error(f"Error on parsing TOML config file. Please check the format. / TOML 形式の設定ファイルの読み込みに失敗しました。文法が正しいか確認してください。: {file}")
             raise
     else:
         raise ValueError(f"not supported config file format / 対応していない設定ファイルの形式です: {file}")
@@ -665,23 +664,26 @@ if __name__ == "__main__":
     argparse_namespace = parser.parse_args(remain)
     train_util.prepare_dataset_args(argparse_namespace, config_args.support_finetuning)
 
-    print("[argparse_namespace]")
-    print(vars(argparse_namespace))
+    logger.info("[argparse_namespace]")
+    logger.info(f'{vars(argparse_namespace)}')
 
     user_config = load_user_config(config_args.dataset_config)
 
-    print("\n[user_config]")
-    print(user_config)
+    logger.info("")
+    logger.info("[user_config]")
+    logger.info(f'{user_config}')
 
     sanitizer = ConfigSanitizer(
         config_args.support_dreambooth, config_args.support_finetuning, config_args.support_controlnet, config_args.support_dropout
     )
     sanitized_user_config = sanitizer.sanitize_user_config(user_config)
 
-    print("\n[sanitized_user_config]")
-    print(sanitized_user_config)
+    logger.info("")
+    logger.info("[sanitized_user_config]")
+    logger.info(f'{sanitized_user_config}')
 
     blueprint = BlueprintGenerator(sanitizer).generate(user_config, argparse_namespace)
 
-    print("\n[blueprint]")
-    print(blueprint)
+    logger.info("")
+    logger.info("[blueprint]")
+    logger.info(f'{blueprint}')
