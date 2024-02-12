@@ -125,9 +125,13 @@ def ipex_init(): # pylint: disable=too-many-statements
 
         # AMP:
         torch.cuda.amp = torch.xpu.amp
+        torch.is_autocast_enabled = torch.xpu.is_autocast_xpu_enabled
+        torch.get_autocast_gpu_dtype = torch.xpu.get_autocast_xpu_dtype
+
         if not hasattr(torch.cuda.amp, "common"):
             torch.cuda.amp.common = contextlib.nullcontext()
         torch.cuda.amp.common.amp_definitely_not_available = lambda: False
+
         try:
             torch.cuda.amp.GradScaler = torch.xpu.amp.GradScaler
         except Exception: # pylint: disable=broad-exception-caught
@@ -151,15 +155,16 @@ def ipex_init(): # pylint: disable=too-many-statements
         torch.cuda.has_half = True
         torch.cuda.is_bf16_supported = lambda *args, **kwargs: True
         torch.cuda.is_fp16_supported = lambda *args, **kwargs: True
-        torch.version.cuda = "11.7"
-        torch.cuda.get_device_capability = lambda *args, **kwargs: [11,7]
-        torch.cuda.get_device_properties.major = 11
-        torch.cuda.get_device_properties.minor = 7
+        torch.backends.cuda.is_built = lambda *args, **kwargs: True
+        torch.version.cuda = "12.1"
+        torch.cuda.get_device_capability = lambda *args, **kwargs: [12,1]
+        torch.cuda.get_device_properties.major = 12
+        torch.cuda.get_device_properties.minor = 1
         torch.cuda.ipc_collect = lambda *args, **kwargs: None
         torch.cuda.utilization = lambda *args, **kwargs: 0
 
         ipex_hijacks()
-        if not torch.xpu.has_fp64_dtype():
+        if not torch.xpu.has_fp64_dtype() or os.environ.get('IPEX_FORCE_ATTENTION_SLICE', None) is not None:
             try:
                 from .diffusers import ipex_diffusers
                 ipex_diffusers()
