@@ -56,9 +56,11 @@ from library.sdxl_original_unet import InferSdxlUNet2DConditionModel
 from library.original_unet import FlashAttentionFunction
 from networks.control_net_lllite import ControlNetLLLite
 from library.utils import GradualLatent, EulerAncestralDiscreteSchedulerGL
-from library.utils import setup_logging
+from library.utils import setup_logging, add_logging_arguments
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 # scheduler:
@@ -2061,7 +2063,9 @@ def main(args):
 
         logger.info(f"loaded {len(guide_images)} guide images for guidance")
         if len(guide_images) == 0:
-            logger.warning(f"No guide image, use previous generated image. / ガイド画像がありません。直前に生成した画像を使います: {args.image_path}")
+            logger.warning(
+                f"No guide image, use previous generated image. / ガイド画像がありません。直前に生成した画像を使います: {args.image_path}"
+            )
             guide_images = None
     else:
         guide_images = None
@@ -2351,7 +2355,7 @@ def main(args):
             highres_prefix = ("0" if highres_1st else "1") if highres_fix else ""
             ts_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
             for i, (image, prompt, negative_prompts, seed, clip_prompt, raw_prompt) in enumerate(
-                zip(images, prompts, negative_prompts, seeds, clip_prompts, raw_prompts )
+                zip(images, prompts, negative_prompts, seeds, clip_prompts, raw_prompts)
             ):
                 if highres_fix:
                     seed -= 1  # record original seed
@@ -2397,7 +2401,9 @@ def main(args):
                         cv2.waitKey()
                         cv2.destroyAllWindows()
                 except ImportError:
-                    logger.error("opencv-python is not installed, cannot preview / opencv-pythonがインストールされていないためプレビューできません")
+                    logger.error(
+                        "opencv-python is not installed, cannot preview / opencv-pythonがインストールされていないためプレビューできません"
+                    )
 
             return images
 
@@ -2787,7 +2793,9 @@ def main(args):
 
                 b1 = BatchData(
                     False,
-                    BatchDataBase(global_step, prompt, negative_prompt, seed, init_image, mask_image, clip_prompt, guide_image, raw_prompt),
+                    BatchDataBase(
+                        global_step, prompt, negative_prompt, seed, init_image, mask_image, clip_prompt, guide_image, raw_prompt
+                    ),
                     BatchDataExt(
                         width,
                         height,
@@ -2828,12 +2836,19 @@ def main(args):
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)
+
     parser.add_argument("--prompt", type=str, default=None, help="prompt / プロンプト")
     parser.add_argument(
-        "--from_file", type=str, default=None, help="if specified, load prompts from this file / 指定時はプロンプトをファイルから読み込む"
+        "--from_file",
+        type=str,
+        default=None,
+        help="if specified, load prompts from this file / 指定時はプロンプトをファイルから読み込む",
     )
     parser.add_argument(
-        "--interactive", action="store_true", help="interactive mode (generates one image) / 対話モード（生成される画像は1枚になります）"
+        "--interactive",
+        action="store_true",
+        help="interactive mode (generates one image) / 対話モード（生成される画像は1枚になります）",
     )
     parser.add_argument(
         "--no_preview", action="store_true", help="do not show generated image in interactive mode / 対話モードで画像を表示しない"
@@ -2845,7 +2860,9 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--strength", type=float, default=None, help="img2img strength / img2img時のstrength")
     parser.add_argument("--images_per_prompt", type=int, default=1, help="number of images per prompt / プロンプトあたりの出力枚数")
     parser.add_argument("--outdir", type=str, default="outputs", help="dir to write results to / 生成画像の出力先")
-    parser.add_argument("--sequential_file_name", action="store_true", help="sequential output file name / 生成画像のファイル名を連番にする")
+    parser.add_argument(
+        "--sequential_file_name", action="store_true", help="sequential output file name / 生成画像のファイル名を連番にする"
+    )
     parser.add_argument(
         "--use_original_file_name",
         action="store_true",
@@ -2856,10 +2873,16 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--H", type=int, default=None, help="image height, in pixel space / 生成画像高さ")
     parser.add_argument("--W", type=int, default=None, help="image width, in pixel space / 生成画像幅")
     parser.add_argument(
-        "--original_height", type=int, default=None, help="original height for SDXL conditioning / SDXLの条件付けに用いるoriginal heightの値"
+        "--original_height",
+        type=int,
+        default=None,
+        help="original height for SDXL conditioning / SDXLの条件付けに用いるoriginal heightの値",
     )
     parser.add_argument(
-        "--original_width", type=int, default=None, help="original width for SDXL conditioning / SDXLの条件付けに用いるoriginal widthの値"
+        "--original_width",
+        type=int,
+        default=None,
+        help="original width for SDXL conditioning / SDXLの条件付けに用いるoriginal widthの値",
     )
     parser.add_argument(
         "--original_height_negative",
@@ -2873,8 +2896,12 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         help="original width for SDXL unconditioning / SDXLのネガティブ条件付けに用いるoriginal widthの値",
     )
-    parser.add_argument("--crop_top", type=int, default=None, help="crop top for SDXL conditioning / SDXLの条件付けに用いるcrop topの値")
-    parser.add_argument("--crop_left", type=int, default=None, help="crop left for SDXL conditioning / SDXLの条件付けに用いるcrop leftの値")
+    parser.add_argument(
+        "--crop_top", type=int, default=None, help="crop top for SDXL conditioning / SDXLの条件付けに用いるcrop topの値"
+    )
+    parser.add_argument(
+        "--crop_left", type=int, default=None, help="crop left for SDXL conditioning / SDXLの条件付けに用いるcrop leftの値"
+    )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size / バッチサイズ")
     parser.add_argument(
         "--vae_batch_size",
@@ -2888,7 +2915,9 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         help="number of slices to split image into for VAE to reduce VRAM usage, None for no splitting (default), slower if specified. 16 or 32 recommended / VAE処理時にVRAM使用量削減のため画像を分割するスライス数、Noneの場合は分割しない（デフォルト）、指定すると遅くなる。16か32程度を推奨",
     )
-    parser.add_argument("--no_half_vae", action="store_true", help="do not use fp16/bf16 precision for VAE / VAE処理時にfp16/bf16を使わない")
+    parser.add_argument(
+        "--no_half_vae", action="store_true", help="do not use fp16/bf16 precision for VAE / VAE処理時にfp16/bf16を使わない"
+    )
     parser.add_argument("--steps", type=int, default=50, help="number of ddim sampling steps / サンプリングステップ数")
     parser.add_argument(
         "--sampler",
@@ -2920,9 +2949,14 @@ def setup_parser() -> argparse.ArgumentParser:
         default=7.5,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty)) / guidance scale",
     )
-    parser.add_argument("--ckpt", type=str, default=None, help="path to checkpoint of model / モデルのcheckpointファイルまたはディレクトリ")
     parser.add_argument(
-        "--vae", type=str, default=None, help="path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ"
+        "--ckpt", type=str, default=None, help="path to checkpoint of model / モデルのcheckpointファイルまたはディレクトリ"
+    )
+    parser.add_argument(
+        "--vae",
+        type=str,
+        default=None,
+        help="path to checkpoint of vae to replace / VAEを入れ替える場合、VAEのcheckpointファイルまたはディレクトリ",
     )
     parser.add_argument(
         "--tokenizer_cache_dir",
@@ -2953,25 +2987,46 @@ def setup_parser() -> argparse.ArgumentParser:
         help="use xformers by diffusers (Hypernetworks doesn't work) / Diffusersでxformersを使用する（Hypernetwork利用不可）",
     )
     parser.add_argument(
-        "--opt_channels_last", action="store_true", help="set channels last option to model / モデルにchannels lastを指定し最適化する"
+        "--opt_channels_last",
+        action="store_true",
+        help="set channels last option to model / モデルにchannels lastを指定し最適化する",
     )
     parser.add_argument(
-        "--network_module", type=str, default=None, nargs="*", help="additional network module to use / 追加ネットワークを使う時そのモジュール名"
+        "--network_module",
+        type=str,
+        default=None,
+        nargs="*",
+        help="additional network module to use / 追加ネットワークを使う時そのモジュール名",
     )
     parser.add_argument(
         "--network_weights", type=str, default=None, nargs="*", help="additional network weights to load / 追加ネットワークの重み"
     )
-    parser.add_argument("--network_mul", type=float, default=None, nargs="*", help="additional network multiplier / 追加ネットワークの効果の倍率")
     parser.add_argument(
-        "--network_args", type=str, default=None, nargs="*", help="additional arguments for network (key=value) / ネットワークへの追加の引数"
+        "--network_mul", type=float, default=None, nargs="*", help="additional network multiplier / 追加ネットワークの効果の倍率"
     )
-    parser.add_argument("--network_show_meta", action="store_true", help="show metadata of network model / ネットワークモデルのメタデータを表示する")
     parser.add_argument(
-        "--network_merge_n_models", type=int, default=None, help="merge this number of networks / この数だけネットワークをマージする"
+        "--network_args",
+        type=str,
+        default=None,
+        nargs="*",
+        help="additional arguments for network (key=value) / ネットワークへの追加の引数",
     )
-    parser.add_argument("--network_merge", action="store_true", help="merge network weights to original model / ネットワークの重みをマージする")
     parser.add_argument(
-        "--network_pre_calc", action="store_true", help="pre-calculate network for generation / ネットワークのあらかじめ計算して生成する"
+        "--network_show_meta", action="store_true", help="show metadata of network model / ネットワークモデルのメタデータを表示する"
+    )
+    parser.add_argument(
+        "--network_merge_n_models",
+        type=int,
+        default=None,
+        help="merge this number of networks / この数だけネットワークをマージする",
+    )
+    parser.add_argument(
+        "--network_merge", action="store_true", help="merge network weights to original model / ネットワークの重みをマージする"
+    )
+    parser.add_argument(
+        "--network_pre_calc",
+        action="store_true",
+        help="pre-calculate network for generation / ネットワークのあらかじめ計算して生成する",
     )
     parser.add_argument(
         "--network_regional_mask_max_color_codes",
@@ -2986,7 +3041,9 @@ def setup_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="Embeddings files of Textual Inversion / Textual Inversionのembeddings",
     )
-    parser.add_argument("--clip_skip", type=int, default=None, help="layer number from bottom to use in CLIP / CLIPの後ろからn層目の出力を使う")
+    parser.add_argument(
+        "--clip_skip", type=int, default=None, help="layer number from bottom to use in CLIP / CLIPの後ろからn層目の出力を使う"
+    )
     parser.add_argument(
         "--max_embeddings_multiples",
         type=int,
@@ -3003,7 +3060,10 @@ def setup_parser() -> argparse.ArgumentParser:
         help="enable highres fix, reso scale for 1st stage / highres fixを有効にして最初の解像度をこのscaleにする",
     )
     parser.add_argument(
-        "--highres_fix_steps", type=int, default=28, help="1st stage steps for highres fix / highres fixの最初のステージのステップ数"
+        "--highres_fix_steps",
+        type=int,
+        default=28,
+        help="1st stage steps for highres fix / highres fixの最初のステージのステップ数",
     )
     parser.add_argument(
         "--highres_fix_strength",
@@ -3012,7 +3072,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="1st stage img2img strength for highres fix / highres fixの最初のステージのimg2img時のstrength、省略時はstrengthと同じ",
     )
     parser.add_argument(
-        "--highres_fix_save_1st", action="store_true", help="save 1st stage images for highres fix / highres fixの最初のステージの画像を保存する"
+        "--highres_fix_save_1st",
+        action="store_true",
+        help="save 1st stage images for highres fix / highres fixの最初のステージの画像を保存する",
     )
     parser.add_argument(
         "--highres_fix_latents_upscaling",
@@ -3020,7 +3082,10 @@ def setup_parser() -> argparse.ArgumentParser:
         help="use latents upscaling for highres fix / highres fixでlatentで拡大する",
     )
     parser.add_argument(
-        "--highres_fix_upscaler", type=str, default=None, help="upscaler module for highres fix / highres fixで使うupscalerのモジュール名"
+        "--highres_fix_upscaler",
+        type=str,
+        default=None,
+        help="upscaler module for highres fix / highres fixで使うupscalerのモジュール名",
     )
     parser.add_argument(
         "--highres_fix_upscaler_args",
@@ -3035,11 +3100,18 @@ def setup_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--negative_scale", type=float, default=None, help="set another guidance scale for negative prompt / ネガティブプロンプトのscaleを指定する"
+        "--negative_scale",
+        type=float,
+        default=None,
+        help="set another guidance scale for negative prompt / ネガティブプロンプトのscaleを指定する",
     )
 
     parser.add_argument(
-        "--control_net_lllite_models", type=str, default=None, nargs="*", help="ControlNet models to use / 使用するControlNetのモデル名"
+        "--control_net_lllite_models",
+        type=str,
+        default=None,
+        nargs="*",
+        help="ControlNet models to use / 使用するControlNetのモデル名",
     )
     # parser.add_argument(
     #     "--control_net_models", type=str, default=None, nargs="*", help="ControlNet models to use / 使用するControlNetのモデル名"
@@ -3138,4 +3210,5 @@ if __name__ == "__main__":
     parser = setup_parser()
 
     args = parser.parse_args()
+    setup_logging(args, reset=True)
     main(args)
