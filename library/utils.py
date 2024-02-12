@@ -25,7 +25,7 @@ def add_logging_arguments(parser):
         "--console_log_file",
         type=str,
         default=None,
-        help="Log to a file instead of stdout / 標準出力ではなくファイルにログを出力する",
+        help="Log to a file instead of stderr / 標準エラー出力ではなくファイルにログを出力する",
     )
     parser.add_argument("--console_log_simple", action="store_true", help="Simple log output / シンプルなログ出力")
 

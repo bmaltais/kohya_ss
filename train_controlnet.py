@@ -62,6 +62,7 @@ def train(args):
     # training_started_at = time.time()
     train_util.verify_training_args(args)
     train_util.prepare_dataset_args(args, True)
+    setup_logging(args, reset=True)
 
     cache_latents = args.cache_latents
     use_user_config = args.dataset_config is not None
