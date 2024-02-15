@@ -222,9 +222,9 @@ class BasicTraining:
 
         def update_learning_rate_te(sdxl_checkbox, finetuning, dreambooth):
             return (
-                gr.Number.update(visible=(not sdxl_checkbox and (finetuning or dreambooth))),
-                gr.Number.update(visible=(sdxl_checkbox and (finetuning or dreambooth))),
-                gr.Number.update(visible=(sdxl_checkbox and (finetuning or dreambooth))),
+                gr.Number(visible=(not sdxl_checkbox and (finetuning or dreambooth))),
+                gr.Number(visible=(sdxl_checkbox and (finetuning or dreambooth))),
+                gr.Number(visible=(sdxl_checkbox and (finetuning or dreambooth))),
             )
 
         self.sdxl_checkbox.change(

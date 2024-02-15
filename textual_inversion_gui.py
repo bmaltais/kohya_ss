@@ -17,7 +17,6 @@ from library.common_gui import (
     color_aug_changed,
     save_inference_file,
     run_cmd_advanced_training,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     output_message,
@@ -96,6 +95,10 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     vae,
     output_name,
     max_token_length,
@@ -150,19 +153,19 @@ def save_configuration(
 
     original_file_path = file_path
 
-    save_as_bool = True if save_as.get('label') == 'True' else False
+    save_as_bool = True if save_as.get("label") == "True" else False
 
     if save_as_bool:
-        log.info('Save as...')
+        log.info("Save as...")
         file_path = get_saveasfile_path(file_path)
     else:
-        log.info('Save...')
-        if file_path == None or file_path == '':
+        log.info("Save...")
+        if file_path == None or file_path == "":
             file_path = get_saveasfile_path(file_path)
 
     # log.info(file_path)
 
-    if file_path == None or file_path == '':
+    if file_path == None or file_path == "":
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Extract the destination directory from the file path
@@ -175,7 +178,7 @@ def save_configuration(
     SaveConfigFile(
         parameters=parameters,
         file_path=file_path,
-        exclusion=['file_path', 'save_as'],
+        exclusion=["file_path", "save_as"],
     )
 
     return file_path
@@ -223,6 +226,10 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     vae,
     output_name,
     max_token_length,
@@ -275,18 +282,18 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    ask_for_file = True if ask_for_file.get('label') == 'True' else False
+    ask_for_file = True if ask_for_file.get("label") == "True" else False
 
     original_file_path = file_path
 
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and not file_path == None:
+    if not file_path == "" and not file_path == None:
         # load variables from JSON file
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             my_data = json.load(f)
-            log.info('Loading config...')
+            log.info("Loading config...")
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
             my_data = update_my_data(my_data)
     else:
@@ -296,7 +303,7 @@ def open_configuration(
     values = [file_path]
     for key, value in parameters:
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'file_path']:
+        if not key in ["ask_for_file", "file_path"]:
             values.append(my_data.get(key, value))
     return tuple(values)
 
@@ -343,6 +350,10 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     vae,
     output_name,
     max_token_length,
@@ -395,36 +406,32 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    print_only_bool = True if print_only.get('label') == 'True' else False
-    log.info(f'Start training TI...')
+    print_only_bool = True if print_only.get("label") == "True" else False
+    log.info(f"Start training TI...")
 
-    headless_bool = True if headless.get('label') == 'True' else False
+    headless_bool = True if headless.get("label") == "True" else False
 
-    if pretrained_model_name_or_path == '':
+    if pretrained_model_name_or_path == "":
         output_message(
-            msg='Source model information is missing', headless=headless_bool
+            msg="Source model information is missing", headless=headless_bool
         )
         return
 
-    if train_data_dir == '':
-        output_message(
-            msg='Image folder path is missing', headless=headless_bool
-        )
+    if train_data_dir == "":
+        output_message(msg="Image folder path is missing", headless=headless_bool)
         return
 
     if not os.path.exists(train_data_dir):
-        output_message(
-            msg='Image folder does not exist', headless=headless_bool
-        )
+        output_message(msg="Image folder does not exist", headless=headless_bool)
         return
 
     if not verify_image_folder_pattern(train_data_dir):
         return
 
-    if reg_data_dir != '':
+    if reg_data_dir != "":
         if not os.path.exists(reg_data_dir):
             output_message(
-                msg='Regularisation folder does not exist',
+                msg="Regularisation folder does not exist",
                 headless=headless_bool,
             )
             return
@@ -432,26 +439,22 @@ def train_model(
         if not verify_image_folder_pattern(reg_data_dir):
             return
 
-    if output_dir == '':
-        output_message(
-            msg='Output folder path is missing', headless=headless_bool
-        )
+    if output_dir == "":
+        output_message(msg="Output folder path is missing", headless=headless_bool)
         return
 
-    if token_string == '':
-        output_message(msg='Token string is missing', headless=headless_bool)
+    if token_string == "":
+        output_message(msg="Token string is missing", headless=headless_bool)
         return
 
-    if init_word == '':
-        output_message(msg='Init word is missing', headless=headless_bool)
+    if init_word == "":
+        output_message(msg="Init word is missing", headless=headless_bool)
         return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    if check_if_model_exist(
-        output_name, output_dir, save_model_as, headless_bool
-    ):
+    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
     # if float(noise_offset) > 0 and (
@@ -484,7 +487,7 @@ def train_model(
     # Loop through each subfolder and extract the number of repeats
     for folder in subfolders:
         # Extract the number of repeats from the folder name
-        repeats = int(folder.split('_')[0])
+        repeats = int(folder.split("_")[0])
 
         # Count the number of images in the folder
         num_images = len(
@@ -492,11 +495,9 @@ def train_model(
                 f
                 for f, lower_f in (
                     (file, file.lower())
-                    for file in os.listdir(
-                        os.path.join(train_data_dir, folder)
-                    )
+                    for file in os.listdir(os.path.join(train_data_dir, folder))
                 )
-                if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
+                if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
             ]
         )
 
@@ -505,21 +506,21 @@ def train_model(
         total_steps += steps
 
         # Print the result
-        log.info(f'Folder {folder}: {steps} steps')
+        log.info(f"Folder {folder}: {steps} steps")
 
     # Print the result
     # log.info(f"{total_steps} total steps")
 
-    if reg_data_dir == '':
+    if reg_data_dir == "":
         reg_factor = 1
     else:
         log.info(
-            'Regularisation images are used... Will double the number of steps required...'
+            "Regularisation images are used... Will double the number of steps required..."
         )
         reg_factor = 2
 
     # calculate max_train_steps
-    if max_train_steps == '' or max_train_steps == '0':
+    if max_train_steps == "" or max_train_steps == "0":
         max_train_steps = int(
             math.ceil(
                 float(total_steps)
@@ -532,7 +533,7 @@ def train_model(
     else:
         max_train_steps = int(max_train_steps)
 
-    log.info(f'max_train_steps = {max_train_steps}')
+    log.info(f"max_train_steps = {max_train_steps}")
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -541,136 +542,111 @@ def train_model(
         stop_text_encoder_training = math.ceil(
             float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
         )
-    log.info(f'stop_text_encoder_training = {stop_text_encoder_training}')
+    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    log.info(f'lr_warmup_steps = {lr_warmup_steps}')
+    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
+    run_cmd = "accelerate launch"
+
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
+    )
+
     if sdxl:
         run_cmd += f' "./sdxl_train_textual_inversion.py"'
     else:
         run_cmd += f' "./train_textual_inversion.py"'
 
-    if v2:
-        run_cmd += ' --v2'
-    if v_parameterization:
-        run_cmd += ' --v_parameterization'
-    if enable_bucket:
-        run_cmd += f' --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}'
-    if no_token_padding:
-        run_cmd += ' --no_token_padding'
-    run_cmd += (
-        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    )
-    run_cmd += f' --train_data_dir="{train_data_dir}"'
-    if len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    if not stop_text_encoder_training == 0:
-        run_cmd += (
-            f' --stop_text_encoder_training={stop_text_encoder_training}'
-        )
-    if not save_model_as == 'same as source model':
-        run_cmd += f' --save_model_as={save_model_as}'
-    # if not resume == '':
-    #     run_cmd += f' --resume={resume}'
-    if not float(prior_loss_weight) == 1.0:
-        run_cmd += f' --prior_loss_weight={prior_loss_weight}'
-    if not vae == '':
-        run_cmd += f' --vae="{vae}"'
-    if not output_name == '':
-        run_cmd += f' --output_name="{output_name}"'
-    if not lr_scheduler_num_cycles == '':
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
-    else:
-        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-    if not lr_scheduler_power == '':
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
-    if int(max_token_length) > 75:
-        run_cmd += f' --max_token_length={max_token_length}'
-    if not max_train_epochs == '':
-        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
-    if not max_data_loader_n_workers == '':
-        run_cmd += (
-            f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
-        )
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-
-    if sdxl and sdxl_no_half_vae:
-        run_cmd += f' --no_half_vae'
-
-    run_cmd += run_cmd_training(
-        learning_rate=learning_rate,
-        lr_scheduler=lr_scheduler,
-        lr_warmup_steps=lr_warmup_steps,
-        train_batch_size=train_batch_size,
-        max_train_steps=max_train_steps,
-        save_every_n_epochs=save_every_n_epochs,
-        mixed_precision=mixed_precision,
-        save_precision=save_precision,
-        seed=seed,
-        caption_extension=caption_extension,
+    run_cmd += run_cmd_advanced_training(
+        adaptive_noise_scale=adaptive_noise_scale,
+        additional_parameters=additional_parameters,
+        bucket_no_upscale=bucket_no_upscale,
+        bucket_reso_steps=bucket_reso_steps,
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        lr_scheduler_args=lr_scheduler_args,
-    )
-
-    run_cmd += run_cmd_advanced_training(
-        max_train_epochs=max_train_epochs,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_token_length=max_token_length,
-        resume=resume,
-        save_state=save_state,
-        mem_eff_attn=mem_eff_attn,
-        clip_skip=clip_skip,
-        flip_aug=flip_aug,
-        color_aug=color_aug,
-        shuffle_caption=shuffle_caption,
-        gradient_checkpointing=gradient_checkpointing,
-        full_fp16=full_fp16,
-        xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
-        keep_tokens=keep_tokens,
-        persistent_data_loader_workers=persistent_data_loader_workers,
-        bucket_no_upscale=bucket_no_upscale,
-        random_crop=random_crop,
-        bucket_reso_steps=bucket_reso_steps,
-        v_pred_like_loss=v_pred_like_loss,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
-        noise_offset_type=noise_offset_type,
-        noise_offset=noise_offset,
-        adaptive_noise_scale=adaptive_noise_scale,
-        multires_noise_iterations=multires_noise_iterations,
-        multires_noise_discount=multires_noise_discount,
-        additional_parameters=additional_parameters,
-        vae_batch_size=vae_batch_size,
+        caption_extension=caption_extension,
+        clip_skip=clip_skip,
+        color_aug=color_aug,
+        enable_bucket=enable_bucket,
+        epoch=epoch,
+        flip_aug=flip_aug,
+        full_fp16=full_fp16,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        gradient_checkpointing=gradient_checkpointing,
+        keep_tokens=keep_tokens,
+        learning_rate=learning_rate,
+        logging_dir=logging_dir,
+        lr_scheduler=lr_scheduler,
+        lr_scheduler_args=lr_scheduler_args,
+        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
+        lr_scheduler_power=lr_scheduler_power,
+        lr_warmup_steps=lr_warmup_steps,
+        max_bucket_reso=max_bucket_reso,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_resolution=max_resolution,
+        max_timestep=max_timestep,
+        max_token_length=max_token_length,
+        max_train_epochs=max_train_epochs,
+        max_train_steps=max_train_steps,
+        mem_eff_attn=mem_eff_attn,
+        min_bucket_reso=min_bucket_reso,
         min_snr_gamma=min_snr_gamma,
+        min_timestep=min_timestep,
+        mixed_precision=mixed_precision,
+        multires_noise_discount=multires_noise_discount,
+        multires_noise_iterations=multires_noise_iterations,
+        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
+        no_token_padding=no_token_padding,
+        noise_offset=noise_offset,
+        noise_offset_type=noise_offset_type,
+        optimizer=optimizer,
+        optimizer_args=optimizer_args,
+        output_dir=output_dir,
+        output_name=output_name,
+        persistent_data_loader_workers=persistent_data_loader_workers,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        prior_loss_weight=prior_loss_weight,
+        random_crop=random_crop,
+        reg_data_dir=reg_data_dir,
+        resume=resume,
+        save_every_n_epochs=save_every_n_epochs,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        use_wandb=use_wandb,
-        wandb_api_key=wandb_api_key,
+        save_model_as=save_model_as,
+        save_precision=save_precision,
+        save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        min_timestep=min_timestep,
-        max_timestep=max_timestep,
+        seed=seed,
+        shuffle_caption=shuffle_caption,
+        stop_text_encoder_training=stop_text_encoder_training,
+        train_batch_size=train_batch_size,
+        train_data_dir=train_data_dir,
+        use_wandb=use_wandb,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        v_pred_like_loss=v_pred_like_loss,
+        vae=vae,
+        vae_batch_size=vae_batch_size,
+        wandb_api_key=wandb_api_key,
+        xformers=xformers,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'
-    run_cmd += f' --num_vectors_per_token={num_vectors_per_token}'
-    if not weights == '':
+    run_cmd += f" --num_vectors_per_token={num_vectors_per_token}"
+    if not weights == "":
         run_cmd += f' --weights="{weights}"'
-    if template == 'object template':
-        run_cmd += f' --use_object_template'
-    elif template == 'style template':
-        run_cmd += f' --use_style_template'
+    if template == "object template":
+        run_cmd += f" --use_object_template"
+    elif template == "style template":
+        run_cmd += f" --use_style_template"
 
     run_cmd += run_cmd_sample(
         sample_every_n_steps,
@@ -682,7 +658,7 @@ def train_model(
 
     if print_only_bool:
         log.warning(
-            'Here is the trainer command as a reference. It will not be executed:\n'
+            "Here is the trainer command as a reference. It will not be executed:\n"
         )
         print(run_cmd)
 
@@ -690,17 +666,15 @@ def train_model(
     else:
         # Saving config file for model
         current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime('%Y%m%d-%H%M%S')
-        file_path = os.path.join(
-            output_dir, f'{output_name}_{formatted_datetime}.json'
-        )
+        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
+        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
 
-        log.info(f'Saving training config to {file_path}...')
+        log.info(f"Saving training config to {file_path}...")
 
         SaveConfigFile(
             parameters=parameters,
             file_path=file_path,
-            exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+            exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
         log.info(run_cmd)
@@ -710,13 +684,11 @@ def train_model(
         executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        last_dir = pathlib.Path(f"{output_dir}/{output_name}")
 
         if not last_dir.is_dir():
             # Copy inference model for v2 if required
-            save_inference_file(
-                output_dir, v2, v_parameterization, output_name
-            )
+            save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def ti_tab(
@@ -726,32 +698,32 @@ def ti_tab(
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab('Training'):
-        gr.Markdown('Train a TI using kohya textual inversion python code...')
+    with gr.Tab("Training"):
+        gr.Markdown("Train a TI using kohya textual inversion python code...")
 
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
         source_model = SourceModel(
             save_model_as_choices=[
-                'ckpt',
-                'safetensors',
+                "ckpt",
+                "safetensors",
             ],
             headless=headless,
         )
 
-        with gr.Tab('Folders'):
+        with gr.Tab("Folders"):
             folders = Folders(headless=headless)
-        with gr.Tab('Parameters'):
-            with gr.Tab('Basic', elem_id='basic_tab'):
+        with gr.Tab("Parameters"):
+            with gr.Tab("Basic", elem_id="basic_tab"):
                 with gr.Row():
                     weights = gr.Textbox(
                         label='Resume TI training',
                         placeholder='(Optional) Path to existing TI embedding file to keep training',
                     )
                     weights_file_input = gr.Button(
-                        '📂',
-                        elem_id='open_folder_small',
+                        "",
+                        elem_id="open_folder_small",
                         visible=(not headless),
                     )
                     weights_file_input.click(
@@ -761,37 +733,37 @@ def ti_tab(
                     )
                 with gr.Row():
                     token_string = gr.Textbox(
-                        label='Token string',
-                        placeholder='eg: cat',
+                        label="Token string",
+                        placeholder="eg: cat",
                     )
                     init_word = gr.Textbox(
-                        label='Init word',
-                        value='*',
+                        label="Init word",
+                        value="*",
                     )
                     num_vectors_per_token = gr.Slider(
                         minimum=1,
                         maximum=75,
                         value=1,
                         step=1,
-                        label='Vectors',
+                        label="Vectors",
                     )
                     # max_train_steps = gr.Textbox(
                     #     label='Max train steps',
                     #     placeholder='(Optional) Maximum number of steps',
                     # )
                     template = gr.Dropdown(
-                        label='Template',
+                        label="Template",
                         choices=[
-                            'caption',
-                            'object template',
-                            'style template',
+                            "caption",
+                            "object template",
+                            "style template",
                         ],
-                        value='caption',
+                        value="caption",
                     )
                 basic_training = BasicTraining(
-                    learning_rate_value='1e-5',
-                    lr_scheduler_value='cosine',
-                    lr_warmup_value='10',
+                    learning_rate_value="1e-5",
+                    lr_scheduler_value="cosine",
+                    lr_warmup_value="10",
                     sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
@@ -801,7 +773,7 @@ def ti_tab(
                     show_sdxl_cache_text_encoder_outputs=False,
                 )
 
-            with gr.Tab('Advanced', elem_id='advanced_tab'):
+            with gr.Tab("Advanced", elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -809,12 +781,12 @@ def ti_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Tab('Samples', elem_id='samples_tab'):
+            with gr.Tab("Samples", elem_id="samples_tab"):
                 sample = SampleImages()
 
-        with gr.Tab('Dataset Preparation'):
+        with gr.Tab("Dataset Preparation"):
             gr.Markdown(
-                'This section provide Dreambooth tools to help setup your dataset...'
+                "This section provide Dreambooth tools to help setup your dataset..."
             )
             gradio_dreambooth_folder_creation_tab(
                 train_data_dir_input=folders.train_data_dir,
@@ -826,11 +798,11 @@ def ti_tab(
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Row():
-            button_run = gr.Button('Start training', variant='primary')
+            button_run = gr.Button("Start training", variant="primary")
 
-            button_stop_training = gr.Button('Stop training')
+            button_stop_training = gr.Button("Stop training")
 
-        button_print = gr.Button('Print training command')
+        button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         (
@@ -888,6 +860,10 @@ def ti_tab(
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             advanced_training.vae,
             folders.output_name,
             advanced_training.max_token_length,
@@ -989,30 +965,28 @@ def ti_tab(
 
 
 def UI(**kwargs):
-    add_javascript(kwargs.get('language'))
-    css = ''
+    add_javascript(kwargs.get("language"))
+    css = ""
 
-    headless = kwargs.get('headless', False)
-    log.info(f'headless: {headless}')
+    headless = kwargs.get("headless", False)
+    log.info(f"headless: {headless}")
 
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            log.info('Load CSS...')
-            css += file.read() + '\n'
+    if os.path.exists("./style.css"):
+        with open(os.path.join("./style.css"), "r", encoding="utf8") as file:
+            log.info("Load CSS...")
+            css += file.read() + "\n"
 
-    interface = gr.Blocks(
-        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
-    )
+    interface = gr.Blocks(css=css, title="Kohya_ss GUI", theme=gr.themes.Default())
 
     with interface:
-        with gr.Tab('Dreambooth TI'):
+        with gr.Tab("Dreambooth TI"):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
             ) = ti_tab(headless=headless)
-        with gr.Tab('Utilities'):
+        with gr.Tab("Utilities"):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
                 reg_data_dir_input=reg_data_dir_input,
@@ -1024,57 +998,53 @@ def UI(**kwargs):
 
     # Show the interface
     launch_kwargs = {}
-    username = kwargs.get('username')
-    password = kwargs.get('password')
-    server_port = kwargs.get('server_port', 0)
-    inbrowser = kwargs.get('inbrowser', False)
-    share = kwargs.get('share', False)
-    server_name = kwargs.get('listen')
+    username = kwargs.get("username")
+    password = kwargs.get("password")
+    server_port = kwargs.get("server_port", 0)
+    inbrowser = kwargs.get("inbrowser", False)
+    share = kwargs.get("share", False)
+    server_name = kwargs.get("listen")
 
-    launch_kwargs['server_name'] = server_name
+    launch_kwargs["server_name"] = server_name
     if username and password:
-        launch_kwargs['auth'] = (username, password)
+        launch_kwargs["auth"] = (username, password)
     if server_port > 0:
-        launch_kwargs['server_port'] = server_port
+        launch_kwargs["server_port"] = server_port
     if inbrowser:
-        launch_kwargs['inbrowser'] = inbrowser
+        launch_kwargs["inbrowser"] = inbrowser
     if share:
-        launch_kwargs['share'] = share
+        launch_kwargs["share"] = share
     interface.launch(**launch_kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--listen',
+        "--listen",
         type=str,
-        default='127.0.0.1',
-        help='IP to listen on for connections to Gradio',
+        default="127.0.0.1",
+        help="IP to listen on for connections to Gradio",
     )
     parser.add_argument(
-        '--username', type=str, default='', help='Username for authentication'
+        "--username", type=str, default="", help="Username for authentication"
     )
     parser.add_argument(
-        '--password', type=str, default='', help='Password for authentication'
+        "--password", type=str, default="", help="Password for authentication"
     )
     parser.add_argument(
-        '--server_port',
+        "--server_port",
         type=int,
         default=0,
-        help='Port to run the server listener on',
+        help="Port to run the server listener on",
+    )
+    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
+    parser.add_argument("--share", action="store_true", help="Share the gradio UI")
+    parser.add_argument(
+        "--headless", action="store_true", help="Is the server headless"
     )
     parser.add_argument(
-        '--inbrowser', action='store_true', help='Open in browser'
-    )
-    parser.add_argument(
-        '--share', action='store_true', help='Share the gradio UI'
-    )
-    parser.add_argument(
-        '--headless', action='store_true', help='Is the server headless'
-    )
-    parser.add_argument(
-        '--language', type=str, default=None, help='Set custom language'
+        "--language", type=str, default=None, help="Set custom language"
     )
 
     args = parser.parse_args()

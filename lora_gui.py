@@ -3,6 +3,7 @@ import json
 import math
 import os
 import argparse
+import lycoris
 from datetime import datetime
 from library.common_gui import (
     get_file_path,
@@ -10,7 +11,6 @@ from library.common_gui import (
     get_saveasfile_path,
     color_aug_changed,
     run_cmd_advanced_training,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     output_message,
@@ -85,7 +85,7 @@ def save_configuration(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    no_token_padding,
+    # no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
     max_bucket_reso,
@@ -104,6 +104,10 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
@@ -248,7 +252,7 @@ def open_configuration(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    no_token_padding,
+    # no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
     max_bucket_reso,
@@ -267,6 +271,10 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
@@ -354,15 +362,16 @@ def open_configuration(
 
     # Check if we are "applying" a preset or a config
     if apply_preset:
-        log.info(f"Applying preset {training_preset}...")
-        file_path = f"./presets/lora/{training_preset}.json"
+        if training_preset != "none":
+            log.info(f"Applying preset {training_preset}...")
+            file_path = f"./presets/lora/{training_preset}.json"
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
         training_preset_index = parameters.index(("training_preset", training_preset))
 
         # Update the value of `training_preset` by directly assigning an empty string value
-        parameters[training_preset_index] = ("training_preset", "")
+        parameters[training_preset_index] = ("training_preset", "none")
 
     original_file_path = file_path
 
@@ -406,9 +415,9 @@ def open_configuration(
         "LyCORIS/LoCon",
         "LyCORIS/GLoRA",
     }:
-        values.append(gr.Row.update(visible=True))
+        values.append(gr.Row(visible=True))
     else:
-        values.append(gr.Row.update(visible=False))
+        values.append(gr.Row(visible=False))
 
     return tuple(values)
 
@@ -442,7 +451,7 @@ def train_model(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    no_token_padding,
+    # no_token_padding,
     stop_text_encoder_training_pct,
     min_bucket_reso,
     max_bucket_reso,
@@ -461,6 +470,10 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     gradient_accumulation_steps,
     mem_eff_attn,
     output_name,
@@ -720,150 +733,52 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = (
-        f"accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}"
+    run_cmd = "accelerate launch"
+
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
     )
+
     if sdxl:
         run_cmd += f' "./sdxl_train_network.py"'
     else:
         run_cmd += f' "./train_network.py"'
 
-    if v2:
-        run_cmd += " --v2"
-    if v_parameterization:
-        run_cmd += " --v_parameterization"
-    if enable_bucket:
-        run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
-    if no_token_padding:
-        run_cmd += " --no_token_padding"
-    if weighted_captions:
-        run_cmd += " --weighted_captions"
-    run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    run_cmd += f' --train_data_dir="{train_data_dir}"'
-    if len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == "":
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    run_cmd += f' --network_alpha="{network_alpha}"'
-    if not training_comment == "":
-        run_cmd += f' --training_comment="{training_comment}"'
-    if not stop_text_encoder_training == 0:
-        run_cmd += f" --stop_text_encoder_training={stop_text_encoder_training}"
-    if not save_model_as == "same as source model":
-        run_cmd += f" --save_model_as={save_model_as}"
-    if not float(prior_loss_weight) == 1.0:
-        run_cmd += f" --prior_loss_weight={prior_loss_weight}"
-
     if LoRA_type == "LyCORIS/Diag-OFT":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" '
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" '
 
     if LoRA_type == "LyCORIS/DyLoRA":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/GLoRA":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/iA3":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoHa":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoKr":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
-        try:
-            import lycoris
-        except ModuleNotFoundError:
-            log.info(
-                "\033[1;31mError:\033[0m The required module 'lycoris_lora' is not installed. Please install by running \033[33mupgrade.ps1\033[0m before running this program."
-            )
-            return
-        run_cmd += f" --network_module=lycoris.kohya"
-        run_cmd += f' --network_args "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
-        # This is a hack to fix a train_network LoHA logic issue
-        if not network_dropout > 0.0:
-            run_cmd += f' --network_dropout="{network_dropout}"'
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -879,7 +794,7 @@ def train_model(
             "module_dropout",
         ]
 
-        run_cmd += f" --network_module=networks.lora"
+        network_module = "networks.lora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -893,9 +808,6 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f' {key}="{value}"'
-
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
 
     if LoRA_type in [
         "LoRA-FA",
@@ -913,7 +825,7 @@ def train_model(
             "module_dropout",
         ]
 
-        run_cmd += f" --network_module=networks.lora_fa"
+        network_module = "networks.lora_fa"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -927,9 +839,6 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f' {key}="{value}"'
-
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
 
     if LoRA_type in ["Kohya DyLoRA"]:
         kohya_lora_var_list = [
@@ -948,7 +857,7 @@ def train_model(
             "unit",
         ]
 
-        run_cmd += f" --network_module=networks.dylora"
+        network_module = "networks.dylora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
@@ -961,125 +870,132 @@ def train_model(
             if value:
                 network_args += f' {key}="{value}"'
 
-        if network_args:
-            run_cmd += f" --network_args{network_args}"
+    network_train_text_encoder_only = False
+    network_train_unet_only = False
 
-    if not (float(text_encoder_lr) == 0) or not (float(unet_lr) == 0):
-        if not (float(text_encoder_lr) == 0) and not (float(unet_lr) == 0):
-            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
-            run_cmd += f" --unet_lr={unet_lr}"
-        elif not (float(text_encoder_lr) == 0):
-            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
-            run_cmd += f" --network_train_text_encoder_only"
-        else:
-            run_cmd += f" --unet_lr={unet_lr}"
-            run_cmd += f" --network_train_unet_only"
-    else:
+    # Convert learning rates to float once and store the result for re-use
+    if text_encoder_lr is None:
+        output_message(
+            msg="Please input valid Text Encoder learning rate (between 0 and 1)", headless=headless_bool
+        )
+        return
+    if unet_lr is None:
+        output_message(
+            msg="Please input valid Unet learning rate (between 0 and 1)", headless=headless_bool
+        )
+        return
+    text_encoder_lr_float = float(text_encoder_lr)
+    unet_lr_float = float(unet_lr)
+    
+    
+
+    # Determine the training configuration based on learning rate values
+    if text_encoder_lr_float == 0 and unet_lr_float == 0:
         if float(learning_rate) == 0:
             output_message(
-                msg="Please input learning rate values.",
-                headless=headless_bool,
+                msg="Please input learning rate values.", headless=headless_bool
             )
             return
-
-    run_cmd += f" --network_dim={network_dim}"
-
-    # if LoRA_type not in ['LyCORIS/LoCon']:
-    if not lora_network_weights == "":
-        run_cmd += f' --network_weights="{lora_network_weights}"'
-        if dim_from_weights:
-            run_cmd += f" --dim_from_weights"
-
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
-    if not output_name == "":
-        run_cmd += f' --output_name="{output_name}"'
-    if not lr_scheduler_num_cycles == "":
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
-    else:
-        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-    if not lr_scheduler_power == "":
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
-
-    if scale_weight_norms > 0.0:
-        run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
-
-    if network_dropout > 0.0:
-        run_cmd += f' --network_dropout="{network_dropout}"'
-
-    if sdxl:
-        if sdxl_cache_text_encoder_outputs:
-            run_cmd += f" --cache_text_encoder_outputs"
-
-        if sdxl_no_half_vae:
-            run_cmd += f" --no_half_vae"
-
-    if full_bf16:
-        run_cmd += f" --full_bf16"
-
-    if debiased_estimation_loss:
-        run_cmd += " --debiased_estimation_loss"
-
-    run_cmd += run_cmd_training(
-        learning_rate=learning_rate,
-        lr_scheduler=lr_scheduler,
-        lr_warmup_steps=lr_warmup_steps,
-        train_batch_size=train_batch_size,
-        max_train_steps=max_train_steps,
-        save_every_n_epochs=save_every_n_epochs,
-        mixed_precision=mixed_precision,
-        save_precision=save_precision,
-        seed=seed,
-        caption_extension=caption_extension,
-        cache_latents=cache_latents,
-        cache_latents_to_disk=cache_latents_to_disk,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        lr_scheduler_args=lr_scheduler_args,
-        max_grad_norm=max_grad_norm,
-    )
+    elif text_encoder_lr_float != 0 and unet_lr_float == 0:
+        network_train_text_encoder_only = True
+    elif text_encoder_lr_float == 0 and unet_lr_float != 0:
+        network_train_unet_only = True
+    # If both learning rates are non-zero, no specific flags need to be set
 
     run_cmd += run_cmd_advanced_training(
-        max_train_epochs=max_train_epochs,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_token_length=max_token_length,
-        resume=resume,
-        save_state=save_state,
-        mem_eff_attn=mem_eff_attn,
-        clip_skip=clip_skip,
-        flip_aug=flip_aug,
-        color_aug=color_aug,
-        shuffle_caption=shuffle_caption,
-        gradient_checkpointing=gradient_checkpointing,
-        fp8_base=fp8_base,
-        full_fp16=full_fp16,
-        xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
-        keep_tokens=keep_tokens,
-        persistent_data_loader_workers=persistent_data_loader_workers,
+        adaptive_noise_scale=adaptive_noise_scale,
+        additional_parameters=additional_parameters,
         bucket_no_upscale=bucket_no_upscale,
-        random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
-        v_pred_like_loss=v_pred_like_loss,
+        cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
+        cache_text_encoder_outputs=True if sdxl and sdxl_cache_text_encoder_outputs else None,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
-        noise_offset_type=noise_offset_type,
-        noise_offset=noise_offset,
-        adaptive_noise_scale=adaptive_noise_scale,
-        multires_noise_iterations=multires_noise_iterations,
-        multires_noise_discount=multires_noise_discount,
-        additional_parameters=additional_parameters,
-        vae_batch_size=vae_batch_size,
+        caption_extension=caption_extension,
+        clip_skip=clip_skip,
+        color_aug=color_aug,
+        debiased_estimation_loss=debiased_estimation_loss,
+        dim_from_weights=dim_from_weights,
+        enable_bucket=enable_bucket,
+        epoch=epoch,
+        flip_aug=flip_aug,
+        fp8_base=fp8_base,
+        full_bf16=full_bf16,
+        full_fp16=full_fp16,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        gradient_checkpointing=gradient_checkpointing,
+        keep_tokens=keep_tokens,
+        learning_rate=learning_rate,
+        logging_dir=logging_dir,
+        lora_network_weights=lora_network_weights,
+        lr_scheduler=lr_scheduler,
+        lr_scheduler_args=lr_scheduler_args,
+        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
+        lr_scheduler_power=lr_scheduler_power,
+        lr_warmup_steps=lr_warmup_steps,
+        max_bucket_reso=max_bucket_reso,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_grad_norm=max_grad_norm,
+        max_resolution=max_resolution,
+        max_timestep=max_timestep,
+        max_token_length=max_token_length,
+        max_train_epochs=max_train_epochs,
+        max_train_steps=max_train_steps,
+        mem_eff_attn=mem_eff_attn,
+        min_bucket_reso=min_bucket_reso,
         min_snr_gamma=min_snr_gamma,
+        min_timestep=min_timestep,
+        mixed_precision=mixed_precision,
+        multires_noise_discount=multires_noise_discount,
+        multires_noise_iterations=multires_noise_iterations,
+        network_alpha=network_alpha,
+        network_args=network_args,
+        network_dim=network_dim,
+        network_dropout=network_dropout,
+        network_module=network_module,
+        network_train_unet_only=network_train_unet_only,
+        network_train_text_encoder_only=network_train_text_encoder_only,
+        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
+        # no_token_padding=no_token_padding,
+        noise_offset=noise_offset,
+        noise_offset_type=noise_offset_type,
+        optimizer=optimizer,
+        optimizer_args=optimizer_args,
+        output_dir=output_dir,
+        output_name=output_name,
+        persistent_data_loader_workers=persistent_data_loader_workers,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        prior_loss_weight=prior_loss_weight,
+        random_crop=random_crop,
+        reg_data_dir=reg_data_dir,
+        resume=resume,
+        save_every_n_epochs=save_every_n_epochs,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        use_wandb=use_wandb,
-        wandb_api_key=wandb_api_key,
+        save_model_as=save_model_as,
+        save_precision=save_precision,
+        save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        min_timestep=min_timestep,
-        max_timestep=max_timestep,
+        scale_weight_norms=scale_weight_norms,
+        seed=seed,
+        shuffle_caption=shuffle_caption,
+        stop_text_encoder_training=stop_text_encoder_training,
+        text_encoder_lr=text_encoder_lr,
+        train_batch_size=train_batch_size,
+        train_data_dir=train_data_dir,
+        training_comment=training_comment,
+        unet_lr=unet_lr,
+        use_wandb=use_wandb,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        v_pred_like_loss=v_pred_like_loss,
         vae=vae,
+        vae_batch_size=vae_batch_size,
+        wandb_api_key=wandb_api_key,
+        weighted_captions=weighted_captions,
+        xformers=xformers,
     )
 
     run_cmd += run_cmd_sample(
@@ -1159,6 +1075,9 @@ def lora_tab(
 
             def list_presets(path):
                 json_files = []
+                
+                # Insert an empty string at the beginning
+                json_files.insert(0, "none")
 
                 for file in os.listdir(path):
                     if file.endswith(".json"):
@@ -1177,6 +1096,7 @@ def lora_tab(
                 label="Presets",
                 choices=list_presets("./presets/lora"),
                 elem_id="myDropdown",
+                value="none"
             )
 
             with gr.Tab("Basic", elem_id="basic_tab"):
@@ -1214,7 +1134,7 @@ def lora_tab(
                         interactive=True
                         # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                     )
-                    with gr.Box():
+                    with gr.Group():
                         with gr.Row():
                             lora_network_weights = gr.Textbox(
                                 label="LoRA network weights",
@@ -1247,13 +1167,18 @@ def lora_tab(
                 with gr.Row():
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
-                        value="5e-5",
-                        info="Optional. Se",
+                        value="0.0001",
+                        info="Optional",
+                        minimum=0,
+                        maximum=1,
                     )
+                    
                     unet_lr = gr.Number(
                         label="Unet learning rate",
                         value="0.0001",
                         info="Optional",
+                        minimum=0,
+                        maximum=1,
                     )
 
                 # Add SDXL Parameters
@@ -1753,7 +1678,7 @@ def lora_tab(
                         for attr, settings in lora_settings_config.items():
                             update_params = settings["update_params"]
 
-                            results.append(settings["gr_type"].update(**update_params))
+                            results.append(settings["gr_type"](**update_params))
 
                         return tuple(results)
 
@@ -1806,7 +1731,9 @@ def lora_tab(
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.",
                             )
-                advanced_training = AdvancedTraining(headless=headless, training_type="lora")
+                advanced_training = AdvancedTraining(
+                    headless=headless, training_type="lora"
+                )
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -1915,7 +1842,7 @@ def lora_tab(
             advanced_training.gradient_checkpointing,
             advanced_training.fp8_base,
             advanced_training.full_fp16,
-            advanced_training.no_token_padding,
+            # advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
             basic_training.min_bucket_reso,
             basic_training.max_bucket_reso,
@@ -1933,6 +1860,10 @@ def lora_tab(
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             advanced_training.gradient_accumulation_steps,
             advanced_training.mem_eff_attn,
             folders.output_name,

@@ -27,7 +27,7 @@ class SDXLParameters:
                 )
 
         self.sdxl_checkbox.change(
-            lambda sdxl_checkbox: gr.Accordion.update(visible=sdxl_checkbox),
+            lambda sdxl_checkbox: gr.Accordion(visible=sdxl_checkbox),
             inputs=[self.sdxl_checkbox],
             outputs=[self.sdxl_row],
         )

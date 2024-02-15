@@ -8,7 +8,7 @@ easygui==0.98.3
 einops==0.6.1
 fairscale==0.4.13
 ftfy==6.1.1
-gradio==3.36.1
+gradio==3.50.2
 huggingface-hub==0.20.1
 # for loading Diffusers' SDXL
 invisible-watermark==0.2.0

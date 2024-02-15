@@ -503,6 +503,10 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2024/01/27 (v22.6.1)
+- Add support for multi-gpu parameters in the GUI under the "Parameters > Advanced" tab.
+- Significant rewrite of how parameters are created in the code. I hope I did not break anything in the process... Will make the code easier to update.
+
 * 2024/01/27 (v22.6.0)
 - Merge sd-scripts v0.8.3 code update
   - Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
