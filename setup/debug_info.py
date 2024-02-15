@@ -51,6 +51,6 @@ print(f"Name: {gpu_name}, VRAM: {gpu_vram} MiB")
 
 # Print VRAM warning if necessary
 if gpu_vram_warning:
-    print('\033[33mWarning: GPU VRAM is less than 8GB and will likelly result in proper operations.\033[0m')
+    print('\033[33mWarning: GPU VRAM is less than 8GB and will likely result in proper operations.\033[0m')
 
 print(' ')

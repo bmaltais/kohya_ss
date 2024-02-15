@@ -11,19 +11,20 @@ class AdvancedTraining:
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (
-                    gr.Group.update(visible=True),
-                    gr.Group.update(visible=False),
+                    gr.Group(visible=True),
+                    gr.Group(visible=False),
                 )
             else:
                 return (
-                    gr.Group.update(visible=False),
-                    gr.Group.update(visible=True),
+                    gr.Group(visible=False),
+                    gr.Group(visible=True),
                 )
 
         with gr.Row(visible=not finetuning):
-            self.no_token_padding = gr.Checkbox(
-                label='No token padding', value=False
-            )
+            if training_type != "lora": # Not avaible for LoRA
+                self.no_token_padding = gr.Checkbox(
+                    label='No token padding', value=False
+                )
             self.gradient_accumulation_steps = gr.Slider(
                 label='Gradient accumulate steps',
                 info='Number of updates steps to accumulate before performing a backward/update pass',
@@ -87,9 +88,9 @@ class AdvancedTraining:
                     full_bf16_active = False
                 if full_bf16:
                     full_fp16_active = False
-                return gr.Checkbox.update(
+                return gr.Checkbox(
                     interactive=full_fp16_active,
-                ), gr.Checkbox.update(interactive=full_bf16_active)
+                ), gr.Checkbox(interactive=full_bf16_active)
 
             self.keep_tokens = gr.Slider(
                 label='Keep n tokens', value='0', minimum=0, maximum=32, step=1
@@ -297,6 +298,28 @@ class AdvancedTraining:
                 label='Max num workers for DataLoader',
                 placeholder='(Optional) Override number of epoch. Default: 8',
                 value='0',
+            )
+        with gr.Row():
+            self.num_processes = gr.Number(
+                label='Number of processes',
+                value=1,
+                precision=0,
+                minimum=1
+            )
+            self.num_machines = gr.Number(
+                label='Number of machines',
+                value=1,
+                precision=0,
+                minimum=1
+            )
+            self.multi_gpu = gr.Checkbox(
+                label='Multi GPU',
+                value=False
+            )
+            self.gpu_ids = gr.Textbox(
+                label='GPU IDs',
+                value="",
+                placeholder="example: 0,1"
             )
         with gr.Row():
             self.wandb_api_key = gr.Textbox(

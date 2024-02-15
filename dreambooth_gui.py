@@ -17,7 +17,6 @@ from library.common_gui import (
     color_aug_changed,
     save_inference_file,
     run_cmd_advanced_training,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     output_message,
@@ -101,6 +100,10 @@ def save_configuration(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -225,6 +228,10 @@ def open_configuration(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -344,6 +351,10 @@ def train_model(
     flip_aug,
     clip_skip,
     vae,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     output_name,
     max_token_length,
     max_train_epochs,
@@ -539,123 +550,100 @@ def train_model(
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
-    run_cmd = (
-        f"accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}"
+    run_cmd = "accelerate launch"
+
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
     )
+
     if sdxl:
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./train_db.py"'
 
-    if v2:
-        run_cmd += " --v2"
-    if v_parameterization:
-        run_cmd += " --v_parameterization"
-    if enable_bucket:
-        run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
-    if no_token_padding:
-        run_cmd += " --no_token_padding"
-    if weighted_captions:
-        run_cmd += " --weighted_captions"
-    run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
-    run_cmd += f' --train_data_dir="{train_data_dir}"'
-    if len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == "":
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    if not stop_text_encoder_training == 0:
-        run_cmd += f" --stop_text_encoder_training={stop_text_encoder_training}"
-    if not save_model_as == "same as source model":
-        run_cmd += f" --save_model_as={save_model_as}"
-    # if not resume == '':
-    #     run_cmd += f' --resume={resume}'
-    if not float(prior_loss_weight) == 1.0:
-        run_cmd += f" --prior_loss_weight={prior_loss_weight}"
-    if full_bf16:
-        run_cmd += " --full_bf16"
-    if not vae == "":
-        run_cmd += f' --vae="{vae}"'
-    if not output_name == "":
-        run_cmd += f' --output_name="{output_name}"'
-    if not lr_scheduler_num_cycles == "":
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
-    else:
-        run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
-    if not lr_scheduler_power == "":
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
-    if int(max_token_length) > 75:
-        run_cmd += f" --max_token_length={max_token_length}"
-    if not max_train_epochs == "":
-        run_cmd += f' --max_train_epochs="{max_train_epochs}"'
-    if not max_data_loader_n_workers == "":
-        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
-
-    if sdxl:
-        run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
-        run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
-    else:
-        run_cmd += f' --learning_rate_te="{learning_rate_te}"'
-
-    run_cmd += run_cmd_training(
-        learning_rate=learning_rate,
-        lr_scheduler=lr_scheduler,
-        lr_warmup_steps=lr_warmup_steps,
-        train_batch_size=train_batch_size,
-        max_train_steps=max_train_steps,
-        save_every_n_epochs=save_every_n_epochs,
-        mixed_precision=mixed_precision,
-        save_precision=save_precision,
-        seed=seed,
-        caption_extension=caption_extension,
+    run_cmd += run_cmd_advanced_training(
+        adaptive_noise_scale=adaptive_noise_scale,
+        additional_parameters=additional_parameters,
+        bucket_no_upscale=bucket_no_upscale,
+        bucket_reso_steps=bucket_reso_steps,
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        lr_scheduler_args=lr_scheduler_args,
-    )
-
-    run_cmd += run_cmd_advanced_training(
-        max_train_epochs=max_train_epochs,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_token_length=max_token_length,
-        resume=resume,
-        save_state=save_state,
-        mem_eff_attn=mem_eff_attn,
-        clip_skip=clip_skip,
-        flip_aug=flip_aug,
-        color_aug=color_aug,
-        shuffle_caption=shuffle_caption,
-        gradient_checkpointing=gradient_checkpointing,
-        full_fp16=full_fp16,
-        xformers=xformers,
-        keep_tokens=keep_tokens,
-        persistent_data_loader_workers=persistent_data_loader_workers,
-        bucket_no_upscale=bucket_no_upscale,
-        random_crop=random_crop,
-        bucket_reso_steps=bucket_reso_steps,
-        v_pred_like_loss=v_pred_like_loss,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
-        noise_offset_type=noise_offset_type,
-        noise_offset=noise_offset,
-        adaptive_noise_scale=adaptive_noise_scale,
-        multires_noise_iterations=multires_noise_iterations,
-        multires_noise_discount=multires_noise_discount,
-        additional_parameters=additional_parameters,
-        vae_batch_size=vae_batch_size,
+        caption_extension=caption_extension,
+        clip_skip=clip_skip,
+        color_aug=color_aug,
+        enable_bucket=enable_bucket,
+        epoch=epoch,
+        flip_aug=flip_aug,
+        full_bf16=full_bf16,
+        full_fp16=full_fp16,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        gradient_checkpointing=gradient_checkpointing,
+        keep_tokens=keep_tokens,
+        learning_rate=learning_rate,
+        learning_rate_te1=learning_rate_te1 if sdxl else None,
+        learning_rate_te2=learning_rate_te2 if sdxl else None,
+        learning_rate_te=learning_rate_te if not sdxl else None,
+        logging_dir=logging_dir,
+        lr_scheduler=lr_scheduler,
+        lr_scheduler_args=lr_scheduler_args,
+        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
+        lr_scheduler_power=lr_scheduler_power,
+        lr_warmup_steps=lr_warmup_steps,
+        max_bucket_reso=max_bucket_reso,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_resolution=max_resolution,
+        max_timestep=max_timestep,
+        max_token_length=max_token_length,
+        max_train_epochs=max_train_epochs,
+        max_train_steps=max_train_steps,
+        mem_eff_attn=mem_eff_attn,
+        min_bucket_reso=min_bucket_reso,
         min_snr_gamma=min_snr_gamma,
+        min_timestep=min_timestep,
+        mixed_precision=mixed_precision,
+        multires_noise_discount=multires_noise_discount,
+        multires_noise_iterations=multires_noise_iterations,
+        no_token_padding=no_token_padding,
+        noise_offset=noise_offset,
+        noise_offset_type=noise_offset_type,
+        optimizer=optimizer,
+        optimizer_args=optimizer_args,
+        output_dir=output_dir,
+        output_name=output_name,
+        persistent_data_loader_workers=persistent_data_loader_workers,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        prior_loss_weight=prior_loss_weight,
+        random_crop=random_crop,
+        reg_data_dir=reg_data_dir,
+        resume=resume,
+        save_every_n_epochs=save_every_n_epochs,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        use_wandb=use_wandb,
-        wandb_api_key=wandb_api_key,
+        save_model_as=save_model_as,
+        save_precision=save_precision,
+        save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        min_timestep=min_timestep,
-        max_timestep=max_timestep,
+        seed=seed,
+        shuffle_caption=shuffle_caption,
+        stop_text_encoder_training=stop_text_encoder_training,
+        train_batch_size=train_batch_size,
+        train_data_dir=train_data_dir,
+        use_wandb=use_wandb,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        v_pred_like_loss=v_pred_like_loss,
+        vae=vae,
+        vae_batch_size=vae_batch_size,
+        wandb_api_key=wandb_api_key,
+        weighted_captions=weighted_captions,
+        xformers=xformers,
     )
 
     run_cmd += run_cmd_sample(
@@ -827,6 +815,10 @@ def dreambooth_tab(
             advanced_training.flip_aug,
             advanced_training.clip_skip,
             advanced_training.vae,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             folders.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,

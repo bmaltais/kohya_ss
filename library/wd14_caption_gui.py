@@ -123,7 +123,7 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 value='.txt',
                 interactive=True,
             )
-            
+
             caption_separator = gr.Textbox(
                 label='Caption Separator',
                 value=',',
@@ -199,11 +199,11 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 ],
                 value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
             )
-            
+
             force_download = gr.Checkbox(
                 label='Force model re-download',
                 value=False,
-                info='Usefull to force model re download when switching to onnx',
+                info='Useful to force model re download when switching to onnx',
             )
 
             general_threshold = gr.Slider(

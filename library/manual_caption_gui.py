@@ -43,7 +43,7 @@ def _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set):
         t for t in caption_tags_have if t not in quick_tags_set
     ]
     caption_tags_all = quick_tags + caption_tags_unique
-    return gr.CheckboxGroup.update(
+    return gr.CheckboxGroup(
         choices=caption_tags_all, value=caption_tags_have
     )
 
@@ -118,7 +118,7 @@ def import_tags_from_captions(
     """
 
     def empty_return():
-        return gr.Text.update()
+        return gr.Text()
 
     # Check for images_dir
     if not images_dir:
@@ -247,7 +247,7 @@ def update_images(
         tag_checkboxes = _get_tag_checkbox_updates(
             caption, quick_tags, quick_tags_set
         )
-        rows.append(gr.Row.update(visible=show_row))
+        rows.append(gr.Row(visible=show_row))
         image_paths.append(image_path)
         captions.append(caption)
         tag_checkbox_groups.append(tag_checkboxes)
@@ -258,7 +258,7 @@ def update_images(
         + image_paths
         + captions
         + tag_checkbox_groups
-        + [gr.Row.update(visible=True), gr.Row.update(visible=True)]
+        + [gr.Row(visible=True), gr.Row(visible=True)]
     )
 
 
@@ -473,7 +473,7 @@ def gradio_manual_caption_gui_tab(headless=False):
         # Save buttons visibility
         # (on auto-save on/off)
         auto_save.change(
-            lambda auto_save: [gr.Button.update(visible=not auto_save)]
+            lambda auto_save: [gr.Button(visible=not auto_save)]
             * IMAGES_TO_SHOW,
             inputs=auto_save,
             outputs=save_buttons,

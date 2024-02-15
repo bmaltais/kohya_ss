@@ -503,13 +503,19 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+* 2024/02/15 (v22.6.1)
+- Add support for multi-gpu parameters in the GUI under the "Parameters > Advanced" tab.
+- Significant rewrite of how parameters are created in the code. I hope I did not break anything in the process... Will make the code easier to update.
+- Update TW locallisation
+- Update gradio module version to latest 3.x
+
 * 2024/01/27 (v22.6.0)
 - Merge sd-scripts v0.8.3 code update
   - Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
     - `safetensors` is updated. Please see [Upgrade](#upgrade) and update the library.
   - Fixed a bug that the training crashes when `network_multiplier` is specified with multi-GPU training. PR [#1084](https://github.com/kohya-ss/sd-scripts/pull/1084) Thanks to fireicewolf!
   - Fixed a bug that the training crashes when training ControlNet-LLLite.
-  
+
 - Merge sd-scripts v0.8.2 code update
   - [Experimental] The `--fp8_base` option is added to the training scripts for LoRA etc. The base model (U-Net, and Text Encoder when training modules for Text Encoder) can be trained with fp8. PR [#1057](https://github.com/kohya-ss/sd-scripts/pull/1057) Thanks to KohakuBlueleaf!
     - Please specify `--fp8_base` in `train_network.py` or `sdxl_train_network.py`.
@@ -522,15 +528,15 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - For example, if you train with state A as `1.0` and state B as `-1.0`, you may be able to generate by switching between state A and B depending on the LoRA application rate.
     - Also, if you prepare five states and train them as `0.2`, `0.4`, `0.6`, `0.8`, and `1.0`, you may be able to generate by switching the states smoothly depending on the application rate.
     - Please specify `network_multiplier` in `[[datasets]]` in `.toml` file.
-  
+
   - Some options are added to `networks/extract_lora_from_models.py` to reduce the memory usage.
     - `--load_precision` option can be used to specify the precision when loading the model. If the model is saved in fp16, you can reduce the memory usage by specifying `--load_precision fp16` without losing precision.
     - `--load_original_model_to` option can be used to specify the device to load the original model. `--load_tuned_model_to` option can be used to specify the device to load the derived model. The default is `cpu` for both options, but you can specify `cuda` etc. You can reduce the memory usage by loading one of them to GPU. This option is available only for SDXL.
 
   - The gradient synchronization in LoRA training with multi-GPU is improved. PR [#1064](https://github.com/kohya-ss/sd-scripts/pull/1064) Thanks to KohakuBlueleaf!
-  
+
   - The code for Intel IPEX support is improved. PR [#1060](https://github.com/kohya-ss/sd-scripts/pull/1060) Thanks to akx!
-  
+
   - Fixed a bug in multi-GPU Textual Inversion training.
 
   - `.toml` example for network multiplier
@@ -556,7 +562,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
   - Fixed a bug that the VRAM usage without Text Encoder training is larger than before in training scripts for LoRA etc (`train_network.py`, `sdxl_train_network.py`).
     - Text Encoders were not moved to CPU.
-  
+
   - Fixed typos. Thanks to akx! [PR #1053](https://github.com/kohya-ss/sd-scripts/pull/1053)
 
 * 2024/01/15 (v22.5.0)
@@ -574,10 +580,10 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
   - IPEX library is updated. PR [#1030](https://github.com/kohya-ss/sd-scripts/pull/1030) Thanks to Disty0!
   - Fixed a bug that Diffusers format model cannot be saved.
 - Fix LoRA config display after load that would sometime hide some of the feilds
-  
+
 * 2024/01/02 (v22.4.1)
 - Minor bug fixed and enhancements.
-  
+
 * 2023/12/28 (v22.4.0)
 - Fixed to work `tools/convert_diffusers20_original_sd.py`. Thanks to Disty0! PR [#1016](https://github.com/kohya-ss/sd-scripts/pull/1016)
 - The issues in multi-GPU training are fixed. Thanks to Isotr0py! PR [#989](https://github.com/kohya-ss/sd-scripts/pull/989) and [#1000](https://github.com/kohya-ss/sd-scripts/pull/1000)
@@ -592,13 +598,13 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 - The optimizer `PagedAdamW` is added. Thanks to xzuyn! PR [#955](https://github.com/kohya-ss/sd-scripts/pull/955)
 - NaN replacement in SDXL VAE is sped up. Thanks to liubo0902! PR [#1009](https://github.com/kohya-ss/sd-scripts/pull/1009)
 - Fixed the path error in `finetune/make_captions.py`. Thanks to CjangCjengh! PR [#986](https://github.com/kohya-ss/sd-scripts/pull/986)
-  
+
 * 2023/12/20 (v22.3.1)
 - Add goto button to manual caption utility
-- Add missing options for various LyCORIS training algorythms
+- Add missing options for various LyCORIS training algorithms
 - Refactor how feilds are shown or hidden
 - Made max value for network and convolution rank 512 except for LyCORIS/LoKr.
-  
+
 * 2023/12/06 (v22.3.0)
 - Merge sd-scripts updates:
   - `finetune\tag_images_by_wd14_tagger.py` now supports the separator other than `,` with `--caption_separator` option. Thanks to KohakuBlueleaf! PR [#913](https://github.com/kohya-ss/sd-scripts/pull/913)
@@ -612,4 +618,4 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
     - `--ds_ratio` option denotes the ratio of the Deep Shrink. `0.5` means the half of the original latent size for the Deep Shrink.
     - `--dst1`, `--dst2`, `--dsd1`, `--dsd2` and `--dsr` prompt options are also available.
   - Add GLoRA support
-- 
+-

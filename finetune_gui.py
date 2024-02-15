@@ -13,7 +13,6 @@ from library.common_gui import (
     save_inference_file,
     run_cmd_advanced_training,
     color_aug_changed,
-    run_cmd_training,
     update_my_data,
     check_if_model_exist,
     SaveConfigFile,
@@ -44,12 +43,12 @@ executor = CommandExecutor()
 
 # from easygui import msgbox
 
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
 
 
 def save_configuration(
@@ -94,10 +93,15 @@ def save_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,block_lr,
+    gradient_accumulation_steps,
+    block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -150,19 +154,19 @@ def save_configuration(
 
     original_file_path = file_path
 
-    save_as_bool = True if save_as.get('label') == 'True' else False
+    save_as_bool = True if save_as.get("label") == "True" else False
 
     if save_as_bool:
-        log.info('Save as...')
+        log.info("Save as...")
         file_path = get_saveasfile_path(file_path)
     else:
-        log.info('Save...')
-        if file_path == None or file_path == '':
+        log.info("Save...")
+        if file_path == None or file_path == "":
             file_path = get_saveasfile_path(file_path)
 
     # log.info(file_path)
 
-    if file_path == None or file_path == '':
+    if file_path == None or file_path == "":
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
     # Extract the destination directory from the file path
@@ -175,7 +179,7 @@ def save_configuration(
     SaveConfigFile(
         parameters=parameters,
         file_path=file_path,
-        exclusion=['file_path', 'save_as'],
+        exclusion=["file_path", "save_as"],
     )
 
     return file_path
@@ -224,10 +228,15 @@ def open_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,block_lr,
+    gradient_accumulation_steps,
+    block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -279,33 +288,31 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    ask_for_file = True if ask_for_file.get('label') == 'True' else False
-    apply_preset = True if apply_preset.get('label') == 'True' else False
+    ask_for_file = True if ask_for_file.get("label") == "True" else False
+    apply_preset = True if apply_preset.get("label") == "True" else False
 
     # Check if we are "applying" a preset or a config
     if apply_preset:
-        log.info(f'Applying preset {training_preset}...')
-        file_path = f'./presets/finetune/{training_preset}.json'
+        log.info(f"Applying preset {training_preset}...")
+        file_path = f"./presets/finetune/{training_preset}.json"
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
-        training_preset_index = parameters.index(
-            ('training_preset', training_preset)
-        )
+        training_preset_index = parameters.index(("training_preset", training_preset))
 
         # Update the value of `training_preset` by directly assigning an empty string value
-        parameters[training_preset_index] = ('training_preset', '')
+        parameters[training_preset_index] = ("training_preset", "")
 
     original_file_path = file_path
 
     if ask_for_file:
         file_path = get_file_path(file_path)
 
-    if not file_path == '' and not file_path == None:
+    if not file_path == "" and not file_path == None:
         # load variables from JSON file
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             my_data = json.load(f)
-            log.info('Loading config...')
+            log.info("Loading config...")
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
             my_data = update_my_data(my_data)
     else:
@@ -316,7 +323,7 @@ def open_configuration(
     for key, value in parameters:
         json_value = my_data.get(key)
         # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
-        if not key in ['ask_for_file', 'apply_preset', 'file_path']:
+        if not key in ["ask_for_file", "apply_preset", "file_path"]:
             values.append(json_value if json_value is not None else value)
     return tuple(values)
 
@@ -363,10 +370,15 @@ def train_model(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    num_processes,
+    num_machines,
+    multi_gpu,
+    gpu_ids,
     save_state,
     resume,
     gradient_checkpointing,
-    gradient_accumulation_steps,block_lr,
+    gradient_accumulation_steps,
+    block_lr,
     mem_eff_attn,
     shuffle_caption,
     output_name,
@@ -417,14 +429,12 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    print_only_bool = True if print_only.get('label') == 'True' else False
-    log.info(f'Start Finetuning...')
+    print_only_bool = True if print_only.get("label") == "True" else False
+    log.info(f"Start Finetuning...")
 
-    headless_bool = True if headless.get('label') == 'True' else False
+    headless_bool = True if headless.get("label") == "True" else False
 
-    if check_if_model_exist(
-        output_name, output_dir, save_model_as, headless_bool
-    ):
+    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
     # if float(noise_offset) > 0 and (
@@ -450,52 +460,50 @@ def train_model(
         if not os.path.exists(train_dir):
             os.mkdir(train_dir)
 
-        run_cmd = f'{PYTHON} finetune/merge_captions_to_metadata.py'
-        if caption_extension == '':
+        run_cmd = f"{PYTHON} finetune/merge_captions_to_metadata.py"
+        if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
         else:
-            run_cmd += f' --caption_extension={caption_extension}'
+            run_cmd += f" --caption_extension={caption_extension}"
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         if full_path:
-            run_cmd += f' --full_path'
+            run_cmd += f" --full_path"
 
         log.info(run_cmd)
 
         if not print_only_bool:
             # Run the command
-            if os.name == 'posix':
+            if os.name == "posix":
                 os.system(run_cmd)
             else:
                 subprocess.run(run_cmd)
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = f'{PYTHON} finetune/prepare_buckets_latents.py'
+        run_cmd = f"{PYTHON} finetune/prepare_buckets_latents.py"
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
         run_cmd += f' "{pretrained_model_name_or_path}"'
-        run_cmd += f' --batch_size={batch_size}'
-        run_cmd += f' --max_resolution={max_resolution}'
-        run_cmd += f' --min_bucket_reso={min_bucket_reso}'
-        run_cmd += f' --max_bucket_reso={max_bucket_reso}'
-        run_cmd += f' --mixed_precision={mixed_precision}'
+        run_cmd += f" --batch_size={batch_size}"
+        run_cmd += f" --max_resolution={max_resolution}"
+        run_cmd += f" --min_bucket_reso={min_bucket_reso}"
+        run_cmd += f" --max_bucket_reso={max_bucket_reso}"
+        run_cmd += f" --mixed_precision={mixed_precision}"
         # if flip_aug:
         #     run_cmd += f' --flip_aug'
         if full_path:
-            run_cmd += f' --full_path'
+            run_cmd += f" --full_path"
         if sdxl_checkbox and sdxl_no_half_vae:
-            log.info(
-                'Using mixed_precision = no because no half vae is selected...'
-            )
+            log.info("Using mixed_precision = no because no half vae is selected...")
             run_cmd += f' --mixed_precision="no"'
 
         log.info(run_cmd)
 
         if not print_only_bool:
             # Run the command
-            if os.name == 'posix':
+            if os.name == "posix":
                 os.system(run_cmd)
             else:
                 subprocess.run(run_cmd)
@@ -506,13 +514,13 @@ def train_model(
             for f, lower_f in (
                 (file, file.lower()) for file in os.listdir(image_folder)
             )
-            if lower_f.endswith(('.jpg', '.jpeg', '.png', '.webp'))
+            if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
         ]
     )
-    log.info(f'image_num = {image_num}')
+    log.info(f"image_num = {image_num}")
 
     repeats = int(image_num) * int(dataset_repeats)
-    log.info(f'repeats = {str(repeats)}')
+    log.info(f"repeats = {str(repeats)}")
 
     # calculate max_train_steps
     max_train_steps = int(
@@ -528,126 +536,113 @@ def train_model(
     if flip_aug:
         max_train_steps = int(math.ceil(float(max_train_steps) / 2))
 
-    log.info(f'max_train_steps = {max_train_steps}')
+    log.info(f"max_train_steps = {max_train_steps}")
 
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    log.info(f'lr_warmup_steps = {lr_warmup_steps}')
+    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process}'
+    run_cmd = "accelerate launch"
+
+    run_cmd += run_cmd_advanced_training(
+        num_processes=num_processes,
+        num_machines=num_machines,
+        multi_gpu=multi_gpu,
+        gpu_ids=gpu_ids,
+        num_cpu_threads_per_process=num_cpu_threads_per_process,
+    )
+
     if sdxl_checkbox:
         run_cmd += f' "./sdxl_train.py"'
     else:
         run_cmd += f' "./fine_tune.py"'
 
-    if v2:
-        run_cmd += ' --v2'
-    if v_parameterization:
-        run_cmd += ' --v_parameterization'
-    if train_text_encoder:
-        run_cmd += ' --train_text_encoder'
-        if sdxl_checkbox:
-            run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
-            run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
-        else:
-            run_cmd += f' --learning_rate_te="{learning_rate_te}"'
-    if full_bf16:
-        run_cmd += ' --full_bf16'
-    if weighted_captions:
-        run_cmd += ' --weighted_captions'
-    run_cmd += (
-        f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+    in_json = (
+        f"{train_dir}/{latent_metadata_filename}"
+        if use_latent_files == "Yes"
+        else f"{train_dir}/{caption_metadata_filename}"
     )
-    if use_latent_files == 'Yes':
-        run_cmd += f' --in_json="{train_dir}/{latent_metadata_filename}"'
-    else:
-        run_cmd += f' --in_json="{train_dir}/{caption_metadata_filename}"'
-    run_cmd += f' --train_data_dir="{image_folder}"'
-    run_cmd += f' --output_dir="{output_dir}"'
-    if not logging_dir == '':
-        run_cmd += f' --logging_dir="{logging_dir}"'
-    run_cmd += f' --dataset_repeats={dataset_repeats}'
-
-    run_cmd += ' --enable_bucket'
-    run_cmd += f' --resolution="{max_resolution}"'
-    run_cmd += f' --min_bucket_reso={min_bucket_reso}'
-    run_cmd += f' --max_bucket_reso={max_bucket_reso}'
-
-    if not save_model_as == 'same as source model':
-        run_cmd += f' --save_model_as={save_model_as}'
-    if int(gradient_accumulation_steps) > 1:
-        run_cmd += f' --gradient_accumulation_steps={int(gradient_accumulation_steps)}'
-    if not block_lr == '':
-        run_cmd += f' --block_lr="{block_lr}"'
-    
-    if not output_name == '':
-        run_cmd += f' --output_name="{output_name}"'
-    if int(max_token_length) > 75:
-        run_cmd += f' --max_token_length={max_token_length}'
-
-    if sdxl_checkbox:
-        if sdxl_cache_text_encoder_outputs:
-            run_cmd += f' --cache_text_encoder_outputs'
-
-        if sdxl_no_half_vae:
-            run_cmd += f' --no_half_vae'
-
-    run_cmd += run_cmd_training(
-        learning_rate=learning_rate,
-        lr_scheduler=lr_scheduler,
-        lr_warmup_steps=lr_warmup_steps,
-        train_batch_size=train_batch_size,
-        max_train_steps=max_train_steps,
-        save_every_n_epochs=save_every_n_epochs,
-        mixed_precision=mixed_precision,
-        save_precision=save_precision,
-        seed=seed,
-        caption_extension=caption_extension,
-        cache_latents=cache_latents,
-        cache_latents_to_disk=cache_latents_to_disk,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        lr_scheduler_args=lr_scheduler_args,
-    )
+    cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     run_cmd += run_cmd_advanced_training(
-        max_train_epochs=max_train_epochs,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_token_length=max_token_length,
-        resume=resume,
-        save_state=save_state,
-        mem_eff_attn=mem_eff_attn,
-        clip_skip=clip_skip,
-        flip_aug=flip_aug,
-        color_aug=color_aug,
-        shuffle_caption=shuffle_caption,
-        gradient_checkpointing=gradient_checkpointing,
-        full_fp16=full_fp16,
-        xformers=xformers,
-        # use_8bit_adam=use_8bit_adam,
-        keep_tokens=keep_tokens,
-        persistent_data_loader_workers=persistent_data_loader_workers,
+        adaptive_noise_scale=adaptive_noise_scale,
+        additional_parameters=additional_parameters,
+        block_lr=block_lr,
         bucket_no_upscale=bucket_no_upscale,
-        random_crop=random_crop,
         bucket_reso_steps=bucket_reso_steps,
-        v_pred_like_loss=v_pred_like_loss,
+        cache_latents=cache_latents,
+        cache_latents_to_disk=cache_latents_to_disk,
+        cache_text_encoder_outputs=cache_text_encoder_outputs
+        if sdxl_checkbox
+        else None,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
-        noise_offset_type=noise_offset_type,
-        noise_offset=noise_offset,
-        adaptive_noise_scale=adaptive_noise_scale,
-        multires_noise_iterations=multires_noise_iterations,
-        multires_noise_discount=multires_noise_discount,
-        additional_parameters=additional_parameters,
-        vae_batch_size=vae_batch_size,
+        caption_extension=caption_extension,
+        clip_skip=clip_skip,
+        color_aug=color_aug,
+        dataset_repeats=dataset_repeats,
+        enable_bucket=True,
+        flip_aug=flip_aug,
+        full_bf16=full_bf16,
+        full_fp16=full_fp16,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        gradient_checkpointing=gradient_checkpointing,
+        in_json=in_json,
+        keep_tokens=keep_tokens,
+        learning_rate=learning_rate,
+        learning_rate_te1=learning_rate_te1 if sdxl_checkbox else None,
+        learning_rate_te2=learning_rate_te2 if sdxl_checkbox else None,
+        learning_rate_te=learning_rate_te if not sdxl_checkbox else None,
+        logging_dir=logging_dir,
+        lr_scheduler=lr_scheduler,
+        lr_scheduler_args=lr_scheduler_args,
+        lr_warmup_steps=lr_warmup_steps,
+        max_bucket_reso=max_bucket_reso,
+        max_data_loader_n_workers=max_data_loader_n_workers,
+        max_resolution=max_resolution,
+        max_timestep=max_timestep,
+        max_token_length=max_token_length,
+        max_train_epochs=max_train_epochs,
+        max_train_steps=max_train_steps,
+        mem_eff_attn=mem_eff_attn,
+        min_bucket_reso=min_bucket_reso,
         min_snr_gamma=min_snr_gamma,
+        min_timestep=min_timestep,
+        mixed_precision=mixed_precision,
+        multires_noise_discount=multires_noise_discount,
+        multires_noise_iterations=multires_noise_iterations,
+        no_half_vae=no_half_vae if sdxl_checkbox else None,
+        noise_offset=noise_offset,
+        noise_offset_type=noise_offset_type,
+        optimizer=optimizer,
+        optimizer_args=optimizer_args,
+        output_dir=output_dir,
+        output_name=output_name,
+        persistent_data_loader_workers=persistent_data_loader_workers,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        random_crop=random_crop,
+        resume=resume,
+        save_every_n_epochs=save_every_n_epochs,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        use_wandb=use_wandb,
-        wandb_api_key=wandb_api_key,
+        save_model_as=save_model_as,
+        save_precision=save_precision,
+        save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        min_timestep=min_timestep,
-        max_timestep=max_timestep,
+        seed=seed,
+        shuffle_caption=shuffle_caption,
+        train_batch_size=train_batch_size,
+        train_data_dir=image_folder,
+        train_text_encoder=train_text_encoder,
+        use_wandb=use_wandb,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        v_pred_like_loss=v_pred_like_loss,
+        vae_batch_size=vae_batch_size,
+        wandb_api_key=wandb_api_key,
+        weighted_captions=weighted_captions,
+        xformers=xformers,
     )
 
     run_cmd += run_cmd_sample(
@@ -660,7 +655,7 @@ def train_model(
 
     if print_only_bool:
         log.warning(
-            'Here is the trainer command as a reference. It will not be executed:\n'
+            "Here is the trainer command as a reference. It will not be executed:\n"
         )
         print(run_cmd)
 
@@ -668,17 +663,15 @@ def train_model(
     else:
         # Saving config file for model
         current_datetime = datetime.now()
-        formatted_datetime = current_datetime.strftime('%Y%m%d-%H%M%S')
-        file_path = os.path.join(
-            output_dir, f'{output_name}_{formatted_datetime}.json'
-        )
+        formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
+        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
 
-        log.info(f'Saving training config to {file_path}...')
+        log.info(f"Saving training config to {file_path}...")
 
         SaveConfigFile(
             parameters=parameters,
             file_path=file_path,
-            exclusion=['file_path', 'save_as', 'headless', 'print_only'],
+            exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
         log.info(run_cmd)
@@ -687,18 +680,16 @@ def train_model(
         executor.execute_command(run_cmd=run_cmd)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f'{output_dir}/{output_name}')
+        last_dir = pathlib.Path(f"{output_dir}/{output_name}")
 
         if not last_dir.is_dir():
             # Copy inference model for v2 if required
-            save_inference_file(
-                output_dir, v2, v_parameterization, output_name
-            )
+            save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def remove_doublequote(file_path):
     if file_path != None:
-        file_path = file_path.replace('"', '')
+        file_path = file_path.replace('"', "")
 
     return file_path
 
@@ -707,23 +698,23 @@ def finetune_tab(headless=False):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    with gr.Tab('Training'):
-        gr.Markdown('Train a custom model using kohya finetune python code...')
+    with gr.Tab("Training"):
+        gr.Markdown("Train a custom model using kohya finetune python code...")
 
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
         source_model = SourceModel(headless=headless)
 
-        with gr.Tab('Folders'):
+        with gr.Tab("Folders"):
             with gr.Row():
                 train_dir = gr.Textbox(
-                    label='Training config folder',
-                    placeholder='folder where the training configuration files will be saved',
+                    label="Training config folder",
+                    placeholder="folder where the training configuration files will be saved",
                 )
                 train_dir_folder = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not headless),
                 )
                 train_dir_folder.click(
@@ -733,12 +724,12 @@ def finetune_tab(headless=False):
                 )
 
                 image_folder = gr.Textbox(
-                    label='Training Image folder',
-                    placeholder='folder where the training images are located',
+                    label="Training Image folder",
+                    placeholder="folder where the training images are located",
                 )
                 image_folder_input_folder = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not headless),
                 )
                 image_folder_input_folder.click(
@@ -748,12 +739,12 @@ def finetune_tab(headless=False):
                 )
             with gr.Row():
                 output_dir = gr.Textbox(
-                    label='Model output folder',
-                    placeholder='folder where the model will be saved',
+                    label="Model output folder",
+                    placeholder="folder where the model will be saved",
                 )
                 output_dir_input_folder = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not headless),
                 )
                 output_dir_input_folder.click(
@@ -763,12 +754,12 @@ def finetune_tab(headless=False):
                 )
 
                 logging_dir = gr.Textbox(
-                    label='Logging folder',
-                    placeholder='Optional: enable logging and output TensorBoard log to this folder',
+                    label="Logging folder",
+                    placeholder="Optional: enable logging and output TensorBoard log to this folder",
                 )
                 logging_dir_input_folder = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not headless),
                 )
                 logging_dir_input_folder.click(
@@ -778,9 +769,9 @@ def finetune_tab(headless=False):
                 )
             with gr.Row():
                 output_name = gr.Textbox(
-                    label='Model output name',
-                    placeholder='Name of the model to output',
-                    value='last',
+                    label="Model output name",
+                    placeholder="Name of the model to output",
+                    value="last",
                     interactive=True,
                 )
             train_dir.change(
@@ -798,102 +789,96 @@ def finetune_tab(headless=False):
                 inputs=[output_dir],
                 outputs=[output_dir],
             )
-        with gr.Tab('Dataset preparation'):
+        with gr.Tab("Dataset preparation"):
             with gr.Row():
                 max_resolution = gr.Textbox(
-                    label='Resolution (width,height)', value='512,512'
+                    label="Resolution (width,height)", value="512,512"
                 )
-                min_bucket_reso = gr.Textbox(
-                    label='Min bucket resolution', value='256'
-                )
+                min_bucket_reso = gr.Textbox(label="Min bucket resolution", value="256")
                 max_bucket_reso = gr.Textbox(
-                    label='Max bucket resolution', value='1024'
+                    label="Max bucket resolution", value="1024"
                 )
-                batch_size = gr.Textbox(label='Batch size', value='1')
+                batch_size = gr.Textbox(label="Batch size", value="1")
             with gr.Row():
                 create_caption = gr.Checkbox(
-                    label='Generate caption metadata', value=True
+                    label="Generate caption metadata", value=True
                 )
                 create_buckets = gr.Checkbox(
-                    label='Generate image buckets metadata', value=True
+                    label="Generate image buckets metadata", value=True
                 )
                 use_latent_files = gr.Dropdown(
-                    label='Use latent files',
+                    label="Use latent files",
                     choices=[
-                        'No',
-                        'Yes',
+                        "No",
+                        "Yes",
                     ],
-                    value='Yes',
+                    value="Yes",
                 )
-            with gr.Accordion('Advanced parameters', open=False):
+            with gr.Accordion("Advanced parameters", open=False):
                 with gr.Row():
                     caption_metadata_filename = gr.Textbox(
-                        label='Caption metadata filename',
-                        value='meta_cap.json',
+                        label="Caption metadata filename",
+                        value="meta_cap.json",
                     )
                     latent_metadata_filename = gr.Textbox(
-                        label='Latent metadata filename', value='meta_lat.json'
+                        label="Latent metadata filename", value="meta_lat.json"
                     )
                 with gr.Row():
-                    full_path = gr.Checkbox(label='Use full path', value=True)
+                    full_path = gr.Checkbox(label="Use full path", value=True)
                     weighted_captions = gr.Checkbox(
-                        label='Weighted captions', value=False
+                        label="Weighted captions", value=False
                     )
-        with gr.Tab('Parameters'):
-            
+        with gr.Tab("Parameters"):
+
             def list_presets(path):
                 json_files = []
 
                 for file in os.listdir(path):
-                    if file.endswith('.json'):
+                    if file.endswith(".json"):
                         json_files.append(os.path.splitext(file)[0])
 
-                user_presets_path = os.path.join(path, 'user_presets')
+                user_presets_path = os.path.join(path, "user_presets")
                 if os.path.isdir(user_presets_path):
                     for file in os.listdir(user_presets_path):
-                        if file.endswith('.json'):
+                        if file.endswith(".json"):
                             preset_name = os.path.splitext(file)[0]
-                            json_files.append(
-                                os.path.join('user_presets', preset_name)
-                            )
+                            json_files.append(os.path.join("user_presets", preset_name))
 
                 return json_files
 
             training_preset = gr.Dropdown(
-                label='Presets',
-                choices=list_presets('./presets/finetune'),
-                elem_id='myDropdown',
+                label="Presets",
+                choices=list_presets("./presets/finetune"),
+                elem_id="myDropdown",
             )
-            
-            with gr.Tab('Basic', elem_id='basic_tab'):
+
+            with gr.Tab("Basic", elem_id="basic_tab"):
                 basic_training = BasicTraining(
-                    learning_rate_value='1e-5', finetuning=True, sdxl_checkbox=source_model.sdxl_checkbox,
+                    learning_rate_value="1e-5",
+                    finetuning=True,
+                    sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
                 # Add SDXL Parameters
                 sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
 
                 with gr.Row():
-                    dataset_repeats = gr.Textbox(
-                        label='Dataset repeats', value=40
-                    )
+                    dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
                     train_text_encoder = gr.Checkbox(
-                        label='Train text encoder', value=True
+                        label="Train text encoder", value=True
                     )
 
-            with gr.Tab('Advanced', elem_id='advanced_tab'):
+            with gr.Tab("Advanced", elem_id="advanced_tab"):
                 with gr.Row():
                     gradient_accumulation_steps = gr.Number(
-                        label='Gradient accumulate steps', value='1'
+                        label="Gradient accumulate steps", value="1"
                     )
                     block_lr = gr.Textbox(
-                        label='Block LR',
-                        placeholder='(Optional)',
-                        info='Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3',
+                        label="Block LR",
+                        placeholder="(Optional)",
+                        info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
                     )
-                advanced_training = AdvancedTraining(
-                    headless=headless, finetuning=True
-                )
+                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -902,15 +887,15 @@ def finetune_tab(headless=False):
                     ],  # Not applicable to fine_tune.py
                 )
 
-            with gr.Tab('Samples', elem_id='samples_tab'):
+            with gr.Tab("Samples", elem_id="samples_tab"):
                 sample = SampleImages()
 
         with gr.Row():
-            button_run = gr.Button('Start training', variant='primary')
+            button_run = gr.Button("Start training", variant="primary")
 
-            button_stop_training = gr.Button('Stop training')
+            button_stop_training = gr.Button("Stop training")
 
-        button_print = gr.Button('Print training command')
+        button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         (
@@ -967,6 +952,10 @@ def finetune_tab(headless=False):
             basic_training.caption_extension,
             advanced_training.xformers,
             advanced_training.clip_skip,
+            advanced_training.num_processes,
+            advanced_training.num_machines,
+            advanced_training.multi_gpu,
+            advanced_training.gpu_ids,
             advanced_training.save_state,
             advanced_training.resume,
             advanced_training.gradient_checkpointing,
@@ -1025,9 +1014,7 @@ def finetune_tab(headless=False):
             inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
-            + settings_list
-            + [training_preset],
+            outputs=[config.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -1043,9 +1030,7 @@ def finetune_tab(headless=False):
             inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
-            + settings_list
-            + [training_preset],
+            outputs=[config.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -1061,9 +1046,7 @@ def finetune_tab(headless=False):
             inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox()]
-            + settings_list
-            + [training_preset],
+            outputs=[gr.Textbox()] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -1095,94 +1078,84 @@ def finetune_tab(headless=False):
             show_progress=False,
         )
 
-    with gr.Tab('Guides'):
-        gr.Markdown(
-            'This section provide Various Finetuning guides and information...'
-        )
-        top_level_path = './docs/Finetuning/top_level.md'
+    with gr.Tab("Guides"):
+        gr.Markdown("This section provide Various Finetuning guides and information...")
+        top_level_path = "./docs/Finetuning/top_level.md"
         if os.path.exists(top_level_path):
-            with open(
-                os.path.join(top_level_path), 'r', encoding='utf8'
-            ) as file:
-                guides_top_level = file.read() + '\n'
+            with open(os.path.join(top_level_path), "r", encoding="utf8") as file:
+                guides_top_level = file.read() + "\n"
         gr.Markdown(guides_top_level)
 
 
 def UI(**kwargs):
-    add_javascript(kwargs.get('language'))
-    css = ''
+    add_javascript(kwargs.get("language"))
+    css = ""
 
-    headless = kwargs.get('headless', False)
-    log.info(f'headless: {headless}')
+    headless = kwargs.get("headless", False)
+    log.info(f"headless: {headless}")
 
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
-            log.info('Load CSS...')
-            css += file.read() + '\n'
+    if os.path.exists("./style.css"):
+        with open(os.path.join("./style.css"), "r", encoding="utf8") as file:
+            log.info("Load CSS...")
+            css += file.read() + "\n"
 
-    interface = gr.Blocks(
-        css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
-    )
+    interface = gr.Blocks(css=css, title="Kohya_ss GUI", theme=gr.themes.Default())
 
     with interface:
-        with gr.Tab('Finetune'):
+        with gr.Tab("Finetune"):
             finetune_tab(headless=headless)
-        with gr.Tab('Utilities'):
+        with gr.Tab("Utilities"):
             utilities_tab(enable_dreambooth_tab=False, headless=headless)
 
     # Show the interface
     launch_kwargs = {}
-    username = kwargs.get('username')
-    password = kwargs.get('password')
-    server_port = kwargs.get('server_port', 0)
-    inbrowser = kwargs.get('inbrowser', False)
-    share = kwargs.get('share', False)
-    server_name = kwargs.get('listen')
+    username = kwargs.get("username")
+    password = kwargs.get("password")
+    server_port = kwargs.get("server_port", 0)
+    inbrowser = kwargs.get("inbrowser", False)
+    share = kwargs.get("share", False)
+    server_name = kwargs.get("listen")
 
-    launch_kwargs['server_name'] = server_name
+    launch_kwargs["server_name"] = server_name
     if username and password:
-        launch_kwargs['auth'] = (username, password)
+        launch_kwargs["auth"] = (username, password)
     if server_port > 0:
-        launch_kwargs['server_port'] = server_port
+        launch_kwargs["server_port"] = server_port
     if inbrowser:
-        launch_kwargs['inbrowser'] = inbrowser
+        launch_kwargs["inbrowser"] = inbrowser
     if share:
-        launch_kwargs['share'] = share
+        launch_kwargs["share"] = share
     interface.launch(**launch_kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--listen',
+        "--listen",
         type=str,
-        default='127.0.0.1',
-        help='IP to listen on for connections to Gradio',
+        default="127.0.0.1",
+        help="IP to listen on for connections to Gradio",
     )
     parser.add_argument(
-        '--username', type=str, default='', help='Username for authentication'
+        "--username", type=str, default="", help="Username for authentication"
     )
     parser.add_argument(
-        '--password', type=str, default='', help='Password for authentication'
+        "--password", type=str, default="", help="Password for authentication"
     )
     parser.add_argument(
-        '--server_port',
+        "--server_port",
         type=int,
         default=0,
-        help='Port to run the server listener on',
+        help="Port to run the server listener on",
+    )
+    parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
+    parser.add_argument("--share", action="store_true", help="Share the gradio UI")
+    parser.add_argument(
+        "--headless", action="store_true", help="Is the server headless"
     )
     parser.add_argument(
-        '--inbrowser', action='store_true', help='Open in browser'
-    )
-    parser.add_argument(
-        '--share', action='store_true', help='Share the gradio UI'
-    )
-    parser.add_argument(
-        '--headless', action='store_true', help='Is the server headless'
-    )
-    parser.add_argument(
-        '--language', type=str, default=None, help='Set custom language'
+        "--language", type=str, default=None, help="Set custom language"
     )
 
     args = parser.parse_args()

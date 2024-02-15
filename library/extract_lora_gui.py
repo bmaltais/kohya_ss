@@ -32,6 +32,9 @@ def extract_lora(
     clamp_quantile,
     min_diff,
     device,
+    load_original_model_to,
+    load_tuned_model_to,
+    load_precision,
 ):
     # Check for caption_text_input
     if model_tuned == '':
@@ -57,6 +60,7 @@ def extract_lora(
     run_cmd = (
         f'{PYTHON} "{os.path.join("networks","extract_lora_from_models.py")}"'
     )
+    run_cmd += f' --load_precision {load_precision}'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
     run_cmd += f' --model_org "{model_org}"'
@@ -71,6 +75,9 @@ def extract_lora(
         run_cmd += f' --sdxl'
     run_cmd += f' --clamp_quantile {clamp_quantile}'
     run_cmd += f' --min_diff {min_diff}'
+    if sdxl:
+        run_cmd += f' --load_original_model_to {load_original_model_to}'
+        run_cmd += f' --load_tuned_model_to {load_tuned_model_to}'
 
     log.info(run_cmd)
 
@@ -87,6 +94,11 @@ def extract_lora(
 
 
 def gradio_extract_lora_tab(headless=False):
+    def change_sdxl(sdxl):
+        return gr(visible=sdxl), gr(visible=sdxl)
+            
+    
+    
     with gr.Tab('Extract LoRA'):
         gr.Markdown(
             'This utility can extract a LoRA network from a finetuned model.'
@@ -113,7 +125,15 @@ def gradio_extract_lora_tab(headless=False):
                 outputs=model_tuned,
                 show_progress=False,
             )
-
+            load_tuned_model_to = gr.Dropdown(
+                label='Load finetuned model to',
+                choices=['cpu', 'cuda', 'cuda:0'],
+                value='cpu',
+                interactive=True, scale=1,
+                info="only for SDXL",
+                visible=False,
+            )
+        with gr.Row():
             model_org = gr.Textbox(
                 label='Stable Diffusion base model',
                 placeholder='Stable Diffusion original model: ckpt or safetensors file',
@@ -130,11 +150,20 @@ def gradio_extract_lora_tab(headless=False):
                 outputs=model_org,
                 show_progress=False,
             )
+            load_original_model_to = gr.Dropdown(
+                label='Load Stable Diffusion base model to',
+                choices=['cpu', 'cuda', 'cuda:0'],
+                value='cpu',
+                interactive=True, scale=1,
+                info="only for SDXL",
+                visible=False,
+            )
         with gr.Row():
             save_to = gr.Textbox(
                 label='Save to',
                 placeholder='path where to save the extracted LoRA model...',
                 interactive=True,
+                scale=2,
             )
             button_save_to = gr.Button(
                 folder_symbol,
@@ -150,8 +179,14 @@ def gradio_extract_lora_tab(headless=False):
             save_precision = gr.Dropdown(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
-                value='float',
-                interactive=True,
+                value='fp16',
+                interactive=True, scale=1,
+            )
+            load_precision = gr.Dropdown(
+                label='Load precision',
+                choices=['fp16', 'bf16', 'float'],
+                value='fp16',
+                interactive=True, scale=1,
             )
         with gr.Row():
             dim = gr.Slider(
@@ -192,6 +227,8 @@ def gradio_extract_lora_tab(headless=False):
                 value='cuda',
                 interactive=True,
             )
+            
+            sdxl.change(change_sdxl, inputs=sdxl, outputs=[load_tuned_model_to, load_original_model_to])
 
         extract_button = gr.Button('Extract LoRA model')
 
@@ -209,6 +246,9 @@ def gradio_extract_lora_tab(headless=False):
                 clamp_quantile,
                 min_diff,
                 device,
+                load_original_model_to,
+                load_tuned_model_to,
+                load_precision,
             ],
             show_progress=False,
         )
