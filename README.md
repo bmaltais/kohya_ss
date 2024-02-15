@@ -503,9 +503,11 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
-* 2024/01/27 (v22.6.1)
+* 2024/02/15 (v22.6.1)
 - Add support for multi-gpu parameters in the GUI under the "Parameters > Advanced" tab.
 - Significant rewrite of how parameters are created in the code. I hope I did not break anything in the process... Will make the code easier to update.
+- Update TW locallisation
+- Update gradio module version to latest 3.x
 
 * 2024/01/27 (v22.6.0)
 - Merge sd-scripts v0.8.3 code update
