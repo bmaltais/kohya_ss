@@ -61,4 +61,4 @@ accelerate launch --num_cpu_threads_per_process $num_cpu_threads_per_process tra
     --seed=494481440 `
     --lr_scheduler=$lr_scheduler
 
-# Add the inference yaml file along with the model for proper loading. Need to have the same name as model... Most likelly "last.yaml" in our case.
+# Add the inference yaml file along with the model for proper loading. Need to have the same name as model... Most likely "last.yaml" in our case.
