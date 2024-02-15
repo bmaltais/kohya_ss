@@ -1,6 +1,6 @@
 # This powershell script will create a text file for each files in the folder
 #
-# Usefull to create base caption that will be augmented on a per image basis
+# Useful to create base caption that will be augmented on a per image basis
 
 $folder = "D:\some\folder\location\"
 $file_pattern="*.*"
