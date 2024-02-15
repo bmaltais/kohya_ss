@@ -747,7 +747,7 @@ def ti_tab(
                 with gr.Row():
                     weights = gr.Textbox(
                         label='Resume TI training',
-                        placeholder='(Optional) Path to existing TI embeding file to keep training',
+                        placeholder='(Optional) Path to existing TI embedding file to keep training',
                     )
                     weights_file_input = gr.Button(
                         '📂',
