@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 ARG UID=1000
 
-FROM python:3.10 as build
+FROM python:3.10-slim as build
 
 # RUN mount cache for multi-arch: https://github.com/docker/buildx/issues/549#issuecomment-1788297892
 ARG TARGETARCH
@@ -37,10 +37,17 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     --mount=source=requirements_linux_docker.txt,target=requirements_linux_docker.txt \
     --mount=source=requirements.txt,target=requirements.txt \
     --mount=source=setup/docker_setup.py,target=setup.py \
-    pip install -r requirements_linux_docker.txt -r requirements.txt && \
-    # Replace pillow with pillow-simd
+    pip install -r requirements_linux_docker.txt -r requirements.txt
+
+# Replace pillow with pillow-simd (Only for x86)
+ARG TARGETPLATFORM
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+    apt-get update && apt-get install -y --no-install-recommends zlib1g-dev libjpeg62-turbo-dev build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
     pip uninstall -y pillow && \
-    CC="cc -mavx2" pip install -U --force-reinstall pillow-simd
+    CC="cc -mavx2" pip install -U --force-reinstall pillow-simd; \
+    fi
 
 FROM python:3.10-slim as final
 
@@ -48,7 +55,7 @@ ARG UID
 
 # Install runtime dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libjpeg62 libgoogle-perftools-dev dumb-init && \
+    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libjpeg62 libtcl8.6 libtk8.6 libgoogle-perftools-dev dumb-init && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
