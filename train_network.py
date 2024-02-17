@@ -1,6 +1,5 @@
 import importlib
 import argparse
-import gc
 import math
 import os
 import sys
@@ -11,12 +10,12 @@ from multiprocessing import Value
 import toml
 
 from tqdm import tqdm
+
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
+
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
@@ -273,9 +272,7 @@ class NetworkTrainer:
             with torch.no_grad():
                 train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
             vae.to("cpu")
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            gc.collect()
+            clean_memory_on_device(accelerator.device)
 
             accelerator.wait_for_everyone()
 

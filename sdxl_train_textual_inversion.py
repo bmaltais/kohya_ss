@@ -2,10 +2,11 @@ import argparse
 import os
 
 import regex
-import torch
-from library.ipex_interop import init_ipex
 
+import torch
+from library.device_utils import init_ipex
 init_ipex()
+
 import open_clip
 from library import sdxl_model_util, sdxl_train_util, train_util
 

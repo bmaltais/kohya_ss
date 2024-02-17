@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 from accelerate import Accelerator, InitProcessGroupKwargs, DistributedDataParallelKwargs, PartialState
-import gc
 import glob
 import math
 import os
@@ -32,7 +31,12 @@ from io import BytesIO
 import toml
 
 from tqdm import tqdm
+
 import torch
+from library.device_utils import init_ipex, clean_memory_on_device
+
+init_ipex()
+
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torchvision import transforms
@@ -76,6 +80,8 @@ from library.original_unet import UNet2DConditionModel
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
+
+HIGH_VRAM = False
 
 # checkpointファイル名
 EPOCH_STATE_NAME = "{}-{:06d}-state"
@@ -2283,9 +2289,8 @@ def cache_batch_latents(
             if flip_aug:
                 info.latents_flipped = flipped_latent
 
-    # FIXME this slows down caching a lot, specify this as an option
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    if not HIGH_VRAM:
+        clean_memory_on_device(vae.device)
 
 
 def cache_batch_text_encoder_outputs(
@@ -3040,7 +3045,13 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     parser.add_argument(
         "--lowram",
         action="store_true",
-        help="enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle) / メインメモリが少ない環境向け最適化を有効にする。たとえばVRAMにモデルを読み込むなど（ColabやKaggleなどRAMに比べてVRAMが多い環境向け）",
+        help="enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle) / メインメモリが少ない環境向け最適化を有効にする。たとえばVRAMにモデルを読み込む等（ColabやKaggleなどRAMに比べてVRAMが多い環境向け）",
+    )
+    parser.add_argument(
+        "--highvram",
+        action="store_true",
+        help="disable low VRAM optimization. e.g. do not clear CUDA cache after each latent caching (for machines which have bigger VRAM) " + 
+        "/ VRAMが少ない環境向け最適化を無効にする。たとえば各latentのキャッシュ後のCUDAキャッシュクリアを行わない等（VRAMが多い環境向け）",
     )
 
     parser.add_argument(
@@ -3131,6 +3142,15 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
 
 
 def verify_training_args(args: argparse.Namespace):
+    r"""
+    Verify training arguments. Also reflect highvram option to global variable
+    学習用引数を検証する。あわせて highvram オプションの指定をグローバル変数に反映する
+    """
+    if args.highvram:
+        print("highvram is enabled / highvramが有効です")
+        global HIGH_VRAM
+        HIGH_VRAM = True
+
     if args.v_parameterization and not args.v2:
         logger.warning("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
     if args.v2 and args.clip_skip is not None:
@@ -3925,6 +3945,7 @@ def prepare_accelerator(args: argparse.Namespace):
         kwargs_handlers=kwargs_handlers,
         dynamo_backend=dynamo_backend,
     )
+    print("accelerator device:", accelerator.device)
     return accelerator
 
 
@@ -4011,8 +4032,7 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
                 unet.to(accelerator.device)
                 vae.to(accelerator.device)
 
-            gc.collect()
-            torch.cuda.empty_cache()
+            clean_memory_on_device(accelerator.device)
         accelerator.wait_for_everyone()
 
     return text_encoder, vae, unet, load_stable_diffusion_format
@@ -4687,7 +4707,7 @@ def sample_images_common(
     distributed_state = PartialState() # for multi gpu distributed inference. this is a singleton, so it's safe to use it here
     
     org_vae_device = vae.device  # CPUにいるはず
-    vae.to(distributed_state.device)
+    vae.to(distributed_state.device)    # distributed_state.device is same as accelerator.device
 
     # unwrap unet and text_encoder(s)
     unet = accelerator.unwrap_model(unet)
@@ -4744,7 +4764,11 @@ def sample_images_common(
 
     # save random state to restore later
     rng_state = torch.get_rng_state()
-    cuda_rng_state = torch.cuda.get_rng_state() if torch.cuda.is_available() else None # TODO mps etc. support
+    cuda_rng_state = None
+    try:
+        cuda_rng_state = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
+    except Exception:
+        pass
     
     if distributed_state.num_processes <= 1:    
         # If only one device is available, just use the original prompt list. We don't need to care about the distribution of prompts.
@@ -4766,8 +4790,10 @@ def sample_images_common(
     # clear pipeline and cache to reduce vram usage
     del pipeline
 
-    with torch.cuda.device(torch.cuda.current_device()):
-        torch.cuda.empty_cache()
+    # I'm not sure which of these is the correct way to clear the memory, but accelerator's device is used in the pipeline, so I'm using it here.
+    # with torch.cuda.device(torch.cuda.current_device()):
+    #     torch.cuda.empty_cache()
+    clean_memory_on_device(accelerator.device)
     
     torch.set_rng_state(rng_state)
     if cuda_rng_state is not None:
@@ -4861,7 +4887,6 @@ def sample_image_inference(accelerator: Accelerator, args: argparse.Namespace, p
     except:  # wandb 無効時
         pass
 # endregion
-
 
 
 

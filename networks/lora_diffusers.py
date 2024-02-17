@@ -9,7 +9,11 @@ from diffusers import UNet2DConditionModel
 import numpy as np
 from tqdm import tqdm
 from transformers import CLIPTextModel
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from library.utils import setup_logging
 setup_logging()
 import logging
@@ -479,7 +483,7 @@ if __name__ == "__main__":
     from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
     import torch
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_preferred_device()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_id", type=str, default=None, help="model id for huggingface")

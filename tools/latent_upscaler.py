@@ -11,6 +11,9 @@ from typing import Dict, List
 import numpy as np
 
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torch import nn
 from tqdm import tqdm
 from PIL import Image
@@ -258,7 +261,7 @@ def create_upscaler(**kwargs):
 
 # another interface: upscale images with a model for given images from command line
 def upscale_images(args: argparse.Namespace):
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    DEVICE = get_preferred_device()
     us_dtype = torch.float16  # TODO: support fp32/bf16
     os.makedirs(args.output_dir, exist_ok=True)
 

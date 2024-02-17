@@ -8,7 +8,11 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import cv2
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torchvision import transforms
 
 import library.model_util as model_util
@@ -18,7 +22,7 @@ setup_logging()
 import logging
 logger = logging.getLogger(__name__)
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = get_preferred_device()
 
 IMAGE_TRANSFORMS = transforms.Compose(
     [

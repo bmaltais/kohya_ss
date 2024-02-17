@@ -5,7 +5,11 @@ import re
 from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from transformers import AutoProcessor, AutoModelForCausalLM
 from transformers.generation.utils import GenerationMixin
 

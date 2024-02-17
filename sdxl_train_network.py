@@ -1,8 +1,7 @@
 import argparse
+
 import torch
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
 
 from library import sdxl_model_util, sdxl_train_util, train_util
@@ -68,8 +67,7 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
                 org_unet_device = unet.device
                 vae.to("cpu")
                 unet.to("cpu")
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+                clean_memory_on_device(accelerator.device)
 
             # When TE is not be trained, it will not be prepared so we need to use explicit autocast
             with accelerator.autocast():
@@ -84,8 +82,7 @@ class SdxlNetworkTrainer(train_network.NetworkTrainer):
 
             text_encoders[0].to("cpu", dtype=torch.float32)  # Text Encoder doesn't work with fp16 on CPU
             text_encoders[1].to("cpu", dtype=torch.float32)
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            clean_memory_on_device(accelerator.device)
 
             if not args.lowram:
                 logger.info("move vae and unet back to original device")

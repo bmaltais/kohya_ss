@@ -8,10 +8,9 @@ import os
 import random
 from einops import repeat
 import numpy as np
+
 import torch
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, get_preferred_device
 init_ipex()
 
 from tqdm import tqdm
@@ -89,7 +88,7 @@ if __name__ == "__main__":
     guidance_scale = 7
     seed = None  # 1
 
-    DEVICE = "cuda"
+    DEVICE = get_preferred_device()
     DTYPE = torch.float16  # bfloat16 may work
 
     parser = argparse.ArgumentParser()

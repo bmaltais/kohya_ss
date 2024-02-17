@@ -1,5 +1,4 @@
 import argparse
-import gc
 import json
 import math
 import os
@@ -10,10 +9,9 @@ from types import SimpleNamespace
 import toml
 
 from tqdm import tqdm
+
 import torch
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
 
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -226,10 +224,8 @@ def train(args):
                 accelerator.is_main_process,
             )
         vae.to("cpu")
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()
-
+        clean_memory_on_device(accelerator.device)
+        
         accelerator.wait_for_everyone()
 
     if args.gradient_checkpointing:

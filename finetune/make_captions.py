@@ -9,7 +9,11 @@ from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
+
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 sys.path.append(os.path.dirname(__file__))
@@ -20,7 +24,7 @@ setup_logging()
 import logging
 logger = logging.getLogger(__name__)
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = get_preferred_device()
 
 
 IMAGE_SIZE = 384
