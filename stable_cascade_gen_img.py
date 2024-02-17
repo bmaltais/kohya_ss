@@ -11,10 +11,10 @@ from PIL import Image
 from accelerate import init_empty_weights
 
 import library.stable_cascade as sc
+import library.stable_cascade_utils as sc_utils
 import library.device_utils as device_utils
+from library import train_util
 from library.sdxl_model_util import _load_state_dict_on_device
-
-clip_text_model_name: str = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
 
 def calculate_latent_sizes(height=1024, width=1024, batch_size=4, compression_factor_b=42.67, compression_factor_a=4.0):
@@ -45,94 +45,31 @@ def main(args):
     text_model_dtype = torch.float32
 
     # EfficientNet encoder
-    print(f"Loading EfficientNet encoder from {args.effnet_checkpoint_path}")
-    effnet = sc.EfficientNetEncoder()
-    effnet_checkpoint = load_file(args.effnet_checkpoint_path)
-    info = effnet.load_state_dict(effnet_checkpoint if "state_dict" not in effnet_checkpoint else effnet_checkpoint["state_dict"])
-    print(info)
+    effnet = sc_utils.load_effnet(args.effnet_checkpoint_path, loading_device)
     effnet.eval().requires_grad_(False).to(loading_device)
-    del effnet_checkpoint
 
-    # Generator
-    print(f"Instantiating Stage C generator")
-    with init_empty_weights():
-        generator_c = sc.StageC()
-    print(f"Loading Stage C generator from {args.stage_c_checkpoint_path}")
-    stage_c_checkpoint = load_file(args.stage_c_checkpoint_path)
-    print(f"Loading state dict")
-    info = _load_state_dict_on_device(generator_c, stage_c_checkpoint, loading_device, dtype=dtype)
-    print(info)
+    generator_c = sc_utils.load_stage_c_model(args.stage_c_checkpoint_path, dtype=dtype, device=loading_device)
     generator_c.eval().requires_grad_(False).to(loading_device)
 
-    print(f"Instantiating Stage B generator")
-    with init_empty_weights():
-        generator_b = sc.StageB()
-    print(f"Loading Stage B generator from {args.stage_b_checkpoint_path}")
-    stage_b_checkpoint = load_file(args.stage_b_checkpoint_path)
-    print(f"Loading state dict")
-    info = _load_state_dict_on_device(generator_b, stage_b_checkpoint, loading_device, dtype=dtype)
-    print(info)
+    generator_b = sc_utils.load_stage_b_model(args.stage_b_checkpoint_path, dtype=dtype, device=loading_device)
     generator_b.eval().requires_grad_(False).to(loading_device)
 
     # CLIP encoders
     print(f"Loading CLIP text model")
 
-    # TODO 完全にオフラインで動かすには tokenizer もローカルに保存できるようにする必要がある
-    tokenizer = AutoTokenizer.from_pretrained(clip_text_model_name)
+    tokenizer = sc_utils.load_tokenizer(args)
 
-    if args.save_text_model or args.text_model_checkpoint_path is None:
-        print(f"Loading CLIP text model from {clip_text_model_name}")
-        text_model = CLIPTextModelWithProjection.from_pretrained(clip_text_model_name)
-
-        if args.save_text_model:
-            sd = text_model.state_dict()
-            print(f"Saving CLIP text model to {args.text_model_checkpoint_path}")
-            save_file(sd, args.text_model_checkpoint_path)
-    else:
-        print(f"Loading CLIP text model from {args.text_model_checkpoint_path}")
-
-        # copy from sdxl_model_util.py
-        text_model2_cfg = CLIPTextConfig(
-            vocab_size=49408,
-            hidden_size=1280,
-            intermediate_size=5120,
-            num_hidden_layers=32,
-            num_attention_heads=20,
-            max_position_embeddings=77,
-            hidden_act="gelu",
-            layer_norm_eps=1e-05,
-            dropout=0.0,
-            attention_dropout=0.0,
-            initializer_range=0.02,
-            initializer_factor=1.0,
-            pad_token_id=1,
-            bos_token_id=0,
-            eos_token_id=2,
-            model_type="clip_text_model",
-            projection_dim=1280,
-            # torch_dtype="float32",
-            # transformers_version="4.25.0.dev0",
-        )
-        with init_empty_weights():
-            text_model = CLIPTextModelWithProjection(text_model2_cfg)
-
-        text_model_checkpoint = load_file(args.text_model_checkpoint_path)
-        info = _load_state_dict_on_device(text_model, text_model_checkpoint, text_model_device, dtype=text_model_dtype)
-        print(info)
-
+    text_model = sc_utils.load_clip_text_model(
+        args.text_model_checkpoint_path, text_model_dtype, text_model_device, args.save_text_model
+    )
     text_model = text_model.requires_grad_(False).to(text_model_dtype).to(text_model_device)
+
     # image_model = (
     #     CLIPVisionModelWithProjection.from_pretrained(clip_image_model_name).requires_grad_(False).to(dtype).to(device)
     # )
 
     # vqGAN
-    print(f"Loading Stage A vqGAN from {args.stage_a_checkpoint_path}")
-    stage_a = sc.StageA().to(loading_device)
-    stage_a_checkpoint = load_file(args.stage_a_checkpoint_path)
-    info = stage_a.load_state_dict(
-        stage_a_checkpoint if "state_dict" not in stage_a_checkpoint else stage_a_checkpoint["state_dict"]
-    )
-    print(info)
+    stage_a = sc_utils.load_stage_a_model(args.stage_a_checkpoint_path, dtype=dtype, device=loading_device)
     stage_a.eval().requires_grad_(False)
 
     caption = "Cinematic photo of an anthropomorphic penguin sitting in a cafe reading a book and having a coffee"
@@ -169,19 +106,19 @@ def main(args):
     # extras_b.sampling_configs["t_start"] = 1.0
 
     # PREPARE CONDITIONS
-    cond_text, cond_pooled = sc.get_clip_conditions([caption], tokenizer, text_model)
+    cond_text, cond_pooled = sc.get_clip_conditions([caption], None, tokenizer, text_model)
     cond_text = cond_text.to(device, dtype=dtype)
     cond_pooled = cond_pooled.to(device, dtype=dtype)
 
-    uncond_text, uncond_pooled = sc.get_clip_conditions([""], tokenizer, text_model)
+    uncond_text, uncond_pooled = sc.get_clip_conditions([""], None, tokenizer, text_model)
     uncond_text = uncond_text.to(device, dtype=dtype)
     uncond_pooled = uncond_pooled.to(device, dtype=dtype)
 
-    img_emb = torch.zeros(1, 768, device=device)
+    zero_img_emb = torch.zeros(1, 768, device=device)
 
     # 辞書にしたくないけど GDF から先の変更が面倒だからとりあえず辞書にしておく
-    conditions = {"clip_text_pooled": cond_pooled, "clip": cond_pooled, "clip_text": cond_text, "clip_img": img_emb}
-    unconditions = {"clip_text_pooled": uncond_pooled, "clip": uncond_pooled, "clip_text": uncond_text, "clip_img": img_emb}
+    conditions = {"clip_text_pooled": cond_pooled, "clip": cond_pooled, "clip_text": cond_text, "clip_img": zero_img_emb}
+    unconditions = {"clip_text_pooled": uncond_pooled, "clip": uncond_pooled, "clip_text": uncond_text, "clip_img": zero_img_emb}
     conditions_b = {}
     conditions_b.update(conditions)
     unconditions_b = {}
@@ -249,14 +186,13 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--effnet_checkpoint_path", type=str, required=True)
-    parser.add_argument("--stage_a_checkpoint_path", type=str, required=True)
-    parser.add_argument("--stage_b_checkpoint_path", type=str, required=True)
-    parser.add_argument("--stage_c_checkpoint_path", type=str, required=True)
-    parser.add_argument(
-        "--text_model_checkpoint_path", type=str, required=False, default=None, help="if omitted, download from HuggingFace"
-    )
-    parser.add_argument("--save_text_model", action="store_true", help="if specified, save text model to corresponding path")
+
+    sc_utils.add_effnet_arguments(parser)
+    train_util.add_tokenizer_arguments(parser)
+    sc_utils.add_stage_a_arguments(parser)
+    sc_utils.add_stage_b_arguments(parser)
+    sc_utils.add_stage_c_arguments(parser)
+    sc_utils.add_text_model_arguments(parser)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--outdir", type=str, default="../outputs", help="dir to write results to / 生成画像の出力先")

@@ -909,7 +909,7 @@ class BaseDataset(torch.utils.data.Dataset):
         )
 
     def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
-        # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
+                # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
         logger.info("caching latents.")
 
         image_infos = list(self.image_data.values())
@@ -1325,7 +1325,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
             if self.caching_mode == "text":
                 input_ids1 = self.get_input_ids(caption, self.tokenizers[0])
-                input_ids2 = self.get_input_ids(caption, self.tokenizers[1])
+                input_ids2 = self.get_input_ids(caption, self.tokenizers[1]) if len(self.tokenizers) > 1 else None
             else:
                 input_ids1 = None
                 input_ids2 = None
@@ -2328,7 +2328,7 @@ def cache_batch_text_encoder_outputs(
 def save_text_encoder_outputs_to_disk(npz_path, hidden_state1, hidden_state2, pool2):
     np.savez(
         npz_path,
-        hidden_state1=hidden_state1.cpu().float().numpy(),
+        hidden_state1=hidden_state1.cpu().float().numpy() if hidden_state1 is not None else None,
         hidden_state2=hidden_state2.cpu().float().numpy(),
         pool2=pool2.cpu().float().numpy(),
     )
@@ -2684,6 +2684,14 @@ def get_sai_model_spec(
     return metadata
 
 
+def add_tokenizer_arguments(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        "--tokenizer_cache_dir",
+        type=str,
+        default=None,
+        help="directory for caching Tokenizer (for offline training) / Tokenizerをキャッシュするディレクトリ（ネット接続なしでの学習のため）",
+    )
+
 def add_sd_models_arguments(parser: argparse.ArgumentParser):
     # for pretrained models
     parser.add_argument("--v2", action="store_true", help="load Stable Diffusion v2.0 model / Stable Diffusion 2.0のモデルを読み込む")
@@ -2696,12 +2704,7 @@ def add_sd_models_arguments(parser: argparse.ArgumentParser):
         default=None,
         help="pretrained model to train, directory to Diffusers model or StableDiffusion checkpoint / 学習元モデル、Diffusers形式モデルのディレクトリまたはStableDiffusionのckptファイル",
     )
-    parser.add_argument(
-        "--tokenizer_cache_dir",
-        type=str,
-        default=None,
-        help="directory for caching Tokenizer (for offline training) / Tokenizerをキャッシュするディレクトリ（ネット接続なしでの学習のため）",
-    )
+    add_tokenizer_arguments(parser)
 
 
 def add_optimizer_arguments(parser: argparse.ArgumentParser):
@@ -3150,17 +3153,21 @@ def verify_training_args(args: argparse.Namespace):
         print("highvram is enabled / highvramが有効です")
         global HIGH_VRAM
         HIGH_VRAM = True
-
-    if args.v_parameterization and not args.v2:
-        logger.warning("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
-    if args.v2 and args.clip_skip is not None:
-        logger.warning("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
-
+    
     if args.cache_latents_to_disk and not args.cache_latents:
         args.cache_latents = True
         logger.warning(
             "cache_latents_to_disk is enabled, so cache_latents is also enabled / cache_latents_to_diskが有効なため、cache_latentsを有効にします"
         )
+
+    if not hasattr(args, "v_parameterization"):
+        # Stable Cascade: skip following checks
+        return
+
+    if args.v_parameterization and not args.v2:
+        logger.warning("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
+    if args.v2 and args.clip_skip is not None:
+        logger.warning("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
     # noise_offset, perlin_noise, multires_noise_iterations cannot be enabled at the same time
     # # Listを使って数えてもいいけど並べてしまえ
