@@ -1,54 +1,91 @@
-FROM nvcr.io/nvidia/pytorch:23.04-py3 as base
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/London
+# syntax=docker/dockerfile:1
+ARG UID=1000
 
-RUN apt update && apt-get install -y software-properties-common
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt update && \
-    apt-get install -y git curl libgl1 libglib2.0-0 libgoogle-perftools-dev \
-    python3.10-dev python3.10-tk python3-html5lib python3-apt python3-pip python3.10-distutils && \
-    rm -rf /var/lib/apt/lists/*
+FROM python:3.10 as build
 
-# Set python 3.10 and cuda 11.8 as default
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 3 && \
-    update-alternatives --set python3 /usr/bin/python3.10 && \
-    update-alternatives --set cuda /usr/local/cuda-11.8
-
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
+# RUN mount cache for multi-arch: https://github.com/docker/buildx/issues/549#issuecomment-1788297892
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 WORKDIR /app
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install wheel
 
-# Todo: Install torch 2.1.0 for cu121 support (only available as nightly as of writing)
-## RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install --pre torch ninja setuptools --extra-index-url https://download.pytorch.org/whl/nightly/cu121
+# Install under /root/.local
+ENV PIP_USER="true"
+ARG PIP_NO_WARN_SCRIPT_LOCATION=0
+ARG PIP_ROOT_USER_ACTION="ignore"
 
-# Todo: Install xformers nightly for Torch 2.1.0 support
-## RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install -v -U git+https://github.com/facebookresearch/xformers.git@main#egg=xformers
+# Install build dependencies
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends python3-launchpadlib git curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch and TensorFlow
+# The versions must align and be in sync with the requirements_linux_docker.txt
+# hadolint ignore=SC2102
+RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/root/.cache/pip \
+    pip install -U --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.nvidia.com \
+    torch==2.1.2 torchvision==0.16.2 \
+    xformers==0.0.23.post1 \
+    # Why [and-cuda]: https://github.com/tensorflow/tensorflow/issues/61468#issuecomment-1759462485
+    tensorflow[and-cuda]==2.14.0 \
+    ninja \
+    pip setuptools wheel
 
 # Install requirements
-COPY ./requirements.txt ./requirements_linux_docker.txt ./
-COPY ./setup/docker_setup.py ./setup.py
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install -r ./requirements_linux_docker.txt
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install -r ./requirements.txt
+RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/root/.cache/pip \
+    --mount=source=requirements_linux_docker.txt,target=requirements_linux_docker.txt \
+    --mount=source=requirements.txt,target=requirements.txt \
+    --mount=source=setup/docker_setup.py,target=setup.py \
+    pip install -r requirements_linux_docker.txt -r requirements.txt && \
+    # Replace pillow with pillow-simd
+    pip uninstall -y pillow && \
+    CC="cc -mavx2" pip install -U --force-reinstall pillow-simd
 
-# Replace pillow with pillow-simd
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip uninstall -y pillow && \
-    CC="cc -mavx2" python3 -m pip install -U --force-reinstall pillow-simd
+FROM python:3.10 as final
+
+ARG UID
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libgoogle-perftools-dev dumb-init && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Fix missing libnvinfer7
-USER root
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
     ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
 
-RUN useradd -m -s /bin/bash appuser && \
-    chown -R appuser: /app
-USER appuser
-COPY --chown=appuser . .
+# Create user
+RUN groupadd -g $UID $UID && \
+    useradd -l -u $UID -g $UID -m -s /bin/sh -N $UID
 
-STOPSIGNAL SIGINT
+# Copy dist and support arbitrary user ids (OpenShift best practice)
+COPY --chown=$UID:0 --chmod=775 \
+    --from=build /root/.local /home/$UID/.local
+COPY --chown=$UID:0 --chmod=775 . .
+
+ENV PATH="/home/$UID/.local/bin:$PATH"
+ENV PYTHONPATH="${PYTHONPATH}:/home/$UID/.local/lib/python3.10/site-packages" 
 ENV LD_PRELOAD=libtcmalloc.so
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-ENV PATH="$PATH:/home/appuser/.local/bin"
-CMD python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
+
+# Create directories with correct permissions
+RUN install -d -m 775 -o $UID -g 0 /dataset && \
+    install -d -m 775 -o $UID -g 0 /licenses && \
+    install -d -m 775 -o $UID -g 0 /app
+
+# Copy licenses (OpenShift Policy)
+COPY --chmod=775 LICENSE.md /licenses/LICENSE.md
+
+VOLUME [ "/dataset" ]
+
+USER $UID
+
+STOPSIGNAL SIGINT
+
+# Use dumb-init as PID 1 to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["python3", "kohya_gui.py", "--listen", "0.0.0.0", "--server_port", "7860"]

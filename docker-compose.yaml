@@ -3,10 +3,12 @@ services:
   kohya-ss-gui:
     container_name: kohya-ss-gui
     image: kohya-ss-gui:latest
+    user: 1000:0
     build:
       context: .
+      args:
+        - UID=1000
     ports:
-      - 127.0.0.1:3000:3000
       - 7860:7860
       - 6006:6006
     tty: true
@@ -16,15 +18,15 @@ services:
       SAFETENSORS_FAST_GPU: 1
       DISPLAY: $DISPLAY
     tmpfs:
-      - /tmp      
+      - /tmp
     volumes:
-      - ./dataset:/dataset
-      - ./.cache/user:/home/appuser/.cache
-      - ./.cache/triton:/home/appuser/.triton    
-      - ./.cache/config:/app/appuser/.config
-      - ./.cache/nv:/home/appuser/.nv 
-      - ./.cache/keras:/home/appuser/.keras      
       - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./dataset:/dataset
+      - ./.cache/user:/home/1000/.cache
+      - ./.cache/triton:/home/1000/.triton
+      - ./.cache/nv:/home/1000/.nv
+      - ./.cache/keras:/home/1000/.keras
+      - ./.cache/config:/home/1000/.config
     deploy:
       resources:
         reservations:
