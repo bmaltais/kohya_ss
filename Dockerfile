@@ -42,15 +42,13 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     pip uninstall -y pillow && \
     CC="cc -mavx2" pip install -U --force-reinstall pillow-simd
 
-FROM python:3.10 as final
+FROM python:3.10-slim as final
 
 ARG UID
 
-WORKDIR /app
-
 # Install runtime dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libgoogle-perftools-dev dumb-init && \
+    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libjpeg62 libgoogle-perftools-dev dumb-init && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -62,25 +60,31 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libn
 RUN groupadd -g $UID $UID && \
     useradd -l -u $UID -g $UID -m -s /bin/sh -N $UID
 
+# Create directories with correct permissions
+RUN install -d -m 775 -o $UID -g 0 /dataset && \
+    install -d -m 775 -o $UID -g 0 /licenses && \
+    install -d -m 775 -o $UID -g 0 /app
+
 # Copy dist and support arbitrary user ids (OpenShift best practice)
 COPY --chown=$UID:0 --chmod=775 \
     --from=build /root/.local /home/$UID/.local
+
+WORKDIR /app
 COPY --chown=$UID:0 --chmod=775 . .
+
+# Copy licenses (OpenShift Policy)
+COPY --chmod=775 LICENSE.md /licenses/LICENSE.md
 
 ENV PATH="/home/$UID/.local/bin:$PATH"
 ENV PYTHONPATH="${PYTHONPATH}:/home/$UID/.local/lib/python3.10/site-packages" 
 ENV LD_PRELOAD=libtcmalloc.so
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
-# Create directories with correct permissions
-RUN install -d -m 775 -o $UID -g 0 /dataset && \
-    install -d -m 775 -o $UID -g 0 /licenses && \
-    install -d -m 775 -o $UID -g 0 /app
-
-# Copy licenses (OpenShift Policy)
-COPY --chmod=775 LICENSE.md /licenses/LICENSE.md
-
 VOLUME [ "/dataset" ]
+
+# 7860: Kohya GUI
+# 6006: TensorBoard
+EXPOSE 7860 6006
 
 USER $UID
 
