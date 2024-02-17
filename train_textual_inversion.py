@@ -172,6 +172,7 @@ class TextualInversionTrainer:
 
         train_util.verify_training_args(args)
         train_util.prepare_dataset_args(args, True)
+        setup_logging(args, reset=True)
 
         cache_latents = args.cache_latents
 

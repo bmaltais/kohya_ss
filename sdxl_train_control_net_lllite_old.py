@@ -65,6 +65,7 @@ def train(args):
     train_util.verify_training_args(args)
     train_util.prepare_dataset_args(args, True)
     sdxl_train_util.verify_sdxl_training_args(args)
+    setup_logging(args, reset=True)
 
     cache_latents = args.cache_latents
     use_user_config = args.dataset_config is not None

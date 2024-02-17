@@ -98,6 +98,7 @@ def train(args):
     if args.output_name is None:
         args.output_name = args.token_string
     use_template = args.use_object_template or args.use_style_template
+    setup_logging(args, reset=True)
 
     train_util.verify_training_args(args)
     train_util.prepare_dataset_args(args, True)
