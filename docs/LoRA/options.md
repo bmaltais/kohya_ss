@@ -204,13 +204,13 @@ Default is 10.
 
 ### Optimizer
 
-The optimizer is a setting for "how to update the neural net weights during training ". Various methods have been proposed for smart learning, but the most commonly used in LoRA learning is ``AdamW'' (32-bit) or ``AdamW8bit''. AdamW8bit uses less VRAM and has enough accuracy, so if you get lost, use this.
+The optimizer is a setting for "how to update the neural net weights during training ". Various methods have been proposed for smart learning, but the most commonly used in LoRA learning is "AdamW" (32-bit) or "AdamW8bit". AdamW8bit uses less VRAM and has enough accuracy, so if you get lost, use this.
 
 In addition, "Adafactor", which adjusts the learning rate appropriately according to the progress of learning while incorporating Adam's method, is also often used (Learning rate setting is ignored when using Adafactor).
 
-``DAdapt'' is an optimizer that adjusts the learning rate , and ``Lion'' is a relatively new optimizer , but it has not been fully verified yet. There is a report that "SGDNesterov" has good learning accuracy but slows down.
+"DAdapt" is an optimizer that adjusts the learning rate, and "Lion" is a relatively new optimizer , but it has not been fully verified yet. There is a report that "SGDNesterov" has good learning accuracy but slows down.
 
-The default is AdamW8bit. There is no problem basically as it is.
+The default is "AdamW8bit". There is no problem basically as it is.
 
 ### Optimizer extra arguments
 
