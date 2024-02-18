@@ -5,7 +5,7 @@ import os
 class BasicTraining:
     def __init__(
         self,
-        sdxl_checkbox: gr.Checkbox,
+        sdxl_checkbox: gr.Checkbox = gr.Checkbox(value=False),
         learning_rate_value="1e-6",
         lr_scheduler_value="constant",
         lr_warmup_value="0",

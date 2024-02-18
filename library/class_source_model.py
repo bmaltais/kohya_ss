@@ -21,17 +21,16 @@ class SourceModel:
             'diffusers_safetensors',
             'safetensors',
         ],
-        headless=False,
+        model_type_visibility:bool = True,
+        headless:bool = False,
+        model_list_value:str = "runwayml/stable-diffusion-v1-5"
     ):
         self.headless = headless
         self.save_model_as_choices = save_model_as_choices
-
-        with gr.Tab('Source model'):
-            # Define the input elements
-            with gr.Row():
-                self.model_list = gr.Dropdown(
-                    label='Model Quick Pick',
-                    choices=[
+        self.model_type_visibility = model_type_visibility
+        self.model_list_value = model_list_value
+        self.pretrained_model_name_or_path_visible = True if model_list_value == "custom" else (False and not headless)
+        model_list_choices = [
                         'custom',
                         'stabilityai/stable-diffusion-xl-base-1.0',
                         'stabilityai/stable-diffusion-xl-refiner-1.0',
@@ -43,8 +42,15 @@ class SourceModel:
                         'stabilityai/stable-diffusion-2',
                         'runwayml/stable-diffusion-v1-5',
                         'CompVis/stable-diffusion-v1-4',
-                    ],
-                    value='runwayml/stable-diffusion-v1-5',
+                    ]
+
+        with gr.Tab('Source model'):
+            # Define the input elements
+            with gr.Row():
+                self.model_list = gr.Dropdown(
+                    label='Model Quick Pick',
+                    choices=model_list_choices if model_list_value != "custom" else ["custom"],
+                    value=model_list_value,
                 )
                 self.save_model_as = gr.Dropdown(
                     label='Save trained model as',
@@ -56,12 +62,12 @@ class SourceModel:
                     label='Pretrained model name or path',
                     placeholder='enter the path to custom model or name of pretrained model',
                     value='runwayml/stable-diffusion-v1-5',
-                    visible=(False and not headless),
+                    visible=self.pretrained_model_name_or_path_visible,
                 )
                 self.pretrained_model_name_or_path_file = gr.Button(
                     document_symbol,
                     elem_id='open_folder_small',
-                    visible=(False and not headless),
+                    visible=self.pretrained_model_name_or_path_visible,
                 )
                 self.pretrained_model_name_or_path_file.click(
                     get_any_file_path,
@@ -72,7 +78,7 @@ class SourceModel:
                 self.pretrained_model_name_or_path_folder = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
-                    visible=(False and not headless),
+                    visible=self.pretrained_model_name_or_path_visible,
                 )
                 self.pretrained_model_name_or_path_folder.click(
                     get_folder_path,
@@ -80,16 +86,13 @@ class SourceModel:
                     outputs=self.pretrained_model_name_or_path,
                     show_progress=False,
                 )
-            with gr.Row():
+            with gr.Row(visible=model_type_visibility):
                 self.v2 = gr.Checkbox(label='v2', value=False, visible=False)
                 self.v_parameterization = gr.Checkbox(
                     label='v_parameterization', value=False, visible=False
                 )
                 self.sdxl_checkbox = gr.Checkbox(
                     label='SDXL Model', value=False, visible=False
-                )
-                self.stable_cascade_checkbox = gr.Checkbox(
-                    label='Stable Cascade Model', value=False, visible=False
                 )
 
             self.model_list.change(
@@ -102,7 +105,6 @@ class SourceModel:
                     self.v2,
                     self.v_parameterization,
                     self.sdxl_checkbox,
-                    self.stable_cascade_checkbox,
                 ],
                 outputs=[
                     self.model_list,
@@ -112,7 +114,6 @@ class SourceModel:
                     self.v2,
                     self.v_parameterization,
                     self.sdxl_checkbox,
-                    self.stable_cascade_checkbox,
                 ],
                 show_progress=False,
             )

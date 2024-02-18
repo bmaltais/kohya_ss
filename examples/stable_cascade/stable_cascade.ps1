@@ -10,3 +10,4 @@
   --dataset_config "D:\kohya_ss\examples\stable_cascade\test_dataset.toml" `
   --sample_every_n_epochs 1 --sample_prompts "D:\kohya_ss\examples\stable_cascade\prompt.txt" `
   --adaptive_loss_weight
+  

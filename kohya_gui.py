@@ -3,6 +3,7 @@ import os
 import argparse
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
+from SC_finetuning_gui import sc_finetune_tab
 from textual_inversion_gui import ti_tab
 from library.utilities import utilities_tab
 from lora_gui import lora_tab
@@ -54,6 +55,8 @@ def UI(**kwargs):
             ti_tab(headless=headless)
         with gr.Tab("Finetuning"):
             finetune_tab(headless=headless)
+        with gr.Tab("SC Finetuning"):
+            sc_finetune_tab(headless=headless)
         with gr.Tab("Utilities"):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,

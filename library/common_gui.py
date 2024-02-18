@@ -450,7 +450,6 @@ def set_pretrained_model_name_or_path_input(
     v2,
     v_parameterization,
     sdxl,
-    stable_cascade,
 ):
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
