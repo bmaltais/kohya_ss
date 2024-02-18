@@ -1,14 +1,21 @@
 import argparse
-import gc
 import math
 import os
 from typing import Optional
+
 import torch
+from library.device_utils import init_ipex, clean_memory_on_device
+init_ipex()
+
 from accelerate import init_empty_weights
 from tqdm import tqdm
 from transformers import CLIPTokenizer
 from library import model_util, sdxl_model_util, train_util, sdxl_original_unet
 from library.sdxl_lpw_stable_diffusion import SdxlStableDiffusionLongPromptWeightingPipeline
+from .utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 TOKENIZER1_PATH = "openai/clip-vit-large-patch14"
 TOKENIZER2_PATH = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
@@ -21,7 +28,7 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
     model_dtype = match_mixed_precision(args, weight_dtype)  # prepare fp16/bf16
     for pi in range(accelerator.state.num_processes):
         if pi == accelerator.state.local_process_index:
-            print(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
+            logger.info(f"loading model for process {accelerator.state.local_process_index}/{accelerator.state.num_processes}")
 
             (
                 load_stable_diffusion_format,
@@ -47,8 +54,7 @@ def load_target_model(args, accelerator, model_version: str, weight_dtype):
                 unet.to(accelerator.device)
                 vae.to(accelerator.device)
 
-            gc.collect()
-            torch.cuda.empty_cache()
+            clean_memory_on_device(accelerator.device)
         accelerator.wait_for_everyone()
 
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
@@ -62,7 +68,7 @@ def _load_target_model(
     load_stable_diffusion_format = os.path.isfile(name_or_path)  # determine SD or Diffusers
 
     if load_stable_diffusion_format:
-        print(f"load StableDiffusion checkpoint: {name_or_path}")
+        logger.info(f"load StableDiffusion checkpoint: {name_or_path}")
         (
             text_encoder1,
             text_encoder2,
@@ -76,7 +82,7 @@ def _load_target_model(
         from diffusers import StableDiffusionXLPipeline
 
         variant = "fp16" if weight_dtype == torch.float16 else None
-        print(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
+        logger.info(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
         try:
             try:
                 pipe = StableDiffusionXLPipeline.from_pretrained(
@@ -84,12 +90,12 @@ def _load_target_model(
                 )
             except EnvironmentError as ex:
                 if variant is not None:
-                    print("try to load fp32 model")
+                    logger.info("try to load fp32 model")
                     pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=None, tokenizer=None)
                 else:
                     raise ex
         except EnvironmentError as ex:
-            print(
+            logger.error(
                 f"model is not found as a file or in Hugging Face, perhaps file name is wrong? / 指定したモデル名のファイル、またはHugging Faceのモデルが見つかりません。ファイル名が誤っているかもしれません: {name_or_path}"
             )
             raise ex
@@ -112,7 +118,7 @@ def _load_target_model(
         with init_empty_weights():
             unet = sdxl_original_unet.SdxlUNet2DConditionModel()  # overwrite unet
         sdxl_model_util._load_state_dict_on_device(unet, state_dict, device=device, dtype=model_dtype)
-        print("U-Net converted to original U-Net")
+        logger.info("U-Net converted to original U-Net")
 
         logit_scale = None
         ckpt_info = None
@@ -120,13 +126,13 @@ def _load_target_model(
     # VAEを読み込む
     if vae_path is not None:
         vae = model_util.load_vae(vae_path, weight_dtype)
-        print("additional VAE loaded")
+        logger.info("additional VAE loaded")
 
     return load_stable_diffusion_format, text_encoder1, text_encoder2, vae, unet, logit_scale, ckpt_info
 
 
 def load_tokenizers(args: argparse.Namespace):
-    print("prepare tokenizers")
+    logger.info("prepare tokenizers")
 
     original_paths = [TOKENIZER1_PATH, TOKENIZER2_PATH]
     tokeniers = []
@@ -135,14 +141,14 @@ def load_tokenizers(args: argparse.Namespace):
         if args.tokenizer_cache_dir:
             local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
             if os.path.exists(local_tokenizer_path):
-                print(f"load tokenizer from cache: {local_tokenizer_path}")
+                logger.info(f"load tokenizer from cache: {local_tokenizer_path}")
                 tokenizer = CLIPTokenizer.from_pretrained(local_tokenizer_path)
 
         if tokenizer is None:
             tokenizer = CLIPTokenizer.from_pretrained(original_path)
 
         if args.tokenizer_cache_dir and not os.path.exists(local_tokenizer_path):
-            print(f"save Tokenizer to cache: {local_tokenizer_path}")
+            logger.info(f"save Tokenizer to cache: {local_tokenizer_path}")
             tokenizer.save_pretrained(local_tokenizer_path)
 
         if i == 1:
@@ -151,7 +157,7 @@ def load_tokenizers(args: argparse.Namespace):
         tokeniers.append(tokenizer)
 
     if hasattr(args, "max_token_length") and args.max_token_length is not None:
-        print(f"update token length: {args.max_token_length}")
+        logger.info(f"update token length: {args.max_token_length}")
 
     return tokeniers
 
@@ -332,23 +338,23 @@ def add_sdxl_training_arguments(parser: argparse.ArgumentParser):
 def verify_sdxl_training_args(args: argparse.Namespace, supportTextEncoderCaching: bool = True):
     assert not args.v2, "v2 cannot be enabled in SDXL training / SDXL学習ではv2を有効にすることはできません"
     if args.v_parameterization:
-        print("v_parameterization will be unexpected / SDXL学習ではv_parameterizationは想定外の動作になります")
+        logger.warning("v_parameterization will be unexpected / SDXL学習ではv_parameterizationは想定外の動作になります")
 
     if args.clip_skip is not None:
-        print("clip_skip will be unexpected / SDXL学習ではclip_skipは動作しません")
+        logger.warning("clip_skip will be unexpected / SDXL学習ではclip_skipは動作しません")
 
     # if args.multires_noise_iterations:
-    #     print(
+    #     logger.info(
     #         f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET}, but noise_offset is disabled due to multires_noise_iterations / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されていますが、multires_noise_iterationsが有効になっているためnoise_offsetは無効になります"
     #     )
     # else:
     #     if args.noise_offset is None:
     #         args.noise_offset = DEFAULT_NOISE_OFFSET
     #     elif args.noise_offset != DEFAULT_NOISE_OFFSET:
-    #         print(
+    #         logger.info(
     #             f"Warning: SDXL has been trained with noise_offset={DEFAULT_NOISE_OFFSET} / SDXLはnoise_offset={DEFAULT_NOISE_OFFSET}で学習されています"
     #         )
-    #     print(f"noise_offset is set to {args.noise_offset} / noise_offsetが{args.noise_offset}に設定されました")
+    #     logger.info(f"noise_offset is set to {args.noise_offset} / noise_offsetが{args.noise_offset}に設定されました")
 
     assert (
         not hasattr(args, "weighted_captions") or not args.weighted_captions
@@ -357,7 +363,7 @@ def verify_sdxl_training_args(args: argparse.Namespace, supportTextEncoderCachin
     if supportTextEncoderCaching:
         if args.cache_text_encoder_outputs_to_disk and not args.cache_text_encoder_outputs:
             args.cache_text_encoder_outputs = True
-            print(
+            logger.warning(
                 "cache_text_encoder_outputs is enabled because cache_text_encoder_outputs_to_disk is enabled / "
                 + "cache_text_encoder_outputs_to_diskが有効になっているためcache_text_encoder_outputsが有効になりました"
             )

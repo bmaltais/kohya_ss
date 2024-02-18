@@ -5,6 +5,12 @@ from io import BytesIO
 import os
 from typing import List, Optional, Tuple, Union
 import safetensors
+from library.utils import setup_logging
+
+setup_logging()
+import logging
+
+logger = logging.getLogger(__name__)
 
 r"""
 # Metadata Example
@@ -51,11 +57,13 @@ ARCH_SD_V1 = "stable-diffusion-v1"
 ARCH_SD_V2_512 = "stable-diffusion-v2-512"
 ARCH_SD_V2_768_V = "stable-diffusion-v2-768-v"
 ARCH_SD_XL_V1_BASE = "stable-diffusion-xl-v1-base"
+ARCH_STABLE_CASCADE = "stable-cascade"
 
 ADAPTER_LORA = "lora"
 ADAPTER_TEXTUAL_INVERSION = "textual-inversion"
 
 IMPL_STABILITY_AI = "https://github.com/Stability-AI/generative-models"
+IMPL_STABILITY_AI_STABLE_CASCADE = "https://github.com/Stability-AI/StableCascade"
 IMPL_DIFFUSERS = "diffusers"
 
 PRED_TYPE_EPSILON = "epsilon"
@@ -109,6 +117,7 @@ def build_metadata(
     merged_from: Optional[str] = None,
     timesteps: Optional[Tuple[int, int]] = None,
     clip_skip: Optional[int] = None,
+    stable_cascade: Optional[bool] = None,
 ):
     # if state_dict is None, hash is not calculated
 
@@ -120,7 +129,9 @@ def build_metadata(
     # hash = precalculate_safetensors_hashes(state_dict)
     # metadata["modelspec.hash_sha256"] = hash
 
-    if sdxl:
+    if stable_cascade:
+        arch = ARCH_STABLE_CASCADE
+    elif sdxl:
         arch = ARCH_SD_XL_V1_BASE
     elif v2:
         if v_parameterization:
@@ -138,9 +149,11 @@ def build_metadata(
     metadata["modelspec.architecture"] = arch
 
     if not lora and not textual_inversion and is_stable_diffusion_ckpt is None:
-        is_stable_diffusion_ckpt = True # default is stable diffusion ckpt if not lora and not textual_inversion
+        is_stable_diffusion_ckpt = True  # default is stable diffusion ckpt if not lora and not textual_inversion
 
-    if (lora and sdxl) or textual_inversion or is_stable_diffusion_ckpt:
+    if stable_cascade:
+        impl = IMPL_STABILITY_AI_STABLE_CASCADE
+    elif (lora and sdxl) or textual_inversion or is_stable_diffusion_ckpt:
         # Stable Diffusion ckpt, TI, SDXL LoRA
         impl = IMPL_STABILITY_AI
     else:
@@ -231,8 +244,8 @@ def build_metadata(
     # # assert all values are filled
     # assert all([v is not None for v in metadata.values()]), metadata
     if not all([v is not None for v in metadata.values()]):
-        print(f"Internal error: some metadata values are None: {metadata}")
-    
+        logger.error(f"Internal error: some metadata values are None: {metadata}")
+
     return metadata
 
 
@@ -246,7 +259,7 @@ def get_title(metadata: dict) -> Optional[str]:
 def load_metadata_from_safetensors(model: str) -> dict:
     if not model.endswith(".safetensors"):
         return {}
-    
+
     with safetensors.safe_open(model, framework="pt") as f:
         metadata = f.metadata()
     if metadata is None:

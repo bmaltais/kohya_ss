@@ -1,6 +1,5 @@
 import importlib
 import argparse
-import gc
 import math
 import os
 import sys
@@ -11,12 +10,12 @@ from multiprocessing import Value
 import toml
 
 from tqdm import tqdm
+
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
+
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
@@ -41,6 +40,12 @@ from library.custom_train_functions import (
     add_v_prediction_like_loss,
     apply_debiased_estimation,
 )
+from library.utils import setup_logging, add_logging_arguments
+
+setup_logging()
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NetworkTrainer:
@@ -136,6 +141,7 @@ class NetworkTrainer:
         training_started_at = time.time()
         train_util.verify_training_args(args)
         train_util.prepare_dataset_args(args, True)
+        setup_logging(args, reset=True)
 
         cache_latents = args.cache_latents
         use_dreambooth_method = args.in_json is None
@@ -153,18 +159,18 @@ class NetworkTrainer:
         if args.dataset_class is None:
             blueprint_generator = BlueprintGenerator(ConfigSanitizer(True, True, False, True))
             if use_user_config:
-                print(f"Loading dataset config from {args.dataset_config}")
+                logger.info(f"Loading dataset config from {args.dataset_config}")
                 user_config = config_util.load_user_config(args.dataset_config)
                 ignored = ["train_data_dir", "reg_data_dir", "in_json"]
                 if any(getattr(args, attr) is not None for attr in ignored):
-                    print(
+                    logger.warning(
                         "ignoring the following options because config file is found: {0} / 設定ファイルが利用されるため以下のオプションは無視されます: {0}".format(
                             ", ".join(ignored)
                         )
                     )
             else:
                 if use_dreambooth_method:
-                    print("Using DreamBooth method.")
+                    logger.info("Using DreamBooth method.")
                     user_config = {
                         "datasets": [
                             {
@@ -175,7 +181,7 @@ class NetworkTrainer:
                         ]
                     }
                 else:
-                    print("Training with captions.")
+                    logger.info("Training with captions.")
                     user_config = {
                         "datasets": [
                             {
@@ -204,7 +210,7 @@ class NetworkTrainer:
             train_util.debug_dataset(train_dataset_group)
             return
         if len(train_dataset_group) == 0:
-            print(
+            logger.error(
                 "No data found. Please verify arguments (train_data_dir must be the parent of folders with images) / 画像がありません。引数指定を確認してください（train_data_dirには画像があるフォルダではなく、画像があるフォルダの親フォルダを指定する必要があります）"
             )
             return
@@ -217,7 +223,7 @@ class NetworkTrainer:
         self.assert_extra_args(args, train_dataset_group)
 
         # acceleratorを準備する
-        print("preparing accelerator")
+        logger.info("preparing accelerator")
         accelerator = train_util.prepare_accelerator(args)
         is_main_process = accelerator.is_main_process
 
@@ -266,9 +272,7 @@ class NetworkTrainer:
             with torch.no_grad():
                 train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
             vae.to("cpu")
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            gc.collect()
+            clean_memory_on_device(accelerator.device)
 
             accelerator.wait_for_everyone()
 
@@ -310,7 +314,7 @@ class NetworkTrainer:
         if hasattr(network, "prepare_network"):
             network.prepare_network(args)
         if args.scale_weight_norms and not hasattr(network, "apply_max_norm_regularization"):
-            print(
+            logger.warning(
                 "warning: scale_weight_norms is specified but the network does not support it / scale_weight_normsが指定されていますが、ネットワークが対応していません"
             )
             args.scale_weight_norms = False
@@ -938,12 +942,13 @@ class NetworkTrainer:
             ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
             save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
 
-            print("model saved.")
+            logger.info("model saved.")
 
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, True)
@@ -951,7 +956,9 @@ def setup_parser() -> argparse.ArgumentParser:
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)
 
-    parser.add_argument("--no_metadata", action="store_true", help="do not save metadata in output model / メタデータを出力先モデルに保存しない")
+    parser.add_argument(
+        "--no_metadata", action="store_true", help="do not save metadata in output model / メタデータを出力先モデルに保存しない"
+    )
     parser.add_argument(
         "--save_model_as",
         type=str,
@@ -963,10 +970,17 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("--unet_lr", type=float, default=None, help="learning rate for U-Net / U-Netの学習率")
     parser.add_argument("--text_encoder_lr", type=float, default=None, help="learning rate for Text Encoder / Text Encoderの学習率")
 
-    parser.add_argument("--network_weights", type=str, default=None, help="pretrained weights for network / 学習するネットワークの初期重み")
-    parser.add_argument("--network_module", type=str, default=None, help="network module to train / 学習対象のネットワークのモジュール")
     parser.add_argument(
-        "--network_dim", type=int, default=None, help="network dimensions (depends on each network) / モジュールの次元数（ネットワークにより定義は異なります）"
+        "--network_weights", type=str, default=None, help="pretrained weights for network / 学習するネットワークの初期重み"
+    )
+    parser.add_argument(
+        "--network_module", type=str, default=None, help="network module to train / 学習対象のネットワークのモジュール"
+    )
+    parser.add_argument(
+        "--network_dim",
+        type=int,
+        default=None,
+        help="network dimensions (depends on each network) / モジュールの次元数（ネットワークにより定義は異なります）",
     )
     parser.add_argument(
         "--network_alpha",
@@ -981,14 +995,25 @@ def setup_parser() -> argparse.ArgumentParser:
         help="Drops neurons out of training every step (0 or None is default behavior (no dropout), 1 would drop all neurons) / 訓練時に毎ステップでニューロンをdropする（0またはNoneはdropoutなし、1は全ニューロンをdropout）",
     )
     parser.add_argument(
-        "--network_args", type=str, default=None, nargs="*", help="additional arguments for network (key=value) / ネットワークへの追加の引数"
+        "--network_args",
+        type=str,
+        default=None,
+        nargs="*",
+        help="additional arguments for network (key=value) / ネットワークへの追加の引数",
     )
-    parser.add_argument("--network_train_unet_only", action="store_true", help="only training U-Net part / U-Net関連部分のみ学習する")
     parser.add_argument(
-        "--network_train_text_encoder_only", action="store_true", help="only training Text Encoder part / Text Encoder関連部分のみ学習する"
+        "--network_train_unet_only", action="store_true", help="only training U-Net part / U-Net関連部分のみ学習する"
     )
     parser.add_argument(
-        "--training_comment", type=str, default=None, help="arbitrary comment string stored in metadata / メタデータに記録する任意のコメント文字列"
+        "--network_train_text_encoder_only",
+        action="store_true",
+        help="only training Text Encoder part / Text Encoder関連部分のみ学習する",
+    )
+    parser.add_argument(
+        "--training_comment",
+        type=str,
+        default=None,
+        help="arbitrary comment string stored in metadata / メタデータに記録する任意のコメント文字列",
     )
     parser.add_argument(
         "--dim_from_weights",

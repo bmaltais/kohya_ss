@@ -5,26 +5,30 @@ from typing import List
 from tqdm import tqdm
 import library.train_util as train_util
 import os
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def main(args):
   assert not args.recursive or (args.recursive and args.full_path), "recursive requires full_path / recursiveはfull_pathと同時に指定してください"
 
   train_data_dir_path = Path(args.train_data_dir)
   image_paths: List[Path] = train_util.glob_images_pathlib(train_data_dir_path, args.recursive)
-  print(f"found {len(image_paths)} images.")
+  logger.info(f"found {len(image_paths)} images.")
 
   if args.in_json is None and Path(args.out_json).is_file():
     args.in_json = args.out_json
 
   if args.in_json is not None:
-    print(f"loading existing metadata: {args.in_json}")
+    logger.info(f"loading existing metadata: {args.in_json}")
     metadata = json.loads(Path(args.in_json).read_text(encoding='utf-8'))
-    print("captions for existing images will be overwritten / 既存の画像のキャプションは上書きされます")
+    logger.warning("captions for existing images will be overwritten / 既存の画像のキャプションは上書きされます")
   else:
-    print("new metadata will be created / 新しいメタデータファイルが作成されます")
+    logger.info("new metadata will be created / 新しいメタデータファイルが作成されます")
     metadata = {}
 
-  print("merge caption texts to metadata json.")
+  logger.info("merge caption texts to metadata json.")
   for image_path in tqdm(image_paths):
     caption_path = image_path.with_suffix(args.caption_extension)
     caption = caption_path.read_text(encoding='utf-8').strip()
@@ -38,12 +42,12 @@ def main(args):
 
     metadata[image_key]['caption'] = caption
     if args.debug:
-      print(image_key, caption)
+      logger.info(f"{image_key} {caption}")
 
   # metadataを書き出して終わり
-  print(f"writing metadata: {args.out_json}")
+  logger.info(f"writing metadata: {args.out_json}")
   Path(args.out_json).write_text(json.dumps(metadata, indent=2), encoding='utf-8')
-  print("done!")
+  logger.info("done!")
 
 
 def setup_parser() -> argparse.ArgumentParser:

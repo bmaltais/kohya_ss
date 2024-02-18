@@ -42,5 +42,7 @@ transformers==4.36.2
 voluptuous==0.13.1
 wandb==0.15.11
 scipy==1.11.4
+# For logging
+rich==13.7.0
 # for kohya_ss library
 -e . # no_verify leave this to specify not checking this a verification stage

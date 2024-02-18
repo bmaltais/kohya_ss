@@ -1,4 +1,5 @@
-# text encoder出力のdiskへの事前キャッシュを行う / cache text encoder outputs to disk in advance
+# Stable Cascadeのlatentsをdiskにキャッシュする
+# cache latents of Stable Cascade to disk
 
 import argparse
 import math
@@ -9,30 +10,26 @@ from accelerate.utils import set_seed
 import torch
 from tqdm import tqdm
 
+from library import stable_cascade_utils as sc_utils
 from library import config_util
 from library import train_util
-from library import sdxl_train_util
 from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
 )
 from library.utils import setup_logging
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 def cache_to_disk(args: argparse.Namespace) -> None:
     train_util.prepare_dataset_args(args, True)
 
-    # check cache arg
-    assert (
-        args.cache_text_encoder_outputs_to_disk
-    ), "cache_text_encoder_outputs_to_disk must be True / cache_text_encoder_outputs_to_diskはTrueである必要があります"
-
-    # できるだけ準備はしておくが今のところSDXLのみしか動かない
-    assert (
-        args.sdxl
-    ), "cache_text_encoder_outputs_to_disk is only available for SDXL / cache_text_encoder_outputs_to_diskはSDXLのみ利用可能です"
+    # check cache latents arg
+    assert args.cache_latents_to_disk, "cache_latents_to_disk must be True / cache_latents_to_diskはTrueである必要があります"
 
     use_dreambooth_method = args.in_json is None
 
@@ -40,12 +37,8 @@ def cache_to_disk(args: argparse.Namespace) -> None:
         set_seed(args.seed)  # 乱数系列を初期化する
 
     # tokenizerを準備する：datasetを動かすために必要
-    if args.sdxl:
-        tokenizer1, tokenizer2 = sdxl_train_util.load_tokenizers(args)
-        tokenizers = [tokenizer1, tokenizer2]
-    else:
-        tokenizer = train_util.load_tokenizer(args)
-        tokenizers = [tokenizer]
+    tokenizer = sc_utils.load_tokenizer(args)
+    tokenizers = [tokenizer]
 
     # データセットを準備する
     if args.dataset_class is None:
@@ -92,6 +85,8 @@ def cache_to_disk(args: argparse.Namespace) -> None:
     else:
         train_dataset_group = train_util.load_arbitrary_dataset(args, tokenizers)
 
+    # datasetのcache_latentsを呼ばなければ、生の画像が返る
+
     current_epoch = Value("i", 0)
     current_step = Value("i", 0)
     ds_for_collator = train_dataset_group if args.max_data_loader_n_workers == 0 else None
@@ -103,23 +98,17 @@ def cache_to_disk(args: argparse.Namespace) -> None:
 
     # mixed precisionに対応した型を用意しておき適宜castする
     weight_dtype, _ = train_util.prepare_dtype(args)
+    effnet_dtype = torch.float32 if args.no_half_vae else weight_dtype
 
     # モデルを読み込む
     logger.info("load model")
-    if args.sdxl:
-        (_, text_encoder1, text_encoder2, _, _, _, _) = sdxl_train_util.load_target_model(args, accelerator, "sdxl", weight_dtype)
-        text_encoders = [text_encoder1, text_encoder2]
-    else:
-        text_encoder1, _, _, _ = train_util.load_target_model(args, weight_dtype, accelerator)
-        text_encoders = [text_encoder1]
-
-    for text_encoder in text_encoders:
-        text_encoder.to(accelerator.device, dtype=weight_dtype)
-        text_encoder.requires_grad_(False)
-        text_encoder.eval()
+    effnet = sc_utils.load_effnet(args.effnet_checkpoint_path, accelerator.device)
+    effnet.to(accelerator.device, dtype=effnet_dtype)
+    effnet.requires_grad_(False)
+    effnet.eval()
 
     # dataloaderを準備する
-    train_dataset_group.set_caching_mode("text")
+    train_dataset_group.set_caching_mode("latents")
 
     # DataLoaderのプロセス数：0はメインプロセスになる
     n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)  # cpu_count-1 ただし最大で指定された数まで
@@ -138,31 +127,35 @@ def cache_to_disk(args: argparse.Namespace) -> None:
 
     # データ取得のためのループ
     for batch in tqdm(train_dataloader):
-        absolute_paths = batch["absolute_paths"]
-        input_ids1_list = batch["input_ids1_list"]
-        input_ids2_list = batch["input_ids2_list"]
+        b_size = len(batch["images"])
+        vae_batch_size = b_size if args.vae_batch_size is None else args.vae_batch_size
+        flip_aug = batch["flip_aug"]
+        random_crop = batch["random_crop"]
+        bucket_reso = batch["bucket_reso"]
 
-        image_infos = []
-        for absolute_path, input_ids1, input_ids2 in zip(absolute_paths, input_ids1_list, input_ids2_list):
-            image_info = train_util.ImageInfo(absolute_path, 1, "dummy", False, absolute_path)
-            image_info.text_encoder_outputs_npz = os.path.splitext(absolute_path)[0] + train_util.TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX
-            image_info
+        # バッチを分割して処理する
+        for i in range(0, b_size, vae_batch_size):
+            images = batch["images"][i : i + vae_batch_size]
+            absolute_paths = batch["absolute_paths"][i : i + vae_batch_size]
+            resized_sizes = batch["resized_sizes"][i : i + vae_batch_size]
 
-            if args.skip_existing:
-                if os.path.exists(image_info.text_encoder_outputs_npz):
-                    logger.warning(f"Skipping {image_info.text_encoder_outputs_npz} because it already exists.")
-                    continue
-                
-            image_info.input_ids1 = input_ids1
-            image_info.input_ids2 = input_ids2
-            image_infos.append(image_info)
+            image_infos = []
+            for i, (image, absolute_path, resized_size) in enumerate(zip(images, absolute_paths, resized_sizes)):
+                image_info = train_util.ImageInfo(absolute_path, 1, "dummy", False, absolute_path)
+                image_info.image = image
+                image_info.bucket_reso = bucket_reso
+                image_info.resized_size = resized_size
+                image_info.latents_npz = os.path.splitext(absolute_path)[0] + train_util.STABLE_CASCADE_LATENTS_CACHE_SUFFIX
 
-        if len(image_infos) > 0:
-            b_input_ids1 = torch.stack([image_info.input_ids1 for image_info in image_infos])
-            b_input_ids2 = torch.stack([image_info.input_ids2 for image_info in image_infos])
-            train_util.cache_batch_text_encoder_outputs(
-                image_infos, tokenizers, text_encoders, args.max_token_length, True, b_input_ids1, b_input_ids2, weight_dtype
-            )
+                if args.skip_existing:
+                    if train_util.is_disk_cached_latents_is_expected(image_info.bucket_reso, image_info.latents_npz, flip_aug, 32):
+                        logger.warning(f"Skipping {image_info.latents_npz} because it already exists.")
+                        continue
+
+                image_infos.append(image_info)
+
+            if len(image_infos) > 0:
+                train_util.cache_batch_latents(effnet, True, image_infos, flip_aug, random_crop)
 
     accelerator.wait_for_everyone()
     accelerator.print(f"Finished caching latents for {len(train_dataset_group)} batches.")
@@ -171,12 +164,16 @@ def cache_to_disk(args: argparse.Namespace) -> None:
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
-    train_util.add_sd_models_arguments(parser)
+    train_util.add_tokenizer_arguments(parser)
+    sc_utils.add_effnet_arguments(parser)
     train_util.add_training_arguments(parser, True)
     train_util.add_dataset_arguments(parser, True, True, True)
     config_util.add_config_arguments(parser)
-    sdxl_train_util.add_sdxl_training_arguments(parser)
-    parser.add_argument("--sdxl", action="store_true", help="Use SDXL model / SDXLモデルを使用する")
+    parser.add_argument(
+        "--no_half_vae",
+        action="store_true",
+        help="do not use fp16/bf16 Effnet in mixed precision (use float Effnet) / mixed precisionでも fp16/bf16 Effnetを使わずfloat Effnetを使う",
+    )
     parser.add_argument(
         "--skip_existing",
         action="store_true",

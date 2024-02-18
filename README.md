@@ -30,6 +30,10 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Starting GUI Service](#starting-gui-service)
     - [Launching the GUI on Windows](#launching-the-gui-on-windows)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+  - [Training Stable Cascade Stage C](#training-stable-cascade-stage-c)
+    - [Usage](#usage)
+      - [Command line sample](#command-line-sample)
+      - [About the dataset for fine tuning](#about-the-dataset-for-fine-tuning)
   - [Dreambooth](#dreambooth)
   - [Finetune](#finetune)
   - [Train Network](#train-network)
@@ -47,6 +51,8 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [ControlNet-LLLite](#controlnet-lllite)
     - [Sample image generation during training](#sample-image-generation-during-training-1)
   - [Change History](#change-history)
+    - [Working in progress](#working-in-progress)
+    - [Jan 27, 2024 / 2024/1/27: v0.8.3](#jan-27-2024--2024127-v083)
 
 ## 🦒 Colab
 
@@ -316,6 +322,53 @@ To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root
 gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
+## Training Stable Cascade Stage C 
+
+This is an experimental feature. There may be bugs.
+
+### Usage
+
+Training is run with `stable_cascade_train_stage_c.py`.
+
+The main options are the same as `sdxl_train.py`. The following options have been added.
+
+- `--effnet_checkpoint_path`: Specifies the path to the EfficientNetEncoder weights.
+- `--stage_c_checkpoint_path`: Specifies the path to the Stage C weights.
+- `--text_model_checkpoint_path`: Specifies the path to the Text Encoder weights. If omitted, the model from Hugging Face will be used.
+- `--save_text_model`: Saves the model downloaded from Hugging Face to `--text_model_checkpoint_path`.
+- `--previewer_checkpoint_path`: Specifies the path to the Previewer weights. Used to generate sample images during training.
+- `--adaptive_loss_weight`: Uses [Adaptive Loss Weight](https://github.com/Stability-AI/StableCascade/blob/master/gdf/loss_weights.py) . If omitted, P2LossWeight is used. The official settings use Adaptive Loss Weight.
+
+The learning rate is set to 1e-4 in the official settings.
+
+The first time, specify `--text_model_checkpoint_path` and `--save_text_model` to save the Text Encoder weights. From the next time, specify `--text_model_checkpoint_path` to load the saved weights.
+
+Sample image generation during training is done with Perviewer. Perviewer is a simple decoder that converts EfficientNetEncoder latents to images.
+
+Some of the options for SDXL are simply ignored or cause an error (especially noise-related options such as `--noise_offset`). `--vae_batch_size` and `--no_half_vae` are applied directly to the EfficientNetEncoder (when `bf16` is specified for mixed precision, `--no_half_vae` is not necessary).
+
+Options for latents and Text Encoder output caches can be used as is, but since the EfficientNetEncoder is much lighter than the VAE, you may not need to use the cache unless memory is particularly tight.
+
+`--gradient_checkpointing`, `--full_bf16`, and `--full_fp16` (untested) to reduce memory consumption can be used as is.
+
+A scale of about 4 is suitable for sample image generation.
+
+Since the official settings use `bf16` for training, training with `fp16` may be unstable.
+
+The code for training the Text Encoder is also written, but it is untested.
+
+#### Command line sample
+
+```batch
+accelerate launch  --mixed_precision bf16 --num_cpu_threads_per_process 1 stable_cascade_train_stage_c.py --mixed_precision bf16 --save_precision bf16 --max_data_loader_n_workers 2 --persistent_data_loader_workers --gradient_checkpointing --learning_rate 1e-4 --optimizer_type adafactor --optimizer_args "scale_parameter=False" "relative_step=False" "warmup_init=False" --max_train_epochs 10 --save_every_n_epochs 1 --save_precision bf16 --output_dir ../output --output_name sc_test - --stage_c_checkpoint_path ../models/stage_c_bf16.safetensors --effnet_checkpoint_path ../models/effnet_encoder.safetensors --previewer_checkpoint_path ../models/previewer.safetensors --dataset_config ../dataset/config_bs1.toml --sample_every_n_epochs 1 --sample_prompts ../dataset/prompts.txt --adaptive_loss_weight
+```
+
+#### About the dataset for fine tuning
+
+If the latents cache files for SD/SDXL exist (extension `*.npz`), it will be read and an error will occur during training. Please move them to another location in advance.
+
+After that, run `finetune/prepare_buckets_latents.py` with the `--stable_cascade` option to create latents cache files for Stable Cascade (suffix `_sc_latents.npz` is added).
+
 ## Dreambooth
 
 For specific instructions on using the Dreambooth solution, please refer to the [Dreambooth README](https://github.com/bmaltais/kohya_ss/blob/master/train_db_README.md).
@@ -503,6 +556,35 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
 
 ## Change History
+### Working in progress
+
+- The log output has been improved. PR [#905](https://github.com/kohya-ss/sd-scripts/pull/905) Thanks to shirayu!
+  - The log is formatted by default. The `rich` library is required. Please see [Upgrade](#upgrade) and update the library.
+  - If `rich` is not installed, the log output will be the same as before.
+  - The following options are available in each training script:
+  - `--console_log_simple` option can be used to switch to the previous log output.
+  - `--console_log_level` option can be used to specify the log level. The default is `INFO`.
+  - `--console_log_file` option can be used to output the log to a file. The default is `None` (output to the console).
+- The sample image generation during multi-GPU training is now done with multiple GPUs. PR [#1061](https://github.com/kohya-ss/sd-scripts/pull/1061) Thanks to DKnight54!
+- The support for mps devices is improved. PR [#1054](https://github.com/kohya-ss/sd-scripts/pull/1054) Thanks to akx! If mps device exists instead of CUDA, the mps device is used automatically.
+- An option `--highvram` to disable the optimization for environments with little VRAM is added to the training scripts. If you specify it when there is enough VRAM, the operation will be faster.
+  - Currently, only the cache part of latents is optimized.
+- The IPEX support is improved. PR [#1086](https://github.com/kohya-ss/sd-scripts/pull/1086) Thanks to Disty0!
+- Fixed a bug that `svd_merge_lora.py` crashes in some cases. PR [#1087](https://github.com/kohya-ss/sd-scripts/pull/1087) Thanks to mgz-dev!
+- The common image generation script `gen_img.py` for SD 1/2 and SDXL is added. The basic functions are the same as the scripts for SD 1/2 and SDXL, but some new features are added.
+  - External scripts to generate prompts can be supported. It can be called with `--from_module` option. (The documentation will be added later)
+  - The normalization method after prompt weighting can be specified with `--emb_normalize_mode` option. `original` is the original method, `abs` is the normalization with the average of the absolute values, `none` is no normalization.
+- Gradual Latent Hires fix is added to each generation script. See [here](./docs/gen_img_README-ja.md#about-gradual-latent) for details.
+
+
+### Jan 27, 2024 / 2024/1/27: v0.8.3
+
+- Fixed a bug that the training crashes when `--fp8_base` is specified with `--save_state`. PR [#1079](https://github.com/kohya-ss/sd-scripts/pull/1079) Thanks to feffy380!
+  - `safetensors` is updated. Please see [Upgrade](#upgrade) and update the library.
+- Fixed a bug that the training crashes when `network_multiplier` is specified with multi-GPU training. PR [#1084](https://github.com/kohya-ss/sd-scripts/pull/1084) Thanks to fireicewolf!
+- Fixed a bug that the training crashes when training ControlNet-LLLite.
+
+
 * 2024/02/17 (v22.6.2)
 - Fix issue with Lora Extract GUI
 - - Fix syntax issue where parameter lora_network_weights is actually called network_weights
