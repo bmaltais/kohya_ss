@@ -177,15 +177,15 @@ The default value is 0.0001.
 
 ### LR Scheduler:
 
-You can change the learning rate in the middle of learning. A scheduler is a setting for how to change the learning rate.
+You can change the learning rate in the middle of learning. A scheduler is a setting for how to change the learning rate. Possible values include:
 
-adafactor: Select this to set the optimizer (described later) to Adafactor . Learn while automatically adjusting the learning rate according to the situation to save VRAM
-constant: the learning rate does not change from beginning to end
-constant_with_warmup: Start with a learning rate of 0 and gradually increase it toward the set value of Learning rate during warm-up, and use the set value of Learning rate during main learning.
-cosine : Gradually decrease the learning rate toward 0 while drawing a wave (cosine curve)
-cosine _with_restarts: repeat cosine many times (see also description of LR number of cycles)
-linear: Start at the Learning rate setting and decrease linearly towards 0
-polynomial: Same behavior as linear, but a bit more complicated to reduce (see also LR power description)
+- `adafactor`: Select this to set the optimizer (described later) to Adafactor . Learn while automatically adjusting the learning rate according to the situation to save VRAM
+- `constant`: the learning rate does not change from beginning to end
+- `constant_with_warmup`: Start with a learning rate of 0 and gradually increase it toward the set value of Learning rate during warm-up, and use the set value of Learning rate during main learning.
+- `cosine` : Gradually decrease the learning rate toward 0 while drawing a wave (cosine curve)
+- `cosine _with_restarts`: repeat cosine many times (see also description of LR number of cycles)
+- `linear`: Start at the Learning rate setting and decrease linearly towards 0
+- `polynomial`: Same behavior as linear, but a bit more complicated to reduce (see also LR power description)
 Set to constant if you want the learning rate to be fixed at the Learning rate setting.
 
 Default is cosine
