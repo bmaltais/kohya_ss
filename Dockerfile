@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 ARG UID=1000
+ARG VERSION=EDGE
+ARG RELEASE=0
 
 FROM python:3.10-slim as build
 
@@ -52,6 +54,20 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
 FROM python:3.10-slim as final
 
 ARG UID
+ARG VERSION
+ARG RELEASE
+
+LABEL name="bmaltais/kohya_ss" \
+    vendor="bmaltais" \
+    maintainer="bmaltais" \
+    # Dockerfile source repository
+    url="https://github.com/bmaltais/kohya_ss" \
+    version=${VERSION} \
+    # This should be a number, incremented with each change
+    release=${RELEASE} \
+    io.k8s.display-name="kohya_ss" \
+    summary="Kohya's GUI: This repository provides a Gradio GUI for Kohya's Stable Diffusion trainers(https://github.com/kohya-ss/sd-scripts)." \
+    description="The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model. This is the docker image for Kohya's GUI. For more information about this tool, please visit the following website: https://github.com/bmaltais/kohya_ss."
 
 # Install runtime dependencies
 RUN apt-get update && \
