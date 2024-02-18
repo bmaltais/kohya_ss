@@ -413,7 +413,7 @@ def train(args):
                     loss_adjusted = (loss * loss_weight).mean()
 
                 if args.adaptive_loss_weight:
-                    gdf.loss_weight.update_buckets(logSNR, loss) # use loss instead of loss_adjusted
+                    gdf.loss_weight.update_buckets(logSNR, loss)  # use loss instead of loss_adjusted
 
                 accelerator.backward(loss_adjusted)
                 if accelerator.sync_gradients and args.max_grad_norm != 0.0:
@@ -521,6 +521,7 @@ def setup_parser() -> argparse.ArgumentParser:
     config_util.add_config_arguments(parser)
     add_sdxl_training_arguments(parser)  # cache text encoder outputs
 
+    parser.add_argument("--train_text_encoder", action="store_true", help="train text encoder / text encoderも学習する")
     parser.add_argument(
         "--learning_rate_te1",
         type=float,
