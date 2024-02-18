@@ -11,15 +11,19 @@ import cv2
 
 import torch
 from library.device_utils import init_ipex, get_preferred_device
+
 init_ipex()
 
 from torchvision import transforms
 
 import library.model_util as model_util
+import library.stable_cascade_utils as sc_utils
 import library.train_util as train_util
 from library.utils import setup_logging
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 DEVICE = get_preferred_device()
@@ -42,7 +46,7 @@ def collate_fn_remove_corrupted(batch):
     return batch
 
 
-def get_npz_filename(data_dir, image_key, is_full_path, recursive):
+def get_npz_filename(data_dir, image_key, is_full_path, recursive, stable_cascade):
     if is_full_path:
         base_name = os.path.splitext(os.path.basename(image_key))[0]
         relative_path = os.path.relpath(os.path.dirname(image_key), data_dir)
@@ -50,10 +54,11 @@ def get_npz_filename(data_dir, image_key, is_full_path, recursive):
         base_name = image_key
         relative_path = ""
 
+    ext = ".npz" if not stable_cascade else train_util.STABLE_CASCADE_LATENTS_CACHE_SUFFIX
     if recursive and relative_path:
-        return os.path.join(data_dir, relative_path, base_name) + ".npz"
+        return os.path.join(data_dir, relative_path, base_name) + ext
     else:
-        return os.path.join(data_dir, base_name) + ".npz"
+        return os.path.join(data_dir, base_name) + ext
 
 
 def main(args):
@@ -83,13 +88,20 @@ def main(args):
     elif args.mixed_precision == "bf16":
         weight_dtype = torch.bfloat16
 
-    vae = model_util.load_vae(args.model_name_or_path, weight_dtype)
+    if not args.stable_cascade:
+        vae = model_util.load_vae(args.model_name_or_path, weight_dtype)
+        divisor = 8
+    else:
+        vae = sc_utils.load_effnet(args.model_name_or_path, DEVICE)
+        divisor = 32
     vae.eval()
     vae.to(DEVICE, dtype=weight_dtype)
 
     # bucketのサイズを計算する
     max_reso = tuple([int(t) for t in args.max_resolution.split(",")])
-    assert len(max_reso) == 2, f"illegal resolution (not 'width,height') / 画像サイズに誤りがあります。'幅,高さ'で指定してください: {args.max_resolution}"
+    assert (
+        len(max_reso) == 2
+    ), f"illegal resolution (not 'width,height') / 画像サイズに誤りがあります。'幅,高さ'で指定してください: {args.max_resolution}"
 
     bucket_manager = train_util.BucketManager(
         args.bucket_no_upscale, max_reso, args.min_bucket_reso, args.max_bucket_reso, args.bucket_reso_steps
@@ -154,6 +166,10 @@ def main(args):
         # メタデータに記録する解像度はlatent単位とするので、8単位で切り捨て
         metadata[image_key]["train_resolution"] = (reso[0] - reso[0] % 8, reso[1] - reso[1] % 8)
 
+        # 追加情報を記録
+        metadata[image_key]["original_size"] = (image.width, image.height)
+        metadata[image_key]["train_resized_size"] = resized_size
+
         if not args.bucket_no_upscale:
             # upscaleを行わないときには、resize後のサイズは、bucketのサイズと、縦横どちらかが同じであることを確認する
             assert (
@@ -168,9 +184,9 @@ def main(args):
         ), f"internal error resized size is small: {resized_size}, {reso}"
 
         # 既に存在するファイルがあればshape等を確認して同じならskipする
-        npz_file_name = get_npz_filename(args.train_data_dir, image_key, args.full_path, args.recursive)
+        npz_file_name = get_npz_filename(args.train_data_dir, image_key, args.full_path, args.recursive, args.stable_cascade)
         if args.skip_existing:
-            if train_util.is_disk_cached_latents_is_expected(reso, npz_file_name, args.flip_aug):
+            if train_util.is_disk_cached_latents_is_expected(reso, npz_file_name, args.flip_aug, divisor):
                 continue
 
         # バッチへ追加
@@ -208,7 +224,14 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument("in_json", type=str, help="metadata file to input / 読み込むメタデータファイル")
     parser.add_argument("out_json", type=str, help="metadata file to output / メタデータファイル書き出し先")
     parser.add_argument("model_name_or_path", type=str, help="model name or path to encode latents / latentを取得するためのモデル")
-    parser.add_argument("--v2", action="store_true", help="not used (for backward compatibility) / 使用されません（互換性のため残してあります）")
+    parser.add_argument(
+        "--stable_cascade",
+        action="store_true",
+        help="prepare EffNet latents for stable cascade / stable cascade用のEffNetのlatentsを準備する",
+    )
+    parser.add_argument(
+        "--v2", action="store_true", help="not used (for backward compatibility) / 使用されません（互換性のため残してあります）"
+    )
     parser.add_argument("--batch_size", type=int, default=1, help="batch size in inference / 推論時のバッチサイズ")
     parser.add_argument(
         "--max_data_loader_n_workers",
@@ -231,10 +254,16 @@ def setup_parser() -> argparse.ArgumentParser:
         help="steps of resolution for buckets, divisible by 8 is recommended / bucketの解像度の単位、8で割り切れる値を推奨します",
     )
     parser.add_argument(
-        "--bucket_no_upscale", action="store_true", help="make bucket for each image without upscaling / 画像を拡大せずbucketを作成します"
+        "--bucket_no_upscale",
+        action="store_true",
+        help="make bucket for each image without upscaling / 画像を拡大せずbucketを作成します",
     )
     parser.add_argument(
-        "--mixed_precision", type=str, default="no", choices=["no", "fp16", "bf16"], help="use mixed precision / 混合精度を使う場合、その精度"
+        "--mixed_precision",
+        type=str,
+        default="no",
+        choices=["no", "fp16", "bf16"],
+        help="use mixed precision / 混合精度を使う場合、その精度",
     )
     parser.add_argument(
         "--full_path",
@@ -242,7 +271,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="use full path as image-key in metadata (supports multiple directories) / メタデータで画像キーをフルパスにする（複数の学習画像ディレクトリに対応）",
     )
     parser.add_argument(
-        "--flip_aug", action="store_true", help="flip augmentation, save latents for flipped images / 左右反転した画像もlatentを取得、保存する"
+        "--flip_aug",
+        action="store_true",
+        help="flip augmentation, save latents for flipped images / 左右反転した画像もlatentを取得、保存する",
     )
     parser.add_argument(
         "--skip_existing",

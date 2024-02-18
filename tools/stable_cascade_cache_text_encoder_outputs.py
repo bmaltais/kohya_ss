@@ -149,8 +149,8 @@ def cache_to_disk(args: argparse.Namespace) -> None:
 
         if len(image_infos) > 0:
             b_input_ids1 = torch.stack([image_info.input_ids1 for image_info in image_infos])
-            sc_utils.cache_batch_text_encoder_outputs(
-                image_infos, tokenizers, text_encoders, args.max_token_length, True, b_input_ids1, weight_dtype
+            train_util.cache_batch_text_encoder_outputs(
+                image_infos, tokenizers, text_encoders, args.max_token_length, True, b_input_ids1, None, weight_dtype
             )
 
     accelerator.wait_for_everyone()

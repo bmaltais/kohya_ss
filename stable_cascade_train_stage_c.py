@@ -140,13 +140,16 @@ def train(args):
     stage_c = sc_utils.load_stage_c_model(args.stage_c_checkpoint_path, dtype=weight_dtype, device=loading_device)
     text_encoder1 = sc_utils.load_clip_text_model(args.text_model_checkpoint_path, dtype=weight_dtype, device=loading_device)
 
+    if args.sample_at_first or args.sample_every_n_steps is not None or args.sample_every_n_epochs is not None:
+        # Previewer is small enough to be loaded on CPU
+        previewer = sc_utils.load_previewer_model(args.previewer_checkpoint_path, dtype=torch.float32, device="cpu")
+        previewer.eval()
+    else:
+        previewer = None
+
     # 学習を準備する
     if cache_latents:
-        logger.info(
-            "Please make sure that the latents are cached before training with `stable_cascade_cache_latents.py`."
-            + " / 学習前に`stable_cascade_cache_latents.py`でlatentをキャッシュしてください。"
-        )
-        # effnet.to(accelerator.device, dtype=effnet_dtype)
+        effnet.to(accelerator.device, dtype=effnet_dtype)
         effnet.requires_grad_(False)
         effnet.eval()
         with torch.no_grad():
@@ -155,7 +158,8 @@ def train(args):
                 args.vae_batch_size,
                 args.cache_latents_to_disk,
                 accelerator.is_main_process,
-                cache_func=sc_utils.cache_batch_latents,
+                train_util.STABLE_CASCADE_LATENTS_CACHE_SUFFIX,
+                32,
             )
         effnet.to("cpu")
         clean_memory_on_device(accelerator.device)
@@ -164,8 +168,8 @@ def train(args):
 
     # 学習を準備する：モデルを適切な状態にする
     if args.gradient_checkpointing:
-        logger.warn("Gradient checkpointing is not supported for stage_c. Ignoring the option.")
-        # stage_c.enable_gradient_checkpointing()
+        accelerator.print("enable gradient checkpointing")
+        stage_c.set_gradient_checkpointing(True)
 
     train_stage_c = args.learning_rate > 0
     train_text_encoder1 = False
@@ -176,9 +180,10 @@ def train(args):
             text_encoder1.gradient_checkpointing_enable()
         lr_te1 = args.learning_rate_te1 if args.learning_rate_te1 is not None else args.learning_rate  # 0 means not train
         train_text_encoder1 = lr_te1 > 0
-        assert train_text_encoder1, "text_encoder1 learning rate is 0. Please set a positive value / text_encoder1の学習率が0です。正の値を設定してください。"
+        assert (
+            train_text_encoder1
+        ), "text_encoder1 learning rate is 0. Please set a positive value / text_encoder1の学習率が0です。正の値を設定してください。"
 
-        # caching one text encoder output is not supported
         if not train_text_encoder1:
             text_encoder1.to(weight_dtype)
         text_encoder1.requires_grad_(train_text_encoder1)
@@ -190,22 +195,16 @@ def train(args):
 
     # TextEncoderの出力をキャッシュする
     if args.cache_text_encoder_outputs:
-        raise NotImplementedError(
-            "Caching text encoder outputs is not supported in this version / text encoderの出力のキャッシュはサポートされていません"
-        )
-        print(
-            f"Please make sure that the text encoder outputs are cached before training with `stable_cascade_cache_text_encoder_outputs.py`."
-            + " / 学習前に`stable_cascade_cache_text_encoder_outputs.py`でtext encoderの出力をキャッシュしてください。"
-        )
         # Text Encodes are eval and no grad
         with torch.no_grad(), accelerator.autocast():
             train_dataset_group.cache_text_encoder_outputs(
-                (tokenizer),
-                (text_encoder1),
+                (tokenizer,),
+                (text_encoder1,),
                 accelerator.device,
                 None,
                 args.cache_text_encoder_outputs_to_disk,
                 accelerator.is_main_process,
+                sc_utils.TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX,
             )
         accelerator.wait_for_everyone()
 
@@ -339,19 +338,12 @@ def train(args):
         input_scaler=sc.VPScaler(),
         target=sc.EpsilonTarget(),
         noise_cond=sc.CosineTNoiseCond(),
-        loss_weight=sc.AdaptiveLossWeight(),
+        loss_weight=sc.AdaptiveLossWeight() if args.adaptive_loss_weight else sc.P2LossWeight(),
     )
 
     # 以下2つの変数は、どうもデフォルトのままっぽい
     # gdf.loss_weight.bucket_ranges = torch.tensor(self.info.adaptive_loss['bucket_ranges'])
     # gdf.loss_weight.bucket_losses = torch.tensor(self.info.adaptive_loss['bucket_losses'])
-
-    # noise_scheduler = DDPMScheduler(
-    #     beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", num_train_timesteps=1000, clip_sample=False
-    # )
-    # prepare_scheduler_for_custom_training(noise_scheduler, accelerator.device)
-    # if args.zero_terminal_snr:
-    #     custom_train_functions.fix_noise_scheduler_betas_for_zero_terminal_snr(noise_scheduler)
 
     if accelerator.is_main_process:
         init_kwargs = {}
@@ -361,18 +353,8 @@ def train(args):
             init_kwargs = toml.load(args.log_tracker_config)
         accelerator.init_trackers("finetuning" if args.log_tracker_name is None else args.log_tracker_name, init_kwargs=init_kwargs)
 
-    # # For --sample_at_first
-    # sdxl_train_util.sample_images(
-    #     accelerator,
-    #     args,
-    #     0,
-    #     global_step,
-    #     accelerator.device,
-    #     effnet,
-    #     [tokenizer1, tokenizer2],
-    #     [text_encoder1, text_encoder2],
-    #     stage_c,
-    # )
+    # For --sample_at_first
+    sc_utils.sample_images(accelerator, args, 0, global_step, previewer, tokenizer, text_encoder1, stage_c, gdf)
 
     loss_recorder = train_util.LossRecorder()
     for epoch in range(num_train_epochs):
@@ -404,10 +386,19 @@ def train(args):
                         # TODO support weighted captions
                         input_ids1 = input_ids1.to(accelerator.device)
                         # unwrap_model is fine for models not wrapped by accelerator
-                        encoder_hidden_states, pool = sc.get_clip_conditions(None, input_ids1, tokenizer, text_encoder1)
+                        encoder_hidden_states, pool = train_util.get_hidden_states_stable_cascade(
+                            args.max_token_length,
+                            input_ids1,
+                            tokenizer,
+                            text_encoder1,
+                            None if not args.full_fp16 else weight_dtype,
+                            accelerator,
+                        )
                 else:
                     encoder_hidden_states = batch["text_encoder_outputs1_list"].to(accelerator.device).to(weight_dtype)
                     pool = batch["text_encoder_pool2_list"].to(accelerator.device).to(weight_dtype)
+
+                pool = pool.unsqueeze(1)  # add extra dimension b,1280 -> b,1,1280
 
                 # FORWARD PASS
                 with torch.no_grad():
@@ -421,7 +412,8 @@ def train(args):
                     loss = torch.nn.functional.mse_loss(pred, target, reduction="none").mean(dim=[1, 2, 3])
                     loss_adjusted = (loss * loss_weight).mean()
 
-                gdf.loss_weight.update_buckets(logSNR, loss)
+                if args.adaptive_loss_weight:
+                    gdf.loss_weight.update_buckets(logSNR, loss) # use loss instead of loss_adjusted
 
                 accelerator.backward(loss_adjusted)
                 if accelerator.sync_gradients and args.max_grad_norm != 0.0:
@@ -439,17 +431,7 @@ def train(args):
                 progress_bar.update(1)
                 global_step += 1
 
-                # sdxl_train_util.sample_images(
-                #     accelerator,
-                #     args,
-                #     None,
-                #     global_step,
-                #     accelerator.device,
-                #     effnet,
-                #     [tokenizer1, tokenizer2],
-                #     [text_encoder1, text_encoder2],
-                #     stage_c,
-                # )
+                sc_utils.sample_images(accelerator, args, None, global_step, previewer, tokenizer, text_encoder1, stage_c, gdf)
 
                 # 指定ステップごとにモデルを保存
                 if args.save_every_n_steps is not None and global_step % args.save_every_n_steps == 0:
@@ -467,7 +449,7 @@ def train(args):
                             accelerator.unwrap_model(text_encoder1) if train_text_encoder1 else None,
                         )
 
-            current_loss = loss.detach().item()  # 平均なのでbatch sizeは関係ないはず
+            current_loss = loss_adjusted.detach().item()  # 平均なのでbatch sizeは関係ないはず
             if args.logging_dir is not None:
                 logs = {"loss": current_loss}
                 train_util.append_lr_to_logs(logs, lr_scheduler, args.optimizer_type, including_unet=True)
@@ -502,17 +484,7 @@ def train(args):
                     accelerator.unwrap_model(text_encoder1) if train_text_encoder1 else None,
                 )
 
-        # sdxl_train_util.sample_images(
-        #     accelerator,
-        #     args,
-        #     epoch + 1,
-        #     global_step,
-        #     accelerator.device,
-        #     effnet,
-        #     [tokenizer1, tokenizer2],
-        #     [text_encoder1, text_encoder2],
-        #     stage_c,
-        # )
+        sc_utils.sample_images(accelerator, args, epoch + 1, global_step, previewer, tokenizer, text_encoder1, stage_c, gdf)
 
     is_main_process = accelerator.is_main_process
     # if is_main_process:
@@ -540,6 +512,8 @@ def setup_parser() -> argparse.ArgumentParser:
     sc_utils.add_effnet_arguments(parser)
     sc_utils.add_stage_c_arguments(parser)
     sc_utils.add_text_model_arguments(parser)
+    sc_utils.add_previewer_arguments(parser)
+    sc_utils.add_training_arguments(parser)
     train_util.add_tokenizer_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, False)

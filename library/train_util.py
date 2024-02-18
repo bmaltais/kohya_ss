@@ -133,6 +133,7 @@ IMAGE_TRANSFORMS = transforms.Compose(
 )
 
 TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX = "_te_outputs.npz"
+STABLE_CASCADE_LATENTS_CACHE_SUFFIX = "_sc_latents.npz"
 
 
 class ImageInfo:
@@ -856,7 +857,7 @@ class BaseDataset(torch.utils.data.Dataset):
             logger.info(f"mean ar error (without repeats): {mean_img_ar_error}")
 
         # データ参照用indexを作る。このindexはdatasetのshuffleに用いられる
-        self.buckets_indices: List(BucketBatchIndex) = []
+        self.buckets_indices: List[BucketBatchIndex] = []
         for bucket_index, bucket in enumerate(self.bucket_manager.buckets):
             batch_count = int(math.ceil(len(bucket) / self.batch_size))
             for batch_index in range(batch_count):
@@ -910,8 +911,8 @@ class BaseDataset(torch.utils.data.Dataset):
             ]
         )
 
-    def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
-                # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
+    def cache_latents(self, vae, vae_batch_size, cache_to_disk, is_main_process, cache_file_suffix, divisor):
+        # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
         logger.info("caching latents.")
 
         image_infos = list(self.image_data.values())
@@ -931,11 +932,11 @@ class BaseDataset(torch.utils.data.Dataset):
 
             # check disk cache exists and size of latents
             if cache_to_disk:
-                info.latents_npz = os.path.splitext(info.absolute_path)[0] + ".npz"
+                info.latents_npz = os.path.splitext(info.absolute_path)[0] + cache_file_suffix
                 if not is_main_process:  # store to info only
                     continue
 
-                cache_available = is_disk_cached_latents_is_expected(info.bucket_reso, info.latents_npz, subset.flip_aug)
+                cache_available = is_disk_cached_latents_is_expected(info.bucket_reso, info.latents_npz, subset.flip_aug, divisor)
 
                 if cache_available:  # do not add to batch
                     continue
@@ -967,9 +968,13 @@ class BaseDataset(torch.utils.data.Dataset):
     # SDXLでのみ有効だが、datasetのメソッドとする必要があるので、sdxl_train_util.pyではなくこちらに実装する
     # SD1/2に対応するにはv2のフラグを持つ必要があるので後回し
     def cache_text_encoder_outputs(
-        self, tokenizers, text_encoders, device, weight_dtype, cache_to_disk=False, is_main_process=True
+        self, tokenizers, text_encoders, device, weight_dtype, cache_to_disk, is_main_process, cache_file_suffix
     ):
-        assert len(tokenizers) == 2, "only support SDXL"
+        """
+        最後の Text Encoder の pool がキャッシュされる。
+        The last Text Encoder's pool is cached.
+        """
+        # assert len(tokenizers) == 2, "only support SDXL"
 
         # latentsのキャッシュと同様に、ディスクへのキャッシュに対応する
         # またマルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
@@ -981,7 +986,7 @@ class BaseDataset(torch.utils.data.Dataset):
         for info in tqdm(image_infos):
             # subset = self.image_to_subset[info.image_key]
             if cache_to_disk:
-                te_out_npz = os.path.splitext(info.absolute_path)[0] + TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX
+                te_out_npz = os.path.splitext(info.absolute_path)[0] + cache_file_suffix
                 info.text_encoder_outputs_npz = te_out_npz
 
                 if not is_main_process:  # store to info only
@@ -1006,7 +1011,7 @@ class BaseDataset(torch.utils.data.Dataset):
         batches = []
         for info in image_infos_to_cache:
             input_ids1 = self.get_input_ids(info.caption, tokenizers[0])
-            input_ids2 = self.get_input_ids(info.caption, tokenizers[1])
+            input_ids2 = self.get_input_ids(info.caption, tokenizers[1]) if len(tokenizers) > 1 else None
             batch.append((info, input_ids1, input_ids2))
 
             if len(batch) >= self.batch_size:
@@ -1021,7 +1026,7 @@ class BaseDataset(torch.utils.data.Dataset):
         for batch in tqdm(batches):
             infos, input_ids1, input_ids2 = zip(*batch)
             input_ids1 = torch.stack(input_ids1, dim=0)
-            input_ids2 = torch.stack(input_ids2, dim=0)
+            input_ids2 = torch.stack(input_ids2, dim=0) if input_ids2[0] is not None else None
             cache_batch_text_encoder_outputs(
                 infos, tokenizers, text_encoders, self.max_token_length, cache_to_disk, input_ids1, input_ids2, weight_dtype
             )
@@ -1270,7 +1275,9 @@ class BaseDataset(torch.utils.data.Dataset):
             # example["input_ids"] = torch.stack([self.get_input_ids(cap, self.tokenizers[0]) for cap in captions])
             # example["input_ids2"] = torch.stack([self.get_input_ids(cap, self.tokenizers[1]) for cap in captions])
             example["text_encoder_outputs1_list"] = torch.stack(text_encoder_outputs1_list)
-            example["text_encoder_outputs2_list"] = torch.stack(text_encoder_outputs2_list)
+            example["text_encoder_outputs2_list"] = (
+                torch.stack(text_encoder_outputs2_list) if text_encoder_outputs2_list[0] is not None else None
+            )
             example["text_encoder_pool2_list"] = torch.stack(text_encoder_pool2_list)
 
         if images[0] is not None:
@@ -1599,12 +1606,15 @@ class FineTuningDataset(BaseDataset):
 
                 # なければnpzを探す
                 if abs_path is None:
-                    if os.path.exists(os.path.splitext(image_key)[0] + ".npz"):
-                        abs_path = os.path.splitext(image_key)[0] + ".npz"
-                    else:
-                        npz_path = os.path.join(subset.image_dir, image_key + ".npz")
-                        if os.path.exists(npz_path):
-                            abs_path = npz_path
+                    abs_path = os.path.splitext(image_key)[0] + ".npz"
+                    if not os.path.exists(abs_path):
+                        abs_path = os.path.splitext(image_key)[0] + STABLE_CASCADE_LATENTS_CACHE_SUFFIX
+                        if not os.path.exists(abs_path):
+                            abs_path = os.path.join(subset.image_dir, image_key + ".npz")
+                            if not os.path.exists(abs_path):
+                                abs_path = os.path.join(subset.image_dir, image_key + STABLE_CASCADE_LATENTS_CACHE_SUFFIX)
+                                if not os.path.exists(abs_path):
+                                    abs_path = None
 
                 assert abs_path is not None, f"no image / 画像がありません: {image_key}"
 
@@ -1624,7 +1634,7 @@ class FineTuningDataset(BaseDataset):
 
                 if not subset.color_aug and not subset.random_crop:
                     # if npz exists, use them
-                    image_info.latents_npz, image_info.latents_npz_flipped = self.image_key_to_npz_file(subset, image_key)
+                    image_info.latents_npz = self.image_key_to_npz_file(subset, image_key)
 
                 self.register_image(image_info, subset)
 
@@ -1638,7 +1648,7 @@ class FineTuningDataset(BaseDataset):
         # check existence of all npz files
         use_npz_latents = all([not (subset.color_aug or subset.random_crop) for subset in self.subsets])
         if use_npz_latents:
-            flip_aug_in_subset = False
+            # flip_aug_in_subset = False
             npz_any = False
             npz_all = True
 
@@ -1648,9 +1658,12 @@ class FineTuningDataset(BaseDataset):
                 has_npz = image_info.latents_npz is not None
                 npz_any = npz_any or has_npz
 
-                if subset.flip_aug:
-                    has_npz = has_npz and image_info.latents_npz_flipped is not None
-                    flip_aug_in_subset = True
+                # flip は同一の .npz 内に格納するようにした：
+                # そのためここでチェック漏れがあり実行時にエラーになる可能性があるので要検討
+                # if subset.flip_aug:
+                #     has_npz = has_npz and image_info.latents_npz_flipped is not None
+                #     flip_aug_in_subset = True
+
                 npz_all = npz_all and has_npz
 
                 if npz_any and not npz_all:
@@ -1664,8 +1677,8 @@ class FineTuningDataset(BaseDataset):
                 logger.warning(
                     f"some of npz file does not exist. ignore npz files / いくつかのnpzファイルが見つからないためnpzファイルを無視します"
                 )
-                if flip_aug_in_subset:
-                    logger.warning("maybe no flipped files / 反転されたnpzファイルがないのかもしれません")
+                # if flip_aug_in_subset:
+                #     logger.warning("maybe no flipped files / 反転されたnpzファイルがないのかもしれません")
         # else:
         #   logger.info("npz files are not used with color_aug and/or random_crop / color_augまたはrandom_cropが指定されているためnpzファイルは使用されません")
 
@@ -1714,34 +1727,29 @@ class FineTuningDataset(BaseDataset):
         # npz情報をきれいにしておく
         if not use_npz_latents:
             for image_info in self.image_data.values():
-                image_info.latents_npz = image_info.latents_npz_flipped = None
+                image_info.latents_npz = None  # image_info.latents_npz_flipped =
 
     def image_key_to_npz_file(self, subset: FineTuningSubset, image_key):
         base_name = os.path.splitext(image_key)[0]
-        npz_file_norm = base_name + ".npz"
 
+        npz_file_norm = base_name + ".npz"
+        if not os.path.exists(npz_file_norm):
+            npz_file_norm = base_name + STABLE_CASCADE_LATENTS_CACHE_SUFFIX
         if os.path.exists(npz_file_norm):
-            # image_key is full path
-            npz_file_flip = base_name + "_flip.npz"
-            if not os.path.exists(npz_file_flip):
-                npz_file_flip = None
-            return npz_file_norm, npz_file_flip
+            return npz_file_norm
 
         # if not full path, check image_dir. if image_dir is None, return None
         if subset.image_dir is None:
-            return None, None
+            return None
 
         # image_key is relative path
         npz_file_norm = os.path.join(subset.image_dir, image_key + ".npz")
-        npz_file_flip = os.path.join(subset.image_dir, image_key + "_flip.npz")
-
         if not os.path.exists(npz_file_norm):
-            npz_file_norm = None
-            npz_file_flip = None
-        elif not os.path.exists(npz_file_flip):
-            npz_file_flip = None
+            npz_file_norm = os.path.join(subset.image_dir, base_name + STABLE_CASCADE_LATENTS_CACHE_SUFFIX)
+        if os.path.exists(npz_file_norm):
+            return npz_file_norm
 
-        return npz_file_norm, npz_file_flip
+        return None
 
 
 class ControlNetDataset(BaseDataset):
@@ -1943,17 +1951,26 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
         for dataset in self.datasets:
             dataset.enable_XTI(*args, **kwargs)
 
-    def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
+    def cache_latents(self, vae, vae_batch_size=1, cache_to_disk=False, is_main_process=True, cache_file_suffix=".npz", divisor=8):
         for i, dataset in enumerate(self.datasets):
             logger.info(f"[Dataset {i}]")
-            dataset.cache_latents(vae, vae_batch_size, cache_to_disk, is_main_process)
+            dataset.cache_latents(vae, vae_batch_size, cache_to_disk, is_main_process, cache_file_suffix, divisor)
 
     def cache_text_encoder_outputs(
-        self, tokenizers, text_encoders, device, weight_dtype, cache_to_disk=False, is_main_process=True
+        self,
+        tokenizers,
+        text_encoders,
+        device,
+        weight_dtype,
+        cache_to_disk=False,
+        is_main_process=True,
+        cache_file_suffix=TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX,
     ):
         for i, dataset in enumerate(self.datasets):
             logger.info(f"[Dataset {i}]")
-            dataset.cache_text_encoder_outputs(tokenizers, text_encoders, device, weight_dtype, cache_to_disk, is_main_process)
+            dataset.cache_text_encoder_outputs(
+                tokenizers, text_encoders, device, weight_dtype, cache_to_disk, is_main_process, cache_file_suffix
+            )
 
     def set_caching_mode(self, caching_mode):
         for dataset in self.datasets:
@@ -1986,8 +2003,8 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
             dataset.disable_token_padding()
 
 
-def is_disk_cached_latents_is_expected(reso, npz_path: str, flip_aug: bool):
-    expected_latents_size = (reso[1] // 8, reso[0] // 8)  # bucket_resoはWxHなので注意
+def is_disk_cached_latents_is_expected(reso, npz_path: str, flip_aug: bool, divisor: int = 8) -> bool:
+    expected_latents_size = (reso[1] // divisor, reso[0] // divisor)  # bucket_resoはWxHなので注意
 
     if not os.path.exists(npz_path):
         return False
@@ -2079,7 +2096,7 @@ def debug_dataset(train_dataset, show_input_ids=False):
 
                 if show_input_ids:
                     logger.info(f"input ids: {iid}")
-                    if "input_ids2" in example:
+                    if "input_ids2" in example and example["input_ids2"] is not None:
                         logger.info(f"input ids2: {example['input_ids2'][j]}")
                 if example["images"] is not None:
                     im = example["images"][j]
@@ -2256,7 +2273,7 @@ def trim_and_resize_if_required(
 
 
 def cache_batch_latents(
-    vae: AutoencoderKL, cache_to_disk: bool, image_infos: List[ImageInfo], flip_aug: bool, random_crop: bool
+    vae: Union[AutoencoderKL, torch.nn.Module], cache_to_disk: bool, image_infos: List[ImageInfo], flip_aug: bool, random_crop: bool
 ) -> None:
     r"""
     requires image_infos to have: absolute_path, bucket_reso, resized_size, latents_npz
@@ -2311,23 +2328,36 @@ def cache_batch_text_encoder_outputs(
     image_infos, tokenizers, text_encoders, max_token_length, cache_to_disk, input_ids1, input_ids2, dtype
 ):
     input_ids1 = input_ids1.to(text_encoders[0].device)
-    input_ids2 = input_ids2.to(text_encoders[1].device)
+    input_ids2 = input_ids2.to(text_encoders[1].device) if input_ids2 is not None else None
 
     with torch.no_grad():
-        b_hidden_state1, b_hidden_state2, b_pool2 = get_hidden_states_sdxl(
-            max_token_length,
-            input_ids1,
-            input_ids2,
-            tokenizers[0],
-            tokenizers[1],
-            text_encoders[0],
-            text_encoders[1],
-            dtype,
-        )
+        # TODO SDXL と Stable Cascade で統一する
+        if len(tokenizers) == 1:
+            # Stable Cascade
+            b_hidden_state1, b_pool2 = get_hidden_states_stable_cascade(
+                max_token_length, input_ids1, tokenizers[0], text_encoders[0], dtype
+            )
+
+            b_hidden_state1 = b_hidden_state1.detach().to("cpu")  # b,n*75+2,768
+            b_pool2 = b_pool2.detach().to("cpu")  # b,1280
+
+            b_hidden_state2 = [None] * input_ids1.shape[0]
+        else:
+            # SDXL
+            b_hidden_state1, b_hidden_state2, b_pool2 = get_hidden_states_sdxl(
+                max_token_length,
+                input_ids1,
+                input_ids2,
+                tokenizers[0],
+                tokenizers[1],
+                text_encoders[0],
+                text_encoders[1],
+                dtype,
+            )
 
         # ここでcpuに移動しておかないと、上書きされてしまう
         b_hidden_state1 = b_hidden_state1.detach().to("cpu")  # b,n*75+2,768
-        b_hidden_state2 = b_hidden_state2.detach().to("cpu")  # b,n*75+2,1280
+        b_hidden_state2 = b_hidden_state2.detach().to("cpu") if b_hidden_state2[0] is not None else b_hidden_state2  # b,n*75+2,1280
         b_pool2 = b_pool2.detach().to("cpu")  # b,1280
 
     for info, hidden_state1, hidden_state2, pool2 in zip(image_infos, b_hidden_state1, b_hidden_state2, b_pool2):
@@ -2340,18 +2370,25 @@ def cache_batch_text_encoder_outputs(
 
 
 def save_text_encoder_outputs_to_disk(npz_path, hidden_state1, hidden_state2, pool2):
-    np.savez(
-        npz_path,
-        hidden_state1=hidden_state1.cpu().float().numpy() if hidden_state1 is not None else None,
-        hidden_state2=hidden_state2.cpu().float().numpy(),
-        pool2=pool2.cpu().float().numpy(),
-    )
+    save_kwargs = {
+        "hidden_state1": hidden_state1.cpu().float().numpy(),
+        "pool2": pool2.cpu().float().numpy(),
+    }
+    if hidden_state2 is not None:
+        save_kwargs["hidden_state2"] = hidden_state2.cpu().float().numpy()
+    np.savez(npz_path, **save_kwargs)
+    # np.savez(
+    #     npz_path,
+    #     hidden_state1=hidden_state1.cpu().float().numpy(),
+    #     hidden_state2=hidden_state2.cpu().float().numpy() if hidden_state2 is not None else None,
+    #     pool2=pool2.cpu().float().numpy(),
+    # )
 
 
 def load_text_encoder_outputs_from_disk(npz_path):
     with np.load(npz_path) as f:
         hidden_state1 = torch.from_numpy(f["hidden_state1"])
-        hidden_state2 = torch.from_numpy(f["hidden_state2"]) if "hidden_state2" in f else None
+        hidden_state2 = torch.from_numpy(f["hidden_state2"]) if "hidden_state2" in f and f["hidden_state2"] is not None else None
         pool2 = torch.from_numpy(f["pool2"]) if "pool2" in f else None
     return hidden_state1, hidden_state2, pool2
 
@@ -2705,6 +2742,7 @@ def add_tokenizer_arguments(parser: argparse.ArgumentParser):
         default=None,
         help="directory for caching Tokenizer (for offline training) / Tokenizerをキャッシュするディレクトリ（ネット接続なしでの学習のため）",
     )
+
 
 def add_sd_models_arguments(parser: argparse.ArgumentParser):
     # for pretrained models
@@ -3207,7 +3245,7 @@ def verify_training_args(args: argparse.Namespace):
         print("highvram is enabled / highvramが有効です")
         global HIGH_VRAM
         HIGH_VRAM = True
-    
+
     if args.cache_latents_to_disk and not args.cache_latents:
         args.cache_latents = True
         logger.warning(
@@ -3219,7 +3257,9 @@ def verify_training_args(args: argparse.Namespace):
         return
 
     if args.v_parameterization and not args.v2:
-        logger.warning("v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません")
+        logger.warning(
+            "v_parameterization should be with v2 not v1 or sdxl / v1やsdxlでv_parameterizationを使用することは想定されていません"
+        )
     if args.v2 and args.clip_skip is not None:
         logger.warning("v2 with clip_skip will be unexpected / v2でclip_skipを使用することは想定されていません")
 
@@ -4300,6 +4340,54 @@ def get_hidden_states_sdxl(
         hidden_states2 = hidden_states2.to(weight_dtype)
 
     return hidden_states1, hidden_states2, pool2
+
+
+def get_hidden_states_stable_cascade(
+    max_token_length: int,
+    input_ids2: torch.Tensor,
+    tokenizer2: CLIPTokenizer,
+    text_encoder2: CLIPTextModel,
+    weight_dtype: Optional[str] = None,
+    accelerator: Optional[Accelerator] = None,
+):
+    # ここに Stable Cascade 用のコードがあるのはとても気持ち悪いが、変に整理するよりわかりやすいので、とりあえずこのまま
+    # It's very awkward to have Stable Cascade code here, but it's easier to understand than to organize it in a strange way, so for now it's as it is.
+
+    # input_ids: b,n,77 -> b*n, 77
+    b_size = input_ids2.size()[0]
+    input_ids2 = input_ids2.reshape((-1, tokenizer2.model_max_length))  # batch_size*n, 77
+
+    # text_encoder2
+    enc_out = text_encoder2(input_ids2, output_hidden_states=True, return_dict=True)
+    hidden_states2 = enc_out["hidden_states"][-1]  # ** last layer **
+
+    # pool2 = enc_out["text_embeds"]
+    unwrapped_text_encoder2 = text_encoder2 if accelerator is None else accelerator.unwrap_model(text_encoder2)
+    pool2 = pool_workaround(unwrapped_text_encoder2, enc_out["last_hidden_state"], input_ids2, tokenizer2.eos_token_id)
+
+    # b*n, 77, 768 or 1280 -> b, n*77, 768 or 1280
+    n_size = 1 if max_token_length is None else max_token_length // 75
+    hidden_states2 = hidden_states2.reshape((b_size, -1, hidden_states2.shape[-1]))
+
+    if max_token_length is not None:
+        # bs*3, 77, 768 or 1024
+
+        # v2: <BOS>...<EOS> <PAD> ... の三連を <BOS>...<EOS> <PAD> ... へ戻す　正直この実装でいいのかわからん
+        states_list = [hidden_states2[:, 0].unsqueeze(1)]  # <BOS>
+        for i in range(1, max_token_length, tokenizer2.model_max_length):
+            chunk = hidden_states2[:, i : i + tokenizer2.model_max_length - 2]  # <BOS> の後から 最後の前まで
+            states_list.append(chunk)  # <BOS> の後から <EOS> の前まで
+        states_list.append(hidden_states2[:, -1].unsqueeze(1))  # <EOS> か <PAD> のどちらか
+        hidden_states2 = torch.cat(states_list, dim=1)
+
+        # pool はnの最初のものを使う
+        pool2 = pool2[::n_size]
+
+    if weight_dtype is not None:
+        # this is required for additional network training
+        hidden_states2 = hidden_states2.to(weight_dtype)
+
+    return hidden_states2, pool2
 
 
 def default_if_none(value, default):

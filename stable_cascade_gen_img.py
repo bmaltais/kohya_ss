@@ -17,19 +17,6 @@ from library import train_util
 from library.sdxl_model_util import _load_state_dict_on_device
 
 
-def calculate_latent_sizes(height=1024, width=1024, batch_size=4, compression_factor_b=42.67, compression_factor_a=4.0):
-    resolution_multiple = 42.67
-    latent_height = math.ceil(height / compression_factor_b)
-    latent_width = math.ceil(width / compression_factor_b)
-    stage_c_latent_shape = (batch_size, 16, latent_height, latent_width)
-
-    latent_height = math.ceil(height / compression_factor_a)
-    latent_width = math.ceil(width / compression_factor_a)
-    stage_b_latent_shape = (batch_size, 4, latent_height, latent_width)
-
-    return stage_c_latent_shape, stage_b_latent_shape
-
-
 def main(args):
     device = device_utils.get_preferred_device()
 
@@ -55,8 +42,6 @@ def main(args):
     generator_b.eval().requires_grad_(False).to(loading_device)
 
     # CLIP encoders
-    print(f"Loading CLIP text model")
-
     tokenizer = sc_utils.load_tokenizer(args)
 
     text_model = sc_utils.load_clip_text_model(
@@ -74,7 +59,7 @@ def main(args):
 
     caption = "Cinematic photo of an anthropomorphic penguin sitting in a cafe reading a book and having a coffee"
     height, width = 1024, 1024
-    stage_c_latent_shape, stage_b_latent_shape = calculate_latent_sizes(height, width, batch_size=1)
+    stage_c_latent_shape, stage_b_latent_shape = sc_utils.calculate_latent_sizes(height, width, batch_size=1)
 
     # 謎のクラス gdf
     gdf_c = sc.GDF(
@@ -106,13 +91,25 @@ def main(args):
     # extras_b.sampling_configs["t_start"] = 1.0
 
     # PREPARE CONDITIONS
-    cond_text, cond_pooled = sc.get_clip_conditions([caption], None, tokenizer, text_model)
+    # cond_text, cond_pooled = sc.get_clip_conditions([caption], None, tokenizer, text_model)
+    input_ids = tokenizer(
+        [caption], truncation=True, padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt"
+    )["input_ids"].to(text_model.device)
+    cond_text, cond_pooled = train_util.get_hidden_states_stable_cascade(
+        tokenizer.model_max_length, input_ids, tokenizer, text_model
+    )
     cond_text = cond_text.to(device, dtype=dtype)
-    cond_pooled = cond_pooled.to(device, dtype=dtype)
+    cond_pooled = cond_pooled.unsqueeze(1).to(device, dtype=dtype)
 
-    uncond_text, uncond_pooled = sc.get_clip_conditions([""], None, tokenizer, text_model)
+    # uncond_text, uncond_pooled = sc.get_clip_conditions([""], None, tokenizer, text_model)
+    input_ids = tokenizer([""], truncation=True, padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt")[
+        "input_ids"
+    ].to(text_model.device)
+    uncond_text, uncond_pooled = train_util.get_hidden_states_stable_cascade(
+        tokenizer.model_max_length, input_ids, tokenizer, text_model
+    )
     uncond_text = uncond_text.to(device, dtype=dtype)
-    uncond_pooled = uncond_pooled.to(device, dtype=dtype)
+    uncond_pooled = uncond_pooled.unsqueeze(1).to(device, dtype=dtype)
 
     zero_img_emb = torch.zeros(1, 768, device=device)
 

@@ -3,10 +3,12 @@
 # https://github.com/Stability-AI/StableCascade
 
 import math
+from types import SimpleNamespace
 from typing import List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.utils.checkpoint
 import torchvision
 
 
@@ -125,6 +127,23 @@ class EfficientNetEncoder(nn.Module):
     def forward(self, x):
         return self.mapper(self.backbone(x))
 
+    @property
+    def dtype(self) -> torch.dtype:
+        return next(self.parameters()).dtype
+
+    @property
+    def device(self) -> torch.device:
+        return next(self.parameters()).device
+
+    def encode(self, x):
+        """
+        VAE と同じように使えるようにするためのメソッド。正しくはちゃんと呼び出し側で分けるべきだが、暫定的な対応。
+        The method to make it usable like VAE. It should be separated properly, but it is a temporary response.
+        """
+        # latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
+        x = self(x)
+        return SimpleNamespace(latent_dist=SimpleNamespace(sample=lambda: x))
+
 
 # なんかわりと乱暴な実装(;'∀')
 # 一から学習することもないだろうから、無効化しておく
@@ -136,6 +155,7 @@ class EfficientNetEncoder(nn.Module):
 # class Conv2d(torch.nn.Conv2d):
 #     def reset_parameters(self):
 #         return None
+
 from torch.nn import Conv2d
 from torch.nn import Linear
 
@@ -187,13 +207,34 @@ class ResBlock(nn.Module):
             Linear(c + c_skip, c * 4), nn.GELU(), GlobalResponseNorm(c * 4), nn.Dropout(dropout), Linear(c * 4, c)
         )
 
-    def forward(self, x, x_skip=None):
+        self.gradient_checkpointing = False
+
+    def set_gradient_checkpointing(self, value):
+        self.gradient_checkpointing = value
+
+    def forward_body(self, x, x_skip=None):
         x_res = x
         x = self.norm(self.depthwise(x))
         if x_skip is not None:
             x = torch.cat([x, x_skip], dim=1)
         x = self.channelwise(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         return x + x_res
+
+    def forward(self, x, x_skip=None):
+        if self.training and self.gradient_checkpointing:
+            # logger.info("ResnetBlock2D: gradient_checkpointing")
+
+            def create_custom_forward(func):
+                def custom_forward(*inputs):
+                    return func(*inputs)
+
+                return custom_forward
+
+            x = torch.utils.checkpoint.checkpoint(create_custom_forward(self.forward_body), x, x_skip)
+        else:
+            x = self.forward_body(x, x_skip)
+
+        return x
 
 
 class AttnBlock(nn.Module):
@@ -204,9 +245,30 @@ class AttnBlock(nn.Module):
         self.attention = Attention2D(c, nhead, dropout)
         self.kv_mapper = nn.Sequential(nn.SiLU(), Linear(c_cond, c))
 
-    def forward(self, x, kv):
+        self.gradient_checkpointing = False
+
+    def set_gradient_checkpointing(self, value):
+        self.gradient_checkpointing = value
+
+    def forward_body(self, x, kv):
         kv = self.kv_mapper(kv)
         x = x + self.attention(self.norm(x), kv, self_attn=self.self_attn)
+        return x
+
+    def forward(self, x, kv):
+        if self.training and self.gradient_checkpointing:
+            # logger.info("AttnBlock: gradient_checkpointing")
+
+            def create_custom_forward(func):
+                def custom_forward(*inputs):
+                    return func(*inputs)
+
+                return custom_forward
+
+            x = torch.utils.checkpoint.checkpoint(create_custom_forward(self.forward_body), x, kv)
+        else:
+            x = self.forward_body(x, kv)
+
         return x
 
 
@@ -218,8 +280,29 @@ class FeedForwardBlock(nn.Module):
             Linear(c, c * 4), nn.GELU(), GlobalResponseNorm(c * 4), nn.Dropout(dropout), Linear(c * 4, c)
         )
 
-    def forward(self, x):
+        self.gradient_checkpointing = False
+
+    def set_gradient_checkpointing(self, value):
+        self.gradient_checkpointing = value
+
+    def forward_body(self, x):
         x = x + self.channelwise(self.norm(x).permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        return x
+
+    def forward(self, x):
+        if self.training and self.gradient_checkpointing:
+            # logger.info("FeedForwardBlock: gradient_checkpointing")
+
+            def create_custom_forward(func):
+                def custom_forward(*inputs):
+                    return func(*inputs)
+
+                return custom_forward
+
+            x = torch.utils.checkpoint.checkpoint(create_custom_forward(self.forward_body), x)
+        else:
+            x = self.forward_body(x)
+
         return x
 
 
@@ -250,9 +333,38 @@ class UpDownBlock2d(nn.Module):
         mapping = nn.Conv2d(c_in, c_out, kernel_size=1)
         self.blocks = nn.ModuleList([interpolation, mapping] if mode == "up" else [mapping, interpolation])
 
+        self.mode = mode
+
+        self.gradient_checkpointing = False
+
+    def set_gradient_checkpointing(self, value):
+        self.gradient_checkpointing = value
+
+    def forward_body(self, x):
+        org_dtype = x.dtype
+        for i, block in enumerate(self.blocks):
+            # 公式の実装では、常に float で計算しているが、すこしでもメモリを節約するために bfloat16 + Upsample のみ float に変換する
+            # In the official implementation, it always calculates in float, but for the sake of saving memory, it converts to float only for bfloat16 + Upsample
+            if x.dtype == torch.bfloat16 and (self.mode == "up" and i == 0 or self.mode != "up" and i == 1):
+                x = x.float()
+            x = block(x)
+            x = x.to(org_dtype)
+        return x
+
     def forward(self, x):
-        for block in self.blocks:
-            x = block(x.float())
+        if self.training and self.gradient_checkpointing:
+            # logger.info("UpDownBlock2d: gradient_checkpointing")
+
+            def create_custom_forward(func):
+                def custom_forward(*inputs):
+                    return func(*inputs)
+
+                return custom_forward
+
+            x = torch.utils.checkpoint.checkpoint(create_custom_forward(self.forward_body), x)
+        else:
+            x = self.forward_body(x)
+
         return x
 
 
@@ -790,6 +902,12 @@ class StageC(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    def set_gradient_checkpointing(self, value):
+        for block in self.down_blocks + self.up_blocks:
+            for layer in block:
+                if hasattr(layer, "set_gradient_checkpointing"):
+                    layer.set_gradient_checkpointing(value)
+
     def gen_r_embedding(self, r, max_positions=10000):
         r = r * max_positions
         half_dim = self.c_r // 2
@@ -900,8 +1018,62 @@ class StageC(nn.Module):
         for self_buffers, src_buffers in zip(self.buffers(), src_model.buffers()):
             self_buffers.data = self_buffers.data * beta + src_buffers.data.clone().to(self_buffers.device) * (1 - beta)
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+    @property
+    def dtype(self):
+        return next(self.parameters()).dtype
+
+
+# Fast Decoder for Stage C latents. E.g. 16 x 24 x 24 -> 3 x 192 x 192
+class Previewer(nn.Module):
+    def __init__(self, c_in=16, c_hidden=512, c_out=3):
+        super().__init__()
+        self.blocks = nn.Sequential(
+            nn.Conv2d(c_in, c_hidden, kernel_size=1),  # 16 channels to 512 channels
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden),
+            nn.Conv2d(c_hidden, c_hidden, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden),
+            nn.ConvTranspose2d(c_hidden, c_hidden // 2, kernel_size=2, stride=2),  # 16 -> 32
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 2),
+            nn.Conv2d(c_hidden // 2, c_hidden // 2, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 2),
+            nn.ConvTranspose2d(c_hidden // 2, c_hidden // 4, kernel_size=2, stride=2),  # 32 -> 64
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 4),
+            nn.Conv2d(c_hidden // 4, c_hidden // 4, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 4),
+            nn.ConvTranspose2d(c_hidden // 4, c_hidden // 4, kernel_size=2, stride=2),  # 64 -> 128
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 4),
+            nn.Conv2d(c_hidden // 4, c_hidden // 4, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.BatchNorm2d(c_hidden // 4),
+            nn.Conv2d(c_hidden // 4, c_out, kernel_size=1),
+        )
+
+    def forward(self, x):
+        return self.blocks(x)
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+    @property
+    def dtype(self):
+        return next(self.parameters()).dtype
+
 
 def get_clip_conditions(captions: Optional[List[str]], input_ids, tokenizer, text_model):
+    # deprecated
+
     # self, batch: dict, tokenizer, text_model, is_eval=False, is_unconditional=False, eval_image_embeds=False, return_fields=None
     # is_eval の処理をここでやるのは微妙なので別のところでやる
     # is_unconditional もここでやるのは微妙なので別のところでやる
@@ -919,39 +1091,6 @@ def get_clip_conditions(captions: Optional[List[str]], input_ids, tokenizer, tex
 
     return text_embeddings, text_pooled_embeddings
     # return {"clip_text": text_embeddings, "clip_text_pooled": text_pooled_embeddings}  # , "clip_img": image_embeddings}
-
-
-def get_stage_c_conditions(
-    batch: dict, effnet, effnet_preprocess, is_eval=False, is_unconditional=False, eval_image_embeds=False, return_fields=None
-):
-    images = batch.get("images", None)
-
-    if images is not None:
-        images = images.to(self.device)
-        if is_eval and not is_unconditional:
-            effnet_embeddings = effnet(effnet_preprocess(images))
-        else:
-            if is_eval:
-                effnet_factor = 1
-            else:
-                effnet_factor = np.random.uniform(0.5, 1)  # f64 to f32
-            effnet_height, effnet_width = int(((images.size(-2) * effnet_factor) // 32) * 32), int(
-                ((images.size(-1) * effnet_factor) // 32) * 32
-            )
-
-            effnet_embeddings = torch.zeros(images.size(0), 16, effnet_height // 32, effnet_width // 32, device=self.device)
-            if not is_eval:
-                effnet_images = torchvision.transforms.functional.resize(
-                    images, (effnet_height, effnet_width), interpolation=torchvision.transforms.InterpolationMode.NEAREST
-                )
-                rand_idx = np.random.rand(len(images)) <= 0.9
-                if any(rand_idx):
-                    effnet_embeddings[rand_idx] = effnet(effnet_preprocess(effnet_images[rand_idx]))
-    else:
-        effnet_embeddings = None
-
-    return effnet_embeddings
-    # {"effnet": effnet_embeddings, "clip": conditions["clip_text_pooled"]}
 
 
 # region gdf

@@ -145,17 +145,17 @@ def cache_to_disk(args: argparse.Namespace) -> None:
                 image_info.image = image
                 image_info.bucket_reso = bucket_reso
                 image_info.resized_size = resized_size
-                image_info.latents_npz = os.path.splitext(absolute_path)[0] + sc_utils.LATENTS_CACHE_SUFFIX
+                image_info.latents_npz = os.path.splitext(absolute_path)[0] + train_util.STABLE_CASCADE_LATENTS_CACHE_SUFFIX
 
                 if args.skip_existing:
-                    if sc_utils.is_disk_cached_latents_is_expected(image_info.bucket_reso, image_info.latents_npz, flip_aug):
+                    if train_util.is_disk_cached_latents_is_expected(image_info.bucket_reso, image_info.latents_npz, flip_aug, 32):
                         logger.warning(f"Skipping {image_info.latents_npz} because it already exists.")
                         continue
 
                 image_infos.append(image_info)
 
             if len(image_infos) > 0:
-                sc_utils.cache_batch_latents(effnet, True, image_infos, flip_aug, random_crop, accelerator.device, effnet_dtype)
+                train_util.cache_batch_latents(effnet, True, image_infos, flip_aug, random_crop)
 
     accelerator.wait_for_everyone()
     accelerator.print(f"Finished caching latents for {len(train_dataset_group)} batches.")

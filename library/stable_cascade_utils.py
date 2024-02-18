@@ -1,28 +1,30 @@
 import argparse
+import json
+import math
 import os
 import time
 from typing import List
 import numpy as np
+import toml
 
 import torch
 import torchvision
 from safetensors.torch import load_file, save_file
 from tqdm import tqdm
 from transformers import CLIPTokenizer, CLIPTextModelWithProjection, CLIPTextConfig
-from accelerate import init_empty_weights
+from accelerate import init_empty_weights, Accelerator, PartialState
+from PIL import Image
 
 from library import stable_cascade as sc
-from library.train_util import (
-    ImageInfo,
-    load_image,
-    trim_and_resize_if_required,
-    save_latents_to_disk,
-    HIGH_VRAM,
-    save_text_encoder_outputs_to_disk,
-)
+
 from library.sdxl_model_util import _load_state_dict_on_device
 from library.device_utils import clean_memory_on_device
-from library.train_util import save_sd_model_on_epoch_end_or_stepwise_common, save_sd_model_on_train_end_common
+from library.train_util import (
+    save_sd_model_on_epoch_end_or_stepwise_common,
+    save_sd_model_on_train_end_common,
+    line_to_prompt_dict,
+    get_hidden_states_stable_cascade,
+)
 from library import sai_model_spec
 
 
@@ -41,7 +43,22 @@ EFFNET_PREPROCESS = torchvision.transforms.Compose(
 )
 
 TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX = "_sc_te_outputs.npz"
-LATENTS_CACHE_SUFFIX = "_sc_latents.npz"
+
+
+def calculate_latent_sizes(height=1024, width=1024, batch_size=4, compression_factor_b=42.67, compression_factor_a=4.0):
+    resolution_multiple = 42.67
+    latent_height = math.ceil(height / compression_factor_b)
+    latent_width = math.ceil(width / compression_factor_b)
+    stage_c_latent_shape = (batch_size, 16, latent_height, latent_width)
+
+    latent_height = math.ceil(height / compression_factor_a)
+    latent_width = math.ceil(width / compression_factor_a)
+    stage_b_latent_shape = (batch_size, 4, latent_height, latent_width)
+
+    return stage_c_latent_shape, stage_b_latent_shape
+
+
+# region load and save
 
 
 def load_effnet(effnet_checkpoint_path, loading_device="cpu") -> sc.EfficientNetEncoder:
@@ -165,153 +182,15 @@ def load_stage_a_model(stage_a_checkpoint_path, dtype=None, device="cpu") -> sc.
     return stage_a
 
 
-def is_disk_cached_latents_is_expected(reso, npz_path: str, flip_aug: bool):
-    expected_latents_size = (reso[1] // 32, reso[0] // 32)  # bucket_resoはWxHなので注意
-
-    if not os.path.exists(npz_path):
-        return False
-
-    npz = np.load(npz_path)
-    if "latents" not in npz or "original_size" not in npz or "crop_ltrb" not in npz:  # old ver?
-        return False
-    if npz["latents"].shape[1:3] != expected_latents_size:
-        return False
-
-    if flip_aug:
-        if "latents_flipped" not in npz:
-            return False
-        if npz["latents_flipped"].shape[1:3] != expected_latents_size:
-            return False
-
-    return True
-
-
-def cache_batch_latents(
-    effnet: sc.EfficientNetEncoder,
-    cache_to_disk: bool,
-    image_infos: List[ImageInfo],
-    flip_aug: bool,
-    random_crop: bool,
-    device,
-    dtype,
-) -> None:
-    r"""
-    requires image_infos to have: absolute_path, bucket_reso, resized_size, latents_npz
-    optionally requires image_infos to have: image
-    if cache_to_disk is True, set info.latents_npz
-        flipped latents is also saved if flip_aug is True
-    if cache_to_disk is False, set info.latents
-        latents_flipped is also set if flip_aug is True
-    latents_original_size and latents_crop_ltrb are also set
-    """
-    images = []
-    for info in image_infos:
-        image = load_image(info.absolute_path) if info.image is None else np.array(info.image, np.uint8)
-        # TODO 画像のメタデータが壊れていて、メタデータから割り当てたbucketと実際の画像サイズが一致しない場合があるのでチェック追加要
-        image, original_size, crop_ltrb = trim_and_resize_if_required(random_crop, image, info.bucket_reso, info.resized_size)
-        image = EFFNET_PREPROCESS(image)
-        images.append(image)
-
-        info.latents_original_size = original_size
-        info.latents_crop_ltrb = crop_ltrb
-
-    img_tensors = torch.stack(images, dim=0)
-    img_tensors = img_tensors.to(device=device, dtype=dtype)
-
-    with torch.no_grad():
-        latents = effnet(img_tensors).to("cpu")
-        print(latents.shape)
-
-    if flip_aug:
-        img_tensors = torch.flip(img_tensors, dims=[3])
-        with torch.no_grad():
-            flipped_latents = effnet(img_tensors).to("cpu")
-    else:
-        flipped_latents = [None] * len(latents)
-
-    for info, latent, flipped_latent in zip(image_infos, latents, flipped_latents):
-        # check NaN
-        if torch.isnan(latents).any() or (flipped_latent is not None and torch.isnan(flipped_latent).any()):
-            raise RuntimeError(f"NaN detected in latents: {info.absolute_path}")
-
-        if cache_to_disk:
-            save_latents_to_disk(info.latents_npz, latent, info.latents_original_size, info.latents_crop_ltrb, flipped_latent)
-        else:
-            info.latents = latent
-            if flip_aug:
-                info.latents_flipped = flipped_latent
-
-    if not HIGH_VRAM:
-        clean_memory_on_device(device)
-
-
-def cache_batch_text_encoder_outputs(image_infos, tokenizers, text_encoders, max_token_length, cache_to_disk, input_ids, dtype):
-    # 75 トークン越えは未対応
-    input_ids = input_ids.to(text_encoders[0].device)
-
-    with torch.no_grad():
-        b_hidden_state, b_pool = sc.get_clip_conditions(None, input_ids, tokenizers[0], text_encoders[0])
-
-        b_hidden_state = b_hidden_state.detach().to("cpu")  # b,n*75+2,768
-        b_pool = b_pool.detach().to("cpu")  # b,1280
-
-    for info, hidden_state, pool in zip(image_infos, b_hidden_state, b_pool):
-        if cache_to_disk:
-            save_text_encoder_outputs_to_disk(info.text_encoder_outputs_npz, None, hidden_state, pool)
-        else:
-            info.text_encoder_outputs1 = hidden_state
-            info.text_encoder_pool2 = pool
-
-
-def add_effnet_arguments(parser):
-    parser.add_argument(
-        "--effnet_checkpoint_path",
-        type=str,
-        required=True,
-        help="path to EfficientNet checkpoint / EfficientNetのチェックポイントのパス",
+def load_previewer_model(previewer_checkpoint_path, dtype=None, device="cpu") -> sc.Previewer:
+    logger.info(f"Loading Previewer from {previewer_checkpoint_path}")
+    previewer = sc.Previewer().to(device)
+    previewer_checkpoint = load_file(previewer_checkpoint_path)
+    info = previewer.load_state_dict(
+        previewer_checkpoint if "state_dict" not in previewer_checkpoint else previewer_checkpoint["state_dict"]
     )
-    return parser
-
-
-def add_text_model_arguments(parser):
-    parser.add_argument(
-        "--text_model_checkpoint_path",
-        type=str,
-        required=True,
-        help="path to CLIP text model checkpoint / CLIPテキストモデルのチェックポイントのパス",
-    )
-    parser.add_argument("--save_text_model", action="store_true", help="if specified, save text model to corresponding path")
-    return parser
-
-
-def add_stage_a_arguments(parser):
-    parser.add_argument(
-        "--stage_a_checkpoint_path",
-        type=str,
-        required=True,
-        help="path to Stage A checkpoint / Stage Aのチェックポイントのパス",
-    )
-    return parser
-
-
-def add_stage_b_arguments(parser):
-    parser.add_argument(
-        "--stage_b_checkpoint_path",
-        type=str,
-        required=True,
-        help="path to Stage B checkpoint / Stage Bのチェックポイントのパス",
-    )
-    return parser
-
-
-def add_stage_c_arguments(parser):
-    parser.add_argument(
-        "--stage_c_checkpoint_path",
-        type=str,
-        required=True,
-        help="path to Stage C checkpoint / Stage Cのチェックポイントのパス",
-    )
-    return parser
+    logger.info(info)
+    return previewer
 
 
 def get_sai_model_spec(args):
@@ -353,7 +232,7 @@ def get_sai_model_spec(args):
 def stage_c_saver_common(ckpt_file, stage_c, text_model, save_dtype, sai_metadata):
     state_dict = stage_c.state_dict()
     if save_dtype is not None:
-        state_dict = {k: v.to(save_dtype) for k, v in state_dict.items}
+        state_dict = {k: v.to(save_dtype) for k, v in state_dict.items()}
 
     save_file(state_dict, ckpt_file, metadata=sai_metadata)
 
@@ -403,112 +282,334 @@ def save_stage_c_model_on_end(
     save_sd_model_on_train_end_common(args, True, True, epoch, global_step, stage_c_saver, None)
 
 
-def cache_latents(self, effnet, vae_batch_size=1, cache_to_disk=False, is_main_process=True):
-    # マルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
-    logger.info("caching latents.")
+# endregion
 
-    image_infos = list(self.image_data.values())
+# region sample generation
 
-    # sort by resolution
-    image_infos.sort(key=lambda info: info.bucket_reso[0] * info.bucket_reso[1])
 
-    # split by resolution
-    batches = []
-    batch = []
-    logger.info("checking cache validity...")
-    for info in tqdm(image_infos):
-        subset = self.image_to_subset[info.image_key]
+def sample_images(
+    accelerator: Accelerator,
+    args: argparse.Namespace,
+    epoch,
+    steps,
+    previewer,
+    tokenizer,
+    text_encoder,
+    stage_c,
+    gdf,
+    prompt_replacement=None,
+):
+    if steps == 0:
+        if not args.sample_at_first:
+            return
+    else:
+        if args.sample_every_n_steps is None and args.sample_every_n_epochs is None:
+            return
+        if args.sample_every_n_epochs is not None:
+            # sample_every_n_steps は無視する
+            if epoch is None or epoch % args.sample_every_n_epochs != 0:
+                return
+        else:
+            if steps % args.sample_every_n_steps != 0 or epoch is not None:  # steps is not divisible or end of epoch
+                return
 
-        if info.latents_npz is not None:  # fine tuning dataset
-            continue
-
-        # check disk cache exists and size of latents
-        if cache_to_disk:
-            info.latents_npz = os.path.splitext(info.absolute_path)[0] + LATENTS_CACHE_SUFFIX
-            if not is_main_process:  # store to info only
-                continue
-
-            cache_available = is_disk_cached_latents_is_expected(info.bucket_reso, info.latents_npz, subset.flip_aug)
-
-            if cache_available:  # do not add to batch
-                continue
-
-        # if last member of batch has different resolution, flush the batch
-        if len(batch) > 0 and batch[-1].bucket_reso != info.bucket_reso:
-            batches.append(batch)
-            batch = []
-
-        batch.append(info)
-
-        # if number of data in batch is enough, flush the batch
-        if len(batch) >= vae_batch_size:
-            batches.append(batch)
-            batch = []
-
-    if len(batch) > 0:
-        batches.append(batch)
-
-    if cache_to_disk and not is_main_process:  # if cache to disk, don't cache latents in non-main process, set to info only
+    logger.info("")
+    logger.info(f"generating sample images at step / サンプル画像生成 ステップ: {steps}")
+    if not os.path.isfile(args.sample_prompts):
+        logger.error(f"No prompt file / プロンプトファイルがありません: {args.sample_prompts}")
         return
 
-    # iterate batches: batch doesn't have image, image will be loaded in cache_batch_latents and discarded
-    logger.info("caching latents...")
-    for batch in tqdm(batches, smoothing=1, total=len(batches)):
-        cache_batch_latents(effnet, cache_to_disk, batch, subset.flip_aug, subset.random_crop)
+    distributed_state = PartialState()  # for multi gpu distributed inference. this is a singleton, so it's safe to use it here
+
+    # unwrap unet and text_encoder(s)
+    stage_c = accelerator.unwrap_model(stage_c)
+    text_encoder = accelerator.unwrap_model(text_encoder)
+
+    # read prompts
+    if args.sample_prompts.endswith(".txt"):
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        prompts = [line.strip() for line in lines if len(line.strip()) > 0 and line[0] != "#"]
+    elif args.sample_prompts.endswith(".toml"):
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
+            data = toml.load(f)
+        prompts = [dict(**data["prompt"], **subset) for subset in data["prompt"]["subset"]]
+    elif args.sample_prompts.endswith(".json"):
+        with open(args.sample_prompts, "r", encoding="utf-8") as f:
+            prompts = json.load(f)
+
+    save_dir = args.output_dir + "/sample"
+    os.makedirs(save_dir, exist_ok=True)
+
+    # preprocess prompts
+    for i in range(len(prompts)):
+        prompt_dict = prompts[i]
+        if isinstance(prompt_dict, str):
+            prompt_dict = line_to_prompt_dict(prompt_dict)
+            prompts[i] = prompt_dict
+        assert isinstance(prompt_dict, dict)
+
+        # Adds an enumerator to the dict based on prompt position. Used later to name image files. Also cleanup of extra data in original prompt dict.
+        prompt_dict["enum"] = i
+        prompt_dict.pop("subset", None)
+
+    # save random state to restore later
+    rng_state = torch.get_rng_state()
+    cuda_rng_state = None
+    try:
+        cuda_rng_state = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
+    except Exception:
+        pass
+
+    if distributed_state.num_processes <= 1:
+        # If only one device is available, just use the original prompt list. We don't need to care about the distribution of prompts.
+        with torch.no_grad():
+            for prompt_dict in prompts:
+                sample_image_inference(
+                    accelerator,
+                    args,
+                    tokenizer,
+                    text_encoder,
+                    stage_c,
+                    previewer,
+                    gdf,
+                    save_dir,
+                    prompt_dict,
+                    epoch,
+                    steps,
+                    prompt_replacement,
+                )
+    else:
+        # Creating list with N elements, where each element is a list of prompt_dicts, and N is the number of processes available (number of devices available)
+        # prompt_dicts are assigned to lists based on order of processes, to attempt to time the image creation time to match enum order. Probably only works when steps and sampler are identical.
+        per_process_prompts = []  # list of lists
+        for i in range(distributed_state.num_processes):
+            per_process_prompts.append(prompts[i :: distributed_state.num_processes])
+
+        with torch.no_grad():
+            with distributed_state.split_between_processes(per_process_prompts) as prompt_dict_lists:
+                for prompt_dict in prompt_dict_lists[0]:
+                    sample_image_inference(
+                        accelerator,
+                        args,
+                        tokenizer,
+                        text_encoder,
+                        stage_c,
+                        previewer,
+                        gdf,
+                        save_dir,
+                        prompt_dict,
+                        epoch,
+                        steps,
+                        prompt_replacement,
+                    )
+
+    # I'm not sure which of these is the correct way to clear the memory, but accelerator's device is used in the pipeline, so I'm using it here.
+    # with torch.cuda.device(torch.cuda.current_device()):
+    #     torch.cuda.empty_cache()
+    clean_memory_on_device(accelerator.device)
+
+    torch.set_rng_state(rng_state)
+    if cuda_rng_state is not None:
+        torch.cuda.set_rng_state(cuda_rng_state)
 
 
-# weight_dtypeを指定するとText Encoderそのもの、およひ出力がweight_dtypeになる
-def cache_text_encoder_outputs(self, tokenizers, text_encoders, device, weight_dtype, cache_to_disk=False, is_main_process=True):
-    # latentsのキャッシュと同様に、ディスクへのキャッシュに対応する
-    # またマルチGPUには対応していないので、そちらはtools/cache_latents.pyを使うこと
-    logger.info("caching text encoder outputs.")
-    image_infos = list(self.image_data.values())
+def sample_image_inference(
+    accelerator: Accelerator,
+    args: argparse.Namespace,
+    tokenizer,
+    text_model,
+    stage_c,
+    previewer,
+    gdf,
+    save_dir,
+    prompt_dict,
+    epoch,
+    steps,
+    prompt_replacement,
+):
+    assert isinstance(prompt_dict, dict)
+    negative_prompt = prompt_dict.get("negative_prompt")
+    sample_steps = prompt_dict.get("sample_steps", 20)
+    width = prompt_dict.get("width", 1024)
+    height = prompt_dict.get("height", 1024)
+    scale = prompt_dict.get("scale", 4)
+    seed = prompt_dict.get("seed")
+    # controlnet_image = prompt_dict.get("controlnet_image")
+    prompt: str = prompt_dict.get("prompt", "")
+    # sampler_name: str = prompt_dict.get("sample_sampler", args.sample_sampler)
 
-    logger.info("checking cache existence...")
-    image_infos_to_cache = []
-    for info in tqdm(image_infos):
-        # subset = self.image_to_subset[info.image_key]
-        if cache_to_disk:
-            te_out_npz = os.path.splitext(info.absolute_path)[0] + TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX
-            info.text_encoder_outputs_npz = te_out_npz
+    if prompt_replacement is not None:
+        prompt = prompt.replace(prompt_replacement[0], prompt_replacement[1])
+        if negative_prompt is not None:
+            negative_prompt = negative_prompt.replace(prompt_replacement[0], prompt_replacement[1])
 
-            if not is_main_process:  # store to info only
-                continue
+    if seed is not None:
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+    else:
+        # True random sample image generation
+        torch.seed()
+        torch.cuda.seed()
 
-            if os.path.exists(te_out_npz):
-                continue
+    height = max(64, height - height % 8)  # round to divisible by 8
+    width = max(64, width - width % 8)  # round to divisible by 8
+    logger.info(f"prompt: {prompt}")
+    logger.info(f"negative_prompt: {negative_prompt}")
+    logger.info(f"height: {height}")
+    logger.info(f"width: {width}")
+    logger.info(f"sample_steps: {sample_steps}")
+    logger.info(f"scale: {scale}")
+    # logger.info(f"sample_sampler: {sampler_name}")
+    if seed is not None:
+        logger.info(f"seed: {seed}")
 
-        image_infos_to_cache.append(info)
+    negative_prompt = "" if negative_prompt is None else negative_prompt
+    cfg = scale
+    timesteps = sample_steps
+    shift = 2
+    t_start = 1.0
 
-    if cache_to_disk and not is_main_process:  # if cache to disk, don't cache latents in non-main process, set to info only
-        return
+    stage_c_latent_shape, _ = calculate_latent_sizes(height, width, batch_size=1)
 
-    # prepare tokenizers and text encoders
-    for text_encoder in text_encoders:
-        text_encoder.to(device)
-        if weight_dtype is not None:
-            text_encoder.to(dtype=weight_dtype)
+    # PREPARE CONDITIONS
+    input_ids = tokenizer(
+        [prompt], truncation=True, padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt"
+    )["input_ids"].to(text_model.device)
+    cond_text, cond_pooled = get_hidden_states_stable_cascade(tokenizer.model_max_length, input_ids, tokenizer, text_model)
 
-    # create batch
-    batch = []
-    batches = []
-    for info in image_infos_to_cache:
-        input_ids1 = self.get_input_ids(info.caption, tokenizers[0])
-        batch.append((info, input_ids1, None))
+    input_ids = tokenizer(
+        [negative_prompt], truncation=True, padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt"
+    )["input_ids"].to(text_model.device)
+    uncond_text, uncond_pooled = get_hidden_states_stable_cascade(tokenizer.model_max_length, input_ids, tokenizer, text_model)
 
-        if len(batch) >= self.batch_size:
-            batches.append(batch)
-            batch = []
+    device = accelerator.device
+    dtype = stage_c.dtype
+    cond_text = cond_text.to(device, dtype=dtype)
+    cond_pooled = cond_pooled.unsqueeze(1).to(device, dtype=dtype)
 
-    if len(batch) > 0:
-        batches.append(batch)
+    uncond_text = uncond_text.to(device, dtype=dtype)
+    uncond_pooled = uncond_pooled.unsqueeze(1).to(device, dtype=dtype)
 
-    # iterate batches: call text encoder and cache outputs for memory or disk
-    logger.info("caching text encoder outputs...")
-    for batch in tqdm(batches):
-        infos, input_ids1, input_ids2 = zip(*batch)
-        input_ids1 = torch.stack(input_ids1, dim=0)
-        input_ids2 = torch.stack(input_ids2, dim=0) if input_ids2[0] is not None else None
-        cache_batch_text_encoder_outputs(
-            infos, tokenizers, text_encoders, self.max_token_length, cache_to_disk, input_ids1, weight_dtype
+    zero_img_emb = torch.zeros(1, 768, device=device)
+
+    # 辞書にしたくないけど GDF から先の変更が面倒だからとりあえず辞書にしておく
+    conditions = {"clip_text_pooled": cond_pooled, "clip": cond_pooled, "clip_text": cond_text, "clip_img": zero_img_emb}
+    unconditions = {"clip_text_pooled": uncond_pooled, "clip": uncond_pooled, "clip_text": uncond_text, "clip_img": zero_img_emb}
+
+    with torch.no_grad():  # , torch.cuda.amp.autocast(dtype=dtype):
+        sampling_c = gdf.sample(
+            stage_c,
+            conditions,
+            stage_c_latent_shape,
+            unconditions,
+            device=device,
+            cfg=cfg,
+            shift=shift,
+            timesteps=timesteps,
+            t_start=t_start,
         )
+        for sampled_c, _, _ in tqdm(sampling_c, total=timesteps):
+            sampled_c = sampled_c
+
+    sampled_c = sampled_c.to(previewer.device, dtype=previewer.dtype)
+    image = previewer(sampled_c)[0]
+    image = torch.clamp(image, 0, 1)
+    image = image.cpu().numpy().transpose(1, 2, 0)
+    image = image * 255
+    image = image.astype(np.uint8)
+    image = Image.fromarray(image)
+
+    # adding accelerator.wait_for_everyone() here should sync up and ensure that sample images are saved in the same order as the original prompt list
+    # but adding 'enum' to the filename should be enough
+
+    ts_str = time.strftime("%Y%m%d%H%M%S", time.localtime())
+    num_suffix = f"e{epoch:06d}" if epoch is not None else f"{steps:06d}"
+    seed_suffix = "" if seed is None else f"_{seed}"
+    i: int = prompt_dict["enum"]
+    img_filename = f"{'' if args.output_name is None else args.output_name + '_'}{num_suffix}_{i:02d}_{ts_str}{seed_suffix}.png"
+    image.save(os.path.join(save_dir, img_filename))
+
+    # wandb有効時のみログを送信
+    try:
+        wandb_tracker = accelerator.get_tracker("wandb")
+        try:
+            import wandb
+        except ImportError:  # 事前に一度確認するのでここはエラー出ないはず
+            raise ImportError("No wandb / wandb がインストールされていないようです")
+
+        wandb_tracker.log({f"sample_{i}": wandb.Image(image)})
+    except:  # wandb 無効時
+        pass
+
+
+# endregion
+
+
+def add_effnet_arguments(parser):
+    parser.add_argument(
+        "--effnet_checkpoint_path",
+        type=str,
+        required=True,
+        help="path to EfficientNet checkpoint / EfficientNetのチェックポイントのパス",
+    )
+    return parser
+
+
+def add_text_model_arguments(parser):
+    parser.add_argument(
+        "--text_model_checkpoint_path",
+        type=str,
+        help="path to CLIP text model checkpoint / CLIPテキストモデルのチェックポイントのパス",
+    )
+    parser.add_argument("--save_text_model", action="store_true", help="if specified, save text model to corresponding path")
+    return parser
+
+
+def add_stage_a_arguments(parser):
+    parser.add_argument(
+        "--stage_a_checkpoint_path",
+        type=str,
+        required=True,
+        help="path to Stage A checkpoint / Stage Aのチェックポイントのパス",
+    )
+    return parser
+
+
+def add_stage_b_arguments(parser):
+    parser.add_argument(
+        "--stage_b_checkpoint_path",
+        type=str,
+        required=True,
+        help="path to Stage B checkpoint / Stage Bのチェックポイントのパス",
+    )
+    return parser
+
+
+def add_stage_c_arguments(parser):
+    parser.add_argument(
+        "--stage_c_checkpoint_path",
+        type=str,
+        required=True,
+        help="path to Stage C checkpoint / Stage Cのチェックポイントのパス",
+    )
+    return parser
+
+
+def add_previewer_arguments(parser):
+    parser.add_argument(
+        "--previewer_checkpoint_path",
+        type=str,
+        required=False,
+        help="path to previewer checkpoint / previewerのチェックポイントのパス",
+    )
+    return parser
+
+
+def add_training_arguments(parser):
+    parser.add_argument(
+        "--adaptive_loss_weight",
+        action="store_true",
+        help="if specified, use adaptive loss weight. if not, use P2 loss weight"
+        + " / Adaptive Loss Weightを使用する。指定しない場合はP2 Loss Weightを使用する",
+    )
