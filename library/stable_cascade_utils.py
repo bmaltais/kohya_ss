@@ -350,6 +350,24 @@ def get_sai_model_spec(args):
     return metadata
 
 
+def stage_c_saver_common(ckpt_file, stage_c, text_model, save_dtype, sai_metadata):
+    state_dict = stage_c.state_dict()
+    if save_dtype is not None:
+        state_dict = {k: v.to(save_dtype) for k, v in state_dict.items}
+
+    save_file(state_dict, ckpt_file, metadata=sai_metadata)
+
+    # save text model
+    if text_model is not None:
+        text_model_sd = text_model.state_dict()
+
+        if save_dtype is not None:
+            text_model_sd = {k: v.to(save_dtype) for k, v in text_model_sd.items()}
+
+        text_model_ckpt_file = os.path.splitext(ckpt_file)[0] + "_text_model.safetensors"
+        save_file(text_model_sd, text_model_ckpt_file)
+
+
 def save_stage_c_model_on_epoch_end_or_stepwise(
     args: argparse.Namespace,
     on_epoch_end: bool,
@@ -359,15 +377,11 @@ def save_stage_c_model_on_epoch_end_or_stepwise(
     num_train_epochs: int,
     global_step: int,
     stage_c,
+    text_model,
 ):
     def stage_c_saver(ckpt_file, epoch_no, global_step):
         sai_metadata = get_sai_model_spec(args)
-
-        state_dict = stage_c.state_dict()
-        if save_dtype is not None:
-            state_dict = {k: v.to(save_dtype) for k, v in state_dict.items()}
-
-        save_file(state_dict, ckpt_file, metadata=sai_metadata)
+        stage_c_saver_common(ckpt_file, stage_c, text_model, save_dtype, sai_metadata)
 
     save_sd_model_on_epoch_end_or_stepwise_common(
         args, on_epoch_end, accelerator, True, True, epoch, num_train_epochs, global_step, stage_c_saver, None
@@ -380,15 +394,11 @@ def save_stage_c_model_on_end(
     epoch: int,
     global_step: int,
     stage_c,
+    text_model,
 ):
     def stage_c_saver(ckpt_file, epoch_no, global_step):
         sai_metadata = get_sai_model_spec(args)
-
-        state_dict = stage_c.state_dict()
-        if save_dtype is not None:
-            state_dict = {k: v.to(save_dtype) for k, v in state_dict.items()}
-
-        save_file(state_dict, ckpt_file, metadata=sai_metadata)
+        stage_c_saver_common(ckpt_file, stage_c, text_model, save_dtype, sai_metadata)
 
     save_sd_model_on_train_end_common(args, True, True, epoch, global_step, stage_c_saver, None)
 
