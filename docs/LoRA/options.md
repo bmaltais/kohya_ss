@@ -34,7 +34,7 @@ U-Net is divided into "Down" (left half), "Mid" (bottom) and "Up" (right half).
 
 And it consists of 25 blocks in total: Down12 block, Mid1 block, and Up12 block. The neural net added here is simply called "UNet" in Kohya_ss.
 
-### RoLA Learning Object 2: Text Encoder
+### LoRA Learning Object 2: Text Encoder
 
 This isn't the only time LoRA adds neural nets .
 
