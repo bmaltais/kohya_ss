@@ -59,6 +59,13 @@ def main(args):
     stage_a = sc_utils.load_stage_a_model(args.stage_a_checkpoint_path, dtype=dtype, device=loading_device)
     stage_a.eval().requires_grad_(False)
 
+    # previewer
+    if args.previewer_checkpoint_path is not None:
+        previewer = sc_utils.load_previewer_model(args.previewer_checkpoint_path, dtype=dtype, device=loading_device)
+        previewer.eval().requires_grad_(False)
+    else:
+        previewer = None
+
     # 謎のクラス gdf
     gdf_c = sc.GDF(
         schedule=sc.CosineSchedule(clamp_range=[0.0001, 0.9999]),
@@ -221,6 +228,18 @@ def main(args):
             conditions_b["effnet"] = sampled_c
             unconditions_b["effnet"] = torch.zeros_like(sampled_c)
 
+        if previewer is not None:
+            with torch.no_grad(), torch.cuda.amp.autocast(dtype=dtype):
+                preview = previewer(sampled_c)
+                preview = preview.clamp(0, 1)
+            preview = preview.permute(0, 2, 3, 1).squeeze(0)
+            preview = preview.detach().float().cpu().numpy()
+            preview = Image.fromarray((preview * 255).astype(np.uint8))
+
+            timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+            os.makedirs(args.outdir, exist_ok=True)
+            preview.save(os.path.join(args.outdir, f"preview_{timestamp_str}.png"))
+
         if args.lowvram:
             generator_c = generator_c.to(loading_device)
             device_utils.clean_memory_on_device(device)
@@ -274,6 +293,7 @@ if __name__ == "__main__":
     sc_utils.add_stage_a_arguments(parser)
     sc_utils.add_stage_b_arguments(parser)
     sc_utils.add_stage_c_arguments(parser)
+    sc_utils.add_previewer_arguments(parser)
     sc_utils.add_text_model_arguments(parser)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
