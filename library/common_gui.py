@@ -804,7 +804,7 @@ def run_cmd_advanced_training(**kwargs):
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd += f' --lora_network_weights="{lora_network_weights}"'
+        run_cmd += f' --network_weights="{lora_network_weights}"' # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:

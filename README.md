@@ -505,6 +505,7 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 ## Change History
 * 2024/02/17 (v22.6.2)
 - Fix issue with Lora Extract GUI
+- - Fix syntax issue where parameter lora_network_weights is actually called network_weights
   
 * 2024/02/15 (v22.6.1)
 - Add support for multi-gpu parameters in the GUI under the "Parameters > Advanced" tab.
