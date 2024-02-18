@@ -88,6 +88,9 @@ class SourceModel:
                 self.sdxl_checkbox = gr.Checkbox(
                     label='SDXL Model', value=False, visible=False
                 )
+                self.stable_cascade_checkbox = gr.Checkbox(
+                    label='Stable Cascade Model', value=False, visible=False
+                )
 
             self.model_list.change(
                 set_pretrained_model_name_or_path_input,
@@ -99,6 +102,7 @@ class SourceModel:
                     self.v2,
                     self.v_parameterization,
                     self.sdxl_checkbox,
+                    self.stable_cascade_checkbox,
                 ],
                 outputs=[
                     self.model_list,
@@ -108,6 +112,7 @@ class SourceModel:
                     self.v2,
                     self.v_parameterization,
                     self.sdxl_checkbox,
+                    self.stable_cascade_checkbox,
                 ],
                 show_progress=False,
             )

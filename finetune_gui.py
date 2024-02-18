@@ -58,6 +58,7 @@ def save_configuration(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    stable_cascade_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -193,6 +194,7 @@ def open_configuration(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    stable_cascade_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -335,6 +337,7 @@ def train_model(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    stable_cascade_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -553,6 +556,8 @@ def train_model(
 
     if sdxl_checkbox:
         run_cmd += f' "./sdxl_train.py"'
+    elif stable_cascade_checkbox:
+        run_cmd += f' "./stable_cascade_train_stage_c.py"'
     else:
         run_cmd += f' "./fine_tune.py"'
 
@@ -561,7 +566,7 @@ def train_model(
         if use_latent_files == "Yes"
         else f"{train_dir}/{caption_metadata_filename}"
     )
-    cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
+    cache_text_encoder_outputs = sdxl_checkbox or stable_cascade_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     run_cmd += run_cmd_advanced_training(
@@ -573,7 +578,7 @@ def train_model(
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
         cache_text_encoder_outputs=cache_text_encoder_outputs
-        if sdxl_checkbox
+        if sdxl_checkbox or stable_cascade_checkbox
         else None,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
@@ -590,9 +595,9 @@ def train_model(
         in_json=in_json,
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
-        learning_rate_te1=learning_rate_te1 if sdxl_checkbox else None,
-        learning_rate_te2=learning_rate_te2 if sdxl_checkbox else None,
-        learning_rate_te=learning_rate_te if not sdxl_checkbox else None,
+        learning_rate_te1=learning_rate_te1 if sdxl_checkbox or stable_cascade_checkbox else None,
+        learning_rate_te2=learning_rate_te2 if sdxl_checkbox or stable_cascade_checkbox else None,
+        learning_rate_te=learning_rate_te if not sdxl_checkbox or not stable_cascade_checkbox else None,
         logging_dir=logging_dir,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
@@ -918,6 +923,7 @@ def finetune_tab(headless=False):
             source_model.v2,
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
+            source_model.stable_cascade_checkbox,
             train_dir,
             image_folder,
             output_dir,

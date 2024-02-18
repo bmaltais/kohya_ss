@@ -450,6 +450,7 @@ def set_pretrained_model_name_or_path_input(
     v2,
     v_parameterization,
     sdxl,
+    stable_cascade,
 ):
     # Check if the given model_list is in the list of SDXL models
     if str(model_list) in SDXL_MODELS:
@@ -542,6 +543,7 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(visible=True)
         v_parameterization = gr.Checkbox(visible=True)
         sdxl = gr.Checkbox(visible=True)
+        stable_cascade = gr.Checkbox(visible=True)
         pretrained_model_name_or_path = gr.Textbox(visible=True)
         pretrained_model_name_or_path_file = gr.Button(visible=True)
         pretrained_model_name_or_path_folder = gr.Button(visible=True)
@@ -553,6 +555,7 @@ def set_pretrained_model_name_or_path_input(
             v2,
             v_parameterization,
             sdxl,
+            stable_cascade,
         )
 
 

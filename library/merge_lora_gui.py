@@ -84,6 +84,7 @@ class GradioMergeLoRaTab:
                     show_progress=False,
                 )
                 sdxl_model = gr.Checkbox(label='SDXL model', value=False)
+                # stable_cascade_model = gr.Checkbox(label='Stable Cascade model', value=False)
 
             with gr.Row():
                 lora_a_model = gr.Textbox(

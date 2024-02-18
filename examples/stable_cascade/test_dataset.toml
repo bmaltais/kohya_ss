@@ -1,0 +1,15 @@
+[[datasets]]
+resolution = 1024
+batch_size = 4
+keep_tokens = 1
+enable_bucket = true
+min_bucket_reso = 64
+max_bucket_reso = 2048
+bucket_reso_steps = 32
+bucket_no_upscale = true
+
+  [[datasets.subsets]]
+  image_dir = 'd:\kohya_ss\examples\stable_cascade\test_dataset'
+  num_repeats = 10
+  class_tokens = 'toy'
+  caption_extension = '.txt'
