@@ -33,6 +33,12 @@ Since the official settings use `bf16` for training, training with `fp16` may be
 
 The code for training the Text Encoder is also written, but it is untested.
 
+### Command line sample
+
+```batch
+accelerate launch  --mixed_precision bf16 --num_cpu_threads_per_process 1 stable_cascade_train_stage_c.py --mixed_precision bf16 --save_precision bf16 --max_data_loader_n_workers 2 --persistent_data_loader_workers --gradient_checkpointing --learning_rate 1e-4 --optimizer_type adafactor --optimizer_args "scale_parameter=False" "relative_step=False" "warmup_init=False" --max_train_epochs 10 --save_every_n_epochs 1 --save_precision bf16 --output_dir ../output --output_name sc_test - --stage_c_checkpoint_path ../models/stage_c_bf16.safetensors --effnet_checkpoint_path ../models/effnet_encoder.safetensors --previewer_checkpoint_path ../models/previewer.safetensors --dataset_config ../dataset/config_bs1.toml --sample_every_n_epochs 1 --sample_prompts ../dataset/prompts.txt
+```
+
 ### About the dataset for fine tuning
 
 If the latents cache files for SD/SDXL exist (extension `*.npz`), it will be read and an error will occur during training. Please move them to another location in advance.
@@ -74,6 +80,11 @@ latents および Text Encoder 出力キャッシュのためのオプション�
 公式の設定では学習に `bf16` を用いているため、`fp16` での学習は不安定かもしれません。
 
 Text Encoder 学習のコードも書いてありますが、未テストです。
+
+### コマンドラインのサンプル
+
+[Command-line-sample](#command-line-sample)を参照してください。
+
 
 ###  fine tuning方式のデータセットについて
 
