@@ -1,4 +1,4 @@
-# Trainng Stable Cascade Stage C 
+# Training Stable Cascade Stage C 
 
 This is an experimental feature. There may be bugs.
 
@@ -63,9 +63,9 @@ After that, run `finetune/prepare_buckets_latents.py` with the `--stable_cascade
 
 学習中のサンプル画像生成は Perviewer で行われます。Previewer は EfficientNetEncoder の latents を画像に変換する簡易的な decoder です。
 
-SDXL の向けの一部のオプションは単に無視されるか、エラーになります（特に `--noise_offset` などのノイズ関係）。`--vae_batch_size` および `--no_half_vae` はそのまま EffcientNetEncoder に適用されます（mixed precision に `bf16` 指定時は `--no_half_vae` は不要のようです）。
+SDXL の向けの一部のオプションは単に無視されるか、エラーになります（特に `--noise_offset` などのノイズ関係）。`--vae_batch_size` および `--no_half_vae` はそのまま EfficientNetEncoder に適用されます（mixed precision に `bf16` 指定時は `--no_half_vae` は不要のようです）。
 
-latents および Text Encoder 出力キャッシュのためのオプションはそのまま使用できますが、EffcientNetEncoder は VAE よりもかなり軽量のため、メモリが特に厳しい場合以外はキャッシュを使用する必要はないかもしれません。
+latents および Text Encoder 出力キャッシュのためのオプションはそのまま使用できますが、EfficientNetEncoder は VAE よりもかなり軽量のため、メモリが特に厳しい場合以外はキャッシュを使用する必要はないかもしれません。
 
 メモリ消費を抑えるための `--gradient_checkpointing` 、`--full_bf16`、`--full_fp16`（未テスト）はそのまま使用できます。
 
