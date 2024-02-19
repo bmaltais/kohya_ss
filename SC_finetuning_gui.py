@@ -9,6 +9,7 @@ from datetime import datetime
 from library.common_gui import (
     get_folder_path,
     get_file_path,
+    get_any_file_path,
     get_saveasfile_path,
     save_inference_file,
     run_cmd_advanced_training,
@@ -22,7 +23,6 @@ from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
-from library.class_stable_cascade_parameters import StableCascadeParameters
 from library.class_command_executor import CommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -57,8 +57,10 @@ def save_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    train_dir,
-    image_folder,
+    effnet_checkpoint_path,
+    previewer_checkpoint_path,
+    dataset_config_path,
+    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -178,8 +180,10 @@ def open_configuration(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    train_dir,
-    image_folder,
+    effnet_checkpoint_path,
+    previewer_checkpoint_path,
+    dataset_config_path,
+    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -306,8 +310,10 @@ def train_model(
     pretrained_model_name_or_path,
     v2,
     v_parameterization,
-    train_dir,
-    image_folder,
+    effnet_checkpoint_path,
+    previewer_checkpoint_path,
+    dataset_config_path,
+    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -413,38 +419,38 @@ def train_model(
     #     )
     #     lr_warmup = '0'
 
-    image_num = len(
-        [
-            f
-            for f, lower_f in (
-                (file, file.lower()) for file in os.listdir(image_folder)
-            )
-            if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-        ]
-    )
-    log.info(f"image_num = {image_num}")
+    # image_num = len(
+    #     [
+    #         f
+    #         for f, lower_f in (
+    #             (file, file.lower()) for file in os.listdir(image_folder)
+    #         )
+    #         if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    #     ]
+    # )
+    # log.info(f"image_num = {image_num}")
 
-    repeats = int(image_num) * int(dataset_repeats)
-    log.info(f"repeats = {str(repeats)}")
+    # repeats = int(image_num) * int(dataset_repeats)
+    # log.info(f"repeats = {str(repeats)}")
 
-    # calculate max_train_steps
-    max_train_steps = int(
-        math.ceil(
-            float(repeats)
-            / int(train_batch_size)
-            / int(gradient_accumulation_steps)
-            * int(epoch)
-        )
-    )
+    # # calculate max_train_steps
+    # max_train_steps = int(
+    #     math.ceil(
+    #         float(repeats)
+    #         / int(train_batch_size)
+    #         / int(gradient_accumulation_steps)
+    #         * int(epoch)
+    #     )
+    # )
 
-    # Divide by two because flip augmentation create two copied of the source images
-    if flip_aug:
-        max_train_steps = int(math.ceil(float(max_train_steps) / 2))
+    # # Divide by two because flip augmentation create two copied of the source images
+    # if flip_aug:
+    #     max_train_steps = int(math.ceil(float(max_train_steps) / 2))
 
-    log.info(f"max_train_steps = {max_train_steps}")
+    # log.info(f"max_train_steps = {max_train_steps}")
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
+    # lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    # log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
 
@@ -456,9 +462,15 @@ def train_model(
         num_cpu_threads_per_process=num_cpu_threads_per_process,
     )
 
-    run_cmd += f' "./stable_cascade_train_stage_c.py"'
+    run_cmd += f' --mixed_precision bf16  "./stable_cascade_train_stage_c.py"'
 
     cache_text_encoder_outputs = False
+    
+    run_cmd += f' --stage_c_checkpoint_path "{pretrained_model_name_or_path}"'
+    run_cmd += f' --effnet_checkpoint_path "{effnet_checkpoint_path}"'
+    run_cmd += f' --previewer_checkpoint_path "{previewer_checkpoint_path}"'
+    run_cmd += f' --dataset_config "{dataset_config_path}"'
+    # run_cmd += f' --sample_prompts "{sample_prompts_path}"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -483,18 +495,18 @@ def train_model(
         gradient_checkpointing=gradient_checkpointing,
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
-        learning_rate_te1=learning_rate_te1,
-        learning_rate_te2=learning_rate_te2,
+        # learning_rate_te1=learning_rate_te1,
+        # learning_rate_te2=learning_rate_te2,
         learning_rate_te=learning_rate_te,
         logging_dir=logging_dir,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
-        lr_warmup_steps=lr_warmup_steps,
+        # lr_warmup_steps=lr_warmup_steps,
         max_data_loader_n_workers=max_data_loader_n_workers,
         max_timestep=max_timestep,
         max_token_length=max_token_length,
         max_train_epochs=max_train_epochs,
-        max_train_steps=max_train_steps,
+        # max_train_steps=max_train_steps,
         mem_eff_attn=mem_eff_attn,
         min_snr_gamma=min_snr_gamma,
         min_timestep=min_timestep,
@@ -508,21 +520,21 @@ def train_model(
         output_dir=output_dir,
         output_name=output_name,
         persistent_data_loader_workers=persistent_data_loader_workers,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        # pretrained_model_name_or_path=pretrained_model_name_or_path,
         random_crop=random_crop,
         resume=resume,
         save_every_n_epochs=save_every_n_epochs,
         save_every_n_steps=save_every_n_steps,
         save_last_n_steps=save_last_n_steps,
         save_last_n_steps_state=save_last_n_steps_state,
-        save_model_as=save_model_as,
+        # save_model_as=save_model_as,
         save_precision=save_precision,
         save_state=save_state,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
         seed=seed,
         shuffle_caption=shuffle_caption,
         train_batch_size=train_batch_size,
-        train_data_dir=image_folder,
+        # train_data_dir=image_folder,
         train_text_encoder=train_text_encoder,
         use_wandb=use_wandb,
         v2=v2,
@@ -594,37 +606,78 @@ def sc_finetune_tab(headless=False):
 
         source_model = SourceModel(headless=headless, model_type_visibility=False, model_list_value="custom")
 
-        # with gr.Tab(label="Models & Files"):
-            
-        with gr.Tab("Folders"):
+        with gr.Tab(label="Folders"):
             with gr.Row():
-                train_dir = gr.Textbox(
-                    label="Training config folder",
-                    placeholder="folder where the training configuration files will be saved",
+                effnet_checkpoint_path = gr.Textbox(
+                    label='effnet checkpoint path',
+                    placeholder='enter the path to the SC effnet checkpoint file',
                 )
-                train_dir_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
+                effnet_checkpoint_path_file = gr.Button(
+                    document_symbol,
+                    elem_id='open_folder_small',
                 )
-                train_dir_folder.click(
-                    get_folder_path,
-                    outputs=train_dir,
+                effnet_checkpoint_path_file.click(
+                    get_file_path,
+                    inputs=effnet_checkpoint_path,
+                    outputs=effnet_checkpoint_path,
                     show_progress=False,
                 )
-
-                image_folder = gr.Textbox(
-                    label="Training Image folder",
-                    placeholder="folder where the training images are located",
+                previewer_checkpoint_path = gr.Textbox(
+                    label='SC Previewer checkpoint path',
+                    placeholder='enter the path to the SC Previewer checkpoint file',
                 )
-                image_folder_input_folder = gr.Button(
+                previewer_checkpoint_path_file = gr.Button(
+                    document_symbol,
+                    elem_id='open_folder_small',
+                )
+                previewer_checkpoint_path_file.click(
+                    get_file_path,
+                    inputs=previewer_checkpoint_path,
+                    outputs=previewer_checkpoint_path,
+                    show_progress=False,
+                )
+            with gr.Row():
+                dataset_config_path = gr.Textbox(
+                    label='effnet checkpoint path',
+                    placeholder='enter the path to the SC effnet checkpoint file',
+                )
+                dataset_config_path_file = gr.Button(
+                    document_symbol,
+                    elem_id='open_folder_small',
+                )
+                dataset_config_path_file.click(
+                    get_file_path,
+                    inputs=dataset_config_path,
+                    outputs=dataset_config_path,
+                    show_progress=False,
+                )
+                sample_prompts_path = gr.Textbox(
+                    label='Sample image prompt path',
+                    placeholder='enter the path to the sample image prompt file',
+                )
+                sample_prompts_path_file = gr.Button(
+                    document_symbol,
+                    elem_id='open_folder_small',
+                )
+                sample_prompts_path_file.click(
+                    get_file_path,
+                    inputs=sample_prompts_path,
+                    outputs=sample_prompts_path,
+                    show_progress=False,
+                )
+            with gr.Row():
+                logging_dir = gr.Textbox(
+                    label="Logging folder",
+                    placeholder="Optional: enable logging and output TensorBoard log to this folder",
+                )
+                logging_dir_input_folder = gr.Button(
                     folder_symbol,
                     elem_id="open_folder_small",
                     visible=(not headless),
                 )
-                image_folder_input_folder.click(
+                logging_dir_input_folder.click(
                     get_folder_path,
-                    outputs=image_folder,
+                    outputs=logging_dir,
                     show_progress=False,
                 )
             with gr.Row():
@@ -642,43 +695,32 @@ def sc_finetune_tab(headless=False):
                     outputs=output_dir,
                     show_progress=False,
                 )
-
-                logging_dir = gr.Textbox(
-                    label="Logging folder",
-                    placeholder="Optional: enable logging and output TensorBoard log to this folder",
-                )
-                logging_dir_input_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
-                )
-                logging_dir_input_folder.click(
-                    get_folder_path,
-                    outputs=logging_dir,
-                    show_progress=False,
-                )
-            with gr.Row():
                 output_name = gr.Textbox(
                     label="Model output name",
                     placeholder="Name of the model to output",
                     value="last",
                     interactive=True,
                 )
-            train_dir.change(
-                remove_doublequote,
-                inputs=[train_dir],
-                outputs=[train_dir],
-            )
-            image_folder.change(
-                remove_doublequote,
-                inputs=[image_folder],
-                outputs=[image_folder],
-            )
-            output_dir.change(
-                remove_doublequote,
-                inputs=[output_dir],
-                outputs=[output_dir],
-            )
+            # effnet_checkpoint_path.change(
+            #     remove_doublequote,
+            #     inputs=[effnet_checkpoint_path],
+            #     outputs=[effnet_checkpoint_path],
+            # )
+            # previewer_checkpoint_path.change(
+            #     remove_doublequote,
+            #     inputs=[previewer_checkpoint_path],
+            #     outputs=[previewer_checkpoint_path],
+            # )
+            # dataset_config_path.change(
+            #     remove_doublequote,
+            #     inputs=[dataset_config_path],
+            #     outputs=[dataset_config_path],
+            # )
+            # sample_prompts_path.change(
+            #     remove_doublequote,
+            #     inputs=[sample_prompts_path],
+            #     outputs=[sample_prompts_path],
+            # )
         
         with gr.Tab("Parameters"):
 
@@ -709,9 +751,6 @@ def sc_finetune_tab(headless=False):
                     learning_rate_value="1e-5",
                     finetuning=True,
                 )
-                
-                # Add Stable Cascade Parameters
-                stable_cascade_params = StableCascadeParameters()
 
                 with gr.Row():
                     dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
@@ -768,8 +807,10 @@ def sc_finetune_tab(headless=False):
             source_model.pretrained_model_name_or_path,
             source_model.v2,
             source_model.v_parameterization,
-            train_dir,
-            image_folder,
+            effnet_checkpoint_path,
+            previewer_checkpoint_path,
+            dataset_config_path,
+            sample_prompts_path,
             output_dir,
             logging_dir,
             advanced_training.flip_aug,

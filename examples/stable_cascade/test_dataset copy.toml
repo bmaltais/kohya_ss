@@ -3,7 +3,7 @@ caption_extension = '.txt'
 
 [[Datasets]]
 batch_size = 4
-resolution = 768
+resolution = 1024
 
   [[datasets.subsets]]
   image_dir = 'd:\kohya_ss\examples\stable_cascade\test_dataset'
