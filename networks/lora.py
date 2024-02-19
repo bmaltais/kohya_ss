@@ -841,9 +841,14 @@ class LoRANetwork(torch.nn.Module):
                         is_linear = child_module.__class__.__name__ == "Linear"
                         is_conv2d = child_module.__class__.__name__ == "Conv2d"
                         is_conv2d_1x1 = is_conv2d and child_module.kernel_size == (1, 1)
+                        is_group_conv2d = is_conv2d and child_module.groups > 1
 
-                        if is_linear or is_conv2d:
-                            lora_name = prefix + "." + name + "." + child_name
+                        # if is_group_conv2d:
+                        #     logger.info(f"skip group conv2d: {name}.{child_name}")
+                        #     continue
+
+                        if is_linear or (is_conv2d and not is_group_conv2d):
+                            lora_name = prefix + "." + name + ("." + child_name if child_name else "")
                             lora_name = lora_name.replace(".", "_")
 
                             dim = None
@@ -914,6 +919,11 @@ class LoRANetwork(torch.nn.Module):
         target_modules = LoRANetwork.UNET_TARGET_REPLACE_MODULE
         if modules_dim is not None or self.conv_lora_dim is not None or conv_block_dims is not None:
             target_modules += LoRANetwork.UNET_TARGET_REPLACE_MODULE_CONV2D_3X3
+
+        # XXX temporary solution for Stable Cascade Stage C: replace all modules
+        if "StageC" in unet.__class__.__name__:
+            logger.info("replace all modules for Stable Cascade Stage C")
+            target_modules = ["Linear", "Conv2d"]
 
         self.unet_loras, skipped_un = create_modules(True, None, unet, target_modules)
         logger.info(f"create LoRA for U-Net: {len(self.unet_loras)} modules.")

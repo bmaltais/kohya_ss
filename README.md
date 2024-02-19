@@ -45,6 +45,32 @@ If the latents cache files for SD/SDXL exist (extension `*.npz`), it will be rea
 
 After that, run `finetune/prepare_buckets_latents.py` with the `--stable_cascade` option to create latents cache files for Stable Cascade (suffix `_sc_latents.npz` is added).
 
+## LoRA training
+
+`stable_cascade_train_c_network.py` is used for LoRA training. The main options are the same as `train_network.py`, and the same options as `stable_cascade_train_stage_c.py` have been added.
+
+__This is an experimental feature, so the format of the saved weights may change in the future and become incompatible.__
+
+There is no compatibility with the official LoRA, and the implementation of Text Encoder embedding training (Pivotal Tuning) in the official implementation is not implemented here.
+
+Text Encoder LoRA training is implemented, but untested.
+
+## Image generation
+
+Basic image generation functionality is available in `stable_cascade_gen_img.py`. See `--help` for usage.
+
+When using LoRA, specify `--network_module networks.lora --network_mul 1 --network_weights lora_weights.safetensors`.
+
+The following prompt options are available.
+
+  * `--n` Negative prompt up to the next option.
+  * `--w` Specifies the width of the generated image.
+  * `--h` Specifies the height of the generated image.
+  * `--d` Specifies the seed of the generated image.
+  * `--l` Specifies the CFG scale of the generated image.
+  * `--s` Specifies the number of steps in the generation.
+  * `--t` Specifies the t_start of the generation.
+  * `--f` Specifies the shift of the generation.
 
 # Stable Cascade Stage C の学習
 
@@ -91,6 +117,35 @@ Text Encoder 学習のコードも書いてありますが、未テストです�
 SD/SDXL 向けの latents キャッシュファイル（拡張子 `*.npz`）が存在するとそれを読み込んでしまい学習時にエラーになります。あらかじめ他の場所に退避しておいてください。
 
 その後、`finetune/prepare_buckets_latents.py` をオプション `--stable_cascade` を指定して実行すると、Stable Cascade 向けの latents キャッシュファイル（接尾辞 `_sc_latents.npz` が付きます）が作成されます。
+
+
+## LoRA 等の学習
+
+LoRA の学習は `stable_cascade_train_c_network.py` で行います。主なオプションは `train_network.py` と同様で、`stable_cascade_train_stage_c.py` と同様のオプションが追加されています。
+
+__実験的機能のため、保存される重みのフォーマットは将来的に変更され、互換性がなくなる可能性があります。__
+
+公式の LoRA と重みの互換性はありません。また公式で実装されている Text Encoder の embedding 学習（Pivotal Tuning）も実装されていません。
+
+Text Encoder の LoRA 学習は実装してありますが、未テストです。
+
+## 画像生成
+
+最低限の画像生成機能が `stable_cascade_gen_img.py` にあります。使用法は `--help` を参照してください。
+
+LoRA 使用時は `--network_module networks.lora --network_mul 1 --network_weights lora_weights.safetensors` のように指定します。
+
+プロンプトオプションとして以下が使用できます。
+
+  * `--n` Negative prompt up to the next option.
+  * `--w` Specifies the width of the generated image.
+  * `--h` Specifies the height of the generated image.
+  * `--d` Specifies the seed of the generated image.
+  * `--l` Specifies the CFG scale of the generated image.
+  * `--s` Specifies the number of steps in the generation.
+  * `--t` Specifies the t_start of the generation.
+  * `--f` Specifies the shift of the generation.
+
 
 ---  
 

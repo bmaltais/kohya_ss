@@ -12,6 +12,9 @@ import torch.utils.checkpoint
 import torchvision
 
 
+MODEL_VERSION_STABLE_CASCADE = "stable_cascade"
+
+
 # region VectorQuantize
 
 # from torchtools https://github.com/pabloppp/pytorch-tools
