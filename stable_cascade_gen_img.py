@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import math
 import os
 import random
@@ -66,6 +67,40 @@ def main(args):
     else:
         previewer = None
 
+    # LoRA
+    if args.network_module:
+        for i, network_module in enumerate(args.network_module):
+            print("import network module:", network_module)
+            imported_module = importlib.import_module(network_module)
+
+            network_mul = 1.0 if args.network_mul is None or len(args.network_mul) <= i else args.network_mul[i]
+
+            net_kwargs = {}
+            if args.network_args and i < len(args.network_args):
+                network_args = args.network_args[i]
+                # TODO escape special chars
+                network_args = network_args.split(";")
+                for net_arg in network_args:
+                    key, value = net_arg.split("=")
+                    net_kwargs[key] = value
+
+            if args.network_weights is None or len(args.network_weights) <= i:
+                raise ValueError("No weight. Weight is required.")
+
+            network_weight = args.network_weights[i]
+            print("load network weights from:", network_weight)
+
+            network, weights_sd = imported_module.create_network_from_weights(
+                network_mul, network_weight, effnet, text_model, generator_c, for_inference=True, **net_kwargs
+            )
+            if network is None:
+                return
+
+            mergeable = network.is_mergeable()
+            assert mergeable, "not-mergeable network is not supported yet."
+
+            network.merge_to(text_model, generator_c, weights_sd, dtype, device)
+
     # 謎のクラス gdf
     gdf_c = sc.GDF(
         schedule=sc.CosineSchedule(clamp_range=[0.0001, 0.9999]),
@@ -122,7 +157,7 @@ def main(args):
         cfg = 4
         timesteps = 20
         shift = 2
-        t_start = 1.0  # t_start is not an option, but it is a parameter
+        t_start = 1.0
         negative_prompt = ""
         seed = None
 
@@ -299,6 +334,26 @@ if __name__ == "__main__":
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--outdir", type=str, default="../outputs", help="dir to write results to / 生成画像の出力先")
     parser.add_argument("--lowvram", action="store_true", help="if specified, use low VRAM mode")
+    parser.add_argument(
+        "--network_module",
+        type=str,
+        default=None,
+        nargs="*",
+        help="additional network module to use / 追加ネットワークを使う時そのモジュール名",
+    )
+    parser.add_argument(
+        "--network_weights", type=str, default=None, nargs="*", help="additional network weights to load / 追加ネットワークの重み"
+    )
+    parser.add_argument(
+        "--network_mul", type=float, default=None, nargs="*", help="additional network multiplier / 追加ネットワークの効果の倍率"
+    )
+    parser.add_argument(
+        "--network_args",
+        type=str,
+        default=None,
+        nargs="*",
+        help="additional arguments for network (key=value) / ネットワークへの追加の引数",
+    )
     args = parser.parse_args()
 
     main(args)

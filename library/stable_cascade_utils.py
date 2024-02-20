@@ -38,10 +38,6 @@ logger = logging.getLogger(__name__)
 
 CLIP_TEXT_MODEL_NAME: str = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
 
-EFFNET_PREPROCESS = torchvision.transforms.Compose(
-    [torchvision.transforms.ToTensor(), torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))]
-)
-
 TEXT_ENCODER_OUTPUTS_CACHE_SUFFIX = "_sc_te_outputs.npz"
 
 
@@ -193,7 +189,7 @@ def load_previewer_model(previewer_checkpoint_path, dtype=None, device="cpu") ->
     return previewer
 
 
-def get_sai_model_spec(args):
+def get_sai_model_spec(args, lora=False):
     timestamp = time.time()
 
     reso = args.resolution
@@ -212,7 +208,7 @@ def get_sai_model_spec(args):
         False,
         False,
         False,
-        False,
+        lora,
         False,
         timestamp,
         title=title,
