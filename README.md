@@ -2,6 +2,8 @@
 
 This is an experimental feature. There may be bugs.
 
+__ Feb 20, 2024 Update:__ There was a problem with the preprocessing of the EffcientNetEncoder, and the latents became invalid (the saturation of the training results decreases). If you have cached `_sc_latents.npz` files with `--cache_latents_to_disk`, please delete them before training.
+
 ## Usage
 
 Training is run with `stable_cascade_train_stage_c.py`.
@@ -75,6 +77,8 @@ The following prompt options are available.
 # Stable Cascade Stage C の学習
 
 実験的機能です。不具合があるかもしれません。
+
+__2024/2/20 追記:__ EffcientNetEncoder の前処理に不具合があり、latents が不正になっていました（学習結果の彩度が低下する現象が起きます）。`--cache_latents_to_disk` でキャッシュした `_sc_latents.npz` がある場合、いったん削除してから学習してください。
 
 ## 使い方
 
