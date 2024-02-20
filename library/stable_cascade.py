@@ -14,6 +14,10 @@ import torchvision
 
 MODEL_VERSION_STABLE_CASCADE = "stable_cascade"
 
+EFFNET_PREPROCESS = torchvision.transforms.Compose(
+    [torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))]
+)
+
 
 # region VectorQuantize
 
@@ -144,6 +148,11 @@ class EfficientNetEncoder(nn.Module):
         The method to make it usable like VAE. It should be separated properly, but it is a temporary response.
         """
         # latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
+        
+        # x is -1 to 1, so we need to convert it to 0 to 1, and then preprocess it with EfficientNet's preprocessing.
+        x = (x + 1) / 2
+        x = EFFNET_PREPROCESS(x)
+
         x = self(x)
         return SimpleNamespace(latent_dist=SimpleNamespace(sample=lambda: x))
 

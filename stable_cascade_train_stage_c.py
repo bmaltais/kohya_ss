@@ -372,12 +372,26 @@ def train(args):
                 else:
                     with torch.no_grad():
                         # latentに変換
-                        latents = effnet(batch["images"].to(effnet_dtype)).to(weight_dtype)
+                        # XXX Effnet preprocessing is included in encode method
+                        latents = effnet.encode(batch["images"].to(effnet_dtype)).latent_dist.sample().to(weight_dtype)
 
                         # NaNが含まれていれば警告を表示し0に置き換える
                         if torch.any(torch.isnan(latents)):
                             accelerator.print("NaN found in latents, replacing with zeros")
                             latents = torch.nan_to_num(latents, 0, out=latents)
+
+                # # debug: decode latent with previewer and save it
+                # import time
+                # import numpy as np
+                # from PIL import Image
+                # ts = time.time()
+                # images = previewer(latents.to(previewer.device, dtype=previewer.dtype))
+                # for i, img in enumerate(images):
+                #     img = img.detach().cpu().numpy().transpose(1, 2, 0)
+                #     img = np.clip(img, 0, 1)
+                #     img = (img * 255).astype(np.uint8)
+                #     img = Image.fromarray(img)
+                #     img.save(f"logs/previewer_{i}_{ts}.png")
 
                 if "text_encoder_outputs1_list" not in batch or batch["text_encoder_outputs1_list"] is None:
                     input_ids1 = batch["input_ids"]
