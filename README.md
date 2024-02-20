@@ -2,7 +2,7 @@
 
 This is an experimental feature. There may be bugs.
 
-__ Feb 20, 2024 Update:__ There was a problem with the preprocessing of the EffcientNetEncoder, and the latents became invalid (the saturation of the training results decreases). If you have cached `_sc_latents.npz` files with `--cache_latents_to_disk`, please delete them before training.
+__Feb 20, 2024 Update:__ There was a problem with the preprocessing of the EffcientNetEncoder, and the latents became invalid (the saturation of the training results decreases). If you have cached `_sc_latents.npz` files with `--cache_latents_to_disk`, please delete them before training.
 
 ## Usage
 
