@@ -638,8 +638,8 @@ def sc_finetune_tab(headless=False):
                 )
             with gr.Row():
                 dataset_config_path = gr.Textbox(
-                    label='effnet checkpoint path',
-                    placeholder='enter the path to the SC effnet checkpoint file',
+                    label='Dataset toml path',
+                    placeholder='enter the path to the finetuning dataset toml file',
                 )
                 dataset_config_path_file = gr.Button(
                     document_symbol,
