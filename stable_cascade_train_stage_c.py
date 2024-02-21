@@ -531,6 +531,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_tokenizer_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, False)
+    train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
     add_sdxl_training_arguments(parser)  # cache text encoder outputs
