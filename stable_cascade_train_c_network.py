@@ -295,10 +295,9 @@ class NetworkTrainer:
         # text_encoder is List[CLIPTextModel] or CLIPTextModel
         text_encoders = text_encoder if isinstance(text_encoder, list) else [text_encoder]
 
-        # # モデルに xformers とか memory efficient attention を組み込む
+        # モデルに xformers とか memory efficient attention を組み込む
         # train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
-        # if torch.__version__ >= "2.0.0":  # PyTorch 2.0.0 以上対応のxformersなら以下が使える
-        #     vae.set_use_memory_efficient_attention_xformers(args.xformers)
+        stage_c.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
 
         # 差分追加学習のためにモデルを読み込む
         sys.path.append(os.path.dirname(__file__))

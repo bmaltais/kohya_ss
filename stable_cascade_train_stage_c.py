@@ -147,6 +147,9 @@ def train(args):
     else:
         previewer = None
 
+    # モデルに xformers とか memory efficient attention を組み込む
+    stage_c.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
+
     # 学習を準備する
     if cache_latents:
         effnet.to(accelerator.device, dtype=effnet_dtype)
