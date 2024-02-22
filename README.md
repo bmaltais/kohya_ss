@@ -2,7 +2,7 @@
 
 This is an experimental feature. There may be bugs.
 
-__Feb 22, 2024 Update:__ Fixed a bug that LoRA is not applied to some modules (to_q/k/v and to_out) in Attention.
+__Feb 22, 2024 Update:__ Fixed a bug that LoRA is not applied to some modules (to_q/k/v and to_out) in Attention. Also, the model structure of Stage C has been changed, and you can choose xformers and SDPA (SDPA was used before). Please specify `--sdpa` or `--xformers` option.
 
 __Feb 20, 2024 Update:__ There was a problem with the preprocessing of the EffcientNetEncoder, and the latents became invalid (the saturation of the training results decreases). If you have cached `_sc_latents.npz` files with `--cache_latents_to_disk`, please delete them before training.
 
@@ -80,7 +80,7 @@ The following prompt options are available.
 
 実験的機能です。不具合があるかもしれません。
 
-__2024/2/22 追記:__ LoRAが一部のモジュール（Attention の to_q/k/v および to_out）に適用されない不具合を修正しました。
+__2024/2/22 追記:__ LoRAが一部のモジュール（Attention の to_q/k/v および to_out）に適用されない不具合を修正しました。また Stage C のモデル構造を変更し xformers と SDPA を選べるようになりました（今までは SDPA が使用されていました）。`--sdpa` または `--xformers` オプションを指定してください。
 
 __2024/2/20 追記:__ EffcientNetEncoder の前処理に不具合があり、latents が不正になっていました（学習結果の彩度が低下する現象が起きます）。`--cache_latents_to_disk` でキャッシュした `_sc_latents.npz` がある場合、いったん削除してから学習してください。
 
