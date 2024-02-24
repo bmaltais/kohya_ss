@@ -11,7 +11,10 @@ from safetensors.torch import load_file, save_file
 from tqdm import tqdm
 from library import sai_model_spec, model_util, sdxl_model_util
 import lora
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 # CLAMP_QUANTILE = 0.99
 # MIN_DIFF = 1e-1
@@ -66,14 +69,14 @@ def svd(
 
     # load models
     if not sdxl:
-        print(f"loading original SD model : {model_org}")
+        logger.info(f"loading original SD model : {model_org}")
         text_encoder_o, _, unet_o = model_util.load_models_from_stable_diffusion_checkpoint(v2, model_org)
         text_encoders_o = [text_encoder_o]
         if load_dtype is not None:
             text_encoder_o = text_encoder_o.to(load_dtype)
             unet_o = unet_o.to(load_dtype)
 
-        print(f"loading tuned SD model : {model_tuned}")
+        logger.info(f"loading tuned SD model : {model_tuned}")
         text_encoder_t, _, unet_t = model_util.load_models_from_stable_diffusion_checkpoint(v2, model_tuned)
         text_encoders_t = [text_encoder_t]
         if load_dtype is not None:
@@ -85,7 +88,7 @@ def svd(
         device_org = load_original_model_to if load_original_model_to else "cpu"
         device_tuned = load_tuned_model_to if load_tuned_model_to else "cpu"
 
-        print(f"loading original SDXL model : {model_org}")
+        logger.info(f"loading original SDXL model : {model_org}")
         text_encoder_o1, text_encoder_o2, _, unet_o, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
             sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_org, device_org
         )
@@ -95,7 +98,7 @@ def svd(
             text_encoder_o2 = text_encoder_o2.to(load_dtype)
             unet_o = unet_o.to(load_dtype)
 
-        print(f"loading original SDXL model : {model_tuned}")
+        logger.info(f"loading original SDXL model : {model_tuned}")
         text_encoder_t1, text_encoder_t2, _, unet_t, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
             sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_tuned, device_tuned
         )
@@ -135,7 +138,7 @@ def svd(
         # Text Encoder might be same
         if not text_encoder_different and torch.max(torch.abs(diff)) > min_diff:
             text_encoder_different = True
-            print(f"Text encoder is different. {torch.max(torch.abs(diff))} > {min_diff}")
+            logger.info(f"Text encoder is different. {torch.max(torch.abs(diff))} > {min_diff}")
 
         diffs[lora_name] = diff
 
@@ -144,7 +147,7 @@ def svd(
         del text_encoder
 
     if not text_encoder_different:
-        print("Text encoder is same. Extract U-Net only.")
+        logger.warning("Text encoder is same. Extract U-Net only.")
         lora_network_o.text_encoder_loras = []
         diffs = {}  # clear diffs
 
@@ -166,7 +169,7 @@ def svd(
     del unet_t
 
     # make LoRA with svd
-    print("calculating by svd")
+    logger.info("calculating by svd")
     lora_weights = {}
     with torch.no_grad():
         for lora_name, mat in tqdm(list(diffs.items())):
@@ -185,7 +188,7 @@ def svd(
             if device:
                 mat = mat.to(device)
 
-            # print(lora_name, mat.size(), mat.device, rank, in_dim, out_dim)
+            # logger.info(lora_name, mat.size(), mat.device, rank, in_dim, out_dim)
             rank = min(rank, in_dim, out_dim)  # LoRA rank cannot exceed the original dim
 
             if conv2d:
@@ -230,7 +233,7 @@ def svd(
     lora_network_save.apply_to(text_encoders_o, unet_o)  # create internal module references for state_dict
 
     info = lora_network_save.load_state_dict(lora_sd)
-    print(f"Loading extracted LoRA weights: {info}")
+    logger.info(f"Loading extracted LoRA weights: {info}")
 
     dir_name = os.path.dirname(save_to)
     if dir_name and not os.path.exists(dir_name):
@@ -257,7 +260,7 @@ def svd(
         metadata.update(sai_metadata)
 
     lora_network_save.save_weights(save_to, save_dtype, metadata)
-    print(f"LoRA weights are saved to: {save_to}")
+    logger.info(f"LoRA weights are saved to: {save_to}")
 
 
 def setup_parser() -> argparse.ArgumentParser:

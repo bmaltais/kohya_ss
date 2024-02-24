@@ -11,6 +11,10 @@ from PIL import Image
 from tqdm import tqdm
 
 import library.train_util as train_util
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 # from wd14 tagger
 IMAGE_SIZE = 448
@@ -58,7 +62,7 @@ class ImageLoadingPrepDataset(torch.utils.data.Dataset):
             image = preprocess_image(image)
             tensor = torch.tensor(image)
         except Exception as e:
-            print(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
+            logger.error(f"Could not load image path / 画像を読み込めません: {img_path}, error: {e}")
             return None
 
         return (tensor, img_path)
@@ -79,7 +83,7 @@ def main(args):
     # depreacatedの警告が出るけどなくなったらその時
     # https://github.com/toriato/stable-diffusion-webui-wd14-tagger/issues/22
     if not os.path.exists(args.model_dir) or args.force_download:
-        print(f"downloading wd14 tagger model from hf_hub. id: {args.repo_id}")
+        logger.info(f"downloading wd14 tagger model from hf_hub. id: {args.repo_id}")
         files = FILES
         if args.onnx:
             files += FILES_ONNX
@@ -95,7 +99,7 @@ def main(args):
                 force_filename=file,
             )
     else:
-        print("using existing wd14 tagger model")
+        logger.info("using existing wd14 tagger model")
 
     # 画像を読み込む
     if args.onnx:
@@ -103,8 +107,8 @@ def main(args):
         import onnxruntime as ort
 
         onnx_path = f"{args.model_dir}/model.onnx"
-        print("Running wd14 tagger with onnx")
-        print(f"loading onnx model: {onnx_path}")
+        logger.info("Running wd14 tagger with onnx")
+        logger.info(f"loading onnx model: {onnx_path}")
 
         if not os.path.exists(onnx_path):
             raise Exception(
@@ -121,7 +125,7 @@ def main(args):
 
         if args.batch_size != batch_size and type(batch_size) != str:
             # some rebatch model may use 'N' as dynamic axes
-            print(
+            logger.warning(
                 f"Batch size {args.batch_size} doesn't match onnx model batch size {batch_size}, use model batch size {batch_size}"
             )
             args.batch_size = batch_size
@@ -156,7 +160,7 @@ def main(args):
 
     train_data_dir_path = Path(args.train_data_dir)
     image_paths = train_util.glob_images_pathlib(train_data_dir_path, args.recursive)
-    print(f"found {len(image_paths)} images.")
+    logger.info(f"found {len(image_paths)} images.")
 
     tag_freq = {}
 
@@ -237,7 +241,10 @@ def main(args):
             with open(caption_file, "wt", encoding="utf-8") as f:
                 f.write(tag_text + "\n")
                 if args.debug:
-                    print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
+                    logger.info("")
+                    logger.info(f"{image_path}:")
+                    logger.info(f"\tCharacter tags: {character_tag_text}")
+                    logger.info(f"\tGeneral tags: {general_tag_text}")
 
     # 読み込みの高速化のためにDataLoaderを使うオプション
     if args.max_data_loader_n_workers is not None:
@@ -269,7 +276,7 @@ def main(args):
                         image = image.convert("RGB")
                     image = preprocess_image(image)
                 except Exception as e:
-                    print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
+                    logger.error(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
                     continue
             b_imgs.append((image_path, image))
 
@@ -284,11 +291,11 @@ def main(args):
 
     if args.frequency_tags:
         sorted_tags = sorted(tag_freq.items(), key=lambda x: x[1], reverse=True)
-        print("\nTag frequencies:")
+        print("Tag frequencies:")
         for tag, freq in sorted_tags:
             print(f"{tag}: {freq}")
 
-    print("done!")
+    logger.info("done!")
 
 
 def setup_parser() -> argparse.ArgumentParser:

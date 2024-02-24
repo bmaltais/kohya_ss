@@ -7,7 +7,10 @@ from safetensors.torch import load_file, save_file
 from library import sai_model_spec, train_util
 import library.model_util as model_util
 import lora
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def load_state_dict(file_name, dtype):
     if os.path.splitext(file_name)[1] == ".safetensors":
@@ -61,10 +64,10 @@ def merge_to_sd_model(text_encoder, unet, models, ratios, merge_dtype):
                         name_to_module[lora_name] = child_module
 
     for model, ratio in zip(models, ratios):
-        print(f"loading: {model}")
+        logger.info(f"loading: {model}")
         lora_sd, _ = load_state_dict(model, merge_dtype)
 
-        print(f"merging...")
+        logger.info(f"merging...")
         for key in lora_sd.keys():
             if "lora_down" in key:
                 up_key = key.replace("lora_down", "lora_up")
@@ -73,10 +76,10 @@ def merge_to_sd_model(text_encoder, unet, models, ratios, merge_dtype):
                 # find original module for this lora
                 module_name = ".".join(key.split(".")[:-2])  # remove trailing ".lora_down.weight"
                 if module_name not in name_to_module:
-                    print(f"no module found for LoRA weight: {key}")
+                    logger.info(f"no module found for LoRA weight: {key}")
                     continue
                 module = name_to_module[module_name]
-                # print(f"apply {key} to {module}")
+                # logger.info(f"apply {key} to {module}")
 
                 down_weight = lora_sd[key]
                 up_weight = lora_sd[up_key]
@@ -104,7 +107,7 @@ def merge_to_sd_model(text_encoder, unet, models, ratios, merge_dtype):
                 else:
                     # conv2d 3x3
                     conved = torch.nn.functional.conv2d(down_weight.permute(1, 0, 2, 3), up_weight).permute(1, 0, 2, 3)
-                    # print(conved.size(), weight.size(), module.stride, module.padding)
+                    # logger.info(conved.size(), weight.size(), module.stride, module.padding)
                     weight = weight + ratio * conved * scale
 
                 module.weight = torch.nn.Parameter(weight)
@@ -118,7 +121,7 @@ def merge_lora_models(models, ratios, merge_dtype, concat=False, shuffle=False):
     v2 = None
     base_model = None
     for model, ratio in zip(models, ratios):
-        print(f"loading: {model}")
+        logger.info(f"loading: {model}")
         lora_sd, lora_metadata = load_state_dict(model, merge_dtype)
 
         if lora_metadata is not None:
@@ -151,10 +154,10 @@ def merge_lora_models(models, ratios, merge_dtype, concat=False, shuffle=False):
                 if lora_module_name not in base_alphas:
                     base_alphas[lora_module_name] = alpha
 
-        print(f"dim: {list(set(dims.values()))}, alpha: {list(set(alphas.values()))}")
+        logger.info(f"dim: {list(set(dims.values()))}, alpha: {list(set(alphas.values()))}")
 
         # merge
-        print(f"merging...")
+        logger.info(f"merging...")
         for key in lora_sd.keys():
             if "alpha" in key:
                 continue
@@ -196,8 +199,8 @@ def merge_lora_models(models, ratios, merge_dtype, concat=False, shuffle=False):
             merged_sd[key_down] = merged_sd[key_down][perm]
             merged_sd[key_up] = merged_sd[key_up][:,perm]
 
-    print("merged model")
-    print(f"dim: {list(set(base_dims.values()))}, alpha: {list(set(base_alphas.values()))}")
+    logger.info("merged model")
+    logger.info(f"dim: {list(set(base_dims.values()))}, alpha: {list(set(base_alphas.values()))}")
 
     # check all dims are same
     dims_list = list(set(base_dims.values()))
@@ -239,7 +242,7 @@ def merge(args):
         save_dtype = merge_dtype
 
     if args.sd_model is not None:
-        print(f"loading SD model: {args.sd_model}")
+        logger.info(f"loading SD model: {args.sd_model}")
 
         text_encoder, vae, unet = model_util.load_models_from_stable_diffusion_checkpoint(args.v2, args.sd_model)
 
@@ -264,18 +267,18 @@ def merge(args):
             )
             if args.v2:
                 # TODO read sai modelspec
-                print(
+                logger.warning(
                     "Cannot determine if model is for v-prediction, so save metadata as v-prediction / modelがv-prediction用か否か不明なため、仮にv-prediction用としてmetadataを保存します"
                 )
 
-        print(f"saving SD model to: {args.save_to}")
+        logger.info(f"saving SD model to: {args.save_to}")
         model_util.save_stable_diffusion_checkpoint(
             args.v2, args.save_to, text_encoder, unet, args.sd_model, 0, 0, sai_metadata, save_dtype, vae
         )
     else:
         state_dict, metadata, v2 = merge_lora_models(args.models, args.ratios, merge_dtype, args.concat, args.shuffle)
 
-        print(f"calculating hashes and creating metadata...")
+        logger.info(f"calculating hashes and creating metadata...")
 
         model_hash, legacy_hash = train_util.precalculate_safetensors_hashes(state_dict, metadata)
         metadata["sshs_model_hash"] = model_hash
@@ -289,12 +292,12 @@ def merge(args):
             )
             if v2:
                 # TODO read sai modelspec
-                print(
+                logger.warning(
                     "Cannot determine if LoRA is for v-prediction, so save metadata as v-prediction / LoRAがv-prediction用か否か不明なため、仮にv-prediction用としてmetadataを保存します"
                 )
             metadata.update(sai_metadata)
 
-        print(f"saving model to: {args.save_to}")
+        logger.info(f"saving model to: {args.save_to}")
         save_to_file(args.save_to, state_dict, state_dict, save_dtype, metadata)
 
 
