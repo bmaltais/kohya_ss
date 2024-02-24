@@ -20,7 +20,7 @@ import diffusers
 import numpy as np
 import torch
 
-from library.ipex_interop import init_ipex
+from library.device_utils import init_ipex, clean_memory, get_preferred_device
 
 init_ipex()
 
@@ -338,7 +338,7 @@ class PipelineLike:
         self.clip_vision_model: CLIPVisionModelWithProjection = None
         self.clip_vision_processor: CLIPImageProcessor = None
         self.clip_vision_strength = 0.0
-        
+
         # Textual Inversion
         self.token_replacements_list = []
         for _ in range(len(self.text_encoders)):
