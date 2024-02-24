@@ -172,7 +172,7 @@ class BasicTraining:
                 info="Set to 0 to not train the Text Encoder 2"
             )
             self.lr_warmup = gr.Slider(
-                label="LR warmup (% of steps)",
+                label="LR warmup (% of total steps)",
                 value=lr_warmup_value,
                 minimum=0,
                 maximum=100,
@@ -199,7 +199,7 @@ class BasicTraining:
                 maximum=100,
                 value=0,
                 step=1,
-                label="Stop text encoder training",
+                label="Stop text encoder training (% of total steps)",
             )
         with gr.Row(visible=not finetuning):
             self.enable_bucket = gr.Checkbox(label="Enable buckets", value=True)

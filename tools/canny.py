@@ -1,6 +1,10 @@
 import argparse
 import cv2
 
+import logging
+from library.utils import setup_logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 def canny(args):
   img = cv2.imread(args.input)
@@ -10,7 +14,7 @@ def canny(args):
   # canny_img = 255 - canny_img
 
   cv2.imwrite(args.output, canny_img)
-  print("done!")
+  logger.info("done!")
 
 
 def setup_parser() -> argparse.ArgumentParser:
