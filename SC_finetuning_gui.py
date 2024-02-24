@@ -60,7 +60,6 @@ def save_configuration(
     effnet_checkpoint_path,
     previewer_checkpoint_path,
     dataset_config_path,
-    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -183,7 +182,6 @@ def open_configuration(
     effnet_checkpoint_path,
     previewer_checkpoint_path,
     dataset_config_path,
-    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -313,7 +311,6 @@ def train_model(
     effnet_checkpoint_path,
     previewer_checkpoint_path,
     dataset_config_path,
-    sample_prompts_path,
     output_dir,
     logging_dir,
     flip_aug,
@@ -470,7 +467,6 @@ def train_model(
     run_cmd += f' --effnet_checkpoint_path "{effnet_checkpoint_path}"'
     run_cmd += f' --previewer_checkpoint_path "{previewer_checkpoint_path}"'
     run_cmd += f' --dataset_config "{dataset_config_path}"'
-    # run_cmd += f' --sample_prompts "{sample_prompts_path}"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -618,7 +614,7 @@ def sc_finetune_tab(headless=False):
                 )
                 effnet_checkpoint_path_file.click(
                     get_file_path,
-                    inputs=effnet_checkpoint_path,
+                    inputs=[effnet_checkpoint_path, gr.Textbox(value=".safetensors", visible=False, min_width=0)],
                     outputs=effnet_checkpoint_path,
                     show_progress=False,
                 )
@@ -632,13 +628,13 @@ def sc_finetune_tab(headless=False):
                 )
                 previewer_checkpoint_path_file.click(
                     get_file_path,
-                    inputs=previewer_checkpoint_path,
+                    inputs=[previewer_checkpoint_path, gr.Textbox(value=".safetensors", visible=False, min_width=0)],
                     outputs=previewer_checkpoint_path,
                     show_progress=False,
                 )
             with gr.Row():
                 dataset_config_path = gr.Textbox(
-                    label='Dataset toml path',
+                    label='Dataset toml file path',
                     placeholder='enter the path to the finetuning dataset toml file',
                 )
                 dataset_config_path_file = gr.Button(
@@ -647,22 +643,8 @@ def sc_finetune_tab(headless=False):
                 )
                 dataset_config_path_file.click(
                     get_file_path,
-                    inputs=dataset_config_path,
+                    inputs=[dataset_config_path, gr.Textbox(value=".toml", visible=False)],
                     outputs=dataset_config_path,
-                    show_progress=False,
-                )
-                sample_prompts_path = gr.Textbox(
-                    label='Sample image prompt path',
-                    placeholder='enter the path to the sample image prompt file',
-                )
-                sample_prompts_path_file = gr.Button(
-                    document_symbol,
-                    elem_id='open_folder_small',
-                )
-                sample_prompts_path_file.click(
-                    get_file_path,
-                    inputs=sample_prompts_path,
-                    outputs=sample_prompts_path,
                     show_progress=False,
                 )
             with gr.Row():
@@ -715,11 +697,6 @@ def sc_finetune_tab(headless=False):
             #     remove_doublequote,
             #     inputs=[dataset_config_path],
             #     outputs=[dataset_config_path],
-            # )
-            # sample_prompts_path.change(
-            #     remove_doublequote,
-            #     inputs=[sample_prompts_path],
-            #     outputs=[sample_prompts_path],
             # )
         
         with gr.Tab("Parameters"):
@@ -810,7 +787,6 @@ def sc_finetune_tab(headless=False):
             effnet_checkpoint_path,
             previewer_checkpoint_path,
             dataset_config_path,
-            sample_prompts_path,
             output_dir,
             logging_dir,
             advanced_training.flip_aug,
