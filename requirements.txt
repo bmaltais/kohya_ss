@@ -5,7 +5,7 @@ altair==4.2.2
 dadaptation==3.1
 diffusers[torch]==0.25.0
 easygui==0.98.3
-einops==0.6.1
+einops==0.7.0
 fairscale==0.4.13
 ftfy==6.1.1
 gradio==3.50.2
@@ -33,7 +33,7 @@ open-clip-torch==2.20.0
 opencv-python==4.7.0.68
 prodigyopt==1.0
 pytorch-lightning==1.9.0
-rich==13.4.1
+rich==13.7.0
 safetensors==0.4.2
 timm==0.6.12
 tk==0.1.0

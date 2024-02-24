@@ -113,6 +113,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from einops import rearrange
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 BLOCK_OUT_CHANNELS: Tuple[int] = (320, 640, 1280, 1280)
 TIMESTEP_INPUT_DIM = BLOCK_OUT_CHANNELS[0]
@@ -1380,7 +1384,7 @@ class UNet2DConditionModel(nn.Module):
     ):
         super().__init__()
         assert sample_size is not None, "sample_size must be specified"
-        print(
+        logger.info(
             f"UNet2DConditionModel: {sample_size}, {attention_head_dim}, {cross_attention_dim}, {use_linear_projection}, {upcast_attention}"
         )
 
@@ -1514,7 +1518,7 @@ class UNet2DConditionModel(nn.Module):
     def set_gradient_checkpointing(self, value=False):
         modules = self.down_blocks + [self.mid_block] + self.up_blocks
         for module in modules:
-            print(module.__class__.__name__, module.gradient_checkpointing, "->", value)
+            logger.info(f"{module.__class__.__name__} {module.gradient_checkpointing} -> {value}")
             module.gradient_checkpointing = value
 
     # endregion
@@ -1709,14 +1713,14 @@ class InferUNet2DConditionModel:
 
     def set_deep_shrink(self, ds_depth_1, ds_timesteps_1=650, ds_depth_2=None, ds_timesteps_2=None, ds_ratio=0.5):
         if ds_depth_1 is None:
-            print("Deep Shrink is disabled.")
+            logger.info("Deep Shrink is disabled.")
             self.ds_depth_1 = None
             self.ds_timesteps_1 = None
             self.ds_depth_2 = None
             self.ds_timesteps_2 = None
             self.ds_ratio = None
         else:
-            print(
+            logger.info(
                 f"Deep Shrink is enabled: [depth={ds_depth_1}/{ds_depth_2}, timesteps={ds_timesteps_1}/{ds_timesteps_2}, ratio={ds_ratio}]"
             )
             self.ds_depth_1 = ds_depth_1

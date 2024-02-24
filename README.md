@@ -505,7 +505,30 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 ## Change History
 * 2024/02/17 (v22.6.2)
 - Fix issue with Lora Extract GUI
-- - Fix syntax issue where parameter lora_network_weights is actually called network_weights
+  - Fix syntax issue where parameter lora_network_weights is actually called network_weights
+- Merge sd-scripts v0.8.4 code update
+  - Fixed a bug that the VRAM usage without Text Encoder training is larger than before in training scripts for LoRA etc (`train_network.py`, `sdxl_train_network.py`).
+    - Text Encoders were not moved to CPU.
+  - Fixed typos. Thanks to akx! [PR #1053](https://github.com/kohya-ss/sd-scripts/pull/1053)
+  - The log output has been improved. PR [#905](https://github.com/kohya-ss/sd-scripts/pull/905) Thanks to shirayu!
+    - The log is formatted by default. The `rich` library is required. Please see [Upgrade](#upgrade) and update the library.
+    - If `rich` is not installed, the log output will be the same as before.
+    - The following options are available in each training script:
+    - `--console_log_simple` option can be used to switch to the previous log output.
+    - `--console_log_level` option can be used to specify the log level. The default is `INFO`.
+    - `--console_log_file` option can be used to output the log to a file. The default is `None` (output to the console).
+  - The sample image generation during multi-GPU training is now done with multiple GPUs. PR [#1061](https://github.com/kohya-ss/sd-scripts/pull/1061) Thanks to DKnight54!
+  - The support for mps devices is improved. PR [#1054](https://github.com/kohya-ss/sd-scripts/pull/1054) Thanks to akx! If mps device exists instead of CUDA, the mps device is used automatically.
+  - The `--new_conv_rank` option to specify the new rank of Conv2d is added to `networks/resize_lora.py`. PR [#1102](https://github.com/kohya-ss/sd-scripts/pull/1102) Thanks to mgz-dev!
+  - An option `--highvram` to disable the optimization for environments with little VRAM is added to the training scripts. If you specify it when there is enough VRAM, the operation will be faster.
+    - Currently, only the cache part of latents is optimized.
+  - The IPEX support is improved. PR [#1086](https://github.com/kohya-ss/sd-scripts/pull/1086) Thanks to Disty0!
+  - Fixed a bug that `svd_merge_lora.py` crashes in some cases. PR [#1087](https://github.com/kohya-ss/sd-scripts/pull/1087) Thanks to mgz-dev!
+  - DyLoRA is fixed to work with SDXL. PR [#1126](https://github.com/kohya-ss/sd-scripts/pull/1126) Thanks to tamlog06!
+  - The common image generation script `gen_img.py` for SD 1/2 and SDXL is added. The basic functions are the same as the scripts for SD 1/2 and SDXL, but some new features are added.
+    - External scripts to generate prompts can be supported. It can be called with `--from_module` option. (The documentation will be added later)
+    - The normalization method after prompt weighting can be specified with `--emb_normalize_mode` option. `original` is the original method, `abs` is the normalization with the average of the absolute values, `none` is no normalization.
+  - Gradual Latent Hires fix is added to each generation script. See [here](./docs/gen_img_README-ja.md#about-gradual-latent) for details.
   
 * 2024/02/15 (v22.6.1)
 - Add support for multi-gpu parameters in the GUI under the "Parameters > Advanced" tab.

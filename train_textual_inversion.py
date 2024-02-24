@@ -1,15 +1,13 @@
 import argparse
-import gc
 import math
 import os
 from multiprocessing import Value
 import toml
 
 from tqdm import tqdm
+
 import torch
-
-from library.ipex_interop import init_ipex
-
+from library.device_utils import init_ipex, clean_memory_on_device
 init_ipex()
 
 from accelerate.utils import set_seed
@@ -32,6 +30,12 @@ from library.custom_train_functions import (
     add_v_prediction_like_loss,
     apply_debiased_estimation,
 )
+from library.utils import setup_logging, add_logging_arguments
+
+setup_logging()
+import logging
+
+logger = logging.getLogger(__name__)
 
 imagenet_templates_small = [
     "a photo of a {}",
@@ -168,6 +172,7 @@ class TextualInversionTrainer:
 
         train_util.verify_training_args(args)
         train_util.prepare_dataset_args(args, True)
+        setup_logging(args, reset=True)
 
         cache_latents = args.cache_latents
 
@@ -178,7 +183,7 @@ class TextualInversionTrainer:
         tokenizers = tokenizer_or_list if isinstance(tokenizer_or_list, list) else [tokenizer_or_list]
 
         # acceleratorを準備する
-        print("prepare accelerator")
+        logger.info("prepare accelerator")
         accelerator = train_util.prepare_accelerator(args)
 
         # mixed precisionに対応した型を用意しておき適宜castする
@@ -288,7 +293,7 @@ class TextualInversionTrainer:
                         ]
                     }
                 else:
-                    print("Train with captions.")
+                    logger.info("Train with captions.")
                     user_config = {
                         "datasets": [
                             {
@@ -363,9 +368,7 @@ class TextualInversionTrainer:
             with torch.no_grad():
                 train_dataset_group.cache_latents(vae, args.vae_batch_size, args.cache_latents_to_disk, accelerator.is_main_process)
             vae.to("cpu")
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            gc.collect()
+            clean_memory_on_device(accelerator.device)
 
             accelerator.wait_for_everyone()
 
@@ -382,8 +385,8 @@ class TextualInversionTrainer:
         _, _, optimizer = train_util.get_optimizer(args, trainable_params)
 
         # dataloaderを準備する
-        # DataLoaderのプロセス数：0はメインプロセスになる
-        n_workers = min(args.max_data_loader_n_workers, os.cpu_count() - 1)  # cpu_count-1 ただし最大で指定された数まで
+        # DataLoaderのプロセス数：0 は persistent_workers が使えないので注意
+        n_workers = min(args.max_data_loader_n_workers, os.cpu_count())  # cpu_count or max_data_loader_n_workers
         train_dataloader = torch.utils.data.DataLoader(
             train_dataset_group,
             batch_size=1,
@@ -736,12 +739,13 @@ class TextualInversionTrainer:
             ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
             save_model(ckpt_name, updated_embs_list, global_step, num_train_epochs, force_sync_upload=True)
 
-            print("model saved.")
+            logger.info("model saved.")
 
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
+    add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, False)
     train_util.add_training_arguments(parser, True)
@@ -757,7 +761,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="format to save the model (default is .pt) / モデル保存時の形式（デフォルトはpt）",
     )
 
-    parser.add_argument("--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み")
+    parser.add_argument(
+        "--weights", type=str, default=None, help="embedding weights to initialize / 学習するネットワークの初期重み"
+    )
     parser.add_argument(
         "--num_vectors_per_token", type=int, default=1, help="number of vectors per token / トークンに割り当てるembeddingsの要素数"
     )
@@ -767,7 +773,9 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         help="token string used in training, must not exist in tokenizer / 学習時に使用されるトークン文字列、tokenizerに存在しない文字であること",
     )
-    parser.add_argument("--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可")
+    parser.add_argument(
+        "--init_word", type=str, default=None, help="words to initialize vector / ベクトルを初期化に使用する単語、複数可"
+    )
     parser.add_argument(
         "--use_object_template",
         action="store_true",

@@ -5,27 +5,34 @@ from library import model_util
 import library.train_util as train_util
 import argparse
 from transformers import CLIPTokenizer
+
 import torch
+from library.device_utils import init_ipex, get_preferred_device
+init_ipex()
 
 import library.model_util as model_util
 import lora
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 TOKENIZER_PATH = "openai/clip-vit-large-patch14"
 V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"     # ここからtokenizerだけ使う
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = get_preferred_device()
 
 
 def interrogate(args):
   weights_dtype = torch.float16
 
   # いろいろ準備する
-  print(f"loading SD model: {args.sd_model}")
+  logger.info(f"loading SD model: {args.sd_model}")
   args.pretrained_model_name_or_path = args.sd_model
   args.vae = None
   text_encoder, vae, unet, _ = train_util._load_target_model(args,weights_dtype, DEVICE)
 
-  print(f"loading LoRA: {args.model}")
+  logger.info(f"loading LoRA: {args.model}")
   network, weights_sd = lora.create_network_from_weights(1.0, args.model, vae, text_encoder, unet)
 
   # text encoder向けの重みがあるかチェックする：本当はlora側でやるのがいい
@@ -35,11 +42,11 @@ def interrogate(args):
       has_te_weight = True
       break
   if not has_te_weight:
-    print("This LoRA does not have modules for Text Encoder, cannot interrogate / このLoRAはText Encoder向けのモジュールがないため調査できません")
+    logger.error("This LoRA does not have modules for Text Encoder, cannot interrogate / このLoRAはText Encoder向けのモジュールがないため調査できません")
     return
   del vae
 
-  print("loading tokenizer")
+  logger.info("loading tokenizer")
   if args.v2:
     tokenizer: CLIPTokenizer = CLIPTokenizer.from_pretrained(V2_STABLE_DIFFUSION_PATH, subfolder="tokenizer")
   else:
@@ -53,7 +60,7 @@ def interrogate(args):
   # トークンをひとつひとつ当たっていく
   token_id_start = 0
   token_id_end = max(tokenizer.all_special_ids)
-  print(f"interrogate tokens are: {token_id_start} to {token_id_end}")
+  logger.info(f"interrogate tokens are: {token_id_start} to {token_id_end}")
 
   def get_all_embeddings(text_encoder):
     embs = []
@@ -79,24 +86,24 @@ def interrogate(args):
         embs.extend(encoder_hidden_states)
     return torch.stack(embs)
 
-  print("get original text encoder embeddings.")
+  logger.info("get original text encoder embeddings.")
   orig_embs = get_all_embeddings(text_encoder)
 
   network.apply_to(text_encoder, unet, True, len(network.unet_loras) > 0)
   info = network.load_state_dict(weights_sd, strict=False)
-  print(f"Loading LoRA weights: {info}")
+  logger.info(f"Loading LoRA weights: {info}")
 
   network.to(DEVICE, dtype=weights_dtype)
   network.eval()
 
   del unet
 
-  print("You can ignore warning messages start with '_IncompatibleKeys' (LoRA model does not have alpha because trained by older script) / '_IncompatibleKeys'の警告は無視して構いません（以前のスクリプトで学習されたLoRAモデルのためalphaの定義がありません）")
-  print("get text encoder embeddings with lora.")
+  logger.info("You can ignore warning messages start with '_IncompatibleKeys' (LoRA model does not have alpha because trained by older script) / '_IncompatibleKeys'の警告は無視して構いません（以前のスクリプトで学習されたLoRAモデルのためalphaの定義がありません）")
+  logger.info("get text encoder embeddings with lora.")
   lora_embs = get_all_embeddings(text_encoder)
 
   # 比べる：とりあえず単純に差分の絶対値で
-  print("comparing...")
+  logger.info("comparing...")
   diffs = {}
   for i, (orig_emb, lora_emb) in enumerate(zip(orig_embs, tqdm(lora_embs))):
     diff = torch.mean(torch.abs(orig_emb - lora_emb))
