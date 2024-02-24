@@ -8,6 +8,10 @@ import json
 import re
 
 from tqdm import tqdm
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 PATTERN_HAIR_LENGTH = re.compile(r', (long|short|medium) hair, ')
 PATTERN_HAIR_CUT = re.compile(r', (bob|hime) cut, ')
@@ -36,13 +40,13 @@ def clean_tags(image_key, tags):
   tokens = tags.split(", rating")
   if len(tokens) == 1:
     # WD14 taggerのときはこちらになるのでメッセージは出さない
-    # print("no rating:")
-    # print(f"{image_key} {tags}")
+    # logger.info("no rating:")
+    # logger.info(f"{image_key} {tags}")
     pass
   else:
     if len(tokens) > 2:
-      print("multiple ratings:")
-      print(f"{image_key} {tags}")
+      logger.info("multiple ratings:")
+      logger.info(f"{image_key} {tags}")
     tags = tokens[0]
 
   tags = ", " + tags.replace(", ", ", , ") + ", "     # カンマ付きで検索をするための身も蓋もない対策
@@ -124,43 +128,43 @@ def clean_caption(caption):
 
 def main(args):
   if os.path.exists(args.in_json):
-    print(f"loading existing metadata: {args.in_json}")
+    logger.info(f"loading existing metadata: {args.in_json}")
     with open(args.in_json, "rt", encoding='utf-8') as f:
       metadata = json.load(f)
   else:
-    print("no metadata / メタデータファイルがありません")
+    logger.error("no metadata / メタデータファイルがありません")
     return
 
-  print("cleaning captions and tags.")
+  logger.info("cleaning captions and tags.")
   image_keys = list(metadata.keys())
   for image_key in tqdm(image_keys):
     tags = metadata[image_key].get('tags')
     if tags is None:
-      print(f"image does not have tags / メタデータにタグがありません: {image_key}")
+      logger.error(f"image does not have tags / メタデータにタグがありません: {image_key}")
     else:
       org = tags
       tags = clean_tags(image_key, tags)
       metadata[image_key]['tags'] = tags
       if args.debug and org != tags:
-        print("FROM: " + org)
-        print("TO:   " + tags)
+        logger.info("FROM: " + org)
+        logger.info("TO:   " + tags)
 
     caption = metadata[image_key].get('caption')
     if caption is None:
-      print(f"image does not have caption / メタデータにキャプションがありません: {image_key}")
+      logger.error(f"image does not have caption / メタデータにキャプションがありません: {image_key}")
     else:
       org = caption
       caption = clean_caption(caption)
       metadata[image_key]['caption'] = caption
       if args.debug and org != caption:
-        print("FROM: " + org)
-        print("TO:   " + caption)
+        logger.info("FROM: " + org)
+        logger.info("TO:   " + caption)
 
   # metadataを書き出して終わり
-  print(f"writing metadata: {args.out_json}")
+  logger.info(f"writing metadata: {args.out_json}")
   with open(args.out_json, "wt", encoding='utf-8') as f:
     json.dump(metadata, f, indent=2)
-  print("done!")
+  logger.info("done!")
 
 
 def setup_parser() -> argparse.ArgumentParser:
@@ -178,10 +182,10 @@ if __name__ == '__main__':
 
   args, unknown = parser.parse_known_args()
   if len(unknown) == 1:
-    print("WARNING: train_data_dir argument is removed. This script will not work with three arguments in future. Please specify two arguments: in_json and out_json.")
-    print("All captions and tags in the metadata are processed.")
-    print("警告: train_data_dir引数は不要になりました。将来的には三つの引数を指定すると動かなくなる予定です。読み込み元のメタデータと書き出し先の二つの引数だけ指定してください。")
-    print("メタデータ内のすべてのキャプションとタグが処理されます。")
+    logger.warning("WARNING: train_data_dir argument is removed. This script will not work with three arguments in future. Please specify two arguments: in_json and out_json.")
+    logger.warning("All captions and tags in the metadata are processed.")
+    logger.warning("警告: train_data_dir引数は不要になりました。将来的には三つの引数を指定すると動かなくなる予定です。読み込み元のメタデータと書き出し先の二つの引数だけ指定してください。")
+    logger.warning("メタデータ内のすべてのキャプションとタグが処理されます。")
     args.in_json = args.out_json
     args.out_json = unknown[0]
   elif len(unknown) > 0:

@@ -6,7 +6,10 @@ import shutil
 import math
 from PIL import Image
 import numpy as np
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divisible_by=2, interpolation=None, save_as_png=False, copy_associated_files=False):
   # Split the max_resolution string by "," and strip any whitespaces
@@ -83,7 +86,7 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
       image.save(os.path.join(dst_img_folder, new_filename), quality=100)
 
       proc = "Resized" if current_pixels > max_pixels else "Saved"
-      print(f"{proc} image: {filename} with size {img.shape[0]}x{img.shape[1]} as {new_filename}")
+      logger.info(f"{proc} image: {filename} with size {img.shape[0]}x{img.shape[1]} as {new_filename}")
 
     # If other files with same basename, copy them with resolution suffix
     if copy_associated_files:
@@ -94,7 +97,7 @@ def resize_images(src_img_folder, dst_img_folder, max_resolution="512x512", divi
           continue
         for max_resolution in max_resolutions:
           new_asoc_file = base + '+' + max_resolution + ext
-          print(f"Copy {asoc_file} as {new_asoc_file}")
+          logger.info(f"Copy {asoc_file} as {new_asoc_file}")
           shutil.copy(os.path.join(src_img_folder, asoc_file), os.path.join(dst_img_folder, new_asoc_file))
 
 

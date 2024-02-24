@@ -7,7 +7,10 @@ from safetensors.torch import load_file
 from library.original_unet import UNet2DConditionModel, SampleOutput
 
 import library.model_util as model_util
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 class ControlNetInfo(NamedTuple):
     unet: Any
@@ -51,7 +54,7 @@ def load_control_net(v2, unet, model):
 
     # control sdからキー変換しつつU-Netに対応する部分のみ取り出し、DiffusersのU-Netに読み込む
     # state dictを読み込む
-    print(f"ControlNet: loading control SD model : {model}")
+    logger.info(f"ControlNet: loading control SD model : {model}")
 
     if model_util.is_safetensors(model):
         ctrl_sd_sd = load_file(model)
@@ -61,7 +64,7 @@ def load_control_net(v2, unet, model):
 
     # 重みをU-Netに読み込めるようにする。ControlNetはSD版のstate dictなので、それを読み込む
     is_difference = "difference" in ctrl_sd_sd
-    print("ControlNet: loading difference:", is_difference)
+    logger.info(f"ControlNet: loading difference: {is_difference}")
 
     # ControlNetには存在しないキーがあるので、まず現在のU-NetでSD版の全keyを作っておく
     # またTransfer Controlの元weightとなる
@@ -89,13 +92,13 @@ def load_control_net(v2, unet, model):
     # ControlNetのU-Netを作成する
     ctrl_unet = UNet2DConditionModel(**unet_config)
     info = ctrl_unet.load_state_dict(ctrl_unet_du_sd)
-    print("ControlNet: loading Control U-Net:", info)
+    logger.info(f"ControlNet: loading Control U-Net: {info}")
 
     # U-Net以外のControlNetを作成する
     # TODO support middle only
     ctrl_net = ControlNet()
     info = ctrl_net.load_state_dict(zero_conv_sd)
-    print("ControlNet: loading ControlNet:", info)
+    logger.info("ControlNet: loading ControlNet: {info}")
 
     ctrl_unet.to(unet.device, dtype=unet.dtype)
     ctrl_net.to(unet.device, dtype=unet.dtype)
@@ -117,7 +120,7 @@ def load_preprocess(prep_type: str):
 
         return canny
 
-    print("Unsupported prep type:", prep_type)
+    logger.info(f"Unsupported prep type: {prep_type}")
     return None
 
 
@@ -174,13 +177,26 @@ def call_unet_and_control_net(
     cnet_idx = step % cnet_cnt
     cnet_info = control_nets[cnet_idx]
 
-    # print(current_ratio, cnet_info.prep, cnet_info.weight, cnet_info.ratio)
+    # logger.info(current_ratio, cnet_info.prep, cnet_info.weight, cnet_info.ratio)
     if cnet_info.ratio < current_ratio:
         return original_unet(sample, timestep, encoder_hidden_states)
 
     guided_hint = guided_hints[cnet_idx]
+
+    # gradual latent support: match the size of guided_hint to the size of sample
+    if guided_hint.shape[-2:] != sample.shape[-2:]:
+        # print(f"guided_hint.shape={guided_hint.shape}, sample.shape={sample.shape}")
+        org_dtype = guided_hint.dtype
+        if org_dtype == torch.bfloat16:
+            guided_hint = guided_hint.to(torch.float32)
+        guided_hint = torch.nn.functional.interpolate(guided_hint, size=sample.shape[-2:], mode="bicubic")
+        if org_dtype == torch.bfloat16:
+            guided_hint = guided_hint.to(org_dtype)
+
     guided_hint = guided_hint.repeat((num_latent_input, 1, 1, 1))
-    outs = unet_forward(True, cnet_info.net, cnet_info.unet, guided_hint, None, sample, timestep, encoder_hidden_states_for_control_net)
+    outs = unet_forward(
+        True, cnet_info.net, cnet_info.unet, guided_hint, None, sample, timestep, encoder_hidden_states_for_control_net
+    )
     outs = [o * cnet_info.weight for o in outs]
 
     # U-Net
@@ -192,7 +208,7 @@ def call_unet_and_control_net(
   # ControlNet
   cnet_outs_list = []
   for i, cnet_info in enumerate(control_nets):
-    # print(current_ratio, cnet_info.prep, cnet_info.weight, cnet_info.ratio)
+    # logger.info(current_ratio, cnet_info.prep, cnet_info.weight, cnet_info.ratio)
     if cnet_info.ratio < current_ratio:
       continue
     guided_hint = guided_hints[i]
@@ -232,7 +248,7 @@ def unet_forward(
     upsample_size = None
 
     if any(s % default_overall_up_factor != 0 for s in sample.shape[-2:]):
-        print("Forward upsample size to force interpolation output size.")
+        logger.info("Forward upsample size to force interpolation output size.")
         forward_upsample_size = True
 
     # 1. time
