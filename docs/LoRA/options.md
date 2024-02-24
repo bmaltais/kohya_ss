@@ -34,7 +34,7 @@ U-Net is divided into "Down" (left half), "Mid" (bottom) and "Up" (right half).
 
 And it consists of 25 blocks in total: Down12 block, Mid1 block, and Up12 block. The neural net added here is simply called "UNet" in Kohya_ss.
 
-### RoLA Learning Object 2: Text Encoder
+### LoRA Learning Object 2: Text Encoder
 
 This isn't the only time LoRA adds neural nets .
 
@@ -177,15 +177,15 @@ The default value is 0.0001.
 
 ### LR Scheduler:
 
-You can change the learning rate in the middle of learning. A scheduler is a setting for how to change the learning rate.
+You can change the learning rate in the middle of learning. A scheduler is a setting for how to change the learning rate. Possible values include:
 
-adafactor: Select this to set the optimizer (described later) to Adafactor . Learn while automatically adjusting the learning rate according to the situation to save VRAM
-constant: the learning rate does not change from beginning to end
-constant_with_warmup: Start with a learning rate of 0 and gradually increase it toward the set value of Learning rate during warm-up, and use the set value of Learning rate during main learning.
-cosine : Gradually decrease the learning rate toward 0 while drawing a wave (cosine curve)
-cosine _with_restarts: repeat cosine many times (see also description of LR number of cycles)
-linear: Start at the Learning rate setting and decrease linearly towards 0
-polynomial: Same behavior as linear, but a bit more complicated to reduce (see also LR power description)
+- `adafactor`: Select this to set the optimizer (described later) to Adafactor . Learn while automatically adjusting the learning rate according to the situation to save VRAM
+- `constant`: the learning rate does not change from beginning to end
+- `constant_with_warmup`: Start with a learning rate of 0 and gradually increase it toward the set value of Learning rate during warm-up, and use the set value of Learning rate during main learning.
+- `cosine` : Gradually decrease the learning rate toward 0 while drawing a wave (cosine curve)
+- `cosine _with_restarts`: repeat cosine many times (see also description of LR number of cycles)
+- `linear`: Start at the Learning rate setting and decrease linearly towards 0
+- `polynomial`: Same behavior as linear, but a bit more complicated to reduce (see also LR power description)
 Set to constant if you want the learning rate to be fixed at the Learning rate setting.
 
 Default is cosine
@@ -204,13 +204,13 @@ Default is 10.
 
 ### Optimizer
 
-The optimizer is a setting for "how to update the neural net weights during training ". Various methods have been proposed for smart learning, but the most commonly used in LoRA learning is ``AdamW'' (32-bit) or ``AdamW8bit''. AdamW8bit uses less VRAM and has enough accuracy, so if you get lost, use this.
+The optimizer is a setting for "how to update the neural net weights during training ". Various methods have been proposed for smart learning, but the most commonly used in LoRA learning is "AdamW" (32-bit) or "AdamW8bit". AdamW8bit uses less VRAM and has enough accuracy, so if you get lost, use this.
 
 In addition, "Adafactor", which adjusts the learning rate appropriately according to the progress of learning while incorporating Adam's method, is also often used (Learning rate setting is ignored when using Adafactor).
 
-``DAdapt'' is an optimizer that adjusts the learning rate , and ``Lion'' is a relatively new optimizer , but it has not been fully verified yet. There is a report that "SGDNesterov" has good learning accuracy but slows down.
+"DAdapt" is an optimizer that adjusts the learning rate, and "Lion" is a relatively new optimizer , but it has not been fully verified yet. There is a report that "SGDNesterov" has good learning accuracy but slows down.
 
-The default is AdamW8bit. There is no problem basically as it is.
+The default is "AdamW8bit". There is no problem basically as it is.
 
 ### Optimizer extra arguments
 
