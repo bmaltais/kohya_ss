@@ -5,7 +5,10 @@ import torch
 from safetensors import safe_open
 from safetensors.torch import load_file, save_file
 from tqdm import tqdm
-
+from library.utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
 
 def is_unet_key(key):
     # VAE or TextEncoder, the last one is for SDXL
@@ -45,10 +48,10 @@ def merge(args):
     # check if all models are safetensors
     for model in args.models:
         if not model.endswith("safetensors"):
-            print(f"Model {model} is not a safetensors model")
+            logger.info(f"Model {model} is not a safetensors model")
             exit()
         if not os.path.isfile(model):
-            print(f"Model {model} does not exist")
+            logger.info(f"Model {model} does not exist")
             exit()
 
     assert args.ratios is None or len(args.models) == len(args.ratios), "ratios must be the same length as models"
@@ -65,7 +68,7 @@ def merge(args):
 
         if merged_sd is None:
             # load first model
-            print(f"Loading model {model}, ratio = {ratio}...")
+            logger.info(f"Loading model {model}, ratio = {ratio}...")
             merged_sd = {}
             with safe_open(model, framework="pt", device=args.device) as f:
                 for key in tqdm(f.keys()):
@@ -81,11 +84,11 @@ def merge(args):
                     value = ratio * value.to(dtype)  # first model's value * ratio
                     merged_sd[key] = value
 
-            print(f"Model has {len(merged_sd)} keys " + ("(UNet only)" if args.unet_only else ""))
+            logger.info(f"Model has {len(merged_sd)} keys " + ("(UNet only)" if args.unet_only else ""))
             continue
 
         # load other models
-        print(f"Loading model {model}, ratio = {ratio}...")
+        logger.info(f"Loading model {model}, ratio = {ratio}...")
 
         with safe_open(model, framework="pt", device=args.device) as f:
             model_keys = f.keys()
@@ -93,7 +96,7 @@ def merge(args):
                 _, new_key = replace_text_encoder_key(key)
                 if new_key not in merged_sd:
                     if args.show_skipped and new_key not in first_model_keys:
-                        print(f"Skip: {new_key}")
+                        logger.info(f"Skip: {new_key}")
                     continue
 
                 value = f.get_tensor(key)
@@ -104,7 +107,7 @@ def merge(args):
             for key in merged_sd.keys():
                 if key in model_keys:
                     continue
-                print(f"Key {key} not in model {model}, use first model's value")
+                logger.warning(f"Key {key} not in model {model}, use first model's value")
                 if key in supplementary_key_ratios:
                     supplementary_key_ratios[key] += ratio
                 else:
@@ -112,7 +115,7 @@ def merge(args):
 
     # add supplementary keys' value (including VAE and TextEncoder)
     if len(supplementary_key_ratios) > 0:
-        print("add first model's value")
+        logger.info("add first model's value")
         with safe_open(args.models[0], framework="pt", device=args.device) as f:
             for key in tqdm(f.keys()):
                 _, new_key = replace_text_encoder_key(key)
@@ -120,7 +123,7 @@ def merge(args):
                     continue
 
                 if is_unet_key(new_key):  # not VAE or TextEncoder
-                    print(f"Key {new_key} not in all models, ratio = {supplementary_key_ratios[new_key]}")
+                    logger.warning(f"Key {new_key} not in all models, ratio = {supplementary_key_ratios[new_key]}")
 
                 value = f.get_tensor(key)  # original key
 
@@ -134,7 +137,7 @@ def merge(args):
     if not output_file.endswith(".safetensors"):
         output_file = output_file + ".safetensors"
 
-    print(f"Saving to {output_file}...")
+    logger.info(f"Saving to {output_file}...")
 
     # convert to save_dtype
     for k in merged_sd.keys():
@@ -142,7 +145,7 @@ def merge(args):
 
     save_file(merged_sd, output_file)
 
-    print("Done!")
+    logger.info("Done!")
 
 
 if __name__ == "__main__":
