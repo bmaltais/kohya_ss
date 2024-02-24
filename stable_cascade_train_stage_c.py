@@ -147,6 +147,9 @@ def train(args):
     else:
         previewer = None
 
+    # モデルに xformers とか memory efficient attention を組み込む
+    stage_c.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
+
     # 学習を準備する
     if cache_latents:
         effnet.to(accelerator.device, dtype=effnet_dtype)
@@ -531,6 +534,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_tokenizer_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, False)
+    train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
     add_sdxl_training_arguments(parser)  # cache text encoder outputs

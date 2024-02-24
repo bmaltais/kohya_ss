@@ -295,10 +295,9 @@ class NetworkTrainer:
         # text_encoder is List[CLIPTextModel] or CLIPTextModel
         text_encoders = text_encoder if isinstance(text_encoder, list) else [text_encoder]
 
-        # # モデルに xformers とか memory efficient attention を組み込む
+        # モデルに xformers とか memory efficient attention を組み込む
         # train_util.replace_unet_modules(unet, args.mem_eff_attn, args.xformers, args.sdpa)
-        # if torch.__version__ >= "2.0.0":  # PyTorch 2.0.0 以上対応のxformersなら以下が使える
-        #     vae.set_use_memory_efficient_attention_xformers(args.xformers)
+        stage_c.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
 
         # 差分追加学習のためにモデルを読み込む
         sys.path.append(os.path.dirname(__file__))
@@ -730,8 +729,8 @@ class NetworkTrainer:
             metadata["ss_network_args"] = json.dumps(net_kwargs)
 
         # model name and hash
-        if args.pretrained_model_name_or_path is not None:
-            sd_model_name = args.pretrained_model_name_or_path
+        if args.stage_c_checkpoint_path is not None:
+            sd_model_name = args.stage_c_checkpoint_path
             if os.path.exists(sd_model_name):
                 metadata["ss_sd_model_hash"] = train_util.model_hash(sd_model_name)
                 metadata["ss_new_sd_model_hash"] = train_util.calculate_sha256(sd_model_name)
@@ -992,6 +991,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_tokenizer_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, True)
+    train_util.add_sd_saving_arguments(parser)
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)

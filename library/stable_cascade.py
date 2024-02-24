@@ -5,6 +5,7 @@
 import math
 from types import SimpleNamespace
 from typing import List, Optional
+from einops import rearrange
 import numpy as np
 import torch
 import torch.nn as nn
@@ -148,7 +149,7 @@ class EfficientNetEncoder(nn.Module):
         The method to make it usable like VAE. It should be separated properly, but it is a temporary response.
         """
         # latents = vae.encode(img_tensors).latent_dist.sample().to("cpu")
-        
+
         # x is -1 to 1, so we need to convert it to 0 to 1, and then preprocess it with EfficientNet's preprocessing.
         x = (x + 1) / 2
         x = EFFNET_PREPROCESS(x)
@@ -172,6 +173,7 @@ from torch.nn import Conv2d
 from torch.nn import Linear
 
 
+r"""
 class Attention2D(nn.Module):
     def __init__(self, c, nhead, dropout=0.0):
         super().__init__()
@@ -185,6 +187,119 @@ class Attention2D(nn.Module):
         x = self.attn(x, kv, kv, need_weights=False)[0]
         x = x.permute(0, 2, 1).view(*orig_shape)
         return x
+"""
+
+
+class Attention(nn.Module):
+    def __init__(self, c, nhead, dropout=0.0):
+        # dropout is for attn_output_weights, so we may not need it. however, if we use sdpa, we enable it.
+        # xformers and normal attn are not affected by dropout
+        super().__init__()
+
+        self.to_q = Linear(c, c, bias=True)
+        self.to_k = Linear(c, c, bias=True)
+        self.to_v = Linear(c, c, bias=True)
+        self.to_out = Linear(c, c, bias=True)
+        self.nhead = nhead
+        self.dropout = dropout
+        self.scale = (c // nhead) ** -0.5
+
+        # default is to use sdpa
+        self.use_memory_efficient_attention_xformers = False
+        self.use_sdpa = True
+
+    def set_use_xformers_or_sdpa(self, xformers, sdpa):
+        # print(f"Attention: set_use_xformers_or_sdpa: xformers={xformers}, sdpa={sdpa}")
+        self.use_memory_efficient_attention_xformers = xformers
+        self.use_sdpa = sdpa
+
+    def forward(self, q_in, k_in, v_in):
+        q_in = self.to_q(q_in)
+        k_in = self.to_k(k_in)
+        v_in = self.to_v(v_in)
+
+        if self.use_memory_efficient_attention_xformers:
+            q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b n h d", h=self.nhead), (q_in, k_in, v_in))
+            del q_in, k_in, v_in
+            out = self.forward_memory_efficient_xformers(q, k, v)
+            del q, k, v
+            out = rearrange(out, "b n h d -> b n (h d)", h=self.nhead)
+        elif self.use_sdpa:
+            q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.nhead), (q_in, k_in, v_in))
+            del q_in, k_in, v_in
+            out = self.forward_sdpa(q, k, v)
+            del q, k, v
+            out = rearrange(out, "b h n d -> b n (h d)", h=self.nhead)
+        else:
+            q, k, v = map(lambda t: rearrange(t, "b n (h d) -> (b h) n d", h=self.nhead), (q_in, k_in, v_in))
+            del q_in, k_in, v_in
+            out = self._attention(q, k, v)
+            del q, k, v
+            out = rearrange(out, "(b h) n d -> b n (h d)", h=self.nhead)
+
+        return self.to_out(out)
+
+    def _attention(self, query, key, value):
+        # if self.upcast_attention:
+        #     query = query.float()
+        #     key = key.float()
+
+        attention_scores = torch.baddbmm(
+            torch.empty(query.shape[0], query.shape[1], key.shape[1], dtype=query.dtype, device=query.device),
+            query,
+            key.transpose(-1, -2),
+            beta=0,
+            alpha=self.scale,
+        )
+        attention_probs = attention_scores.softmax(dim=-1)
+
+        # cast back to the original dtype
+        attention_probs = attention_probs.to(value.dtype)
+
+        # compute attention output
+        hidden_states = torch.bmm(attention_probs, value)
+
+        return hidden_states
+
+    def forward_memory_efficient_xformers(self, q, k, v):
+        import xformers.ops
+
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)  # 最適なのを選んでくれる
+        del q, k, v
+
+        return out
+
+    def forward_sdpa(self, q, k, v):
+        out = torch.nn.functional.scaled_dot_product_attention(q, k, v, dropout_p=self.dropout, is_causal=False)
+        return out
+
+
+class Attention2D(nn.Module):
+    r"""
+    to_q/k/v を個別に重みをもつように変更
+    modified to have separate weights for to_q/k/v
+    """
+
+    def __init__(self, c, nhead, dropout=0.0):
+        super().__init__()
+        # self.attn = nn.MultiheadAttention(c, nhead, dropout=dropout, bias=True, batch_first=True)
+        self.attn = Attention(c, nhead, dropout=dropout)  # , bias=True, batch_first=True)
+
+    def forward(self, x, kv, self_attn=False):
+        orig_shape = x.shape
+        x = x.view(x.size(0), x.size(1), -1).permute(0, 2, 1)  # Bx4xHxW -> Bx(HxW)x4
+        if self_attn:
+            kv = torch.cat([x, kv], dim=1)
+        # x = self.attn(x, kv, kv, need_weights=False)[0]
+        x = self.attn(x, kv, kv)
+        x = x.permute(0, 2, 1).view(*orig_shape)
+        return x
+
+    def set_use_xformers_or_sdpa(self, xformers, sdpa):
+        self.attn.set_use_xformers_or_sdpa(xformers, sdpa)
 
 
 class LayerNorm2d(nn.LayerNorm):
@@ -261,6 +376,9 @@ class AttnBlock(nn.Module):
 
     def set_gradient_checkpointing(self, value):
         self.gradient_checkpointing = value
+
+    def set_use_xformers_or_sdpa(self, xformers, sdpa):
+        self.attention.set_use_xformers_or_sdpa(xformers, sdpa)
 
     def forward_body(self, x, kv):
         kv = self.kv_mapper(kv)
@@ -657,6 +775,12 @@ class StageB(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    def set_use_xformers_or_sdpa(self, xformers, sdpa):
+        for block in self.down_blocks + self.up_blocks:
+            for layer in block:
+                if hasattr(layer, "set_use_xformers_or_sdpa"):
+                    layer.set_use_xformers_or_sdpa(xformers, sdpa)
+
     def gen_r_embedding(self, r, max_positions=10000):
         r = r * max_positions
         half_dim = self.c_r // 2
@@ -919,6 +1043,12 @@ class StageC(nn.Module):
             for layer in block:
                 if hasattr(layer, "set_gradient_checkpointing"):
                     layer.set_gradient_checkpointing(value)
+
+    def set_use_xformers_or_sdpa(self, xformers, sdpa):
+        for block in self.down_blocks + self.up_blocks:
+            for layer in block:
+                if hasattr(layer, "set_use_xformers_or_sdpa"):
+                    layer.set_use_xformers_or_sdpa(xformers, sdpa)
 
     def gen_r_embedding(self, r, max_positions=10000):
         r = r * max_positions

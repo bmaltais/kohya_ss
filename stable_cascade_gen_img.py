@@ -40,9 +40,15 @@ def main(args):
 
     generator_c = sc_utils.load_stage_c_model(args.stage_c_checkpoint_path, dtype=dtype, device=loading_device)
     generator_c.eval().requires_grad_(False).to(loading_device)
+    # if args.xformers or args.sdpa:
+    print(f"Stage C: use_xformers_or_sdpa: {args.xformers} {args.sdpa}")
+    generator_c.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
 
     generator_b = sc_utils.load_stage_b_model(args.stage_b_checkpoint_path, dtype=dtype, device=loading_device)
     generator_b.eval().requires_grad_(False).to(loading_device)
+    # if args.xformers or args.sdpa:
+    print(f"Stage B: use_xformers_or_sdpa: {args.xformers} {args.sdpa}")
+    generator_b.set_use_xformers_or_sdpa(args.xformers, args.sdpa)
 
     # CLIP encoders
     tokenizer = sc_utils.load_tokenizer(args)
@@ -332,6 +338,8 @@ if __name__ == "__main__":
     sc_utils.add_text_model_arguments(parser)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
+    parser.add_argument("--xformers", action="store_true")
+    parser.add_argument("--sdpa", action="store_true")
     parser.add_argument("--outdir", type=str, default="../outputs", help="dir to write results to / 生成画像の出力先")
     parser.add_argument("--lowvram", action="store_true", help="if specified, use low VRAM mode")
     parser.add_argument(
