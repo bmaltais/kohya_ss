@@ -327,10 +327,10 @@ class DyLoRANetwork(torch.nn.Module):
         for i, text_encoder in enumerate(text_encoders):
             if len(text_encoders) > 1:
                 index = i + 1
-                print(f"create LoRA for Text Encoder {index}")
+                logger.info(f"create LoRA for Text Encoder {index}")
             else:
                 index = None
-                print(f"create LoRA for Text Encoder")
+                logger.info("create LoRA for Text Encoder")
             
             text_encoder_loras = create_modules(False, text_encoder, DyLoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE)
             self.text_encoder_loras.extend(text_encoder_loras)

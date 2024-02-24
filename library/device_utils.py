@@ -3,6 +3,11 @@ import gc
 
 import torch
 
+from .utils import setup_logging
+setup_logging()
+import logging
+logger = logging.getLogger(__name__)
+
 try:
     HAS_CUDA = torch.cuda.is_available()
 except Exception:
@@ -59,7 +64,7 @@ def get_preferred_device() -> torch.device:
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    print(f"get_preferred_device() -> {device}")
+    logger.info(f"get_preferred_device() -> {device}")
     return device
 
 
@@ -77,8 +82,8 @@ def init_ipex():
 
             is_initialized, error_message = ipex_init()
             if not is_initialized:
-                print("failed to initialize ipex:", error_message)
+                logger.error("failed to initialize ipex: {error_message}")
         else:
             return
     except Exception as e:
-        print("failed to initialize ipex:", e)
+        logger.error("failed to initialize ipex: {e}")
