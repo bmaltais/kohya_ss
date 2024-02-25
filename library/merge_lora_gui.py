@@ -4,27 +4,35 @@ import subprocess
 
 # Third-party imports
 import gradio as gr
-from easygui import msgbox
+
+from library.custom_logging import setup_logging
 
 # Local module imports
-from .common_gui import get_saveasfilename_path, get_file_path
-from library.custom_logging import setup_logging
+from .common_gui import get_file_path, get_saveasfilename_path
+
+# from easygui import msgbox
+
 
 # Set up logging
 log = setup_logging()
 
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
+def msgbox(msg):
+    print(msg)
+
+
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
+PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
 
 
 def check_model(model):
     if not model:
         return True
     if not os.path.isfile(model):
-        msgbox(f'The provided {model} is not a file')
+        msgbox(f"The provided {model} is not a file")
         return False
     return True
 
@@ -44,37 +52,37 @@ class GradioMergeLoRaTab:
         self.build_tab()
 
     def save_inputs_to_json(self, file_path, inputs):
-        with open(file_path, 'w') as file:
+        with open(file_path, "w") as file:
             json.dump(inputs, file)
-        log.info(f'Saved inputs to {file_path}')
+        log.info(f"Saved inputs to {file_path}")
 
     def load_inputs_from_json(self, file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             inputs = json.load(file)
-        log.info(f'Loaded inputs from {file_path}')
+        log.info(f"Loaded inputs from {file_path}")
         return inputs
 
     def build_tab(self):
-        with gr.Tab('Merge LoRA'):
+        with gr.Tab("Merge LoRA"):
             gr.Markdown(
-                'This utility can merge up to 4 LoRA together or alternatively merge up to 4 LoRA into a SD checkpoint.'
+                "This utility can merge up to 4 LoRA together or alternatively merge up to 4 LoRA into a SD checkpoint."
             )
 
-            lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
-            lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
-            ckpt_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
-            ckpt_ext_name = gr.Textbox(value='SD model types', visible=False)
+            lora_ext = gr.Textbox(value="*.safetensors *.pt", visible=False)
+            lora_ext_name = gr.Textbox(value="LoRA model types", visible=False)
+            ckpt_ext = gr.Textbox(value="*.safetensors *.ckpt", visible=False)
+            ckpt_ext_name = gr.Textbox(value="SD model types", visible=False)
 
             with gr.Row():
                 sd_model = gr.Textbox(
-                    label='SD Model',
-                    placeholder='(Optional) Stable Diffusion model',
+                    label="SD Model",
+                    placeholder="(Optional) Stable Diffusion model",
                     interactive=True,
-                    info='Provide a SD file path IF you want to merge it with LoRA files',
+                    info="Provide a SD file path IF you want to merge it with LoRA files",
                 )
                 sd_model_file = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 sd_model_file.click(
@@ -83,17 +91,17 @@ class GradioMergeLoRaTab:
                     outputs=sd_model,
                     show_progress=False,
                 )
-                sdxl_model = gr.Checkbox(label='SDXL model', value=False)
+                sdxl_model = gr.Checkbox(label="SDXL model", value=False)
 
             with gr.Row():
                 lora_a_model = gr.Textbox(
                     label='LoRA model "A"',
-                    placeholder='Path to the LoRA A model',
+                    placeholder="Path to the LoRA A model",
                     interactive=True,
                 )
                 button_lora_a_model_file = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 button_lora_a_model_file.click(
@@ -105,12 +113,12 @@ class GradioMergeLoRaTab:
 
                 lora_b_model = gr.Textbox(
                     label='LoRA model "B"',
-                    placeholder='Path to the LoRA B model',
+                    placeholder="Path to the LoRA B model",
                     interactive=True,
                 )
                 button_lora_b_model_file = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 button_lora_b_model_file.click(
@@ -122,7 +130,7 @@ class GradioMergeLoRaTab:
 
             with gr.Row():
                 ratio_a = gr.Slider(
-                    label='Model A merge ratio (eg: 0.5 mean 50%)',
+                    label="Model A merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
                     maximum=1,
                     step=0.01,
@@ -131,7 +139,7 @@ class GradioMergeLoRaTab:
                 )
 
                 ratio_b = gr.Slider(
-                    label='Model B merge ratio (eg: 0.5 mean 50%)',
+                    label="Model B merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
                     maximum=1,
                     step=0.01,
@@ -142,12 +150,12 @@ class GradioMergeLoRaTab:
             with gr.Row():
                 lora_c_model = gr.Textbox(
                     label='LoRA model "C"',
-                    placeholder='Path to the LoRA C model',
+                    placeholder="Path to the LoRA C model",
                     interactive=True,
                 )
                 button_lora_c_model_file = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 button_lora_c_model_file.click(
@@ -159,12 +167,12 @@ class GradioMergeLoRaTab:
 
                 lora_d_model = gr.Textbox(
                     label='LoRA model "D"',
-                    placeholder='Path to the LoRA D model',
+                    placeholder="Path to the LoRA D model",
                     interactive=True,
                 )
                 button_lora_d_model_file = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 button_lora_d_model_file.click(
@@ -176,7 +184,7 @@ class GradioMergeLoRaTab:
 
             with gr.Row():
                 ratio_c = gr.Slider(
-                    label='Model C merge ratio (eg: 0.5 mean 50%)',
+                    label="Model C merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
                     maximum=1,
                     step=0.01,
@@ -185,7 +193,7 @@ class GradioMergeLoRaTab:
                 )
 
                 ratio_d = gr.Slider(
-                    label='Model D merge ratio (eg: 0.5 mean 50%)',
+                    label="Model D merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
                     maximum=1,
                     step=0.01,
@@ -195,13 +203,13 @@ class GradioMergeLoRaTab:
 
             with gr.Row():
                 save_to = gr.Textbox(
-                    label='Save to',
-                    placeholder='path for the file to save...',
+                    label="Save to",
+                    placeholder="path for the file to save...",
                     interactive=True,
                 )
                 button_save_to = gr.Button(
                     folder_symbol,
-                    elem_id='open_folder_small',
+                    elem_id="open_folder_small",
                     visible=(not self.headless),
                 )
                 button_save_to.click(
@@ -211,19 +219,19 @@ class GradioMergeLoRaTab:
                     show_progress=False,
                 )
                 precision = gr.Dropdown(
-                    label='Merge precision',
-                    choices=['fp16', 'bf16', 'float'],
-                    value='float',
+                    label="Merge precision",
+                    choices=["fp16", "bf16", "float"],
+                    value="float",
                     interactive=True,
                 )
                 save_precision = gr.Dropdown(
-                    label='Save precision',
-                    choices=['fp16', 'bf16', 'float'],
-                    value='fp16',
+                    label="Save precision",
+                    choices=["fp16", "bf16", "float"],
+                    value="fp16",
                     interactive=True,
                 )
 
-            merge_button = gr.Button('Merge model')
+            merge_button = gr.Button("Merge model")
 
             merge_button.click(
                 self.merge_lora,
@@ -262,7 +270,7 @@ class GradioMergeLoRaTab:
         save_precision,
     ):
 
-        log.info('Merge model...')
+        log.info("Merge model...")
         models = [
             sd_model,
             lora_a_model,
@@ -275,7 +283,7 @@ class GradioMergeLoRaTab:
 
         if not verify_conditions(sd_model, lora_models):
             log.info(
-                'Warning: Either provide at least one LoRa model along with the sd_model or at least two LoRa models if no sd_model is provided.'
+                "Warning: Either provide at least one LoRa model along with the sd_model or at least two LoRa models if no sd_model is provided."
             )
             return
 
@@ -286,34 +294,30 @@ class GradioMergeLoRaTab:
         if not sdxl_model:
             run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
         else:
-            run_cmd = (
-                f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
-            )
+            run_cmd = f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
         if sd_model:
             run_cmd += f' --sd_model "{sd_model}"'
-        run_cmd += f' --save_precision {save_precision}'
-        run_cmd += f' --precision {precision}'
+        run_cmd += f" --save_precision {save_precision}"
+        run_cmd += f" --precision {precision}"
         run_cmd += f' --save_to "{save_to}"'
 
         # Create a space-separated string of non-empty models (from the second element onwards), enclosed in double quotes
-        models_cmd = ' '.join([f'"{model}"' for model in lora_models if model])
+        models_cmd = " ".join([f'"{model}"' for model in lora_models if model])
 
         # Create a space-separated string of non-zero ratios corresponding to non-empty LoRa models
-        valid_ratios = [
-            ratios[i] for i, model in enumerate(lora_models) if model
-        ]
-        ratios_cmd = ' '.join([str(ratio) for ratio in valid_ratios])
+        valid_ratios = [ratios[i] for i, model in enumerate(lora_models) if model]
+        ratios_cmd = " ".join([str(ratio) for ratio in valid_ratios])
 
         if models_cmd:
-            run_cmd += f' --models {models_cmd}'
-            run_cmd += f' --ratios {ratios_cmd}'
+            run_cmd += f" --models {models_cmd}"
+            run_cmd += f" --ratios {ratios_cmd}"
 
         log.info(run_cmd)
 
         # Run the command
-        if os.name == 'posix':
+        if os.name == "posix":
             os.system(run_cmd)
         else:
             subprocess.run(run_cmd)
 
-        log.info('Done merging...')
+        log.info("Done merging...")

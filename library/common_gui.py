@@ -1,15 +1,17 @@
-from tkinter import filedialog, Tk
-from easygui import msgbox
-import os
-import re
-import gradio as gr
-import easygui
-import shutil
-import sys
 import json
 
-from library.custom_logging import setup_logging
+# from easygui import msgbox
+import os
+import re
+import shutil
+import sys
 from datetime import datetime
+from tkinter import Tk, filedialog
+
+import easygui
+import gradio as gr
+
+from library.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
@@ -18,6 +20,11 @@ folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
+
+
+def msgbox(msg):
+    print(msg)
+
 
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
@@ -121,9 +128,10 @@ def update_my_data(my_data):
 
     # Update model save choices due to changes for LoRA and TI training
     if "save_model_as" in my_data:
-        if (
-            my_data.get("LoRA_type") or my_data.get("num_vectors_per_token")
-        ) and my_data.get("save_model_as") not in ["safetensors", "ckpt"]:
+        if (my_data.get("LoRA_type") or my_data.get("num_vectors_per_token")) and my_data.get("save_model_as") not in [
+            "safetensors",
+            "ckpt",
+        ]:
             message = "Updating save_model_as to safetensors because the current value in the config file is no longer applicable to {}"
             if my_data.get("LoRA_type"):
                 log.info(message.format("LoRA"))
@@ -147,9 +155,7 @@ def get_dir_and_file(file_path):
     return (dir_path, file_name)
 
 
-def get_file_path(
-    file_path="", default_extension=".json", extension_name="Config files"
-):
+def get_file_path(file_path="", default_extension=".json", extension_name="Config files"):
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
@@ -231,9 +237,7 @@ def get_folder_path(folder_path=""):
     return folder_path
 
 
-def get_saveasfile_path(
-    file_path="", defaultextension=".json", extension_name="Config files"
-):
+def get_saveasfile_path(file_path="", defaultextension=".json", extension_name="Config files"):
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
@@ -267,9 +271,7 @@ def get_saveasfile_path(
     return file_path
 
 
-def get_saveasfilename_path(
-    file_path="", extensions="*", extension_name="Config files"
-):
+def get_saveasfilename_path(file_path="", extensions="*", extension_name="Config files"):
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
@@ -320,9 +322,7 @@ def add_pre_postfix(
         return
 
     image_extensions = (".jpg", ".jpeg", ".png", ".webp")
-    image_files = [
-        f for f in os.listdir(folder) if f.lower().endswith(image_extensions)
-    ]
+    image_files = [f for f in os.listdir(folder) if f.lower().endswith(image_extensions)]
 
     for image_file in image_files:
         caption_file_name = os.path.splitext(image_file)[0] + caption_file_ext
@@ -340,9 +340,7 @@ def add_pre_postfix(
 
                 prefix_separator = " " if prefix else ""
                 postfix_separator = " " if postfix else ""
-                f.write(
-                    f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
-                )
+                f.write(f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}")
 
 
 def has_ext_files(folder_path: str, file_extension: str) -> bool:
@@ -380,9 +378,7 @@ def find_replace(
     log.info("Running caption find/replace")
 
     if not has_ext_files(folder_path, caption_file_ext):
-        msgbox(
-            f"No files with extension {caption_file_ext} were found in {folder_path}..."
-        )
+        msgbox(f"No files with extension {caption_file_ext} were found in {folder_path}...")
         return
 
     if search_text == "":
@@ -402,9 +398,7 @@ def find_replace(
 
 def color_aug_changed(color_aug):
     if color_aug:
-        msgbox(
-            'Disabling "Cache latent" because "Color augmentation" has been selected...'
-        )
+        msgbox('Disabling "Cache latent" because "Color augmentation" has been selected...')
         return gr.Checkbox(value=False, interactive=False)
     else:
         return gr.Checkbox(value=True, interactive=True)
@@ -425,17 +419,13 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
 
                 # Copy the v2-inference-v.yaml file to the current file, with a .yaml extension
                 if v2 and v_parameterization:
-                    log.info(
-                        f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
-                    )
+                    log.info(f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml")
                     shutil.copy(
                         f"./v2_inference/v2-inference-v.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
                 elif v2:
-                    log.info(
-                        f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
-                    )
+                    log.info(f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml")
                     shutil.copy(
                         f"./v2_inference/v2-inference.yaml",
                         f"{output_dir}/{file_name}.yaml",
@@ -457,9 +447,7 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=True, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
+        pretrained_model_name_or_path = gr.Textbox(value=str(model_list), visible=False)
         pretrained_model_name_or_path_file = gr.Button(visible=False)
         pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
@@ -478,9 +466,7 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
+        pretrained_model_name_or_path = gr.Textbox(value=str(model_list), visible=False)
         pretrained_model_name_or_path_file = gr.Button(visible=False)
         pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
@@ -495,15 +481,11 @@ def set_pretrained_model_name_or_path_input(
 
     # Check if the given model_list is in the list of V parameterization models
     if str(model_list) in V_PARAMETERIZATION_MODELS:
-        log.info(
-            "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
-        )
+        log.info("SD v2 model selected. Setting --v2 and --v_parameterization parameters")
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=True, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
+        pretrained_model_name_or_path = gr.Textbox(value=str(model_list), visible=False)
         pretrained_model_name_or_path_file = gr.Button(visible=False)
         pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
@@ -522,9 +504,7 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
+        pretrained_model_name_or_path = gr.Textbox(value=str(model_list), visible=False)
         pretrained_model_name_or_path_file = gr.Button(visible=False)
         pretrained_model_name_or_path_folder = gr.Button(visible=False)
         return (
@@ -575,9 +555,7 @@ def get_int_or_default(kwargs, key, default_value=0):
     elif isinstance(value, float):
         return int(value)
     else:
-        log.info(
-            f"{key} is not an int, float or a string, setting value to {default_value}"
-        )
+        log.info(f"{key} is not an int, float or a string, setting value to {default_value}")
         return default_value
 
 
@@ -590,9 +568,7 @@ def get_float_or_default(kwargs, key, default_value=0.0):
     elif isinstance(value, str):
         return float(value)
     else:
-        log.info(
-            f"{key} is not an int, float or a string, setting value to {default_value}"
-        )
+        log.info(f"{key} is not an int, float or a string, setting value to {default_value}")
         return default_value
 
 
@@ -709,9 +685,7 @@ def run_cmd_advanced_training(**kwargs):
 
     caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs")
     if caption_dropout_every_n_epochs and int(caption_dropout_every_n_epochs) > 0:
-        run_cmd += (
-            f' --caption_dropout_every_n_epochs="{int(caption_dropout_every_n_epochs)}"'
-        )
+        run_cmd += f' --caption_dropout_every_n_epochs="{int(caption_dropout_every_n_epochs)}"'
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
@@ -738,9 +712,7 @@ def run_cmd_advanced_training(**kwargs):
         run_cmd += " --debiased_estimation_loss"
 
     dim_from_weights = kwargs.get("dim_from_weights")
-    if dim_from_weights and kwargs.get(
-        "lora_network_weights"
-    ):  # Only if lora_network_weights is true
+    if dim_from_weights and kwargs.get("lora_network_weights"):  # Only if lora_network_weights is true
         run_cmd += f" --dim_from_weights"
 
     enable_bucket = kwargs.get("enable_bucket")
@@ -804,7 +776,7 @@ def run_cmd_advanced_training(**kwargs):
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd += f' --network_weights="{lora_network_weights}"' # Yes, the parameter is now called network_weights instead of lora_network_weights
+        run_cmd += f' --network_weights="{lora_network_weights}"'  # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
@@ -928,18 +900,12 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f" --noise_offset={float(noise_offset)}"
 
         adaptive_noise_scale = kwargs.get("adaptive_noise_scale")
-        if (
-            adaptive_noise_scale
-            and float(adaptive_noise_scale) != 0
-            and float(noise_offset) > 0
-        ):
+        if adaptive_noise_scale and float(adaptive_noise_scale) != 0 and float(noise_offset) > 0:
             run_cmd += f" --adaptive_noise_scale={float(adaptive_noise_scale)}"
     elif noise_offset_type and noise_offset_type == "Multires":
         multires_noise_iterations = kwargs.get("multires_noise_iterations")
         if int(multires_noise_iterations) > 0:
-            run_cmd += (
-                f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
-            )
+            run_cmd += f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
 
         multires_noise_discount = kwargs.get("multires_noise_discount")
         if multires_noise_discount and float(multires_noise_discount) > 0:
@@ -1135,11 +1101,7 @@ def verify_image_folder_pattern(folder_path):
     ]
 
     # Check the pattern of each sub-folder
-    matching_subfolders = [
-        subfolder
-        for subfolder in subfolders
-        if re.match(pattern, os.path.basename(subfolder))
-    ]
+    matching_subfolders = [subfolder for subfolder in subfolders if re.match(pattern, os.path.basename(subfolder))]
 
     # Print non-matching sub-folders
     non_matching_subfolders = set(subfolders) - set(matching_subfolders)
@@ -1147,9 +1109,7 @@ def verify_image_folder_pattern(folder_path):
         log.error(
             f"The following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}"
         )
-        log.error(
-            f"Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
-        )
+        log.error(f"Please follow the folder structure documentation found at docs\image_folder_structure.md ...")
         return false_response
 
     # Check if no sub-folders exist
@@ -1169,11 +1129,7 @@ def SaveConfigFile(
     exclusion=["file_path", "save_as", "headless", "print_only"],
 ):
     # Return the values of the variables as a dictionary
-    variables = {
-        name: value
-        for name, value in sorted(parameters, key=lambda x: x[0])
-        if name not in exclusion
-    }
+    variables = {name: value for name, value in sorted(parameters, key=lambda x: x[0]) if name not in exclusion}
 
     # Save the data to the selected file
     with open(file_path, "w") as file:
@@ -1197,9 +1153,7 @@ def save_to_file(content):
         print(f"Error: Could not create 'logs' directory - {e}")
 
 
-def check_duplicate_filenames(
-    folder_path, image_extension=[".gif", ".png", ".jpg", ".jpeg", ".webp"]
-):
+def check_duplicate_filenames(folder_path, image_extension=[".gif", ".png", ".jpg", ".jpeg", ".webp"]):
     log.info("Checking for duplicate image filenames in training data directory...")
     for root, dirs, files in os.walk(folder_path):
         filenames = {}

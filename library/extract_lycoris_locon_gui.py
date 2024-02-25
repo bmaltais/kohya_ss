@@ -1,17 +1,21 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
-from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
-    get_file_path,
-)
+
+# from easygui import msgbox
+import subprocess
+
+import gradio as gr
 
 from library.custom_logging import setup_logging
 
+from .common_gui import get_any_file_path, get_file_path, get_saveasfilename_path
+
 # Set up logging
 log = setup_logging()
+
+
+def msgbox(msg):
+    print(msg)
+
 
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
@@ -94,8 +98,8 @@ def extract_lycoris_locon(
         os.system(run_cmd)
     else:
         subprocess.run(run_cmd)
-        
-    log.info('Done extracting...')
+
+    log.info("Done extracting...")
 
 
 ###
@@ -131,9 +135,7 @@ def update_mode(mode):
 
 def gradio_extract_lycoris_locon_tab(headless=False):
     with gr.Tab("Extract LyCORIS LoCON"):
-        gr.Markdown(
-            "This utility can extract a LyCORIS LoCon network from a finetuned model."
-        )
+        gr.Markdown("This utility can extract a LyCORIS LoCon network from a finetuned model.")
         lora_ext = gr.Textbox(
             value="*.safetensors", visible=False
         )  # lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
@@ -288,9 +290,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 info="The higher the value, the larger the file. Recommended starting value: 0.75",
             )
         with gr.Row():
-            use_sparse_bias = gr.Checkbox(
-                label="Use sparse biais", value=False, interactive=True
-            )
+            use_sparse_bias = gr.Checkbox(label="Use sparse biais", value=False, interactive=True)
             sparsity = gr.Slider(
                 minimum=0,
                 maximum=1,
@@ -300,9 +300,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 step=0.01,
                 interactive=True,
             )
-            disable_cp = gr.Checkbox(
-                label="Disable CP decomposition", value=False, interactive=True
-            )
+            disable_cp = gr.Checkbox(label="Disable CP decomposition", value=False, interactive=True)
         mode.change(
             update_mode,
             inputs=[mode],
