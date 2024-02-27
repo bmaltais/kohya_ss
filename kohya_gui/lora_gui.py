@@ -2009,7 +2009,7 @@ def lora_tab(
                 os.path.join("./docs/LoRA/top_level.md"), "r", encoding="utf8"
             ) as file:
                 guides_top_level = file.read() + "\n"
-        gr.Markdown(guides_top_level)
+            gr.Markdown(guides_top_level)
 
     return (
         folders.train_data_dir,

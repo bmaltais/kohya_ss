@@ -1081,4 +1081,4 @@ def finetune_tab(headless=False):
         if os.path.exists(top_level_path):
             with open(os.path.join(top_level_path), "r", encoding="utf8") as file:
                 guides_top_level = file.read() + "\n"
-        gr.Markdown(guides_top_level)
+            gr.Markdown(guides_top_level)
