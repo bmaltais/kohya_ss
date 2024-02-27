@@ -9,9 +9,8 @@ import math
 import os
 import subprocess
 import pathlib
-import argparse
 from datetime import datetime
-from kohya_gui.common_gui import (
+from .common_gui import (
     get_file_path,
     get_saveasfile_path,
     color_aug_changed,
@@ -24,27 +23,27 @@ from kohya_gui.common_gui import (
     SaveConfigFile,
     save_to_file,
 )
-from kohya_gui.class_configuration_file import ConfigurationFile
-from kohya_gui.class_source_model import SourceModel
-from kohya_gui.class_basic_training import BasicTraining
-from kohya_gui.class_advanced_training import AdvancedTraining
-from kohya_gui.class_folders import Folders
-from kohya_gui.class_sdxl_parameters import SDXLParameters
-from kohya_gui.class_command_executor import CommandExecutor
-from kohya_gui.tensorboard_gui import (
+from .class_configuration_file import ConfigurationFile
+from .class_source_model import SourceModel
+from .class_basic_training import BasicTraining
+from .class_advanced_training import AdvancedTraining
+from .class_folders import Folders
+from .class_command_executor import CommandExecutor
+from .class_sdxl_parameters import SDXLParameters
+from .tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from kohya_gui.dreambooth_folder_creation_gui import (
+from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
-from kohya_gui.dataset_balancing_gui import gradio_dataset_balancing_tab
-from kohya_gui.utilities import utilities_tab
-from kohya_gui.class_sample_images import SampleImages, run_cmd_sample
+from .dataset_balancing_gui import gradio_dataset_balancing_tab
+from .utilities import utilities_tab
+from .class_sample_images import SampleImages, run_cmd_sample
+from .custom_logging import setup_logging
+from .localization_ext import add_javascript
 
-from kohya_gui.custom_logging import setup_logging
-from kohya_gui.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
@@ -66,6 +65,9 @@ def save_configuration(
     output_dir,
     max_resolution,
     learning_rate,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -81,6 +83,7 @@ def save_configuration(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
@@ -95,24 +98,19 @@ def save_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
     num_processes,
     num_machines,
     multi_gpu,
     gpu_ids,
-    vae,
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,
-    token_string,
-    init_word,
-    num_vectors_per_token,
-    max_train_steps,
-    weights,
-    template,
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
@@ -138,6 +136,7 @@ def save_configuration(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    weighted_captions,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
@@ -146,7 +145,6 @@ def save_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -162,8 +160,6 @@ def save_configuration(
         log.info("Save...")
         if file_path == None or file_path == "":
             file_path = get_saveasfile_path(file_path)
-
-    # log.info(file_path)
 
     if file_path == None or file_path == "":
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
@@ -197,6 +193,9 @@ def open_configuration(
     output_dir,
     max_resolution,
     learning_rate,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -212,6 +211,7 @@ def open_configuration(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training,
     min_bucket_reso,
@@ -226,24 +226,19 @@ def open_configuration(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
     num_processes,
     num_machines,
     multi_gpu,
     gpu_ids,
-    vae,
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,
-    token_string,
-    init_word,
-    num_vectors_per_token,
-    max_train_steps,
-    weights,
-    template,
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
@@ -269,6 +264,7 @@ def open_configuration(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    weighted_captions,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
@@ -277,7 +273,6 @@ def open_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -321,6 +316,9 @@ def train_model(
     output_dir,
     max_resolution,
     learning_rate,
+    learning_rate_te,
+    learning_rate_te1,
+    learning_rate_te2,
     lr_scheduler,
     lr_warmup,
     train_batch_size,
@@ -336,6 +334,7 @@ def train_model(
     enable_bucket,
     gradient_checkpointing,
     full_fp16,
+    full_bf16,
     no_token_padding,
     stop_text_encoder_training_pct,
     min_bucket_reso,
@@ -350,24 +349,19 @@ def train_model(
     color_aug,
     flip_aug,
     clip_skip,
+    vae,
     num_processes,
     num_machines,
     multi_gpu,
     gpu_ids,
-    vae,
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     mem_eff_attn,
     gradient_accumulation_steps,
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
-    token_string,
-    init_word,
-    num_vectors_per_token,
-    max_train_steps,
-    weights,
-    template,
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
@@ -393,6 +387,7 @@ def train_model(
     additional_parameters,
     vae_batch_size,
     min_snr_gamma,
+    weighted_captions,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
@@ -401,13 +396,12 @@ def train_model(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
-    sdxl_no_half_vae,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
 
     print_only_bool = True if print_only.get("label") == "True" else False
-    log.info(f"Start training TI...")
+    log.info(f"Start training Dreambooth...")
 
     headless_bool = True if headless.get("label") == "True" else False
 
@@ -443,26 +437,14 @@ def train_model(
         output_message(msg="Output folder path is missing", headless=headless_bool)
         return
 
-    if token_string == "":
-        output_message(msg="Token string is missing", headless=headless_bool)
+    if check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless_bool
+    ):
         return
 
-    if init_word == "":
-        output_message(msg="Init word is missing", headless=headless_bool)
-        return
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
-        return
-
-    # if float(noise_offset) > 0 and (
-    #     multires_noise_iterations > 0 or multires_noise_discount > 0
-    # ):
+    # if sdxl:
     #     output_message(
-    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
-    #         title='Error',
+    #         msg='Dreambooth training is not compatible with SDXL models yet..',
     #         headless=headless_bool,
     #     )
     #     return
@@ -475,19 +457,30 @@ def train_model(
     #     )
     #     lr_warmup = '0'
 
-    # Get a list of all subfolders in train_data_dir
+    # Get a list of all subfolders in train_data_dir, excluding hidden folders
     subfolders = [
         f
         for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
+        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith(".")
     ]
+
+    # Check if subfolders are present. If not let the user know and return
+    if not subfolders:
+        log.info(f"No {subfolders} were found in train_data_dir can't train...")
+        return
 
     total_steps = 0
 
     # Loop through each subfolder and extract the number of repeats
     for folder in subfolders:
         # Extract the number of repeats from the folder name
-        repeats = int(folder.split("_")[0])
+        try:
+            repeats = int(folder.split("_")[0])
+        except ValueError:
+            log.info(
+                f"Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can't train..."
+            )
+            continue
 
         # Count the number of images in the folder
         num_images = len(
@@ -501,12 +494,19 @@ def train_model(
             ]
         )
 
-        # Calculate the total number of steps for this folder
-        steps = repeats * num_images
-        total_steps += steps
+        if num_images == 0:
+            log.info(f"{folder} folder contain no images, skipping...")
+        else:
+            # Calculate the total number of steps for this folder
+            steps = repeats * num_images
+            total_steps += steps
 
-        # Print the result
-        log.info(f"Folder {folder}: {steps} steps")
+            # Print the result
+            log.info(f"Folder {folder} : steps {steps}")
+
+    if total_steps == 0:
+        log.info(f"No images were found in folder {train_data_dir}... please rectify!")
+        return
 
     # Print the result
     # log.info(f"{total_steps} total steps")
@@ -515,12 +515,12 @@ def train_model(
         reg_factor = 1
     else:
         log.info(
-            "Regularisation images are used... Will double the number of steps required..."
+            f"Regularisation images are used... Will double the number of steps required..."
         )
         reg_factor = 2
 
-    # calculate max_train_steps
     if max_train_steps == "" or max_train_steps == "0":
+        # calculate max_train_steps
         max_train_steps = int(
             math.ceil(
                 float(total_steps)
@@ -530,13 +530,14 @@ def train_model(
                 * int(reg_factor)
             )
         )
-    else:
-        max_train_steps = int(max_train_steps)
-
-    log.info(f"max_train_steps = {max_train_steps}")
+        log.info(
+            f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+        )
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None:
+    if int(stop_text_encoder_training_pct) == -1:
+        stop_text_encoder_training = -1
+    elif stop_text_encoder_training_pct == None:
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -547,6 +548,7 @@ def train_model(
     lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
+    # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
     run_cmd = "accelerate launch"
 
     run_cmd += run_cmd_advanced_training(
@@ -558,9 +560,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += f' "./sdxl_train_textual_inversion.py"'
+        run_cmd += f' "./sdxl_train.py"'
     else:
-        run_cmd += f' "./train_textual_inversion.py"'
+        run_cmd += f' "./train_db.py"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -577,11 +579,15 @@ def train_model(
         enable_bucket=enable_bucket,
         epoch=epoch,
         flip_aug=flip_aug,
+        full_bf16=full_bf16,
         full_fp16=full_fp16,
         gradient_accumulation_steps=gradient_accumulation_steps,
         gradient_checkpointing=gradient_checkpointing,
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
+        learning_rate_te1=learning_rate_te1 if sdxl else None,
+        learning_rate_te2=learning_rate_te2 if sdxl else None,
+        learning_rate_te=learning_rate_te if not sdxl else None,
         logging_dir=logging_dir,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
@@ -602,7 +608,6 @@ def train_model(
         mixed_precision=mixed_precision,
         multires_noise_discount=multires_noise_discount,
         multires_noise_iterations=multires_noise_iterations,
-        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
         no_token_padding=no_token_padding,
         noise_offset=noise_offset,
         noise_offset_type=noise_offset_type,
@@ -636,17 +641,9 @@ def train_model(
         vae=vae,
         vae_batch_size=vae_batch_size,
         wandb_api_key=wandb_api_key,
+        weighted_captions=weighted_captions,
         xformers=xformers,
     )
-    run_cmd += f' --token_string="{token_string}"'
-    run_cmd += f' --init_word="{init_word}"'
-    run_cmd += f" --num_vectors_per_token={num_vectors_per_token}"
-    if not weights == "":
-        run_cmd += f' --weights="{weights}"'
-    if template == "object template":
-        run_cmd += f" --use_object_template"
-    elif template == "style template":
-        run_cmd += f" --use_style_template"
 
     run_cmd += run_cmd_sample(
         sample_every_n_steps,
@@ -691,7 +688,11 @@ def train_model(
             save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def ti_tab(
+def dreambooth_tab(
+    # train_data_dir=gr.Textbox(),
+    # reg_data_dir=gr.Textbox(),
+    # output_dir=gr.Textbox(),
+    # logging_dir=gr.Textbox(),
     headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
@@ -699,79 +700,27 @@ def ti_tab(
     dummy_headless = gr.Label(value=headless, visible=False)
 
     with gr.Tab("Training"):
-        gr.Markdown("Train a TI using kohya textual inversion python code...")
+        gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
         # Setup Configuration Files Gradio
         config = ConfigurationFile(headless)
 
-        source_model = SourceModel(
-            save_model_as_choices=[
-                "ckpt",
-                "safetensors",
-            ],
-            headless=headless,
-        )
+        source_model = SourceModel(headless=headless)
 
         with gr.Tab("Folders"):
             folders = Folders(headless=headless)
         with gr.Tab("Parameters"):
             with gr.Tab("Basic", elem_id="basic_tab"):
-                with gr.Row():
-                    weights = gr.Textbox(
-                        label='Resume TI training',
-                        placeholder='(Optional) Path to existing TI embedding file to keep training',
-                    )
-                    weights_file_input = gr.Button(
-                        "",
-                        elem_id="open_folder_small",
-                        visible=(not headless),
-                    )
-                    weights_file_input.click(
-                        get_file_path,
-                        outputs=weights,
-                        show_progress=False,
-                    )
-                with gr.Row():
-                    token_string = gr.Textbox(
-                        label="Token string",
-                        placeholder="eg: cat",
-                    )
-                    init_word = gr.Textbox(
-                        label="Init word",
-                        value="*",
-                    )
-                    num_vectors_per_token = gr.Slider(
-                        minimum=1,
-                        maximum=75,
-                        value=1,
-                        step=1,
-                        label="Vectors",
-                    )
-                    # max_train_steps = gr.Textbox(
-                    #     label='Max train steps',
-                    #     placeholder='(Optional) Maximum number of steps',
-                    # )
-                    template = gr.Dropdown(
-                        label="Template",
-                        choices=[
-                            "caption",
-                            "object template",
-                            "style template",
-                        ],
-                        value="caption",
-                    )
                 basic_training = BasicTraining(
                     learning_rate_value="1e-5",
                     lr_scheduler_value="cosine",
                     lr_warmup_value="10",
+                    dreambooth=True,
                     sdxl_checkbox=source_model.sdxl_checkbox,
                 )
 
-                # Add SDXL Parameters
-                sdxl_params = SDXLParameters(
-                    source_model.sdxl_checkbox,
-                    show_sdxl_cache_text_encoder_outputs=False,
-                )
+                # # Add SDXL Parameters
+                # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
             with gr.Tab("Advanced", elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless)
@@ -832,6 +781,9 @@ def ti_tab(
             folders.output_dir,
             basic_training.max_resolution,
             basic_training.learning_rate,
+            basic_training.learning_rate_te,
+            basic_training.learning_rate_te1,
+            basic_training.learning_rate_te2,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
             basic_training.train_batch_size,
@@ -847,6 +799,7 @@ def ti_tab(
             basic_training.enable_bucket,
             advanced_training.gradient_checkpointing,
             advanced_training.full_fp16,
+            advanced_training.full_bf16,
             advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
             basic_training.min_bucket_reso,
@@ -860,24 +813,19 @@ def ti_tab(
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
+            advanced_training.vae,
             advanced_training.num_processes,
             advanced_training.num_machines,
             advanced_training.multi_gpu,
             advanced_training.gpu_ids,
-            advanced_training.vae,
             folders.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
+            basic_training.max_train_steps,
             advanced_training.max_data_loader_n_workers,
             advanced_training.mem_eff_attn,
             advanced_training.gradient_accumulation_steps,
             source_model.model_list,
-            token_string,
-            init_word,
-            num_vectors_per_token,
-            basic_training.max_train_steps,
-            weights,
-            template,
             advanced_training.keep_tokens,
             basic_training.lr_scheduler_num_cycles,
             basic_training.lr_scheduler_power,
@@ -903,6 +851,7 @@ def ti_tab(
             advanced_training.additional_parameters,
             advanced_training.vae_batch_size,
             advanced_training.min_snr_gamma,
+            advanced_training.weighted_captions,
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,
             advanced_training.save_last_n_steps_state,
@@ -911,7 +860,6 @@ def ti_tab(
             advanced_training.scale_v_pred_loss_like_noise_pred,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
-            sdxl_params.sdxl_no_half_vae,
         ]
 
         config.button_open_config.click(
@@ -979,13 +927,13 @@ def UI(**kwargs):
     interface = gr.Blocks(css=css, title="Kohya_ss GUI", theme=gr.themes.Default())
 
     with interface:
-        with gr.Tab("Dreambooth TI"):
+        with gr.Tab("Dreambooth"):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = ti_tab(headless=headless)
+            ) = dreambooth_tab(headless=headless)
         with gr.Tab("Utilities"):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,

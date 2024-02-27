@@ -6,7 +6,7 @@ import subprocess
 import pathlib
 import argparse
 from datetime import datetime
-from kohya_gui.common_gui import (
+from .common_gui import (
     get_folder_path,
     get_file_path,
     get_saveasfile_path,
@@ -18,22 +18,22 @@ from kohya_gui.common_gui import (
     SaveConfigFile,
     save_to_file,
 )
-from kohya_gui.class_configuration_file import ConfigurationFile
-from kohya_gui.class_source_model import SourceModel
-from kohya_gui.class_basic_training import BasicTraining
-from kohya_gui.class_advanced_training import AdvancedTraining
-from kohya_gui.class_sdxl_parameters import SDXLParameters
-from kohya_gui.class_command_executor import CommandExecutor
-from kohya_gui.tensorboard_gui import (
+from .class_configuration_file import ConfigurationFile
+from .class_source_model import SourceModel
+from .class_basic_training import BasicTraining
+from .class_advanced_training import AdvancedTraining
+from .class_sdxl_parameters import SDXLParameters
+from .class_command_executor import CommandExecutor
+from .tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
     stop_tensorboard,
 )
-from kohya_gui.utilities import utilities_tab
-from kohya_gui.class_sample_images import SampleImages, run_cmd_sample
+from .utilities import utilities_tab
+from .class_sample_images import SampleImages, run_cmd_sample
 
-from kohya_gui.custom_logging import setup_logging
-from kohya_gui.localization_ext import add_javascript
+from .custom_logging import setup_logging
+from .localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
