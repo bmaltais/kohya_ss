@@ -1043,7 +1043,7 @@ def finetune_tab(headless=False):
             inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox()] + settings_list + [training_preset],
+            outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset],
             show_progress=False,
         )
 

@@ -1967,7 +1967,7 @@ def lora_tab(
             inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox()] + settings_list + [training_preset, convolution_row],
+            outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset, convolution_row],
             show_progress=False,
         )
 
