@@ -7,7 +7,7 @@ from .common_gui import (
     get_file_path,
 )
 
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()

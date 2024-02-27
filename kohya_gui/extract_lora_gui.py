@@ -8,7 +8,7 @@ from .common_gui import (
     is_file_writable,
 )
 
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()

@@ -1,6 +1,6 @@
 import os
 import gradio as gr
-import library.localization as localization
+import kohya_gui.localization as localization
 
 
 def file_path(fn):

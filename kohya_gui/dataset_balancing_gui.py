@@ -4,7 +4,7 @@ import gradio as gr
 from easygui import msgbox, boolbox
 from .common_gui import get_folder_path
 
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
