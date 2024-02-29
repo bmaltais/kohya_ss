@@ -3,12 +3,11 @@ import re
 
 import gradio as gr
 
-# from easygui import boolbox, msgbox
-from easygui import boolbox
-
 from library.custom_logging import setup_logging
 
 from .common_gui import get_folder_path
+
+# from easygui import boolbox, msgbox
 
 
 def msgbox(msg):
@@ -99,13 +98,14 @@ def dataset_balancing(concept_repeats, folder, insecure):
 
 def warning(insecure):
     if insecure:
-        if boolbox(
-            f"WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?",
-            choices=("Yes, I like danger", "No, get me out of here"),
-        ):
-            return True
-        else:
-            return False
+        return False
+        # if boolbox(
+        #     f"WARNING!!! You have asked to rename non kohya_ss <num>_<text> folders...\n\nAre you sure you want to do that?",
+        #     choices=("Yes, I like danger", "No, get me out of here"),
+        # ):
+        #     return True
+        # else:
+        # return False
 
 
 def gradio_dataset_balancing_tab(headless=False):

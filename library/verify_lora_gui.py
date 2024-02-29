@@ -1,50 +1,53 @@
-import gradio as gr
-from easygui import msgbox
-import subprocess
 import os
-from .common_gui import (
-    get_saveasfilename_path,
-    get_any_file_path,
-    get_file_path,
-)
+import subprocess
+
+import gradio as gr
 
 from library.custom_logging import setup_logging
+
+from .common_gui import get_any_file_path, get_file_path, get_saveasfilename_path
+
+# from easygui import msgbox
+
 
 # Set up logging
 log = setup_logging()
 
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+
+def msgbox(msg):
+    print(msg)
+
+
+PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
 
 
 def verify_lora(
     lora_model,
 ):
     # verify for caption_text_input
-    if lora_model == '':
-        msgbox('Invalid model A file')
+    if lora_model == "":
+        msgbox("Invalid model A file")
         return
 
     # verify if source model exist
     if not os.path.isfile(lora_model):
-        msgbox('The provided model A is not a file')
+        msgbox("The provided model A is not a file")
         return
 
     run_cmd = [
         PYTHON,
-        os.path.join('networks', 'check_lora_weights.py'),
-        f'{lora_model}',
+        os.path.join("networks", "check_lora_weights.py"),
+        f"{lora_model}",
     ]
 
-    log.info(' '.join(run_cmd))
+    log.info(" ".join(run_cmd))
 
     # Run the command
-    process = subprocess.Popen(
-        run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    process = subprocess.Popen(run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = process.communicate()
 
     return (output.decode(), error.decode())
@@ -56,23 +59,21 @@ def verify_lora(
 
 
 def gradio_verify_lora_tab(headless=False):
-    with gr.Tab('Verify LoRA'):
-        gr.Markdown(
-            'This utility can verify a LoRA network to make sure it is properly trained.'
-        )
+    with gr.Tab("Verify LoRA"):
+        gr.Markdown("This utility can verify a LoRA network to make sure it is properly trained.")
 
-        lora_ext = gr.Textbox(value='*.pt *.safetensors', visible=False)
-        lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
+        lora_ext = gr.Textbox(value="*.pt *.safetensors", visible=False)
+        lora_ext_name = gr.Textbox(value="LoRA model types", visible=False)
 
         with gr.Row():
             lora_model = gr.Textbox(
-                label='LoRA model',
-                placeholder='Path to the LoRA model to verify',
+                label="LoRA model",
+                placeholder="Path to the LoRA model to verify",
                 interactive=True,
             )
             button_lora_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
+                elem_id="open_folder_small",
                 visible=(not headless),
             )
             button_lora_model_file.click(
@@ -81,19 +82,19 @@ def gradio_verify_lora_tab(headless=False):
                 outputs=lora_model,
                 show_progress=False,
             )
-            verify_button = gr.Button('Verify', variant='primary')
+            verify_button = gr.Button("Verify", variant="primary")
 
         lora_model_verif_output = gr.Textbox(
-            label='Output',
-            placeholder='Verification output',
+            label="Output",
+            placeholder="Verification output",
             interactive=False,
             lines=1,
             max_lines=10,
         )
 
         lora_model_verif_error = gr.Textbox(
-            label='Error',
-            placeholder='Verification error',
+            label="Error",
+            placeholder="Verification error",
             interactive=False,
             lines=1,
             max_lines=10,

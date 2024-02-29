@@ -7,7 +7,7 @@ import shutil
 import sys
 from datetime import datetime
 
-import easygui
+# import easygui
 import gradio as gr
 
 from library.custom_logging import setup_logging
@@ -71,25 +71,25 @@ def check_if_model_exist(output_name, output_dir, save_model_as, headless=False)
         )
         return False
 
-    if save_model_as in ["diffusers", "diffusers_safetendors"]:
-        ckpt_folder = os.path.join(output_dir, output_name)
-        if os.path.isdir(ckpt_folder):
-            msg = f"A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?"
-            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
-                log.info("Aborting training due to existing model with same name...")
-                return True
-    elif save_model_as in ["ckpt", "safetensors"]:
-        ckpt_file = os.path.join(output_dir, output_name + "." + save_model_as)
-        if os.path.isfile(ckpt_file):
-            msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
-            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
-                log.info("Aborting training due to existing model with same name...")
-                return True
-    else:
-        log.info(
-            'Can\'t verify if existing model exist when save model is set a "same as source model", continuing to train model...'
-        )
-        return False
+    # if save_model_as in ["diffusers", "diffusers_safetendors"]:
+    #     ckpt_folder = os.path.join(output_dir, output_name)
+    #     if os.path.isdir(ckpt_folder):
+    #         msg = f"A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?"
+    #         if not easygui.ynbox(msg, "Overwrite Existing Model?"):
+    #             log.info("Aborting training due to existing model with same name...")
+    #             return True
+    # elif save_model_as in ["ckpt", "safetensors"]:
+    #     ckpt_file = os.path.join(output_dir, output_name + "." + save_model_as)
+    #     if os.path.isfile(ckpt_file):
+    #         msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
+    #         if not easygui.ynbox(msg, "Overwrite Existing Model?"):
+    #             log.info("Aborting training due to existing model with same name...")
+    #             return True
+    # else:
+    #     log.info(
+    #         'Can\'t verify if existing model exist when save model is set a "same as source model", continuing to train model...'
+    #     )
+    #     return False
 
     return False
 
