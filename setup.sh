@@ -448,65 +448,65 @@ if [[ "$OSTYPE" == "lin"* ]]; then
 
   if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
     echo "Ubuntu detected."
-    if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      # if [ "$root" = true ]; then
-        echo "This script needs YOU to install the missing python3-tk packages. Please install with:"
-        echo " "
-        if [ "$RUNPOD" = true ]; then
-          bash apt update -y && apt install -y python3-tk
-        else
-          echo "sudo apt update -y && sudo apt install -y python3-tk"
-        fi
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
+    # if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
+    #   # if [ "$root" = true ]; then
+    #     echo "This script needs YOU to install the missing python3-tk packages. Please install with:"
+    #     echo " "
+    #     if [ "$RUNPOD" = true ]; then
+    #       bash apt update -y && apt install -y python3-tk
+    #     else
+    #       echo "sudo apt update -y && sudo apt install -y python3-tk"
+    #     fi
+    #     exit 1
+    #   # else
+    #   #   echo "This script needs to be run as root or via sudo to install packages."
+    #   #   exit 1
+    #   # fi
+    # else
+    #   echo "Python TK found..."
+    # fi
   elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
     echo "Redhat or Redhat base detected."
-    if ! rpm -qa | grep -qi python3-tkinter; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "sudo dnf install python3-tkinter -y >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
+    # if ! rpm -qa | grep -qi python3-tkinter; then
+    #   # if [ "$root" = true ]; then
+    #     echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+    #     echo "sudo dnf install python3-tkinter -y >&3"
+    #     exit 1
+    #   # else
+    #   #   echo "This script needs to be run as root or via sudo to install packages."
+    #   #   exit 1
+    #   # fi
+    # else
+    #   echo "Python TK found..."
+    # fi
   elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
     echo "Arch Linux or Arch base detected."
-    if ! pacman -Qi tk >/dev/null; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "pacman --noconfirm -S tk >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
+    # if ! pacman -Qi tk >/dev/null; then
+    #   # if [ "$root" = true ]; then
+    #     echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+    #     echo "pacman --noconfirm -S tk >&3"
+    #     exit 1
+    #   # else
+    #   #   echo "This script needs to be run as root or via sudo to install packages."
+    #   #   exit 1
+    #   # fi
+    # else
+    #   echo "Python TK found..."
+    # fi
   elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
     echo "OpenSUSE detected."
-    if ! rpm -qa | grep -qi python-tk; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "zypper install -y python-tk >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
+    # if ! rpm -qa | grep -qi python-tk; then
+    #   # if [ "$root" = true ]; then
+    #     echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
+    #     echo "zypper install -y python-tk >&3"
+    #     exit 1
+    #   # else
+    #   #   echo "This script needs to be run as root or via sudo to install packages."
+    #   #   exit 1
+    #   # fi
+    # else
+    #   echo "Python TK found..."
+    # fi
   elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
     if [ "$distro" = "None" ]; then
       echo "We could not detect your distribution of Linux. Please file a bug report on github with the contents of your /etc/os-release file."
@@ -603,13 +603,13 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   else
     echo "Python 3.10 found!"
   fi
-  echo "Installing Python-TK 3.10 if not found."
-  if ! brew ls --versions python-tk@3.10 >/dev/null; then
-    echo "Installing Python TK 3.10."
-    brew install python-tk@3.10 >&3
-  else
-    echo "Python Tkinter 3.10 found!"
-  fi
+  # echo "Installing Python-TK 3.10 if not found."
+  # if ! brew ls --versions python-tk@3.10 >/dev/null; then
+  #   echo "Installing Python TK 3.10."
+  #   brew install python-tk@3.10 >&3
+  # else
+  #   echo "Python Tkinter 3.10 found!"
+  # fi
 
   update_kohya_ss
 

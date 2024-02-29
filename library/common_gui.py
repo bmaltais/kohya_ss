@@ -6,12 +6,18 @@ import re
 import shutil
 import sys
 from datetime import datetime
-from tkinter import Tk, filedialog
 
 import easygui
 import gradio as gr
 
 from library.custom_logging import setup_logging
+
+# TODO: Commenting out this import breaks file dialogs. This was commented out
+# as a hack to avoid installing tkinter on the remote server. Figure out a plan
+# to enable file dialogs when run on a remote server and re-enable the functions
+# in this file.
+# from tkinter import Tk, filedialog
+
 
 # Set up logging
 log = setup_logging()
