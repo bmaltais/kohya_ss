@@ -3,12 +3,12 @@ import shutil
 
 import gradio as gr
 
-# from easygui import diropenbox, msgbox
-from easygui import diropenbox
-
 from library.custom_logging import setup_logging
 
 from .common_gui import get_folder_path
+
+# from easygui import diropenbox, msgbox
+
 
 # Set up logging
 log = setup_logging()
