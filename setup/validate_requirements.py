@@ -16,7 +16,7 @@ if "setup" in project_directory:
 # Add the project directory to the beginning of the Python search path
 sys.path.insert(0, project_directory)
 
-from library.custom_logging import setup_logging
+from kohya_gui.custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
