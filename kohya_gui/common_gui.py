@@ -8,7 +8,7 @@ import shutil
 import sys
 import json
 
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 from datetime import datetime
 
 # Set up logging

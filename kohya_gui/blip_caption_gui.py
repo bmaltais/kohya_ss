@@ -3,7 +3,7 @@ from easygui import msgbox
 import subprocess
 import os
 from .common_gui import get_folder_path, add_pre_postfix
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()

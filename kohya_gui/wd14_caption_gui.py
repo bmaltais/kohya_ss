@@ -4,7 +4,7 @@ import subprocess
 from .common_gui import get_folder_path, add_pre_postfix
 import os
 
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()

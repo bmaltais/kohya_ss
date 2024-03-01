@@ -4,7 +4,7 @@ from easygui import msgbox
 import subprocess
 import time
 import webbrowser
-from library.custom_logging import setup_logging
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()

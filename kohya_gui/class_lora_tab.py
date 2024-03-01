@@ -1,17 +1,17 @@
 import gradio as gr
-from library.merge_lora_gui import GradioMergeLoRaTab
-from library.svd_merge_lora_gui import gradio_svd_merge_lora_tab
-from library.verify_lora_gui import gradio_verify_lora_tab
-from library.resize_lora_gui import gradio_resize_lora_tab
-from library.extract_lora_gui import gradio_extract_lora_tab
-from library.convert_lcm_gui import gradio_convert_lcm_tab
-from library.extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
-from library.extract_lora_from_dylora_gui import gradio_extract_dylora_tab
-from library.merge_lycoris_gui import gradio_merge_lycoris_tab
+from .merge_lora_gui import GradioMergeLoRaTab
+from .svd_merge_lora_gui import gradio_svd_merge_lora_tab
+from .verify_lora_gui import gradio_verify_lora_tab
+from .resize_lora_gui import gradio_resize_lora_tab
+from .extract_lora_gui import gradio_extract_lora_tab
+from .convert_lcm_gui import gradio_convert_lcm_tab
+from .extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
+from .extract_lora_from_dylora_gui import gradio_extract_dylora_tab
+from .merge_lycoris_gui import gradio_merge_lycoris_tab
 
 # Deprecated code
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
-from library.dreambooth_folder_creation_gui import (
+from .dataset_balancing_gui import gradio_dataset_balancing_tab
+from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 

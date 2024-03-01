@@ -6,10 +6,10 @@ from .class_folders import Folders
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
 from .class_sample_images import SampleImages
-from library.dreambooth_folder_creation_gui import (
+from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
-from library.dataset_balancing_gui import gradio_dataset_balancing_tab
+from .dataset_balancing_gui import gradio_dataset_balancing_tab
 from .common_gui import color_aug_changed
 
 

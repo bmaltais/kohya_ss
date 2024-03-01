@@ -4,13 +4,12 @@ import argparse
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
-from library.utilities import utilities_tab
+from kohya_gui.utilities import utilities_tab
 from lora_gui import lora_tab
-from library.class_lora_tab import LoRATools
+from kohya_gui.class_lora_tab import LoRATools
 
-import os
-from library.custom_logging import setup_logging
-from library.localization_ext import add_javascript
+from kohya_gui.custom_logging import setup_logging
+from kohya_gui.localization_ext import add_javascript
 
 # Set up logging
 log = setup_logging()
