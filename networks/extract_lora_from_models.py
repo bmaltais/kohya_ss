@@ -98,7 +98,7 @@ def svd(
             text_encoder_o2 = text_encoder_o2.to(load_dtype)
             unet_o = unet_o.to(load_dtype)
 
-        logger.info(f"loading original SDXL model : {model_tuned}")
+        logger.info(f"loading tuned SDXL model : {model_tuned}")
         text_encoder_t1, text_encoder_t2, _, unet_t, _, _ = sdxl_model_util.load_models_from_sdxl_checkpoint(
             sdxl_model_util.MODEL_VERSION_SDXL_BASE_V1_0, model_tuned, device_tuned
         )
