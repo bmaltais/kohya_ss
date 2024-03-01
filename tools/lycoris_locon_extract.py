@@ -134,8 +134,8 @@ from safetensors.torch import save_file
 def main():
     args = ARGS
     if args.is_sdxl:
-        base = load_models_from_sdxl_checkpoint(None, args.base_model, args.device)
-        db = load_models_from_sdxl_checkpoint(None, args.db_model, args.device)
+        base = load_models_from_sdxl_checkpoint(None, args.base_model, "cpu")
+        db = load_models_from_sdxl_checkpoint(None, args.db_model, "cpu")
     else:
         base = load_models_from_stable_diffusion_checkpoint(args.is_v2, args.base_model)
         db = load_models_from_stable_diffusion_checkpoint(args.is_v2, args.db_model)
