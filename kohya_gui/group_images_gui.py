@@ -1,15 +1,16 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, scriptdir
 import os
+import sys
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+PYTHON = sys.executable
 
 
 def group_images(
@@ -31,7 +32,7 @@ def group_images(
 
     log.info(f'Grouping images in {input_folder}...')
 
-    run_cmd = f'{PYTHON} "{os.path.join("tools","group_images.py")}"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/tools/group_images.py"'
     run_cmd += f' "{input_folder}"'
     run_cmd += f' "{output_folder}"'
     run_cmd += f' {(group_size)}'

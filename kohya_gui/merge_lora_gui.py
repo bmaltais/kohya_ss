@@ -1,13 +1,14 @@
 # Standard library imports
 import os
 import subprocess
+import sys
 
 # Third-party imports
 import gradio as gr
 from easygui import msgbox
 
 # Local module imports
-from .common_gui import get_saveasfilename_path, get_file_path
+from .common_gui import get_saveasfilename_path, get_file_path, scriptdir
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -17,7 +18,8 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = sys.executable
 
 
 def check_model(model):
@@ -284,10 +286,10 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = f'{PYTHON} "{os.path.join("networks","merge_lora.py")}"'
+            run_cmd = fr'{PYTHON} "{scriptdir}/networks/merge_lora.py"'
         else:
             run_cmd = (
-                f'{PYTHON} "{os.path.join("networks","sdxl_merge_lora.py")}"'
+                fr'{PYTHON} "{scriptdir}/networks/sdxl_merge_lora.py"'
             )
         if sd_model:
             run_cmd += f' --sd_model "{sd_model}"'

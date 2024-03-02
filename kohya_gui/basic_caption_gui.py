@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, find_replace
+from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir
 import os
 
 from .custom_logging import setup_logging
@@ -36,7 +36,7 @@ def caption_images(
         log.info(f'Captioning files in {images_dir} with {caption_text}...')
 
         # Build the command to run caption.py
-        run_cmd = f'python "tools/caption.py"'
+        run_cmd = fr'python "{scriptdir}/tools/caption.py"'
         run_cmd += f' --caption_text="{caption_text}"'
 
         # Add optional flags to the command

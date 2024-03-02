@@ -3,6 +3,7 @@ import json
 import math
 import os
 import subprocess
+import sys
 import pathlib
 from datetime import datetime
 from .common_gui import (
@@ -16,11 +17,13 @@ from .common_gui import (
     check_if_model_exist,
     SaveConfigFile,
     save_to_file,
+    scriptdir,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
+from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
 from .tensorboard_gui import (
@@ -45,8 +48,9 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
+PYTHON = sys.executable
 
+presets_dir = fr'{scriptdir}/presets'
 
 def save_configuration(
     save_as,
@@ -291,7 +295,7 @@ def open_configuration(
     # Check if we are "applying" a preset or a config
     if apply_preset:
         log.info(f"Applying preset {training_preset}...")
-        file_path = f"./presets/finetune/{training_preset}.json"
+        file_path = fr'{presets_dir}/finetune/{training_preset}.json'
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
@@ -431,7 +435,7 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
+    if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
     # if float(noise_offset) > 0 and (
@@ -454,10 +458,10 @@ def train_model(
 
     # create caption json file
     if generate_caption_database:
-        if not os.path.exists(train_dir):
+        if train_dir != "" and not os.path.exists(train_dir):
             os.mkdir(train_dir)
 
-        run_cmd = f"{PYTHON} finetune/merge_captions_to_metadata.py"
+        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/merge_captions_to_metadata.py"'
         if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
         else:
@@ -469,16 +473,17 @@ def train_model(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         if not print_only_bool:
             # Run the command
-            if os.name == "posix":
-                os.system(run_cmd)
-            else:
-                subprocess.run(run_cmd)
+            subprocess.run(run_cmd, shell=True, env=env)
+
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = f"{PYTHON} finetune/prepare_buckets_latents.py"
+        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/prepare_buckets_latents.py"'
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
@@ -498,12 +503,12 @@ def train_model(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         if not print_only_bool:
             # Run the command
-            if os.name == "posix":
-                os.system(run_cmd)
-            else:
-                subprocess.run(run_cmd)
+            subprocess.run(run_cmd, shell=True, env=env)
 
     image_num = len(
         [
@@ -549,9 +554,9 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += f' "./sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
     else:
-        run_cmd += f' "./fine_tune.py"'
+        run_cmd += fr' "{scriptdir}/fine_tune.py"'
 
     in_json = (
         f"{train_dir}/{latent_metadata_filename}"
@@ -673,8 +678,11 @@ def train_model(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command
-        executor.execute_command(run_cmd=run_cmd)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
         last_dir = pathlib.Path(f"{output_dir}/{output_name}")
@@ -682,13 +690,6 @@ def train_model(
         if not last_dir.is_dir():
             # Copy inference model for v2 if required
             save_inference_file(output_dir, v2, v_parameterization, output_name)
-
-
-def remove_doublequote(file_path):
-    if file_path != None:
-        file_path = file_path.replace('"', "")
-
-    return file_path
 
 
 def finetune_tab(headless=False):
@@ -704,88 +705,13 @@ def finetune_tab(headless=False):
         source_model = SourceModel(headless=headless)
 
         with gr.Tab("Folders"):
-            with gr.Row():
-                train_dir = gr.Textbox(
-                    label="Training config folder",
-                    placeholder="folder where the training configuration files will be saved",
-                )
-                train_dir_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
-                )
-                train_dir_folder.click(
-                    get_folder_path,
-                    outputs=train_dir,
-                    show_progress=False,
-                )
+            folders = Folders(headless=headless, finetune=True)
+            image_folder = folders.train_data_dir
+            train_dir = folders.reg_data_dir
+            output_dir = folders.output_dir
+            logging_dir = folders.logging_dir
+            output_name = folders.output_name
 
-                image_folder = gr.Textbox(
-                    label="Training Image folder",
-                    placeholder="folder where the training images are located",
-                )
-                image_folder_input_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
-                )
-                image_folder_input_folder.click(
-                    get_folder_path,
-                    outputs=image_folder,
-                    show_progress=False,
-                )
-            with gr.Row():
-                output_dir = gr.Textbox(
-                    label="Model output folder",
-                    placeholder="folder where the model will be saved",
-                )
-                output_dir_input_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
-                )
-                output_dir_input_folder.click(
-                    get_folder_path,
-                    outputs=output_dir,
-                    show_progress=False,
-                )
-
-                logging_dir = gr.Textbox(
-                    label="Logging folder",
-                    placeholder="Optional: enable logging and output TensorBoard log to this folder",
-                )
-                logging_dir_input_folder = gr.Button(
-                    folder_symbol,
-                    elem_id="open_folder_small",
-                    visible=(not headless),
-                )
-                logging_dir_input_folder.click(
-                    get_folder_path,
-                    outputs=logging_dir,
-                    show_progress=False,
-                )
-            with gr.Row():
-                output_name = gr.Textbox(
-                    label="Model output name",
-                    placeholder="Name of the model to output",
-                    value="last",
-                    interactive=True,
-                )
-            train_dir.change(
-                remove_doublequote,
-                inputs=[train_dir],
-                outputs=[train_dir],
-            )
-            image_folder.change(
-                remove_doublequote,
-                inputs=[image_folder],
-                outputs=[image_folder],
-            )
-            output_dir.change(
-                remove_doublequote,
-                inputs=[output_dir],
-                outputs=[output_dir],
-            )
         with gr.Tab("Dataset preparation"):
             with gr.Row():
                 max_resolution = gr.Textbox(
@@ -845,7 +771,7 @@ def finetune_tab(headless=False):
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=list_presets("./presets/finetune"),
+                choices=list_presets(f"{presets_dir}/finetune"),
                 elem_id="myDropdown",
             )
 
@@ -1077,7 +1003,7 @@ def finetune_tab(headless=False):
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various Finetuning guides and information...")
-        top_level_path = "./docs/Finetuning/top_level.md"
+        top_level_path = fr"{scriptdir}/docs/Finetuning/top_level.md"
         if os.path.exists(top_level_path):
             with open(os.path.join(top_level_path), "r", encoding="utf8") as file:
                 guides_top_level = file.read() + "\n"

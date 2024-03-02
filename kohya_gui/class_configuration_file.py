@@ -1,5 +1,4 @@
 import gradio as gr
-from .common_gui import remove_doublequote
 
 
 class ConfigurationFile:
@@ -28,9 +27,4 @@ class ConfigurationFile:
                 )
                 self.button_load_config = gr.Button(
                     'Load 💾', elem_id='open_folder'
-                )
-                self.config_file_name.blur(
-                    remove_doublequote,
-                    inputs=[self.config_file_name],
-                    outputs=[self.config_file_name],
                 )

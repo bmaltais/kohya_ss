@@ -22,6 +22,7 @@ from .common_gui import (
     verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
+    scriptdir,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -451,7 +452,7 @@ def train_model(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    if check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
+    if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
     # if float(noise_offset) > 0 and (
@@ -555,9 +556,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += f' "./sdxl_train_textual_inversion.py"'
+        run_cmd += fr' "{scriptdir}/sdxl_train_textual_inversion.py"'
     else:
-        run_cmd += f' "./train_textual_inversion.py"'
+        run_cmd += fr' "{scriptdir}/train_textual_inversion.py"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -719,7 +720,7 @@ def ti_tab(
                         placeholder='(Optional) Path to existing TI embedding file to keep training',
                     )
                     weights_file_input = gr.Button(
-                        "",
+                        "📂",
                         elem_id="open_folder_small",
                         visible=(not headless),
                     )
