@@ -1,6 +1,6 @@
 # Kohya's GUI
 
-This repository mostly provides a Windows-focused Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts)... but support for Linux OS is also provided through community contributions. Macos is not great at the moment.
+This repository mostly provides a Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts)... but support for Linux OS is also provided through community contributions. Macos is not great at the moment... but might work if the wind blow in the right direction...
 
 The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
