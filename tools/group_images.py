@@ -4,10 +4,12 @@ from PIL import Image, ImageOps
 import os
 import numpy as np
 
-from library.custom_logging import setup_logging
+from library.utils import setup_logging
+import logging
 
 # Set up logging
-log = setup_logging()
+setup_logging()
+log = logging.getLogger(__name__)
 
 class ImageProcessor:
 
