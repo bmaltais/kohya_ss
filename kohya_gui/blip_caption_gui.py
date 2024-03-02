@@ -56,7 +56,7 @@ def caption_images(
     env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, shell=True, env=env, cwd=f"{scriptdir}/sd-scripts")
 
     # Add prefix and postfix
     add_pre_postfix(
