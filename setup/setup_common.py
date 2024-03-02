@@ -46,7 +46,9 @@ def clone_or_checkout(repo_url, branch_or_tag, directory_name):
             # Directory does not exist, clone the repo quietly
             
             # Construct the command as a string for logging
-            run_cmd = f"git clone --branch {branch_or_tag} --single-branch --quiet {repo_url} {directory_name}"
+            # run_cmd = f"git clone --branch {branch_or_tag} --single-branch --quiet {repo_url} {directory_name}"
+            run_cmd = ["git", "clone", "--branch", branch_or_tag, "--single-branch", "--quiet", repo_url, directory_name]
+
 
             # Log the command
             log.debug(run_cmd)

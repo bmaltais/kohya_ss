@@ -50,9 +50,6 @@ if [[ -z "${LD_LIBRARY_PATH}" ]]; then
     echo -e " "
 fi
 
-# Clone or checkout release branch if required:
-python "$SCRIPT_DIR/setup/setup_sd-scripts.py"
-
 # Determine the requirements file based on the system
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ "$(uname -m)" == "arm64" ]]; then
