@@ -13,6 +13,39 @@ import pkg_resources
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
 
+def clone_or_checkout(repo_url, branch_or_tag, directory_name):
+    """
+    Clone a repo or checkout a specific branch or tag if the repo already exists.
+    For branches, it updates to the latest version before checking out.
+    Suppresses detached HEAD advice for tags or specific commits.
+    Restores the original working directory after operations.
+
+    Parameters:
+    - repo_url: The URL of the Git repository.
+    - branch_or_tag: The name of the branch or tag to clone or checkout.
+    - directory_name: The name of the directory to clone into or where the repo already exists.
+    """
+    original_dir = os.getcwd()  # Store the original directory
+    try:
+        if not os.path.exists(directory_name):
+            # Directory does not exist, clone the repo quietly
+            subprocess.run(["git", "clone", "--branch", branch_or_tag, "--single-branch", "--quiet", repo_url, directory_name], check=True)
+            # Change to the directory to set local config
+            os.chdir(directory_name)
+            subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
+            print(f"Successfully cloned {branch_or_tag} into {directory_name}")
+        else:
+            # Directory exists, navigate into it for operations
+            os.chdir(directory_name)
+            subprocess.run(["git", "fetch", "--all", "--quiet"], check=True)
+            subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
+            subprocess.run(["git", "checkout", branch_or_tag, "--quiet"], check=True)
+            print(f"Successfully updated and checked out {branch_or_tag} in {directory_name}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Git operation: {e}")
+    finally:
+        os.chdir(original_dir)  # Restore the original directory
+
 # setup console and file logging
 def setup_logging(clean=False):
     #

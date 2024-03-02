@@ -743,9 +743,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sdxl_train_network.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train_network.py"'
     else:
-        run_cmd += fr' "{scriptdir}/train_network.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/train_network.py"'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"

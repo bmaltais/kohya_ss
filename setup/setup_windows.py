@@ -99,6 +99,8 @@ def sync_bits_and_bytes_files():
 def install_kohya_ss_torch2():
     setup_common.check_repo_version()
     setup_common.check_python()
+    
+    setup_common.clone_or_checkout("https://github.com/kohya-ss/sd-scripts.git", "v0.8.4", "sd-scripts")
 
     # Upgrade pip if needed
     setup_common.install("--upgrade pip")
