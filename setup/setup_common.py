@@ -13,6 +13,21 @@ import pkg_resources
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
 
+def read_tag_version_from_file(file_path):
+    """
+    Read the tag version from a given file.
+
+    Parameters:
+    - file_path: The path to the file containing the tag version.
+
+    Returns:
+    The tag version as a string.
+    """
+    with open(file_path, 'r') as file:
+        # Read the first line and strip whitespace
+        tag_version = file.readline().strip()
+    return tag_version
+
 def clone_or_checkout(repo_url, branch_or_tag, directory_name):
     """
     Clone a repo or checkout a specific branch or tag if the repo already exists.
