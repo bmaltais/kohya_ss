@@ -47,4 +47,5 @@ requirements_tmp_for_setup.txt
 *.npz
 presets/*/user_presets/*
 
-sd-scripts/*
+# kohya_ss sd-scripts
+sd-scripts/
