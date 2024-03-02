@@ -36,13 +36,9 @@ def verify_lora(
         msgbox('The provided model A is not a file')
         return
 
-    run_cmd = [
-        PYTHON,
-        fr'"{scriptdir}/sd-scripts/networks/check_lora_weights.py"',
-        f'{lora_model}',
-    ]
-
-    log.info(' '.join(run_cmd))
+    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
+    
+    log.info(run_cmd)
 
     env = os.environ.copy()
     env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
