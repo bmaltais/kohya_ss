@@ -11,13 +11,13 @@ class AdvancedTraining:
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (
-                    gr.update(visible=True),
-                    gr.update(visible=False),
+                    gr.Group.update(visible=True),
+                    gr.Group.update(visible=False),
                 )
             else:
                 return (
-                    gr.update(visible=False),
-                    gr.update(visible=True),
+                    gr.Group.update(visible=False),
+                    gr.Group.update(visible=True),
                 )
 
         with gr.Row(visible=not finetuning):

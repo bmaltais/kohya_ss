@@ -400,9 +400,9 @@ def color_aug_changed(color_aug):
         msgbox(
             'Disabling "Cache latent" because "Color augmentation" has been selected...'
         )
-        return gr.update(value=False, interactive=False)
+        return gr.Checkbox.update(value=False, interactive=False)
     else:
-        return gr.update(value=True, interactive=True)
+        return gr.Checkbox.update(value=True, interactive=True)
 
 
 def save_inference_file(output_dir, v2, v_parameterization, output_name):
