@@ -21,7 +21,7 @@ class AdvancedTraining:
                 )
 
         with gr.Row(visible=not finetuning):
-            if training_type != "lora": # Not avaible for LoRA
+            if training_type != "lora": # Not available for LoRA
                 self.no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )
