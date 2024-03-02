@@ -44,9 +44,12 @@ def verify_lora(
 
     log.info(' '.join(run_cmd))
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
     process = subprocess.Popen(
-        run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
     )
     output, error = process.communicate()
 

@@ -47,10 +47,11 @@ def group_images(
 
     log.info(run_cmd)
 
-    if os.name == 'posix':
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
+    # Run the command
+    subprocess.run(run_cmd, shell=True, env=env)
 
     log.info('...grouping done')
 

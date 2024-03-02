@@ -3,12 +3,14 @@ from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir
 import os
+import sys
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 
+PYTHON = sys.executable
 
 def caption_images(
     caption_text,
@@ -36,7 +38,7 @@ def caption_images(
         log.info(f'Captioning files in {images_dir} with {caption_text}...')
 
         # Build the command to run caption.py
-        run_cmd = fr'python "{scriptdir}/tools/caption.py"'
+        run_cmd = fr'{PYTHON} "{scriptdir}/tools/caption.py"'
         run_cmd += f' --caption_text="{caption_text}"'
 
         # Add optional flags to the command
@@ -49,11 +51,11 @@ def caption_images(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command based on the operating system
-        if os.name == 'posix':
-            os.system(run_cmd)
-        else:
-            subprocess.run(run_cmd)
+        subprocess.run(run_cmd, shell=True, env=env)
 
     # Check if overwrite option is enabled
     if overwrite:
