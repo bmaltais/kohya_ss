@@ -461,7 +461,7 @@ def train_model(
         if train_dir != "" and not os.path.exists(train_dir):
             os.mkdir(train_dir)
 
-        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/merge_captions_to_metadata.py"'
+        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
         if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
         else:
@@ -483,7 +483,7 @@ def train_model(
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/prepare_buckets_latents.py"'
+        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
         run_cmd += f' "{image_folder}"'
         run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
         run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
@@ -554,9 +554,9 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/fine_tune.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/fine_tune.py"'
 
     in_json = (
         f"{train_dir}/{latent_metadata_filename}"

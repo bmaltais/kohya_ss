@@ -40,7 +40,7 @@ def caption_images(
         return
 
     log.info(f'Captioning files in {train_data_dir}...')
-    run_cmd = fr'accelerate launch "{scriptdir}/finetune/tag_images_by_wd14_tagger.py"'
+    run_cmd = fr'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
     run_cmd += f' --batch_size={int(batch_size)}'
     run_cmd += f' --general_threshold={general_threshold}'
     run_cmd += f' --character_threshold={character_threshold}'

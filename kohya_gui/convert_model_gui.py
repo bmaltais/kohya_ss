@@ -49,7 +49,7 @@ def convert_model(
         msgbox('The provided target folder does not exist')
         return
 
-    run_cmd = fr'{PYTHON} "{scriptdir}tools/convert_diffusers20_original_sd.py"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scriptstools/convert_diffusers20_original_sd.py"'
 
     v1_models = [
         'runwayml/stable-diffusion-v1-5',

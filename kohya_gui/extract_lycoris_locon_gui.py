@@ -61,7 +61,7 @@ def extract_lycoris_locon(
         msgbox("The provided base model is not a file")
         return
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/tools/lycoris_locon_extract.py"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/tools/lycoris_locon_extract.py"'
     if is_sdxl:
         run_cmd += f" --is_sdxl"
     if is_v2:

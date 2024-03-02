@@ -561,9 +561,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/train_db.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/train_db.py"'
 
 
     run_cmd += run_cmd_advanced_training(

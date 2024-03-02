@@ -61,7 +61,7 @@ def extract_lora(
         return
 
     run_cmd = (
-        fr'{PYTHON} "{scriptdir}/networks/extract_lora_from_models.py"'
+        fr'{PYTHON} "{scriptdir}/sd-scripts/networks/extract_lora_from_models.py"'
     )
     run_cmd += f' --load_precision {load_precision}'
     run_cmd += f' --save_precision {save_precision}'

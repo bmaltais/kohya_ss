@@ -556,9 +556,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sdxl_train_textual_inversion.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"'
     else:
-        run_cmd += fr' "{scriptdir}/train_textual_inversion.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/train_textual_inversion.py"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,

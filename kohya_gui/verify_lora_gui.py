@@ -38,7 +38,7 @@ def verify_lora(
 
     run_cmd = [
         PYTHON,
-        fr'"{scriptdir}/networks/check_lora_weights.py"',
+        fr'"{scriptdir}/sd-scripts/networks/check_lora_weights.py"',
         f'{lora_model}',
     ]
 
