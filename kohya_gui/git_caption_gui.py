@@ -2,14 +2,15 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
-from .common_gui import get_folder_path, add_pre_postfix
+import sys
+from .common_gui import get_folder_path, add_pre_postfix, scriptdir
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+PYTHON = sys.executable
 
 
 def caption_images(
@@ -32,7 +33,7 @@ def caption_images(
         return
 
     log.info(f'GIT captioning files in {train_data_dir}...')
-    run_cmd = f'{PYTHON} finetune/make_captions_by_git.py'
+    run_cmd = fr'{PYTHON} "{scriptdir}/finetune/make_captions_by_git.py"'
     if not model_id == '':
         run_cmd += f' --model_id="{model_id}"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
@@ -46,11 +47,11 @@ def caption_images(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
 
     # Add prefix and postfix
     add_pre_postfix(

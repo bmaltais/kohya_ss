@@ -2,10 +2,12 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
+import sys
 from .common_gui import (
     get_saveasfilename_path,
     get_any_file_path,
     get_file_path,
+    scriptdir,
 )
 
 from .custom_logging import setup_logging
@@ -17,7 +19,8 @@ folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
-PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
+
+PYTHON = sys.executable
 
 
 def extract_lycoris_locon(
@@ -58,7 +61,7 @@ def extract_lycoris_locon(
         msgbox("The provided base model is not a file")
         return
 
-    run_cmd = f'{PYTHON} "{os.path.join("tools","lycoris_locon_extract.py")}"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/tools/lycoris_locon_extract.py"'
     if is_sdxl:
         run_cmd += f" --is_sdxl"
     if is_v2:
@@ -89,11 +92,11 @@ def extract_lycoris_locon(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == "posix":
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
         
     log.info('Done extracting...')
 

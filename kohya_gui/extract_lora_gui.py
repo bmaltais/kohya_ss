@@ -2,10 +2,12 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
+import sys
 from .common_gui import (
     get_saveasfilename_path,
     get_file_path,
     is_file_writable,
+    scriptdir,
 )
 
 from .custom_logging import setup_logging
@@ -17,7 +19,8 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = sys.executable
 
 
 def extract_lora(
@@ -58,7 +61,7 @@ def extract_lora(
         return
 
     run_cmd = (
-        f'{PYTHON} "{os.path.join("networks","extract_lora_from_models.py")}"'
+        fr'{PYTHON} "{scriptdir}/networks/extract_lora_from_models.py"'
     )
     run_cmd += f' --load_precision {load_precision}'
     run_cmd += f' --save_precision {save_precision}'
@@ -81,11 +84,11 @@ def extract_lora(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
 
 
 ###

@@ -2,18 +2,20 @@ import gradio as gr
 from easygui import msgbox
 import subprocess
 import os
-from .common_gui import get_saveasfilename_path, get_file_path
+import sys
+from .common_gui import get_saveasfilename_path, get_file_path, scriptdir
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
 folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
+
+PYTHON = sys.executable
 
 
 def resize_lora(
@@ -57,7 +59,7 @@ def resize_lora(
     if device == '':
         device = 'cuda'
 
-    run_cmd = f'{PYTHON} "{os.path.join("networks","resize_lora.py")}"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/networks/resize_lora.py"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --save_to "{save_to}"'
     run_cmd += f' --model "{model}"'
@@ -71,11 +73,11 @@ def resize_lora(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
 
     log.info('Done resizing...')
 

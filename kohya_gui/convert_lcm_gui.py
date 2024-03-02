@@ -1,9 +1,11 @@
 import gradio as gr
 import os
 import subprocess
+import sys
 from .common_gui import (
     get_saveasfilename_path,
     get_file_path,
+    scriptdir,
 )
 from .custom_logging import setup_logging
 
@@ -15,7 +17,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = "python3" if os.name == "posix" else "./venv/Scripts/python.exe"
+PYTHON = sys.executable
 
 
 def convert_lcm(
@@ -24,7 +26,7 @@ def convert_lcm(
     lora_scale,
     model_type
 ):
-    run_cmd = f'{PYTHON} "{os.path.join("tools","lcm_convert.py")}"'
+    run_cmd = fr'{PYTHON} "{scriptdir}/tools/lcm_convert.py"'
     # Construct the command to run the script
     run_cmd += f' --name "{name}"'
     run_cmd += f' --model "{model_path}"'
@@ -37,11 +39,11 @@ def convert_lcm(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == "posix":
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
 
     # Return a success message
     log.info("Done extracting...")

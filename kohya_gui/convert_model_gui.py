@@ -3,7 +3,8 @@ from easygui import msgbox
 import subprocess
 import os
 import shutil
-from .common_gui import get_folder_path, get_file_path
+import sys
+from .common_gui import get_folder_path, get_file_path, scriptdir
 
 from .custom_logging import setup_logging
 
@@ -14,7 +15,8 @@ folder_symbol = '\U0001f4c2'  # 📂
 refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
-PYTHON = 'python3' if os.name == 'posix' else './venv/Scripts/python.exe'
+
+PYTHON = sys.executable
 
 
 def convert_model(
@@ -47,7 +49,7 @@ def convert_model(
         msgbox('The provided target folder does not exist')
         return
 
-    run_cmd = f'{PYTHON} "tools/convert_diffusers20_original_sd.py"'
+    run_cmd = fr'{PYTHON} "{scriptdir}tools/convert_diffusers20_original_sd.py"'
 
     v1_models = [
         'runwayml/stable-diffusion-v1-5',
@@ -101,11 +103,11 @@ def convert_model(
 
     log.info(run_cmd)
 
+    env = os.environ.copy()
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
     # Run the command
-    if os.name == 'posix':
-        os.system(run_cmd)
-    else:
-        subprocess.run(run_cmd)
+    subprocess.run(run_cmd, shell=True, env=env)
 
     if (
         not target_model_type == 'diffuser'
@@ -127,7 +129,7 @@ def convert_model(
             )
             log.info(f'Saving v2-inference.yaml as {inference_file}')
             shutil.copy(
-                f'./v2_inference/v2-inference.yaml',
+                fr'{scriptdir}/v2_inference/v2-inference.yaml',
                 f'{inference_file}',
             )
 
@@ -137,7 +139,7 @@ def convert_model(
             )
             log.info(f'Saving v2-inference-v.yaml as {inference_file}')
             shutil.copy(
-                f'./v2_inference/v2-inference-v.yaml',
+                fr'{scriptdir}/v2_inference/v2-inference-v.yaml',
                 f'{inference_file}',
             )
 

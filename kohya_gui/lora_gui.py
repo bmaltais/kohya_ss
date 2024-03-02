@@ -17,6 +17,7 @@ from .common_gui import (
     SaveConfigFile,
     save_to_file,
     check_duplicate_filenames,
+    scriptdir,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -52,6 +53,7 @@ button_stop_training = gr.Button("Stop training")
 
 document_symbol = "\U0001F4C4"  # 📄
 
+presets_dir = fr'{scriptdir}/presets'
 
 def save_configuration(
     save_as,
@@ -361,7 +363,7 @@ def open_configuration(
     if apply_preset:
         if training_preset != "none":
             log.info(f"Applying preset {training_preset}...")
-            file_path = f"./presets/lora/{training_preset}.json"
+            file_path = fr'{presets_dir}/lora/{training_preset}.json'
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
@@ -629,7 +631,7 @@ def train_model(
         )
         stop_text_encoder_training_pct = 0
 
-    if check_if_model_exist(
+    if not print_only_bool and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless_bool
     ):
         return
@@ -741,9 +743,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += f' "./sdxl_train_network.py"'
+        run_cmd += fr' "{scriptdir}/sdxl_train_network.py"'
     else:
-        run_cmd += f' "./train_network.py"'
+        run_cmd += fr' "{scriptdir}/train_network.py"'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
@@ -1091,7 +1093,7 @@ def lora_tab(
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=list_presets("./presets/lora"),
+                choices=list_presets(f"{presets_dir}/lora"),
                 elem_id="myDropdown",
                 value="none"
             )
@@ -2004,9 +2006,9 @@ def lora_tab(
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
-        if os.path.exists("./docs/LoRA/top_level.md"):
+        if os.path.exists(fr"{scriptdir}/docs/LoRA/top_level.md"):
             with open(
-                os.path.join("./docs/LoRA/top_level.md"), "r", encoding="utf8"
+                os.path.join(fr"{scriptdir}/docs/LoRA/top_level.md"), "r", encoding="utf8"
             ) as file:
                 guides_top_level = file.read() + "\n"
             gr.Markdown(guides_top_level)

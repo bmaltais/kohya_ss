@@ -11,17 +11,17 @@ class AdvancedTraining:
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (
-                    gr.Group(visible=True),
-                    gr.Group(visible=False),
+                    gr.Group.update(visible=True),
+                    gr.Group.update(visible=False),
                 )
             else:
                 return (
-                    gr.Group(visible=False),
-                    gr.Group(visible=True),
+                    gr.Group.update(visible=False),
+                    gr.Group.update(visible=True),
                 )
 
         with gr.Row(visible=not finetuning):
-            if training_type != "lora": # Not avaible for LoRA
+            if training_type != "lora": # Not available for LoRA
                 self.no_token_padding = gr.Checkbox(
                     label='No token padding', value=False
                 )

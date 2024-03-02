@@ -19,6 +19,8 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
+scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
     "stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned",
@@ -202,13 +204,6 @@ def get_any_file_path(file_path=""):
 
         if file_path == "":
             file_path = current_file_path
-
-    return file_path
-
-
-def remove_doublequote(file_path):
-    if file_path != None:
-        file_path = file_path.replace('"', "")
 
     return file_path
 
@@ -405,9 +400,9 @@ def color_aug_changed(color_aug):
         msgbox(
             'Disabling "Cache latent" because "Color augmentation" has been selected...'
         )
-        return gr.Checkbox(value=False, interactive=False)
+        return gr.Checkbox.update(value=False, interactive=False)
     else:
-        return gr.Checkbox(value=True, interactive=True)
+        return gr.Checkbox.update(value=True, interactive=True)
 
 
 def save_inference_file(output_dir, v2, v_parameterization, output_name):
@@ -429,7 +424,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        f"./v2_inference/v2-inference-v.yaml",
+                        fr"{scriptdir}/v2_inference/v2-inference-v.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
                 elif v2:
@@ -437,7 +432,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        f"./v2_inference/v2-inference.yaml",
+                        fr"{scriptdir}/v2_inference/v2-inference.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
 
@@ -800,7 +795,10 @@ def run_cmd_advanced_training(**kwargs):
 
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
-        run_cmd += f' --logging_dir="{logging_dir}"'
+        if logging_dir.startswith('"') and logging_dir.endswith('"'):
+            logging_dir = logging_dir[1:-1]
+        if os.path.exists(logging_dir):
+            run_cmd += fr' --logging_dir="{logging_dir}"'
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
@@ -967,7 +965,10 @@ def run_cmd_advanced_training(**kwargs):
 
     output_dir = kwargs.get("output_dir")
     if output_dir:
-        run_cmd += f' --output_dir="{output_dir}"'
+        if output_dir.startswith('"') and output_dir.endswith('"'):
+            output_dir = output_dir[1:-1]
+        if os.path.exists(output_dir):
+            run_cmd += fr' --output_dir="{output_dir}"'
 
     output_name = kwargs.get("output_name")
     if output_name and not output_name == "":
@@ -991,7 +992,10 @@ def run_cmd_advanced_training(**kwargs):
 
     reg_data_dir = kwargs.get("reg_data_dir")
     if reg_data_dir and len(reg_data_dir):
-        run_cmd += f' --reg_data_dir="{reg_data_dir}"'
+        if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
+            reg_data_dir = reg_data_dir[1:-1]
+        if os.path.isdir(reg_data_dir):
+            run_cmd += fr' --reg_data_dir="{reg_data_dir}"'
 
     resume = kwargs.get("resume")
     if resume:
@@ -1059,7 +1063,10 @@ def run_cmd_advanced_training(**kwargs):
 
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
-        run_cmd += f' --train_data_dir="{train_data_dir}"'
+        if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
+            train_data_dir = train_data_dir[1:-1]
+        if os.path.exists(train_data_dir):
+            run_cmd += fr' --train_data_dir="{train_data_dir}"'
 
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:

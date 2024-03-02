@@ -8,6 +8,7 @@ import json
 import math
 import os
 import subprocess
+import sys
 import pathlib
 from datetime import datetime
 from .common_gui import (
@@ -22,6 +23,7 @@ from .common_gui import (
     verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
+    scriptdir,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -436,7 +438,7 @@ def train_model(
         output_message(msg="Output folder path is missing", headless=headless_bool)
         return
 
-    if check_if_model_exist(
+    if not print_only_bool and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless_bool
     ):
         return
@@ -559,9 +561,10 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += f' "./sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
     else:
-        run_cmd += f' "./train_db.py"'
+        run_cmd += fr' "{scriptdir}/train_db.py"'
+
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
