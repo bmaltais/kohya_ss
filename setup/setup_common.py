@@ -44,20 +44,50 @@ def clone_or_checkout(repo_url, branch_or_tag, directory_name):
     try:
         if not os.path.exists(directory_name):
             # Directory does not exist, clone the repo quietly
-            subprocess.run(["git", "clone", "--branch", branch_or_tag, "--single-branch", "--quiet", repo_url, directory_name], check=True)
-            # Change to the directory to set local config
-            os.chdir(directory_name)
-            subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
-            print(f"Successfully cloned {branch_or_tag} into {directory_name}")
+            
+            # Construct the command as a string for logging
+            run_cmd = f"git clone --branch {branch_or_tag} --single-branch --quiet {repo_url} {directory_name}"
+
+            # Log the command
+            log.debug(run_cmd)
+            
+            # Run the command
+            process = subprocess.Popen(
+                run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            output, error = process.communicate()
+            
+            if error and not error.startswith("Note: switching to"):
+                log.warning(error)
+            else:
+                log.info(f"Successfully cloned sd-scripts {branch_or_tag}")
+            
         else:
-            # Directory exists, navigate into it for operations
             os.chdir(directory_name)
             subprocess.run(["git", "fetch", "--all", "--quiet"], check=True)
             subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
-            subprocess.run(["git", "checkout", branch_or_tag, "--quiet"], check=True)
-            print(f"Successfully updated and checked out {branch_or_tag} in {directory_name}")
+            
+            # Get the current branch or commit hash
+            current_branch_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode()
+            tag_branch_hash = subprocess.check_output(["git", "rev-parse", branch_or_tag]).strip().decode()
+            
+            if current_branch_hash != tag_branch_hash:
+                run_cmd = f"git checkout {branch_or_tag} --quiet"
+                # Log the command
+                log.debug(run_cmd)
+                
+                # Execute the checkout command
+                process = subprocess.Popen(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                output, error = process.communicate()
+                
+                if error:
+                    log.warning(error.decode())
+                else:
+                    log.info(f"Checked out sd-scripts {branch_or_tag} successfully.")
+            else:
+                log.info(f"Current branch of sd-scripts is already at the required release {branch_or_tag}.")
     except subprocess.CalledProcessError as e:
-        print(f"Error during Git operation: {e}")
+        log.error(f"Error during Git operation: {e}")
     finally:
         os.chdir(original_dir)  # Restore the original directory
 
