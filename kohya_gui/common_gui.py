@@ -781,17 +781,23 @@ def run_cmd_advanced_training(**kwargs):
     if learning_rate:
         run_cmd += f' --learning_rate="{learning_rate}"'
 
-    learning_rate_te = kwargs.get("learning_rate_te")
-    if learning_rate_te:
-        run_cmd += f' --learning_rate_te="{learning_rate_te}"'
+    if "learning_rate_te" in kwargs:
+        if kwargs["learning_rate_te"] == 0:
+            run_cmd += f' --learning_rate_te="0"'
+        else:
+            run_cmd += f' --learning_rate_te="{kwargs["learning_rate_te"]}"'
 
-    learning_rate_te1 = kwargs.get("learning_rate_te1")
-    if learning_rate_te1:
-        run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
+    if "learning_rate_te1" in kwargs:
+        if kwargs["learning_rate_te1"] == 0:
+            run_cmd += f' --learning_rate_te1="0"'
+        else:
+            run_cmd += f' --learning_rate_te1="{kwargs["learning_rate_te1"]}"'
 
-    learning_rate_te2 = kwargs.get("learning_rate_te2")
-    if learning_rate_te2:
-        run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
+    if "learning_rate_te2" in kwargs:
+        if kwargs["learning_rate_te2"] == 0:
+            run_cmd += f' --learning_rate_te2="0"'
+        else:
+            run_cmd += f' --learning_rate_te2="{kwargs["learning_rate_te2"]}"'
 
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
