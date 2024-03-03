@@ -221,11 +221,9 @@ If you prefer to use Docker, follow the instructions below:
 2. Open your OS shell (Command Prompt or Terminal) and run the following commands:
 
    ```bash
-   git clone https://github.com/bmaltais/kohya_ss.git
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
    cd kohya_ss
-   docker compose create
-   docker compose build
-   docker compose run --service-ports kohya-ss-gui
+   docker compose up -d --build
    ```
 
    Note: The initial run may take up to 20 minutes to complete.
@@ -235,7 +233,7 @@ If you prefer to use Docker, follow the instructions below:
    - All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
    - The file picker feature is not functional. You need to manually set the folder path and config file path.
    - Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
-   - There is no built-in auto-update support. To update the system, you must run update scripts outside of Docker and rebuild using `docker compose build`.
+   - This dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code. To update the system, run update scripts outside of Docker and rebuild using `docker compose down && docker compose up -d --build`.
 
    If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
