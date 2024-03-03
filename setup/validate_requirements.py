@@ -107,14 +107,7 @@ def main():
 
     torch_ver = check_torch()
     
-    # Read the tag version from the file
-    tag_version = setup_common.read_tag_version_from_file(".sd-scripts-release")
-    
-    setup_common.update_submodule("sd-scripts", tag_version)
-    
-    # setup_common.clone_or_checkout(
-    #     "https://github.com/kohya-ss/sd-scripts.git", tag_version, "sd-scripts"
-    # )
+    setup_common.update_submodule()
     
     if args.requirements:
         setup_common.install_requirements(args.requirements, check_no_verify_flag=True)

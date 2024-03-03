@@ -13,40 +13,23 @@ import pkg_resources
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
 
-def update_submodule(submodule_path, branch_or_tag):
+def update_submodule():
     """
-    Ensure the submodule is initialized, updated, and set to a specific commit, tag, or branch.
+    Ensure the submodule is initialized and updated.
     
     Parameters:
     - submodule_path: The relative path within the repository to the submodule.
     - branch_or_tag: The specific commit, tag, or branch to checkout in the submodule.
     """
-    original_dir = os.getcwd()  # Store the original directory
     try:
-        # Ensure the working directory is the root of the main repository
-        if not os.path.exists(submodule_path):
-            raise FileNotFoundError(f"Submodule path does not exist: {submodule_path}")
-        
         # Initialize and update the submodule
-        subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--quiet", submodule_path], check=True)
+        subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--quiet"], check=True)
         log.info("Submodule initialized and updated.")
-        
-        # Navigate to the submodule directory
-        os.chdir(submodule_path)
-        
-        # Fetch the latest changes from the remote, including tags
-        subprocess.run(["git", "fetch", "--all", "--tags", "--quiet"], check=True)
-        
-        # Checkout the specified branch, tag, or commit
-        subprocess.run(["git", "checkout", "--quiet", branch_or_tag], check=True)
-        log.info(f"Submodule set to {branch_or_tag}.")
         
     except subprocess.CalledProcessError as e:
         log.error(f"Error during Git operation: {e}")
     except FileNotFoundError as e:
         log.error(e)
-    finally:
-        os.chdir(original_dir)  # Restore the original directory
 
 def read_tag_version_from_file(file_path):
     """
