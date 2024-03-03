@@ -103,9 +103,11 @@ def install_kohya_ss_torch2():
     # Read the tag version from the file
     tag_version = setup_common.read_tag_version_from_file(".\.sd-scripts-release")
     
-    setup_common.clone_or_checkout(
-        "https://github.com/kohya-ss/sd-scripts.git", tag_version, "sd-scripts"
-    )
+    setup_common.update_submodule("sd-scripts", tag_version)
+    
+    # setup_common.clone_or_checkout(
+    #     "https://github.com/kohya-ss/sd-scripts.git", tag_version, "sd-scripts"
+    # )
 
     # Upgrade pip if needed
     setup_common.install("--upgrade pip")
