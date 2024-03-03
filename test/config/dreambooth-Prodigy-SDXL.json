@@ -2,7 +2,7 @@
   "adaptive_noise_scale": 0,
   "additional_parameters": "",
   "bucket_no_upscale": true,
-  "bucket_reso_steps": 1,
+  "bucket_reso_steps": 32,
   "cache_latents": true,
   "cache_latents_to_disk": false,
   "caption_dropout_every_n_epochs": 0.0,
