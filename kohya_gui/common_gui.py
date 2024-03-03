@@ -680,7 +680,7 @@ def run_cmd_advanced_training(**kwargs):
 
     block_lr = kwargs.get("block_lr")
     if block_lr:
-        run_cmd += f' --block_lr="(block_lr)"'
+        run_cmd += f' --block_lr="{block_lr}"'
 
     bucket_no_upscale = kwargs.get("bucket_no_upscale")
     if bucket_no_upscale:
