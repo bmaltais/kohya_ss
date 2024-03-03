@@ -16,10 +16,6 @@ log = logging.getLogger('sd')
 def update_submodule():
     """
     Ensure the submodule is initialized and updated.
-    
-    Parameters:
-    - submodule_path: The relative path within the repository to the submodule.
-    - branch_or_tag: The specific commit, tag, or branch to checkout in the submodule.
     """
     try:
         # Initialize and update the submodule
