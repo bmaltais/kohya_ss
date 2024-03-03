@@ -17,9 +17,8 @@ from .dreambooth_folder_creation_gui import (
 
 
 class LoRATools:
-    def __init__(self, folders='', headless: bool = False):
+    def __init__(self, train_data_dir=None, reg_data_dir=None, output_dir=None, logging_dir=None, headless: bool = False):
         self.headless = headless
-        self.folders = folders
 
         gr.Markdown(
             'This section provide LoRA tools to help setup your dataset...'
@@ -33,13 +32,13 @@ class LoRATools:
         gradio_svd_merge_lora_tab(headless=headless)
         gradio_resize_lora_tab(headless=headless)
         gradio_verify_lora_tab(headless=headless)
-        if folders:
+        if train_data_dir is not None:
             with gr.Tab('Dataset Preparation'):
                 gradio_dreambooth_folder_creation_tab(
-                    train_data_dir_input=folders.train_data_dir,
-                    reg_data_dir_input=folders.reg_data_dir,
-                    output_dir_input=folders.output_dir,
-                    logging_dir_input=folders.logging_dir,
+                    train_data_dir_input=train_data_dir,
+                    reg_data_dir_input=reg_data_dir,
+                    output_dir_input=output_dir,
+                    logging_dir_input=logging_dir,
                     headless=headless,
                 )
                 gradio_dataset_balancing_tab(headless=headless)

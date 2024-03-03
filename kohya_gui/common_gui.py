@@ -21,6 +21,9 @@ document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
+# insert sd-scripts path into PYTHONPATH
+sys.path.insert(0, os.path.join(scriptdir, "sd-scripts"))
+
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
     "stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned",
@@ -88,6 +91,103 @@ def output_message(msg="", title="", headless=False):
         log.info(msg)
     else:
         msgbox(msg=msg, title=title)
+
+
+def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_id):
+    refresh_components = refresh_component if isinstance(refresh_component, list) else [refresh_component]
+
+    label = None
+    for comp in refresh_components:
+        label = getattr(comp, 'label', None)
+        if label is not None:
+            break
+
+    def refresh():
+        refresh_method()
+        args = refreshed_args() if callable(refreshed_args) else refreshed_args
+
+        for k, v in args.items():
+            for comp in refresh_components:
+                setattr(comp, k, v)
+
+        return [gr.update(**(args or {})) for _ in refresh_components] if len(refresh_components) > 1 else gr.update(**(args or {}))
+
+    refresh_button = gr.Button(value=refresh_symbol, elem_id=elem_id, elem_classes=["tool"])
+    refresh_button.click(
+        fn=refresh,
+        inputs=[],
+        outputs=refresh_components
+    )
+    return refresh_button
+
+
+def list_dirs(path):
+    if path is None or path == "None" or path == "":
+        return
+
+    if not os.path.exists(path):
+        path = os.path.dirname(path)
+        if not os.path.exists(path):
+            return
+
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    def natural_sort_key(s, regex=re.compile('([0-9]+)')):
+        return [int(text) if text.isdigit() else text.lower() for text in regex.split(s)]
+
+    subdirs = [(item, os.path.join(path, item)) for item in os.listdir(path) if os.path.isdir(os.path.join(path, item))]
+    subdirs = [filename for item, filename in subdirs if item[0] != "." and item not in ["__pycache__"]]
+    subdirs = sorted(subdirs, key=natural_sort_key)
+    if os.path.dirname(path) != "":
+        dirs = [os.path.dirname(path), path] + subdirs
+    else:
+        dirs = [path] + subdirs
+
+    if os.sep == "\\":
+        dirs = [d.replace("\\", "/") for d in dirs]
+    for d in dirs:
+        yield d
+
+
+def list_files(path, exts=None, all=False):
+    if path is None or path == "None" or path == "":
+        return
+
+    if not os.path.exists(path):
+        path = os.path.dirname(path)
+        if not os.path.exists(path):
+            return
+
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    files = [(item, os.path.join(path, item)) for item in os.listdir(path) if all or os.path.isfile(os.path.join(path, item))]
+    files = [filename for item, filename in files if item[0] != "." and item not in ["__pycache__"]]
+    exts = set(exts) if exts is not None else None
+
+    def natural_sort_key(s, regex=re.compile('([0-9]+)')):
+        return [int(text) if text.isdigit() else text.lower() for text in regex.split(s)]
+
+    files = sorted(files, key=natural_sort_key)
+    if os.path.dirname(path) != "":
+        files = [os.path.dirname(path), path] + files
+    else:
+        files = [path] + files
+
+    if os.sep == "\\":
+        files = [d.replace("\\", "/") for d in files]
+
+    for filename in files:
+        if exts is not None:
+            if os.path.isdir(filename):
+                yield filename
+            _, ext = os.path.splitext(filename)
+            if ext.lower() not in exts:
+                continue
+            yield filename
+        else:
+            yield filename
 
 
 def update_my_data(my_data):
@@ -437,118 +537,78 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                     )
 
 
-def set_pretrained_model_name_or_path_input(
-    model_list,
-    pretrained_model_name_or_path,
-    pretrained_model_name_or_path_file,
-    pretrained_model_name_or_path_folder,
-    v2,
-    v_parameterization,
-    sdxl,
-):
+def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refresh_method=None):
     # Check if the given model_list is in the list of SDXL models
-    if str(model_list) in SDXL_MODELS:
+    if pretrained_model_name_or_path in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=True, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=True, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the given model_list is in the list of V2 base models
-    if str(model_list) in V2_BASE_MODELS:
+    if pretrained_model_name_or_path in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the given model_list is in the list of V parameterization models
-    if str(model_list) in V_PARAMETERIZATION_MODELS:
+    if pretrained_model_name_or_path in V_PARAMETERIZATION_MODELS:
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=True, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the given model_list is in the list of V1 models
-    if str(model_list) in V1_MODELS:
+    if pretrained_model_name_or_path in V1_MODELS:
         log.info(f"{model_list} model selected.")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the model_list is set to 'custom'
-    if model_list == "custom":
-        v2 = gr.Checkbox(visible=True)
-        v_parameterization = gr.Checkbox(visible=True)
-        sdxl = gr.Checkbox(visible=True)
-        pretrained_model_name_or_path = gr.Textbox(visible=True)
-        pretrained_model_name_or_path_file = gr.Button(visible=True)
-        pretrained_model_name_or_path_folder = gr.Button(visible=True)
-        return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
-            v2,
-            v_parameterization,
-            sdxl,
+    v2 = gr.Checkbox.update(visible=True)
+    v_parameterization = gr.Checkbox.update(visible=True)
+    sdxl = gr.Checkbox.update(visible=True)
+
+    if refresh_method is not None:
+        args = dict(
+            choices=refresh_method(pretrained_model_name_or_path),
         )
+    else:
+        args = {}
+    return (
+        gr.Dropdown().update(**args),
+        v2,
+        v_parameterization,
+        sdxl,
+    )
 
 
 ###
@@ -986,7 +1046,7 @@ def run_cmd_advanced_training(**kwargs):
 
     pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
     if pretrained_model_name_or_path:
-        run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        run_cmd += fr' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
 
     prior_loss_weight = kwargs.get("prior_loss_weight")
     if prior_loss_weight and not float(prior_loss_weight) == 1.0:
@@ -1100,7 +1160,10 @@ def run_cmd_advanced_training(**kwargs):
 
     vae = kwargs.get("vae")
     if vae and not vae == "":
-        run_cmd += f' --vae="{vae}"'
+        if not os.path.exists(vae):
+            vae = os.path.join("models", "VAE", vae).replace(os.sep, "/")
+        if os.path.exists(vae):
+            run_cmd += f' --vae="{vae}"'
 
     vae_batch_size = kwargs.get("vae_batch_size")
     if vae_batch_size and int(vae_batch_size) > 0:
