@@ -39,6 +39,7 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     --mount=source=requirements_linux_docker.txt,target=requirements_linux_docker.txt \
     --mount=source=requirements.txt,target=requirements.txt \
     --mount=source=setup/docker_setup.py,target=setup.py \
+    --mount=source=sd-scripts,target=sd-scripts,rw \
     pip install -r requirements_linux_docker.txt -r requirements.txt
 
 # Replace pillow with pillow-simd (Only for x86)
