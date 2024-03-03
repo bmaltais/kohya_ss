@@ -30,7 +30,7 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     torch==2.1.2 torchvision==0.16.2 \
     xformers==0.0.23.post1 \
     # Why [and-cuda]: https://github.com/tensorflow/tensorflow/issues/61468#issuecomment-1759462485
-    tensorflow[and-cuda]==2.14.0 \
+    tensorflow[and-cuda]==2.15.0.post1 \
     ninja \
     pip setuptools wheel
 
