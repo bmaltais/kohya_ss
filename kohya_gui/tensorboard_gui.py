@@ -22,11 +22,12 @@ def start_tensorboard(headless, logging_dir, wait_time=5):
 
     # Read the TENSORBOARD_PORT from the environment, or use the default
     tensorboard_port = os.environ.get('TENSORBOARD_PORT', DEFAULT_TENSORBOARD_PORT)
-
-    if not os.listdir(logging_dir):
-        log.info('Error: log folder is empty')
-        msgbox(msg='Error: log folder is empty')
-        return
+    
+    # Check if logging directory exists and is not empty; if not, warn the user and exit
+    if not os.path.exists(logging_dir) or not os.listdir(logging_dir):
+        log.error('Error: logging folder does not exist or does not contain logs.')
+        msgbox(msg='Error: logging folder does not exist or does not contain logs.')
+        return  # Exit the function with an error code
 
     run_cmd = [
         TENSORBOARD,
@@ -74,7 +75,7 @@ def stop_tensorboard():
         except Exception as e:
             log.error('Failed to stop Tensorboard:', e)
     else:
-        log.info('Tensorboard is not running...')
+        log.warning('Tensorboard is not running...')
 
 
 def gradio_tensorboard():
