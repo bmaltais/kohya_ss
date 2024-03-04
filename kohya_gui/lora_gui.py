@@ -1046,10 +1046,10 @@ def train_model(
 
 
 def lora_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+    train_data_dir_input=gr.Dropdown(),
+    reg_data_dir_input=gr.Dropdown(),
+    output_dir_input=gr.Dropdown(),
+    logging_dir_input=gr.Dropdown(),
     headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)

@@ -2,7 +2,7 @@ import os
 import re
 import gradio as gr
 from easygui import msgbox, boolbox
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
 
 from .custom_logging import setup_logging
 
@@ -110,6 +110,9 @@ def warning(insecure):
 
 
 def gradio_dataset_balancing_tab(headless=False):
+
+    current_dataset_dir = os.path.join(scriptdir, "data")
+
     with gr.Tab('Dreambooth/LoRA Dataset balancing'):
         gr.Markdown(
             'This utility will ensure that each concept folder in the dataset folder is used equally during the training process of the dreambooth machine learning model, regardless of the number of images in each folder. It will do this by renaming the concept folders to indicate the number of times they should be repeated during training.'
@@ -117,13 +120,20 @@ def gradio_dataset_balancing_tab(headless=False):
         gr.Markdown(
             'WARNING! The use of this utility on the wrong folder can lead to unexpected folder renaming!!!'
         )
-        with gr.Row():
-            select_dataset_folder_input = gr.Textbox(
-                label='Dataset folder',
-                placeholder='Folder containing the concepts folders to balance...',
-                interactive=True,
-            )
+        with gr.Group(), gr.Row():
 
+            def list_dataset_dirs(path):
+                current_dataset_dir = path
+                return list(list_dirs(path))
+
+            select_dataset_folder_input = gr.Dropdown(
+                label='Dataset folder (folder containing the concepts folders to balance...)',
+                interactive=True,
+                choices=list_dataset_dirs(current_dataset_dir),
+                value="",
+                allow_custom_value=True,
+            )
+            create_refresh_button(select_dataset_folder_input, lambda: None, lambda: {"choices": list_dataset_dir(current_dataset_dir)}, "open_folder_small")
             select_dataset_folder_button = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -138,6 +148,13 @@ def gradio_dataset_balancing_tab(headless=False):
                 interactive=True,
                 label='Training steps per concept per epoch',
             )
+            select_dataset_folder_input.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_dataset_dirs(path)),
+                inputs=select_dataset_folder_input,
+                outputs=select_dataset_folder_input,
+                show_progress=False,
+            )
+
         with gr.Accordion('Advanced options', open=False):
             insecure = gr.Checkbox(
                 value=False,

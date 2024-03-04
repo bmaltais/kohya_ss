@@ -1,12 +1,16 @@
 import gradio as gr
-from .common_gui import get_folder_path, get_any_file_path
+import os
+from .common_gui import get_folder_path, get_any_file_path, scriptdir, list_files, list_dirs, create_refresh_button
 
 
 class AdvancedTraining:
-    def __init__(self, headless=False, finetuning: bool = False, training_type: str = ""):
+    def __init__(self, headless=False, finetuning: bool = False, training_type: str = "", default_vae_dir: str = "", default_output_dir: str = ""):
         self.headless = headless
         self.finetuning = finetuning
         self.training_type = training_type
+
+        current_vae_dir = default_vae_dir if default_vae_dir != "" else os.path.join(scriptdir, "vae")
+        current_state_dir = default_output_dir if default_output_dir != "" else os.path.join(scriptdir, "outputs")
 
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
@@ -36,20 +40,35 @@ class AdvancedTraining:
             self.weighted_captions = gr.Checkbox(
                 label='Weighted captions', value=False
             )
-        with gr.Row(visible=not finetuning):
+        with gr.Group(), gr.Row(visible=not finetuning):
             self.prior_loss_weight = gr.Number(
                 label='Prior loss weight', value=1.0
             )
-            self.vae = gr.Textbox(
-                label='VAE',
-                placeholder='(Optional) path to checkpoint of vae to replace for training',
+
+            def list_vae_files(path):
+                current_vae_dir = path
+                return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+            self.vae = gr.Dropdown(
+                label='VAE (Optional. path to checkpoint of vae to replace for training)',
                 interactive=True,
+                choices=list_vae_files(current_vae_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(self.vae, lambda: None, lambda: {"choices": list_vae_files(current_vae_dir)},"open_folder_small")
             self.vae_button = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
             )
             self.vae_button.click(
                 get_any_file_path,
+                outputs=self.vae,
+                show_progress=False,
+            )
+
+            self.vae.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_vae_files(path)),
+                inputs=self.vae,
                 outputs=self.vae,
                 show_progress=False,
             )
@@ -274,19 +293,34 @@ class AdvancedTraining:
             self.vae_batch_size = gr.Slider(
                 label='VAE batch size', minimum=0, maximum=32, value=0, step=1
             )
-        with gr.Row():
+        with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(
                 label='Save training state', value=False
             )
-            self.resume = gr.Textbox(
-                label='Resume from saved training state',
-                placeholder='path to "last-state" state folder to resume from',
+
+            def list_state_dirs(path):
+                current_state_dir = path
+                return list(list_dirs(path))
+
+            self.resume = gr.Dropdown(
+                label='Resume from saved training state (path to "last-state" state folder)',
+                choices=list_state_dirs(current_state_dir),
+                value="",
+                interactive=True,
+                allow_custom_value=True,
             )
+            create_refresh_button(self.resume, lambda: None, lambda: {"choices": list_state_dirs(current_state_dir)}, "open_folder_small")
             self.resume_button = gr.Button(
                 '📂', elem_id='open_folder_small', visible=(not headless)
             )
             self.resume_button.click(
                 get_folder_path,
+                outputs=self.resume,
+                show_progress=False,
+            )
+            self.resume.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_state_dirs(path)),
+                inputs=self.resume,
                 outputs=self.resume,
                 show_progress=False,
             )

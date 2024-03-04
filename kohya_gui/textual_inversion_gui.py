@@ -23,6 +23,8 @@ from .common_gui import (
     SaveConfigFile,
     save_to_file,
     scriptdir,
+    list_files,
+    create_refresh_button,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -695,10 +697,13 @@ def train_model(
 
 def ti_tab(
     headless=False,
+    default_output_dir=None,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
+
+    current_embedding_dir = default_output_dir if default_output_dir is not None and default_output_dir != "" else os.path.join(scriptdir, "outputs")
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
@@ -717,10 +722,19 @@ def ti_tab(
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Group(elem_id="basic_tab"):
                 with gr.Row():
-                    weights = gr.Textbox(
-                        label='Resume TI training',
-                        placeholder='(Optional) Path to existing TI embedding file to keep training',
+
+                    def list_embedding_files(path):
+                        current_embedding_dir = path
+                        return list(list_files(path, exts=[".pt", ".ckpt", ".safetensors" ], all=True))
+
+                    weights = gr.Dropdown(
+                        label='Resume TI training (Optional. Path to existing TI embedding file to keep training)',
+                        choices=list_embedding_files(current_embedding_dir),
+                        value="",
+                        interactive=True,
+                        allow_custom_value=True,
                     )
+                    create_refresh_button(weights, lambda: None, lambda: {"choices": list_embedding_files(current_embedding_dir)}, "open_folder_small")
                     weights_file_input = gr.Button(
                         "📂",
                         elem_id="open_folder_small",
@@ -732,6 +746,13 @@ def ti_tab(
                         outputs=weights,
                         show_progress=False,
                     )
+                    weights.change(
+                        fn=lambda path: gr.Dropdown().update(choices=list_embedding_files(path)),
+                        inputs=weights,
+                        outputs=weights,
+                        show_progress=False,
+                    )
+
                 with gr.Row():
                     token_string = gr.Textbox(
                         label="Token string",
