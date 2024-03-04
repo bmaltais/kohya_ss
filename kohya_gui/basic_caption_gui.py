@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir
+from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir, list_dirs
 import os
 import sys
 
@@ -52,7 +52,7 @@ def caption_images(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         # Run the command based on the operating system
         subprocess.run(run_cmd, shell=True, env=env)
@@ -86,17 +86,29 @@ def caption_images(
 
 
 # Gradio UI
-def gradio_basic_caption_gui_tab(headless=False):
+def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
+    from .common_gui import create_refresh_button
+
+    default_images_dir = default_images_dir if default_images_dir is not None else os.path.join(scriptdir, "data")
+    current_images_dir = default_images_dir
+
+    def list_images_dirs(path):
+        current_images_dir = path
+        return list(list_dirs(path))
+
     with gr.Tab('Basic Captioning'):
         gr.Markdown(
             'This utility allows you to create simple caption files for each image in a folder.'
         )
-        with gr.Row():
-            images_dir = gr.Textbox(
-                label='Image folder to caption',
-                placeholder='Directory containing the images to caption',
+        with gr.Group(), gr.Row():
+            images_dir = gr.Dropdown(
+                label='Image folder to caption (containing the images to caption)',
+                choices=list_images_dirs(default_images_dir),
+                value="",
                 interactive=True,
+                allow_custom_value=True,
             )
+            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dir(current_images_dir)},"open_folder_small")
             folder_button = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not headless)
             )
@@ -132,7 +144,7 @@ def gradio_basic_caption_gui_tab(headless=False):
                 placeholder='(Optional)',
                 interactive=True,
             )
-        with gr.Row():
+        with gr.Group(), gr.Row():
             find_text = gr.Textbox(
                 label='Find text',
                 placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
@@ -158,3 +170,10 @@ def gradio_basic_caption_gui_tab(headless=False):
                 ],
                 show_progress=False,
             )
+
+        images_dir.change(
+            fn=lambda path: gr.Dropdown().update(choices=list_images_dirs(path)),
+            inputs=images_dir,
+            outputs=images_dir,
+            show_progress=False,
+        )
