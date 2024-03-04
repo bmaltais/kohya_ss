@@ -1029,8 +1029,11 @@ def train_model(
         )
 
         log.info(run_cmd)
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command
-        executor.execute_command(run_cmd=run_cmd)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         # # check if output_dir/last is a folder... therefore it is a diffuser model
         # last_dir = pathlib.Path(f'{output_dir}/{output_name}')
