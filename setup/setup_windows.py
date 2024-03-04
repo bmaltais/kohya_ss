@@ -15,26 +15,28 @@ RESET_COLOR = "\033[0m"
 
 
 def cudnn_install():
-    cudnn_src = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..\cudnn_windows"
-    )
+    # Original path with "..\\venv"
+    original_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\\venv\\Lib\\site-packages\\nvidia\\cudnn\\bin")
+    # Normalize the path to resolve "..\\venv"
+    cudnn_src = os.path.abspath(original_path)
     cudnn_dest = os.path.join(sysconfig.get_paths()["purelib"], "torch", "lib")
 
-    log.info(f"Checking for CUDNN files in {cudnn_dest}...")
+    log.info(f"Copying CUDNN files from {cudnn_src} to {cudnn_dest}...")
     if os.path.exists(cudnn_src):
         if os.path.exists(cudnn_dest):
             # check for different files
             filecmp.clear_cache()
             for file in os.listdir(cudnn_src):
-                src_file = os.path.join(cudnn_src, file)
-                dest_file = os.path.join(cudnn_dest, file)
-                # if dest file exists, check if it's different
-                if os.path.exists(dest_file):
-                    if not filecmp.cmp(src_file, dest_file, shallow=False):
+                if file.lower().endswith('.dll'):  # Check if the file is a .dll file
+                    src_file = os.path.join(cudnn_src, file)
+                    dest_file = os.path.join(cudnn_dest, file)
+                    # if dest file exists, check if it's different
+                    if os.path.exists(dest_file):
+                        if not filecmp.cmp(src_file, dest_file, shallow=False):
+                            shutil.copy2(src_file, cudnn_dest)
+                    else:
                         shutil.copy2(src_file, cudnn_dest)
-                else:
-                    shutil.copy2(src_file, cudnn_dest)
-            log.info("Copied CUDNN 8.6 files to destination")
+            log.info("Copied CUDNN .dll files to destination")
         else:
             log.warning(f"Destination directory {cudnn_dest} does not exist")
     else:
@@ -109,7 +111,8 @@ def install_kohya_ss_torch2():
         "requirements_windows_torch2.txt", check_no_verify_flag=False
     )
 
-    sync_bits_and_bytes_files()
+    # sync_bits_and_bytes_files()
+    
     setup_common.configure_accelerate(run_accelerate=True)
 
     # run_cmd(f'accelerate config')
@@ -146,7 +149,7 @@ def main_menu():
     while True:
         print("\nKohya_ss GUI setup menu:\n")
         print("1. Install kohya_ss gui")
-        print("2. (Optional) Install cudnn files (avoid unless you really need it)")
+        print("2. (Optional) Install cudnn files (if you want to use latest supported cudnn version)")
         print("3. (Optional) Install specific bitsandbytes versions")
         print("4. (Optional) Manually configure accelerate")
         print("5. (Optional) Start Kohya_ss GUI in browser")
@@ -166,7 +169,7 @@ def main_menu():
                     "2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results"
                 )
                 print(
-                    "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
+                    "3. (Recommanded) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
                 )
                 print(
                     "4. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
