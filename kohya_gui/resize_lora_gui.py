@@ -103,6 +103,7 @@ def gradio_resize_lora_tab(headless=False):
             button_lora_a_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_lora_a_model_file.click(
@@ -120,6 +121,7 @@ def gradio_resize_lora_tab(headless=False):
             button_save_to = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_save_to.click(

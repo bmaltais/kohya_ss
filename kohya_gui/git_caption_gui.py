@@ -81,7 +81,7 @@ def gradio_git_caption_gui_tab(headless=False):
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,

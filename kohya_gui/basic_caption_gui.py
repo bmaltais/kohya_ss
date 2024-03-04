@@ -98,7 +98,7 @@ def gradio_basic_caption_gui_tab(headless=False):
                 interactive=True,
             )
             folder_button = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not headless)
             )
             folder_button.click(
                 get_folder_path,

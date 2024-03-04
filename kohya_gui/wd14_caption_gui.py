@@ -68,7 +68,7 @@ def caption_images(
 
     if not undesired_tags == '':
         run_cmd += f' --undesired_tags="{undesired_tags}"'
-    run_cmd += f' "{train_data_dir}"'
+    run_cmd += fr' "{train_data_dir}"'
 
     log.info(run_cmd)
 
@@ -109,7 +109,7 @@ def gradio_wd14_caption_gui_tab(headless=False):
                 interactive=True,
             )
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,

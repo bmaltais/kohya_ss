@@ -120,6 +120,7 @@ def gradio_extract_lora_tab(headless=False):
             button_model_tuned_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_model_tuned_file.click(
@@ -145,6 +146,7 @@ def gradio_extract_lora_tab(headless=False):
             button_model_org_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_model_org_file.click(
@@ -171,6 +173,7 @@ def gradio_extract_lora_tab(headless=False):
             button_save_to = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_save_to.click(

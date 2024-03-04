@@ -69,7 +69,7 @@ def gradio_group_images_gui_tab(headless=False):
                 interactive=True,
             )
             button_input_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_input_folder.click(
                 get_folder_path,
@@ -83,7 +83,7 @@ def gradio_group_images_gui_tab(headless=False):
                 interactive=True,
             )
             button_output_folder = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_output_folder.click(
                 get_folder_path,

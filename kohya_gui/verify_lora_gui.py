@@ -75,6 +75,7 @@ def gradio_verify_lora_tab(headless=False):
             button_lora_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_lora_model_file.click(

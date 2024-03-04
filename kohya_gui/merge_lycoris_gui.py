@@ -83,6 +83,7 @@ def gradio_merge_lycoris_tab(headless=False):
             base_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             base_model_file.click(
@@ -101,6 +102,7 @@ def gradio_merge_lycoris_tab(headless=False):
             button_lycoris_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_lycoris_model_file.click(
@@ -129,6 +131,7 @@ def gradio_merge_lycoris_tab(headless=False):
             button_output_name = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_output_name.click(

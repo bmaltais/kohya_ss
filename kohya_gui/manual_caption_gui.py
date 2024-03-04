@@ -278,7 +278,7 @@ def gradio_manual_caption_gui_tab(headless=False):
                 interactive=True,
             )
             folder_button = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             folder_button.click(
                 get_folder_path,
@@ -364,7 +364,7 @@ def gradio_manual_caption_gui_tab(headless=False):
                     [], label='Tags', interactive=True
                 )
                 save_button = gr.Button(
-                    '💾', elem_id='open_folder_small', visible=False
+                    '💾', elem_id='open_folder_small', elem_classes=['tool'], visible=False
                 )
                 save_buttons.append(save_button)
 

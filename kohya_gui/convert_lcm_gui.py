@@ -65,6 +65,7 @@ def gradio_convert_lcm_tab(headless=False):
             button_model_path_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_model_path_file.click(
@@ -82,6 +83,7 @@ def gradio_convert_lcm_tab(headless=False):
             button_name = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_name.click(

@@ -189,6 +189,7 @@ def gradio_convert_model_tab(headless=False):
             button_source_model_dir = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_source_model_dir.click(
@@ -200,6 +201,7 @@ def gradio_convert_model_tab(headless=False):
             button_source_model_file = gr.Button(
                 document_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_source_model_file.click(
@@ -229,6 +231,7 @@ def gradio_convert_model_tab(headless=False):
             button_target_model_folder = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_target_model_folder.click(

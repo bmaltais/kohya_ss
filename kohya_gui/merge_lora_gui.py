@@ -77,6 +77,7 @@ class GradioMergeLoRaTab:
                 sd_model_file = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 sd_model_file.click(
@@ -96,6 +97,7 @@ class GradioMergeLoRaTab:
                 button_lora_a_model_file = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 button_lora_a_model_file.click(
@@ -113,6 +115,7 @@ class GradioMergeLoRaTab:
                 button_lora_b_model_file = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 button_lora_b_model_file.click(
@@ -150,6 +153,7 @@ class GradioMergeLoRaTab:
                 button_lora_c_model_file = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 button_lora_c_model_file.click(
@@ -167,6 +171,7 @@ class GradioMergeLoRaTab:
                 button_lora_d_model_file = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 button_lora_d_model_file.click(
@@ -204,6 +209,7 @@ class GradioMergeLoRaTab:
                 button_save_to = gr.Button(
                     folder_symbol,
                     elem_id='open_folder_small',
+                    elem_classes=['tool'],
                     visible=(not self.headless),
                 )
                 button_save_to.click(
