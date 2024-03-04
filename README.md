@@ -13,7 +13,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Windows](#windows)
       - [Windows Pre-requirements](#windows-pre-requirements)
       - [Setup Windows](#setup-windows)
-      - [Optional: CUDNN 8.6](#optional-cudnn-86)
+      - [Optional: CUDNN 8.9.6.50](#optional-cudnn-89650)
     - [Linux and macOS](#linux-and-macos)
       - [Linux Pre-requirements](#linux-pre-requirements)
       - [Setup Linux](#setup-linux)
@@ -90,15 +90,11 @@ To set up the project, follow these steps:
 
    During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. The amount of VRAM on your GPU does not have an impact on the values used.
 
-#### Optional: CUDNN 8.6
+#### Optional: CUDNN 8.9.6.50
 
-The following steps are optional but can improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
 
-Please note that the CUDNN 8.6 DLLs needed for this process cannot be hosted on GitHub due to file size limitations. You can download them [here](https://github.com/bmaltais/python-library/raw/main/cudnn_windows.zip) to boost sample generation speed (almost 50% on a 4090 GPU). After downloading the ZIP file, follow the installation steps below:
-
-1. Unzip the downloaded file and place the `cudnn_windows` folder in the root directory of the `kohya_ss` repository.
-
-2. Run .\setup.bat and select the option to install cudnn.
+1. Run .\setup.bat and select `2. (Optional) Install cudnn files (if you want to use latest supported cudnn version)`
 
 ### Linux and macOS
 

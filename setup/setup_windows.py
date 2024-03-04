@@ -143,6 +143,13 @@ def install_bitsandbytes_0_41_1():
         reinstall=True,
     )
 
+def install_bitsandbytes_0_41_2():
+    log.info("Installing bitsandbytes 0.41.1...")
+    setup_common.install(
+        "--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.2.post2-py3-none-win_amd64.whl",
+        "bitsandbytes 0.41.2",
+        reinstall=True,
+    )
 
 def main_menu():
     setup_common.clear_screen()
@@ -169,12 +176,15 @@ def main_menu():
                     "2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results"
                 )
                 print(
-                    "3. (Recommanded) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
+                    "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
                 )
                 print(
-                    "4. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
+                    "4. (Recommanded) Force installation of bitsandbytes 0.41.2 for new optimizer options support"
                 )
-                print("5. Cancel")
+                print(
+                    "5. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
+                )
+                print("6. Exit")
                 choice_torch = input("\nEnter your choice: ")
                 print("")
 
@@ -187,12 +197,15 @@ def main_menu():
                 elif choice_torch == "3":
                     install_bitsandbytes_0_41_1()
                     break
-                elif choice_torch == "4":
+                elif choice_torch == "3":
+                    install_bitsandbytes_0_41_2()
+                    break
+                elif choice_torch == "5":
                     setup_common.install(
                         "--upgrade bitsandbytes-windows", reinstall=True
                     )
                     break
-                elif choice_torch == "5":
+                elif choice_torch == "6":
                     break
                 else:
                     print("Invalid choice. Please enter a number between 1-3.")
