@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, scriptdir
+from .common_gui import get_folder_path, scriptdir, list_dirs
 import os
 import sys
 
@@ -48,7 +48,7 @@ def group_images(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -57,17 +57,33 @@ def group_images(
 
 
 def gradio_group_images_gui_tab(headless=False):
+    from .common_gui import create_refresh_button
+
+    current_input_folder = os.path.join(scriptdir, "data")
+    current_output_folder = os.path.join(scriptdir, "data")
+
+    def list_input_dirs(path):
+        current_input_folder = path
+        return list(list_dirs(path))
+
+    def list_output_dirs(path):
+        current_output_folder = path
+        return list(list_dirs(path))
+
     with gr.Tab('Group Images'):
         gr.Markdown(
             'This utility will group images in a folder based on their aspect ratio.'
         )
 
-        with gr.Row():
-            input_folder = gr.Textbox(
-                label='Input folder',
-                placeholder='Directory containing the images to group',
+        with gr.Group(), gr.Row():
+            input_folder = gr.Dropdown(
+                label='Input folder (containing the images to group)',
                 interactive=True,
+                choices=list_input_dirs(current_input_folder),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(input_folder, lambda: None, lambda: {"choices": list_input_dirs(current_input_dir)},"open_folder_small")
             button_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -77,16 +93,32 @@ def gradio_group_images_gui_tab(headless=False):
                 show_progress=False,
             )
 
-            output_folder = gr.Textbox(
-                label='Output folder',
-                placeholder='Directory where the grouped images will be stored',
+            output_folder = gr.Dropdown(
+                label='Output folder (where the grouped images will be stored)',
                 interactive=True,
+                choices=list_output_dirs(current_output_folder),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(output_folder, lambda: None, lambda: {"choices": list_output_dirs(current_output_dir)},"open_folder_small")
             button_output_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_output_folder.click(
                 get_folder_path,
+                outputs=output_folder,
+                show_progress=False,
+            )
+
+            input_folder.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_input_dirs(path)),
+                inputs=input_folder,
+                outputs=input_folder,
+                show_progress=False,
+            )
+            output_folder.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_output_dirs(path)),
+                inputs=output_folder,
                 outputs=output_folder,
                 show_progress=False,
             )
