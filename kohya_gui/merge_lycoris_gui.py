@@ -7,6 +7,8 @@ from .common_gui import (
     get_saveasfilename_path,
     get_file_path,
     scriptdir,
+    list_files,
+    create_refresh_button,
 )
 
 from .custom_logging import setup_logging
@@ -35,9 +37,9 @@ def merge_lycoris(
     log.info('Merge model...')
 
     run_cmd = fr'{PYTHON} "{scriptdir}/tools/merge_lycoris.py"'
-    run_cmd += f' "{base_model}"'
-    run_cmd += f' "{lycoris_model}"'
-    run_cmd += f' "{output_name}"'
+    run_cmd += fr' "{base_model}"'
+    run_cmd += fr' "{lycoris_model}"'
+    run_cmd += fr' "{output_name}"'
     run_cmd += f' --weight {weight}'
     run_cmd += f' --device {device}'
     run_cmd += f' --dtype {dtype}'
@@ -63,6 +65,22 @@ def merge_lycoris(
 
 
 def gradio_merge_lycoris_tab(headless=False):
+    current_model_dir = os.path.join(scriptdir, "outputs")
+    current_lycoris_dir = current_model_dir
+    current_save_dir = current_model_dir
+
+    def list_models(path):
+        current_model_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_lycoris_model(path):
+        current_lycoris_dir = path
+        return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
+
+    def list_save_to(path):
+        current_save_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
     with gr.Tab('Merge LyCORIS'):
         gr.Markdown(
             'This utility can merge a LyCORIS model into a SD checkpoint.'
@@ -73,13 +91,16 @@ def gradio_merge_lycoris_tab(headless=False):
         ckpt_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
         ckpt_ext_name = gr.Textbox(value='SD model types', visible=False)
 
-        with gr.Row():
-            base_model = gr.Textbox(
-                label='SD Model',
-                placeholder='(Optional) Stable Diffusion base model',
+        with gr.Group(), gr.Row():
+            base_model = gr.Dropdown(
+                label='SD Model (Optional Stable Diffusion base model)',
                 interactive=True,
                 info='Provide a SD file path that you want to merge with the LyCORIS file',
+                choices=list_models(current_save_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(base_model, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
             base_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
@@ -93,10 +114,8 @@ def gradio_merge_lycoris_tab(headless=False):
                 show_progress=False,
             )
 
-        with gr.Row():
-            lycoris_model = gr.Textbox(
-                label='LyCORIS model',
-                placeholder='Path to the LyCORIS model',
+            lycoris_model = gr.Dropdown(
+                label='LyCORIS model (path to the LyCORIS model)',
                 interactive=True,
             )
             button_lycoris_model_file = gr.Button(
@@ -112,6 +131,19 @@ def gradio_merge_lycoris_tab(headless=False):
                 show_progress=False,
             )
 
+            base_model.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                inputs=base_model,
+                outputs=base_model,
+                show_progress=False,
+            )
+            lycoris_model.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_lycoris_models(path)),
+                inputs=lycoris_model,
+                outputs=lycoris_model,
+                show_progress=False,
+            )
+
         with gr.Row():
             weight = gr.Slider(
                 label='Model A merge ratio (eg: 0.5 mean 50%)',
@@ -122,12 +154,15 @@ def gradio_merge_lycoris_tab(headless=False):
                 interactive=True,
             )
 
-        with gr.Row():
-            output_name = gr.Textbox(
-                label='Save to',
-                placeholder='path for the checkpoint file to save...',
+        with gr.Group(), gr.Row():
+            output_name = gr.Dropdown(
+                label='Save to (path for the checkpoint file to save...)',
                 interactive=True,
+                choices=list_save_to(current_save_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(output_name, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
             button_output_name = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
@@ -140,7 +175,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 outputs=output_name,
                 show_progress=False,
             )
-            dtype = gr.Dropdown(
+            dtype = gr.Radio(
                 label='Save dtype',
                 choices=[
                     'float',
@@ -154,7 +189,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 interactive=True,
             )
 
-            device = gr.Dropdown(
+            device = gr.Radio(
                 label='Device',
                 choices=[
                     'cpu',
@@ -164,6 +199,14 @@ def gradio_merge_lycoris_tab(headless=False):
                 interactive=True,
             )
 
+            output_name.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                inputs=output_name,
+                outputs=output_name,
+                show_progress=False,
+            )
+
+        with gr.Row():
             is_sdxl = gr.Checkbox(label='is sdxl', value=False, interactive=True)
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
 
