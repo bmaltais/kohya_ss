@@ -51,7 +51,7 @@ def merge_lycoris(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)

@@ -1030,7 +1030,7 @@ def train_model(
 
         log.info(run_cmd)
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
