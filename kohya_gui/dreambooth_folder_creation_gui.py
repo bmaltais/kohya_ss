@@ -128,6 +128,7 @@ def gradio_dreambooth_folder_creation_tab(
 
     current_train_data_dir = os.path.join(scriptdir, "data")
     current_reg_data_dir = os.path.join(scriptdir, "data")
+    current_train_output_dir = os.path.join(scriptdir, "data")
 
     with gr.Tab('Dreambooth/LoRA Folder preparation'):
         gr.Markdown(
@@ -212,17 +213,30 @@ def gradio_dreambooth_folder_creation_tab(
                 outputs=util_regularization_images_dir_input,
                 show_progress=False,
             )
-        with gr.Row():
-            util_training_dir_output = gr.Textbox(
-                label='Destination training directory',
-                placeholder='Directory where formatted training and regularisation folders will be placed',
+        with gr.Group(), gr.Row():
+            def list_train_output_dirs(path):
+                current_train_output_dir = path
+                return list(list_dirs(path))
+
+            util_training_dir_output = gr.Dropdown(
+                label='Destination training directory (where formatted training and regularisation folders will be placed)',
                 interactive=True,
+                choices=list_train_output_dirs(current_train_output_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(util_training_dir_output, lambda: None, lambda: {"choices": list_train_output_dirs(current_train_output_dir)}, "open_folder_small")
             button_util_training_dir_output = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_util_training_dir_output.click(
                 get_folder_path, outputs=util_training_dir_output
+            )
+            util_training_dir_output.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_train_output_dirs(path)),
+                inputs=util_training_dir_output,
+                outputs=util_training_dir_output,
+                show_progress=False,
             )
         button_prepare_training_data = gr.Button('Prepare training data')
         button_prepare_training_data.click(
