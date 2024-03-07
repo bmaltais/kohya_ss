@@ -3,7 +3,7 @@ from easygui import msgbox
 import subprocess
 import os
 import sys
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir
+from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
 
 from .custom_logging import setup_logging
 
@@ -48,7 +48,7 @@ def caption_images(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -69,19 +69,31 @@ def caption_images(
 ###
 
 
-def gradio_git_caption_gui_tab(headless=False):
+def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
+    from .common_gui import create_refresh_button
+
+    default_train_dir = default_train_dir if default_train_dir is not None else os.path.join(scriptdir, "data")
+    current_train_dir = default_train_dir
+
+    def list_train_dirs(path):
+        current_train_dir = path
+        return list(list_dirs(path))
+
     with gr.Tab('GIT Captioning'):
         gr.Markdown(
             'This utility will use GIT to caption files for each images in a folder.'
         )
-        with gr.Row():
-            train_data_dir = gr.Textbox(
-                label='Image folder to caption',
-                placeholder='Directory containing the images to caption',
+        with gr.Group(), gr.Row():
+            train_data_dir = gr.Dropdown(
+                label='Image folder to caption (containing the images to caption)',
+                choices=list_train_dirs(default_train_dir),
+                value="",
                 interactive=True,
+                allow_custom_value=True,
             )
+            create_refresh_button(train_data_dir, lambda: None, lambda: {"choices": list_train_dir(current_train_dir)},"open_folder_small")
             button_train_data_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_train_data_dir_input.click(
                 get_folder_path,
@@ -139,5 +151,12 @@ def gradio_git_caption_gui_tab(headless=False):
                 prefix,
                 postfix,
             ],
+            show_progress=False,
+        )
+
+        train_data_dir.change(
+            fn=lambda path: gr.Dropdown().update(choices=list_train_dirs(path)),
+            inputs=train_data_dir,
+            outputs=train_data_dir,
             show_progress=False,
         )

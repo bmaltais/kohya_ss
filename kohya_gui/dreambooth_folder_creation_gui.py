@@ -1,6 +1,6 @@
 import gradio as gr
 from easygui import diropenbox, msgbox
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
 import shutil
 import os
 
@@ -119,12 +119,17 @@ def dreambooth_folder_preparation(
 
 
 def gradio_dreambooth_folder_creation_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+    train_data_dir_input=gr.Dropdown(),
+    reg_data_dir_input=gr.Dropdown(),
+    output_dir_input=gr.Dropdown(),
+    logging_dir_input=gr.Dropdown(),
     headless=False,
 ):
+
+    current_train_data_dir = os.path.join(scriptdir, "data")
+    current_reg_data_dir = os.path.join(scriptdir, "data")
+    current_train_output_dir = os.path.join(scriptdir, "data")
+
     with gr.Tab('Dreambooth/LoRA Folder preparation'):
         gr.Markdown(
             'This utility will create the necessary folder structure for the training images and optional regularization images needed for the kohys_ss Dreambooth/LoRA method to function correctly.'
@@ -140,14 +145,22 @@ def gradio_dreambooth_folder_creation_tab(
                 placeholder='Eg: person',
                 interactive=True,
             )
-        with gr.Row():
-            util_training_images_dir_input = gr.Textbox(
-                label='Training images',
-                placeholder='Directory containing the training images',
+        with gr.Group(), gr.Row():
+
+            def list_train_data_dirs(path):
+                current_train_data_dir = path
+                return list(list_dirs(path))
+
+            util_training_images_dir_input = gr.Dropdown(
+                label='Training images (directory containing the training images)',
                 interactive=True,
+                choices=list_train_data_dirs(current_train_data_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(util_training_images_dir_input, lambda: None, lambda: {"choices": list_train_data_dir(current_train_data_dir)}, "open_folder_small")
             button_util_training_images_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_util_training_images_dir_input.click(
                 get_folder_path,
@@ -160,14 +173,28 @@ def gradio_dreambooth_folder_creation_tab(
                 interactive=True,
                 elem_id='number_input',
             )
-        with gr.Row():
-            util_regularization_images_dir_input = gr.Textbox(
-                label='Regularisation images',
-                placeholder='(Optional) Directory containing the regularisation images',
-                interactive=True,
+            util_training_images_dir_input.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_train_data_dirs(path)),
+                inputs=util_training_images_dir_input,
+                outputs=util_training_images_dir_input,
+                show_progress=False,
             )
+
+        with gr.Group(), gr.Row():
+            def list_reg_data_dirs(path):
+                current_reg_data_dir = path
+                return list(list_dirs(path))
+
+            util_regularization_images_dir_input = gr.Dropdown(
+                label='Regularisation images (Optional. directory containing the regularisation images)',
+                interactive=True,
+                choices=list_reg_data_dirs(current_reg_data_dir),
+                value="",
+                allow_custom_value=True,
+            )
+            create_refresh_button(util_regularization_images_dir_input, lambda: None, lambda: {"choices": list_reg_data_dir(current_reg_data_dir)}, "open_folder_small")
             button_util_regularization_images_dir_input = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_util_regularization_images_dir_input.click(
                 get_folder_path,
@@ -180,17 +207,36 @@ def gradio_dreambooth_folder_creation_tab(
                 interactive=True,
                 elem_id='number_input',
             )
-        with gr.Row():
-            util_training_dir_output = gr.Textbox(
-                label='Destination training directory',
-                placeholder='Directory where formatted training and regularisation folders will be placed',
-                interactive=True,
+            util_regularization_images_dir_input.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_reg_data_dirs(path)),
+                inputs=util_regularization_images_dir_input,
+                outputs=util_regularization_images_dir_input,
+                show_progress=False,
             )
+        with gr.Group(), gr.Row():
+            def list_train_output_dirs(path):
+                current_train_output_dir = path
+                return list(list_dirs(path))
+
+            util_training_dir_output = gr.Dropdown(
+                label='Destination training directory (where formatted training and regularisation folders will be placed)',
+                interactive=True,
+                choices=list_train_output_dirs(current_train_output_dir),
+                value="",
+                allow_custom_value=True,
+            )
+            create_refresh_button(util_training_dir_output, lambda: None, lambda: {"choices": list_train_output_dirs(current_train_output_dir)}, "open_folder_small")
             button_util_training_dir_output = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             button_util_training_dir_output.click(
                 get_folder_path, outputs=util_training_dir_output
+            )
+            util_training_dir_output.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_train_output_dirs(path)),
+                inputs=util_training_dir_output,
+                outputs=util_training_dir_output,
+                show_progress=False,
             )
         button_prepare_training_data = gr.Button('Prepare training data')
         button_prepare_training_data.click(

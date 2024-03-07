@@ -41,10 +41,9 @@ from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from .dataset_balancing_gui import gradio_dataset_balancing_tab
-from .utilities import utilities_tab
 from .class_sample_images import SampleImages, run_cmd_sample
-from .custom_logging import setup_logging
 
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
@@ -52,6 +51,7 @@ log = setup_logging()
 # Setup command executor
 executor = CommandExecutor()
 
+PYTHON = sys.executable
 
 def save_configuration(
     save_as,
@@ -673,7 +673,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        config_dir = os.path.dirname(os.path.dirname(train_data_dir))
+        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
@@ -685,9 +686,12 @@ def train_model(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
         last_dir = pathlib.Path(f"{output_dir}/{output_name}")
@@ -708,18 +712,16 @@ def dreambooth_tab(
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab("Training"):
+    with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
-        # Setup Configuration Files Gradio
-        config = ConfigurationFile(headless)
+        with gr.Column():
+            source_model = SourceModel(headless=headless)
 
-        source_model = SourceModel(headless=headless)
-
-        with gr.Tab("Folders"):
+        with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless)
-        with gr.Tab("Parameters"):
-            with gr.Tab("Basic", elem_id="basic_tab"):
+        with gr.Accordion("Parameters", open=False), gr.Column():
+            with gr.Group(elem_id="basic_tab"):
                 basic_training = BasicTraining(
                     learning_rate_value="1e-5",
                     lr_scheduler_value="cosine",
@@ -731,7 +733,7 @@ def dreambooth_tab(
                 # # Add SDXL Parameters
                 # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
-            with gr.Tab("Advanced", elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -739,15 +741,15 @@ def dreambooth_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Tab("Samples", elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages()
 
-        with gr.Tab("Dataset Preparation"):
+        with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
             )
             gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=folders.train_data_dir,
+                train_data_dir_input=source_model.train_data_dir,
                 reg_data_dir_input=folders.reg_data_dir,
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
@@ -755,18 +757,24 @@ def dreambooth_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-        with gr.Row():
-            button_run = gr.Button("Start training", variant="primary")
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
 
-            button_stop_training = gr.Button("Stop training")
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_run = gr.Button("Start training", variant="primary")
 
-        button_print = gr.Button("Print training command")
+                button_stop_training = gr.Button("Stop training")
+
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        (
-            button_start_tensorboard,
-            button_stop_tensorboard,
-        ) = gradio_tensorboard()
+        with gr.Column(), gr.Group():
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -785,7 +793,7 @@ def dreambooth_tab(
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
             folders.logging_dir,
-            folders.train_data_dir,
+            source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
             basic_training.max_resolution,
@@ -799,7 +807,7 @@ def dreambooth_tab(
             basic_training.epoch,
             basic_training.save_every_n_epochs,
             basic_training.mixed_precision,
-            basic_training.save_precision,
+            source_model.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             basic_training.cache_latents,
@@ -827,7 +835,7 @@ def dreambooth_tab(
             advanced_training.num_machines,
             advanced_training.multi_gpu,
             advanced_training.gpu_ids,
-            folders.output_name,
+            source_model.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
             basic_training.max_train_steps,
@@ -892,12 +900,12 @@ def dreambooth_tab(
             show_progress=False,
         )
 
-        config.button_save_as_config.click(
-            save_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
-            show_progress=False,
-        )
+        #config.button_save_as_config.click(
+        #    save_configuration,
+        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        #    outputs=[config.config_file_name],
+        #    show_progress=False,
+        #)
 
         button_run.click(
             train_model,
@@ -914,7 +922,7 @@ def dreambooth_tab(
         )
 
         return (
-            folders.train_data_dir,
+            source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
             folders.logging_dir,

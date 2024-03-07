@@ -53,15 +53,6 @@ class BasicTraining:
                 ],
                 value="fp16",
             )
-            self.save_precision = gr.Dropdown(
-                label="Save precision",
-                choices=[
-                    "float",
-                    "fp16",
-                    "bf16",
-                ],
-                value="fp16",
-            )
             self.num_cpu_threads_per_process = gr.Slider(
                 minimum=1,
                 maximum=os.cpu_count(),

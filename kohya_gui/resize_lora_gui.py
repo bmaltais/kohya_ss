@@ -3,7 +3,7 @@ from easygui import msgbox
 import subprocess
 import os
 import sys
-from .common_gui import get_saveasfilename_path, get_file_path, scriptdir
+from .common_gui import get_saveasfilename_path, get_file_path, scriptdir, list_files, create_refresh_button
 
 from .custom_logging import setup_logging
 
@@ -61,8 +61,8 @@ def resize_lora(
 
     run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/resize_lora.py"'
     run_cmd += f' --save_precision {save_precision}'
-    run_cmd += f' --save_to "{save_to}"'
-    run_cmd += f' --model "{model}"'
+    run_cmd += fr' --save_to "{save_to}"'
+    run_cmd += fr' --model "{model}"'
     run_cmd += f' --new_rank {new_rank}'
     run_cmd += f' --device {device}'
     if not dynamic_method == 'None':
@@ -74,7 +74,7 @@ def resize_lora(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -88,21 +88,36 @@ def resize_lora(
 
 
 def gradio_resize_lora_tab(headless=False):
+    current_model_dir = os.path.join(scriptdir, "outputs")
+    current_save_dir = os.path.join(scriptdir, "outputs")
+
+    def list_models(path):
+        current_model_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_save_to(path):
+        current_save_dir = path
+        return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
+
     with gr.Tab('Resize LoRA'):
         gr.Markdown('This utility can resize a LoRA.')
 
         lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
 
-        with gr.Row():
-            model = gr.Textbox(
-                label='Source LoRA',
-                placeholder='Path to the LoRA to resize',
+        with gr.Group(), gr.Row():
+            model = gr.Dropdown(
+                label='Source LoRA (path to the LoRA to resize)',
                 interactive=True,
+                choices=list_models(current_model_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(model, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
             button_lora_a_model_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_lora_a_model_file.click(
@@ -111,20 +126,35 @@ def gradio_resize_lora_tab(headless=False):
                 outputs=model,
                 show_progress=False,
             )
-        with gr.Row():
-            save_to = gr.Textbox(
-                label='Save to',
-                placeholder='path for the LoRA file to save...',
+            save_to = gr.Dropdown(
+                label='Save to (path for the LoRA file to save...)',
                 interactive=True,
+                choices=list_save_to(current_save_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(save_to, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
             button_save_to = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_save_to.click(
                 get_saveasfilename_path,
                 inputs=[save_to, lora_ext, lora_ext_name],
+                outputs=save_to,
+                show_progress=False,
+            )
+            model.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                inputs=model,
+                outputs=model,
+                show_progress=False,
+            )
+            save_to.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                inputs=save_to,
                 outputs=save_to,
                 show_progress=False,
             )
@@ -137,7 +167,7 @@ def gradio_resize_lora_tab(headless=False):
                 value=4,
                 interactive=True,
             )
-            dynamic_method = gr.Dropdown(
+            dynamic_method = gr.Radio(
                 choices=['None', 'sv_ratio', 'sv_fro', 'sv_cumulative'],
                 value='sv_fro',
                 label='Dynamic method',
@@ -152,13 +182,13 @@ def gradio_resize_lora_tab(headless=False):
         with gr.Row():
 
             verbose = gr.Checkbox(label='Verbose', value=True)
-            save_precision = gr.Dropdown(
+            save_precision = gr.Radio(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='fp16',
                 interactive=True,
             )
-            device = gr.Dropdown(
+            device = gr.Radio(
                 label='Device',
                 choices=[
                     'cpu',

@@ -4,7 +4,7 @@ import subprocess
 import os
 import shutil
 import sys
-from .common_gui import get_folder_path, get_file_path, scriptdir
+from .common_gui import get_folder_path, get_file_path, scriptdir, list_files, list_dirs
 
 from .custom_logging import setup_logging
 
@@ -104,7 +104,7 @@ def convert_model(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -172,6 +172,21 @@ def convert_model(
 
 
 def gradio_convert_model_tab(headless=False):
+    from .common_gui import create_refresh_button
+
+    default_source_model = os.path.join(scriptdir, "outputs")
+    default_target_folder = os.path.join(scriptdir, "outputs")
+    current_source_model = default_source_model
+    current_target_folder = default_target_folder
+
+    def list_source_model(path):
+        current_source_model = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_target_folder(path):
+        current_target_folder = path
+        return list(list_dirs(path))
+
     with gr.Tab('Convert model'):
         gr.Markdown(
             'This utility can be used to convert from one stable diffusion model format to another.'
@@ -180,15 +195,20 @@ def gradio_convert_model_tab(headless=False):
         model_ext = gr.Textbox(value='*.safetensors *.ckpt', visible=False)
         model_ext_name = gr.Textbox(value='Model types', visible=False)
 
-        with gr.Row():
-            source_model_input = gr.Textbox(
-                label='Source model',
-                placeholder='path to source model folder of file to convert...',
+        with gr.Group(), gr.Row():
+          with gr.Column(), gr.Row():
+            source_model_input = gr.Dropdown(
+                label='Source model (path to source model folder of file to convert...)',
                 interactive=True,
+                choices=list_source_model(default_source_model),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(source_model_input, lambda: None, lambda: {"choices": list_source_model(current_source_model)}, "open_folder_small")
             button_source_model_dir = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_source_model_dir.click(
@@ -200,6 +220,7 @@ def gradio_convert_model_tab(headless=False):
             button_source_model_file = gr.Button(
                 document_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_source_model_file.click(
@@ -209,6 +230,13 @@ def gradio_convert_model_tab(headless=False):
                 show_progress=False,
             )
 
+            source_model_input.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_source_model(path)),
+                inputs=source_model_input,
+                outputs=source_model_input,
+                show_progress=False,
+            )
+          with gr.Column(), gr.Row():
             source_model_type = gr.Dropdown(
                 label='Source model type',
                 choices=[
@@ -220,15 +248,20 @@ def gradio_convert_model_tab(headless=False):
                     'CompVis/stable-diffusion-v1-4',
                 ],
             )
-        with gr.Row():
-            target_model_folder_input = gr.Textbox(
-                label='Target model folder',
-                placeholder='path to target model folder of file name to create...',
+        with gr.Group(), gr.Row():
+          with gr.Column(), gr.Row():
+            target_model_folder_input = gr.Dropdown(
+                label='Target model folder (path to target model folder of file name to create...)',
                 interactive=True,
+                choices=list_target_folder(default_target_folder),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(target_model_folder_input, lambda: None, lambda: {"choices": list_target_folder(current_target_folder)},"open_folder_small")
             button_target_model_folder = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_target_model_folder.click(
@@ -237,11 +270,20 @@ def gradio_convert_model_tab(headless=False):
                 show_progress=False,
             )
 
+            target_model_folder_input.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_target_folder(path)),
+                inputs=target_model_folder_input,
+                outputs=target_model_folder_input,
+                show_progress=False,
+            )
+
+          with gr.Column(), gr.Row():
             target_model_name_input = gr.Textbox(
                 label='Target model name',
                 placeholder='target model name...',
                 interactive=True,
             )
+        with gr.Row():
             target_model_type = gr.Dropdown(
                 label='Target model type',
                 choices=[

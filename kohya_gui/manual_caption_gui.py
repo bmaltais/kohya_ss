@@ -1,6 +1,6 @@
 import gradio as gr
 from easygui import msgbox, boolbox
-from .common_gui import get_folder_path
+from .common_gui import get_folder_path, scriptdir, list_dirs
 from math import ceil
 import os
 import re
@@ -263,7 +263,16 @@ def update_images(
 
 
 # Gradio UI
-def gradio_manual_caption_gui_tab(headless=False):
+def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
+    from .common_gui import create_refresh_button
+
+    default_images_dir = default_images_dir if default_images_dir is not None else os.path.join(scriptdir, "data")
+    current_images_dir = default_images_dir
+
+    def list_images_dirs(path):
+        current_images_dir = path
+        return list(list_dirs(path))
+
     with gr.Tab('Manual Captioning'):
         gr.Markdown(
             'This utility allows quick captioning and tagging of images.'
@@ -271,14 +280,17 @@ def gradio_manual_caption_gui_tab(headless=False):
         page = gr.Number(-1, visible=False)
         max_page = gr.Number(1, visible=False)
         loaded_images_dir = gr.Text(visible=False)
-        with gr.Row():
-            images_dir = gr.Textbox(
-                label='Image folder to caption',
-                placeholder='Directory containing the images to caption',
+        with gr.Group(), gr.Row():
+            images_dir = gr.Dropdown(
+                label='Image folder to caption (containing the images to caption)',
+                choices=list_images_dirs(default_images_dir),
+                value="",
                 interactive=True,
+                allow_custom_value=True,
             )
+            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dir(current_images_dir)},"open_folder_small")
             folder_button = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
             folder_button.click(
                 get_folder_path,
@@ -296,8 +308,15 @@ def gradio_manual_caption_gui_tab(headless=False):
                 label='Autosave', info='Options', value=True, interactive=True
             )
 
+            images_dir.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_images_dirs(path)),
+                inputs=images_dir,
+                outputs=images_dir,
+                show_progress=False,
+            )
+
         # Caption Section
-        with gr.Row():
+        with gr.Group(), gr.Row():
             quick_tags_text = gr.Textbox(
                 label='Quick Tags',
                 placeholder='Comma separated list of tags',
@@ -364,7 +383,7 @@ def gradio_manual_caption_gui_tab(headless=False):
                     [], label='Tags', interactive=True
                 )
                 save_button = gr.Button(
-                    '💾', elem_id='open_folder_small', visible=False
+                    '💾', elem_id='open_folder_small', elem_classes=['tool'], visible=False
                 )
                 save_buttons.append(save_button)
 

@@ -8,6 +8,8 @@ from .common_gui import (
     get_file_path,
     is_file_writable,
     scriptdir,
+    list_files,
+    create_refresh_button,
 )
 
 from .custom_logging import setup_logging
@@ -57,6 +59,17 @@ def extract_lora(
         log.info('The provided base model is not a file')
         return
 
+    if os.path.dirname(save_to) == "":
+        # only filename given. prepend dir
+        save_to = os.path.join(os.path.dirname(model_tuned), save_to)
+    if os.path.isdir(save_to):
+        # only dir name given. set default lora name
+        save_to = os.path.join(save_to, "lora.safetensors")
+    if os.path.normpath(model_tuned) == os.path.normpath(save_to):
+        # same path. silently ignore but rename output
+        path, ext = os.path.splitext(save_to)
+        save_to = f"{path}_tmp{ext}"
+
     if not is_file_writable(save_to):
         return
 
@@ -65,9 +78,9 @@ def extract_lora(
     )
     run_cmd += f' --load_precision {load_precision}'
     run_cmd += f' --save_precision {save_precision}'
-    run_cmd += f' --save_to "{save_to}"'
-    run_cmd += f' --model_org "{model_org}"'
-    run_cmd += f' --model_tuned "{model_tuned}"'
+    run_cmd += fr' --save_to "{save_to}"'
+    run_cmd += fr' --model_org "{model_org}"'
+    run_cmd += fr' --model_tuned "{model_tuned}"'
     run_cmd += f' --dim {dim}'
     run_cmd += f' --device {device}'
     if conv_dim > 0:
@@ -85,7 +98,7 @@ def extract_lora(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -97,11 +110,26 @@ def extract_lora(
 
 
 def gradio_extract_lora_tab(headless=False):
+    current_model_dir = os.path.join(scriptdir, "outputs")
+    current_model_org_dir = os.path.join(scriptdir, "outputs")
+    current_save_dir = os.path.join(scriptdir, "outputs")
+
+    def list_models(path):
+        current_model_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_org_models(path):
+        current_model_org_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_save_to(path):
+        current_save_dir = path
+        return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
+
     def change_sdxl(sdxl):
-        return gr.Dropdown(visible=sdxl), gr.Dropdown(visible=sdxl)
-            
-    
-    
+        return gr.Dropdown().update(visible=sdxl), gr.Dropdown().update(visible=sdxl)
+
+
     with gr.Tab('Extract LoRA'):
         gr.Markdown(
             'This utility can extract a LoRA network from a finetuned model.'
@@ -111,15 +139,19 @@ def gradio_extract_lora_tab(headless=False):
         model_ext = gr.Textbox(value='*.ckpt *.safetensors', visible=False)
         model_ext_name = gr.Textbox(value='Model types', visible=False)
 
-        with gr.Row():
-            model_tuned = gr.Textbox(
-                label='Finetuned model',
-                placeholder='Path to the finetuned model to extract',
+        with gr.Group(), gr.Row():
+            model_tuned = gr.Dropdown(
+                label='Finetuned model (path to the finetuned model to extract)',
                 interactive=True,
+                choices=list_models(current_model_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(model_tuned, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
             button_model_tuned_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_model_tuned_file.click(
@@ -128,7 +160,7 @@ def gradio_extract_lora_tab(headless=False):
                 outputs=model_tuned,
                 show_progress=False,
             )
-            load_tuned_model_to = gr.Dropdown(
+            load_tuned_model_to = gr.Radio(
                 label='Load finetuned model to',
                 choices=['cpu', 'cuda', 'cuda:0'],
                 value='cpu',
@@ -136,15 +168,18 @@ def gradio_extract_lora_tab(headless=False):
                 info="only for SDXL",
                 visible=False,
             )
-        with gr.Row():
-            model_org = gr.Textbox(
-                label='Stable Diffusion base model',
-                placeholder='Stable Diffusion original model: ckpt or safetensors file',
+            model_org = gr.Dropdown(
+                label='Stable Diffusion base model (original model: ckpt or safetensors file)',
                 interactive=True,
+                choices=list_org_models(current_model_org_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(model_org, lambda: None, lambda: {"choices": list_org_models(current_model_org_dir)}, "open_folder_small")
             button_model_org_file = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_model_org_file.click(
@@ -161,16 +196,20 @@ def gradio_extract_lora_tab(headless=False):
                 info="only for SDXL",
                 visible=False,
             )
-        with gr.Row():
-            save_to = gr.Textbox(
-                label='Save to',
-                placeholder='path where to save the extracted LoRA model...',
+        with gr.Group(), gr.Row():
+            save_to = gr.Dropdown(
+                label='Save to (path where to save the extracted LoRA model...)',
                 interactive=True,
+                choices=list_save_to(current_save_dir),
+                value="",
+                allow_custom_value=True,
                 scale=2,
             )
+            create_refresh_button(save_to, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
             button_save_to = gr.Button(
                 folder_symbol,
                 elem_id='open_folder_small',
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_save_to.click(
@@ -179,17 +218,36 @@ def gradio_extract_lora_tab(headless=False):
                 outputs=save_to,
                 show_progress=False,
             )
-            save_precision = gr.Dropdown(
+            save_precision = gr.Radio(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='fp16',
                 interactive=True, scale=1,
             )
-            load_precision = gr.Dropdown(
+            load_precision = gr.Radio(
                 label='Load precision',
                 choices=['fp16', 'bf16', 'float'],
                 value='fp16',
                 interactive=True, scale=1,
+            )
+
+            model_tuned.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                inputs=model_tuned,
+                outputs=model_tuned,
+                show_progress=False,
+            )
+            model_org.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_org_model(path)),
+                inputs=model_org,
+                outputs=model_org,
+                show_progress=False,
+            )
+            save_to.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                inputs=save_to,
+                outputs=save_to,
+                show_progress=False,
             )
         with gr.Row():
             dim = gr.Slider(
@@ -210,18 +268,24 @@ def gradio_extract_lora_tab(headless=False):
             )
             clamp_quantile = gr.Number(
                 label='Clamp Quantile',
-                value=1,
+                value=0.99,
+                minimum=0,
+                maximum=1,
+                step=0.001,
                 interactive=True,
             )
             min_diff = gr.Number(
                 label='Minimum difference',
                 value=0.01,
+                minimum=0,
+                maximum=1,
+                step=0.001,
                 interactive=True,
             )
         with gr.Row():
             v2 = gr.Checkbox(label='v2', value=False, interactive=True)
             sdxl = gr.Checkbox(label='SDXL', value=False, interactive=True)
-            device = gr.Dropdown(
+            device = gr.Radio(
                 label='Device',
                 choices=[
                     'cpu',
