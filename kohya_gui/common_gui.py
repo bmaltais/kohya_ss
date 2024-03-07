@@ -734,39 +734,29 @@ def get_str_or_default(kwargs, key, default_value=""):
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ""
 
-    additional_parameters = kwargs.get("additional_parameters")
-    if additional_parameters:
-        run_cmd += f" {additional_parameters}"
+    if "additional_parameters" in kwargs:
+        run_cmd += f' {kwargs["additional_parameters"]}'
 
-    block_lr = kwargs.get("block_lr")
-    if block_lr:
-        run_cmd += f' --block_lr="{block_lr}"'
+    if "block_lr" in kwargs:
+        run_cmd += f' --block_lr="{kwargs["block_lr"]}"'
 
-    bucket_no_upscale = kwargs.get("bucket_no_upscale")
-    if bucket_no_upscale:
+    if kwargs.get("bucket_no_upscale"):
         run_cmd += " --bucket_no_upscale"
 
-    bucket_reso_steps = kwargs.get("bucket_reso_steps")
-    if bucket_reso_steps:
-        run_cmd += f" --bucket_reso_steps={int(bucket_reso_steps)}"
+    if "bucket_reso_steps" in kwargs:
+        run_cmd += f' --bucket_reso_steps={int(kwargs["bucket_reso_steps"])}'
 
-    cache_latents = kwargs.get("cache_latents")
-    if cache_latents:
+    if kwargs.get("cache_latents"):
         run_cmd += " --cache_latents"
 
-    cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
-    if cache_latents_to_disk:
+    if kwargs.get("cache_latents_to_disk"):
         run_cmd += " --cache_latents_to_disk"
 
-    cache_text_encoder_outputs = kwargs.get("cache_text_encoder_outputs")
-    if cache_text_encoder_outputs:
+    if kwargs.get("cache_text_encoder_outputs"):
         run_cmd += " --cache_text_encoder_outputs"
 
-    caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs")
-    if caption_dropout_every_n_epochs and int(caption_dropout_every_n_epochs) > 0:
-        run_cmd += (
-            f' --caption_dropout_every_n_epochs="{int(caption_dropout_every_n_epochs)}"'
-        )
+    if "caption_dropout_every_n_epochs" in kwargs and int(kwargs["caption_dropout_every_n_epochs"]) > 0:
+        run_cmd += f' --caption_dropout_every_n_epochs="{int(kwargs["caption_dropout_every_n_epochs"])}"'
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
@@ -798,12 +788,10 @@ def run_cmd_advanced_training(**kwargs):
     ):  # Only if lora_network_weights is true
         run_cmd += f" --dim_from_weights"
 
-    enable_bucket = kwargs.get("enable_bucket")
-    if enable_bucket:
-        min_bucket_reso = kwargs.get("min_bucket_reso")
-        max_bucket_reso = kwargs.get("max_bucket_reso")
-        if min_bucket_reso and max_bucket_reso:
-            run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
+    # Check if enable_bucket is true and both min_bucket_reso and max_bucket_reso are provided as part of the kwargs
+    if kwargs.get("enable_bucket") and "min_bucket_reso" in kwargs and "max_bucket_reso" in kwargs:
+        # Append the enable_bucket flag and min/max bucket resolution values to the run_cmd string
+        run_cmd += f' --enable_bucket --min_bucket_reso={kwargs["min_bucket_reso"]} --max_bucket_reso={kwargs["max_bucket_reso"]}'
 
     in_json = kwargs.get("in_json")
     if in_json:
@@ -825,21 +813,17 @@ def run_cmd_advanced_training(**kwargs):
     if full_fp16:
         run_cmd += " --full_fp16"
 
-    gradient_accumulation_steps = kwargs.get("gradient_accumulation_steps")
-    if gradient_accumulation_steps and int(gradient_accumulation_steps) > 1:
-        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
+    if "gradient_accumulation_steps" in kwargs and int(kwargs["gradient_accumulation_steps"]) > 1:
+        run_cmd += f" --gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}"
 
-    gradient_checkpointing = kwargs.get("gradient_checkpointing")
-    if gradient_checkpointing:
+    if kwargs.get("gradient_checkpointing"):
         run_cmd += " --gradient_checkpointing"
 
-    keep_tokens = kwargs.get("keep_tokens")
-    if keep_tokens and int(keep_tokens) > 0:
-        run_cmd += f' --keep_tokens="{int(keep_tokens)}"'
+    if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
+        run_cmd += f' --keep_tokens="{int(kwargs["keep_tokens"])}"'
 
-    learning_rate = kwargs.get("learning_rate")
-    if learning_rate:
-        run_cmd += f' --learning_rate="{learning_rate}"'
+    if "learning_rate" in kwargs:
+        run_cmd += f' --learning_rate="{kwargs["learning_rate"]}"'
 
     if "learning_rate_te" in kwargs:
         if kwargs["learning_rate_te"] == 0:
@@ -985,29 +969,26 @@ def run_cmd_advanced_training(**kwargs):
     if no_token_padding:
         run_cmd += " --no_token_padding"
 
-    noise_offset_type = kwargs.get("noise_offset_type")
-    if noise_offset_type and noise_offset_type == "Original":
-        noise_offset = kwargs.get("noise_offset")
-        if noise_offset and float(noise_offset) > 0:
-            run_cmd += f" --noise_offset={float(noise_offset)}"
+    if "noise_offset_type" in kwargs:
+        noise_offset_type = kwargs["noise_offset_type"]
+        
+        if kwargs["noise_offset_type"] == "Original":
+            noise_offset = float(kwargs.get("noise_offset", 0))
+            if noise_offset:
+                run_cmd += f" --noise_offset={noise_offset}"
 
-        adaptive_noise_scale = kwargs.get("adaptive_noise_scale")
-        if (
-            adaptive_noise_scale
-            and float(adaptive_noise_scale) != 0
-            and float(noise_offset) > 0
-        ):
-            run_cmd += f" --adaptive_noise_scale={float(adaptive_noise_scale)}"
-    elif noise_offset_type and noise_offset_type == "Multires":
-        multires_noise_iterations = kwargs.get("multires_noise_iterations")
-        if int(multires_noise_iterations) > 0:
-            run_cmd += (
-                f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
-            )
+            adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
+            if adaptive_noise_scale != 0 and noise_offset > 0:
+                run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
+            
+        elif noise_offset_type == "Multires":
+            multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
+            if multires_noise_iterations > 0:
+                run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
 
-        multires_noise_discount = kwargs.get("multires_noise_discount")
-        if multires_noise_discount and float(multires_noise_discount) > 0:
-            run_cmd += f' --multires_noise_discount="{float(multires_noise_discount)}"'
+            multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
+            if multires_noise_discount > 0:
+                run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
 
     num_machines = kwargs.get("num_machines")
     if num_machines and int(num_machines) > 1:
