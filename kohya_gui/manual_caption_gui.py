@@ -269,7 +269,10 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
     default_images_dir = default_images_dir if default_images_dir is not None else os.path.join(scriptdir, "data")
     current_images_dir = default_images_dir
 
+    # Function to list directories
     def list_images_dirs(path):
+        # Allows list_images_dirs to modify current_images_dir outside of this function
+        nonlocal current_images_dir
         current_images_dir = path
         return list(list_dirs(path))
 
@@ -288,7 +291,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 interactive=True,
                 allow_custom_value=True,
             )
-            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dir(current_images_dir)},"open_folder_small")
+            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dirs(current_images_dir)},"open_folder_small")
             folder_button = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -297,7 +300,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 outputs=images_dir,
                 show_progress=False,
             )
-            load_images_button = gr.Button('Load 💾', elem_id='open_folder')
+            load_images_button = gr.Button('Load', elem_id='open_folder')
             caption_ext = gr.Textbox(
                 label='Caption file extension',
                 placeholder='Extension for caption file. eg: .caption, .txt',
@@ -322,7 +325,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 placeholder='Comma separated list of tags',
                 interactive=True,
             )
-            import_tags_button = gr.Button('Import 📄', elem_id='open_folder')
+            import_tags_button = gr.Button('Import', elem_id='open_folder')
             ignore_load_tags_word_count = gr.Slider(
                 minimum=1,
                 maximum=100,

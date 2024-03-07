@@ -117,7 +117,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 allow_custom_value=True,
             )
             # Refresh button for image folder
-            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dir(current_images_dir)},"open_folder_small")
+            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dirs(current_images_dir)},"open_folder_small")
             # Button to open folder
             folder_button = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not headless)
@@ -154,6 +154,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 label='Caption text',
                 placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
+                lines=2,
             )
             # Textbox for caption postfix
             postfix = gr.Textbox(
@@ -168,12 +169,14 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 label='Find text',
                 placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
+                lines=2,
             )
             # Textbox for replace text
             replace_text = gr.Textbox(
                 label='Replacement text',
                 placeholder='e.g., "by some artist". Leave empty if you want to replace with nothing.',
                 interactive=True,
+                lines=2,
             )
             # Button to caption images
             caption_button = gr.Button('Caption images')
