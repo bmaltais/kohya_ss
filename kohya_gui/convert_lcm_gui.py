@@ -28,10 +28,10 @@ def convert_lcm(
 ):
     run_cmd = fr'{PYTHON} "{scriptdir}/tools/lcm_convert.py"'
     # Construct the command to run the script
-    run_cmd += f' --name "{name}"'
-    run_cmd += f' --model "{model_path}"'
     run_cmd += f" --lora-scale {lora_scale}"
-
+    run_cmd += f' --model "{model_path}"'
+    run_cmd += f' --name "{name}"'
+    
     if model_type == "SDXL":
         run_cmd += f" --sdxl"
     if model_type == "SSD-1B":

@@ -97,14 +97,15 @@ def gradio_basic_caption_gui_tab(headless=False):
                 placeholder='Directory containing the images to caption',
                 interactive=True,
             )
-            folder_button = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
-            )
-            folder_button.click(
-                get_folder_path,
-                outputs=images_dir,
-                show_progress=False,
-            )
+            if not headless:
+                folder_button = gr.Button(
+                    '📂', elem_id='open_folder_small'
+                )
+                folder_button.click(
+                    get_folder_path,
+                    outputs=images_dir,
+                    show_progress=False,
+                )
             caption_ext = gr.Textbox(
                 label='Caption file extension',
                 placeholder='Extension for caption file (e.g., .caption, .txt)',
