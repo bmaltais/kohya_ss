@@ -32,10 +32,12 @@ class SourceModel:
             "bf16",
         ],
         headless=False,
-        default_data_dir=None
+        default_data_dir=None,
+        finetuning=False,
     ):
         self.headless = headless
         self.save_model_as_choices = save_model_as_choices
+        self.finetuning = finetuning
 
         default_models = [
             'stabilityai/stable-diffusion-xl-base-1.0',
@@ -111,7 +113,7 @@ class SourceModel:
 
               with gr.Column(), gr.Row():
                 self.train_data_dir = gr.Dropdown(
-                    label='Image folder (containing training images)',
+                    label='Image folder (containing training images subfolders)' if not finetuning else 'Image folder (containing training images)',
                     choices=list_train_dirs(default_train_dir),
                     value="",
                     interactive=True,

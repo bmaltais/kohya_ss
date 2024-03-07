@@ -94,11 +94,15 @@ def output_message(msg="", title="", headless=False):
 
 
 def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_id):
-    refresh_components = refresh_component if isinstance(refresh_component, list) else [refresh_component]
+    refresh_components = (
+        refresh_component
+        if isinstance(refresh_component, list)
+        else [refresh_component]
+    )
 
     label = None
     for comp in refresh_components:
-        label = getattr(comp, 'label', None)
+        label = getattr(comp, "label", None)
         if label is not None:
             break
 
@@ -110,14 +114,16 @@ def create_refresh_button(refresh_component, refresh_method, refreshed_args, ele
             for comp in refresh_components:
                 setattr(comp, k, v)
 
-        return [gr.update(**(args or {})) for _ in refresh_components] if len(refresh_components) > 1 else gr.update(**(args or {}))
+        return (
+            [gr.update(**(args or {})) for _ in refresh_components]
+            if len(refresh_components) > 1
+            else gr.update(**(args or {}))
+        )
 
-    refresh_button = gr.Button(value=refresh_symbol, elem_id=elem_id, elem_classes=["tool"])
-    refresh_button.click(
-        fn=refresh,
-        inputs=[],
-        outputs=refresh_components
+    refresh_button = gr.Button(
+        value=refresh_symbol, elem_id=elem_id, elem_classes=["tool"]
     )
+    refresh_button.click(fn=refresh, inputs=[], outputs=refresh_components)
     return refresh_button
 
 
@@ -133,11 +139,21 @@ def list_dirs(path):
     if not os.path.isdir(path):
         path = os.path.dirname(path)
 
-    def natural_sort_key(s, regex=re.compile('([0-9]+)')):
-        return [int(text) if text.isdigit() else text.lower() for text in regex.split(s)]
+    def natural_sort_key(s, regex=re.compile("([0-9]+)")):
+        return [
+            int(text) if text.isdigit() else text.lower() for text in regex.split(s)
+        ]
 
-    subdirs = [(item, os.path.join(path, item)) for item in os.listdir(path) if os.path.isdir(os.path.join(path, item))]
-    subdirs = [filename for item, filename in subdirs if item[0] != "." and item not in ["__pycache__"]]
+    subdirs = [
+        (item, os.path.join(path, item))
+        for item in os.listdir(path)
+        if os.path.isdir(os.path.join(path, item))
+    ]
+    subdirs = [
+        filename
+        for item, filename in subdirs
+        if item[0] != "." and item not in ["__pycache__"]
+    ]
     subdirs = sorted(subdirs, key=natural_sort_key)
     if os.path.dirname(path) != "":
         dirs = [os.path.dirname(path), path] + subdirs
@@ -162,12 +178,22 @@ def list_files(path, exts=None, all=False):
     if not os.path.isdir(path):
         path = os.path.dirname(path)
 
-    files = [(item, os.path.join(path, item)) for item in os.listdir(path) if all or os.path.isfile(os.path.join(path, item))]
-    files = [filename for item, filename in files if item[0] != "." and item not in ["__pycache__"]]
+    files = [
+        (item, os.path.join(path, item))
+        for item in os.listdir(path)
+        if all or os.path.isfile(os.path.join(path, item))
+    ]
+    files = [
+        filename
+        for item, filename in files
+        if item[0] != "." and item not in ["__pycache__"]
+    ]
     exts = set(exts) if exts is not None else None
 
-    def natural_sort_key(s, regex=re.compile('([0-9]+)')):
-        return [int(text) if text.isdigit() else text.lower() for text in regex.split(s)]
+    def natural_sort_key(s, regex=re.compile("([0-9]+)")):
+        return [
+            int(text) if text.isdigit() else text.lower() for text in regex.split(s)
+        ]
 
     files = sorted(files, key=natural_sort_key)
     if os.path.dirname(path) != "":
@@ -524,7 +550,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        fr"{scriptdir}/v2_inference/v2-inference-v.yaml",
+                        rf"{scriptdir}/v2_inference/v2-inference-v.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
                 elif v2:
@@ -532,13 +558,15 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        fr"{scriptdir}/v2_inference/v2-inference.yaml",
+                        rf"{scriptdir}/v2_inference/v2-inference.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
 
 
-def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refresh_method=None):
-    # Check if the given model_list is in the list of SDXL models
+def set_pretrained_model_name_or_path_input(
+    pretrained_model_name_or_path, refresh_method=None
+):
+    # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
         v2 = gr.Checkbox.update(value=False, visible=False)
@@ -551,7 +579,7 @@ def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refre
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V2 base models
+    # Check if the given pretrained_model_name_or_path is in the list of V2 base models
     if pretrained_model_name_or_path in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
         v2 = gr.Checkbox.update(value=True, visible=False)
@@ -564,7 +592,7 @@ def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refre
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V parameterization models
+    # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
     if pretrained_model_name_or_path in V_PARAMETERIZATION_MODELS:
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
@@ -579,9 +607,9 @@ def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refre
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V1 models
+    # Check if the given pretrained_model_name_or_path is in the list of V1 models
     if pretrained_model_name_or_path in V1_MODELS:
-        log.info(f"{model_list} model selected.")
+        log.info(f"{pretrained_model_name_or_path} model selected.")
         v2 = gr.Checkbox.update(value=False, visible=False)
         v_parameterization = gr.Checkbox.update(value=False, visible=False)
         sdxl = gr.Checkbox.update(value=False, visible=False)
@@ -616,24 +644,23 @@ def set_pretrained_model_name_or_path_input(pretrained_model_name_or_path, refre
 ###
 
 
-def get_pretrained_model_name_or_path_file(model_list, pretrained_model_name_or_path):
-    pretrained_model_name_or_path = get_any_file_path(pretrained_model_name_or_path)
-    # set_model_list(model_list, pretrained_model_name_or_path)
+# def get_pretrained_model_name_or_path_file(model_list, pretrained_model_name_or_path):
+#     pretrained_model_name_or_path = get_any_file_path(pretrained_model_name_or_path)
+#     # set_model_list(model_list, pretrained_model_name_or_path)
 
 
 def get_int_or_default(kwargs, key, default_value=0):
     value = kwargs.get(key, default_value)
     if isinstance(value, int):
         return value
-    elif isinstance(value, str):
-        return int(value)
-    elif isinstance(value, float):
-        return int(value)
     else:
-        log.info(
-            f"{key} is not an int, float or a string, setting value to {default_value}"
-        )
-        return default_value
+        try:
+            return int(value)
+        except ValueError:
+            log.info(
+                f"{key} is not an int, float or a string, setting value to {default_value}"
+            )
+            return default_value
 
 
 def get_float_or_default(kwargs, key, default_value=0.0):
@@ -648,13 +675,15 @@ def get_float_or_default(kwargs, key, default_value=0.0):
     except ValueError:
         # If the conversion fails (for example, the value is a string that cannot
         # be converted to a float), log the issue and return the provided default_value.
-        log.info(f"{key} is not an int, float or a valid string for conversion, setting value to {default_value}")
+        log.info(
+            f"{key} is not an int, float or a valid string for conversion, setting value to {default_value}"
+        )
         return default_value
 
 
 def get_str_or_default(kwargs, key, default_value=""):
     value = kwargs.get(key, default_value)
-    
+
     # Check if the retrieved value is already a string.
     if isinstance(value, str):
         return value
@@ -688,7 +717,10 @@ def run_cmd_advanced_training(**kwargs):
     if kwargs.get("cache_text_encoder_outputs"):
         run_cmd += " --cache_text_encoder_outputs"
 
-    if "caption_dropout_every_n_epochs" in kwargs and int(kwargs["caption_dropout_every_n_epochs"]) > 0:
+    if (
+        "caption_dropout_every_n_epochs" in kwargs
+        and int(kwargs["caption_dropout_every_n_epochs"]) > 0
+    ):
         run_cmd += f' --caption_dropout_every_n_epochs="{int(kwargs["caption_dropout_every_n_epochs"])}"'
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
@@ -722,7 +754,11 @@ def run_cmd_advanced_training(**kwargs):
         run_cmd += f" --dim_from_weights"
 
     # Check if enable_bucket is true and both min_bucket_reso and max_bucket_reso are provided as part of the kwargs
-    if kwargs.get("enable_bucket") and "min_bucket_reso" in kwargs and "max_bucket_reso" in kwargs:
+    if (
+        kwargs.get("enable_bucket")
+        and "min_bucket_reso" in kwargs
+        and "max_bucket_reso" in kwargs
+    ):
         # Append the enable_bucket flag and min/max bucket resolution values to the run_cmd string
         run_cmd += f' --enable_bucket --min_bucket_reso={kwargs["min_bucket_reso"]} --max_bucket_reso={kwargs["max_bucket_reso"]}'
 
@@ -746,7 +782,10 @@ def run_cmd_advanced_training(**kwargs):
     if full_fp16:
         run_cmd += " --full_fp16"
 
-    if "gradient_accumulation_steps" in kwargs and int(kwargs["gradient_accumulation_steps"]) > 1:
+    if (
+        "gradient_accumulation_steps" in kwargs
+        and int(kwargs["gradient_accumulation_steps"]) > 1
+    ):
         run_cmd += f" --gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}"
 
     if kwargs.get("gradient_checkpointing"):
@@ -781,11 +820,11 @@ def run_cmd_advanced_training(**kwargs):
         if logging_dir.startswith('"') and logging_dir.endswith('"'):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
-            run_cmd += fr' --logging_dir="{logging_dir}"'
+            run_cmd += rf' --logging_dir="{logging_dir}"'
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd += f' --network_weights="{lora_network_weights}"' # Yes, the parameter is now called network_weights instead of lora_network_weights
+        run_cmd += f' --network_weights="{lora_network_weights}"'  # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
@@ -904,7 +943,7 @@ def run_cmd_advanced_training(**kwargs):
 
     if "noise_offset_type" in kwargs:
         noise_offset_type = kwargs["noise_offset_type"]
-        
+
         if kwargs["noise_offset_type"] == "Original":
             noise_offset = float(kwargs.get("noise_offset", 0))
             if noise_offset:
@@ -913,7 +952,7 @@ def run_cmd_advanced_training(**kwargs):
             adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
             if adaptive_noise_scale != 0 and noise_offset > 0:
                 run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
-            
+
         elif noise_offset_type == "Multires":
             multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
             if multires_noise_iterations > 0:
@@ -948,7 +987,7 @@ def run_cmd_advanced_training(**kwargs):
         if output_dir.startswith('"') and output_dir.endswith('"'):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
-            run_cmd += fr' --output_dir="{output_dir}"'
+            run_cmd += rf' --output_dir="{output_dir}"'
 
     output_name = kwargs.get("output_name")
     if output_name and not output_name == "":
@@ -960,7 +999,9 @@ def run_cmd_advanced_training(**kwargs):
 
     pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
     if pretrained_model_name_or_path:
-        run_cmd += fr' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        run_cmd += (
+            rf' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        )
 
     prior_loss_weight = kwargs.get("prior_loss_weight")
     if prior_loss_weight and not float(prior_loss_weight) == 1.0:
@@ -975,7 +1016,7 @@ def run_cmd_advanced_training(**kwargs):
         if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
             reg_data_dir = reg_data_dir[1:-1]
         if os.path.isdir(reg_data_dir):
-            run_cmd += fr' --reg_data_dir="{reg_data_dir}"'
+            run_cmd += rf' --reg_data_dir="{reg_data_dir}"'
 
     resume = kwargs.get("resume")
     if resume:
@@ -1046,7 +1087,7 @@ def run_cmd_advanced_training(**kwargs):
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
             train_data_dir = train_data_dir[1:-1]
         if os.path.exists(train_data_dir):
-            run_cmd += fr' --train_data_dir="{train_data_dir}"'
+            run_cmd += rf' --train_data_dir="{train_data_dir}"'
 
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:

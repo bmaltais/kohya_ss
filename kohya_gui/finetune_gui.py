@@ -727,7 +727,7 @@ def finetune_tab(headless=False):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
         with gr.Column():
-            source_model = SourceModel(headless=headless)
+            source_model = SourceModel(headless=headless, finetuning=True)
             image_folder = source_model.train_data_dir
             output_name = source_model.output_name
 
