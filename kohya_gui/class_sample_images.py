@@ -1,4 +1,3 @@
-import tempfile
 import os
 import gradio as gr
 from easygui import msgbox
@@ -33,7 +32,7 @@ def run_cmd_sample(
 
     run_cmd = ''
 
-    if sample_every_n_epochs == 0 and sample_every_n_steps == 0:
+    if sample_every_n_epochs == sample_every_n_steps == 0:
         return run_cmd
 
     # Create the prompt file and get its path
@@ -45,10 +44,10 @@ def run_cmd_sample(
     run_cmd += f' --sample_sampler={sample_sampler}'
     run_cmd += f' --sample_prompts="{sample_prompts_path}"'
 
-    if not sample_every_n_epochs == 0:
+    if sample_every_n_epochs != 0:
         run_cmd += f' --sample_every_n_epochs="{sample_every_n_epochs}"'
 
-    if not sample_every_n_steps == 0:
+    if sample_every_n_steps != 0:
         run_cmd += f' --sample_every_n_steps="{sample_every_n_steps}"'
 
     return run_cmd

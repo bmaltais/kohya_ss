@@ -21,7 +21,7 @@ class LoRATools:
         self.headless = headless
 
         gr.Markdown(
-            'This section provide LoRA tools to help setup your dataset...'
+            'This section provide various LoRA tools...'
         )
         gradio_extract_dylora_tab(headless=headless)
         gradio_convert_lcm_tab(headless=headless)
@@ -32,13 +32,3 @@ class LoRATools:
         gradio_svd_merge_lora_tab(headless=headless)
         gradio_resize_lora_tab(headless=headless)
         gradio_verify_lora_tab(headless=headless)
-        if train_data_dir is not None:
-            with gr.Tab('Dataset Preparation'):
-                gradio_dreambooth_folder_creation_tab(
-                    train_data_dir_input=train_data_dir,
-                    reg_data_dir_input=reg_data_dir,
-                    output_dir_input=output_dir,
-                    logging_dir_input=logging_dir,
-                    headless=headless,
-                )
-                gradio_dataset_balancing_tab(headless=headless)
