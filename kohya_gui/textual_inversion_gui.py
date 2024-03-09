@@ -667,8 +667,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        config_dir = os.path.dirname(os.path.dirname(train_data_dir))
-        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
+        # config_dir = os.path.dirname(os.path.dirname(train_data_dir))
+        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
@@ -730,7 +730,7 @@ def ti_tab(
 
                     weights = gr.Dropdown(
                         label='Resume TI training (Optional. Path to existing TI embedding file to keep training)',
-                        choices=list_embedding_files(current_embedding_dir),
+                        choices=[""] + list_embedding_files(current_embedding_dir),
                         value="",
                         interactive=True,
                         allow_custom_value=True,
@@ -748,7 +748,7 @@ def ti_tab(
                         show_progress=False,
                     )
                     weights.change(
-                        fn=lambda path: gr.Dropdown().update(choices=list_embedding_files(path)),
+                        fn=lambda path: gr.Dropdown().update(choices=[""] + list_embedding_files(path)),
                         inputs=weights,
                         outputs=weights,
                         show_progress=False,

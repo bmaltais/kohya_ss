@@ -87,12 +87,12 @@ def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
         with gr.Group(), gr.Row():
             train_data_dir = gr.Dropdown(
                 label='Image folder to caption (containing the images to caption)',
-                choices=list_train_dirs(default_train_dir),
+                choices=[""] + list_train_dirs(default_train_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
             )
-            create_refresh_button(train_data_dir, lambda: None, lambda: {"choices": list_train_dir(current_train_dir)},"open_folder_small")
+            create_refresh_button(train_data_dir, lambda: None, lambda: {"choices": list_train_dirs(current_train_dir)},"open_folder_small")
             button_train_data_dir_input = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -156,7 +156,7 @@ def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
         )
 
         train_data_dir.change(
-            fn=lambda path: gr.Dropdown().update(choices=list_train_dirs(path)),
+            fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_dirs(path)),
             inputs=train_data_dir,
             outputs=train_data_dir,
             show_progress=False,

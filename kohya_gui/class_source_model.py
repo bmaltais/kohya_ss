@@ -114,7 +114,7 @@ class SourceModel:
               with gr.Column(), gr.Row():
                 self.train_data_dir = gr.Dropdown(
                     label='Image folder (containing training images subfolders)' if not finetuning else 'Image folder (containing training images)',
-                    choices=list_train_dirs(default_train_dir),
+                    choices=[""] + list_train_dirs(default_train_dir),
                     value="",
                     interactive=True,
                     allow_custom_value=True,
@@ -182,7 +182,7 @@ class SourceModel:
             )
 
             self.train_data_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_train_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_dirs(path)),
                 inputs=self.train_data_dir,
                 outputs=self.train_data_dir,
                 show_progress=False,

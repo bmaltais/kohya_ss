@@ -41,7 +41,7 @@ class Folders:
         with gr.Row():
             self.output_dir = gr.Dropdown(
                 label=f'Output folder to output trained model',
-                choices=list_output_dirs(default_output_dir),
+                choices=[""] + list_output_dirs(default_output_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -58,7 +58,7 @@ class Folders:
 
             self.reg_data_dir = gr.Dropdown(
                 label='Regularisation folder (Optional. containing reqularization images)' if not finetune else 'Train config folder (Optional. where config files will be saved)',
-                choices=list_data_dirs(default_reg_data_dir),
+                choices=[""] + list_data_dirs(default_reg_data_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -75,7 +75,7 @@ class Folders:
         with gr.Row():
             self.logging_dir = gr.Dropdown(
                 label='Logging folder (Optional. to enable logging and output Tensorboard log)',
-                choices=list_logging_dirs(default_logging_dir),
+                choices=[""] + list_logging_dirs(default_logging_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -91,19 +91,19 @@ class Folders:
             )
 
             self.output_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_output_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_output_dirs(path)),
                 inputs=self.output_dir,
                 outputs=self.output_dir,
                 show_progress=False,
             )
             self.reg_data_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_data_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_data_dirs(path)),
                 inputs=self.reg_data_dir,
                 outputs=self.reg_data_dir,
                 show_progress=False,
             )
             self.logging_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_logging_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_logging_dirs(path)),
                 inputs=self.logging_dir,
                 outputs=self.logging_dir,
                 show_progress=False,

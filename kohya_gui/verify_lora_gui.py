@@ -79,7 +79,7 @@ def gradio_verify_lora_tab(headless=False):
             lora_model = gr.Dropdown(
                 label='LoRA model (path to the LoRA model to verify)',
                 interactive=True,
-                choices=list_models(current_model_dir),
+                choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -99,7 +99,7 @@ def gradio_verify_lora_tab(headless=False):
             verify_button = gr.Button('Verify', variant='primary')
 
             lora_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=lora_model,
                 outputs=lora_model,
                 show_progress=False,

@@ -111,7 +111,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
             # Dropdown for image folder
             images_dir = gr.Dropdown(
                 label='Image folder to caption (containing the images to caption)',
-                choices=list_images_dirs(default_images_dir),
+                choices=[""] + list_images_dirs(default_images_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -198,7 +198,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
 
         # Event handler for dynamic update of dropdown choices
         images_dir.change(
-            fn=lambda path: gr.Dropdown().update(choices=list_images_dirs(path)),
+            fn=lambda path: gr.Dropdown().update(choices=[""] + list_images_dirs(path)),
             inputs=images_dir,
             outputs=images_dir,
             show_progress=False,

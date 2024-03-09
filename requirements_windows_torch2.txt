@@ -1,7 +1,7 @@
 torch==2.1.2+cu118 torchvision==0.16.2+cu118 torchaudio==2.1.2+cu118 xformers==0.0.23.post1+cu118 --index-url https://download.pytorch.org/whl/cu118
 nvidia-cudnn-cu11==8.9.5.29
-https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.2.post2-py3-none-win_amd64.whl # no_verify
+# https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.2.post2-py3-none-win_amd64.whl # no_verify
 # https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl # no_verify
-# bitsandbytes==0.41.1
+bitsandbytes==0.43.0
 tensorboard==2.14.1 tensorflow==2.14.0
 -r requirements.txt

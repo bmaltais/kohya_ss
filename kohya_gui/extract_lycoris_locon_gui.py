@@ -181,7 +181,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
             db_model = gr.Dropdown(
                 label="Finetuned model (path to the finetuned model to extract)",
                 interactive=True,
-                choices=list_models(current_model_dir),
+                choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -201,7 +201,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
 
             base_model = gr.Dropdown(
                 label="Stable Diffusion base model (original model: ckpt or safetensors file)",
-                choices=list_base_models(current_base_model_dir),
+                choices=[""] + list_base_models(current_base_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -222,7 +222,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
             output_name = gr.Dropdown(
                 label="Save to (path where to save the extracted LoRA model...)",
                 interactive=True,
-                choices=list_save_to(current_save_dir),
+                choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
                 scale=2,
@@ -252,19 +252,19 @@ def gradio_extract_lycoris_locon_tab(headless=False):
             )
 
             db_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=db_model,
                 outputs=db_model,
                 show_progress=False,
             )
             base_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_base_model(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_base_model(path)),
                 inputs=base_model,
                 outputs=base_model,
                 show_progress=False,
             )
             output_name.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                 inputs=output_name,
                 outputs=output_name,
                 show_progress=False,
