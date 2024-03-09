@@ -63,10 +63,12 @@ def gradio_group_images_gui_tab(headless=False):
     current_output_folder = os.path.join(scriptdir, "data")
 
     def list_input_dirs(path):
+        nonlocal current_input_folder
         current_input_folder = path
         return list(list_dirs(path))
 
     def list_output_dirs(path):
+        nonlocal current_output_folder
         current_output_folder = path
         return list(list_dirs(path))
 

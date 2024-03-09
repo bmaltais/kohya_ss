@@ -101,6 +101,7 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
     current_train_dir = default_train_dir
 
     def list_train_dirs(path):
+        nonlocal current_train_dir
         current_train_dir = path
         return list(list_dirs(path))
 

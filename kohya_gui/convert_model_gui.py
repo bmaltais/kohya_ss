@@ -180,10 +180,12 @@ def gradio_convert_model_tab(headless=False):
     current_target_folder = default_target_folder
 
     def list_source_model(path):
+        nonlocal current_source_model
         current_source_model = path
         return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
     def list_target_folder(path):
+        nonlocal current_target_folder
         current_target_folder = path
         return list(list_dirs(path))
 

@@ -148,6 +148,7 @@ def gradio_dreambooth_folder_creation_tab(
         with gr.Group(), gr.Row():
 
             def list_train_data_dirs(path):
+                nonlocal current_train_data_dir
                 current_train_data_dir = path
                 return list(list_dirs(path))
 
@@ -182,6 +183,7 @@ def gradio_dreambooth_folder_creation_tab(
 
         with gr.Group(), gr.Row():
             def list_reg_data_dirs(path):
+                nonlocal current_reg_data_dir
                 current_reg_data_dir = path
                 return list(list_dirs(path))
 
@@ -215,6 +217,7 @@ def gradio_dreambooth_folder_creation_tab(
             )
         with gr.Group(), gr.Row():
             def list_train_output_dirs(path):
+                nonlocal current_train_output_dir
                 current_train_output_dir = path
                 return list(list_dirs(path))
 
