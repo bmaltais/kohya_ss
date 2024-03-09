@@ -724,6 +724,7 @@ def ti_tab(
                 with gr.Row():
 
                     def list_embedding_files(path):
+                        nonlocal current_embedding_dir
                         current_embedding_dir = path
                         return list(list_files(path, exts=[".pt", ".ckpt", ".safetensors" ], all=True))
 

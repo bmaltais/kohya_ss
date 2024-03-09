@@ -63,6 +63,7 @@ def gradio_verify_lora_tab(headless=False):
     current_model_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
+        nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 

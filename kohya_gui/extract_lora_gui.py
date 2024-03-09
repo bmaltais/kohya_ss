@@ -115,14 +115,17 @@ def gradio_extract_lora_tab(headless=False):
     current_save_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
+        nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
     def list_org_models(path):
+        nonlocal current_model_org_dir
         current_model_org_dir = path
         return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
     def list_save_to(path):
+        nonlocal current_save_dir
         current_save_dir = path
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 

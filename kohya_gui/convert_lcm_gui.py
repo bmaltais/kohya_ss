@@ -74,10 +74,12 @@ def gradio_convert_lcm_tab(headless=False):
     current_save_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
+        nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
     def list_save_to(path):
+        nonlocal current_save_dir
         current_save_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
