@@ -53,6 +53,7 @@ button_stop_training = gr.Button("Stop training")
 
 document_symbol = "\U0001F4C4"  # 📄
 
+
 presets_dir = fr'{scriptdir}/presets'
 
 def save_configuration(
@@ -743,9 +744,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sdxl_train_network.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train_network.py"'
     else:
-        run_cmd += fr' "{scriptdir}/train_network.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/train_network.py"'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
@@ -1016,7 +1017,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        config_dir = os.path.dirname(os.path.dirname(train_data_dir))
+        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
@@ -1027,8 +1029,11 @@ def train_model(
         )
 
         log.info(run_cmd)
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command
-        executor.execute_command(run_cmd=run_cmd)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         # # check if output_dir/last is a folder... therefore it is a diffuser model
         # last_dir = pathlib.Path(f'{output_dir}/{output_name}')
@@ -1041,36 +1046,34 @@ def train_model(
 
 
 def lora_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+    train_data_dir_input=gr.Dropdown(),
+    reg_data_dir_input=gr.Dropdown(),
+    output_dir_input=gr.Dropdown(),
+    logging_dir_input=gr.Dropdown(),
     headless=False,
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab("Training"):
+    with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown(
             "Train a custom model using kohya train network LoRA python code..."
         )
 
-        # Setup Configuration Files Gradio
-        config = ConfigurationFile(headless)
+        with gr.Column():
+            source_model = SourceModel(
+                save_model_as_choices=[
+                    "ckpt",
+                    "safetensors",
+                ],
+                headless=headless,
+            )
 
-        source_model = SourceModel(
-            save_model_as_choices=[
-                "ckpt",
-                "safetensors",
-            ],
-            headless=headless,
-        )
-
-        with gr.Tab("Folders"):
+        with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless)
 
-        with gr.Tab("Parameters"):
+        with gr.Accordion("Parameters", open=False), gr.Column():
 
             def list_presets(path):
                 json_files = []
@@ -1093,12 +1096,12 @@ def lora_tab(
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=list_presets(f"{presets_dir}/lora"),
+                choices=list_presets(fr"{presets_dir}/lora"),
                 elem_id="myDropdown",
                 value="none"
             )
 
-            with gr.Tab("Basic", elem_id="basic_tab"):
+            with gr.Group(elem_id="basic_tab"):
                 with gr.Row():
                     LoRA_type = gr.Dropdown(
                         label="LoRA type",
@@ -1143,6 +1146,7 @@ def lora_tab(
                             lora_network_weights_file = gr.Button(
                                 document_symbol,
                                 elem_id="open_folder_small",
+                                elem_classes=["tool"],
                                 visible=(not headless),
                             )
                             lora_network_weights_file.click(
@@ -1681,7 +1685,7 @@ def lora_tab(
 
                         return tuple(results)
 
-            with gr.Tab("Advanced", elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 # with gr.Accordion('Advanced Configuration', open=False):
                 with gr.Row(visible=True) as kohya_advanced_lora:
                     with gr.Tab(label="Weights"):
@@ -1739,7 +1743,7 @@ def lora_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Tab("Samples", elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages()
 
             LoRA_type.change(
@@ -1777,12 +1781,12 @@ def lora_tab(
                 ],
             )
 
-        with gr.Tab("Dataset Preparation"):
+        with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
             )
             gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=folders.train_data_dir,
+                train_data_dir_input=source_model.train_data_dir,
                 reg_data_dir_input=folders.reg_data_dir,
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
@@ -1790,18 +1794,26 @@ def lora_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-        with gr.Row():
-            button_run = gr.Button("Start training", variant="primary")
 
-            button_stop_training = gr.Button("Stop training")
+        # Setup Configuration Files Gradio
+        with gr.Accordion('Configuration', open=False):
+            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
 
-        button_print = gr.Button("Print training command")
+
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_run = gr.Button("Start training", variant="primary")
+
+                button_stop_training = gr.Button("Stop training")
+
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        (
-            button_start_tensorboard,
-            button_stop_tensorboard,
-        ) = gradio_tensorboard()
+        with gr.Column(), gr.Group():
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -1820,7 +1832,7 @@ def lora_tab(
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
             folders.logging_dir,
-            folders.train_data_dir,
+            source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
             basic_training.max_resolution,
@@ -1831,7 +1843,7 @@ def lora_tab(
             basic_training.epoch,
             basic_training.save_every_n_epochs,
             basic_training.mixed_precision,
-            basic_training.save_precision,
+            source_model.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             basic_training.cache_latents,
@@ -1865,14 +1877,14 @@ def lora_tab(
             advanced_training.gpu_ids,
             advanced_training.gradient_accumulation_steps,
             advanced_training.mem_eff_attn,
-            folders.output_name,
+            source_model.output_name,
             source_model.model_list,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
             basic_training.max_train_steps,
             advanced_training.max_data_loader_n_workers,
             network_alpha,
-            folders.training_comment,
+            source_model.training_comment,
             advanced_training.keep_tokens,
             basic_training.lr_scheduler_num_cycles,
             basic_training.lr_scheduler_power,
@@ -1980,12 +1992,12 @@ def lora_tab(
             show_progress=False,
         )
 
-        config.button_save_as_config.click(
-            save_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
-            show_progress=False,
-        )
+        #config.button_save_as_config.click(
+        #    save_configuration,
+        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        #    outputs=[config.config_file_name],
+        #    show_progress=False,
+        #)
 
         button_run.click(
             train_model,
@@ -2002,7 +2014,13 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(folders=folders, headless=headless)
+        lora_tools = LoRATools(
+            train_data_dir=source_model.train_data_dir,
+            reg_data_dir=folders.reg_data_dir,
+            output_dir=folders.output_dir,
+            logging_dir=folders.logging_dir,
+            headless=headless
+        )
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
@@ -2014,7 +2032,7 @@ def lora_tab(
             gr.Markdown(guides_top_level)
 
     return (
-        folders.train_data_dir,
+        source_model.train_data_dir,
         folders.reg_data_dir,
         folders.output_dir,
         folders.logging_dir,

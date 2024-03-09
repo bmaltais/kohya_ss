@@ -16,10 +16,10 @@ from .group_images_gui import gradio_group_images_gui_tab
 
 
 def utilities_tab(
-    train_data_dir_input=gr.Textbox(),
-    reg_data_dir_input=gr.Textbox(),
-    output_dir_input=gr.Textbox(),
-    logging_dir_input=gr.Textbox(),
+    train_data_dir_input=gr.Dropdown(),
+    reg_data_dir_input=gr.Dropdown(),
+    output_dir_input=gr.Dropdown(),
+    logging_dir_input=gr.Dropdown(),
     enable_copy_info_button=bool(False),
     enable_dreambooth_tab=True,
     headless=False

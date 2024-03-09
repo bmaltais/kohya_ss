@@ -8,6 +8,8 @@ from .common_gui import (
     get_any_file_path,
     get_file_path,
     scriptdir,
+    list_files,
+    create_refresh_button,
 )
 
 from .custom_logging import setup_logging
@@ -61,7 +63,18 @@ def extract_lycoris_locon(
         msgbox("The provided base model is not a file")
         return
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/tools/lycoris_locon_extract.py"'
+    if os.path.dirname(output_name) == "":
+        # only filename given. prepend dir
+        output_name = os.path.join(os.path.dirname(db_model), output_name)
+    if os.path.isdir(output_name):
+        # only dir name given. set default lora name
+        output_name = os.path.join(output_name, "lora.safetensors")
+    if os.path.normpath(db_model) == os.path.normpath(output_name):
+        # same path. silently ignore but rename output
+        path, ext = os.path.splitext(output_name)
+        output_name = f"{path}_tmp{ext}"
+
+    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/tools/lycoris_locon_extract.py"'
     if is_sdxl:
         run_cmd += f" --is_sdxl"
     if is_v2:
@@ -86,14 +99,14 @@ def extract_lycoris_locon(
     run_cmd += f" --sparsity {sparsity}"
     if disable_cp:
         run_cmd += f" --disable_cp"
-    run_cmd += f' "{base_model}"'
-    run_cmd += f' "{db_model}"'
-    run_cmd += f' "{output_name}"'
+    run_cmd += fr' "{base_model}"'
+    run_cmd += fr' "{db_model}"'
+    run_cmd += fr' "{output_name}"'
 
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -126,13 +139,30 @@ def update_mode(mode):
     # Iterate through the possible modes
     for m in modes:
         # Add a visibility update for each mode, setting it to True if the input mode matches the current mode in the loop
-        updates.append(gr.Row(visible=(mode == m)))
+        updates.append(gr.Row().update(visible=(mode == m)))
 
     # Return the visibility updates as a tuple
     return tuple(updates)
 
 
 def gradio_extract_lycoris_locon_tab(headless=False):
+
+    current_model_dir = os.path.join(scriptdir, "outputs")
+    current_base_model_dir = os.path.join(scriptdir, "outputs")
+    current_save_dir = os.path.join(scriptdir, "outputs")
+
+    def list_models(path):
+        current_model_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_base_models(path):
+        current_model_org_dir = path
+        return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+
+    def list_save_to(path):
+        current_save_dir = path
+        return list(list_files(path, exts=[".safetensors"], all=True))
+
     with gr.Tab("Extract LyCORIS LoCON"):
         gr.Markdown(
             "This utility can extract a LyCORIS LoCon network from a finetuned model."
@@ -144,15 +174,19 @@ def gradio_extract_lycoris_locon_tab(headless=False):
         model_ext = gr.Textbox(value="*.safetensors *.ckpt", visible=False)
         model_ext_name = gr.Textbox(value="Model types", visible=False)
 
-        with gr.Row():
-            db_model = gr.Textbox(
-                label="Finetuned model",
-                placeholder="Path to the finetuned model to extract",
+        with gr.Group(), gr.Row():
+            db_model = gr.Dropdown(
+                label="Finetuned model (path to the finetuned model to extract)",
                 interactive=True,
+                choices=list_models(current_model_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(db_model, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
             button_db_model_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_db_model_file.click(
@@ -162,14 +196,17 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 show_progress=False,
             )
 
-            base_model = gr.Textbox(
-                label="Stable Diffusion base model",
-                placeholder="Stable Diffusion original model: ckpt or safetensors file",
-                interactive=True,
+            base_model = gr.Dropdown(
+                label="Stable Diffusion base model (original model: ckpt or safetensors file)",
+                choices=list_base_models(current_base_model_dir),
+                value="",
+                allow_custom_value=True,
             )
+            create_refresh_button(base_model, lambda: None, lambda: {"choices": list_base_models(current_base_model_dir)}, "open_folder_small")
             button_base_model_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_base_model_file.click(
@@ -178,15 +215,20 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 outputs=base_model,
                 show_progress=False,
             )
-        with gr.Row():
-            output_name = gr.Textbox(
-                label="Save to",
-                placeholder="path where to save the extracted LoRA model...",
+        with gr.Group(), gr.Row():
+            output_name = gr.Dropdown(
+                label="Save to (path where to save the extracted LoRA model...)",
                 interactive=True,
+                choices=list_save_to(current_save_dir),
+                value="",
+                allow_custom_value=True,
+                scale=2,
             )
+            create_refresh_button(output_name, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
             button_output_name = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
+                elem_classes=['tool'],
                 visible=(not headless),
             )
             button_output_name.click(
@@ -195,7 +237,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 outputs=output_name,
                 show_progress=False,
             )
-            device = gr.Dropdown(
+            device = gr.Radio(
                 label="Device",
                 choices=[
                     "cpu",
@@ -203,17 +245,38 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 ],
                 value="cuda",
                 interactive=True,
+                scale=2,
             )
 
-            is_sdxl = gr.Checkbox(label="is SDXL", value=False, interactive=True)
+            db_model.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                inputs=db_model,
+                outputs=db_model,
+                show_progress=False,
+            )
+            base_model.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_base_model(path)),
+                inputs=base_model,
+                outputs=base_model,
+                show_progress=False,
+            )
+            output_name.change(
+                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                inputs=output_name,
+                outputs=output_name,
+                show_progress=False,
+            )
 
-            is_v2 = gr.Checkbox(label="is v2", value=False, interactive=True)
-        mode = gr.Dropdown(
-            label="Mode",
-            choices=["fixed", "full", "quantile", "ratio", "threshold"],
-            value="fixed",
-            interactive=True,
-        )
+            is_sdxl = gr.Checkbox(label="is SDXL", value=False, interactive=True, scale=1)
+
+            is_v2 = gr.Checkbox(label="is v2", value=False, interactive=True, scale=1)
+        with gr.Row():
+            mode = gr.Radio(
+                label="Mode",
+                choices=["fixed", "full", "quantile", "ratio", "threshold"],
+                value="fixed",
+                interactive=True,
+            )
         with gr.Row(visible=True) as fixed:
             linear_dim = gr.Slider(
                 minimum=1,

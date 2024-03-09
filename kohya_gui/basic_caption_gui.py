@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir
+from .common_gui import get_folder_path, add_pre_postfix, find_replace, scriptdir, list_dirs
 import os
 import sys
 
@@ -52,7 +52,7 @@ def caption_images(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         # Run the command based on the operating system
         subprocess.run(run_cmd, shell=True, env=env)
@@ -86,64 +86,101 @@ def caption_images(
 
 
 # Gradio UI
-def gradio_basic_caption_gui_tab(headless=False):
+def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
+    from .common_gui import create_refresh_button
+
+    # Set default images directory if not provided
+    default_images_dir = default_images_dir if default_images_dir is not None else os.path.join(scriptdir, "data")
+    current_images_dir = default_images_dir
+
+    # Function to list directories
+    def list_images_dirs(path):
+        # Allows list_images_dirs to modify current_images_dir outside of this function
+        nonlocal current_images_dir
+        current_images_dir = path
+        return list(list_dirs(path))
+
+    # Gradio tab for basic captioning
     with gr.Tab('Basic Captioning'):
+        # Markdown description
         gr.Markdown(
             'This utility allows you to create simple caption files for each image in a folder.'
         )
-        with gr.Row():
-            images_dir = gr.Textbox(
-                label='Image folder to caption',
-                placeholder='Directory containing the images to caption',
+        # Group and row for image folder selection
+        with gr.Group(), gr.Row():
+            # Dropdown for image folder
+            images_dir = gr.Dropdown(
+                label='Image folder to caption (containing the images to caption)',
+                choices=list_images_dirs(default_images_dir),
+                value="",
                 interactive=True,
+                allow_custom_value=True,
             )
+            # Refresh button for image folder
+            create_refresh_button(images_dir, lambda: None, lambda: {"choices": list_images_dirs(current_images_dir)},"open_folder_small")
+            # Button to open folder
             folder_button = gr.Button(
-                '📂', elem_id='open_folder_small', visible=(not headless)
+                '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not headless)
             )
+            # Event handler for button click
             folder_button.click(
                 get_folder_path,
                 outputs=images_dir,
                 show_progress=False,
             )
+            # Textbox for caption file extension
             caption_ext = gr.Textbox(
                 label='Caption file extension',
                 placeholder='Extension for caption file (e.g., .caption, .txt)',
                 value='.txt',
                 interactive=True,
             )
+            # Checkbox to overwrite existing captions
             overwrite = gr.Checkbox(
                 label='Overwrite existing captions in folder',
                 interactive=True,
                 value=False,
             )
+        # Row for caption prefix and text
         with gr.Row():
+            # Textbox for caption prefix
             prefix = gr.Textbox(
                 label='Prefix to add to caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
+            # Textbox for caption text
             caption_text = gr.Textbox(
                 label='Caption text',
                 placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
+                lines=2,
             )
+            # Textbox for caption postfix
             postfix = gr.Textbox(
                 label='Postfix to add to caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
-        with gr.Row():
+        # Group and row for find and replace text
+        with gr.Group(), gr.Row():
+            # Textbox for find text
             find_text = gr.Textbox(
                 label='Find text',
                 placeholder='e.g., "by some artist". Leave empty if you only want to add a prefix or postfix.',
                 interactive=True,
+                lines=2,
             )
+            # Textbox for replace text
             replace_text = gr.Textbox(
                 label='Replacement text',
                 placeholder='e.g., "by some artist". Leave empty if you want to replace with nothing.',
                 interactive=True,
+                lines=2,
             )
+            # Button to caption images
             caption_button = gr.Button('Caption images')
+            # Event handler for button click
             caption_button.click(
                 caption_images,
                 inputs=[
@@ -158,3 +195,11 @@ def gradio_basic_caption_gui_tab(headless=False):
                 ],
                 show_progress=False,
             )
+
+        # Event handler for dynamic update of dropdown choices
+        images_dir.change(
+            fn=lambda path: gr.Dropdown().update(choices=list_images_dirs(path)),
+            inputs=images_dir,
+            outputs=images_dir,
+            show_progress=False,
+        )

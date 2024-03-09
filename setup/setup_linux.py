@@ -27,6 +27,12 @@ def main_menu(platform_requirements_file, show_stdout: bool = False, no_run_acce
 if __name__ == '__main__':
     setup_common.ensure_base_requirements()
     setup_common.setup_logging()
+    
+    setup_common.update_submodule()
+    
+    # setup_common.clone_or_checkout(
+    #     "https://github.com/kohya-ss/sd-scripts.git", tag_version, "sd-scripts"
+    # )
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--platform-requirements-file', dest='platform_requirements_file', default='requirements_linux.txt', help='Path to the platform-specific requirements file')

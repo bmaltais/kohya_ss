@@ -13,6 +13,100 @@ import pkg_resources
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
 
+def update_submodule():
+    """
+    Ensure the submodule is initialized and updated.
+    """
+    try:
+        # Initialize and update the submodule
+        subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--quiet"], check=True)
+        log.info("Submodule initialized and updated.")
+        
+    except subprocess.CalledProcessError as e:
+        log.error(f"Error during Git operation: {e}")
+    except FileNotFoundError as e:
+        log.error(e)
+
+def read_tag_version_from_file(file_path):
+    """
+    Read the tag version from a given file.
+
+    Parameters:
+    - file_path: The path to the file containing the tag version.
+
+    Returns:
+    The tag version as a string.
+    """
+    with open(file_path, 'r') as file:
+        # Read the first line and strip whitespace
+        tag_version = file.readline().strip()
+    return tag_version
+
+def clone_or_checkout(repo_url, branch_or_tag, directory_name):
+    """
+    Clone a repo or checkout a specific branch or tag if the repo already exists.
+    For branches, it updates to the latest version before checking out.
+    Suppresses detached HEAD advice for tags or specific commits.
+    Restores the original working directory after operations.
+
+    Parameters:
+    - repo_url: The URL of the Git repository.
+    - branch_or_tag: The name of the branch or tag to clone or checkout.
+    - directory_name: The name of the directory to clone into or where the repo already exists.
+    """
+    original_dir = os.getcwd()  # Store the original directory
+    try:
+        if not os.path.exists(directory_name):
+            # Directory does not exist, clone the repo quietly
+            
+            # Construct the command as a string for logging
+            # run_cmd = f"git clone --branch {branch_or_tag} --single-branch --quiet {repo_url} {directory_name}"
+            run_cmd = ["git", "clone", "--branch", branch_or_tag, "--single-branch", "--quiet", repo_url, directory_name]
+
+
+            # Log the command
+            log.debug(run_cmd)
+            
+            # Run the command
+            process = subprocess.Popen(
+                run_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            output, error = process.communicate()
+            
+            if error and not error.startswith("Note: switching to"):
+                log.warning(error)
+            else:
+                log.info(f"Successfully cloned sd-scripts {branch_or_tag}")
+            
+        else:
+            os.chdir(directory_name)
+            subprocess.run(["git", "fetch", "--all", "--quiet"], check=True)
+            subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
+            
+            # Get the current branch or commit hash
+            current_branch_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode()
+            tag_branch_hash = subprocess.check_output(["git", "rev-parse", branch_or_tag]).strip().decode()
+            
+            if current_branch_hash != tag_branch_hash:
+                run_cmd = f"git checkout {branch_or_tag} --quiet"
+                # Log the command
+                log.debug(run_cmd)
+                
+                # Execute the checkout command
+                process = subprocess.Popen(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                output, error = process.communicate()
+                
+                if error:
+                    log.warning(error.decode())
+                else:
+                    log.info(f"Checked out sd-scripts {branch_or_tag} successfully.")
+            else:
+                log.info(f"Current branch of sd-scripts is already at the required release {branch_or_tag}.")
+    except subprocess.CalledProcessError as e:
+        log.error(f"Error during Git operation: {e}")
+    finally:
+        os.chdir(original_dir)  # Restore the original directory
+
 # setup console and file logging
 def setup_logging(clean=False):
     #

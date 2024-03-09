@@ -21,6 +21,9 @@ document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
+# insert sd-scripts path into PYTHONPATH
+sys.path.insert(0, os.path.join(scriptdir, "sd-scripts"))
+
 # define a list of substrings to search for v2 base models
 V2_BASE_MODELS = [
     "stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned",
@@ -88,6 +91,129 @@ def output_message(msg="", title="", headless=False):
         log.info(msg)
     else:
         msgbox(msg=msg, title=title)
+
+
+def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_id):
+    refresh_components = (
+        refresh_component
+        if isinstance(refresh_component, list)
+        else [refresh_component]
+    )
+
+    label = None
+    for comp in refresh_components:
+        label = getattr(comp, "label", None)
+        if label is not None:
+            break
+
+    def refresh():
+        refresh_method()
+        args = refreshed_args() if callable(refreshed_args) else refreshed_args
+
+        for k, v in args.items():
+            for comp in refresh_components:
+                setattr(comp, k, v)
+
+        return (
+            [gr.update(**(args or {})) for _ in refresh_components]
+            if len(refresh_components) > 1
+            else gr.update(**(args or {}))
+        )
+
+    refresh_button = gr.Button(
+        value=refresh_symbol, elem_id=elem_id, elem_classes=["tool"]
+    )
+    refresh_button.click(fn=refresh, inputs=[], outputs=refresh_components)
+    return refresh_button
+
+
+def list_dirs(path):
+    if path is None or path == "None" or path == "":
+        return
+
+    if not os.path.exists(path):
+        path = os.path.dirname(path)
+        if not os.path.exists(path):
+            return
+
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    def natural_sort_key(s, regex=re.compile("([0-9]+)")):
+        return [
+            int(text) if text.isdigit() else text.lower() for text in regex.split(s)
+        ]
+
+    subdirs = [
+        (item, os.path.join(path, item))
+        for item in os.listdir(path)
+        if os.path.isdir(os.path.join(path, item))
+    ]
+    subdirs = [
+        filename
+        for item, filename in subdirs
+        if item[0] != "." and item not in ["__pycache__"]
+    ]
+    subdirs = sorted(subdirs, key=natural_sort_key)
+    if os.path.dirname(path) != "":
+        dirs = [os.path.dirname(path), path] + subdirs
+    else:
+        dirs = [path] + subdirs
+
+    if os.sep == "\\":
+        dirs = [d.replace("\\", "/") for d in dirs]
+    for d in dirs:
+        yield d
+
+
+def list_files(path, exts=None, all=False):
+    if path is None or path == "None" or path == "":
+        return
+
+    if not os.path.exists(path):
+        path = os.path.dirname(path)
+        if not os.path.exists(path):
+            return
+
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    files = [
+        (item, os.path.join(path, item))
+        for item in os.listdir(path)
+        if all or os.path.isfile(os.path.join(path, item))
+    ]
+    files = [
+        filename
+        for item, filename in files
+        if item[0] != "." and item not in ["__pycache__"]
+    ]
+    exts = set(exts) if exts is not None else None
+
+    def natural_sort_key(s, regex=re.compile("([0-9]+)")):
+        return [
+            int(text) if text.isdigit() else text.lower() for text in regex.split(s)
+        ]
+
+    files = sorted(files, key=natural_sort_key)
+    if os.path.dirname(path) != "":
+        files = [os.path.dirname(path), path] + files
+    else:
+        files = [path] + files
+
+    if os.sep == "\\":
+        files = [d.replace("\\", "/") for d in files]
+
+    for filename in files:
+        if exts is not None:
+            if os.path.isdir(filename):
+                yield filename
+            _, ext = os.path.splitext(filename)
+            if ext.lower() not in exts:
+                continue
+            yield filename
+        else:
+            yield filename
 
 
 def update_my_data(my_data):
@@ -424,7 +550,7 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        fr"{scriptdir}/v2_inference/v2-inference-v.yaml",
+                        rf"{scriptdir}/v2_inference/v2-inference-v.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
                 elif v2:
@@ -432,123 +558,85 @@ def save_inference_file(output_dir, v2, v_parameterization, output_name):
                         f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        fr"{scriptdir}/v2_inference/v2-inference.yaml",
+                        rf"{scriptdir}/v2_inference/v2-inference.yaml",
                         f"{output_dir}/{file_name}.yaml",
                     )
 
 
 def set_pretrained_model_name_or_path_input(
-    model_list,
-    pretrained_model_name_or_path,
-    pretrained_model_name_or_path_file,
-    pretrained_model_name_or_path_folder,
-    v2,
-    v_parameterization,
-    sdxl,
+    pretrained_model_name_or_path, refresh_method=None
 ):
-    # Check if the given model_list is in the list of SDXL models
-    if str(model_list) in SDXL_MODELS:
+    # Check if the given pretrained_model_name_or_path is in the list of SDXL models
+    if pretrained_model_name_or_path in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=True, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=True, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V2 base models
-    if str(model_list) in V2_BASE_MODELS:
+    # Check if the given pretrained_model_name_or_path is in the list of V2 base models
+    if pretrained_model_name_or_path in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V parameterization models
-    if str(model_list) in V_PARAMETERIZATION_MODELS:
+    # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
+    if pretrained_model_name_or_path in V_PARAMETERIZATION_MODELS:
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=True, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+        v2 = gr.Checkbox.update(value=True, visible=False)
+        v_parameterization = gr.Checkbox.update(value=True, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
-    # Check if the given model_list is in the list of V1 models
-    if str(model_list) in V1_MODELS:
-        log.info(f"{model_list} model selected.")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        pretrained_model_name_or_path = gr.Textbox(
-            value=str(model_list), visible=False
-        )
-        pretrained_model_name_or_path_file = gr.Button(visible=False)
-        pretrained_model_name_or_path_folder = gr.Button(visible=False)
+    # Check if the given pretrained_model_name_or_path is in the list of V1 models
+    if pretrained_model_name_or_path in V1_MODELS:
+        log.info(f"{pretrained_model_name_or_path} model selected.")
+        v2 = gr.Checkbox.update(value=False, visible=False)
+        v_parameterization = gr.Checkbox.update(value=False, visible=False)
+        sdxl = gr.Checkbox.update(value=False, visible=False)
         return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
+            gr.Dropdown().update(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the model_list is set to 'custom'
-    if model_list == "custom":
-        v2 = gr.Checkbox(visible=True)
-        v_parameterization = gr.Checkbox(visible=True)
-        sdxl = gr.Checkbox(visible=True)
-        pretrained_model_name_or_path = gr.Textbox(visible=True)
-        pretrained_model_name_or_path_file = gr.Button(visible=True)
-        pretrained_model_name_or_path_folder = gr.Button(visible=True)
-        return (
-            model_list,
-            pretrained_model_name_or_path,
-            pretrained_model_name_or_path_file,
-            pretrained_model_name_or_path_folder,
-            v2,
-            v_parameterization,
-            sdxl,
+    v2 = gr.Checkbox.update(visible=True)
+    v_parameterization = gr.Checkbox.update(visible=True)
+    sdxl = gr.Checkbox.update(visible=True)
+
+    if refresh_method is not None:
+        args = dict(
+            choices=refresh_method(pretrained_model_name_or_path),
         )
+    else:
+        args = {}
+    return (
+        gr.Dropdown().update(**args),
+        v2,
+        v_parameterization,
+        sdxl,
+    )
 
 
 ###
@@ -556,157 +644,84 @@ def set_pretrained_model_name_or_path_input(
 ###
 
 
-def get_pretrained_model_name_or_path_file(model_list, pretrained_model_name_or_path):
-    pretrained_model_name_or_path = get_any_file_path(pretrained_model_name_or_path)
-    # set_model_list(model_list, pretrained_model_name_or_path)
+# def get_pretrained_model_name_or_path_file(model_list, pretrained_model_name_or_path):
+#     pretrained_model_name_or_path = get_any_file_path(pretrained_model_name_or_path)
+#     # set_model_list(model_list, pretrained_model_name_or_path)
 
 
 def get_int_or_default(kwargs, key, default_value=0):
     value = kwargs.get(key, default_value)
     if isinstance(value, int):
         return value
-    elif isinstance(value, str):
-        return int(value)
-    elif isinstance(value, float):
-        return int(value)
     else:
-        log.info(
-            f"{key} is not an int, float or a string, setting value to {default_value}"
-        )
-        return default_value
+        try:
+            return int(value)
+        except ValueError:
+            log.info(
+                f"{key} is not an int, float or a string, setting value to {default_value}"
+            )
+            return default_value
 
 
 def get_float_or_default(kwargs, key, default_value=0.0):
+    # Try to retrieve the value for the specified key from the kwargs.
+    # Use the provided default_value if the key does not exist.
     value = kwargs.get(key, default_value)
-    if isinstance(value, float):
-        return value
-    elif isinstance(value, int):
+
+    try:
+        # Try to convert the value to a float. This should works for int, float,
+        # and strings that represent a valid floating-point number.
         return float(value)
-    elif isinstance(value, str):
-        return float(value)
-    else:
+    except ValueError:
+        # If the conversion fails (for example, the value is a string that cannot
+        # be converted to a float), log the issue and return the provided default_value.
         log.info(
-            f"{key} is not an int, float or a string, setting value to {default_value}"
+            f"{key} is not an int, float or a valid string for conversion, setting value to {default_value}"
         )
         return default_value
 
 
 def get_str_or_default(kwargs, key, default_value=""):
     value = kwargs.get(key, default_value)
+
+    # Check if the retrieved value is already a string.
     if isinstance(value, str):
         return value
-    elif isinstance(value, int):
-        return str(value)
-    elif isinstance(value, str):
-        return str(value)
     else:
-        return default_value
-
-
-# def run_cmd_training(**kwargs):
-#     run_cmd = ""
-
-#     lr_scheduler = kwargs.get("lr_scheduler", "")
-#     if lr_scheduler:
-#         run_cmd += f' --lr_scheduler="{lr_scheduler}"'
-
-#     lr_warmup_steps = kwargs.get("lr_warmup_steps", "")
-#     if lr_warmup_steps:
-#         if lr_scheduler == "constant":
-#             log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
-#         else:
-#             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
-
-#     train_batch_size = kwargs.get("train_batch_size", "")
-#     if train_batch_size:
-#         run_cmd += f' --train_batch_size="{train_batch_size}"'
-
-#     max_train_steps = kwargs.get("max_train_steps", "")
-#     if max_train_steps:
-#         run_cmd += f' --max_train_steps="{max_train_steps}"'
-
-#     save_every_n_epochs = kwargs.get("save_every_n_epochs")
-#     if save_every_n_epochs:
-#         run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
-
-#     mixed_precision = kwargs.get("mixed_precision", "")
-#     if mixed_precision:
-#         run_cmd += f' --mixed_precision="{mixed_precision}"'
-
-#     save_precision = kwargs.get("save_precision", "")
-#     if save_precision:
-#         run_cmd += f' --save_precision="{save_precision}"'
-
-#     seed = kwargs.get("seed", "")
-#     if seed != "":
-#         run_cmd += f' --seed="{seed}"'
-
-#     caption_extension = kwargs.get("caption_extension", "")
-#     if caption_extension:
-#         run_cmd += f' --caption_extension="{caption_extension}"'
-
-#     cache_latents = kwargs.get("cache_latents")
-#     if cache_latents:
-#         run_cmd += " --cache_latents"
-
-#     cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
-#     if cache_latents_to_disk:
-#         run_cmd += " --cache_latents_to_disk"
-
-#     optimizer_type = kwargs.get("optimizer", "AdamW")
-#     run_cmd += f' --optimizer_type="{optimizer_type}"'
-
-#     optimizer_args = kwargs.get("optimizer_args", "")
-#     if optimizer_args != "":
-#         run_cmd += f" --optimizer_args {optimizer_args}"
-
-#     lr_scheduler_args = kwargs.get("lr_scheduler_args", "")
-#     if lr_scheduler_args != "":
-#         run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
-
-#     max_grad_norm = kwargs.get("max_grad_norm", "")
-#     if max_grad_norm != "":
-#         run_cmd += f' --max_grad_norm="{max_grad_norm}"'
-
-#     return run_cmd
+        # If the value is not a string (e.g., int, float, or any other type),
+        # convert it to a string and return the converted value.
+        return str(value)
 
 
 def run_cmd_advanced_training(**kwargs):
     run_cmd = ""
 
-    additional_parameters = kwargs.get("additional_parameters")
-    if additional_parameters:
-        run_cmd += f" {additional_parameters}"
+    if "additional_parameters" in kwargs:
+        run_cmd += f' {kwargs["additional_parameters"]}'
 
-    block_lr = kwargs.get("block_lr")
-    if block_lr:
-        run_cmd += f' --block_lr="{block_lr}"'
+    if "block_lr" in kwargs:
+        run_cmd += f' --block_lr="{kwargs["block_lr"]}"'
 
-    bucket_no_upscale = kwargs.get("bucket_no_upscale")
-    if bucket_no_upscale:
+    if kwargs.get("bucket_no_upscale"):
         run_cmd += " --bucket_no_upscale"
 
-    bucket_reso_steps = kwargs.get("bucket_reso_steps")
-    if bucket_reso_steps:
-        run_cmd += f" --bucket_reso_steps={int(bucket_reso_steps)}"
+    if "bucket_reso_steps" in kwargs:
+        run_cmd += f' --bucket_reso_steps={int(kwargs["bucket_reso_steps"])}'
 
-    cache_latents = kwargs.get("cache_latents")
-    if cache_latents:
+    if kwargs.get("cache_latents"):
         run_cmd += " --cache_latents"
 
-    cache_latents_to_disk = kwargs.get("cache_latents_to_disk")
-    if cache_latents_to_disk:
+    if kwargs.get("cache_latents_to_disk"):
         run_cmd += " --cache_latents_to_disk"
 
-    cache_text_encoder_outputs = kwargs.get("cache_text_encoder_outputs")
-    if cache_text_encoder_outputs:
+    if kwargs.get("cache_text_encoder_outputs"):
         run_cmd += " --cache_text_encoder_outputs"
 
-    caption_dropout_every_n_epochs = kwargs.get("caption_dropout_every_n_epochs")
-    if caption_dropout_every_n_epochs and int(caption_dropout_every_n_epochs) > 0:
-        run_cmd += (
-            f' --caption_dropout_every_n_epochs="{int(caption_dropout_every_n_epochs)}"'
-        )
+    if (
+        "caption_dropout_every_n_epochs" in kwargs
+        and int(kwargs["caption_dropout_every_n_epochs"]) > 0
+    ):
+        run_cmd += f' --caption_dropout_every_n_epochs="{int(kwargs["caption_dropout_every_n_epochs"])}"'
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
@@ -738,12 +753,14 @@ def run_cmd_advanced_training(**kwargs):
     ):  # Only if lora_network_weights is true
         run_cmd += f" --dim_from_weights"
 
-    enable_bucket = kwargs.get("enable_bucket")
-    if enable_bucket:
-        min_bucket_reso = kwargs.get("min_bucket_reso")
-        max_bucket_reso = kwargs.get("max_bucket_reso")
-        if min_bucket_reso and max_bucket_reso:
-            run_cmd += f" --enable_bucket --min_bucket_reso={min_bucket_reso} --max_bucket_reso={max_bucket_reso}"
+    # Check if enable_bucket is true and both min_bucket_reso and max_bucket_reso are provided as part of the kwargs
+    if (
+        kwargs.get("enable_bucket")
+        and "min_bucket_reso" in kwargs
+        and "max_bucket_reso" in kwargs
+    ):
+        # Append the enable_bucket flag and min/max bucket resolution values to the run_cmd string
+        run_cmd += f' --enable_bucket --min_bucket_reso={kwargs["min_bucket_reso"]} --max_bucket_reso={kwargs["max_bucket_reso"]}'
 
     in_json = kwargs.get("in_json")
     if in_json:
@@ -765,44 +782,49 @@ def run_cmd_advanced_training(**kwargs):
     if full_fp16:
         run_cmd += " --full_fp16"
 
-    gradient_accumulation_steps = kwargs.get("gradient_accumulation_steps")
-    if gradient_accumulation_steps and int(gradient_accumulation_steps) > 1:
-        run_cmd += f" --gradient_accumulation_steps={int(gradient_accumulation_steps)}"
+    if (
+        "gradient_accumulation_steps" in kwargs
+        and int(kwargs["gradient_accumulation_steps"]) > 1
+    ):
+        run_cmd += f" --gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}"
 
-    gradient_checkpointing = kwargs.get("gradient_checkpointing")
-    if gradient_checkpointing:
+    if kwargs.get("gradient_checkpointing"):
         run_cmd += " --gradient_checkpointing"
 
-    keep_tokens = kwargs.get("keep_tokens")
-    if keep_tokens and int(keep_tokens) > 0:
-        run_cmd += f' --keep_tokens="{int(keep_tokens)}"'
+    if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
+        run_cmd += f' --keep_tokens="{int(kwargs["keep_tokens"])}"'
 
-    learning_rate = kwargs.get("learning_rate")
-    if learning_rate:
-        run_cmd += f' --learning_rate="{learning_rate}"'
+    if "learning_rate" in kwargs:
+        run_cmd += f' --learning_rate="{kwargs["learning_rate"]}"'
 
-    learning_rate_te = kwargs.get("learning_rate_te")
-    if learning_rate_te:
-        run_cmd += f' --learning_rate_te="{learning_rate_te}"'
+    if "learning_rate_te" in kwargs:
+        if kwargs["learning_rate_te"] == 0:
+            run_cmd += f' --learning_rate_te="0"'
+        else:
+            run_cmd += f' --learning_rate_te="{kwargs["learning_rate_te"]}"'
 
-    learning_rate_te1 = kwargs.get("learning_rate_te1")
-    if learning_rate_te1:
-        run_cmd += f' --learning_rate_te1="{learning_rate_te1}"'
+    if "learning_rate_te1" in kwargs:
+        if kwargs["learning_rate_te1"] == 0:
+            run_cmd += f' --learning_rate_te1="0"'
+        else:
+            run_cmd += f' --learning_rate_te1="{kwargs["learning_rate_te1"]}"'
 
-    learning_rate_te2 = kwargs.get("learning_rate_te2")
-    if learning_rate_te2:
-        run_cmd += f' --learning_rate_te2="{learning_rate_te2}"'
+    if "learning_rate_te2" in kwargs:
+        if kwargs["learning_rate_te2"] == 0:
+            run_cmd += f' --learning_rate_te2="0"'
+        else:
+            run_cmd += f' --learning_rate_te2="{kwargs["learning_rate_te2"]}"'
 
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
         if logging_dir.startswith('"') and logging_dir.endswith('"'):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
-            run_cmd += fr' --logging_dir="{logging_dir}"'
+            run_cmd += rf' --logging_dir="{logging_dir}"'
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd += f' --network_weights="{lora_network_weights}"' # Yes, the parameter is now called network_weights instead of lora_network_weights
+        run_cmd += f' --network_weights="{lora_network_weights}"'  # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
@@ -919,29 +941,26 @@ def run_cmd_advanced_training(**kwargs):
     if no_token_padding:
         run_cmd += " --no_token_padding"
 
-    noise_offset_type = kwargs.get("noise_offset_type")
-    if noise_offset_type and noise_offset_type == "Original":
-        noise_offset = kwargs.get("noise_offset")
-        if noise_offset and float(noise_offset) > 0:
-            run_cmd += f" --noise_offset={float(noise_offset)}"
+    if "noise_offset_type" in kwargs:
+        noise_offset_type = kwargs["noise_offset_type"]
 
-        adaptive_noise_scale = kwargs.get("adaptive_noise_scale")
-        if (
-            adaptive_noise_scale
-            and float(adaptive_noise_scale) != 0
-            and float(noise_offset) > 0
-        ):
-            run_cmd += f" --adaptive_noise_scale={float(adaptive_noise_scale)}"
-    elif noise_offset_type and noise_offset_type == "Multires":
-        multires_noise_iterations = kwargs.get("multires_noise_iterations")
-        if int(multires_noise_iterations) > 0:
-            run_cmd += (
-                f' --multires_noise_iterations="{int(multires_noise_iterations)}"'
-            )
+        if kwargs["noise_offset_type"] == "Original":
+            noise_offset = float(kwargs.get("noise_offset", 0))
+            if noise_offset:
+                run_cmd += f" --noise_offset={noise_offset}"
 
-        multires_noise_discount = kwargs.get("multires_noise_discount")
-        if multires_noise_discount and float(multires_noise_discount) > 0:
-            run_cmd += f' --multires_noise_discount="{float(multires_noise_discount)}"'
+            adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
+            if adaptive_noise_scale != 0 and noise_offset > 0:
+                run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
+
+        elif noise_offset_type == "Multires":
+            multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
+            if multires_noise_iterations > 0:
+                run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
+
+            multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
+            if multires_noise_discount > 0:
+                run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
 
     num_machines = kwargs.get("num_machines")
     if num_machines and int(num_machines) > 1:
@@ -968,7 +987,7 @@ def run_cmd_advanced_training(**kwargs):
         if output_dir.startswith('"') and output_dir.endswith('"'):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
-            run_cmd += fr' --output_dir="{output_dir}"'
+            run_cmd += rf' --output_dir="{output_dir}"'
 
     output_name = kwargs.get("output_name")
     if output_name and not output_name == "":
@@ -980,7 +999,9 @@ def run_cmd_advanced_training(**kwargs):
 
     pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
     if pretrained_model_name_or_path:
-        run_cmd += f' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        run_cmd += (
+            rf' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        )
 
     prior_loss_weight = kwargs.get("prior_loss_weight")
     if prior_loss_weight and not float(prior_loss_weight) == 1.0:
@@ -995,7 +1016,7 @@ def run_cmd_advanced_training(**kwargs):
         if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
             reg_data_dir = reg_data_dir[1:-1]
         if os.path.isdir(reg_data_dir):
-            run_cmd += fr' --reg_data_dir="{reg_data_dir}"'
+            run_cmd += rf' --reg_data_dir="{reg_data_dir}"'
 
     resume = kwargs.get("resume")
     if resume:
@@ -1066,7 +1087,7 @@ def run_cmd_advanced_training(**kwargs):
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
             train_data_dir = train_data_dir[1:-1]
         if os.path.exists(train_data_dir):
-            run_cmd += fr' --train_data_dir="{train_data_dir}"'
+            run_cmd += rf' --train_data_dir="{train_data_dir}"'
 
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:
@@ -1094,7 +1115,10 @@ def run_cmd_advanced_training(**kwargs):
 
     vae = kwargs.get("vae")
     if vae and not vae == "":
-        run_cmd += f' --vae="{vae}"'
+        if not os.path.exists(vae):
+            vae = os.path.join("models", "VAE", vae).replace(os.sep, "/")
+        if os.path.exists(vae):
+            run_cmd += f' --vae="{vae}"'
 
     vae_batch_size = kwargs.get("vae_batch_size")
     if vae_batch_size and int(vae_batch_size) > 0:

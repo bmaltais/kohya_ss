@@ -15,6 +15,7 @@ from .common_gui import (
     color_aug_changed,
     update_my_data,
     check_if_model_exist,
+    output_message,
     SaveConfigFile,
     save_to_file,
     scriptdir,
@@ -435,6 +436,13 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
+    if output_dir == "":
+        output_message(msg="Output folder path is missing", headless=headless_bool)
+        return
+
+    if train_dir is None or train_dir.strip() == "":
+        train_dir =  output_dir
+
     if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
@@ -461,33 +469,45 @@ def train_model(
         if train_dir != "" and not os.path.exists(train_dir):
             os.mkdir(train_dir)
 
-        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/merge_captions_to_metadata.py"'
+        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
         if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
         else:
             run_cmd += f" --caption_extension={caption_extension}"
-        run_cmd += f' "{image_folder}"'
-        run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
+        run_cmd += fr' "{image_folder}"'
+        run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
         if full_path:
             run_cmd += f" --full_path"
 
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         if not print_only_bool:
             # Run the command
             subprocess.run(run_cmd, shell=True, env=env)
 
+    # check pretrained_model_name_or_path
+
+    if not os.path.exists(pretrained_model_name_or_path):
+        try:
+            from modules import sd_models
+
+            info = sd_models.get_closet_checkpoint_match(pretrained_model_name_or_path)
+            if info is not None:
+                pretrained_model_name_or_path = info.filename
+
+        except Exception:
+            pass
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = fr'{PYTHON} "{scriptdir}/finetune/prepare_buckets_latents.py"'
-        run_cmd += f' "{image_folder}"'
-        run_cmd += f' "{train_dir}/{caption_metadata_filename}"'
-        run_cmd += f' "{train_dir}/{latent_metadata_filename}"'
-        run_cmd += f' "{pretrained_model_name_or_path}"'
+        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
+        run_cmd += fr' "{image_folder}"'
+        run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
+        run_cmd += fr' "{train_dir}/{latent_metadata_filename}"'
+        run_cmd += fr' "{pretrained_model_name_or_path}"'
         run_cmd += f" --batch_size={batch_size}"
         run_cmd += f" --max_resolution={max_resolution}"
         run_cmd += f" --min_bucket_reso={min_bucket_reso}"
@@ -504,7 +524,7 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         if not print_only_bool:
             # Run the command
@@ -554,98 +574,104 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/fine_tune.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/fine_tune.py"'
 
     in_json = (
-        f"{train_dir}/{latent_metadata_filename}"
+        fr"{train_dir}/{latent_metadata_filename}"
         if use_latent_files == "Yes"
-        else f"{train_dir}/{caption_metadata_filename}"
+        else fr"{train_dir}/{caption_metadata_filename}"
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
-    run_cmd += run_cmd_advanced_training(
-        adaptive_noise_scale=adaptive_noise_scale,
-        additional_parameters=additional_parameters,
-        block_lr=block_lr,
-        bucket_no_upscale=bucket_no_upscale,
-        bucket_reso_steps=bucket_reso_steps,
-        cache_latents=cache_latents,
-        cache_latents_to_disk=cache_latents_to_disk,
-        cache_text_encoder_outputs=cache_text_encoder_outputs
-        if sdxl_checkbox
-        else None,
-        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
-        caption_dropout_rate=caption_dropout_rate,
-        caption_extension=caption_extension,
-        clip_skip=clip_skip,
-        color_aug=color_aug,
-        dataset_repeats=dataset_repeats,
-        enable_bucket=True,
-        flip_aug=flip_aug,
-        full_bf16=full_bf16,
-        full_fp16=full_fp16,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        gradient_checkpointing=gradient_checkpointing,
-        in_json=in_json,
-        keep_tokens=keep_tokens,
-        learning_rate=learning_rate,
-        learning_rate_te1=learning_rate_te1 if sdxl_checkbox else None,
-        learning_rate_te2=learning_rate_te2 if sdxl_checkbox else None,
-        learning_rate_te=learning_rate_te if not sdxl_checkbox else None,
-        logging_dir=logging_dir,
-        lr_scheduler=lr_scheduler,
-        lr_scheduler_args=lr_scheduler_args,
-        lr_warmup_steps=lr_warmup_steps,
-        max_bucket_reso=max_bucket_reso,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_resolution=max_resolution,
-        max_timestep=max_timestep,
-        max_token_length=max_token_length,
-        max_train_epochs=max_train_epochs,
-        max_train_steps=max_train_steps,
-        mem_eff_attn=mem_eff_attn,
-        min_bucket_reso=min_bucket_reso,
-        min_snr_gamma=min_snr_gamma,
-        min_timestep=min_timestep,
-        mixed_precision=mixed_precision,
-        multires_noise_discount=multires_noise_discount,
-        multires_noise_iterations=multires_noise_iterations,
-        no_half_vae=no_half_vae if sdxl_checkbox else None,
-        noise_offset=noise_offset,
-        noise_offset_type=noise_offset_type,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        output_dir=output_dir,
-        output_name=output_name,
-        persistent_data_loader_workers=persistent_data_loader_workers,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        random_crop=random_crop,
-        resume=resume,
-        save_every_n_epochs=save_every_n_epochs,
-        save_every_n_steps=save_every_n_steps,
-        save_last_n_steps=save_last_n_steps,
-        save_last_n_steps_state=save_last_n_steps_state,
-        save_model_as=save_model_as,
-        save_precision=save_precision,
-        save_state=save_state,
-        scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        seed=seed,
-        shuffle_caption=shuffle_caption,
-        train_batch_size=train_batch_size,
-        train_data_dir=image_folder,
-        train_text_encoder=train_text_encoder,
-        use_wandb=use_wandb,
-        v2=v2,
-        v_parameterization=v_parameterization,
-        v_pred_like_loss=v_pred_like_loss,
-        vae_batch_size=vae_batch_size,
-        wandb_api_key=wandb_api_key,
-        weighted_captions=weighted_captions,
-        xformers=xformers,
-    )
+    # Initialize a dictionary with always-included keyword arguments
+    kwargs_for_training = {
+        "adaptive_noise_scale": adaptive_noise_scale,
+        "additional_parameters": additional_parameters,
+        "block_lr": block_lr,
+        "bucket_no_upscale": bucket_no_upscale,
+        "bucket_reso_steps": bucket_reso_steps,
+        "cache_latents": cache_latents,
+        "cache_latents_to_disk": cache_latents_to_disk,
+        "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        "caption_dropout_rate": caption_dropout_rate,
+        "caption_extension": caption_extension,
+        "clip_skip": clip_skip,
+        "color_aug": color_aug,
+        "dataset_repeats": dataset_repeats,
+        "enable_bucket": True,
+        "flip_aug": flip_aug,
+        "full_bf16": full_bf16,
+        "full_fp16": full_fp16,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_checkpointing": gradient_checkpointing,
+        "in_json": in_json,
+        "keep_tokens": keep_tokens,
+        "learning_rate": learning_rate,
+        "logging_dir": logging_dir,
+        "lr_scheduler": lr_scheduler,
+        "lr_scheduler_args": lr_scheduler_args,
+        "lr_warmup_steps": lr_warmup_steps,
+        "max_bucket_reso": max_bucket_reso,
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        "max_resolution": max_resolution,
+        "max_timestep": max_timestep,
+        "max_token_length": max_token_length,
+        "max_train_epochs": max_train_epochs,
+        "max_train_steps": max_train_steps,
+        "mem_eff_attn": mem_eff_attn,
+        "min_bucket_reso": min_bucket_reso,
+        "min_snr_gamma": min_snr_gamma,
+        "min_timestep": min_timestep,
+        "mixed_precision": mixed_precision,
+        "multires_noise_discount": multires_noise_discount,
+        "multires_noise_iterations": multires_noise_iterations,
+        "noise_offset": noise_offset,
+        "noise_offset_type": noise_offset_type,
+        "optimizer": optimizer,
+        "optimizer_args": optimizer_args,
+        "output_dir": output_dir,
+        "output_name": output_name,
+        "persistent_data_loader_workers": persistent_data_loader_workers,
+        "pretrained_model_name_or_path": pretrained_model_name_or_path,
+        "random_crop": random_crop,
+        "resume": resume,
+        "save_every_n_epochs": save_every_n_epochs,
+        "save_every_n_steps": save_every_n_steps,
+        "save_last_n_steps": save_last_n_steps,
+        "save_last_n_steps_state": save_last_n_steps_state,
+        "save_model_as": save_model_as,
+        "save_precision": save_precision,
+        "save_state": save_state,
+        "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
+        "seed": seed,
+        "shuffle_caption": shuffle_caption,
+        "train_batch_size": train_batch_size,
+        "train_data_dir": image_folder,
+        "train_text_encoder": train_text_encoder,
+        "use_wandb": use_wandb,
+        "v2": v2,
+        "v_parameterization": v_parameterization,
+        "v_pred_like_loss": v_pred_like_loss,
+        "vae_batch_size": vae_batch_size,
+        "wandb_api_key": wandb_api_key,
+        "weighted_captions": weighted_captions,
+        "xformers": xformers,
+    }
+
+    # Conditionally include specific keyword arguments based on sdxl_checkbox
+    if sdxl_checkbox:
+        kwargs_for_training["cache_text_encoder_outputs"] = cache_text_encoder_outputs
+        kwargs_for_training["learning_rate_te1"] = learning_rate_te1
+        kwargs_for_training["learning_rate_te2"] = learning_rate_te2
+        kwargs_for_training["no_half_vae"] = no_half_vae
+    else:
+        kwargs_for_training["learning_rate_te"] = learning_rate_te
+
+    # Pass the dynamically constructed keyword arguments to the function
+    run_cmd += run_cmd_advanced_training(**kwargs_for_training)
 
     run_cmd += run_cmd_sample(
         sample_every_n_steps,
@@ -666,7 +692,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        config_dir = os.path.dirname(os.path.dirname(train_dir))
+        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
@@ -679,7 +706,7 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
@@ -696,23 +723,83 @@ def finetune_tab(headless=False):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
-    with gr.Tab("Training"):
+    with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
-        # Setup Configuration Files Gradio
-        config = ConfigurationFile(headless)
+        with gr.Column():
+            source_model = SourceModel(headless=headless, finetuning=True)
+            image_folder = source_model.train_data_dir
+            output_name = source_model.output_name
 
-        source_model = SourceModel(headless=headless)
-
-        with gr.Tab("Folders"):
-            folders = Folders(headless=headless, finetune=True)
-            image_folder = folders.train_data_dir
-            train_dir = folders.reg_data_dir
+        with gr.Accordion("Folders", open=False), gr.Group():
+            folders = Folders(headless=headless, train_data_dir=source_model.train_data_dir, finetune=True)
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
-            output_name = folders.output_name
+            train_dir = folders.reg_data_dir
 
-        with gr.Tab("Dataset preparation"):
+        with gr.Accordion("Parameters", open=False), gr.Column():
+
+            def list_presets(path):
+                json_files = []
+
+                for file in os.listdir(path):
+                    if file.endswith(".json"):
+                        json_files.append(os.path.splitext(file)[0])
+
+                user_presets_path = os.path.join(path, "user_presets")
+                if os.path.isdir(user_presets_path):
+                    for file in os.listdir(user_presets_path):
+                        if file.endswith(".json"):
+                            preset_name = os.path.splitext(file)[0]
+                            json_files.append(os.path.join("user_presets", preset_name))
+
+                return json_files
+
+            training_preset = gr.Dropdown(
+                label="Presets",
+                choices=list_presets(f"{presets_dir}/finetune"),
+                elem_id="myDropdown",
+            )
+
+            with gr.Group(elem_id="basic_tab"):
+                basic_training = BasicTraining(
+                    learning_rate_value="1e-5",
+                    finetuning=True,
+                    sdxl_checkbox=source_model.sdxl_checkbox,
+                )
+
+                # Add SDXL Parameters
+                sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+
+                with gr.Row():
+                    dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
+                    train_text_encoder = gr.Checkbox(
+                        label="Train text encoder", value=True
+                    )
+
+            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
+                with gr.Row():
+                    gradient_accumulation_steps = gr.Number(
+                        label="Gradient accumulate steps", value="1",
+                    )
+                    block_lr = gr.Textbox(
+                        label="Block LR (SDXL)",
+                        placeholder="(Optional)",
+                        info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
+                    )
+                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
+                advanced_training.color_aug.change(
+                    color_aug_changed,
+                    inputs=[advanced_training.color_aug],
+                    outputs=[
+                        basic_training.cache_latents
+                    ],  # Not applicable to fine_tune.py
+                )
+
+            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
+                sample = SampleImages()
+
+        with gr.Accordion("Dataset Preparation", open=False):
             with gr.Row():
                 max_resolution = gr.Textbox(
                     label="Resolution (width,height)", value="512,512"
@@ -751,80 +838,26 @@ def finetune_tab(headless=False):
                     weighted_captions = gr.Checkbox(
                         label="Weighted captions", value=False
                     )
-        with gr.Tab("Parameters"):
 
-            def list_presets(path):
-                json_files = []
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            config = ConfigurationFile(headless=headless, output_dir=train_dir)
 
-                for file in os.listdir(path):
-                    if file.endswith(".json"):
-                        json_files.append(os.path.splitext(file)[0])
 
-                user_presets_path = os.path.join(path, "user_presets")
-                if os.path.isdir(user_presets_path):
-                    for file in os.listdir(user_presets_path):
-                        if file.endswith(".json"):
-                            preset_name = os.path.splitext(file)[0]
-                            json_files.append(os.path.join("user_presets", preset_name))
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_run = gr.Button("Start training", variant="primary")
 
-                return json_files
+                button_stop_training = gr.Button("Stop training")
 
-            training_preset = gr.Dropdown(
-                label="Presets",
-                choices=list_presets(f"{presets_dir}/finetune"),
-                elem_id="myDropdown",
-            )
-
-            with gr.Tab("Basic", elem_id="basic_tab"):
-                basic_training = BasicTraining(
-                    learning_rate_value="1e-5",
-                    finetuning=True,
-                    sdxl_checkbox=source_model.sdxl_checkbox,
-                )
-
-                # Add SDXL Parameters
-                sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
-
-                with gr.Row():
-                    dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
-                    train_text_encoder = gr.Checkbox(
-                        label="Train text encoder", value=True
-                    )
-
-            with gr.Tab("Advanced", elem_id="advanced_tab"):
-                with gr.Row():
-                    gradient_accumulation_steps = gr.Number(
-                        label="Gradient accumulate steps", value="1"
-                    )
-                    block_lr = gr.Textbox(
-                        label="Block LR",
-                        placeholder="(Optional)",
-                        info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
-                    )
-                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
-                advanced_training.color_aug.change(
-                    color_aug_changed,
-                    inputs=[advanced_training.color_aug],
-                    outputs=[
-                        basic_training.cache_latents
-                    ],  # Not applicable to fine_tune.py
-                )
-
-            with gr.Tab("Samples", elem_id="samples_tab"):
-                sample = SampleImages()
-
-        with gr.Row():
-            button_run = gr.Button("Start training", variant="primary")
-
-            button_stop_training = gr.Button("Stop training")
-
-        button_print = gr.Button("Print training command")
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        (
-            button_start_tensorboard,
-            button_stop_tensorboard,
-        ) = gradio_tensorboard()
+        with gr.Column(), gr.Group():
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -861,7 +894,7 @@ def finetune_tab(headless=False):
             basic_training.epoch,
             basic_training.save_every_n_epochs,
             basic_training.mixed_precision,
-            basic_training.save_precision,
+            source_model.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             basic_training.learning_rate_te,
@@ -994,12 +1027,12 @@ def finetune_tab(headless=False):
             show_progress=False,
         )
 
-        config.button_save_as_config.click(
-            save_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
-            show_progress=False,
-        )
+        #config.button_save_as_config.click(
+        #    save_configuration,
+        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        #    outputs=[config.config_file_name],
+        #    show_progress=False,
+        #)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various Finetuning guides and information...")

@@ -41,10 +41,9 @@ from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from .dataset_balancing_gui import gradio_dataset_balancing_tab
-from .utilities import utilities_tab
 from .class_sample_images import SampleImages, run_cmd_sample
-from .custom_logging import setup_logging
 
+from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
@@ -52,6 +51,7 @@ log = setup_logging()
 # Setup command executor
 executor = CommandExecutor()
 
+PYTHON = sys.executable
 
 def save_configuration(
     save_as,
@@ -561,91 +561,98 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sdxl_train.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/train_db.py"'
+        run_cmd += fr' "{scriptdir}/sd-scripts/train_db.py"'
 
+    # Initialize a dictionary with always-included keyword arguments
+    kwargs_for_training = {
+        "adaptive_noise_scale": adaptive_noise_scale,
+        "additional_parameters": additional_parameters,
+        "bucket_no_upscale": bucket_no_upscale,
+        "bucket_reso_steps": bucket_reso_steps,
+        "cache_latents": cache_latents,
+        "cache_latents_to_disk": cache_latents_to_disk,
+        "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        "caption_dropout_rate": caption_dropout_rate,
+        "caption_extension": caption_extension,
+        "clip_skip": clip_skip,
+        "color_aug": color_aug,
+        "enable_bucket": enable_bucket,
+        "epoch": epoch,
+        "flip_aug": flip_aug,
+        "full_bf16": full_bf16,
+        "full_fp16": full_fp16,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_checkpointing": gradient_checkpointing,
+        "keep_tokens": keep_tokens,
+        "learning_rate": learning_rate,
+        "logging_dir": logging_dir,
+        "lr_scheduler": lr_scheduler,
+        "lr_scheduler_args": lr_scheduler_args,
+        "lr_scheduler_num_cycles": lr_scheduler_num_cycles,
+        "lr_scheduler_power": lr_scheduler_power,
+        "lr_warmup_steps": lr_warmup_steps,
+        "max_bucket_reso": max_bucket_reso,
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        "max_resolution": max_resolution,
+        "max_timestep": max_timestep,
+        "max_token_length": max_token_length,
+        "max_train_epochs": max_train_epochs,
+        "max_train_steps": max_train_steps,
+        "mem_eff_attn": mem_eff_attn,
+        "min_bucket_reso": min_bucket_reso,
+        "min_snr_gamma": min_snr_gamma,
+        "min_timestep": min_timestep,
+        "mixed_precision": mixed_precision,
+        "multires_noise_discount": multires_noise_discount,
+        "multires_noise_iterations": multires_noise_iterations,
+        "no_token_padding": no_token_padding,
+        "noise_offset": noise_offset,
+        "noise_offset_type": noise_offset_type,
+        "optimizer": optimizer,
+        "optimizer_args": optimizer_args,
+        "output_dir": output_dir,
+        "output_name": output_name,
+        "persistent_data_loader_workers": persistent_data_loader_workers,
+        "pretrained_model_name_or_path": pretrained_model_name_or_path,
+        "prior_loss_weight": prior_loss_weight,
+        "random_crop": random_crop,
+        "reg_data_dir": reg_data_dir,
+        "resume": resume,
+        "save_every_n_epochs": save_every_n_epochs,
+        "save_every_n_steps": save_every_n_steps,
+        "save_last_n_steps": save_last_n_steps,
+        "save_last_n_steps_state": save_last_n_steps_state,
+        "save_model_as": save_model_as,
+        "save_precision": save_precision,
+        "save_state": save_state,
+        "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
+        "seed": seed,
+        "shuffle_caption": shuffle_caption,
+        "stop_text_encoder_training": stop_text_encoder_training,
+        "train_batch_size": train_batch_size,
+        "train_data_dir": train_data_dir,
+        "use_wandb": use_wandb,
+        "v2": v2,
+        "v_parameterization": v_parameterization,
+        "v_pred_like_loss": v_pred_like_loss,
+        "vae": vae,
+        "vae_batch_size": vae_batch_size,
+        "wandb_api_key": wandb_api_key,
+        "weighted_captions": weighted_captions,
+        "xformers": xformers,
+    }
 
-    run_cmd += run_cmd_advanced_training(
-        adaptive_noise_scale=adaptive_noise_scale,
-        additional_parameters=additional_parameters,
-        bucket_no_upscale=bucket_no_upscale,
-        bucket_reso_steps=bucket_reso_steps,
-        cache_latents=cache_latents,
-        cache_latents_to_disk=cache_latents_to_disk,
-        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
-        caption_dropout_rate=caption_dropout_rate,
-        caption_extension=caption_extension,
-        clip_skip=clip_skip,
-        color_aug=color_aug,
-        enable_bucket=enable_bucket,
-        epoch=epoch,
-        flip_aug=flip_aug,
-        full_bf16=full_bf16,
-        full_fp16=full_fp16,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        gradient_checkpointing=gradient_checkpointing,
-        keep_tokens=keep_tokens,
-        learning_rate=learning_rate,
-        learning_rate_te1=learning_rate_te1 if sdxl else None,
-        learning_rate_te2=learning_rate_te2 if sdxl else None,
-        learning_rate_te=learning_rate_te if not sdxl else None,
-        logging_dir=logging_dir,
-        lr_scheduler=lr_scheduler,
-        lr_scheduler_args=lr_scheduler_args,
-        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
-        lr_scheduler_power=lr_scheduler_power,
-        lr_warmup_steps=lr_warmup_steps,
-        max_bucket_reso=max_bucket_reso,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_resolution=max_resolution,
-        max_timestep=max_timestep,
-        max_token_length=max_token_length,
-        max_train_epochs=max_train_epochs,
-        max_train_steps=max_train_steps,
-        mem_eff_attn=mem_eff_attn,
-        min_bucket_reso=min_bucket_reso,
-        min_snr_gamma=min_snr_gamma,
-        min_timestep=min_timestep,
-        mixed_precision=mixed_precision,
-        multires_noise_discount=multires_noise_discount,
-        multires_noise_iterations=multires_noise_iterations,
-        no_token_padding=no_token_padding,
-        noise_offset=noise_offset,
-        noise_offset_type=noise_offset_type,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        output_dir=output_dir,
-        output_name=output_name,
-        persistent_data_loader_workers=persistent_data_loader_workers,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        prior_loss_weight=prior_loss_weight,
-        random_crop=random_crop,
-        reg_data_dir=reg_data_dir,
-        resume=resume,
-        save_every_n_epochs=save_every_n_epochs,
-        save_every_n_steps=save_every_n_steps,
-        save_last_n_steps=save_last_n_steps,
-        save_last_n_steps_state=save_last_n_steps_state,
-        save_model_as=save_model_as,
-        save_precision=save_precision,
-        save_state=save_state,
-        scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        seed=seed,
-        shuffle_caption=shuffle_caption,
-        stop_text_encoder_training=stop_text_encoder_training,
-        train_batch_size=train_batch_size,
-        train_data_dir=train_data_dir,
-        use_wandb=use_wandb,
-        v2=v2,
-        v_parameterization=v_parameterization,
-        v_pred_like_loss=v_pred_like_loss,
-        vae=vae,
-        vae_batch_size=vae_batch_size,
-        wandb_api_key=wandb_api_key,
-        weighted_captions=weighted_captions,
-        xformers=xformers,
-    )
+    # Conditionally include specific keyword arguments based on sdxl
+    if sdxl:
+        kwargs_for_training["learning_rate_te1"] = learning_rate_te1
+        kwargs_for_training["learning_rate_te2"] = learning_rate_te2
+    else:
+        kwargs_for_training["learning_rate_te"] = learning_rate_te
+
+    # Pass the dynamically constructed keyword arguments to the function
+    run_cmd += run_cmd_advanced_training(**kwargs_for_training)
 
     run_cmd += run_cmd_sample(
         sample_every_n_steps,
@@ -666,7 +673,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        config_dir = os.path.dirname(os.path.dirname(train_data_dir))
+        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
@@ -678,9 +686,12 @@ def train_model(
 
         log.info(run_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         # check if output_dir/last is a folder... therefore it is a diffuser model
         last_dir = pathlib.Path(f"{output_dir}/{output_name}")
@@ -701,18 +712,16 @@ def dreambooth_tab(
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab("Training"):
+    with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
-        # Setup Configuration Files Gradio
-        config = ConfigurationFile(headless)
+        with gr.Column():
+            source_model = SourceModel(headless=headless)
 
-        source_model = SourceModel(headless=headless)
-
-        with gr.Tab("Folders"):
+        with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless)
-        with gr.Tab("Parameters"):
-            with gr.Tab("Basic", elem_id="basic_tab"):
+        with gr.Accordion("Parameters", open=False), gr.Column():
+            with gr.Group(elem_id="basic_tab"):
                 basic_training = BasicTraining(
                     learning_rate_value="1e-5",
                     lr_scheduler_value="cosine",
@@ -724,7 +733,7 @@ def dreambooth_tab(
                 # # Add SDXL Parameters
                 # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
-            with gr.Tab("Advanced", elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless)
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -732,15 +741,15 @@ def dreambooth_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Tab("Samples", elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages()
 
-        with gr.Tab("Dataset Preparation"):
+        with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
             )
             gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=folders.train_data_dir,
+                train_data_dir_input=source_model.train_data_dir,
                 reg_data_dir_input=folders.reg_data_dir,
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
@@ -748,18 +757,24 @@ def dreambooth_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-        with gr.Row():
-            button_run = gr.Button("Start training", variant="primary")
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
 
-            button_stop_training = gr.Button("Stop training")
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_run = gr.Button("Start training", variant="primary")
 
-        button_print = gr.Button("Print training command")
+                button_stop_training = gr.Button("Stop training")
+
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        (
-            button_start_tensorboard,
-            button_stop_tensorboard,
-        ) = gradio_tensorboard()
+        with gr.Column(), gr.Group():
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
 
         button_start_tensorboard.click(
             start_tensorboard,
@@ -778,7 +793,7 @@ def dreambooth_tab(
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
             folders.logging_dir,
-            folders.train_data_dir,
+            source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
             basic_training.max_resolution,
@@ -792,7 +807,7 @@ def dreambooth_tab(
             basic_training.epoch,
             basic_training.save_every_n_epochs,
             basic_training.mixed_precision,
-            basic_training.save_precision,
+            source_model.save_precision,
             basic_training.seed,
             basic_training.num_cpu_threads_per_process,
             basic_training.cache_latents,
@@ -820,7 +835,7 @@ def dreambooth_tab(
             advanced_training.num_machines,
             advanced_training.multi_gpu,
             advanced_training.gpu_ids,
-            folders.output_name,
+            source_model.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
             basic_training.max_train_steps,
@@ -885,12 +900,12 @@ def dreambooth_tab(
             show_progress=False,
         )
 
-        config.button_save_as_config.click(
-            save_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
-            show_progress=False,
-        )
+        #config.button_save_as_config.click(
+        #    save_configuration,
+        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
+        #    outputs=[config.config_file_name],
+        #    show_progress=False,
+        #)
 
         button_run.click(
             train_model,
@@ -907,7 +922,7 @@ def dreambooth_tab(
         )
 
         return (
-            folders.train_data_dir,
+            source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
             folders.logging_dir,

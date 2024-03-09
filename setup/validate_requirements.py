@@ -107,6 +107,8 @@ def main():
 
     torch_ver = check_torch()
     
+    setup_common.update_submodule()
+    
     if args.requirements:
         setup_common.install_requirements(args.requirements, check_no_verify_flag=True)
     else:
