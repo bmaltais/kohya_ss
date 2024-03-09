@@ -37,7 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
-    - [2024/03/02 (v22.7.0)](#20240302-v2270)
+    - [2024/03/02 (v23.0.0)](#20240302-v2300)
 
 ## 🦒 Colab
 
@@ -363,6 +363,8 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
-### 2024/03/02 (v22.7.0)
+### 2024/03/02 (v23.0.0)
 
-- Major code refactoring thanks to @wkpark , This will make updating sd-script cleaner by keeping sd-scripts files separate from the GUI files.
+- Use sd-scripts release [0.8.4](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.8.4) post commit [fccbee27277d65a8dcbdeeb81787ed4116b92e0b](https://github.com/kohya-ss/sd-scripts/commit/fccbee27277d65a8dcbdeeb81787ed4116b92e0b)
+- Major code refactoring thanks to @wkpark , This will make updating sd-script cleaner by keeping sd-scripts files separate from the GUI files. This will also make configuration more streamlined with fewer tabs and more accordion elements. Hope you like the new style.
+- This new release is implementing a significant structure change, moving all of the sd-scripts written by kohya under a folder called sd-scripts in the root of this project. This folder is a submodule that will be populated during setup or gui execution.
