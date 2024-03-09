@@ -179,7 +179,7 @@ def main_menu():
                     "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
                 )
                 print(
-                    "4. (Recommanded) Force installation of bitsandbytes 0.41.2 for new optimizer options support"
+                    "4. (Recommended) Force installation of bitsandbytes 0.41.2 for new optimizer options support"
                 )
                 print(
                     "5. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"

@@ -85,10 +85,12 @@ def gradio_extract_dylora_tab(headless=False):
         lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
 
         def list_models(path):
+            nonlocal current_model_dir
             current_model_dir = path
             return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
         def list_save_to(path):
+            nonlocal current_save_dir
             current_save_dir = path
             return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 

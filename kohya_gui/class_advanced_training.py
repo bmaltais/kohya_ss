@@ -46,6 +46,7 @@ class AdvancedTraining:
             )
 
             def list_vae_files(path):
+                nonlocal current_vae_dir
                 current_vae_dir = path
                 return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
@@ -299,6 +300,7 @@ class AdvancedTraining:
             )
 
             def list_state_dirs(path):
+                nonlocal current_state_dir
                 current_state_dir = path
                 return list(list_dirs(path))
 

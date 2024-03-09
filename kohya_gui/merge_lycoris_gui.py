@@ -70,14 +70,17 @@ def gradio_merge_lycoris_tab(headless=False):
     current_save_dir = current_model_dir
 
     def list_models(path):
+        nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
     def list_lycoris_model(path):
+        nonlocal current_lycoris_dir
         current_lycoris_dir = path
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
     def list_save_to(path):
+        nonlocal current_save_dir
         current_save_dir = path
         return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 

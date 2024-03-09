@@ -65,26 +65,32 @@ class GradioMergeLoRaTab:
         current_d_model_dir = current_sd_model_dir
 
         def list_sd_models(path):
+            nonlocal current_sd_model_dir
             current_sd_model_dir = path
             return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
         def list_a_models(path):
+            nonlocal current_a_model_dir
             current_a_model_dir = path
             return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
         def list_b_models(path):
+            nonlocal current_b_model_dir
             current_b_model_dir = path
             return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
         def list_c_models(path):
+            nonlocal current_c_model_dir
             current_c_model_dir = path
             return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
         def list_d_models(path):
+            nonlocal current_d_model_dir
             current_d_model_dir = path
             return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
         def list_save_to(path):
+            nonlocal current_save_dir
             current_save_dir = path
             return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 

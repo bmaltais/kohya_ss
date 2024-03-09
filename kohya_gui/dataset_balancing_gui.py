@@ -123,6 +123,7 @@ def gradio_dataset_balancing_tab(headless=False):
         with gr.Group(), gr.Row():
 
             def list_dataset_dirs(path):
+                nonlocal current_dataset_dir
                 current_dataset_dir = path
                 return list(list_dirs(path))
 
