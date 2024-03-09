@@ -99,7 +99,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 label='SD Model (Optional Stable Diffusion base model)',
                 interactive=True,
                 info='Provide a SD file path that you want to merge with the LyCORIS file',
-                choices=list_models(current_save_dir),
+                choices=[""] + list_models(current_save_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -135,13 +135,13 @@ def gradio_merge_lycoris_tab(headless=False):
             )
 
             base_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=base_model,
                 outputs=base_model,
                 show_progress=False,
             )
             lycoris_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_lycoris_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_lycoris_models(path)),
                 inputs=lycoris_model,
                 outputs=lycoris_model,
                 show_progress=False,
@@ -161,7 +161,7 @@ def gradio_merge_lycoris_tab(headless=False):
             output_name = gr.Dropdown(
                 label='Save to (path for the checkpoint file to save...)',
                 interactive=True,
-                choices=list_save_to(current_save_dir),
+                choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -203,7 +203,7 @@ def gradio_merge_lycoris_tab(headless=False):
             )
 
             output_name.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                 inputs=output_name,
                 outputs=output_name,
                 show_progress=False,

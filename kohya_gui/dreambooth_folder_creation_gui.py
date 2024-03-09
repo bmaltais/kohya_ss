@@ -155,11 +155,11 @@ def gradio_dreambooth_folder_creation_tab(
             util_training_images_dir_input = gr.Dropdown(
                 label='Training images (directory containing the training images)',
                 interactive=True,
-                choices=list_train_data_dirs(current_train_data_dir),
+                choices=[""] + list_train_data_dirs(current_train_data_dir),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(util_training_images_dir_input, lambda: None, lambda: {"choices": list_train_data_dir(current_train_data_dir)}, "open_folder_small")
+            create_refresh_button(util_training_images_dir_input, lambda: None, lambda: {"choices": list_train_data_dirs(current_train_data_dir)}, "open_folder_small")
             button_util_training_images_dir_input = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -175,7 +175,7 @@ def gradio_dreambooth_folder_creation_tab(
                 elem_id='number_input',
             )
             util_training_images_dir_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_train_data_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_data_dirs(path)),
                 inputs=util_training_images_dir_input,
                 outputs=util_training_images_dir_input,
                 show_progress=False,
@@ -190,7 +190,7 @@ def gradio_dreambooth_folder_creation_tab(
             util_regularization_images_dir_input = gr.Dropdown(
                 label='Regularisation images (Optional. directory containing the regularisation images)',
                 interactive=True,
-                choices=list_reg_data_dirs(current_reg_data_dir),
+                choices=[""] + list_reg_data_dirs(current_reg_data_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -210,7 +210,7 @@ def gradio_dreambooth_folder_creation_tab(
                 elem_id='number_input',
             )
             util_regularization_images_dir_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_reg_data_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_reg_data_dirs(path)),
                 inputs=util_regularization_images_dir_input,
                 outputs=util_regularization_images_dir_input,
                 show_progress=False,
@@ -224,7 +224,7 @@ def gradio_dreambooth_folder_creation_tab(
             util_training_dir_output = gr.Dropdown(
                 label='Destination training directory (where formatted training and regularisation folders will be placed)',
                 interactive=True,
-                choices=list_train_output_dirs(current_train_output_dir),
+                choices=[""] + list_train_output_dirs(current_train_output_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -236,7 +236,7 @@ def gradio_dreambooth_folder_creation_tab(
                 get_folder_path, outputs=util_training_dir_output
             )
             util_training_dir_output.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_train_output_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_output_dirs(path)),
                 inputs=util_training_dir_output,
                 outputs=util_training_dir_output,
                 show_progress=False,

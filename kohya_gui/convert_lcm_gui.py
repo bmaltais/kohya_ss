@@ -94,7 +94,7 @@ def gradio_convert_lcm_tab(headless=False):
             model_path = gr.Dropdown(
                 label="Stable Diffusion model to convert to LCM",
                 interactive=True,
-                choices=list_models(current_model_dir),
+                choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -115,7 +115,7 @@ def gradio_convert_lcm_tab(headless=False):
             name = gr.Dropdown(
                 label="Name of the new LCM model",
                 interactive=True,
-                choices=list_save_to(current_save_dir),
+                choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -133,13 +133,13 @@ def gradio_convert_lcm_tab(headless=False):
                 show_progress=False,
             )
             model_path.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=model_path,
                 outputs=model_path,
                 show_progress=False,
             )
             name.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                 inputs=name,
                 outputs=name,
                 show_progress=False,

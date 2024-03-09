@@ -108,7 +108,7 @@ class GradioMergeLoRaTab:
                 sd_model = gr.Dropdown(
                     label='SD Model (Optional. Stable Diffusion model path, if you want to merge it with LoRA files)',
                     interactive=True,
-                    choices=list_sd_models(current_sd_model_dir),
+                    choices=[""] + list_sd_models(current_sd_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -128,7 +128,7 @@ class GradioMergeLoRaTab:
                 sdxl_model = gr.Checkbox(label='SDXL model', value=False)
 
                 sd_model.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_sd_models(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_sd_models(path)),
                     inputs=sd_model,
                     outputs=sd_model,
                     show_progress=False,
@@ -138,7 +138,7 @@ class GradioMergeLoRaTab:
                 lora_a_model = gr.Dropdown(
                     label='LoRA model "A" (path to the LoRA A model)',
                     interactive=True,
-                    choices=list_a_models(current_a_model_dir),
+                    choices=[""] + list_a_models(current_a_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -159,7 +159,7 @@ class GradioMergeLoRaTab:
                 lora_b_model = gr.Dropdown(
                     label='LoRA model "B" (path to the LoRA B model)',
                     interactive=True,
-                    choices=list_b_models(current_b_model_dir),
+                    choices=[""] + list_b_models(current_b_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -178,13 +178,13 @@ class GradioMergeLoRaTab:
                 )
 
                 lora_a_model.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_a_models(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_a_models(path)),
                     inputs=lora_a_model,
                     outputs=lora_a_model,
                     show_progress=False,
                 )
                 lora_b_model.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_b_models(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_b_models(path)),
                     inputs=lora_b_model,
                     outputs=lora_b_model,
                     show_progress=False,
@@ -213,7 +213,7 @@ class GradioMergeLoRaTab:
                 lora_c_model = gr.Dropdown(
                     label='LoRA model "C" (path to the LoRA C model)',
                     interactive=True,
-                    choices=list_c_models(current_c_model_dir),
+                    choices=[""] + list_c_models(current_c_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -234,7 +234,7 @@ class GradioMergeLoRaTab:
                 lora_d_model = gr.Dropdown(
                     label='LoRA model "D" (path to the LoRA D model)',
                     interactive=True,
-                    choices=list_d_models(current_d_model_dir),
+                    choices=[""] + list_d_models(current_d_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -252,13 +252,13 @@ class GradioMergeLoRaTab:
                     show_progress=False,
                 )
                 lora_c_model.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_c_models(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_c_models(path)),
                     inputs=lora_c_model,
                     outputs=lora_c_model,
                     show_progress=False,
                 )
                 lora_d_model.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_d_models(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_d_models(path)),
                     inputs=lora_d_model,
                     outputs=lora_d_model,
                     show_progress=False,
@@ -287,7 +287,7 @@ class GradioMergeLoRaTab:
                 save_to = gr.Dropdown(
                     label='Save to (path for the file to save...)',
                     interactive=True,
-                    choices=list_save_to(current_d_model_dir),
+                    choices=[""] + list_save_to(current_d_model_dir),
                     value="",
                     allow_custom_value=True,
                 )
@@ -318,7 +318,7 @@ class GradioMergeLoRaTab:
                 )
 
                 save_to.change(
-                    fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                    fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                     inputs=save_to,
                     outputs=save_to,
                     show_progress=False,

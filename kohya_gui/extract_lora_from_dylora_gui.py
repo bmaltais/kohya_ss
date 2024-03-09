@@ -98,7 +98,7 @@ def gradio_extract_dylora_tab(headless=False):
             model = gr.Dropdown(
                 label='DyLoRA model (path to the DyLoRA model to extract from)',
                 interactive=True,
-                choices=list_models(current_model_dir),
+                choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -119,7 +119,7 @@ def gradio_extract_dylora_tab(headless=False):
             save_to = gr.Dropdown(
                 label='Save to (path where to save the extracted LoRA model...)',
                 interactive=True,
-                choices=list_save_to(current_save_dir),
+                choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -134,13 +134,13 @@ def gradio_extract_dylora_tab(headless=False):
             )
 
             model.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=model,
                 outputs=model,
                 show_progress=False,
             )
             save_to.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                 inputs=save_to,
                 outputs=save_to,
                 show_progress=False,

@@ -146,7 +146,7 @@ def gradio_extract_lora_tab(headless=False):
             model_tuned = gr.Dropdown(
                 label='Finetuned model (path to the finetuned model to extract)',
                 interactive=True,
-                choices=list_models(current_model_dir),
+                choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -174,7 +174,7 @@ def gradio_extract_lora_tab(headless=False):
             model_org = gr.Dropdown(
                 label='Stable Diffusion base model (original model: ckpt or safetensors file)',
                 interactive=True,
-                choices=list_org_models(current_model_org_dir),
+                choices=[""] + list_org_models(current_model_org_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -203,7 +203,7 @@ def gradio_extract_lora_tab(headless=False):
             save_to = gr.Dropdown(
                 label='Save to (path where to save the extracted LoRA model...)',
                 interactive=True,
-                choices=list_save_to(current_save_dir),
+                choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
                 scale=2,
@@ -235,19 +235,19 @@ def gradio_extract_lora_tab(headless=False):
             )
 
             model_tuned.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
                 inputs=model_tuned,
                 outputs=model_tuned,
                 show_progress=False,
             )
             model_org.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_org_model(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_org_model(path)),
                 inputs=model_org,
                 outputs=model_org,
                 show_progress=False,
             )
             save_to.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_save_to(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
                 inputs=save_to,
                 outputs=save_to,
                 show_progress=False,

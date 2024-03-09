@@ -81,11 +81,11 @@ def gradio_group_images_gui_tab(headless=False):
             input_folder = gr.Dropdown(
                 label='Input folder (containing the images to group)',
                 interactive=True,
-                choices=list_input_dirs(current_input_folder),
+                choices=[""] + list_input_dirs(current_input_folder),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(input_folder, lambda: None, lambda: {"choices": list_input_dirs(current_input_dir)},"open_folder_small")
+            create_refresh_button(input_folder, lambda: None, lambda: {"choices": list_input_dirs(current_input_folder)},"open_folder_small")
             button_input_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -98,7 +98,7 @@ def gradio_group_images_gui_tab(headless=False):
             output_folder = gr.Dropdown(
                 label='Output folder (where the grouped images will be stored)',
                 interactive=True,
-                choices=list_output_dirs(current_output_folder),
+                choices=[""] + list_output_dirs(current_output_folder),
                 value="",
                 allow_custom_value=True,
             )
@@ -113,13 +113,13 @@ def gradio_group_images_gui_tab(headless=False):
             )
 
             input_folder.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_input_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_input_dirs(path)),
                 inputs=input_folder,
                 outputs=input_folder,
                 show_progress=False,
             )
             output_folder.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_output_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_output_dirs(path)),
                 inputs=output_folder,
                 outputs=output_folder,
                 show_progress=False,

@@ -130,11 +130,11 @@ def gradio_dataset_balancing_tab(headless=False):
             select_dataset_folder_input = gr.Dropdown(
                 label='Dataset folder (folder containing the concepts folders to balance...)',
                 interactive=True,
-                choices=list_dataset_dirs(current_dataset_dir),
+                choices=[""] + list_dataset_dirs(current_dataset_dir),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(select_dataset_folder_input, lambda: None, lambda: {"choices": list_dataset_dir(current_dataset_dir)}, "open_folder_small")
+            create_refresh_button(select_dataset_folder_input, lambda: None, lambda: {"choices": list_dataset_dirs(current_dataset_dir)}, "open_folder_small")
             select_dataset_folder_button = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -150,7 +150,7 @@ def gradio_dataset_balancing_tab(headless=False):
                 label='Training steps per concept per epoch',
             )
             select_dataset_folder_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_dataset_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_dataset_dirs(path)),
                 inputs=select_dataset_folder_input,
                 outputs=select_dataset_folder_input,
                 show_progress=False,

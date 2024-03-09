@@ -1096,7 +1096,7 @@ def lora_tab(
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=list_presets(fr"{presets_dir}/lora"),
+                choices=[""] + list_presets(fr"{presets_dir}/lora"),
                 elem_id="myDropdown",
                 value="none"
             )

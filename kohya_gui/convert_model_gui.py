@@ -202,7 +202,7 @@ def gradio_convert_model_tab(headless=False):
             source_model_input = gr.Dropdown(
                 label='Source model (path to source model folder of file to convert...)',
                 interactive=True,
-                choices=list_source_model(default_source_model),
+                choices=[""] + list_source_model(default_source_model),
                 value="",
                 allow_custom_value=True,
             )
@@ -233,7 +233,7 @@ def gradio_convert_model_tab(headless=False):
             )
 
             source_model_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_source_model(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_source_model(path)),
                 inputs=source_model_input,
                 outputs=source_model_input,
                 show_progress=False,
@@ -255,7 +255,7 @@ def gradio_convert_model_tab(headless=False):
             target_model_folder_input = gr.Dropdown(
                 label='Target model folder (path to target model folder of file name to create...)',
                 interactive=True,
-                choices=list_target_folder(default_target_folder),
+                choices=[""] + list_target_folder(default_target_folder),
                 value="",
                 allow_custom_value=True,
             )
@@ -273,7 +273,7 @@ def gradio_convert_model_tab(headless=False):
             )
 
             target_model_folder_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_target_folder(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_target_folder(path)),
                 inputs=target_model_folder_input,
                 outputs=target_model_folder_input,
                 show_progress=False,

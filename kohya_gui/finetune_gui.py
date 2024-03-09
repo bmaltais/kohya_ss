@@ -757,7 +757,7 @@ def finetune_tab(headless=False):
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=list_presets(f"{presets_dir}/finetune"),
+                choices=[""] + list_presets(f"{presets_dir}/finetune"),
                 elem_id="myDropdown",
             )
 

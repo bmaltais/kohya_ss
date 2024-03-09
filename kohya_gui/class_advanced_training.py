@@ -48,12 +48,12 @@ class AdvancedTraining:
             def list_vae_files(path):
                 nonlocal current_vae_dir
                 current_vae_dir = path
-                return [""] + list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+                return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
             self.vae = gr.Dropdown(
                 label='VAE (Optional. path to checkpoint of vae to replace for training)',
                 interactive=True,
-                choices=list_vae_files(current_vae_dir),
+                choices=[""] + list_vae_files(current_vae_dir),
                 value="",
                 allow_custom_value=True,
             )
@@ -68,7 +68,7 @@ class AdvancedTraining:
             )
 
             self.vae.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_vae_files(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_vae_files(path)),
                 inputs=self.vae,
                 outputs=self.vae,
                 show_progress=False,
@@ -306,7 +306,7 @@ class AdvancedTraining:
 
             self.resume = gr.Dropdown(
                 label='Resume from saved training state (path to "last-state" state folder)',
-                choices=list_state_dirs(current_state_dir),
+                choices=[""] + list_state_dirs(current_state_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -321,7 +321,7 @@ class AdvancedTraining:
                 show_progress=False,
             )
             self.resume.change(
-                fn=lambda path: gr.Dropdown().update(choices=list_state_dirs(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_state_dirs(path)),
                 inputs=self.resume,
                 outputs=self.resume,
                 show_progress=False,
