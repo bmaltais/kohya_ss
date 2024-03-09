@@ -692,8 +692,8 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        config_dir = os.path.dirname(os.path.dirname(train_dir))
-        file_path = os.path.join(config_dir, f"{output_name}_{formatted_datetime}.json")
+        # config_dir = os.path.dirname(os.path.dirname(train_data_dir))
+        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
 
         log.info(f"Saving training config to {file_path}...")
 
