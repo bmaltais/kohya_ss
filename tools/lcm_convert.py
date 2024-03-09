@@ -1,12 +1,15 @@
 import argparse
 import torch
-from library.custom_logging import setup_logging
+import logging
+from library.utils import setup_logging
 from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline, LCMScheduler
 from library.sdxl_model_util import convert_diffusers_unet_state_dict_to_sdxl, sdxl_original_unet, save_stable_diffusion_checkpoint, _load_state_dict_on_device as load_state_dict_on_device
 from accelerate import init_empty_weights
 
 # Initialize logging
-logger = setup_logging()
+setup_logging()
+logger = logging.getLogger(__name__)
+
 
 def parse_command_line_arguments():
     argument_parser = argparse.ArgumentParser("lcm_convert")

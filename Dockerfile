@@ -30,7 +30,7 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     torch==2.1.2 torchvision==0.16.2 \
     xformers==0.0.23.post1 \
     # Why [and-cuda]: https://github.com/tensorflow/tensorflow/issues/61468#issuecomment-1759462485
-    tensorflow[and-cuda]==2.14.0 \
+    tensorflow[and-cuda]==2.15.0.post1 \
     ninja \
     pip setuptools wheel
 
@@ -39,6 +39,7 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
     --mount=source=requirements_linux_docker.txt,target=requirements_linux_docker.txt \
     --mount=source=requirements.txt,target=requirements.txt \
     --mount=source=setup/docker_setup.py,target=setup.py \
+    --mount=source=sd-scripts,target=sd-scripts,rw \
     pip install -r requirements_linux_docker.txt -r requirements.txt
 
 # Replace pillow with pillow-simd (Only for x86)

@@ -10,6 +10,19 @@ env_var_exists() {
   fi
 }
 
+# Define the directory path for WSL2
+lib_path="/usr/lib/wsl/lib/"
+
+# Check if the directory exists
+if [ -d "$lib_path" ]; then
+    # Check if LD_LIBRARY_PATH is already set
+    if [ -z "${LD_LIBRARY_PATH}" ]; then
+        # LD_LIBRARY_PATH is not set, set it to the lib_path
+        export LD_LIBRARY_PATH="$lib_path"
+        # echo "LD_LIBRARY_PATH set to: $LD_LIBRARY_PATH"
+    fi
+fi
+
 # Need RUNPOD to have a default value before first access
 RUNPOD=false
 if env_var_exists RUNPOD_POD_ID || env_var_exists RUNPOD_API_KEY; then

@@ -1,0 +1,15 @@
+.env
+.cache
+.vscode
+__pycache__
+bitsandbytes_windows
+cudnn_windows
+data
+dataset
+docs
+examples
+outputs
+SmilingWolf
+test
+v2_inference
+venv

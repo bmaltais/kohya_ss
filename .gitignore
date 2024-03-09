@@ -1,5 +1,6 @@
 # Python
 venv
+venv2
 __pycache__
 *.egg-info
 build
@@ -45,3 +46,5 @@ requirements_tmp_for_setup.txt
 
 *.npz
 presets/*/user_presets/*
+inputs
+outputs
