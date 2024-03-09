@@ -48,7 +48,7 @@ class AdvancedTraining:
             def list_vae_files(path):
                 nonlocal current_vae_dir
                 current_vae_dir = path
-                return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
+                return [""] + list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
             self.vae = gr.Dropdown(
                 label='VAE (Optional. path to checkpoint of vae to replace for training)',
