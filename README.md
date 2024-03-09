@@ -367,6 +367,7 @@ The documentation in this section will be moved to a separate document later.
 ### 2024/03/10 (v23.0.1)
 
 - Update bitsandbytes module to 0.43.0 as it provide native windows support
+- Minor fixes to code
 
 ### 2024/03/02 (v23.0.0)
 
