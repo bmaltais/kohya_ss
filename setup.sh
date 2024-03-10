@@ -201,6 +201,10 @@ install_python_dependencies() {
     source "$DIR/venv/bin/activate"
   fi
 
+  # Install packaging
+  echo "Installing the python packaging module..."
+  pip install packaging
+
   case "$OSTYPE" in
     "lin"*)
       if [ "$RUNPOD" = true ]; then

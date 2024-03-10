@@ -15,6 +15,9 @@ if errorlevel 1 (
 call .\venv\Scripts\activate.bat
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
+echo "Installing packaging python module..."
+pip install packaging
+
 :: Validate requirements
 python.exe .\setup\validate_requirements.py
 if %errorlevel% neq 0 exit /b %errorlevel%

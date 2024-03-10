@@ -28,6 +28,8 @@ if ($env:VIRTUAL_ENV) {
 & .\venv\Scripts\activate
 $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 
+Write-Host "Installing python packaging module..."
+& pip install packaging
 # Debug info about system
 # python.exe .\setup\debug_info.py
 
