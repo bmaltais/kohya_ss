@@ -1285,7 +1285,7 @@ def validate_paths(headless:bool = False, **kwargs):
 
     # Check if train_data_dir is valid
     if train_data_dir != None:
-        log.info(f"Validating training data folder path {train_data_dir} existance...")
+        log.info(f"Validating training data folder path {train_data_dir} existence...")
         if not train_data_dir or not os.path.exists(train_data_dir):
             log.error(f"Image folder path '{train_data_dir}' is missing or does not exist")
             return False
@@ -1299,7 +1299,7 @@ def validate_paths(headless:bool = False, **kwargs):
             return False
         
     if finetune_image_folder != None:
-        log.info(f"Validating finetuning image folder path {finetune_image_folder} existance...")
+        log.info(f"Validating finetuning image folder path {finetune_image_folder} existence...")
         if not finetune_image_folder or not os.path.exists(finetune_image_folder):
             log.error(f"Image folder path '{finetune_image_folder}' is missing or does not exist")
             return False
@@ -1308,7 +1308,7 @@ def validate_paths(headless:bool = False, **kwargs):
     
     if reg_data_dir != None:
         if reg_data_dir != "":
-            log.info(f"Validating regularisation data folder path {reg_data_dir} existance...")
+            log.info(f"Validating regularisation data folder path {reg_data_dir} existence...")
             if not os.path.exists(reg_data_dir):
                 log.error("...regularisation folder does not exist")
                 return False
@@ -1320,7 +1320,7 @@ def validate_paths(headless:bool = False, **kwargs):
             log.info("Regularisation folder not specified, skipping validation")
 
     if output_dir != None:
-        log.info(f"Validating output folder path {output_dir} existance...")
+        log.info(f"Validating output folder path {output_dir} existence...")
         if output_dir == "" or not os.path.exists(output_dir):
             log.error("...output folder path is missing or invalid")
             return False
@@ -1329,7 +1329,7 @@ def validate_paths(headless:bool = False, **kwargs):
             
     if logging_dir != None:
         if logging_dir != "":
-            log.info(f"Validating logging folder path {logging_dir} existance...")
+            log.info(f"Validating logging folder path {logging_dir} existence...")
             if not os.path.exists(logging_dir):
                 log.error("...logging folder path is missing or invalid")
                 return False
@@ -1340,7 +1340,7 @@ def validate_paths(headless:bool = False, **kwargs):
             
     if lora_network_weights != None:
         if lora_network_weights != "":
-            log.info(f"Validating LoRA Network Weight file path {lora_network_weights} existance...")
+            log.info(f"Validating LoRA Network Weight file path {lora_network_weights} existence...")
             if not os.path.exists(lora_network_weights):
                 log.error("...path is invalid")
                 return False
@@ -1351,7 +1351,7 @@ def validate_paths(headless:bool = False, **kwargs):
             
     if resume != None:
         if resume != "":
-            log.info(f"Validating model resume file path {resume} existance...")
+            log.info(f"Validating model resume file path {resume} existence...")
             if not os.path.exists(resume):
                 log.error("...path is invalid")
                 return False
@@ -1362,7 +1362,7 @@ def validate_paths(headless:bool = False, **kwargs):
             
     if vae != None:
         if vae != "":
-            log.info(f"Validating VAE file path {vae} existance...")
+            log.info(f"Validating VAE file path {vae} existence...")
             if not os.path.exists(vae):
                 log.error("...vae path is invalid")
                 return False
