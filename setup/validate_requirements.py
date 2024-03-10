@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import shutil
 import argparse
@@ -88,8 +87,7 @@ def check_torch():
     except Exception as e:
         log.error(f'Could not load torch: {e}')
         sys.exit(1)
-
-
+        
 def main():
     setup_common.check_repo_version()
     # Parse command line arguments
@@ -106,6 +104,8 @@ def main():
     args = parser.parse_args()
 
     torch_ver = check_torch()
+    
+    python_ver = setup_common.check_python_version()
     
     setup_common.update_submodule()
     

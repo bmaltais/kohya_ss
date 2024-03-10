@@ -560,22 +560,22 @@ def train_model(
     log.info(f"Start training LoRA {LoRA_type} ...")
     headless_bool = True if headless.get("label") == "True" else False
 
-    if pretrained_model_name_or_path == "":
-        output_message(
-            msg="Source model information is missing", headless=headless_bool
-        )
-        return
+    from .class_source_model import default_models
 
-    if train_data_dir == "":
-        output_message(msg="Image folder path is missing", headless=headless_bool)
+    # Check if the pretrained_model_name_or_path is valid
+    if pretrained_model_name_or_path not in default_models:
+        # If not one of the default models, check if it's a valid path
+        if not pretrained_model_name_or_path or not os.path.exists(pretrained_model_name_or_path):
+            log.error(f"Source model path '{pretrained_model_name_or_path}' is missing or does not exist")
+            return
+
+    # Check if train_data_dir is valid
+    if not train_data_dir or not os.path.exists(train_data_dir):
+        log.error(f"Image folder path '{train_data_dir}' is missing or does not exist")
         return
 
     # Check if there are files with the same filename but different image extension... warn the user if it is the case.
     check_duplicate_filenames(train_data_dir)
-
-    if not os.path.exists(train_data_dir):
-        output_message(msg="Image folder does not exist", headless=headless_bool)
-        return
 
     if not verify_image_folder_pattern(train_data_dir):
         return

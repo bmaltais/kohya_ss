@@ -10,8 +10,29 @@ import datetime
 import platform
 import pkg_resources
 
+from packaging import version
+
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
+
+def check_python_version():
+    """
+    Check if the current Python version is >= 3.10.9 and < 3.11.0
+
+    Returns:
+    bool: True if the current Python version is valid, False otherwise.
+    """
+    min_version = (3, 10, 9)
+    max_version = (3, 11, 0)
+    current_version = sys.version_info
+    
+    log.info(f"Python version is {sys.version}")
+    
+    if not (min_version <= current_version < max_version):
+        log.error(f"The current version of python is not appropriate to run Kohya_ss GUI")
+        log.error("The python version need to be greater or equal to 3.10.9 and less than 3.11.0")
+
+    return (min_version <= current_version < max_version)
 
 def update_submodule():
     """
@@ -352,7 +373,7 @@ def check_repo_version(): # pylint: disable=unused-argument
         with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
             release= file.read()
         
-        log.info(f'Version: {release}')
+        log.info(f'Kohya_ss GUI version: {release}')
     else:
         log.debug('Could not read release...')
     

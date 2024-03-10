@@ -5,7 +5,7 @@ set PYTHON_VER=3.10.9
 :: Check if Python version meets the recommended version
 python --version 2>nul | findstr /b /c:"Python %PYTHON_VER%" >nul
 if errorlevel 1 (
-    echo Warning: Python version %PYTHON_VER% is recommended.
+    echo Warning: Python version %PYTHON_VER% is required. Kohya_ss GUI will most likely fail to run.
 )
 
 IF NOT EXIST venv (
