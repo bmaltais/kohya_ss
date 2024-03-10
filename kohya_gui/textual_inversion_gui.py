@@ -1,13 +1,7 @@
-# v1: initial release
-# v2: add open and save folder icons
-# v3: Add new Utilities tab for Dreambooth folder preparation
-# v3.1: Adding captionning of images to utilities
-
 import gradio as gr
 import json
 import math
 import os
-import subprocess
 import pathlib
 from datetime import datetime
 from .common_gui import (
@@ -19,12 +13,12 @@ from .common_gui import (
     update_my_data,
     check_if_model_exist,
     output_message,
-    verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
     scriptdir,
     list_files,
     create_refresh_button,
+    validate_paths,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -411,36 +405,16 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
-    if pretrained_model_name_or_path == "":
-        output_message(
-            msg="Source model information is missing", headless=headless_bool
-        )
-        return
-
-    if train_data_dir == "":
-        output_message(msg="Image folder path is missing", headless=headless_bool)
-        return
-
-    if not os.path.exists(train_data_dir):
-        output_message(msg="Image folder does not exist", headless=headless_bool)
-        return
-
-    if not verify_image_folder_pattern(train_data_dir):
-        return
-
-    if reg_data_dir != "":
-        if not os.path.exists(reg_data_dir):
-            output_message(
-                msg="Regularisation folder does not exist",
-                headless=headless_bool,
-            )
-            return
-
-        if not verify_image_folder_pattern(reg_data_dir):
-            return
-
-    if output_dir == "":
-        output_message(msg="Output folder path is missing", headless=headless_bool)
+    if not validate_paths(
+        output_dir=output_dir,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=train_data_dir,
+        reg_data_dir=reg_data_dir,
+        headless=headless_bool,
+        logging_dir=logging_dir,
+        resume=resume,
+        vae=vae,
+    ):
         return
 
     if token_string == "":
@@ -451,29 +425,8 @@ def train_model(
         output_message(msg="Init word is missing", headless=headless_bool)
         return
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
-
-    # if float(noise_offset) > 0 and (
-    #     multires_noise_iterations > 0 or multires_noise_discount > 0
-    # ):
-    #     output_message(
-    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
-    #         title='Error',
-    #         headless=headless_bool,
-    #     )
-    #     return
-
-    # if optimizer == 'Adafactor' and lr_warmup != '0':
-    #     output_message(
-    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-    #         title='Warning',
-    #         headless=headless_bool,
-    #     )
-    #     lr_warmup = '0'
 
     # Get a list of all subfolders in train_data_dir
     subfolders = [
@@ -570,7 +523,6 @@ def train_model(
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
-        caption_dropout_rate=caption_dropout_rate,
         caption_extension=caption_extension,
         clip_skip=clip_skip,
         color_aug=color_aug,

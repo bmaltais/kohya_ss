@@ -1,13 +1,7 @@
-# v1: initial release
-# v2: add open and save folder icons
-# v3: Add new Utilities tab for Dreambooth folder preparation
-# v3.1: Adding captionning of images to utilities
-
 import gradio as gr
 import json
 import math
 import os
-import subprocess
 import sys
 import pathlib
 from datetime import datetime
@@ -19,11 +13,10 @@ from .common_gui import (
     run_cmd_advanced_training,
     update_my_data,
     check_if_model_exist,
-    output_message,
-    verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
     scriptdir,
+    validate_paths,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -406,36 +399,16 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
-    if pretrained_model_name_or_path == "":
-        output_message(
-            msg="Source model information is missing", headless=headless_bool
-        )
-        return
-
-    if train_data_dir == "":
-        output_message(msg="Image folder path is missing", headless=headless_bool)
-        return
-
-    if not os.path.exists(train_data_dir):
-        output_message(msg="Image folder does not exist", headless=headless_bool)
-        return
-
-    if not verify_image_folder_pattern(train_data_dir):
-        return
-
-    if reg_data_dir != "":
-        if not os.path.exists(reg_data_dir):
-            output_message(
-                msg="Regularisation folder does not exist",
-                headless=headless_bool,
-            )
-            return
-
-        if not verify_image_folder_pattern(reg_data_dir):
-            return
-
-    if output_dir == "":
-        output_message(msg="Output folder path is missing", headless=headless_bool)
+    if not validate_paths(
+        output_dir=output_dir,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=train_data_dir,
+        reg_data_dir=reg_data_dir,
+        headless=headless_bool,
+        logging_dir=logging_dir,
+        resume=resume,
+        vae=vae,
+    ):
         return
 
     if not print_only_bool and check_if_model_exist(

@@ -1,10 +1,15 @@
 @echo off
 
+set PYTHON_VER=3.10.9
+
 :: Deactivate the virtual environment
 call .\venv\Scripts\deactivate.bat
 
-:: Calling external python program to check for local modules
-:: python .\setup\check_local_modules.py --no_question
+:: Check if Python version meets the recommended version
+python --version 2>nul | findstr /b /c:"Python %PYTHON_VER%" >nul
+if errorlevel 1 (
+    echo Warning: Python version %PYTHON_VER% is required. Kohya_ss GUI will most likely fail to run.
+)
 
 :: Activate the virtual environment
 call .\venv\Scripts\activate.bat

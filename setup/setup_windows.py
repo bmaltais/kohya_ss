@@ -223,6 +223,7 @@ def main_menu():
 
 
 if __name__ == "__main__":
+    python_ver = setup_common.check_python_version()
     setup_common.ensure_base_requirements()
     setup_common.setup_logging()
     main_menu()

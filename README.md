@@ -37,7 +37,8 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
-    - [2024/03/10 (v23.0.1)](#20240310-v2301)
+    - [2024/03/10 (v23.0.2)](#20240310-v2302)
+    - [2024/03/09 (v23.0.1)](#20240309-v2301)
     - [2024/03/02 (v23.0.0)](#20240302-v2300)
 
 ## 🦒 Colab
@@ -364,7 +365,11 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
-### 2024/03/10 (v23.0.1)
+### 2024/03/10 (v23.0.2)
+
+- Improve validation of path provided by users before running training
+
+### 2024/03/09 (v23.0.1)
 
 - Update bitsandbytes module to 0.43.0 as it provide native windows support
 - Minor fixes to code

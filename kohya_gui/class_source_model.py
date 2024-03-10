@@ -15,6 +15,18 @@ refresh_symbol = '\U0001f504'  # 🔄
 save_style_symbol = '\U0001f4be'  # 💾
 document_symbol = '\U0001F4C4'   # 📄
 
+default_models = [
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-xl-refiner-1.0',
+    'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
+    'stabilityai/stable-diffusion-2-1-base',
+    'stabilityai/stable-diffusion-2-base',
+    'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
+    'stabilityai/stable-diffusion-2-1',
+    'stabilityai/stable-diffusion-2',
+    'runwayml/stable-diffusion-v1-5',
+    'CompVis/stable-diffusion-v1-4',
+]
 
 class SourceModel:
     def __init__(
@@ -38,19 +50,6 @@ class SourceModel:
         self.headless = headless
         self.save_model_as_choices = save_model_as_choices
         self.finetuning = finetuning
-
-        default_models = [
-            'stabilityai/stable-diffusion-xl-base-1.0',
-            'stabilityai/stable-diffusion-xl-refiner-1.0',
-            'stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned',
-            'stabilityai/stable-diffusion-2-1-base',
-            'stabilityai/stable-diffusion-2-base',
-            'stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned',
-            'stabilityai/stable-diffusion-2-1',
-            'stabilityai/stable-diffusion-2',
-            'runwayml/stable-diffusion-v1-5',
-            'CompVis/stable-diffusion-v1-4',
-        ]
 
         from .common_gui import create_refresh_button
 
