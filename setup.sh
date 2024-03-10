@@ -629,5 +629,5 @@ elif [[ "$OSTYPE" == "cygwin" ]]; then
 elif [[ "$OSTYPE" == "msys" ]]; then
   # MinGW has the msys environment which is a standalone suite of Linux utilities on Windows
   # "git bash" on Windows may also be detected as msys.
-  echo "This hasn't been validated in msys (mingw) on Windows yet."
+  echo "This hasn't been validated in msys 'mingw' on Windows yet."
 fi
