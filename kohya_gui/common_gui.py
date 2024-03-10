@@ -9,7 +9,6 @@ import sys
 import json
 
 from .custom_logging import setup_logging
-from datetime import datetime
 
 # Set up logging
 log = setup_logging()
@@ -699,7 +698,7 @@ def run_cmd_advanced_training(**kwargs):
     if "additional_parameters" in kwargs:
         run_cmd += f' {kwargs["additional_parameters"]}'
 
-    if "block_lr" in kwargs:
+    if "block_lr" in kwargs and kwargs["block_lr"] != "":
         run_cmd += f' --block_lr="{kwargs["block_lr"]}"'
 
     if kwargs.get("bucket_no_upscale"):
@@ -1143,12 +1142,12 @@ def run_cmd_advanced_training(**kwargs):
 
 def verify_image_folder_pattern(folder_path):
     false_response = True  # temporarily set to true to prevent stopping training in case of false positive
-    true_response = True
 
+    log.info(f"Verifying image folder pattern of {folder_path}...")
     # Check if the folder exists
     if not os.path.isdir(folder_path):
         log.error(
-            f"The provided path '{folder_path}' is not a valid folder. Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
+            f"...the provided path '{folder_path}' is not a valid folder. Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
         )
         return false_response
 
@@ -1176,22 +1175,22 @@ def verify_image_folder_pattern(folder_path):
     non_matching_subfolders = set(subfolders) - set(matching_subfolders)
     if non_matching_subfolders:
         log.error(
-            f"The following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}"
+            f"...the following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}"
         )
         log.error(
-            f"Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
+            f"...please follow the folder structure documentation found at docs\image_folder_structure.md ..."
         )
         return false_response
 
     # Check if no sub-folders exist
     if not matching_subfolders:
         log.error(
-            f"No image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
+            f"...no image folders found in {folder_path}. Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
         )
         return false_response
 
-    log.info(f"Valid image folder names found in: {folder_path}")
-    return true_response
+    log.info(f"...valid")
+    return True
 
 
 def SaveConfigFile(
@@ -1231,7 +1230,9 @@ def save_to_file(content):
 def check_duplicate_filenames(
     folder_path, image_extension=[".gif", ".png", ".jpg", ".jpeg", ".webp"]
 ):
-    log.info("Checking for duplicate image filenames in training data directory...")
+    duplicate = False
+    
+    log.info(f"Checking for duplicate image filenames in training data directory {folder_path}...")
     for root, dirs, files in os.walk(folder_path):
         filenames = {}
         for file in files:
@@ -1241,14 +1242,137 @@ def check_duplicate_filenames(
                 if filename in filenames:
                     existing_path = filenames[filename]
                     if existing_path != full_path:
-                        print(
-                            f"Warning: Same filename '{filename}' with different image extension found. This will cause training issues. Rename one of the file."
+                        log.warning(
+                            f"...same filename '{filename}' with different image extension found. This will cause training issues. Rename one of the file."
                         )
-                        print(f"Existing file: {existing_path}")
-                        print(f"Current file: {full_path}")
+                        log.warning(f"  Existing file: {existing_path}")
+                        log.warning(f"  Current file: {full_path}")
+                        duplicate = True
                 else:
                     filenames[filename] = full_path
+    if not duplicate:
+        log.info("...valid")
 
+
+def validate_paths(headless:bool = False, **kwargs):
+    from .class_source_model import default_models
+
+    pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
+    train_data_dir = kwargs.get("train_data_dir")
+    reg_data_dir = kwargs.get("reg_data_dir")
+    output_dir = kwargs.get("output_dir")
+    logging_dir = kwargs.get("logging_dir")
+    lora_network_weights= kwargs.get("lora_network_weights")
+    finetune_image_folder = kwargs.get("finetune_image_folder")
+    resume = kwargs.get("resume")
+    vae = kwargs.get("vae")
+    
+    if pretrained_model_name_or_path is not None:
+        log.info(f"Validating model file or folder path {pretrained_model_name_or_path} existence...")
+        
+        # Check if it matches the Hugging Face model pattern
+        if re.match(r'^[\w-]+\/[\w-]+$', pretrained_model_name_or_path):
+            log.info("...huggingface.co model, skipping validation")
+        elif pretrained_model_name_or_path not in default_models:
+            # If not one of the default models, check if it's a valid local path
+            if not os.path.exists(pretrained_model_name_or_path):
+                log.error(f"...source model path '{pretrained_model_name_or_path}' is missing or does not exist")
+                return False
+            else:
+                log.info("...valid")
+        else:
+            log.info("...valid")
+
+    # Check if train_data_dir is valid
+    if train_data_dir != None:
+        log.info(f"Validating training data folder path {train_data_dir} existance...")
+        if not train_data_dir or not os.path.exists(train_data_dir):
+            log.error(f"Image folder path '{train_data_dir}' is missing or does not exist")
+            return False
+        else:
+            log.info("...valid")
+        
+        # Check if there are files with the same filename but different image extension... warn the user if it is the case.
+        check_duplicate_filenames(train_data_dir)
+
+        if not verify_image_folder_pattern(folder_path=train_data_dir):
+            return False
+        
+    if finetune_image_folder != None:
+        log.info(f"Validating finetuning image folder path {finetune_image_folder} existance...")
+        if not finetune_image_folder or not os.path.exists(finetune_image_folder):
+            log.error(f"Image folder path '{finetune_image_folder}' is missing or does not exist")
+            return False
+        else:
+            log.info("...valid")
+    
+    if reg_data_dir != None:
+        if reg_data_dir != "":
+            log.info(f"Validating regularisation data folder path {reg_data_dir} existance...")
+            if not os.path.exists(reg_data_dir):
+                log.error("...regularisation folder does not exist")
+                return False
+
+            if not verify_image_folder_pattern(folder_path=reg_data_dir):
+                return False
+            log.info("...valid")
+        else:
+            log.info("Regularisation folder not specified, skipping validation")
+
+    if output_dir != None:
+        log.info(f"Validating output folder path {output_dir} existance...")
+        if output_dir == "" or not os.path.exists(output_dir):
+            log.error("...output folder path is missing or invalid")
+            return False
+        else:
+            log.info("...valid")
+            
+    if logging_dir != None:
+        if logging_dir != "":
+            log.info(f"Validating logging folder path {logging_dir} existance...")
+            if not os.path.exists(logging_dir):
+                log.error("...logging folder path is missing or invalid")
+                return False
+            else:
+                log.info("...valid")
+        else:
+            log.info("Logging folder not specified, skipping validation")
+            
+    if lora_network_weights != None:
+        if lora_network_weights != "":
+            log.info(f"Validating LoRA Network Weight file path {lora_network_weights} existance...")
+            if not os.path.exists(lora_network_weights):
+                log.error("...path is invalid")
+                return False
+            else:
+                log.info("...valid")
+        else:
+            log.info("LoRA Network Weight file not specified, skipping validation")
+            
+    if resume != None:
+        if resume != "":
+            log.info(f"Validating model resume file path {resume} existance...")
+            if not os.path.exists(resume):
+                log.error("...path is invalid")
+                return False
+            else:
+                log.info("...valid")
+        else:
+            log.info("Model resume file not specified, skipping validation")
+            
+    if vae != None:
+        if vae != "":
+            log.info(f"Validating VAE file path {vae} existance...")
+            if not os.path.exists(vae):
+                log.error("...vae path is invalid")
+                return False
+            else:
+                log.info("...valid")
+        else:
+            log.info("VAE file not specified, skipping validation")
+            
+    
+    return True
 
 def is_file_writable(file_path):
     if not os.path.exists(file_path):

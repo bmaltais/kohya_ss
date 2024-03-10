@@ -7,7 +7,6 @@ import sys
 import pathlib
 from datetime import datetime
 from .common_gui import (
-    get_folder_path,
     get_file_path,
     get_saveasfile_path,
     save_inference_file,
@@ -15,10 +14,10 @@ from .common_gui import (
     color_aug_changed,
     update_my_data,
     check_if_model_exist,
-    output_message,
     SaveConfigFile,
     save_to_file,
     scriptdir,
+    validate_paths,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -436,39 +435,24 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
-    if output_dir == "":
-        output_message(msg="Output folder path is missing", headless=headless_bool)
-        return
+    if train_dir != "" and not os.path.exists(train_dir):
+        os.mkdir(train_dir)
 
-    if train_dir is None or train_dir.strip() == "":
-        train_dir =  output_dir
+    if not validate_paths(
+        output_dir=output_dir,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        finetune_image_folder=image_folder,
+        headless=headless_bool,
+        logging_dir=logging_dir,
+        resume=resume,
+    ):
+        return
 
     if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
-    # if float(noise_offset) > 0 and (
-    #     multires_noise_iterations > 0 or multires_noise_discount > 0
-    # ):
-    #     output_message(
-    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
-    #         title='Error',
-    #         headless=headless_bool,
-    #     )
-    #     return
-
-    # if optimizer == 'Adafactor' and lr_warmup != '0':
-    #     output_message(
-    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-    #         title='Warning',
-    #         headless=headless_bool,
-    #     )
-    #     lr_warmup = '0'
-
     # create caption json file
     if generate_caption_database:
-        if train_dir != "" and not os.path.exists(train_dir):
-            os.mkdir(train_dir)
-
         run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
         if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
@@ -487,19 +471,6 @@ def train_model(
         if not print_only_bool:
             # Run the command
             subprocess.run(run_cmd, shell=True, env=env)
-
-    # check pretrained_model_name_or_path
-
-    if not os.path.exists(pretrained_model_name_or_path):
-        try:
-            from modules import sd_models
-
-            info = sd_models.get_closet_checkpoint_match(pretrained_model_name_or_path)
-            if info is not None:
-                pretrained_model_name_or_path = info.filename
-
-        except Exception:
-            pass
 
     # create images buckets
     if generate_image_buckets:

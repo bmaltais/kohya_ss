@@ -2,7 +2,6 @@ import gradio as gr
 import json
 import math
 import os
-import lycoris
 from datetime import datetime
 from .common_gui import (
     get_file_path,
@@ -13,11 +12,10 @@ from .common_gui import (
     update_my_data,
     check_if_model_exist,
     output_message,
-    verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
-    check_duplicate_filenames,
     scriptdir,
+    validate_paths,
 )
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
@@ -560,39 +558,17 @@ def train_model(
     log.info(f"Start training LoRA {LoRA_type} ...")
     headless_bool = True if headless.get("label") == "True" else False
 
-    from .class_source_model import default_models
-
-    # Check if the pretrained_model_name_or_path is valid
-    if pretrained_model_name_or_path not in default_models:
-        # If not one of the default models, check if it's a valid path
-        if not pretrained_model_name_or_path or not os.path.exists(pretrained_model_name_or_path):
-            log.error(f"Source model path '{pretrained_model_name_or_path}' is missing or does not exist")
-            return
-
-    # Check if train_data_dir is valid
-    if not train_data_dir or not os.path.exists(train_data_dir):
-        log.error(f"Image folder path '{train_data_dir}' is missing or does not exist")
-        return
-
-    # Check if there are files with the same filename but different image extension... warn the user if it is the case.
-    check_duplicate_filenames(train_data_dir)
-
-    if not verify_image_folder_pattern(train_data_dir):
-        return
-
-    if reg_data_dir != "":
-        if not os.path.exists(reg_data_dir):
-            output_message(
-                msg="Regularisation folder does not exist",
-                headless=headless_bool,
-            )
-            return
-
-        if not verify_image_folder_pattern(reg_data_dir):
-            return
-
-    if output_dir == "":
-        output_message(msg="Output folder path is missing", headless=headless_bool)
+    if not validate_paths(
+        output_dir=output_dir,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
+        train_data_dir=train_data_dir,
+        reg_data_dir=reg_data_dir,
+        headless=headless_bool,
+        logging_dir=logging_dir,
+        resume=resume,
+        vae=vae,
+        lora_network_weights=lora_network_weights,
+    ):
         return
 
     if int(bucket_reso_steps) < 1:
@@ -612,16 +588,6 @@ def train_model(
         )
         return
 
-    # if float(noise_offset) > 0 and (
-    #     multires_noise_iterations > 0 or multires_noise_discount > 0
-    # ):
-    #     output_message(
-    #         msg="noise offset and multires_noise can't be set at the same time. Only use one or the other.",
-    #         title='Error',
-    #         headless=headless_bool,
-    #     )
-    #     return
-
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -636,14 +602,6 @@ def train_model(
         output_name, output_dir, save_model_as, headless=headless_bool
     ):
         return
-
-    # if optimizer == 'Adafactor' and lr_warmup != '0':
-    #     output_message(
-    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-    #         title='Warning',
-    #         headless=headless_bool,
-    #     )
-    #     lr_warmup = '0'
 
     # If string is empty set string to 0.
     if text_encoder_lr == "":
