@@ -102,12 +102,13 @@ def main():
     )
     parser.add_argument('--debug', action='store_true', help='Debug on')
     args = parser.parse_args()
+    
+    setup_common.update_submodule()
 
     torch_ver = check_torch()
     
-    python_ver = setup_common.check_python_version()
-    
-    setup_common.update_submodule()
+    if not setup_common.check_python_version():
+        exit(1)
     
     if args.requirements:
         setup_common.install_requirements(args.requirements, check_no_verify_flag=True)

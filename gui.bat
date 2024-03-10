@@ -17,6 +17,7 @@ set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
 :: Validate requirements
 python.exe .\setup\validate_requirements.py
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 :: If the exit code is 0, run the kohya_gui.py script with the command-line arguments
 if %errorlevel% equ 0 (

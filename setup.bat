@@ -24,6 +24,9 @@ call .\venv\Scripts\deactivate.bat
 
 call .\venv\Scripts\activate.bat
 
+echo "Installing packaging python module..."
+pip install packaging
+
 REM Check if the batch was started via double-click
 IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (
     REM echo This script was started by double clicking.
