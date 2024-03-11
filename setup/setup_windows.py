@@ -15,6 +15,13 @@ RESET_COLOR = "\033[0m"
 
 
 def cudnn_install():
+    log.info("Installing nvidia-cudnn-cu11 8.9.5.29...")
+    setup_common.install(
+        "--upgrade nvidia-cudnn-cu11==8.9.5.29",
+        "nvidia-cudnn-cu11 8.9.5.29",
+        reinstall=True,
+    )
+    
     # Original path with "..\\venv"
     original_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\\venv\\Lib\\site-packages\\nvidia\\cudnn\\bin")
     # Normalize the path to resolve "..\\venv"
