@@ -37,6 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
+    - [2024/03/10 (v23.0.4)](#20240310-v2304)
     - [2024/03/10 (v23.0.3)](#20240310-v2303)
     - [2024/03/10 (v23.0.2)](#20240310-v2302)
     - [2024/03/09 (v23.0.1)](#20240309-v2301)
@@ -361,6 +362,11 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 The documentation in this section will be moved to a separate document later.
 
 ## Change History
+
+### 2024/03/10 (v23.0.4)
+
+- Update bitsandbytes to 0.43.0
+- Add packaging to runpod setup
 
 ### 2024/03/10 (v23.0.3)
 
