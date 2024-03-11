@@ -1,8 +1,4 @@
-try:
-    from tkinter import filedialog, Tk
-except:
-    pass
-    
+from tkinter import filedialog, Tk
 from easygui import msgbox
 import os
 import re
