@@ -141,7 +141,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 show_progress=False,
             )
             lycoris_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_lycoris_models(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_lycoris_model(path)),
                 inputs=lycoris_model,
                 outputs=lycoris_model,
                 show_progress=False,

@@ -102,7 +102,7 @@ def gradio_group_images_gui_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(output_folder, lambda: None, lambda: {"choices": list_output_dirs(current_output_dir)},"open_folder_small")
+            create_refresh_button(output_folder, lambda: None, lambda: {"choices": list_output_dirs(current_output_folder)},"open_folder_small")
             button_output_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )

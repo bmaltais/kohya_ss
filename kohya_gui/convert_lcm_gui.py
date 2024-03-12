@@ -32,7 +32,7 @@ def convert_lcm(
 
     # Check if source model exist
     if not os.path.isfile(model_path):
-        msgbox('The provided DyLoRA model is not a file')
+        log.error('The provided DyLoRA model is not a file')
         return
 
     if os.path.dirname(name) == "":
