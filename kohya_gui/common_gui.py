@@ -1321,9 +1321,16 @@ def validate_paths(headless:bool = False, **kwargs):
 
     if output_dir != None:
         log.info(f"Validating output folder path {output_dir} existence...")
-        if output_dir == "" or not os.path.exists(output_dir):
-            log.error("...output folder path is missing or invalid")
+        if output_dir == "":
+            log.error("...output folder path is missing")
             return False
+        elif not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)  # Create the directory, no error if it already exists
+                log.info(f"...created folder at {output_dir}")
+            except Exception as e:
+                log.error(f"...failed to create output folder: {e}")
+                return False
         else:
             log.info("...valid")
             
@@ -1331,8 +1338,12 @@ def validate_paths(headless:bool = False, **kwargs):
         if logging_dir != "":
             log.info(f"Validating logging folder path {logging_dir} existence...")
             if not os.path.exists(logging_dir):
-                log.error("...logging folder path is missing or invalid")
-                return False
+                try:
+                    os.makedirs(logging_dir, exist_ok=True)  # Create the directory, no error if it already exists
+                    log.info(f"...created folder at {logging_dir}")
+                except Exception as e:
+                    log.error(f"...failed to create logging folder: {e}")
+                    return False
             else:
                 log.info("...valid")
         else:
