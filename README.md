@@ -363,6 +363,11 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
+### 2024/03/11 (v23.0.5)
+
+- Update python module verification
+- Remove cudnn module installation in windows
+
 ### 2024/03/10 (v23.0.4)
 
 - Update bitsandbytes to 0.43.0
