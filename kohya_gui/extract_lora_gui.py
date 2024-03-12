@@ -241,7 +241,7 @@ def gradio_extract_lora_tab(headless=False):
                 show_progress=False,
             )
             model_org.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_org_model(path)),
+                fn=lambda path: gr.Dropdown().update(choices=[""] + list_org_models(path)),
                 inputs=model_org,
                 outputs=model_org,
                 show_progress=False,
