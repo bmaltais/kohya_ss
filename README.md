@@ -37,6 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
+    - [2024/03/11 (v23.0.8)](#20240311-v2308)
     - [2024/03/11 (v23.0.7)](#20240311-v2307)
     - [2024/03/11 (v23.0.6)](#20240311-v2306)
     - [2024/03/11 (v23.0.5)](#20240311-v2305)
@@ -365,6 +366,10 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 The documentation in this section will be moved to a separate document later.
 
 ## Change History
+
+### 2024/03/11 (v23.0.8)
+
+- Add the ability to create outout and logs folder if it does not exist
 
 ### 2024/03/11 (v23.0.7)
 
