@@ -38,7 +38,7 @@ def verify_lora(
         msgbox('The provided model A is not a file')
         return
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
     
     log.info(run_cmd)
 

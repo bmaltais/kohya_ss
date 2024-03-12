@@ -385,10 +385,10 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/merge_lora.py"'
+            run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/merge_lora.py"'
         else:
             run_cmd = (
-                fr'{PYTHON} "{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"'
+                fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"'
             )
         if sd_model:
             run_cmd += fr' --sd_model "{sd_model}"'

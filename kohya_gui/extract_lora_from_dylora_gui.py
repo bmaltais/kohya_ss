@@ -51,7 +51,7 @@ def extract_dylora(
         save_to = f"{path}_tmp{ext}"
 
     run_cmd = (
-        fr'{PYTHON} "{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"'
+        fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"'
     )
     run_cmd += fr' --save_to "{save_to}"'
     run_cmd += fr' --model "{model}"'

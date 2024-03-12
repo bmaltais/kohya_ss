@@ -37,7 +37,7 @@ def caption_images(
     log.info(f"Captioning files in {train_data_dir}...")
 
     # Construct the command to run
-    run_cmd = rf'{PYTHON} "{scriptdir}/sd-scripts/finetune/make_captions.py"'
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/make_captions.py"'
     run_cmd += f' --batch_size="{int(batch_size)}"'
     run_cmd += f' --num_beams="{int(num_beams)}"'
     run_cmd += f' --top_p="{top_p}"'

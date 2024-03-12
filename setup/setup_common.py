@@ -423,36 +423,58 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
         return txt
 
 
+import re
+import pkg_resources
+import logging
+
+log = logging.getLogger(__name__)
+
 def installed(package, friendly: str = None):
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
+    """
+    Checks if the specified package(s) are installed with the correct version.
+    This function can handle package specifications with or without version constraints,
+    and can also filter out command-line options and URLs when a 'friendly' string is provided.
     
-    # Remove brackets and their contents from the line using regular expressions
-    # e.g., diffusers[torch]==0.10.2 becomes diffusers==0.10.2
+    Parameters:
+    - package: A string that specifies one or more packages with optional version constraints.
+    - friendly: An optional string used to provide a cleaner version of the package string
+                that excludes command-line options and URLs.
+
+    Returns:
+    - True if all specified packages are installed with the correct versions, False otherwise.
+    
+    Note:
+    This function was adapted from code written by vladimandic.
+    """
+    
+    # Remove any optional features specified in brackets (e.g., "package[option]==version" becomes "package==version")
     package = re.sub(r'\[.*?\]', '', package)
 
     try:
         if friendly:
+            # If a 'friendly' version of the package string is provided, split it into components
             pkgs = friendly.split()
             
-            # Exclude command-line options and URLs like "--index-url https://download.pytorch.org/whl/cu118"
+            # Filter out command-line options and URLs from the package specification
             pkgs = [
                 p
                 for p in package.split()
-                if not p.startswith('--') and "://" not in p  # Exclude command-line options and URLs
+                if not p.startswith('--') and "://" not in p
             ]
         else:
+            # Split the package string into components, excluding '-' and '=' prefixed items
             pkgs = [
                 p
                 for p in package.split()
                 if not p.startswith('-') and not p.startswith('=')
             ]
+            # For each package component, extract the package name, excluding any URLs
             pkgs = [
                 p.split('/')[-1] for p in pkgs
-            ]   # get only package name if installing from URL
-        
+            ]
+
         for pkg in pkgs:
+            # Parse the package name and version based on the version specifier used
             if '>=' in pkg:
                 pkg_name, pkg_version = [x.strip() for x in pkg.split('>=')]
             elif '==' in pkg:
@@ -460,33 +482,43 @@ def installed(package, friendly: str = None):
             else:
                 pkg_name, pkg_version = pkg.strip(), None
 
+            # Attempt to find the installed package by its name
             spec = pkg_resources.working_set.by_key.get(pkg_name, None)
             if spec is None:
+                # Try again with lowercase name
                 spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
             if spec is None:
+                # Try replacing underscores with dashes
                 spec = pkg_resources.working_set.by_key.get(pkg_name.replace('_', '-'), None)
 
             if spec is not None:
+                # Package is found, check version
                 version = pkg_resources.get_distribution(pkg_name).version
                 log.debug(f'Package version found: {pkg_name} {version}')
 
                 if pkg_version is not None:
+                    # Verify if the installed version meets the specified constraints
                     if '>=' in pkg:
                         ok = version >= pkg_version
                     else:
                         ok = version == pkg_version
 
                     if not ok:
+                        # Version mismatch, log warning and return False
                         log.warning(f'Package wrong version: {pkg_name} {version} required {pkg_version}')
                         return False
             else:
+                # Package not found, log debug message and return False
                 log.debug(f'Package version not found: {pkg_name}')
                 return False
 
+        # All specified packages are installed with the correct versions
         return True
     except ModuleNotFoundError:
+        # One or more packages are not installed, log debug message and return False
         log.debug(f'Package not installed: {pkgs}')
         return False
+
 
 
 # install package using pip if not already installed
