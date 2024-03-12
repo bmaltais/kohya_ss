@@ -435,6 +435,13 @@ def installed(package, friendly: str = None):
     try:
         if friendly:
             pkgs = friendly.split()
+            
+            # Exclude command-line options and URLs like "--index-url https://download.pytorch.org/whl/cu118"
+            pkgs = [
+                p
+                for p in package.split()
+                if not p.startswith('--') and "://" not in p  # Exclude command-line options and URLs
+            ]
         else:
             pkgs = [
                 p
@@ -501,7 +508,6 @@ def install(
         quick_allowed = False
     if reinstall or not installed(package, friendly):
         pip(f'install --upgrade {package}', ignore=ignore, show_stdout=show_stdout)
-
 
 
 def process_requirements_line(line, show_stdout: bool = False):
