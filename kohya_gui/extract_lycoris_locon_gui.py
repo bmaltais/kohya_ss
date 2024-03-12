@@ -74,7 +74,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/tools/lycoris_locon_extract.py"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/tools/lycoris_locon_extract.py"'
     if is_sdxl:
         run_cmd += f" --is_sdxl"
     if is_v2:

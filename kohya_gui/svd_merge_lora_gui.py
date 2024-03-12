@@ -53,7 +53,7 @@ def svd_merge_lora(
         ratio_c /= total_ratio
         ratio_d /= total_ratio
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/svd_merge_lora.py"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/svd_merge_lora.py"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += f' --precision {precision}'
     run_cmd += fr' --save_to "{save_to}"'

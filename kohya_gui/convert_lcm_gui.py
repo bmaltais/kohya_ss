@@ -28,7 +28,7 @@ def convert_lcm(
     lora_scale,
     model_type
 ):
-    run_cmd = fr'{PYTHON} "{scriptdir}/tools/lcm_convert.py"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
 
     # Check if source model exist
     if not os.path.isfile(model_path):

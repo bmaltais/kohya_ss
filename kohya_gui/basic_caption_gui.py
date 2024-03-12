@@ -38,7 +38,7 @@ def caption_images(
         log.info(f'Captioning files in {images_dir} with {caption_text}...')
 
         # Build the command to run caption.py
-        run_cmd = fr'{PYTHON} "{scriptdir}/tools/caption.py"'
+        run_cmd = fr'"{PYTHON}" "{scriptdir}/tools/caption.py"'
         run_cmd += f' --caption_text="{caption_text}"'
 
         # Add optional flags to the command

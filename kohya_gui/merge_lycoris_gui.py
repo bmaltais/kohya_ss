@@ -36,7 +36,7 @@ def merge_lycoris(
 ):
     log.info('Merge model...')
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/tools/merge_lycoris.py"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/tools/merge_lycoris.py"'
     run_cmd += fr' "{base_model}"'
     run_cmd += fr' "{lycoris_model}"'
     run_cmd += fr' "{output_name}"'

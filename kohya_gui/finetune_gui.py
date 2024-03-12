@@ -453,7 +453,7 @@ def train_model(
 
     # create caption json file
     if generate_caption_database:
-        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+        run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
         if caption_extension == "":
             run_cmd += f' --caption_extension=".caption"'
         else:
@@ -474,7 +474,7 @@ def train_model(
 
     # create images buckets
     if generate_image_buckets:
-        run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
+        run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
         run_cmd += fr' "{image_folder}"'
         run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
         run_cmd += fr' "{train_dir}/{latent_metadata_filename}"'

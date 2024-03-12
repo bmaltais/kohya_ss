@@ -59,7 +59,7 @@ def resize_lora(
     if device == '':
         device = 'cuda'
 
-    run_cmd = fr'{PYTHON} "{scriptdir}/sd-scripts/networks/resize_lora.py"'
+    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/resize_lora.py"'
     run_cmd += f' --save_precision {save_precision}'
     run_cmd += fr' --save_to "{save_to}"'
     run_cmd += fr' --model "{model}"'
