@@ -112,7 +112,7 @@ def install_kohya_ss_torch2():
     setup_common.update_submodule()
 
     # Upgrade pip if needed
-    setup_common.install("--upgrade pip")
+    setup_common.install("pip")
 
     setup_common.install_requirements(
         "requirements_windows_torch2.txt", check_no_verify_flag=False
