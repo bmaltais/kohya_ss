@@ -422,13 +422,6 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
             log.debug(f'Pip output: {txt}')
         return txt
 
-
-import re
-import pkg_resources
-import logging
-
-log = logging.getLogger(__name__)
-
 def installed(package, friendly: str = None):
     """
     Checks if the specified package(s) are installed with the correct version.
