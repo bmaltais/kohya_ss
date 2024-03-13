@@ -108,11 +108,11 @@ def sync_bits_and_bytes_files():
 
 def install_kohya_ss_torch2(headless: bool = False):
     setup_common.check_repo_version()
-    setup_common.check_python_version()
-
+    if not setup_common.check_python_version():
+        exit(1)
+        
     setup_common.update_submodule()
-
-    # Upgrade pip if needed
+    
     setup_common.install("pip")
 
     setup_common.install_requirements(
@@ -156,8 +156,6 @@ def install_bitsandbytes_0_41_2():
     )
 
 def main_menu(headless: bool = False):
-    setup_common.ensure_base_requirements()
-    
     if headless:
         install_kohya_ss_torch2(headless=headless)
     else:
@@ -232,6 +230,7 @@ def main_menu(headless: bool = False):
 
 
 if __name__ == "__main__":
+    setup_common.ensure_base_requirements()
     setup_common.setup_logging()
     
     # Setup argument parser
