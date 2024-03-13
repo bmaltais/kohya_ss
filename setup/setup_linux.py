@@ -25,8 +25,8 @@ def main_menu(platform_requirements_file, show_stdout: bool = False, no_run_acce
 
 
 if __name__ == '__main__':
-    python_ver = setup_common.check_python_version()
     setup_common.ensure_base_requirements()
+    python_ver = setup_common.check_python_version()
     setup_common.setup_logging()
     
     setup_common.update_submodule()
