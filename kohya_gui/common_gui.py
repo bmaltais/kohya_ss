@@ -1374,7 +1374,11 @@ def validate_paths(headless:bool = False, **kwargs):
     if vae != None:
         if vae != "":
             log.info(f"Validating VAE file path {vae} existence...")
-            if not os.path.exists(vae):
+            
+            # Check if it matches the Hugging Face model pattern
+            if re.match(r'^[\w-]+\/[\w-]+$', vae):
+                log.info("...huggingface.co vae model provided")
+            elif not os.path.exists(vae):
                 log.error("...vae path is invalid")
                 return False
             else:

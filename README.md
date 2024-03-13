@@ -37,8 +37,9 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
-    - [2024/03/11 (v23.0.8)](#20240311-v2308)
-    - [2024/03/11 (v23.0.7)](#20240311-v2307)
+    - [2024/03/13 (v23.0.9)](#20240313-v2309)
+    - [2024/03/12 (v23.0.8)](#20240312-v2308)
+    - [2024/03/12 (v23.0.7)](#20240312-v2307)
     - [2024/03/11 (v23.0.6)](#20240311-v2306)
     - [2024/03/11 (v23.0.5)](#20240311-v2305)
     - [2024/03/10 (v23.0.4)](#20240310-v2304)
@@ -367,11 +368,16 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
-### 2024/03/11 (v23.0.8)
+### 2024/03/13 (v23.0.9)
+
+- Reworked how setup can be run to improve Stability Matrix support
+- Add support for huggingface based vea path
+
+### 2024/03/12 (v23.0.8)
 
 - Add the ability to create outout and logs folder if it does not exist
 
-### 2024/03/11 (v23.0.7)
+### 2024/03/12 (v23.0.7)
 
 - Fix minor issues related to functions and file path
 
