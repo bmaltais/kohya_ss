@@ -2,15 +2,10 @@ import subprocess
 import os
 import re
 import sys
-import filecmp
 import logging
 import shutil
-import sysconfig
 import datetime
-import platform
 import pkg_resources
-
-from packaging import version
 
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
@@ -24,6 +19,8 @@ def check_python_version():
     """
     min_version = (3, 10, 9)
     max_version = (3, 11, 0)
+    
+    from packaging import version
     
     try:
         current_version = sys.version_info
@@ -584,42 +581,19 @@ def ensure_base_requirements():
         import rich   # pylint: disable=unused-import
     except ImportError:
         install('--upgrade rich', 'rich')
+        
+    try:
+        import packaging
+    except ImportError:
+        install('packaging')
 
 
 def run_cmd(run_cmd):
     try:
         subprocess.run(run_cmd, shell=True, check=False, env=os.environ)
     except subprocess.CalledProcessError as e:
-        print(f'Error occurred while running command: {run_cmd}')
-        print(f'Error: {e}')
-
-
-# check python version
-def check_python(ignore=True, skip_git=False):
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
-
-    supported_minors = [9, 10]
-    log.info(f'Python {platform.python_version()} on {platform.system()}')
-    if not (
-        int(sys.version_info.major) == 3
-        and int(sys.version_info.minor) in supported_minors
-    ):
-        log.error(
-            f'Incompatible Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro} required 3.{supported_minors}'
-        )
-        if not ignore:
-            sys.exit(1)
-    if not skip_git:
-        git_cmd = os.environ.get('GIT', 'git')
-        if shutil.which(git_cmd) is None:
-            log.error('Git not found')
-            if not ignore:
-                sys.exit(1)
-    else:
-        git_version = git('--version', folder=None, ignore=False)
-        log.debug(f'Git {git_version.replace("git version", "").strip()}')
+        log.error(f'Error occurred while running command: {run_cmd}')
+        log.error(f'Error: {e}')
 
 
 def delete_file(file_path):

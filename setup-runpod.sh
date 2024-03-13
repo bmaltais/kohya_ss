@@ -21,10 +21,6 @@ fi
 echo "Activating venv..."
 source "$SCRIPT_DIR/venv/bin/activate" || exit 1
 
-# Install packaging
-echo "Installing the python packaging module..."
-pip install packaging
-
 # Run setup_linux.py script with platform requirements
 echo "Running setup_linux.py..."
 python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt --show_stdout --no_run_accelerate
