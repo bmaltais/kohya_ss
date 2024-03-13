@@ -60,8 +60,11 @@ def main_menu(platform_requirements_file):
 
 if __name__ == '__main__':
     setup_common.ensure_base_requirements()
-    python_ver = setup_common.check_python_version()
     setup_common.setup_logging()
+    if not setup_common.check_python_version():
+        exit(1)
+    
+    setup_common.update_submodule()
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--platform-requirements-file', dest='platform_requirements_file', default='requirements_runpod.txt', help='Path to the platform-specific requirements file')
