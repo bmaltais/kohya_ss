@@ -37,6 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
+    - [2024/03/13 (v23.0.11)](#20240313-v23011)
     - [2024/03/13 (v23.0.9)](#20240313-v2309)
     - [2024/03/12 (v23.0.8)](#20240312-v2308)
     - [2024/03/12 (v23.0.7)](#20240312-v2307)
@@ -367,6 +368,11 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 The documentation in this section will be moved to a separate document later.
 
 ## Change History
+
+### 2024/03/13 (v23.0.11)
+
+- Increase icon size
+- More setup fixes
 
 ### 2024/03/13 (v23.0.9)
 
