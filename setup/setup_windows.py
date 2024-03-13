@@ -119,8 +119,7 @@ def install_kohya_ss_torch2(headless: bool = False):
         "requirements_windows_torch2.txt", check_no_verify_flag=False
     )
     
-    if not headless:
-        setup_common.configure_accelerate(run_accelerate=True)
+    setup_common.configure_accelerate(run_accelerate=not headless) # False if headless is True and vice versa
 
 
 def install_bitsandbytes_0_35_0():
