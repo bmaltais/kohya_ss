@@ -15,7 +15,7 @@ def main_menu(platform_requirements_file, show_stdout: bool = False, no_run_acce
     log.info("If this operation ever runs too long, you can rerun this script in verbose mode to check.")
     
     setup_common.check_repo_version()
-    setup_common.check_python()
+    # setup_common.check_python()
 
     # Upgrade pip if needed
     setup_common.install('pip')

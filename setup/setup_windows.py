@@ -5,6 +5,7 @@ import logging
 import shutil
 import sysconfig
 import setup_common
+import argparse
 
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger("sd")
@@ -105,9 +106,9 @@ def sync_bits_and_bytes_files():
         log.error(f"An unexpected error occurred: {e}")
 
 
-def install_kohya_ss_torch2():
+def install_kohya_ss_torch2(headless: bool = False):
     setup_common.check_repo_version()
-    setup_common.check_python()
+    setup_common.check_python_version()
 
     setup_common.update_submodule()
 
@@ -117,12 +118,8 @@ def install_kohya_ss_torch2():
     setup_common.install_requirements(
         "requirements_windows_torch2.txt", check_no_verify_flag=False
     )
-
-    # sync_bits_and_bytes_files()
     
-    setup_common.configure_accelerate(run_accelerate=True)
-
-    # run_cmd(f'accelerate config')
+    setup_common.configure_accelerate(run_accelerate=not headless) # False if headless is True and vice versa
 
 
 def install_bitsandbytes_0_35_0():
@@ -158,79 +155,90 @@ def install_bitsandbytes_0_41_2():
         reinstall=True,
     )
 
-def main_menu():
-    setup_common.clear_screen()
-    while True:
-        print("\nKohya_ss GUI setup menu:\n")
-        print("1. Install kohya_ss gui")
-        print("2. (Optional) Install cudnn files (if you want to use latest supported cudnn version)")
-        print("3. (Optional) Install specific bitsandbytes versions")
-        print("4. (Optional) Manually configure accelerate")
-        print("5. (Optional) Start Kohya_ss GUI in browser")
-        print("6. Quit")
+def main_menu(headless: bool = False):
+    setup_common.ensure_base_requirements()
+    
+    if headless:
+        install_kohya_ss_torch2(headless=headless)
+    else:
+        setup_common.clear_screen()
+        while True:
+            print("\nKohya_ss GUI setup menu:\n")
+            print("1. Install kohya_ss gui")
+            print("2. (Optional) Install cudnn files (if you want to use latest supported cudnn version)")
+            print("3. (Optional) Install specific bitsandbytes versions")
+            print("4. (Optional) Manually configure accelerate")
+            print("5. (Optional) Start Kohya_ss GUI in browser")
+            print("6. Quit")
 
-        choice = input("\nEnter your choice: ")
-        print("")
+            choice = input("\nEnter your choice: ")
+            print("")
 
-        if choice == "1":
-            install_kohya_ss_torch2()
-        elif choice == "2":
-            cudnn_install()
-        elif choice == "3":
-            while True:
-                print("1. (Optional) Force installation of bitsandbytes 0.35.0")
-                print(
-                    "2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results"
-                )
-                print(
-                    "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
-                )
-                print(
-                    "4. (Recommended) Force installation of bitsandbytes 0.41.2 for new optimizer options support"
-                )
-                print(
-                    "5. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
-                )
-                print("6. Exit")
-                choice_torch = input("\nEnter your choice: ")
-                print("")
-
-                if choice_torch == "1":
-                    install_bitsandbytes_0_35_0()
-                    break
-                elif choice_torch == "2":
-                    install_bitsandbytes_0_40_1()
-                    break
-                elif choice_torch == "3":
-                    install_bitsandbytes_0_41_1()
-                    break
-                elif choice_torch == "3":
-                    install_bitsandbytes_0_41_2()
-                    break
-                elif choice_torch == "5":
-                    setup_common.install(
-                        "--upgrade bitsandbytes-windows", reinstall=True
+            if choice == "1":
+                install_kohya_ss_torch2()
+            elif choice == "2":
+                cudnn_install()
+            elif choice == "3":
+                while True:
+                    print("1. (Optional) Force installation of bitsandbytes 0.35.0")
+                    print(
+                        "2. (Optional) Force installation of bitsandbytes 0.40.1 for new optimizer options support and pre-bugfix results"
                     )
-                    break
-                elif choice_torch == "6":
-                    break
-                else:
-                    print("Invalid choice. Please enter a number between 1-3.")
-        elif choice == "4":
-            setup_common.run_cmd("accelerate config")
-        elif choice == "5":
-            subprocess.Popen(
-                "start cmd /k .\gui.bat --inbrowser", shell=True
-            )  # /k keep the terminal open on quit. /c would close the terminal instead
-        elif choice == "6":
-            print("Quitting the program.")
-            break
-        else:
-            print("Invalid choice. Please enter a number between 1-5.")
+                    print(
+                        "3. (Optional) Force installation of bitsandbytes 0.41.1 for new optimizer options support"
+                    )
+                    print(
+                        "4. (Recommended) Force installation of bitsandbytes 0.41.2 for new optimizer options support"
+                    )
+                    print(
+                        "5. (Danger) Install bitsandbytes-windows (this package has been reported to cause issues for most... avoid...)"
+                    )
+                    print("6. Exit")
+                    choice_torch = input("\nEnter your choice: ")
+                    print("")
+
+                    if choice_torch == "1":
+                        install_bitsandbytes_0_35_0()
+                        break
+                    elif choice_torch == "2":
+                        install_bitsandbytes_0_40_1()
+                        break
+                    elif choice_torch == "3":
+                        install_bitsandbytes_0_41_1()
+                        break
+                    elif choice_torch == "3":
+                        install_bitsandbytes_0_41_2()
+                        break
+                    elif choice_torch == "5":
+                        setup_common.install(
+                            "--upgrade bitsandbytes-windows", reinstall=True
+                        )
+                        break
+                    elif choice_torch == "6":
+                        break
+                    else:
+                        print("Invalid choice. Please enter a number between 1-3.")
+            elif choice == "4":
+                setup_common.run_cmd("accelerate config")
+            elif choice == "5":
+                subprocess.Popen(
+                    "start cmd /k .\gui.bat --inbrowser", shell=True
+                )  # /k keep the terminal open on quit. /c would close the terminal instead
+            elif choice == "6":
+                print("Quitting the program.")
+                break
+            else:
+                print("Invalid choice. Please enter a number between 1-5.")
 
 
 if __name__ == "__main__":
-    python_ver = setup_common.check_python_version()
-    setup_common.ensure_base_requirements()
     setup_common.setup_logging()
-    main_menu()
+    
+    # Setup argument parser
+    parser = argparse.ArgumentParser(description="Your Script Description")
+    parser.add_argument('--headless', action='store_true', help='Run in headless mode')
+
+    # Parse arguments
+    args = parser.parse_args()
+    
+    main_menu(headless=args.headless)
