@@ -15,13 +15,13 @@ class AdvancedTraining:
         def noise_offset_type_change(noise_offset_type):
             if noise_offset_type == 'Original':
                 return (
-                    gr.Group.update(visible=True),
-                    gr.Group.update(visible=False),
+                    gr.Group(visible=True),
+                    gr.Group(visible=False),
                 )
             else:
                 return (
-                    gr.Group.update(visible=False),
-                    gr.Group.update(visible=True),
+                    gr.Group(visible=False),
+                    gr.Group(visible=True),
                 )
 
         with gr.Row(visible=not finetuning):
@@ -68,7 +68,7 @@ class AdvancedTraining:
             )
 
             self.vae.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_vae_files(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_vae_files(path)),
                 inputs=self.vae,
                 outputs=self.vae,
                 show_progress=False,
@@ -321,7 +321,7 @@ class AdvancedTraining:
                 show_progress=False,
             )
             self.resume.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_state_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_state_dirs(path)),
                 inputs=self.resume,
                 outputs=self.resume,
                 show_progress=False,
@@ -358,17 +358,54 @@ class AdvancedTraining:
                 placeholder="example: 0,1"
             )
         with gr.Row():
+            self.use_wandb = gr.Checkbox(
+                label='WANDB Logging',
+                value=False,
+                info='If unchecked, tensorboard will be used as the default for logging.',
+            )
             self.wandb_api_key = gr.Textbox(
                 label='WANDB API Key',
                 value='',
                 placeholder='(Optional)',
                 info='Users can obtain and/or generate an api key in the their user settings on the website: https://wandb.ai/login',
             )
-            self.use_wandb = gr.Checkbox(
-                label='WANDB Logging',
-                value=False,
-                info='If unchecked, tensorboard will be used as the default for logging.',
+            self.wandb_run_name = gr.Textbox(
+                label='WANDB run name',
+                value='',
+                placeholder='(Optional)',
+                info='The name of the specific wandb session',
             )
+        with gr.Group(), gr.Row():
+            self.log_tracker_name = gr.Textbox(
+                label='Log tracker name',
+                value='',
+                placeholder='(Optional)',
+                info='Name of tracker to use for logging, default is script-specific default name',
+            )
+            self.log_tracker_config = gr.Dropdown(
+                label='Log tracker config',
+                choices=[""] + list_state_dirs(current_state_dir),
+                value='',
+                info='Path to tracker config file to use for logging',
+                interactive=True,
+                allow_custom_value=True,
+            )
+            create_refresh_button(self.log_tracker_config, lambda: None, lambda: {"choices": list_state_dirs(current_state_dir)}, "open_folder_small")
+            self.log_tracker_config_button = gr.Button(
+                '📂', elem_id='open_folder_small', visible=(not headless)
+            )
+            self.log_tracker_config_button.click(
+                get_any_file_path,
+                outputs=self.log_tracker_config,
+                show_progress=False,
+            )
+            self.log_tracker_config.change(
+                fn=lambda path: gr.Dropdown(choices=[""] + list_state_dirs(path)),
+                inputs=self.log_tracker_config,
+                outputs=self.log_tracker_config,
+                show_progress=False,
+            )
+        with gr.Row():
             self.scale_v_pred_loss_like_noise_pred = gr.Checkbox(
                 label='Scale v prediction loss',
                 value=False,

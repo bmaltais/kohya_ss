@@ -820,6 +820,17 @@ def run_cmd_advanced_training(**kwargs):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
             run_cmd += rf' --logging_dir="{logging_dir}"'
+            
+    log_tracker_name = kwargs.get("log_tracker_name")
+    if log_tracker_name:
+        run_cmd += rf' --log_tracker_name="{log_tracker_name}"'
+            
+    log_tracker_config = kwargs.get("log_tracker_config")
+    if log_tracker_config:
+        if log_tracker_config.startswith('"') and log_tracker_config.endswith('"'):
+            log_tracker_config = log_tracker_config[1:-1]
+        if os.path.exists(log_tracker_config):
+            run_cmd += rf' --log_tracker_config="{log_tracker_config}"'
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
@@ -1126,6 +1137,10 @@ def run_cmd_advanced_training(**kwargs):
     wandb_api_key = kwargs.get("wandb_api_key")
     if wandb_api_key:
         run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        
+    wandb_run_name = kwargs.get("wandb_run_name")
+    if wandb_run_name:
+        run_cmd += f' --wandb_run_name="{wandb_run_name}"'
 
     weighted_captions = kwargs.get("weighted_captions")
     if weighted_captions:
