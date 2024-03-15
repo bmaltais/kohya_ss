@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   kohya-ss-gui:
     container_name: kohya-ss-gui
@@ -11,12 +12,8 @@ services:
     ports:
       - 7860:7860
       - 6006:6006
-    tty: true
-    ipc: host
     environment:
-      CLI_ARGS: ""
       SAFETENSORS_FAST_GPU: 1
-      DISPLAY: $DISPLAY
     tmpfs:
       - /tmp
     volumes:
