@@ -48,3 +48,5 @@ requirements_tmp_for_setup.txt
 presets/*/user_presets/*
 inputs
 outputs
+dataset
+!dataset/.gitkeep
