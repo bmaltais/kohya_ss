@@ -712,7 +712,7 @@ def ti_tab(
                         show_progress=False,
                     )
                     weights.change(
-                        fn=lambda path: gr.Dropdown().update(choices=[""] + list_embedding_files(path)),
+                        fn=lambda path: gr.Dropdown(choices=[""] + list_embedding_files(path)),
                         inputs=weights,
                         outputs=weights,
                         show_progress=False,

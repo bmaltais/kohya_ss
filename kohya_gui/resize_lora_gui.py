@@ -149,13 +149,13 @@ def gradio_resize_lora_tab(headless=False):
                 show_progress=False,
             )
             model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=model,
                 outputs=model,
                 show_progress=False,
             )
             save_to.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=save_to,
                 outputs=save_to,
                 show_progress=False,

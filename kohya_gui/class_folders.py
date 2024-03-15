@@ -91,19 +91,19 @@ class Folders:
             )
 
             self.output_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_output_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_output_dirs(path)),
                 inputs=self.output_dir,
                 outputs=self.output_dir,
                 show_progress=False,
             )
             self.reg_data_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_data_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_data_dirs(path)),
                 inputs=self.reg_data_dir,
                 outputs=self.reg_data_dir,
                 show_progress=False,
             )
             self.logging_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_logging_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_logging_dirs(path)),
                 inputs=self.logging_dir,
                 outputs=self.logging_dir,
                 show_progress=False,

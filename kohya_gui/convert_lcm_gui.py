@@ -133,13 +133,13 @@ def gradio_convert_lcm_tab(headless=False):
                 show_progress=False,
             )
             model_path.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=model_path,
                 outputs=model_path,
                 show_progress=False,
             )
             name.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=name,
                 outputs=name,
                 show_progress=False,

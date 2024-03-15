@@ -171,7 +171,7 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
         )
 
         train_data_dir.change(
-            fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_dirs(path)),
+            fn=lambda path: gr.Dropdown(choices=[""] + list_train_dirs(path)),
             inputs=train_data_dir,
             outputs=train_data_dir,
             show_progress=False,

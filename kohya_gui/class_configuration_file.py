@@ -13,7 +13,7 @@ class ConfigurationFile:
 
         def update_configs(output_dir):
             self.output_dir = output_dir
-            return gr.Dropdown().update(choices=[""] + list(list_files(output_dir, exts=[".json"], all=True)))
+            return gr.Dropdown(choices=[""] + list(list_files(output_dir, exts=[".json"], all=True)))
 
         def list_configs(path):
             self.output_dir = path
@@ -47,7 +47,7 @@ class ConfigurationFile:
                 )
 
             self.config_file_name.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_configs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_configs(path)),
                 inputs=self.config_file_name,
                 outputs=self.config_file_name,
                 show_progress=False,

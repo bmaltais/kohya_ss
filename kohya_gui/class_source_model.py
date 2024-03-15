@@ -181,7 +181,7 @@ class SourceModel:
             )
 
             self.train_data_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_train_dirs(path)),
                 inputs=self.train_data_dir,
                 outputs=self.train_data_dir,
                 show_progress=False,

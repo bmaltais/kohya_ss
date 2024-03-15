@@ -55,37 +55,60 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
 
-def check_if_model_exist(output_name, output_dir, save_model_as, headless=False):
+def check_if_model_exist(output_name: str, output_dir: str, save_model_as: str, headless: bool = False) -> bool:
+    '''
+    Checks if a model with the same name already exists and prompts the user to overwrite it if it does.
+
+    Parameters:
+    output_name (str): The name of the output model.
+    output_dir (str): The directory where the model is saved.
+    save_model_as (str): The format to save the model as.
+    headless (bool, optional): If True, skips the verification and returns False. Defaults to False.
+
+    Returns:
+    bool: True if the model already exists and the user chooses not to overwrite it, otherwise False.
+    '''
     if headless:
         log.info(
-            "Headless mode, skipping verification if model already exist... if model already exist it will be overwritten..."
+            'Headless mode, skipping verification if model already exist... if model already exist it will be overwritten...'
         )
         return False
 
-    if save_model_as in ["diffusers", "diffusers_safetendors"]:
+    if save_model_as in ['diffusers', 'diffusers_safetendors']:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
-            msg = f"A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?"
-            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
-                log.info("Aborting training due to existing model with same name...")
+            msg = f'A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?'
+            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
+                log.info('Aborting training due to existing model with same name...')
                 return True
-    elif save_model_as in ["ckpt", "safetensors"]:
-        ckpt_file = os.path.join(output_dir, output_name + "." + save_model_as)
+    elif save_model_as in ['ckpt', 'safetensors']:
+        ckpt_file = os.path.join(output_dir, output_name + '.' + save_model_as)
         if os.path.isfile(ckpt_file):
-            msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
-            if not easygui.ynbox(msg, "Overwrite Existing Model?"):
-                log.info("Aborting training due to existing model with same name...")
+            msg = f'A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?'
+            if not easygui.ynbox(msg, 'Overwrite Existing Model?'):
+                log.info('Aborting training due to existing model with same name...')
                 return True
     else:
         log.info(
-            'Can\'t verify if existing model exist when save model is set a "same as source model", continuing to train model...'
+            'Can\'t verify if existing model exist when save model is set as "same as source model", continuing to train model...'
         )
         return False
 
     return False
 
 
-def output_message(msg="", title="", headless=False):
+def output_message(msg: str = "", title: str = "", headless: bool = False) -> None:
+    """
+    Outputs a message to the user, either in a message box or in the log.
+
+    Parameters:
+    msg (str, optional): The message to be displayed. Defaults to an empty string.
+    title (str, optional): The title of the message box. Defaults to an empty string.
+    headless (bool, optional): If True, the message is logged instead of displayed in a message box. Defaults to False.
+
+    Returns:
+    None
+    """
     if headless:
         log.info(msg)
     else:
@@ -93,36 +116,48 @@ def output_message(msg="", title="", headless=False):
 
 
 def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_id):
+    # Converts refresh_component into a list for uniform processing. If it's already a list, keep it the same.
     refresh_components = (
         refresh_component
         if isinstance(refresh_component, list)
         else [refresh_component]
     )
 
+    # Initialize label to None. This will store the label of the first component with a non-None label, if any.
     label = None
+    # Iterate over each component to find the first non-None label and assign it to 'label'.
     for comp in refresh_components:
         label = getattr(comp, "label", None)
         if label is not None:
             break
 
+    # Define the refresh function that will be triggered upon clicking the refresh button.
     def refresh():
+        # Invoke the refresh_method, which is intended to perform the refresh operation.
         refresh_method()
+        # Determine the arguments for the refresh: call refreshed_args if it's callable, otherwise use it directly.
         args = refreshed_args() if callable(refreshed_args) else refreshed_args
 
+        # For each key-value pair in args, update the corresponding properties of each component.
         for k, v in args.items():
             for comp in refresh_components:
                 setattr(comp, k, v)
 
+        # Use gr.update to refresh the UI components. If multiple components are present, update each; else, update only the first.
         return (
-            [gr.update(**(args or {})) for _ in refresh_components]
+            [gr.Dropdown(**(args or {})) for _ in refresh_components]
             if len(refresh_components) > 1
-            else gr.update(**(args or {}))
+            else gr.Dropdown(**(args or {}))
         )
 
+    # Create a refresh button with the specified label (via refresh_symbol), ID, and classes.
+    # 'refresh_symbol' should be defined outside this function or passed as an argument, representing the button's label or icon.
     refresh_button = gr.Button(
         value=refresh_symbol, elem_id=elem_id, elem_classes=["tool"]
     )
+    # Configure the button to invoke the refresh function.
     refresh_button.click(fn=refresh, inputs=[], outputs=refresh_components)
+    # Return the configured refresh button to be used in the UI.
     return refresh_button
 
 
@@ -525,9 +560,9 @@ def color_aug_changed(color_aug):
         msgbox(
             'Disabling "Cache latent" because "Color augmentation" has been selected...'
         )
-        return gr.Checkbox.update(value=False, interactive=False)
+        return gr.Checkbox(value=False, interactive=False)
     else:
-        return gr.Checkbox.update(value=True, interactive=True)
+        return gr.Checkbox(value=True, interactive=True)
 
 
 def save_inference_file(output_dir, v2, v_parameterization, output_name):
@@ -568,11 +603,11 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
-        v2 = gr.Checkbox.update(value=False, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=True, visible=False)
+        v2 = gr.Checkbox(value=False, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=True, visible=False)
         return (
-            gr.Dropdown().update(),
+            gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
@@ -581,11 +616,11 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
     if pretrained_model_name_or_path in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
-        v2 = gr.Checkbox.update(value=True, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
+        v2 = gr.Checkbox(value=True, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
         return (
-            gr.Dropdown().update(),
+            gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
@@ -596,11 +631,11 @@ def set_pretrained_model_name_or_path_input(
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
-        v2 = gr.Checkbox.update(value=True, visible=False)
-        v_parameterization = gr.Checkbox.update(value=True, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
+        v2 = gr.Checkbox(value=True, visible=False)
+        v_parameterization = gr.Checkbox(value=True, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
         return (
-            gr.Dropdown().update(),
+            gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
@@ -609,20 +644,20 @@ def set_pretrained_model_name_or_path_input(
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
     if pretrained_model_name_or_path in V1_MODELS:
         log.info(f"{pretrained_model_name_or_path} model selected.")
-        v2 = gr.Checkbox.update(value=False, visible=False)
-        v_parameterization = gr.Checkbox.update(value=False, visible=False)
-        sdxl = gr.Checkbox.update(value=False, visible=False)
+        v2 = gr.Checkbox(value=False, visible=False)
+        v_parameterization = gr.Checkbox(value=False, visible=False)
+        sdxl = gr.Checkbox(value=False, visible=False)
         return (
-            gr.Dropdown().update(),
+            gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
         )
 
     # Check if the model_list is set to 'custom'
-    v2 = gr.Checkbox.update(visible=True)
-    v_parameterization = gr.Checkbox.update(visible=True)
-    sdxl = gr.Checkbox.update(visible=True)
+    v2 = gr.Checkbox(visible=True)
+    v_parameterization = gr.Checkbox(visible=True)
+    sdxl = gr.Checkbox(visible=True)
 
     if refresh_method is not None:
         args = dict(
@@ -631,7 +666,7 @@ def set_pretrained_model_name_or_path_input(
     else:
         args = {}
     return (
-        gr.Dropdown().update(**args),
+        gr.Dropdown(**args),
         v2,
         v_parameterization,
         sdxl,

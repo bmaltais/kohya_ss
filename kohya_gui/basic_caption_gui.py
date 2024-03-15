@@ -198,7 +198,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
 
         # Event handler for dynamic update of dropdown choices
         images_dir.change(
-            fn=lambda path: gr.Dropdown().update(choices=[""] + list_images_dirs(path)),
+            fn=lambda path: gr.Dropdown(choices=[""] + list_images_dirs(path)),
             inputs=images_dir,
             outputs=images_dir,
             show_progress=False,
