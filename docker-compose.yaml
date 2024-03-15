@@ -23,11 +23,12 @@ services:
       - ./dataset/logs:/app/logs
       - ./dataset/outputs:/app/outputs
       - ./dataset/regularization:/app/regularization
+      - ./.cache/config:/app/config
       - ./.cache/user:/home/1000/.cache
       - ./.cache/triton:/home/1000/.triton
       - ./.cache/nv:/home/1000/.nv
       - ./.cache/keras:/home/1000/.keras
-      - ./.cache/config:/home/1000/.config
+      - ./.cache/config:/home/1000/.config # For backward compatibility
     deploy:
       resources:
         reservations:
