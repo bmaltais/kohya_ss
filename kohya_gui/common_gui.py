@@ -269,11 +269,15 @@ def update_my_data(my_data):
         elif not value:
             my_data[key] = 0
 
-    # Convert values to float if they are strings
+    # Convert values to float if they are strings, correctly handling float representations
     for key in ["noise_offset", "learning_rate", "text_encoder_lr", "unet_lr"]:
         value = my_data.get(key, 0)
-        if isinstance(value, str) and value.strip().isdigit():
-            my_data[key] = float(value)
+        if isinstance(value, str):
+            try:
+                my_data[key] = float(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = 0
         elif not value:
             my_data[key] = 0
 
