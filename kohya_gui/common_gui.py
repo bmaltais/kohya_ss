@@ -116,6 +116,18 @@ def output_message(msg: str = "", title: str = "", headless: bool = False) -> No
 
 
 def create_refresh_button(refresh_component, refresh_method, refreshed_args, elem_id):
+    """
+    Creates a refresh button that can be used to update UI components.
+
+    Parameters:
+    refresh_component (list or object): The UI component(s) to be refreshed.
+    refresh_method (callable): The method to be called when the button is clicked.
+    refreshed_args (dict or callable): The arguments to be passed to the refresh method.
+    elem_id (str): The ID of the button element.
+
+    Returns:
+    gr.Button: The configured refresh button.
+    """
     # Converts refresh_component into a list for uniform processing. If it's already a list, keep it the same.
     refresh_components = (
         refresh_component
@@ -316,83 +328,169 @@ def get_dir_and_file(file_path):
 def get_file_path(
     file_path="", default_extension=".json", extension_name="Config files"
 ):
+    """
+    Opens a file dialog to select a file, allowing the user to navigate and choose a file with a specific extension. 
+    If no file is selected, returns the initially provided file path or an empty string if not provided. 
+    This function is conditioned to skip the file dialog on macOS or if specific environment variables are present, 
+    indicating a possible automated environment where a dialog cannot be displayed.
+
+    Parameters:
+    - file_path (str): The initial file path or an empty string by default. Used as the fallback if no file is selected.
+    - default_extension (str): The default file extension (e.g., ".json") for the file dialog.
+    - extension_name (str): The display name for the type of files being selected (e.g., "Config files").
+
+    Returns:
+    - str: The path of the file selected by the user, or the initial `file_path` if no selection is made.
+
+    Raises:
+    - TypeError: If `file_path`, `default_extension`, or `extension_name` are not strings.
+
+    Note:
+    - The function checks the `ENV_EXCLUSION` list against environment variables to determine if the file dialog should be skipped, aiming to prevent its appearance during automated operations.
+    - The dialog will also be skipped on macOS (`sys.platform != "darwin"`) as a specific behavior adjustment.
+    """
+    # Validate parameter types
+    if not isinstance(file_path, str):
+        raise TypeError("file_path must be a string")
+    if not isinstance(default_extension, str):
+        raise TypeError("default_extension must be a string")
+    if not isinstance(extension_name, str):
+        raise TypeError("extension_name must be a string")
+
+    # Environment and platform check to decide on showing the file dialog
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
-        current_file_path = file_path
-        # log.info(f'current file path: {current_file_path}')
+        current_file_path = file_path  # Backup in case no file is selected
 
-        initial_dir, initial_file = get_dir_and_file(file_path)
+        initial_dir, initial_file = get_dir_and_file(file_path)  # Decompose file path for dialog setup
 
-        # Create a hidden Tkinter root window
+        # Initialize a hidden Tkinter window for the file dialog
         root = Tk()
-        root.wm_attributes("-topmost", 1)
-        root.withdraw()
+        root.wm_attributes("-topmost", 1)  # Ensure the dialog is topmost
+        root.withdraw()  # Hide the root window to show only the dialog
 
-        # Show the open file dialog and get the selected file path
+        # Open the file dialog and capture the selected file path
         file_path = filedialog.askopenfilename(
-            filetypes=(
-                (extension_name, f"*{default_extension}"),
-                ("All files", "*.*"),
-            ),
+            filetypes=((extension_name, f"*{default_extension}"), ("All files", "*.*")),
             defaultextension=default_extension,
             initialfile=initial_file,
             initialdir=initial_dir,
         )
 
-        # Destroy the hidden root window
-        root.destroy()
+        root.destroy()  # Cleanup by destroying the Tkinter root window
 
-        # If no file is selected, use the current file path
+        # Fallback to the initial path if no selection is made
         if not file_path:
             file_path = current_file_path
-        current_file_path = file_path
-        # log.info(f'current file path: {current_file_path}')
 
+    # Return the selected or fallback file path
     return file_path
 
 
-def get_any_file_path(file_path=""):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
-        current_file_path = file_path
-        # log.info(f'current file path: {current_file_path}')
+def get_any_file_path(file_path: str = "") -> str:
+    """
+    Opens a file dialog to select any file, allowing the user to navigate and choose a file.
+    If no file is selected, returns the initially provided file path or an empty string if not provided.
+    This function is conditioned to skip the file dialog on macOS or if specific environment variables are present,
+    indicating a possible automated environment where a dialog cannot be displayed.
 
-        initial_dir, initial_file = get_dir_and_file(file_path)
+    Parameters:
+    - file_path (str): The initial file path or an empty string by default. Used as the fallback if no file is selected.
 
-        root = Tk()
-        root.wm_attributes("-topmost", 1)
-        root.withdraw()
-        file_path = filedialog.askopenfilename(
-            initialdir=initial_dir,
-            initialfile=initial_file,
-        )
-        root.destroy()
+    Returns:
+    - str: The path of the file selected by the user, or the initial `file_path` if no selection is made.
 
-        if file_path == "":
-            file_path = current_file_path
+    Raises:
+    - TypeError: If `file_path` is not a string.
+    - EnvironmentError: If there's an issue accessing environment variables.
+    - RuntimeError: If there's an issue initializing the file dialog.
 
+    Note:
+    - The function checks the `ENV_EXCLUSION` list against environment variables to determine if the file dialog should be skipped, aiming to prevent its appearance during automated operations.
+    - The dialog will also be skipped on macOS (`sys.platform != "darwin"`) as a specific behavior adjustment.
+    """
+    # Validate parameter type
+    if not isinstance(file_path, str):
+        raise TypeError("file_path must be a string")
+
+    try:
+        # Check for environment variable conditions
+        if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
+            current_file_path: str = file_path
+
+            initial_dir, initial_file = get_dir_and_file(file_path)
+
+            # Initialize a hidden Tkinter window for the file dialog
+            root = Tk()
+            root.wm_attributes("-topmost", 1)
+            root.withdraw()
+
+            try:
+                # Open the file dialog and capture the selected file path
+                file_path = filedialog.askopenfilename(
+                    initialdir=initial_dir,
+                    initialfile=initial_file,
+                )
+            except Exception as e:
+                raise RuntimeError(f"Failed to open file dialog: {e}")
+            finally:
+                root.destroy()
+
+            # Fallback to the initial path if no selection is made
+            if not file_path:
+                file_path = current_file_path
+    except KeyError as e:
+        raise EnvironmentError(f"Failed to access environment variables: {e}")
+
+    # Return the selected or fallback file path
     return file_path
 
 
-def get_folder_path(folder_path=""):
-    if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
-        current_folder_path = folder_path
+def get_folder_path(folder_path: str = "") -> str:
+    """
+    Opens a folder dialog to select a folder, allowing the user to navigate and choose a folder.
+    If no folder is selected, returns the initially provided folder path or an empty string if not provided.
+    This function is conditioned to skip the folder dialog on macOS or if specific environment variables are present,
+    indicating a possible automated environment where a dialog cannot be displayed.
 
-        initial_dir, initial_file = get_dir_and_file(folder_path)
+    Parameters:
+    - folder_path (str): The initial folder path or an empty string by default. Used as the fallback if no folder is selected.
+
+    Returns:
+    - str: The path of the folder selected by the user, or the initial `folder_path` if no selection is made.
+
+    Raises:
+    - TypeError: If `folder_path` is not a string.
+    - EnvironmentError: If there's an issue accessing environment variables.
+    - RuntimeError: If there's an issue initializing the folder dialog.
+
+    Note:
+    - The function checks the `ENV_EXCLUSION` list against environment variables to determine if the folder dialog should be skipped, aiming to prevent its appearance during automated operations.
+    - The dialog will also be skipped on macOS (`sys.platform != "darwin"`) as a specific behavior adjustment.
+    """
+    # Validate parameter type
+    if not isinstance(folder_path, str):
+        raise TypeError("folder_path must be a string")
+
+    try:
+        # Check for environment variable conditions
+        if any(var in os.environ for var in ENV_EXCLUSION) or sys.platform == "darwin":
+            return folder_path or ""
 
         root = Tk()
-        root.wm_attributes("-topmost", 1)
         root.withdraw()
-        folder_path = filedialog.askdirectory(initialdir=initial_dir)
+        root.wm_attributes("-topmost", 1)
+        selected_folder = filedialog.askdirectory(initialdir=folder_path or ".")
         root.destroy()
-
-        if folder_path == "":
-            folder_path = current_folder_path
-
-    return folder_path
+        return selected_folder or folder_path
+    except Exception as e:
+        raise RuntimeError(f"Error initializing folder dialog: {e}") from e
 
 
 def get_saveasfile_path(
-    file_path="", defaultextension=".json", extension_name="Config files"
-):
+    file_path: str = "",
+    defaultextension: str = ".json",
+    extension_name: str = "Config files",
+) -> str:
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path
         # log.info(f'current file path: {current_file_path}')
@@ -566,39 +664,59 @@ def color_aug_changed(color_aug):
         )
         return gr.Checkbox(value=False, interactive=False)
     else:
-        return gr.Checkbox(value=True, interactive=True)
+        return gr.Checkbox(interactive=True)
 
 
-def save_inference_file(output_dir, v2, v_parameterization, output_name):
-    # List all files in the directory
-    files = os.listdir(output_dir)
+def save_inference_file(
+    output_dir: str,
+    v2: bool,
+    v_parameterization: bool,
+    output_name: str,
+) -> None:
+    """
+    Save inference file to the specified output directory.
+
+    Args:
+        output_dir (str): Path to the output directory.
+        v2 (bool): Flag indicating whether to use v2 inference.
+        v_parameterization (bool): Flag indicating whether to use v parameterization.
+        output_name (str): Name of the output file.
+    """
+    try:
+        # List all files in the directory
+        files = os.listdir(output_dir)
+    except Exception as e:
+        log.error(f"Error listing directory contents: {e}")
+        return  # Early return on failure
 
     # Iterate over the list of files
     for file in files:
         # Check if the file starts with the value of output_name
         if file.startswith(output_name):
             # Check if it is a file or a directory
-            if os.path.isfile(os.path.join(output_dir, file)):
+            file_path = os.path.join(output_dir, file)
+            if os.path.isfile(file_path):
                 # Split the file name and extension
                 file_name, ext = os.path.splitext(file)
 
-                # Copy the v2-inference-v.yaml file to the current file, with a .yaml extension
-                if v2 and v_parameterization:
+                # Determine the source file path based on the v2 and v_parameterization flags
+                source_file_path = (
+                    rf"{scriptdir}/v2_inference/v2-inference-v.yaml"
+                    if v2 and v_parameterization
+                    else rf"{scriptdir}/v2_inference/v2-inference.yaml"
+                )
+
+                # Copy the source file to the current file, with a .yaml extension
+                try:
                     log.info(
-                        f"Saving v2-inference-v.yaml as {output_dir}/{file_name}.yaml"
+                        f"Saving {source_file_path} as {output_dir}/{file_name}.yaml"
                     )
                     shutil.copy(
-                        rf"{scriptdir}/v2_inference/v2-inference-v.yaml",
+                        source_file_path,
                         f"{output_dir}/{file_name}.yaml",
                     )
-                elif v2:
-                    log.info(
-                        f"Saving v2-inference.yaml as {output_dir}/{file_name}.yaml"
-                    )
-                    shutil.copy(
-                        rf"{scriptdir}/v2_inference/v2-inference.yaml",
-                        f"{output_dir}/{file_name}.yaml",
-                    )
+                except Exception as e:
+                    log.error(f"Error copying file to {output_dir}/{file_name}.yaml: {e}")
 
 
 def set_pretrained_model_name_or_path_input(
