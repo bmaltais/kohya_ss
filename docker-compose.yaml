@@ -19,6 +19,10 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ./dataset:/dataset
+      - ./dataset/images:/app/data
+      - ./dataset/logs:/app/logs
+      - ./dataset/outputs:/app/outputs
+      - ./dataset/regularization:/app/regularization
       - ./.cache/user:/home/1000/.cache
       - ./.cache/triton:/home/1000/.triton
       - ./.cache/nv:/home/1000/.nv
