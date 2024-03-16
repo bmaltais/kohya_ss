@@ -10,14 +10,14 @@ from .extract_lora_from_dylora_gui import gradio_extract_dylora_tab
 from .merge_lycoris_gui import gradio_merge_lycoris_tab
 
 # Deprecated code
-from .dataset_balancing_gui import gradio_dataset_balancing_tab
-from .dreambooth_folder_creation_gui import (
-    gradio_dreambooth_folder_creation_tab,
-)
+# from .dataset_balancing_gui import gradio_dataset_balancing_tab
+# from .dreambooth_folder_creation_gui import (
+#     gradio_dreambooth_folder_creation_tab,
+# )
 
 
 class LoRATools:
-    def __init__(self, train_data_dir=None, reg_data_dir=None, output_dir=None, logging_dir=None, headless: bool = False):
+    def __init__(self, headless: bool = False):
         self.headless = headless
 
         gr.Markdown(

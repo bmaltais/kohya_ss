@@ -1988,13 +1988,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(
-            train_data_dir=source_model.train_data_dir,
-            reg_data_dir=folders.reg_data_dir,
-            output_dir=folders.output_dir,
-            logging_dir=folders.logging_dir,
-            headless=headless
-        )
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
