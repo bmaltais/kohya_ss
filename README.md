@@ -37,7 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
-    - [2024/03/14 (v23.0.12)](#20240314-v23012)
+    - [2024/03/16 (v23.0.12)](#20240316-v23012)
     - [2024/03/13 (v23.0.11)](#20240313-v23011)
     - [2024/03/13 (v23.0.9)](#20240313-v2309)
     - [2024/03/12 (v23.0.8)](#20240312-v2308)
@@ -368,9 +368,11 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
-### 2024/03/14 (v23.0.12)
+### 2024/03/16 (v23.0.12)
 
 - Add support for `wandb_run_name`, `log_tracker_name` and `log_tracker_config` parameters under the advanced section.
+- Update sd-scripts to v0.8.5
+- Improve code
 
 ### 2024/03/13 (v23.0.11)
 
