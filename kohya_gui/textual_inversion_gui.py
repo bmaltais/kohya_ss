@@ -788,7 +788,7 @@ def ti_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
+            config = ConfigurationFile(headless=headless)
 
 
         with gr.Column(), gr.Group():

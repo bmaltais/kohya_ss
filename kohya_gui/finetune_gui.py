@@ -825,7 +825,7 @@ def finetune_tab(headless=False):
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, output_dir=train_dir)
+            config = ConfigurationFile(headless=headless)
 
 
         with gr.Column(), gr.Group():

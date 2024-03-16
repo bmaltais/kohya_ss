@@ -110,7 +110,7 @@ class Folders:
                 allow_custom_value=True,
             )
             # Refresh button for output directory
-            create_refresh_button(self.output_dir, lambda: None, lambda: {"choices": self.list_output_dirs(self.current_output_dir)}, "open_folder_small")
+            create_refresh_button(self.output_dir, lambda: None, lambda: {"choices": [""] + self.list_output_dirs(self.current_output_dir)}, "open_folder_small")
             # Output directory button
             self.output_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
@@ -131,7 +131,7 @@ class Folders:
                 allow_custom_value=True,
             )
             # Refresh button for regularisation directory
-            create_refresh_button(self.reg_data_dir, lambda: None, lambda: {"choices": self.list_data_dirs(self.current_data_dir)}, "open_folder_small")
+            create_refresh_button(self.reg_data_dir, lambda: None, lambda: {"choices": [""] + self.list_data_dirs(self.current_data_dir)}, "open_folder_small")
             # Regularisation directory button
             self.reg_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
@@ -152,7 +152,7 @@ class Folders:
                 allow_custom_value=True,
             )
             # Refresh button for logging directory
-            create_refresh_button(self.logging_dir, lambda: None, lambda: {"choices": self.list_logging_dirs(self.current_logging_dir)}, "open_folder_small")
+            create_refresh_button(self.logging_dir, lambda: None, lambda: {"choices": [""] + self.list_logging_dirs(self.current_logging_dir)}, "open_folder_small")
             # Logging directory button
             self.logging_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
