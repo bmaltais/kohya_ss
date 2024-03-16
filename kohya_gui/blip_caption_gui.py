@@ -13,24 +13,44 @@ PYTHON = sys.executable
 
 
 def caption_images(
-    train_data_dir,
-    caption_file_ext,
-    batch_size,
-    num_beams,
-    top_p,
-    max_length,
-    min_length,
-    beam_search,
-    prefix,
-    postfix,
-):
+    train_data_dir: str,
+    caption_file_ext: str,
+    batch_size: int,
+    num_beams: int,
+    top_p: float,
+    max_length: int,
+    min_length: int,
+    beam_search: bool,
+    prefix: str = "",
+    postfix: str = "",
+) -> None:
+    """
+    Automatically generates captions for images in the specified directory using the BLIP model.
+
+    This function prepares and executes a command-line script to process images in batches, applying advanced
+    NLP techniques for caption generation. It supports customization of the captioning process through various
+    parameters like batch size, beam search, and more. Optionally, prefixes and postfixes can be added to captions.
+
+
+    Args:
+        train_data_dir (str): The directory containing the images to be captioned.
+        caption_file_ext (str): The extension for the caption files.
+        batch_size (int): The batch size for the captioning process.
+        num_beams (int): The number of beams to use in the captioning process.
+        top_p (float): The top p value to use in the captioning process.
+        max_length (int): The maximum length of the captions.
+        min_length (int): The minimum length of the captions.
+        beam_search (bool): Whether to use beam search in the captioning process.
+        prefix (str): The prefix to add to the captions.
+        postfix (str): The postfix to add to the captions.
+    """
     # Check if the image folder is provided
-    if train_data_dir == "":
+    if not train_data_dir:
         msgbox("Image folder is missing...")
         return
 
     # Check if the caption file extension is provided
-    if caption_file_ext == "":
+    if not caption_file_ext:
         msgbox("Please provide an extension for the caption files.")
         return
 
@@ -38,27 +58,26 @@ def caption_images(
 
     # Construct the command to run
     run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/make_captions.py"'
-    run_cmd += f' --batch_size="{int(batch_size)}"'
-    run_cmd += f' --num_beams="{int(num_beams)}"'
+    run_cmd += f' --batch_size="{batch_size}"'
+    run_cmd += f' --num_beams="{num_beams}"'
     run_cmd += f' --top_p="{top_p}"'
-    run_cmd += f' --max_length="{int(max_length)}"'
-    run_cmd += f' --min_length="{int(min_length)}"'
+    run_cmd += f' --max_length="{max_length}"'
+    run_cmd += f' --min_length="{min_length}"'
     if beam_search:
         run_cmd += f" --beam_search"
-    if caption_file_ext != "":
+    if caption_file_ext:
         run_cmd += f' --caption_extension="{caption_file_ext}"'
     run_cmd += f' "{train_data_dir}"'
     run_cmd += f' --caption_weights="https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"'
 
     log.info(run_cmd)
 
+    # Set up the environment
     env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
+    env["PYTHONPATH"] = f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, shell=True, env=env, cwd=rf"{scriptdir}/sd-scripts")
+    subprocess.run(run_cmd, shell=True, env=env, cwd=f"{scriptdir}/sd-scripts")
 
     # Add prefix and postfix
     add_pre_postfix(

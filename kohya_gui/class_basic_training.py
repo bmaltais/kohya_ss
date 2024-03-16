@@ -3,22 +3,46 @@ import os
 
 
 class BasicTraining:
+    """
+    This class initializes the basic training settings for a machine learning model.
+
+    Attributes:
+        sdxl_checkbox (gr.Checkbox): Checkbox for enabling SDXL training.
+        learning_rate_value (str): Default learning rate value.
+        lr_scheduler_value (str): Default learning rate scheduler value.
+        lr_warmup_value (str): Default learning rate warmup value.
+        finetuning (bool): If True, enables fine-tuning of the model.
+        dreambooth (bool): If True, enables Dreambooth training.
+    """
+
     def __init__(
         self,
         sdxl_checkbox: gr.Checkbox,
-        learning_rate_value="1e-6",
-        lr_scheduler_value="constant",
-        lr_warmup_value="0",
+        learning_rate_value: str = "1e-6",
+        lr_scheduler_value: str = "constant",
+        lr_warmup_value: str = "0",
         finetuning: bool = False,
         dreambooth: bool = False,
     ):
-        self.learning_rate_value = learning_rate_value
-        self.lr_scheduler_value = lr_scheduler_value
-        self.lr_warmup_value = lr_warmup_value
-        self.finetuning = finetuning
-        self.dreambooth = dreambooth
-        self.sdxl_checkbox = sdxl_checkbox
+        """
+        Initializes the basic training settings.
 
+        Args:
+            sdxl_checkbox (gr.Checkbox): Checkbox for enabling SDXL training.
+            learning_rate_value (str, optional): Default learning rate value.
+            lr_scheduler_value (str, optional): Default learning rate scheduler value.
+            lr_warmup_value (str, optional): Default learning rate warmup value.
+            finetuning (bool, optional): Enables fine-tuning of the model.
+            dreambooth (bool, optional): Enables Dreambooth training.
+        """
+        self.sdxl_checkbox: gr.Checkbox = sdxl_checkbox
+        self.learning_rate_value: str = learning_rate_value
+        self.lr_scheduler_value: str = lr_scheduler_value
+        self.lr_warmup_value: str = lr_warmup_value
+        self.finetuning: bool = finetuning
+        self.dreambooth: bool = dreambooth
+
+        # Create a row for train batch size, epoch, max train epochs, max train steps, save every N epochs, and caption extension
         with gr.Row():
             self.train_batch_size = gr.Slider(
                 minimum=1,
@@ -43,6 +67,8 @@ class BasicTraining:
                 label="Caption Extension",
                 placeholder="(Optional) Extension for caption files. default: .caption",
             )
+
+        # Create a row for mixed precision, number of CPU threads per core, seed, cache latents, and cache latents to disk
         with gr.Row():
             self.mixed_precision = gr.Dropdown(
                 label="Mixed precision",
