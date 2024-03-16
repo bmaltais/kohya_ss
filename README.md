@@ -381,7 +381,7 @@ The documentation in this section will be moved to a separate document later.
 
 ### 2024/03/12 (v23.0.8)
 
-- Add the ability to create outout and logs folder if it does not exist
+- Add the ability to create output and logs folder if it does not exist
 
 ### 2024/03/12 (v23.0.7)
 
