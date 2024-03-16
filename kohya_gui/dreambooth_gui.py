@@ -408,6 +408,8 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
+    # This function validates files or folder paths. Simply add new variables containing file of folder path
+    # to validate below
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
@@ -415,6 +417,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
     ):

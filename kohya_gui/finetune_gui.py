@@ -453,6 +453,7 @@ def train_model(
         finetune_image_folder=image_folder,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
     ):
         return
