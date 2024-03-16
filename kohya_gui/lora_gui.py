@@ -574,6 +574,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
         lora_network_weights=lora_network_weights,

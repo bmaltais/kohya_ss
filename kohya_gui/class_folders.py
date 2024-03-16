@@ -4,7 +4,7 @@ from .common_gui import get_folder_path, scriptdir, list_dirs
 
 
 class Folders:
-    def __init__(self, finetune=False, train_data_dir: gr.Dropdown = None, data_dir=None, output_dir=None, logging_dir=None, headless=False):
+    def __init__(self, finetune=False, train_data_dir: gr.Dropdown = None, data_dir=None, output_dir=None, logging_dir=None, reg_data_dir=None, headless=False):
         from .common_gui import create_refresh_button
 
         self.headless = headless
@@ -12,11 +12,12 @@ class Folders:
         default_data_dir = data_dir if data_dir is not None else os.path.join(scriptdir, "data")
         default_output_dir = output_dir if output_dir is not None else os.path.join(scriptdir, "outputs")
         default_logging_dir = logging_dir if logging_dir is not None else os.path.join(scriptdir, "logs")
-        default_reg_data_dir = default_data_dir
+        default_reg_data_dir = reg_data_dir if reg_data_dir is not None else os.path.join(scriptdir, "reg")
 
         self.current_data_dir = default_data_dir
         self.current_output_dir = default_output_dir
         self.current_logging_dir = default_logging_dir
+        self.current_reg_data_dir = default_reg_data_dir
 
 
         if default_data_dir is not None and default_data_dir.strip() != "" and not os.path.exists(default_data_dir):
@@ -25,6 +26,8 @@ class Folders:
             os.makedirs(default_output_dir, exist_ok=True)
         if default_logging_dir is not None and default_logging_dir.strip() != "" and not os.path.exists(default_logging_dir):
             os.makedirs(default_logging_dir, exist_ok=True)
+        if default_reg_data_dir is not None and default_reg_data_dir.strip() != "" and not os.path.exists(default_reg_data_dir):
+            os.makedirs(default_reg_data_dir, exist_ok=True)
 
         def list_data_dirs(path):
             self.current_data_dir = path
@@ -36,6 +39,10 @@ class Folders:
 
         def list_logging_dirs(path):
             self.current_logging_dir = path
+            return list(list_dirs(path))
+
+        def list_reg_data_dirs(path):
+            self.current_reg_data_dir = path
             return list(list_dirs(path))
 
         with gr.Row():
@@ -57,8 +64,8 @@ class Folders:
             )
 
             self.reg_data_dir = gr.Dropdown(
-                label='Regularisation folder (Optional. containing reqularization images)' if not finetune else 'Train config folder (Optional. where config files will be saved)',
-                choices=[""] + list_data_dirs(default_reg_data_dir),
+                label='Regularisation folder (Optional. containing reqularisation images)' if not finetune else 'Train config folder (Optional. where config files will be saved)',
+                choices=[""] + list_reg_data_dirs(default_reg_data_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,

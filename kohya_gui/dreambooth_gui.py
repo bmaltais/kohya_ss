@@ -408,6 +408,8 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
+    # This function validates files or folder paths. Simply add new variables containing file of folder path
+    # to validate below
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
@@ -415,6 +417,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
     ):
@@ -678,12 +681,12 @@ def train_model(
 
         executor.execute_command(run_cmd=run_cmd, env=env)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f"{output_dir}/{output_name}")
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(f"{output_dir}/{output_name}")
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(output_dir, v2, v_parameterization, output_name)
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def dreambooth_tab(
