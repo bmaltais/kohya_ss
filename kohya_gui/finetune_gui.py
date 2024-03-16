@@ -716,7 +716,7 @@ def finetune_tab(headless=False):
             output_name = source_model.output_name
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless, train_data_dir=source_model.train_data_dir, finetune=True)
+            folders = Folders(headless=headless, finetune=True)
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
