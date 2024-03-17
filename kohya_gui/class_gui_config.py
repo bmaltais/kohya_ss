@@ -43,6 +43,22 @@ class KohyaSSGUIConfig:
         Returns:
         The value associated with the key, or the default value if the key is not found.
         """
-        if key not in self.config:
-            log.debug(f"Key '{key}' not found in configuration. Returning default value.")
-        return self.config.get(key, default)
+        # Split the key into a list of keys if it contains a dot (.)
+        keys = key.split(".")
+        # Initialize `data` with the entire configuration data
+        data = self.config
+
+        # Iterate over the keys to access nested values
+        for k in keys:
+            log.debug(k)
+            # If the key is not found in the current data, return the default value
+            if k not in data:
+                log.debug(f"Key '{key}' not found in configuration. Returning default value.")
+                return default
+
+            # Update `data` to the value associated with the current key
+            data = data.get(k)
+
+        # Return the final value
+        log.debug(f"Returned {data}")
+        return data

@@ -4,7 +4,6 @@ from typing import Tuple
 from .common_gui import (
     get_folder_path,
     get_any_file_path,
-    scriptdir,
     list_files,
     list_dirs,
     create_refresh_button,
@@ -30,7 +29,7 @@ class AdvancedTraining:
         headless: bool = False,
         finetuning: bool = False,
         training_type: str = "",
-        config:dict = {},
+        config: dict = {},
     ) -> None:
         """
         Initializes the AdvancedTraining class with given settings.
@@ -50,7 +49,9 @@ class AdvancedTraining:
         # Determine the current directories for VAE and output, falling back to defaults if not specified.
         self.current_vae_dir = self.config.get("vae_dir", "./models/vae")
         self.current_state_dir = self.config.get("state_dir", "./outputs")
-        self.current_log_tracker_config_dir = self.config.get("log_tracker_config_dir", "./logs")
+        self.current_log_tracker_config_dir = self.config.get(
+            "log_tracker_config_dir", "./logs"
+        )
 
         # Define the behavior for changing noise offset type.
         def noise_offset_type_change(
@@ -406,10 +407,11 @@ class AdvancedTraining:
                 info="The name of the specific wandb session",
             )
         with gr.Group(), gr.Row():
+
             def list_log_tracker_config_files(path):
                 self.current_log_tracker_config_dir = path if not path == "" else "."
                 return list(list_files(path, exts=[".json"], all=True))
-    
+
             self.log_tracker_name = gr.Textbox(
                 label="Log tracker name",
                 value="",
@@ -418,7 +420,8 @@ class AdvancedTraining:
             )
             self.log_tracker_config = gr.Dropdown(
                 label="Log tracker config",
-                choices=[""] + list_log_tracker_config_files(self.current_log_tracker_config_dir),
+                choices=[""]
+                + list_log_tracker_config_files(self.current_log_tracker_config_dir),
                 value="",
                 info="Path to tracker config file to use for logging",
                 interactive=True,
@@ -427,7 +430,10 @@ class AdvancedTraining:
             create_refresh_button(
                 self.log_tracker_config,
                 lambda: None,
-                lambda: {"choices": [""] + list_log_tracker_config_files(self.current_log_tracker_config_dir)},
+                lambda: {
+                    "choices": [""]
+                    + list_log_tracker_config_files(self.current_log_tracker_config_dir)
+                },
                 "open_folder_small",
             )
             self.log_tracker_config_button = gr.Button(
@@ -439,7 +445,9 @@ class AdvancedTraining:
                 show_progress=False,
             )
             self.log_tracker_config.change(
-                fn=lambda path: gr.Dropdown(choices=[""] + list_log_tracker_config_files(path)),
+                fn=lambda path: gr.Dropdown(
+                    choices=[""] + list_log_tracker_config_files(path)
+                ),
                 inputs=self.log_tracker_config,
                 outputs=self.log_tracker_config,
                 show_progress=False,

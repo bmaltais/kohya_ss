@@ -50,3 +50,4 @@ dataset/**
 !dataset/**/.gitkeep
 models
 data
+config.toml
