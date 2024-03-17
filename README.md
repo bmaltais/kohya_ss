@@ -38,6 +38,9 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
     - [2024/03/16 (v23.0.12)](#20240316-v23012)
+      - [New Features \& Improvements](#new-features--improvements)
+      - [Software Updates](#software-updates)
+      - [Recommendations for Users](#recommendations-for-users)
     - [2024/03/13 (v23.0.11)](#20240313-v23011)
     - [2024/03/13 (v23.0.9)](#20240313-v2309)
     - [2024/03/12 (v23.0.8)](#20240312-v2308)
@@ -370,10 +373,32 @@ The documentation in this section will be moved to a separate document later.
 
 ### 2024/03/16 (v23.0.12)
 
-- Add support for `wandb_run_name`, `log_tracker_name` and `log_tracker_config` parameters under the advanced section.
-- Update sd-scripts to v0.8.5
-- Improve code
-- Add support for custom path defaults. Simply copy the `config example.toml` file found in the root of the repo to `config.toml` and edit the different values to your taste.
+#### New Features & Improvements
+
+- **Enhanced Logging and Tracking Capabilities**
+  - Added support for configuring advanced logging and tracking:
+    - `wandb_run_name`: Set a custom name for your Weights & Biases runs to easily identify and organize your experiments.
+    - `log_tracker_name` and `log_tracker_config`: Integrate custom logging trackers with your projects. Specify the tracker name and provide its configuration to enable detailed monitoring and logging of your runs.
+
+- **Custom Path Defaults**
+  - You can now specify custom paths more easily:
+    - Simply copy the `config example.toml` file located in the root directory of the repository to `config.toml`.
+    - Edit the `config.toml` file to adjust paths and settings according to your preferences.
+
+#### Software Updates
+
+- **sd-scripts updated to v0.8.5**
+  - **Bug Fixes:**
+    - Corrected an issue where the value of timestep embedding was incorrect during SDXL training. This fix ensures accurate training progress and results.
+    - Addressed a related inference issue with the generation script, improving the reliability of SDXL model outputs.
+  - **Note:** The exact impact of this bug is currently unknown, but it's recommended to update to v0.8.5 for anyone engaged in SDXL training to ensure optimal performance and results.
+
+- **Upgrade of `lycoris_lora` Python Module**
+  - Updated the `lycoris_lora` module to version 2.2.0.post3. This update may include bug fixes, performance improvements, and new features.
+
+#### Recommendations for Users
+
+- To benefit from the latest features and improvements, users are encouraged to update their installations and configurations accordingly.
 
 ### 2024/03/13 (v23.0.11)
 
