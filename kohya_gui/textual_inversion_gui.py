@@ -435,7 +435,9 @@ def train_model(
         output_message(msg="Init word is missing", headless=headless_bool)
         return
 
-    if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
+    if not print_only_bool and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless_bool
+    ):
         return
 
     # Get a list of all subfolders in train_data_dir
@@ -521,9 +523,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"'
     else:
-        run_cmd += fr' "{scriptdir}/sd-scripts/train_textual_inversion.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/train_textual_inversion.py"'
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
@@ -646,7 +648,9 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = (
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        )
 
         # Run the command
 
@@ -660,15 +664,16 @@ def train_model(
         #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def ti_tab(
-    headless=False,
-    default_output_dir=None,
-):
+def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    current_embedding_dir = default_output_dir if default_output_dir is not None and default_output_dir != "" else os.path.join(scriptdir, "outputs")
+    current_embedding_dir = (
+        default_output_dir
+        if default_output_dir is not None and default_output_dir != ""
+        else os.path.join(scriptdir, "outputs")
+    )
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
@@ -680,10 +685,11 @@ def ti_tab(
                     "safetensors",
                 ],
                 headless=headless,
+                config=config,
             )
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless)
+            folders = Folders(headless=headless, config=config)
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Group(elem_id="basic_tab"):
                 with gr.Row():
@@ -691,20 +697,31 @@ def ti_tab(
                     def list_embedding_files(path):
                         nonlocal current_embedding_dir
                         current_embedding_dir = path
-                        return list(list_files(path, exts=[".pt", ".ckpt", ".safetensors" ], all=True))
+                        return list(
+                            list_files(
+                                path, exts=[".pt", ".ckpt", ".safetensors"], all=True
+                            )
+                        )
 
                     weights = gr.Dropdown(
-                        label='Resume TI training (Optional. Path to existing TI embedding file to keep training)',
+                        label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
                         choices=[""] + list_embedding_files(current_embedding_dir),
                         value="",
                         interactive=True,
                         allow_custom_value=True,
                     )
-                    create_refresh_button(weights, lambda: None, lambda: {"choices": list_embedding_files(current_embedding_dir)}, "open_folder_small")
+                    create_refresh_button(
+                        weights,
+                        lambda: None,
+                        lambda: {
+                            "choices": list_embedding_files(current_embedding_dir)
+                        },
+                        "open_folder_small",
+                    )
                     weights_file_input = gr.Button(
                         "📂",
                         elem_id="open_folder_small",
-                        elem_classes=['tool'],
+                        elem_classes=["tool"],
                         visible=(not headless),
                     )
                     weights_file_input.click(
@@ -713,7 +730,9 @@ def ti_tab(
                         show_progress=False,
                     )
                     weights.change(
-                        fn=lambda path: gr.Dropdown(choices=[""] + list_embedding_files(path)),
+                        fn=lambda path: gr.Dropdown(
+                            choices=[""] + list_embedding_files(path)
+                        ),
                         inputs=weights,
                         outputs=weights,
                         show_progress=False,
@@ -762,7 +781,7 @@ def ti_tab(
                 )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
-                advanced_training = AdvancedTraining(headless=headless)
+                advanced_training = AdvancedTraining(headless=headless, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -785,11 +804,9 @@ def ti_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
             config = ConfigurationFile(headless=headless)
-
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -934,12 +951,12 @@ def ti_tab(
             show_progress=False,
         )
 
-        #config.button_save_as_config.click(
+        # config.button_save_as_config.click(
         #    save_configuration,
         #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
         #    outputs=[config.config_file_name],
         #    show_progress=False,
-        #)
+        # )
 
         button_run.click(
             train_model,

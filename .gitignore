@@ -41,9 +41,6 @@ test/ft
 # Temporary requirements
 requirements_tmp_for_setup.txt
 
-# Version specific
-0.13.3
-
 *.npz
 presets/*/user_presets/*
 inputs
@@ -51,5 +48,5 @@ outputs
 dataset/**
 !dataset/**/
 !dataset/**/.gitkeep
-# models
-# data
+models
+data

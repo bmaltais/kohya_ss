@@ -703,7 +703,7 @@ def train_model(
         #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def finetune_tab(headless=False):
+def finetune_tab(headless=False, config: dict = {}):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
@@ -711,12 +711,12 @@ def finetune_tab(headless=False):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
         with gr.Column():
-            source_model = SourceModel(headless=headless, finetuning=True)
+            source_model = SourceModel(headless=headless, finetuning=True, config=config)
             image_folder = source_model.train_data_dir
             output_name = source_model.output_name
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless, finetune=True)
+            folders = Folders(headless=headless, finetune=True, config=config)
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
@@ -771,7 +771,7 @@ def finetune_tab(headless=False):
                         placeholder="(Optional)",
                         info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
                     )
-                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
+                advanced_training = AdvancedTraining(headless=headless, finetuning=True, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -825,7 +825,7 @@ def finetune_tab(headless=False):
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless)
+            config = ConfigurationFile(headless=headless, config=config)
 
 
         with gr.Column(), gr.Group():

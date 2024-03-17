@@ -30,8 +30,7 @@ class AdvancedTraining:
         headless: bool = False,
         finetuning: bool = False,
         training_type: str = "",
-        default_vae_dir: str = "",
-        default_output_dir: str = "",
+        config:dict = {},
     ) -> None:
         """
         Initializes the AdvancedTraining class with given settings.
@@ -46,16 +45,12 @@ class AdvancedTraining:
         self.headless = headless
         self.finetuning = finetuning
         self.training_type = training_type
+        self.config = config
 
         # Determine the current directories for VAE and output, falling back to defaults if not specified.
-        current_vae_dir = (
-            default_vae_dir if default_vae_dir else os.path.join(scriptdir, "vae")
-        )
-        current_state_dir = (
-            default_output_dir
-            if default_output_dir
-            else os.path.join(scriptdir, "outputs")
-        )
+        self.current_vae_dir = self.config.get("vae_dir", "./models/vae")
+        self.current_state_dir = self.config.get("state_dir", "./outputs")
+        self.current_log_tracker_config_dir = self.config.get("log_tracker_config_dir", "./logs")
 
         # Define the behavior for changing noise offset type.
         def noise_offset_type_change(
@@ -95,21 +90,20 @@ class AdvancedTraining:
             self.prior_loss_weight = gr.Number(label="Prior loss weight", value=1.0)
 
             def list_vae_files(path):
-                nonlocal current_vae_dir
-                current_vae_dir = path
+                self.current_vae_dir = path if not path == "" else "."
                 return list(list_files(path, exts=[".ckpt", ".safetensors"], all=True))
 
             self.vae = gr.Dropdown(
-                label="VAE (Optional. path to checkpoint of vae to replace for training)",
+                label="VAE (Optional: Path to checkpoint of vae for training)",
                 interactive=True,
-                choices=[""] + list_vae_files(current_vae_dir),
+                choices=[""] + list_vae_files(self.current_vae_dir),
                 value="",
                 allow_custom_value=True,
             )
             create_refresh_button(
                 self.vae,
                 lambda: None,
-                lambda: {"choices": list_vae_files(current_vae_dir)},
+                lambda: {"choices": [""] + list_vae_files(self.current_vae_dir)},
                 "open_folder_small",
             )
             self.vae_button = gr.Button(
@@ -222,11 +216,6 @@ class AdvancedTraining:
                 label="Memory efficient attention", value=False
             )
         with gr.Row():
-            # This use_8bit_adam element should be removed in a future release as it is no longer used
-            # use_8bit_adam = gr.Checkbox(
-            #     label='Use 8bit adam', value=False, visible=False
-            # )
-            # self.xformers = gr.Checkbox(label='Use xformers', value=True, info='Use xformers for CrossAttention')
             self.xformers = gr.Dropdown(
                 label="CrossAttention",
                 choices=["none", "sdpa", "xformers"],
@@ -348,13 +337,12 @@ class AdvancedTraining:
             self.save_state = gr.Checkbox(label="Save training state", value=False)
 
             def list_state_dirs(path):
-                nonlocal current_state_dir
-                current_state_dir = path
+                self.current_state_dir = path if not path == "" else "."
                 return list(list_dirs(path))
 
             self.resume = gr.Dropdown(
                 label='Resume from saved training state (path to "last-state" state folder)',
-                choices=[""] + list_state_dirs(current_state_dir),
+                choices=[""] + list_state_dirs(self.current_state_dir),
                 value="",
                 interactive=True,
                 allow_custom_value=True,
@@ -362,7 +350,7 @@ class AdvancedTraining:
             create_refresh_button(
                 self.resume,
                 lambda: None,
-                lambda: {"choices": list_state_dirs(current_state_dir)},
+                lambda: {"choices": [""] + list_state_dirs(self.current_state_dir)},
                 "open_folder_small",
             )
             self.resume_button = gr.Button(
@@ -418,6 +406,10 @@ class AdvancedTraining:
                 info="The name of the specific wandb session",
             )
         with gr.Group(), gr.Row():
+            def list_log_tracker_config_files(path):
+                self.current_log_tracker_config_dir = path if not path == "" else "."
+                return list(list_files(path, exts=[".json"], all=True))
+    
             self.log_tracker_name = gr.Textbox(
                 label="Log tracker name",
                 value="",
@@ -426,7 +418,7 @@ class AdvancedTraining:
             )
             self.log_tracker_config = gr.Dropdown(
                 label="Log tracker config",
-                choices=[""] + list_state_dirs(current_state_dir),
+                choices=[""] + list_log_tracker_config_files(self.current_log_tracker_config_dir),
                 value="",
                 info="Path to tracker config file to use for logging",
                 interactive=True,
@@ -435,7 +427,7 @@ class AdvancedTraining:
             create_refresh_button(
                 self.log_tracker_config,
                 lambda: None,
-                lambda: {"choices": list_state_dirs(current_state_dir)},
+                lambda: {"choices": [""] + list_log_tracker_config_files(self.current_log_tracker_config_dir)},
                 "open_folder_small",
             )
             self.log_tracker_config_button = gr.Button(
@@ -447,7 +439,7 @@ class AdvancedTraining:
                 show_progress=False,
             )
             self.log_tracker_config.change(
-                fn=lambda path: gr.Dropdown(choices=[""] + list_state_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_log_tracker_config_files(path)),
                 inputs=self.log_tracker_config,
                 outputs=self.log_tracker_config,
                 show_progress=False,

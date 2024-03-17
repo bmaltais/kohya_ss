@@ -46,6 +46,7 @@ executor = CommandExecutor()
 
 PYTHON = sys.executable
 
+
 def save_configuration(
     save_as,
     file_path,
@@ -546,9 +547,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/sd-scripts/train_db.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/train_db.py"'
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
@@ -675,7 +676,9 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = (
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        )
 
         # Run the command
 
@@ -695,6 +698,7 @@ def dreambooth_tab(
     # output_dir=gr.Textbox(),
     # logging_dir=gr.Textbox(),
     headless=False,
+    config: dict = {},
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -704,10 +708,10 @@ def dreambooth_tab(
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
         with gr.Column():
-            source_model = SourceModel(headless=headless)
+            source_model = SourceModel(headless=headless, config=config)
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless)
+            folders = Folders(headless=headless, config=config)
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Group(elem_id="basic_tab"):
                 basic_training = BasicTraining(
@@ -722,7 +726,7 @@ def dreambooth_tab(
                 # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
-                advanced_training = AdvancedTraining(headless=headless)
+                advanced_training = AdvancedTraining(headless=headless, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -747,7 +751,7 @@ def dreambooth_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless)
+            config = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -891,12 +895,12 @@ def dreambooth_tab(
             show_progress=False,
         )
 
-        #config.button_save_as_config.click(
+        # config.button_save_as_config.click(
         #    save_configuration,
         #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
         #    outputs=[config.config_file_name],
         #    show_progress=False,
-        #)
+        # )
 
         button_run.click(
             train_model,

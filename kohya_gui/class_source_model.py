@@ -9,7 +9,6 @@ from .common_gui import (
     list_dirs,
     list_files,
     create_refresh_button,
-    load_kohya_ss_gui_config,
 )
 
 folder_symbol = "\U0001f4c2"  # 📂
@@ -48,18 +47,18 @@ class SourceModel:
         ],
         headless=False,
         finetuning=False,
+        config: dict = {},
     ):
         self.headless = headless
         self.save_model_as_choices = save_model_as_choices
         self.finetuning = finetuning
-
-        config = load_kohya_ss_gui_config()
+        self.config = config
 
         # Set default directories if not provided
-        self.current_models_dir = config.get(
+        self.current_models_dir = self.config.get(
             "models_dir", os.path.join(scriptdir, "models")
         )
-        self.current_train_data_dir = config.get(
+        self.current_train_data_dir = self.config.get(
             "train_data_dir", os.path.join(scriptdir, "data")
         )
 
@@ -133,7 +132,8 @@ class SourceModel:
                             if not finetuning
                             else "Image folder (containing training images)"
                         ),
-                        choices=[""] + list_train_data_dirs(self.current_train_data_dir),
+                        choices=[""]
+                        + list_train_data_dirs(self.current_train_data_dir),
                         value="",
                         interactive=True,
                         allow_custom_value=True,
@@ -141,7 +141,10 @@ class SourceModel:
                     create_refresh_button(
                         self.train_data_dir,
                         lambda: None,
-                        lambda: {"choices": [""] + list_train_data_dirs(self.current_train_data_dir)},
+                        lambda: {
+                            "choices": [""]
+                            + list_train_data_dirs(self.current_train_data_dir)
+                        },
                         "open_folder_small",
                     )
                     self.train_data_dir_folder = gr.Button(
