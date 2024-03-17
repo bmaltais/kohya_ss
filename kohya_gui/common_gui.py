@@ -9,6 +9,7 @@ import gradio as gr
 import shutil
 import sys
 import json
+import toml
 
 # Set up logging
 log = setup_logging()
@@ -54,6 +55,22 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
+
+def load_kohya_ss_gui_config() -> dict:
+    """
+    Loads the Kohya SS GUI configuration from a TOML file.
+
+    Returns:
+    dict: The configuration data loaded from the TOML file.
+    """
+    try:
+        # Attempt to load the TOML configuration file from the specified directory.
+        config = toml.load(fr"{scriptdir}/config.toml")
+    except FileNotFoundError:
+        # If the config file is not found, initialize `config` as an empty dictionary to handle missing configurations gracefully.
+        config = {}
+
+    return config
 
 def check_if_model_exist(
     output_name: str, output_dir: str, save_model_as: str, headless: bool = False

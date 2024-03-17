@@ -1,31 +1,29 @@
 import gradio as gr
 import os
-from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
+from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button, load_kohya_ss_gui_config
 
 class Folders:
     """
     A class to handle folder operations in the GUI.
     """
-    def __init__(self, finetune: bool = False, data_dir: str = None, output_dir: str = None, logging_dir: str = None, reg_data_dir: str = None, headless: bool = False):
+    def __init__(self, finetune: bool = False, headless: bool = False):
         """
         Initialize the Folders class.
 
         Parameters:
         - finetune (bool): Whether to finetune the model.
-        - data_dir (str): The directory for data.
-        - output_dir (str): The directory for output.
-        - logging_dir (str): The directory for logging.
-        - reg_data_dir (str): The directory for regularization data.
         - headless (bool): Whether to run in headless mode.
         """
         self.headless = headless
         self.finetune = finetune
+        
+        # Load kohya_ss GUI configs from config.toml if it exist
+        config = load_kohya_ss_gui_config()
 
         # Set default directories if not provided
-        self.current_data_dir = data_dir if data_dir is not None else os.path.join(scriptdir, "data")
-        self.current_output_dir = output_dir if output_dir is not None else os.path.join(scriptdir, "outputs")
-        self.current_logging_dir = logging_dir if logging_dir is not None else os.path.join(scriptdir, "logs")
-        self.current_reg_data_dir = reg_data_dir if reg_data_dir is not None else os.path.join(scriptdir, "reg")
+        self.current_output_dir = config.get('output_dir', os.path.join(scriptdir, "outputs"))
+        self.current_logging_dir = config.get('logging_dir', os.path.join(scriptdir, "logs"))
+        self.current_reg_data_dir = config.get('reg_data_dir', os.path.join(scriptdir, "reg"))
 
         # Create directories if they don't exist
         self.create_directory_if_not_exists(self.current_output_dir)
@@ -44,18 +42,6 @@ class Folders:
         if directory is not None and directory.strip() != "" and not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
-    def list_data_dirs(self, path: str) -> list:
-        """
-        List directories in the data directory.
-
-        Parameters:
-        - path (str): The path to list directories from.
-
-        Returns:
-        - list: A list of directories.
-        """
-        self.current_data_dir = path
-        return list(list_dirs(path))
 
     def list_output_dirs(self, path: str) -> list:
         """
@@ -67,7 +53,7 @@ class Folders:
         Returns:
         - list: A list of directories.
         """
-        self.current_output_dir = path
+        self.current_output_dir = path if not path == "" else "."
         return list(list_dirs(path))
 
     def list_logging_dirs(self, path: str) -> list:
@@ -80,7 +66,7 @@ class Folders:
         Returns:
         - list: A list of directories.
         """
-        self.current_logging_dir = path
+        self.current_logging_dir = path if not path == "" else "."
         return list(list_dirs(path))
 
     def list_reg_data_dirs(self, path: str) -> list:
@@ -93,7 +79,7 @@ class Folders:
         Returns:
         - list: A list of directories.
         """
-        self.current_reg_data_dir = path
+        self.current_reg_data_dir = path if not path == "" else "."
         return list(list_dirs(path))
 
     def create_folders_gui(self) -> None:
@@ -131,7 +117,7 @@ class Folders:
                 allow_custom_value=True,
             )
             # Refresh button for regularisation directory
-            create_refresh_button(self.reg_data_dir, lambda: None, lambda: {"choices": [""] + self.list_data_dirs(self.current_data_dir)}, "open_folder_small")
+            create_refresh_button(self.reg_data_dir, lambda: None, lambda: {"choices": [""] + self.list_reg_data_dirs(self.current_reg_data_dir)}, "open_folder_small")
             # Regularisation directory button
             self.reg_data_dir_folder = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
@@ -173,7 +159,7 @@ class Folders:
             )
             # Change event for regularisation directory dropdown
             self.reg_data_dir.change(
-                fn=lambda path: gr.Dropdown(choices=[""] + self.list_data_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + self.list_reg_data_dirs(path)),
                 inputs=self.reg_data_dir,
                 outputs=self.reg_data_dir,
                 show_progress=False,

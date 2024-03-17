@@ -373,6 +373,7 @@ The documentation in this section will be moved to a separate document later.
 - Add support for `wandb_run_name`, `log_tracker_name` and `log_tracker_config` parameters under the advanced section.
 - Update sd-scripts to v0.8.5
 - Improve code
+- Add support for custom path defaults. Simply copy the `config example.toml` file found in the root of the repo to `config.toml` and edit the different values to your taste.
 
 ### 2024/03/13 (v23.0.11)
 

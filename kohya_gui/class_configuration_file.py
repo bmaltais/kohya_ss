@@ -1,7 +1,11 @@
 import gradio as gr
 import os
+import toml
+from .common_gui import list_files, scriptdir, create_refresh_button, load_kohya_ss_gui_config
+from .custom_logging import setup_logging
 
-from .common_gui import list_files, scriptdir, create_refresh_button
+# Set up logging
+log = setup_logging()
 
 
 class ConfigurationFile:
@@ -19,11 +23,11 @@ class ConfigurationFile:
         """
 
         self.headless = headless
+        
+        config = load_kohya_ss_gui_config()
 
         # Sets the directory for storing configuration files, defaults to a 'presets' folder within the script directory.
-        self.current_config_dir = (
-            config_dir if config_dir is not None else os.path.join(scriptdir, "presets")
-        )
+        self.current_config_dir = config.get('config_dir', os.path.join(scriptdir, "presets"))
 
         # Initialize the GUI components for configuration.
         self.create_config_gui()
@@ -38,7 +42,7 @@ class ConfigurationFile:
         Returns:
         - list: A list of directories.
         """
-        self.current_config_dir = path
+        self.current_config_dir = path if not path == "" else "."
         # Lists all .json files in the current configuration directory, used for populating dropdown choices.
         return list(list_files(self.current_config_dir, exts=[".json"], all=True))
 
