@@ -137,6 +137,9 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -268,6 +271,9 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -392,6 +398,9 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -412,6 +421,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
     ):
@@ -535,6 +545,8 @@ def train_model(
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
         logging_dir=logging_dir,
+        log_tracker_name=log_tracker_name,
+        log_tracker_config=log_tracker_config,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
         lr_scheduler_num_cycles=lr_scheduler_num_cycles,
@@ -588,6 +600,7 @@ def train_model(
         vae=vae,
         vae_batch_size=vae_batch_size,
         wandb_api_key=wandb_api_key,
+        wandb_run_name=wandb_run_name,
         xformers=xformers,
     )
     run_cmd += f' --token_string="{token_string}"'
@@ -639,12 +652,12 @@ def train_model(
 
         executor.execute_command(run_cmd=run_cmd, env=env)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(fr"{output_dir}/{output_name}")
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(fr"{output_dir}/{output_name}")
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(output_dir, v2, v_parameterization, output_name)
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def ti_tab(
@@ -700,7 +713,7 @@ def ti_tab(
                         show_progress=False,
                     )
                     weights.change(
-                        fn=lambda path: gr.Dropdown().update(choices=[""] + list_embedding_files(path)),
+                        fn=lambda path: gr.Dropdown(choices=[""] + list_embedding_files(path)),
                         inputs=weights,
                         outputs=weights,
                         show_progress=False,
@@ -775,7 +788,7 @@ def ti_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
+            config = ConfigurationFile(headless=headless)
 
 
         with gr.Column(), gr.Group():
@@ -891,6 +904,9 @@ def ti_tab(
             advanced_training.save_last_n_steps_state,
             advanced_training.use_wandb,
             advanced_training.wandb_api_key,
+            advanced_training.wandb_run_name,
+            advanced_training.log_tracker_name,
+            advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             advanced_training.min_timestep,
             advanced_training.max_timestep,

@@ -170,6 +170,9 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -337,6 +340,9 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -536,6 +542,9 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -565,6 +574,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
         lora_network_weights=lora_network_weights,
@@ -886,6 +896,8 @@ def train_model(
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
         logging_dir=logging_dir,
+        log_tracker_name=log_tracker_name,
+        log_tracker_config=log_tracker_config,
         lora_network_weights=lora_network_weights,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
@@ -952,6 +964,7 @@ def train_model(
         vae=vae,
         vae_batch_size=vae_batch_size,
         wandb_api_key=wandb_api_key,
+        wandb_run_name=wandb_run_name,
         weighted_captions=weighted_captions,
         xformers=xformers,
     )
@@ -1755,7 +1768,7 @@ def lora_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion('Configuration', open=False):
-            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
+            config = ConfigurationFile(headless=headless)
 
 
         with gr.Column(), gr.Group():
@@ -1897,6 +1910,9 @@ def lora_tab(
             advanced_training.save_last_n_steps_state,
             advanced_training.use_wandb,
             advanced_training.wandb_api_key,
+            advanced_training.wandb_run_name,
+            advanced_training.log_tracker_name,
+            advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             scale_weight_norms,
             network_dropout,
@@ -1972,13 +1988,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(
-            train_data_dir=source_model.train_data_dir,
-            reg_data_dir=folders.reg_data_dir,
-            output_dir=folders.output_dir,
-            logging_dir=folders.logging_dir,
-            headless=headless
-        )
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")

@@ -1,6 +1,6 @@
 # Kohya's GUI
 
-This repository mostly provides a Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts)... but support for Linux OS is also provided through community contributions. Macos is not great at the moment... but might work if the wind blow in the right direction...
+This repository primarily provides a Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). However, support for Linux OS is also offered through community contributions. macOS support is not optimal at the moment but might work if the conditions are favorable.
 
 The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
 
@@ -37,6 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
+    - [2024/03/16 (v23.0.12)](#20240316-v23012)
     - [2024/03/13 (v23.0.11)](#20240313-v23011)
     - [2024/03/13 (v23.0.9)](#20240313-v2309)
     - [2024/03/12 (v23.0.8)](#20240312-v2308)
@@ -70,11 +71,11 @@ To install the necessary dependencies on a Windows system, follow these steps:
 1. Install [Python 3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe).
    - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
 
-2. Install [CUDA 11.8 toolkit](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64)
+2. Install [CUDA 11.8 toolkit](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64).
 
-2. Install [Git](https://git-scm.com/download/win).
+3. Install [Git](https://git-scm.com/download/win).
 
-3. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+4. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
 #### Setup Windows
 
@@ -100,13 +101,13 @@ To set up the project, follow these steps:
    .\setup.bat
    ```
 
-   During the accelerate config step use the default values as proposed during the configuration unless you know your hardware demand otherwise. The amount of VRAM on your GPU does not have an impact on the values used.
+   During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
 
 #### Optional: CUDNN 8.9.6.50
 
 The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
 
-1. Run .\setup.bat and select `2. (Optional) Install cudnn files (if you want to use latest supported cudnn version)`
+1. Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
 
 ### Linux and macOS
 
@@ -120,7 +121,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the CUDA 11.8 Tolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Linux&target_arch=x86_64).
+- Install the CUDA 11.8 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
 
@@ -188,13 +189,13 @@ To install the necessary components for Runpod and run kohya_ss, follow these st
    ./setup-runpod.sh
    ```
 
-5. Run the gui with:
+5. Run the GUI with:
 
    ```shell
    ./gui.sh --share --headless
    ```
 
-   or with this if you expose 7860 directly via the runpod configuration
+   or with this if you expose 7860 directly via the runpod configuration:
 
    ```shell
    ./gui.sh --listen=0.0.0.0 --headless
@@ -204,13 +205,13 @@ To install the necessary components for Runpod and run kohya_ss, follow these st
 
 #### Pre-built Runpod template
 
-To run from a pre-built Runpod template you can:
+To run from a pre-built Runpod template, you can:
 
-1. Open the Runpod template by clicking on <https://runpod.io/gsc?template=ya6013lj5a&ref=w18gds2n>
+1. Open the Runpod template by clicking on <https://runpod.io/gsc?template=ya6013lj5a&ref=w18gds2n>.
 
-2. Deploy the template on the desired host
+2. Deploy the template on the desired host.
 
-3. Once deployed connect to the Runpod on HTTP 3010 to connect to kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
+3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
 
 ### Docker
 
@@ -235,13 +236,13 @@ If you prefer to use Docker, follow the instructions below:
    - All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
    - The file picker feature is not functional. You need to manually set the folder path and config file path.
    - Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
-   - This dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code. To update the system, run update scripts outside of Docker and rebuild using `docker compose down && docker compose up -d --build`.
+   - This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code. To update the system, run update scripts outside of Docker and rebuild using `docker compose down && docker compose up -d --build`.
 
    If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
 #### ashleykleynhans runpod docker builds
 
-You may want to use the following Dockerfile repos to build the images:
+You may want to use the following Dockerfile repositories to build the images:
 
 - Standalone Kohya_ss template: <https://github.com/ashleykleynhans/kohya-docker>
 - Auto1111 + Kohya_ss GUI template: <https://github.com/ashleykleynhans/stable-diffusion-docker>
@@ -270,9 +271,7 @@ If a new release becomes available, you can upgrade your repository by running t
 
 To upgrade your installation on Linux or macOS, follow these steps:
 
-1. Open a terminal and navigate to the root
-
- directory of the project.
+1. Open a terminal and navigate to the root directory of the project.
 
 2. Pull the latest changes from the repository:
 
@@ -349,7 +348,7 @@ Lines beginning with `#` are comments. You can specify options for the generated
 - `--l`: Specifies the CFG scale of the generated image.
 - `--s`: Specifies the number of steps in the generation.
 
-The prompt weighting such as `( )` and `[ ]` are working.
+The prompt weighting such as `( )` and `[ ]` is working.
 
 ## Troubleshooting
 
@@ -369,15 +368,22 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
+### 2024/03/16 (v23.0.12)
+
+- Add support for `wandb_run_name`, `log_tracker_name` and `log_tracker_config` parameters under the advanced section.
+- Update sd-scripts to v0.8.5
+- Improve code
+- Add support for custom path defaults. Simply copy the `config example.toml` file found in the root of the repo to `config.toml` and edit the different values to your taste.
+
 ### 2024/03/13 (v23.0.11)
 
-- Increase icon size
-- More setup fixes
+- Increase icon size.
+- More setup fixes.
 
 ### 2024/03/13 (v23.0.9)
 
-- Reworked how setup can be run to improve Stability Matrix support
-- Add support for huggingface based vea path
+- Reworked how setup can be run to improve Stability Matrix support.
+- Added support for huggingface-based vea path.
 
 ### 2024/03/12 (v23.0.8)
 
@@ -385,38 +391,38 @@ The documentation in this section will be moved to a separate document later.
 
 ### 2024/03/12 (v23.0.7)
 
-- Fix minor issues related to functions and file path
+- Fixed minor issues related to functions and file paths.
 
 ### 2024/03/11 (v23.0.6)
 
-- Fix issue with PYTHON path that have "spaces" in them
+- Fixed an issue with PYTHON paths that have "spaces" in them.
 
 ### 2024/03/11 (v23.0.5)
 
-- Update python module verification
-- Remove cudnn module installation in windows
+- Updated python module verification.
+- Removed cudnn module installation in Windows.
 
 ### 2024/03/10 (v23.0.4)
 
-- Update bitsandbytes to 0.43.0
-- Add packaging to runpod setup
+- Updated bitsandbytes to 0.43.0.
+- Added packaging to runpod setup.
 
 ### 2024/03/10 (v23.0.3)
 
-- Fix bug with setup
-- Enforce proper python version before running the GUI to prevent issues with execution of the GUI.
+- Fixed a bug with setup.
+- Enforced proper python version before running the GUI to prevent issues with execution of the GUI.
 
 ### 2024/03/10 (v23.0.2)
 
-- Improve validation of path provided by users before running training
+- Improved validation of the path provided by users before running training.
 
 ### 2024/03/09 (v23.0.1)
 
-- Update bitsandbytes module to 0.43.0 as it provide native windows support
-- Minor fixes to code
+- Updated bitsandbytes module to 0.43.0 as it provides native Windows support.
+- Minor fixes to the code.
 
 ### 2024/03/02 (v23.0.0)
 
-- Use sd-scripts release [0.8.4](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.8.4) post commit [fccbee27277d65a8dcbdeeb81787ed4116b92e0b](https://github.com/kohya-ss/sd-scripts/commit/fccbee27277d65a8dcbdeeb81787ed4116b92e0b)
-- Major code refactoring thanks to @wkpark , This will make updating sd-script cleaner by keeping sd-scripts files separate from the GUI files. This will also make configuration more streamlined with fewer tabs and more accordion elements. Hope you like the new style.
-- This new release is implementing a significant structure change, moving all of the sd-scripts written by kohya under a folder called sd-scripts in the root of this project. This folder is a submodule that will be populated during setup or gui execution.
+- Used sd-scripts release [0.8.4](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.8.4) post commit [fccbee27277d65a8dcbdeeb81787ed4116b92e0b](https://github.com/kohya-ss/sd-scripts/commit/fccbee27277d65a8dcbdeeb81787ed4116b92e0b).
+- Major code refactoring thanks to @wkpark. This will make updating sd-scripts cleaner by keeping sd-scripts files separate from the GUI files. This will also make configuration more streamlined with fewer tabs and more accordion elements. Hope you like the new style.
+- This new release is implementing a significant structure change, moving all of the sd-scripts written by kohya under a folder called sd-scripts in the root of this project. This folder is a submodule that will be populated during setup or GUI execution.
