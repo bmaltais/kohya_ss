@@ -25,14 +25,27 @@ class KohyaSSGUIConfig:
         """
         try:
             # Attempt to load the TOML configuration file from the specified directory.
-            config = toml.load(fr"{scriptdir}/config.toml")
+            config = toml.load(f"{scriptdir}/config.toml")
+            log.debug(f"Loaded configuration from {scriptdir}/config.toml")
         except FileNotFoundError:
             # If the config file is not found, initialize `config` as an empty dictionary to handle missing configurations gracefully.
             config = {}
+            log.debug(f"No configuration file found at {scriptdir}/config.toml. Initializing empty configuration.")
 
         return config
 
-    def get(self, key, default=None):
+    def save_config(self, config: dict):
+        """
+        Saves the Kohya SS GUI configuration to a TOML file.
+
+        Parameters:
+        - config (dict): The configuration data to save.
+        """
+        # Write the configuration data to the TOML file
+        with open(f"{scriptdir}/config.toml", "w") as f:
+            toml.dump(config, f)
+
+    def get(self, key: str, default=None):
         """
         Retrieves the value of a specified key from the configuration data.
 

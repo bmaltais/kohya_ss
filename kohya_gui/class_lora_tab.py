@@ -9,12 +9,6 @@ from .extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
 from .extract_lora_from_dylora_gui import gradio_extract_dylora_tab
 from .merge_lycoris_gui import gradio_merge_lycoris_tab
 
-# Deprecated code
-# from .dataset_balancing_gui import gradio_dataset_balancing_tab
-# from .dreambooth_folder_creation_gui import (
-#     gradio_dreambooth_folder_creation_tab,
-# )
-
 
 class LoRATools:
     def __init__(self, headless: bool = False):

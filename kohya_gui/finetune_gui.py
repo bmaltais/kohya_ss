@@ -825,7 +825,7 @@ def finetune_tab(headless=False, config: dict = {}):
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, config=config)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
 
         with gr.Column(), gr.Group():
@@ -952,12 +952,12 @@ def finetune_tab(headless=False, config: dict = {}):
             advanced_training.max_timestep,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -968,12 +968,12 @@ def finetune_tab(headless=False, config: dict = {}):
         #     show_progress=False,
         # )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -986,7 +986,7 @@ def finetune_tab(headless=False, config: dict = {}):
 
         training_preset.input(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
             + settings_list
             + [training_preset],
             outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset],
@@ -1007,10 +1007,10 @@ def finetune_tab(headless=False, config: dict = {}):
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 

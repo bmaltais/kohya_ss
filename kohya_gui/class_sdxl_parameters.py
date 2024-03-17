@@ -1,15 +1,18 @@
 import gradio as gr
 
-### SDXL Parameters class
 class SDXLParameters:
     def __init__(
-        self, sdxl_checkbox, show_sdxl_cache_text_encoder_outputs: bool = True
+        self,
+        sdxl_checkbox: gr.Checkbox,
+        show_sdxl_cache_text_encoder_outputs: bool = True,
     ):
         self.sdxl_checkbox = sdxl_checkbox
         self.show_sdxl_cache_text_encoder_outputs = (
             show_sdxl_cache_text_encoder_outputs
         )
+        self.initialize_accordion()
 
+    def initialize_accordion(self):
         with gr.Accordion(
             visible=False, open=True, label='SDXL Specific Parameters'
         ) as self.sdxl_row:
@@ -18,7 +21,7 @@ class SDXLParameters:
                     label='Cache text encoder outputs',
                     info='Cache the outputs of the text encoders. This option is useful to reduce the GPU memory usage. This option cannot be used with options for shuffling or dropping the captions.',
                     value=False,
-                    visible=show_sdxl_cache_text_encoder_outputs,
+                    visible=self.show_sdxl_cache_text_encoder_outputs,
                 )
                 self.sdxl_no_half_vae = gr.Checkbox(
                     label='No half VAE',

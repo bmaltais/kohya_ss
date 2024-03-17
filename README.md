@@ -30,6 +30,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Starting GUI Service](#starting-gui-service)
     - [Launching the GUI on Windows](#launching-the-gui-on-windows)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+  - [Custom Path Defaults](#custom-path-defaults)
   - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
   - [Troubleshooting](#troubleshooting)
@@ -323,6 +324,13 @@ To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root
 ```bash
 gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
+
+## Custom Path Defaults
+
+You can now specify custom paths more easily:
+
+- Simply copy the `config example.toml` file located in the root directory of the repository to `config.toml`.
+- Edit the `config.toml` file to adjust paths and settings according to your preferences.
 
 ## LoRA
 

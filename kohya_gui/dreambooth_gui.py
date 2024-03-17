@@ -751,7 +751,7 @@ def dreambooth_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, config=config)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -874,24 +874,24 @@ def dreambooth_tab(
             advanced_training.max_timestep,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
+            inputs=[dummy_db_true, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 

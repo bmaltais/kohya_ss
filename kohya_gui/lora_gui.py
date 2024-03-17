@@ -1033,11 +1033,10 @@ def lora_tab(
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab("Training"), gr.Column(variant="compact"):
+    with gr.Tab("Training"), gr.Column(variant="compact") as tab:
         gr.Markdown(
             "Train a custom model using kohya train network LoRA python code..."
         )
-
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -1778,7 +1777,7 @@ def lora_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, config=config)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -1937,23 +1936,23 @@ def lora_tab(
             advanced_training.debiased_estimation_loss,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
+            outputs=[configuration.config_file_name]
             + settings_list
             + [training_preset, convolution_row],
             show_progress=False,
         )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
+            outputs=[configuration.config_file_name]
             + settings_list
             + [training_preset, convolution_row],
             show_progress=False,
@@ -1961,7 +1960,7 @@ def lora_tab(
 
         training_preset.input(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
             + settings_list
             + [training_preset],
             outputs=[gr.Textbox(visible=False)]
@@ -1970,10 +1969,10 @@ def lora_tab(
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 
