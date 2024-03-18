@@ -17,7 +17,7 @@ def caption_images(
     general_threshold,
     character_threshold,
     replace_underscores,
-    model,
+    repo_id,
     recursive,
     max_data_loader_n_workers,
     debug,
@@ -46,7 +46,7 @@ def caption_images(
     run_cmd += f' --character_threshold={character_threshold}'
     run_cmd += f' --caption_extension="{caption_extension}"'
     run_cmd += f' --caption_separator="{caption_separator}"'
-    run_cmd += f' --model="{model}"'
+    run_cmd += f' --repo_id="{repo_id}"'
     run_cmd += (
         f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
     )
@@ -201,21 +201,25 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
 
         # Model Settings
         with gr.Row():
-            model = gr.Dropdown(
-                label='Model',
+            repo_id = gr.Dropdown(
+                label='Repo ID',
                 choices=[
                     'SmilingWolf/wd-v1-4-convnext-tagger-v2',
                     'SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
                     'SmilingWolf/wd-v1-4-vit-tagger-v2',
                     'SmilingWolf/wd-v1-4-swinv2-tagger-v2',
                     'SmilingWolf/wd-v1-4-moat-tagger-v2',
+                    # 'SmilingWolf/wd-swinv2-tagger-v3',
+                    # 'SmilingWolf/wd-vit-tagger-v3',
+                    # 'SmilingWolf/wd-convnext-tagger-v3',
                 ],
                 value='SmilingWolf/wd-v1-4-convnextv2-tagger-v2',
+                show_label="Repo id for wd14 tagger on Hugging Face"
             )
 
             force_download = gr.Checkbox(
                 label='Force model re-download',
-                value=False,
+                value=True,
                 info='Useful to force model re download when switching to onnx',
             )
 
@@ -257,7 +261,7 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 general_threshold,
                 character_threshold,
                 replace_underscores,
-                model,
+                repo_id,
                 recursive,
                 max_data_loader_n_workers,
                 debug,
