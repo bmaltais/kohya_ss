@@ -210,7 +210,7 @@ def gradio_merge_lycoris_tab(headless=False):
             )
 
         with gr.Row():
-            is_sdxl = gr.Checkbox(label='is sdxl', value=False, interactive=True)
+            is_sdxl = gr.Checkbox(label='is SDXL', value=False, interactive=True)
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
 
         merge_button = gr.Button('Merge model')

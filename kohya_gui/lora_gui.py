@@ -858,6 +858,7 @@ def train_model(
     text_encoder_lr_float = float(text_encoder_lr)
     unet_lr_float = float(unet_lr)
 
+
     # Determine the training configuration based on learning rate values
     if text_encoder_lr_float == 0 and unet_lr_float == 0:
         if float(learning_rate) == 0:
@@ -1218,7 +1219,7 @@ def lora_tab(
                     decompose_both = gr.Checkbox(
                         value=False,
                         label="LoKr decompose both",
-                        info=" Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
+                        info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
                         visible=False,
                     )
                     train_on_input = gr.Checkbox(

@@ -183,7 +183,7 @@ def gradio_resize_lora_tab(headless=False):
             )
         with gr.Row():
 
-            verbose = gr.Checkbox(label='Verbose', value=True)
+            verbose = gr.Checkbox(label='Verbose logging', value=True)
             save_precision = gr.Radio(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
