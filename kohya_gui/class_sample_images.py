@@ -25,14 +25,25 @@ def run_cmd_sample(
     sample_prompts,
     output_dir,
 ):
-    output_dir = os.path.join(output_dir, 'sample')
+    """
+    Generates a command string for sampling images during training.
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    Args:
+        sample_every_n_steps (int): The number of steps after which to sample images.
+        sample_every_n_epochs (int): The number of epochs after which to sample images.
+        sample_sampler (str): The sampler to use for image sampling.
+        sample_prompts (str): The prompts to use for image sampling.
+        output_dir (str): The directory where the output images will be saved.
+
+    Returns:
+        str: The command string for sampling images.
+    """
+    output_dir = os.path.join(output_dir, 'sample')
+    os.makedirs(output_dir, exist_ok=True)
 
     run_cmd = ''
 
-    if sample_every_n_epochs == sample_every_n_steps == 0:
+    if sample_every_n_epochs == sample_every_n_steps == '0':
         return run_cmd
 
     # Create the prompt file and get its path
@@ -44,20 +55,32 @@ def run_cmd_sample(
     run_cmd += f' --sample_sampler={sample_sampler}'
     run_cmd += f' --sample_prompts="{sample_prompts_path}"'
 
-    if sample_every_n_epochs != 0:
-        run_cmd += f' --sample_every_n_epochs="{sample_every_n_epochs}"'
+    if sample_every_n_epochs != '0':
+        run_cmd += f' --sample_every_n_epochs={sample_every_n_epochs}'
 
-    if sample_every_n_steps != 0:
-        run_cmd += f' --sample_every_n_steps="{sample_every_n_steps}"'
+    if sample_every_n_steps != '0':
+        run_cmd += f' --sample_every_n_steps={sample_every_n_steps}'
 
     return run_cmd
 
 
 class SampleImages:
+    """
+    A class for managing the Gradio interface for sampling images during training.
+    """
+
     def __init__(
         self,
     ):
-        # with gr.Accordion('Sample images config', open=False):
+        """
+        Initializes the SampleImages class.
+        """
+        self.initialize_accordion()
+
+    def initialize_accordion(self):
+        """
+        Initializes the accordion for the Gradio interface.
+        """
         with gr.Row():
             self.sample_every_n_steps = gr.Number(
                 label='Sample every n steps',

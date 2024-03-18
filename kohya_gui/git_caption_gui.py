@@ -104,19 +104,19 @@ def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
         with gr.Row():
             caption_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extention for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file (e.g., .caption, .txt)',
                 value='.txt',
                 interactive=True,
             )
 
             prefix = gr.Textbox(
-                label='Prefix to add to BLIP caption',
+                label='Prefix to add to GIT caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
 
             postfix = gr.Textbox(
-                label='Postfix to add to BLIP caption',
+                label='Postfix to add to GIT caption',
                 placeholder='(Optional)',
                 interactive=True,
             )
@@ -156,7 +156,7 @@ def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
         )
 
         train_data_dir.change(
-            fn=lambda path: gr.Dropdown().update(choices=[""] + list_train_dirs(path)),
+            fn=lambda path: gr.Dropdown(choices=[""] + list_train_dirs(path)),
             inputs=train_data_dir,
             outputs=train_data_dir,
             show_progress=False,

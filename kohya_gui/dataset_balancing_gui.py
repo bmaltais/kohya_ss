@@ -150,7 +150,7 @@ def gradio_dataset_balancing_tab(headless=False):
                 label='Training steps per concept per epoch',
             )
             select_dataset_folder_input.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_dataset_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_dataset_dirs(path)),
                 inputs=select_dataset_folder_input,
                 outputs=select_dataset_folder_input,
                 show_progress=False,

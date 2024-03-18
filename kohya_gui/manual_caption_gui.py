@@ -303,7 +303,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
             load_images_button = gr.Button('Load', elem_id='open_folder')
             caption_ext = gr.Textbox(
                 label='Caption file extension',
-                placeholder='Extension for caption file. eg: .caption, .txt',
+                placeholder='Extension for caption file (e.g., .caption, .txt)',
                 value='.txt',
                 interactive=True,
             )
@@ -312,7 +312,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
             )
 
             images_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_images_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_images_dirs(path)),
                 inputs=images_dir,
                 outputs=images_dir,
                 show_progress=False,

@@ -52,7 +52,8 @@ button_stop_training = gr.Button("Stop training")
 document_symbol = "\U0001F4C4"  # 📄
 
 
-presets_dir = fr'{scriptdir}/presets'
+presets_dir = rf"{scriptdir}/presets"
+
 
 def save_configuration(
     save_as,
@@ -170,6 +171,9 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -337,6 +341,9 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -362,7 +369,7 @@ def open_configuration(
     if apply_preset:
         if training_preset != "none":
             log.info(f"Applying preset {training_preset}...")
-            file_path = fr'{presets_dir}/lora/{training_preset}.json'
+            file_path = rf"{presets_dir}/lora/{training_preset}.json"
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
@@ -536,6 +543,9 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -565,6 +575,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
         lora_network_weights=lora_network_weights,
@@ -702,9 +713,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train_network.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train_network.py"'
     else:
-        run_cmd += fr' "{scriptdir}/sd-scripts/train_network.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/train_network.py"'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
@@ -834,18 +845,19 @@ def train_model(
     # Convert learning rates to float once and store the result for re-use
     if text_encoder_lr is None:
         output_message(
-            msg="Please input valid Text Encoder learning rate (between 0 and 1)", headless=headless_bool
+            msg="Please input valid Text Encoder learning rate (between 0 and 1)",
+            headless=headless_bool,
         )
         return
     if unet_lr is None:
         output_message(
-            msg="Please input valid Unet learning rate (between 0 and 1)", headless=headless_bool
+            msg="Please input valid Unet learning rate (between 0 and 1)",
+            headless=headless_bool,
         )
         return
     text_encoder_lr_float = float(text_encoder_lr)
     unet_lr_float = float(unet_lr)
-    
-    
+
 
     # Determine the training configuration based on learning rate values
     if text_encoder_lr_float == 0 and unet_lr_float == 0:
@@ -867,7 +879,9 @@ def train_model(
         bucket_reso_steps=bucket_reso_steps,
         cache_latents=cache_latents,
         cache_latents_to_disk=cache_latents_to_disk,
-        cache_text_encoder_outputs=True if sdxl and sdxl_cache_text_encoder_outputs else None,
+        cache_text_encoder_outputs=(
+            True if sdxl and sdxl_cache_text_encoder_outputs else None
+        ),
         caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
         caption_dropout_rate=caption_dropout_rate,
         caption_extension=caption_extension,
@@ -886,6 +900,8 @@ def train_model(
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
         logging_dir=logging_dir,
+        log_tracker_name=log_tracker_name,
+        log_tracker_config=log_tracker_config,
         lora_network_weights=lora_network_weights,
         lr_scheduler=lr_scheduler,
         lr_scheduler_args=lr_scheduler_args,
@@ -952,6 +968,7 @@ def train_model(
         vae=vae,
         vae_batch_size=vae_batch_size,
         wandb_api_key=wandb_api_key,
+        wandb_run_name=wandb_run_name,
         weighted_captions=weighted_captions,
         xformers=xformers,
     )
@@ -988,7 +1005,9 @@ def train_model(
 
         log.info(run_cmd)
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = (
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        )
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
@@ -1009,16 +1028,16 @@ def lora_tab(
     output_dir_input=gr.Dropdown(),
     logging_dir_input=gr.Dropdown(),
     headless=False,
+    config: dict = {},
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
-    with gr.Tab("Training"), gr.Column(variant="compact"):
+    with gr.Tab("Training"), gr.Column(variant="compact") as tab:
         gr.Markdown(
             "Train a custom model using kohya train network LoRA python code..."
         )
-
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -1026,16 +1045,17 @@ def lora_tab(
                     "safetensors",
                 ],
                 headless=headless,
+                config=config,
             )
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless)
+            folders = Folders(headless=headless, config=config)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
 
             def list_presets(path):
                 json_files = []
-                
+
                 # Insert an empty string at the beginning
                 json_files.insert(0, "none")
 
@@ -1054,9 +1074,9 @@ def lora_tab(
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=[""] + list_presets(fr"{presets_dir}/lora"),
+                choices=[""] + list_presets(rf"{presets_dir}/lora"),
                 elem_id="myDropdown",
-                value="none"
+                value="none",
             )
 
             with gr.Group(elem_id="basic_tab"):
@@ -1091,7 +1111,7 @@ def lora_tab(
                         ],
                         value="full",
                         visible=False,
-                        interactive=True
+                        interactive=True,
                         # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                     )
                     with gr.Group():
@@ -1133,7 +1153,7 @@ def lora_tab(
                         minimum=0,
                         maximum=1,
                     )
-                    
+
                     unet_lr = gr.Number(
                         label="Unet learning rate",
                         value="0.0001",
@@ -1199,7 +1219,7 @@ def lora_tab(
                     decompose_both = gr.Checkbox(
                         value=False,
                         label="LoKr decompose both",
-                        info=" Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
+                        info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
                         visible=False,
                     )
                     train_on_input = gr.Checkbox(
@@ -1423,28 +1443,32 @@ def lora_tab(
                             "conv_dim": {
                                 "gr_type": gr.Slider,
                                 "update_params": {
-                                    "maximum": 100000
-                                    if LoRA_type
-                                    in {
-                                        "LyCORIS/LoHa",
-                                        "LyCORIS/LoKr",
-                                        "LyCORIS/Diag-OFT",
-                                    }
-                                    else 512,
+                                    "maximum": (
+                                        100000
+                                        if LoRA_type
+                                        in {
+                                            "LyCORIS/LoHa",
+                                            "LyCORIS/LoKr",
+                                            "LyCORIS/Diag-OFT",
+                                        }
+                                        else 512
+                                    ),
                                     "value": conv_dim,  # if conv_dim > 512 else conv_dim,
                                 },
                             },
                             "network_dim": {
                                 "gr_type": gr.Slider,
                                 "update_params": {
-                                    "maximum": 100000
-                                    if LoRA_type
-                                    in {
-                                        "LyCORIS/LoHa",
-                                        "LyCORIS/LoKr",
-                                        "LyCORIS/Diag-OFT",
-                                    }
-                                    else 512,
+                                    "maximum": (
+                                        100000
+                                        if LoRA_type
+                                        in {
+                                            "LyCORIS/LoHa",
+                                            "LyCORIS/LoKr",
+                                            "LyCORIS/Diag-OFT",
+                                        }
+                                        else 512
+                                    ),
                                     "value": network_dim,  # if network_dim > 512 else network_dim,
                                 },
                             },
@@ -1693,7 +1717,7 @@ def lora_tab(
                                 info="Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.",
                             )
                 advanced_training = AdvancedTraining(
-                    headless=headless, training_type="lora"
+                    headless=headless, training_type="lora", config=config
                 )
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -1752,11 +1776,9 @@ def lora_tab(
             )
             gradio_dataset_balancing_tab(headless=headless)
 
-
         # Setup Configuration Files Gradio
-        with gr.Accordion('Configuration', open=False):
-            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
-
+        with gr.Accordion("Configuration", open=False):
+            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -1897,6 +1919,9 @@ def lora_tab(
             advanced_training.save_last_n_steps_state,
             advanced_training.use_wandb,
             advanced_training.wandb_api_key,
+            advanced_training.wandb_run_name,
+            advanced_training.log_tracker_name,
+            advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             scale_weight_norms,
             network_dropout,
@@ -1912,23 +1937,23 @@ def lora_tab(
             advanced_training.debiased_estimation_loss,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
+            outputs=[configuration.config_file_name]
             + settings_list
             + [training_preset, convolution_row],
             show_progress=False,
         )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name]
+            outputs=[configuration.config_file_name]
             + settings_list
             + [training_preset, convolution_row],
             show_progress=False,
@@ -1936,26 +1961,28 @@ def lora_tab(
 
         training_preset.input(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset, convolution_row],
+            outputs=[gr.Textbox(visible=False)]
+            + settings_list
+            + [training_preset, convolution_row],
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 
-        #config.button_save_as_config.click(
+        # config.button_save_as_config.click(
         #    save_configuration,
         #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
         #    outputs=[config.config_file_name],
         #    show_progress=False,
-        #)
+        # )
 
         button_run.click(
             train_model,
@@ -1972,19 +1999,15 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(
-            train_data_dir=source_model.train_data_dir,
-            reg_data_dir=folders.reg_data_dir,
-            output_dir=folders.output_dir,
-            logging_dir=folders.logging_dir,
-            headless=headless
-        )
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
-        if os.path.exists(fr"{scriptdir}/docs/LoRA/top_level.md"):
+        if os.path.exists(rf"{scriptdir}/docs/LoRA/top_level.md"):
             with open(
-                os.path.join(fr"{scriptdir}/docs/LoRA/top_level.md"), "r", encoding="utf8"
+                os.path.join(rf"{scriptdir}/docs/LoRA/top_level.md"),
+                "r",
+                encoding="utf8",
             ) as file:
                 guides_top_level = file.read() + "\n"
             gr.Markdown(guides_top_level)

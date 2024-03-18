@@ -46,6 +46,7 @@ executor = CommandExecutor()
 
 PYTHON = sys.executable
 
+
 def save_configuration(
     save_as,
     file_path,
@@ -136,6 +137,9 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -264,6 +268,9 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -387,6 +394,9 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
@@ -399,6 +409,8 @@ def train_model(
 
     headless_bool = True if headless.get("label") == "True" else False
 
+    # This function validates files or folder paths. Simply add new variables containing file of folder path
+    # to validate below
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
@@ -406,6 +418,7 @@ def train_model(
         reg_data_dir=reg_data_dir,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
     ):
@@ -534,9 +547,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/sd-scripts/train_db.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/train_db.py"'
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
@@ -561,6 +574,8 @@ def train_model(
         "keep_tokens": keep_tokens,
         "learning_rate": learning_rate,
         "logging_dir": logging_dir,
+        "log_tracker_name": log_tracker_name,
+        "log_tracker_config": log_tracker_config,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": lr_scheduler_args,
         "lr_scheduler_num_cycles": lr_scheduler_num_cycles,
@@ -613,6 +628,7 @@ def train_model(
         "vae": vae,
         "vae_batch_size": vae_batch_size,
         "wandb_api_key": wandb_api_key,
+        "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
         "xformers": xformers,
     }
@@ -660,18 +676,20 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = (
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        )
 
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, env=env)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f"{output_dir}/{output_name}")
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(f"{output_dir}/{output_name}")
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(output_dir, v2, v_parameterization, output_name)
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def dreambooth_tab(
@@ -680,6 +698,7 @@ def dreambooth_tab(
     # output_dir=gr.Textbox(),
     # logging_dir=gr.Textbox(),
     headless=False,
+    config: dict = {},
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
@@ -689,10 +708,10 @@ def dreambooth_tab(
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
         with gr.Column():
-            source_model = SourceModel(headless=headless)
+            source_model = SourceModel(headless=headless, config=config)
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless)
+            folders = Folders(headless=headless, config=config)
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Group(elem_id="basic_tab"):
                 basic_training = BasicTraining(
@@ -707,7 +726,7 @@ def dreambooth_tab(
                 # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
-                advanced_training = AdvancedTraining(headless=headless)
+                advanced_training = AdvancedTraining(headless=headless, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -732,7 +751,7 @@ def dreambooth_tab(
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, output_dir=folders.output_dir)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -847,38 +866,41 @@ def dreambooth_tab(
             advanced_training.save_last_n_steps_state,
             advanced_training.use_wandb,
             advanced_training.wandb_api_key,
+            advanced_training.wandb_run_name,
+            advanced_training.log_tracker_name,
+            advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
+            inputs=[dummy_db_true, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name] + settings_list,
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name] + settings_list,
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 
-        #config.button_save_as_config.click(
+        # config.button_save_as_config.click(
         #    save_configuration,
         #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
         #    outputs=[config.config_file_name],
         #    show_progress=False,
-        #)
+        # )
 
         button_run.click(
             train_model,

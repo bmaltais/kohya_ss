@@ -110,7 +110,7 @@ def extract_lycoris_locon(
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
-        
+
     log.info('Done extracting...')
 
 
@@ -139,7 +139,7 @@ def update_mode(mode):
     # Iterate through the possible modes
     for m in modes:
         # Add a visibility update for each mode, setting it to True if the input mode matches the current mode in the loop
-        updates.append(gr.Row().update(visible=(mode == m)))
+        updates.append(gr.Row(visible=(mode == m)))
 
     # Return the visibility updates as a tuple
     return tuple(updates)
@@ -166,7 +166,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
         current_save_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
-    with gr.Tab("Extract LyCORIS LoCON"):
+    with gr.Tab("Extract LyCORIS LoCon"):
         gr.Markdown(
             "This utility can extract a LyCORIS LoCon network from a finetuned model."
         )
@@ -252,19 +252,19 @@ def gradio_extract_lycoris_locon_tab(headless=False):
             )
 
             db_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=db_model,
                 outputs=db_model,
                 show_progress=False,
             )
             base_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_base_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_base_models(path)),
                 inputs=base_model,
                 outputs=base_model,
                 show_progress=False,
             )
             output_name.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=output_name,
                 outputs=output_name,
                 show_progress=False,

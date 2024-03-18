@@ -135,13 +135,13 @@ def gradio_merge_lycoris_tab(headless=False):
             )
 
             base_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=base_model,
                 outputs=base_model,
                 show_progress=False,
             )
             lycoris_model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_lycoris_model(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_lycoris_model(path)),
                 inputs=lycoris_model,
                 outputs=lycoris_model,
                 show_progress=False,
@@ -203,14 +203,14 @@ def gradio_merge_lycoris_tab(headless=False):
             )
 
             output_name.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=output_name,
                 outputs=output_name,
                 show_progress=False,
             )
 
         with gr.Row():
-            is_sdxl = gr.Checkbox(label='is sdxl', value=False, interactive=True)
+            is_sdxl = gr.Checkbox(label='is SDXL', value=False, interactive=True)
             is_v2 = gr.Checkbox(label='is v2', value=False, interactive=True)
 
         merge_button = gr.Button('Merge model')

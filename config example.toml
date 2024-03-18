@@ -1,0 +1,16 @@
+# Copy this file and name it config.toml
+# Edit the values to suit your needs
+
+# Default folders location
+models_dir = "./models"           # Pretrained model name or path
+train_data_dir = "./data"         # Image folder (containing training images subfolders) / Image folder (containing training images)
+output_dir = "./outputs"          # Output directory for trained model
+reg_data_dir = "./data/reg"       # Regularisation directory
+logging_dir = "./logs"            # Logging directory
+config_dir = "./presets"          # Load/Save Config file
+log_tracker_config_dir = "./logs" # Log tracker configs directory
+state_dir = "./outputs"           # Resume from saved training state
+vae_dir = "./models/vae"          # VAEs folder path
+
+# Example custom folder location
+# models_dir = "e:/models"    # Pretrained model name or path

@@ -149,13 +149,13 @@ def gradio_resize_lora_tab(headless=False):
                 show_progress=False,
             )
             model.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=model,
                 outputs=model,
                 show_progress=False,
             )
             save_to.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=save_to,
                 outputs=save_to,
                 show_progress=False,
@@ -183,7 +183,7 @@ def gradio_resize_lora_tab(headless=False):
             )
         with gr.Row():
 
-            verbose = gr.Checkbox(label='Verbose', value=True)
+            verbose = gr.Checkbox(label='Verbose logging', value=True)
             save_precision = gr.Radio(
                 label='Save precision',
                 choices=['fp16', 'bf16', 'float'],
