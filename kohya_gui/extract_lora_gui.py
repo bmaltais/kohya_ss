@@ -130,7 +130,7 @@ def gradio_extract_lora_tab(headless=False):
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
     def change_sdxl(sdxl):
-        return gr.Dropdown().update(visible=sdxl), gr.Dropdown().update(visible=sdxl)
+        return gr.Dropdown(visible=sdxl), gr.Dropdown(visible=sdxl)
 
 
     with gr.Tab('Extract LoRA'):
@@ -235,19 +235,19 @@ def gradio_extract_lora_tab(headless=False):
             )
 
             model_tuned.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_models(path)),
                 inputs=model_tuned,
                 outputs=model_tuned,
                 show_progress=False,
             )
             model_org.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_org_models(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_org_models(path)),
                 inputs=model_org,
                 outputs=model_org,
                 show_progress=False,
             )
             save_to.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_save_to(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_save_to(path)),
                 inputs=save_to,
                 outputs=save_to,
                 show_progress=False,

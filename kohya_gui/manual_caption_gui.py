@@ -312,7 +312,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
             )
 
             images_dir.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_images_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_images_dirs(path)),
                 inputs=images_dir,
                 outputs=images_dir,
                 show_progress=False,

@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 import argparse
+from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from dreambooth_gui import dreambooth_tab
 from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
@@ -24,7 +25,7 @@ def UI(**kwargs):
 
     if os.path.exists("./style.css"):
         with open(os.path.join("./style.css"), "r", encoding="utf8") as file:
-            log.info("Load CSS...")
+            log.debug("Load CSS...")
             css += file.read() + "\n"
 
     if os.path.exists("./.release"):
@@ -38,6 +39,8 @@ def UI(**kwargs):
     interface = gr.Blocks(
         css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
     )
+    
+    config = KohyaSSGUIConfig()
 
     with interface:
         with gr.Tab("Dreambooth"):
@@ -46,13 +49,13 @@ def UI(**kwargs):
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab(headless=headless)
+            ) = dreambooth_tab(headless=headless, config=config)
         with gr.Tab("LoRA"):
-            lora_tab(headless=headless)
+            lora_tab(headless=headless, config=config)
         with gr.Tab("Textual Inversion"):
-            ti_tab(headless=headless)
+            ti_tab(headless=headless, config=config)
         with gr.Tab("Finetuning"):
-            finetune_tab(headless=headless)
+            finetune_tab(headless=headless, config=config)
         with gr.Tab("Utilities"):
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,

@@ -113,13 +113,13 @@ def gradio_group_images_gui_tab(headless=False):
             )
 
             input_folder.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_input_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_input_dirs(path)),
                 inputs=input_folder,
                 outputs=input_folder,
                 show_progress=False,
             )
             output_folder.change(
-                fn=lambda path: gr.Dropdown().update(choices=[""] + list_output_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[""] + list_output_dirs(path)),
                 inputs=output_folder,
                 outputs=output_folder,
                 show_progress=False,

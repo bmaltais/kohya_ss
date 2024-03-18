@@ -54,21 +54,8 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
 
 FROM python:3.10-slim as final
 
-ARG UID
-ARG VERSION
-ARG RELEASE
-
-LABEL name="bmaltais/kohya_ss" \
-    vendor="bmaltais" \
-    maintainer="bmaltais" \
-    # Dockerfile source repository
-    url="https://github.com/bmaltais/kohya_ss" \
-    version=${VERSION} \
-    # This should be a number, incremented with each change
-    release=${RELEASE} \
-    io.k8s.display-name="kohya_ss" \
-    summary="Kohya's GUI: This repository provides a Gradio GUI for Kohya's Stable Diffusion trainers(https://github.com/kohya-ss/sd-scripts)." \
-    description="The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model. This is the docker image for Kohya's GUI. For more information about this tool, please visit the following website: https://github.com/bmaltais/kohya_ss."
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 # Install runtime dependencies
 RUN apt-get update && \
@@ -81,6 +68,7 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libn
     ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
 
 # Create user
+ARG UID
 RUN groupadd -g $UID $UID && \
     useradd -l -u $UID -g $UID -m -s /bin/sh -N $UID
 
@@ -89,20 +77,19 @@ RUN install -d -m 775 -o $UID -g 0 /dataset && \
     install -d -m 775 -o $UID -g 0 /licenses && \
     install -d -m 775 -o $UID -g 0 /app
 
-# Copy dist and support arbitrary user ids (OpenShift best practice)
-COPY --chown=$UID:0 --chmod=775 \
-    --from=build /root/.local /home/$UID/.local
-
-WORKDIR /app
-COPY --chown=$UID:0 --chmod=775 . .
-
 # Copy licenses (OpenShift Policy)
-COPY --chmod=775 LICENSE.md /licenses/LICENSE.md
+COPY --link --chmod=775 LICENSE.md /licenses/LICENSE.md
+
+# Copy dependencies and code (and support arbitrary uid for OpenShift best practice)
+COPY --link --chown=$UID:0 --chmod=775 --from=build /root/.local /home/$UID/.local
+COPY --link --chown=$UID:0 --chmod=775 . /app
 
 ENV PATH="/home/$UID/.local/bin:$PATH"
 ENV PYTHONPATH="${PYTHONPATH}:/home/$UID/.local/lib/python3.10/site-packages" 
 ENV LD_PRELOAD=libtcmalloc.so
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+
+WORKDIR /app
 
 VOLUME [ "/dataset" ]
 
@@ -117,3 +104,17 @@ STOPSIGNAL SIGINT
 # Use dumb-init as PID 1 to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["python3", "kohya_gui.py", "--listen", "0.0.0.0", "--server_port", "7860"]
+
+ARG VERSION
+ARG RELEASE
+LABEL name="bmaltais/kohya_ss" \
+    vendor="bmaltais" \
+    maintainer="bmaltais" \
+    # Dockerfile source repository
+    url="https://github.com/bmaltais/kohya_ss" \
+    version=${VERSION} \
+    # This should be a number, incremented with each change
+    release=${RELEASE} \
+    io.k8s.display-name="kohya_ss" \
+    summary="Kohya's GUI: This repository provides a Gradio GUI for Kohya's Stable Diffusion trainers(https://github.com/kohya-ss/sd-scripts)." \
+    description="The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model. This is the docker image for Kohya's GUI. For more information about this tool, please visit the following website: https://github.com/bmaltais/kohya_ss."

@@ -144,6 +144,9 @@ def save_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
@@ -279,6 +282,9 @@ def open_configuration(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
@@ -421,6 +427,9 @@ def train_model(
     save_last_n_steps_state,
     use_wandb,
     wandb_api_key,
+    wandb_run_name,
+    log_tracker_name,
+    log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
@@ -444,6 +453,7 @@ def train_model(
         finetune_image_folder=image_folder,
         headless=headless_bool,
         logging_dir=logging_dir,
+        log_tracker_config=log_tracker_config,
         resume=resume,
     ):
         return
@@ -582,6 +592,8 @@ def train_model(
         "keep_tokens": keep_tokens,
         "learning_rate": learning_rate,
         "logging_dir": logging_dir,
+        "log_tracker_name": log_tracker_name,
+        "log_tracker_config": log_tracker_config,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": lr_scheduler_args,
         "lr_warmup_steps": lr_warmup_steps,
@@ -628,6 +640,7 @@ def train_model(
         "v_pred_like_loss": v_pred_like_loss,
         "vae_batch_size": vae_batch_size,
         "wandb_api_key": wandb_api_key,
+        "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
         "xformers": xformers,
     }
@@ -682,15 +695,15 @@ def train_model(
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
 
-        # check if output_dir/last is a folder... therefore it is a diffuser model
-        last_dir = pathlib.Path(f"{output_dir}/{output_name}")
+        # # check if output_dir/last is a folder... therefore it is a diffuser model
+        # last_dir = pathlib.Path(f"{output_dir}/{output_name}")
 
-        if not last_dir.is_dir():
-            # Copy inference model for v2 if required
-            save_inference_file(output_dir, v2, v_parameterization, output_name)
+        # if not last_dir.is_dir():
+        #     # Copy inference model for v2 if required
+        #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
-def finetune_tab(headless=False):
+def finetune_tab(headless=False, config: dict = {}):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
@@ -698,12 +711,12 @@ def finetune_tab(headless=False):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
         with gr.Column():
-            source_model = SourceModel(headless=headless, finetuning=True)
+            source_model = SourceModel(headless=headless, finetuning=True, config=config)
             image_folder = source_model.train_data_dir
             output_name = source_model.output_name
 
         with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless, train_data_dir=source_model.train_data_dir, finetune=True)
+            folders = Folders(headless=headless, finetune=True, config=config)
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
@@ -758,7 +771,7 @@ def finetune_tab(headless=False):
                         placeholder="(Optional)",
                         info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
                     )
-                advanced_training = AdvancedTraining(headless=headless, finetuning=True)
+                advanced_training = AdvancedTraining(headless=headless, finetuning=True, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -812,7 +825,7 @@ def finetune_tab(headless=False):
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            config = ConfigurationFile(headless=headless, output_dir=train_dir)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
 
         with gr.Column(), gr.Group():
@@ -929,6 +942,9 @@ def finetune_tab(headless=False):
             advanced_training.save_last_n_steps_state,
             advanced_training.use_wandb,
             advanced_training.wandb_api_key,
+            advanced_training.wandb_run_name,
+            advanced_training.log_tracker_name,
+            advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
@@ -936,12 +952,12 @@ def finetune_tab(headless=False):
             advanced_training.max_timestep,
         ]
 
-        config.button_open_config.click(
+        configuration.button_open_config.click(
             open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -952,12 +968,12 @@ def finetune_tab(headless=False):
         #     show_progress=False,
         # )
 
-        config.button_load_config.click(
+        configuration.button_load_config.click(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[config.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name] + settings_list + [training_preset],
             show_progress=False,
         )
 
@@ -970,7 +986,7 @@ def finetune_tab(headless=False):
 
         training_preset.input(
             open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, config.config_file_name]
+            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
             + settings_list
             + [training_preset],
             outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset],
@@ -991,10 +1007,10 @@ def finetune_tab(headless=False):
             show_progress=False,
         )
 
-        config.button_save_config.click(
+        configuration.button_save_config.click(
             save_configuration,
-            inputs=[dummy_db_false, config.config_file_name] + settings_list,
-            outputs=[config.config_file_name],
+            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            outputs=[configuration.config_file_name],
             show_progress=False,
         )
 
