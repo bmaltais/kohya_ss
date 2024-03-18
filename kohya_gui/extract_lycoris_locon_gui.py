@@ -110,7 +110,7 @@ def extract_lycoris_locon(
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
-        
+
     log.info('Done extracting...')
 
 
@@ -166,7 +166,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
         current_save_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
-    with gr.Tab("Extract LyCORIS LoCON"):
+    with gr.Tab("Extract LyCORIS LoCon"):
         gr.Markdown(
             "This utility can extract a LyCORIS LoCon network from a finetuned model."
         )

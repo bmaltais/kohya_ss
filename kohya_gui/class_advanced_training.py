@@ -127,7 +127,7 @@ class AdvancedTraining:
                 ],
                 value='75',
             )
-        
+
         with gr.Row():
             if training_type == "lora":
                 self.fp8_base = gr.Checkbox(
@@ -144,7 +144,7 @@ class AdvancedTraining:
                 value=False,
                 info='Required bitsandbytes >= 0.36.0',
             )
-            
+
             self.full_fp16.change(
                 full_options_update,
                 inputs=[self.full_fp16, self.full_bf16],
@@ -249,7 +249,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=1,
                     step=0.01,
-                    info='recommended values are 0.05 - 0.15',
+                    info='Recommended values are 0.05 - 0.15',
                 )
                 self.adaptive_noise_scale = gr.Slider(
                     label='Adaptive noise scale',
@@ -266,7 +266,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=64,
                     step=1,
-                    info='enable multires noise (recommended values are 6-10)',
+                    info='Enable multires noise (recommended values are 6-10)',
                 )
                 self.multires_noise_discount = gr.Slider(
                     label='Multires noise discount',
@@ -274,7 +274,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=1,
                     step=0.01,
-                    info='recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+                    info='Recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
                 )
             self.noise_offset_type.change(
                 noise_offset_type_change,
