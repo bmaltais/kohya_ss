@@ -384,7 +384,7 @@ The documentation in this section will be moved to a separate document later.
 ### 2024/03/13 (v23.0.14)
 
 - Fix blip caption issue
-
+- 
 ### 2024/03/13 (v23.0.13)
 
 - Fix issue with image samples.
