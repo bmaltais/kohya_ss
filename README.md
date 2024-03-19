@@ -385,6 +385,7 @@ The documentation in this section will be moved to a separate document later.
 ### 2024/03/20 (v23.0.15)
 
 - Add support for toml dataset configuration fole to all trainers
+- Add new setup menu option to install Triton 2.1.0 for Windows
 
 ### 2024/03/19 (v23.0.14)
 
