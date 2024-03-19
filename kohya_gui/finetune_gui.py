@@ -62,6 +62,7 @@ def save_configuration(
     train_dir,
     image_folder,
     output_dir,
+    dataset_config,
     logging_dir,
     max_resolution,
     min_bucket_reso,
@@ -108,6 +109,7 @@ def save_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     full_fp16,
     color_aug,
@@ -200,6 +202,7 @@ def open_configuration(
     train_dir,
     image_folder,
     output_dir,
+    dataset_config,
     logging_dir,
     max_resolution,
     min_bucket_reso,
@@ -246,6 +249,7 @@ def open_configuration(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     full_fp16,
     color_aug,
@@ -345,6 +349,7 @@ def train_model(
     train_dir,
     image_folder,
     output_dir,
+    dataset_config,
     logging_dir,
     max_resolution,
     min_bucket_reso,
@@ -391,6 +396,7 @@ def train_model(
     output_name,
     max_token_length,
     max_train_epochs,
+    max_train_steps,
     max_data_loader_n_workers,
     full_fp16,
     color_aug,
@@ -455,93 +461,99 @@ def train_model(
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
+        dataset_config=dataset_config
     ):
         return
 
     if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
         return
 
-    # create caption json file
-    if generate_caption_database:
-        run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
-        if caption_extension == "":
-            run_cmd += f' --caption_extension=".caption"'
-        else:
-            run_cmd += f" --caption_extension={caption_extension}"
-        run_cmd += fr' "{image_folder}"'
-        run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
-        if full_path:
-            run_cmd += f" --full_path"
+    if dataset_config:
+        log.info("Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation...")
+    else:   
+        # create caption json file
+        if generate_caption_database:
+            run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+            if caption_extension == "":
+                run_cmd += f' --caption_extension=".caption"'
+            else:
+                run_cmd += f" --caption_extension={caption_extension}"
+            run_cmd += fr' "{image_folder}"'
+            run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
+            if full_path:
+                run_cmd += f" --full_path"
 
-        log.info(run_cmd)
+            log.info(run_cmd)
 
-        env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            env = os.environ.copy()
+            env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
-        if not print_only_bool:
-            # Run the command
-            subprocess.run(run_cmd, shell=True, env=env)
+            if not print_only_bool:
+                # Run the command
+                subprocess.run(run_cmd, shell=True, env=env)
 
-    # create images buckets
-    if generate_image_buckets:
-        run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
-        run_cmd += fr' "{image_folder}"'
-        run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
-        run_cmd += fr' "{train_dir}/{latent_metadata_filename}"'
-        run_cmd += fr' "{pretrained_model_name_or_path}"'
-        run_cmd += f" --batch_size={batch_size}"
-        run_cmd += f" --max_resolution={max_resolution}"
-        run_cmd += f" --min_bucket_reso={min_bucket_reso}"
-        run_cmd += f" --max_bucket_reso={max_bucket_reso}"
-        run_cmd += f" --mixed_precision={mixed_precision}"
-        # if flip_aug:
-        #     run_cmd += f' --flip_aug'
-        if full_path:
-            run_cmd += f" --full_path"
-        if sdxl_checkbox and sdxl_no_half_vae:
-            log.info("Using mixed_precision = no because no half vae is selected...")
-            run_cmd += f' --mixed_precision="no"'
+        # create images buckets
+        if generate_image_buckets:
+            run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
+            run_cmd += fr' "{image_folder}"'
+            run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
+            run_cmd += fr' "{train_dir}/{latent_metadata_filename}"'
+            run_cmd += fr' "{pretrained_model_name_or_path}"'
+            run_cmd += f" --batch_size={batch_size}"
+            run_cmd += f" --max_resolution={max_resolution}"
+            run_cmd += f" --min_bucket_reso={min_bucket_reso}"
+            run_cmd += f" --max_bucket_reso={max_bucket_reso}"
+            run_cmd += f" --mixed_precision={mixed_precision}"
+            # if flip_aug:
+            #     run_cmd += f' --flip_aug'
+            if full_path:
+                run_cmd += f" --full_path"
+            if sdxl_checkbox and sdxl_no_half_vae:
+                log.info("Using mixed_precision = no because no half vae is selected...")
+                run_cmd += f' --mixed_precision="no"'
 
-        log.info(run_cmd)
+            log.info(run_cmd)
 
-        env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            env = os.environ.copy()
+            env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
 
-        if not print_only_bool:
-            # Run the command
-            subprocess.run(run_cmd, shell=True, env=env)
+            if not print_only_bool:
+                # Run the command
+                subprocess.run(run_cmd, shell=True, env=env)
 
-    image_num = len(
-        [
-            f
-            for f, lower_f in (
-                (file, file.lower()) for file in os.listdir(image_folder)
-            )
-            if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-        ]
-    )
-    log.info(f"image_num = {image_num}")
-
-    repeats = int(image_num) * int(dataset_repeats)
-    log.info(f"repeats = {str(repeats)}")
-
-    # calculate max_train_steps
-    max_train_steps = int(
-        math.ceil(
-            float(repeats)
-            / int(train_batch_size)
-            / int(gradient_accumulation_steps)
-            * int(epoch)
+        image_num = len(
+            [
+                f
+                for f, lower_f in (
+                    (file, file.lower()) for file in os.listdir(image_folder)
+                )
+                if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+            ]
         )
-    )
+        log.info(f"image_num = {image_num}")
 
-    # Divide by two because flip augmentation create two copied of the source images
-    if flip_aug:
-        max_train_steps = int(math.ceil(float(max_train_steps) / 2))
+        repeats = int(image_num) * int(dataset_repeats)
+        log.info(f"repeats = {str(repeats)}")
 
-    log.info(f"max_train_steps = {max_train_steps}")
+        # calculate max_train_steps
+        max_train_steps = int(
+            math.ceil(
+                float(repeats)
+                / int(train_batch_size)
+                / int(gradient_accumulation_steps)
+                * int(epoch)
+            )
+        )
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        # Divide by two because flip augmentation create two copied of the source images
+        if flip_aug and max_train_steps:
+            max_train_steps = int(math.ceil(float(max_train_steps) / 2))
+
+    if max_train_steps != "":
+        log.info(f"max_train_steps = {max_train_steps}")
+        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    else:
+        lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
@@ -581,6 +593,7 @@ def train_model(
         "caption_extension": caption_extension,
         "clip_skip": clip_skip,
         "color_aug": color_aug,
+        "dataset_config": dataset_config,
         "dataset_repeats": dataset_repeats,
         "enable_bucket": True,
         "flip_aug": flip_aug,
@@ -861,6 +874,7 @@ def finetune_tab(headless=False, config: dict = {}):
             train_dir,
             image_folder,
             output_dir,
+            source_model.dataset_config,
             logging_dir,
             max_resolution,
             min_bucket_reso,
@@ -906,6 +920,7 @@ def finetune_tab(headless=False, config: dict = {}):
             output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,
+            basic_training.max_train_steps,
             advanced_training.max_data_loader_n_workers,
             advanced_training.full_fp16,
             advanced_training.color_aug,

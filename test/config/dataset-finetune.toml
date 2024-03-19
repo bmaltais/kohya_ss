@@ -1,0 +1,14 @@
+[[datasets]]
+resolution = 512
+batch_size = 4
+keep_tokens = 1
+enable_bucket = true
+min_bucket_reso = 64
+max_bucket_reso = 1024
+bucket_reso_steps = 32
+bucket_no_upscale = false
+
+  [[datasets.subsets]]
+  image_dir = '.\test\img\10_darius kawasaki person'
+  num_repeats = 10
+  metadata_file = '.\test\config\meta-1_lat.json'
