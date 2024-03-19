@@ -1077,6 +1077,11 @@ def run_cmd_advanced_training(**kwargs):
     if color_aug:
         run_cmd += " --color_aug"
 
+    dataset_config = kwargs.get("dataset_config")
+    if dataset_config:
+        dataset_config = os.path.abspath(os.path.normpath(dataset_config))
+        run_cmd += f' --dataset_config="{dataset_config}"'
+
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
         run_cmd += f' --dataset_repeats="{dataset_repeats}"'

@@ -709,7 +709,7 @@ def train_model(
             )
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None:
+    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -717,7 +717,10 @@ def train_model(
         )
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    if not max_train_steps == "":
+        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    else:
+        lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
@@ -905,6 +908,7 @@ def train_model(
         caption_extension=caption_extension,
         clip_skip=clip_skip,
         color_aug=color_aug,
+        dataset_config=dataset_config,
         debiased_estimation_loss=debiased_estimation_loss,
         dim_from_weights=dim_from_weights,
         enable_bucket=enable_bucket,
