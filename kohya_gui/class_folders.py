@@ -1,6 +1,6 @@
 import gradio as gr
 import os
-from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
+from .common_gui import get_folder_path, scriptdir, list_dirs, list_files, create_refresh_button
 
 class Folders:
     """
@@ -24,6 +24,7 @@ class Folders:
         self.current_output_dir = self.config.get('output_dir', os.path.join(scriptdir, "outputs"))
         self.current_logging_dir = self.config.get('logging_dir', os.path.join(scriptdir, "logs"))
         self.current_reg_data_dir = self.config.get('reg_data_dir', os.path.join(scriptdir, "reg"))
+        self.current_toml_dir = self.config.get('toml_dir', os.path.join(scriptdir, "toml"))
 
         # Create directories if they don't exist
         self.create_directory_if_not_exists(self.current_output_dir)
@@ -68,6 +69,20 @@ class Folders:
         """
         self.current_logging_dir = path if not path == "" else "."
         return list(list_dirs(path))
+
+    def list_toml_dirs(self, path: str) -> list:
+        """
+        List directories and toml files in the toml directory.
+
+        Parameters:
+        - path (str): The path to list directories and files from.
+
+        Returns:
+        - list: A list of directories and files.
+        """
+        self.current_toml_dir = path if not path == "" else "."
+        # Lists all .json files in the current configuration directory, used for populating dropdown choices.
+        return list(list_files(self.current_toml_dir, exts=[".toml"], all=True))
 
     def list_reg_data_dirs(self, path: str) -> list:
         """
@@ -149,6 +164,26 @@ class Folders:
                 outputs=self.logging_dir,
                 show_progress=False,
             )
+            # Toml directory dropdown
+            self.toml_file = gr.Dropdown(
+                label='Toml config file (Optional. to select the toml configuration file to use)',
+                choices=[""] + self.list_toml_dirs(self.current_toml_dir),
+                value="",
+                interactive=True,
+                allow_custom_value=True,
+            )
+            # Refresh button for toml directory
+            create_refresh_button(self.toml_file, lambda: None, lambda: {"choices": [""] + self.list_toml_dirs(self.current_toml_dir)}, "open_folder_small")
+            # Toml directory button
+            self.toml_file_folder = gr.Button(
+                '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
+            )
+            # Toml directory button click event
+            self.toml_file_folder.click(
+                get_folder_path,
+                outputs=self.toml_file,
+                show_progress=False,
+            )
 
             # Change event for output directory dropdown
             self.output_dir.change(
@@ -169,5 +204,12 @@ class Folders:
                 fn=lambda path: gr.Dropdown(choices=[""] + self.list_logging_dirs(path)),
                 inputs=self.logging_dir,
                 outputs=self.logging_dir,
+                show_progress=False,
+            )
+            # Change event for toml directory dropdown
+            self.toml_file.change(
+                fn=lambda path: gr.Dropdown(choices=[""] + self.list_toml_dirs(path)),
+                inputs=self.toml_file,
+                outputs=self.toml_file,
                 show_progress=False,
             )
