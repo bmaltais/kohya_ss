@@ -148,7 +148,7 @@ def install_bitsandbytes_0_41_1():
     )
 
 def install_bitsandbytes_0_41_2():
-    log.info("Installing bitsandbytes 0.41.1...")
+    log.info("Installing bitsandbytes 0.41.2...")
     setup_common.install(
         "--upgrade https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.2.post2-py3-none-win_amd64.whl",
         "bitsandbytes 0.41.2",
@@ -204,7 +204,7 @@ def main_menu(headless: bool = False):
                     elif choice_torch == "3":
                         install_bitsandbytes_0_41_1()
                         break
-                    elif choice_torch == "3":
+                    elif choice_torch == "4":
                         install_bitsandbytes_0_41_2()
                         break
                     elif choice_torch == "5":

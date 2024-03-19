@@ -38,6 +38,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
   - [Change History](#change-history)
+    - [2024/03/13 (v23.0.14)](#20240313-v23014)
     - [2024/03/13 (v23.0.13)](#20240313-v23013)
     - [2024/03/16 (v23.0.12)](#20240316-v23012)
       - [New Features \& Improvements](#new-features--improvements)
@@ -380,6 +381,10 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
+### 2024/03/13 (v23.0.14)
+
+- Fix blip caption issue
+- 
 ### 2024/03/13 (v23.0.13)
 
 - Fix issue with image samples.
