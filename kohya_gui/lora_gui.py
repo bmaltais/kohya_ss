@@ -637,7 +637,9 @@ def train_model(
     if unet_lr == "":
         unet_lr = 0
 
-    if not dataset_config:
+    if dataset_config:
+        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+    else:
         # Get a list of all subfolders in train_data_dir
         subfolders = [
             f

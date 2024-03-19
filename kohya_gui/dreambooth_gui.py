@@ -58,6 +58,7 @@ def save_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     learning_rate_te,
@@ -189,6 +190,7 @@ def open_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     learning_rate_te,
@@ -315,6 +317,7 @@ def train_model(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     learning_rate_te,
@@ -421,6 +424,7 @@ def train_model(
         log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
+        dataset_config=dataset_config,
     ):
         return
 
@@ -429,102 +433,90 @@ def train_model(
     ):
         return
 
-    # if sdxl:
-    #     output_message(
-    #         msg='Dreambooth training is not compatible with SDXL models yet..',
-    #         headless=headless_bool,
-    #     )
-    #     return
-
-    # if optimizer == 'Adafactor' and lr_warmup != '0':
-    #     output_message(
-    #         msg="Warning: lr_scheduler is set to 'Adafactor', so 'LR warmup (% of steps)' will be considered 0.",
-    #         title='Warning',
-    #         headless=headless_bool,
-    #     )
-    #     lr_warmup = '0'
-
-    # Get a list of all subfolders in train_data_dir, excluding hidden folders
-    subfolders = [
-        f
-        for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith(".")
-    ]
-
-    # Check if subfolders are present. If not let the user know and return
-    if not subfolders:
-        log.info(f"No {subfolders} were found in train_data_dir can't train...")
-        return
-
-    total_steps = 0
-
-    # Loop through each subfolder and extract the number of repeats
-    for folder in subfolders:
-        # Extract the number of repeats from the folder name
-        try:
-            repeats = int(folder.split("_")[0])
-        except ValueError:
-            log.info(
-                f"Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can't train..."
-            )
-            continue
-
-        # Count the number of images in the folder
-        num_images = len(
-            [
-                f
-                for f, lower_f in (
-                    (file, file.lower())
-                    for file in os.listdir(os.path.join(train_data_dir, folder))
-                )
-                if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-            ]
-        )
-
-        if num_images == 0:
-            log.info(f"{folder} folder contain no images, skipping...")
-        else:
-            # Calculate the total number of steps for this folder
-            steps = repeats * num_images
-            total_steps += steps
-
-            # Print the result
-            log.info(f"Folder {folder} : steps {steps}")
-
-    if total_steps == 0:
-        log.info(f"No images were found in folder {train_data_dir}... please rectify!")
-        return
-
-    # Print the result
-    # log.info(f"{total_steps} total steps")
-
-    if reg_data_dir == "":
-        reg_factor = 1
+    if dataset_config:
+        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
     else:
-        log.info(
-            f"Regularisation images are used... Will double the number of steps required..."
-        )
-        reg_factor = 2
+        # Get a list of all subfolders in train_data_dir, excluding hidden folders
+        subfolders = [
+            f
+            for f in os.listdir(train_data_dir)
+            if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith(".")
+        ]
 
-    if max_train_steps == "" or max_train_steps == "0":
-        # calculate max_train_steps
-        max_train_steps = int(
-            math.ceil(
-                float(total_steps)
-                / int(train_batch_size)
-                / int(gradient_accumulation_steps)
-                * int(epoch)
-                * int(reg_factor)
+        # Check if subfolders are present. If not let the user know and return
+        if not subfolders:
+            log.info(f"No {subfolders} were found in train_data_dir can't train...")
+            return
+
+        total_steps = 0
+
+        # Loop through each subfolder and extract the number of repeats
+        for folder in subfolders:
+            # Extract the number of repeats from the folder name
+            try:
+                repeats = int(folder.split("_")[0])
+            except ValueError:
+                log.info(
+                    f"Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can't train..."
+                )
+                continue
+
+            # Count the number of images in the folder
+            num_images = len(
+                [
+                    f
+                    for f, lower_f in (
+                        (file, file.lower())
+                        for file in os.listdir(os.path.join(train_data_dir, folder))
+                    )
+                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                ]
             )
-        )
-        log.info(
-            f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
-        )
+
+            if num_images == 0:
+                log.info(f"{folder} folder contain no images, skipping...")
+            else:
+                # Calculate the total number of steps for this folder
+                steps = repeats * num_images
+                total_steps += steps
+
+                # Print the result
+                log.info(f"Folder {folder} : steps {steps}")
+
+        if total_steps == 0:
+            log.info(f"No images were found in folder {train_data_dir}... please rectify!")
+            return
+
+        # Print the result
+        # log.info(f"{total_steps} total steps")
+
+        if reg_data_dir == "":
+            reg_factor = 1
+        else:
+            log.info(
+                f"Regularisation images are used... Will double the number of steps required..."
+            )
+            reg_factor = 2
+
+        if max_train_steps == "" or max_train_steps == "0":
+            # calculate max_train_steps
+            max_train_steps = int(
+                math.ceil(
+                    float(total_steps)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                    * int(reg_factor)
+                )
+            )
+            log.info(
+                f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+            )
 
     # calculate stop encoder training
     if int(stop_text_encoder_training_pct) == -1:
         stop_text_encoder_training = -1
-    elif stop_text_encoder_training_pct == None:
+    elif stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -532,7 +524,10 @@ def train_model(
         )
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    if not max_train_steps == "":
+        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    else:
+        lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
@@ -564,6 +559,7 @@ def train_model(
         "caption_extension": caption_extension,
         "clip_skip": clip_skip,
         "color_aug": color_aug,
+        "dataset_config": dataset_config,
         "enable_bucket": enable_bucket,
         "epoch": epoch,
         "flip_aug": flip_aug,
@@ -788,6 +784,7 @@ def dreambooth_tab(
             source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
+            source_model.dataset_config,
             basic_training.max_resolution,
             basic_training.learning_rate,
             basic_training.learning_rate_te,
