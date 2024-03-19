@@ -1,0 +1,58 @@
+{
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki.jpg": {
+    "caption": "a painting of a steam punk skull with a gas mask , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_2.jpg": {
+    "caption": "a painting of a man with a skull on his head , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_3.jpg": {
+    "caption": "a painting of a woman with a helmet on her head , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_4.jpg": {
+    "caption": "a painting of a horned man with a goat head , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_5.jpg": {
+    "caption": "a painting of a man playing a piano , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_6.jpg": {
+    "caption": "a painting of a robot sitting on a rock , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_7.jpg": {
+    "caption": "a painting of a soldier with a helmet on , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  },
+  "test\\img\\10_darius kawasaki person\\Dariusz_Zawadzki_8.jpg": {
+    "caption": "a painting of a giant crab with a large body , by darius kawasaki",
+    "train_resolution": [
+      1024,
+      1024
+    ]
+  }
+}

@@ -54,6 +54,23 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
+def calculate_max_train_steps(
+    total_steps: int,
+    train_batch_size: int,
+    gradient_accumulation_steps: int,
+    epoch: int,
+    reg_factor: int,
+):
+    return int(
+        math.ceil(
+            float(total_steps)
+            / int(train_batch_size)
+            / int(gradient_accumulation_steps)
+            * int(epoch)
+            * int(reg_factor)
+        )
+    )
+
 def check_if_model_exist(
     output_name: str, output_dir: str, save_model_as: str, headless: bool = False
 ) -> bool:
@@ -1076,6 +1093,11 @@ def run_cmd_advanced_training(**kwargs):
     color_aug = kwargs.get("color_aug")
     if color_aug:
         run_cmd += " --color_aug"
+
+    dataset_config = kwargs.get("dataset_config")
+    if dataset_config:
+        dataset_config = os.path.abspath(os.path.normpath(dataset_config))
+        run_cmd += f' --dataset_config="{dataset_config}"'
 
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:

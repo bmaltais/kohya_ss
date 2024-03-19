@@ -66,6 +66,7 @@ def save_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -193,18 +194,24 @@ def save_configuration(
 
     original_file_path = file_path
 
+    # Determine whether to save as a new file or overwrite the existing file
     save_as_bool = True if save_as.get("label") == "True" else False
 
+    # If saving as a new file, get the file path for saving
     if save_as_bool:
         log.info("Save as...")
         file_path = get_saveasfile_path(file_path)
+    # If not saving as a new file, check if a file path was provided
     else:
         log.info("Save...")
+        # If no file path was provided, get the file path for saving
         if file_path == None or file_path == "":
             file_path = get_saveasfile_path(file_path)
 
-    # log.info(file_path)
+    # Log the file path for debugging purposes
+    log.debug(file_path)
 
+    # If no file path was provided, return the original file path
     if file_path == None or file_path == "":
         return original_file_path  # In case a file_path was provided and the user decide to cancel the open action
 
@@ -215,12 +222,14 @@ def save_configuration(
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
+    # Save the configuration file
     SaveConfigFile(
         parameters=parameters,
         file_path=file_path,
         exclusion=["file_path", "save_as"],
     )
 
+    # Return the file path of the saved configuration
     return file_path
 
 
@@ -236,6 +245,7 @@ def open_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -362,10 +372,13 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
+    # Convert 'ask_for_file' and 'apply_preset' from string to boolean based on their 'label' value
+    # This corrects a critical oversight in the original code, where `.get("label")` method calls were
+    # made on boolean variables instead of dictionaries
     ask_for_file = True if ask_for_file.get("label") == "True" else False
     apply_preset = True if apply_preset.get("label") == "True" else False
 
-    # Check if we are "applying" a preset or a config
+    # Determines if a preset configuration is being applied
     if apply_preset:
         if training_preset != "none":
             log.info(f"Applying preset {training_preset}...")
@@ -378,11 +391,14 @@ def open_configuration(
         # Update the value of `training_preset` by directly assigning an empty string value
         parameters[training_preset_index] = ("training_preset", "none")
 
+    # Store the original file path for potential reuse
     original_file_path = file_path
-
+    
+    # Request a file path from the user if required
     if ask_for_file:
         file_path = get_file_path(file_path)
 
+    # Proceed if the file path is valid (not empty or None)
     if not file_path == "" and not file_path == None:
         # Load variables from JSON file
         with open(file_path, "r") as f:
@@ -392,22 +408,20 @@ def open_configuration(
             # Update values to fix deprecated options, set appropriate optimizer if it is set to True, etc.
             my_data = update_my_data(my_data)
     else:
+        # Reset the file path to the original if the operation was cancelled or invalid
         file_path = original_file_path  # In case a file_path was provided and the user decides to cancel the open action
-        my_data = {}
+        my_data = {} # Initialize an empty dict if no data was loaded
 
     values = [file_path]
+    # Iterate over parameters to set their values from `my_data` or use default if not found
     for key, value in parameters:
-        # Set the value in the dictionary to the corresponding value in `my_data`, or the default value if not found
         if not key in ["ask_for_file", "apply_preset", "file_path"]:
             json_value = my_data.get(key)
-            # if isinstance(json_value, str) and json_value == '':
-            #     # If the JSON value is an empty string, use the default value
-            #     values.append(value)
-            # else:
-            # Otherwise, use the JSON value if not None, otherwise use the default value
+            # Append the value from JSON if present; otherwise, use the parameter's default value
             values.append(json_value if json_value is not None else value)
 
-    # This next section is about making the LoCon parameters visible if LoRA_type = 'Standard'
+    # Display LoCon parameters based on the 'LoRA_type' from the loaded data
+    # This section dynamically adjusts visibility of certain parameters in the UI
     if my_data.get("LoRA_type", "Standard") in {
         "LoCon",
         "Kohya DyLoRA",
@@ -438,6 +452,7 @@ def train_model(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -579,6 +594,7 @@ def train_model(
         resume=resume,
         vae=vae,
         lora_network_weights=lora_network_weights,
+        dataset_config=dataset_config,
     ):
         return
 
@@ -599,8 +615,9 @@ def train_model(
         )
         return
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if output_dir != "":
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
     if stop_text_encoder_training_pct > 0:
         output_message(
@@ -620,78 +637,81 @@ def train_model(
     if unet_lr == "":
         unet_lr = 0
 
-    # Get a list of all subfolders in train_data_dir
-    subfolders = [
-        f
-        for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
-    ]
-
-    total_steps = 0
-
-    # Loop through each subfolder and extract the number of repeats
-    for folder in subfolders:
-        try:
-            # Extract the number of repeats from the folder name
-            repeats = int(folder.split("_")[0])
-
-            # Count the number of images in the folder
-            num_images = len(
-                [
-                    f
-                    for f, lower_f in (
-                        (file, file.lower())
-                        for file in os.listdir(os.path.join(train_data_dir, folder))
-                    )
-                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-                ]
-            )
-
-            log.info(f"Folder {folder}: {num_images} images found")
-
-            # Calculate the total number of steps for this folder
-            steps = repeats * num_images
-
-            # log.info the result
-            log.info(f"Folder {folder}: {steps} steps")
-
-            total_steps += steps
-
-        except ValueError:
-            # Handle the case where the folder name does not contain an underscore
-            log.info(f"Error: '{folder}' does not contain an underscore, skipping...")
-
-    if reg_data_dir == "":
-        reg_factor = 1
+    if dataset_config:
+        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
     else:
-        log.warning(
-            "Regularisation images are used... Will double the number of steps required..."
-        )
-        reg_factor = 2
+        # Get a list of all subfolders in train_data_dir
+        subfolders = [
+            f
+            for f in os.listdir(train_data_dir)
+            if os.path.isdir(os.path.join(train_data_dir, f))
+        ]
 
-    log.info(f"Total steps: {total_steps}")
-    log.info(f"Train batch size: {train_batch_size}")
-    log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
-    log.info(f"Epoch: {epoch}")
-    log.info(f"Regulatization factor: {reg_factor}")
+        total_steps = 0
 
-    if max_train_steps == "" or max_train_steps == "0":
-        # calculate max_train_steps
-        max_train_steps = int(
-            math.ceil(
-                float(total_steps)
-                / int(train_batch_size)
-                / int(gradient_accumulation_steps)
-                * int(epoch)
-                * int(reg_factor)
+        # Loop through each subfolder and extract the number of repeats
+        for folder in subfolders:
+            try:
+                # Extract the number of repeats from the folder name
+                repeats = int(folder.split("_")[0])
+
+                # Count the number of images in the folder
+                num_images = len(
+                    [
+                        f
+                        for f, lower_f in (
+                            (file, file.lower())
+                            for file in os.listdir(os.path.join(train_data_dir, folder))
+                        )
+                        if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                    ]
+                )
+
+                log.info(f"Folder {folder}: {num_images} images found")
+
+                # Calculate the total number of steps for this folder
+                steps = repeats * num_images
+
+                # log.info the result
+                log.info(f"Folder {folder}: {steps} steps")
+
+                total_steps += steps
+
+            except ValueError:
+                # Handle the case where the folder name does not contain an underscore
+                log.info(f"Error: '{folder}' does not contain an underscore, skipping...")
+
+        if reg_data_dir == "":
+            reg_factor = 1
+        else:
+            log.warning(
+                "Regularisation images are used... Will double the number of steps required..."
             )
-        )
-        log.info(
-            f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
-        )
+            reg_factor = 2
+
+        log.info(f"Total steps: {total_steps}")
+        log.info(f"Train batch size: {train_batch_size}")
+        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+        log.info(f"Epoch: {epoch}")
+        log.info(f"Regulatization factor: {reg_factor}")
+
+        if max_train_steps == "" or max_train_steps == "0":
+            # calculate max_train_steps
+            max_train_steps = int(
+                math.ceil(
+                    float(total_steps)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                    * int(reg_factor)
+                )
+            )
+            log.info(
+                f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+            )
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None:
+    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -699,7 +719,10 @@ def train_model(
         )
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    if not max_train_steps == "":
+        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    else:
+        lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
@@ -887,6 +910,7 @@ def train_model(
         caption_extension=caption_extension,
         clip_skip=clip_skip,
         color_aug=color_aug,
+        dataset_config=dataset_config,
         debiased_estimation_loss=debiased_estimation_loss,
         dim_from_weights=dim_from_weights,
         enable_bucket=enable_bucket,
@@ -1815,6 +1839,7 @@ def lora_tab(
             source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
+            source_model.dataset_config,
             basic_training.max_resolution,
             basic_training.learning_rate,
             basic_training.lr_scheduler,
