@@ -66,7 +66,7 @@ def save_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
-    toml_file,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -245,7 +245,7 @@ def open_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
-    toml_file,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -452,7 +452,7 @@ def train_model(
     train_data_dir,
     reg_data_dir,
     output_dir,
-    toml_file,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -594,7 +594,7 @@ def train_model(
         resume=resume,
         vae=vae,
         lora_network_weights=lora_network_weights,
-        toml_file=toml_file,
+        dataset_config=dataset_config,
     ):
         return
 
@@ -637,75 +637,76 @@ def train_model(
     if unet_lr == "":
         unet_lr = 0
 
-    # Get a list of all subfolders in train_data_dir
-    subfolders = [
-        f
-        for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
-    ]
+    if not dataset_config:
+        # Get a list of all subfolders in train_data_dir
+        subfolders = [
+            f
+            for f in os.listdir(train_data_dir)
+            if os.path.isdir(os.path.join(train_data_dir, f))
+        ]
 
-    total_steps = 0
+        total_steps = 0
 
-    # Loop through each subfolder and extract the number of repeats
-    for folder in subfolders:
-        try:
-            # Extract the number of repeats from the folder name
-            repeats = int(folder.split("_")[0])
+        # Loop through each subfolder and extract the number of repeats
+        for folder in subfolders:
+            try:
+                # Extract the number of repeats from the folder name
+                repeats = int(folder.split("_")[0])
 
-            # Count the number of images in the folder
-            num_images = len(
-                [
-                    f
-                    for f, lower_f in (
-                        (file, file.lower())
-                        for file in os.listdir(os.path.join(train_data_dir, folder))
-                    )
-                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-                ]
+                # Count the number of images in the folder
+                num_images = len(
+                    [
+                        f
+                        for f, lower_f in (
+                            (file, file.lower())
+                            for file in os.listdir(os.path.join(train_data_dir, folder))
+                        )
+                        if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                    ]
+                )
+
+                log.info(f"Folder {folder}: {num_images} images found")
+
+                # Calculate the total number of steps for this folder
+                steps = repeats * num_images
+
+                # log.info the result
+                log.info(f"Folder {folder}: {steps} steps")
+
+                total_steps += steps
+
+            except ValueError:
+                # Handle the case where the folder name does not contain an underscore
+                log.info(f"Error: '{folder}' does not contain an underscore, skipping...")
+
+        if reg_data_dir == "":
+            reg_factor = 1
+        else:
+            log.warning(
+                "Regularisation images are used... Will double the number of steps required..."
             )
+            reg_factor = 2
 
-            log.info(f"Folder {folder}: {num_images} images found")
+        log.info(f"Total steps: {total_steps}")
+        log.info(f"Train batch size: {train_batch_size}")
+        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+        log.info(f"Epoch: {epoch}")
+        log.info(f"Regulatization factor: {reg_factor}")
 
-            # Calculate the total number of steps for this folder
-            steps = repeats * num_images
-
-            # log.info the result
-            log.info(f"Folder {folder}: {steps} steps")
-
-            total_steps += steps
-
-        except ValueError:
-            # Handle the case where the folder name does not contain an underscore
-            log.info(f"Error: '{folder}' does not contain an underscore, skipping...")
-
-    if reg_data_dir == "":
-        reg_factor = 1
-    else:
-        log.warning(
-            "Regularisation images are used... Will double the number of steps required..."
-        )
-        reg_factor = 2
-
-    log.info(f"Total steps: {total_steps}")
-    log.info(f"Train batch size: {train_batch_size}")
-    log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
-    log.info(f"Epoch: {epoch}")
-    log.info(f"Regulatization factor: {reg_factor}")
-
-    if max_train_steps == "" or max_train_steps == "0":
-        # calculate max_train_steps
-        max_train_steps = int(
-            math.ceil(
-                float(total_steps)
-                / int(train_batch_size)
-                / int(gradient_accumulation_steps)
-                * int(epoch)
-                * int(reg_factor)
+        if max_train_steps == "" or max_train_steps == "0":
+            # calculate max_train_steps
+            max_train_steps = int(
+                math.ceil(
+                    float(total_steps)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                    * int(reg_factor)
+                )
             )
-        )
-        log.info(
-            f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
-        )
+            log.info(
+                f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+            )
 
     # calculate stop encoder training
     if stop_text_encoder_training_pct == None:
@@ -1832,7 +1833,7 @@ def lora_tab(
             source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
-            folders.toml_file,
+            source_model.dataset_config,
             basic_training.max_resolution,
             basic_training.learning_rate,
             basic_training.lr_scheduler,
