@@ -58,11 +58,11 @@ def caption_images(
 
     # Construct the command to run
     run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/make_captions.py"'
-    run_cmd += f' --batch_size="{batch_size}"'
-    run_cmd += f' --num_beams="{num_beams}"'
+    run_cmd += f' --batch_size="{int(batch_size)}"'
+    run_cmd += f' --num_beams="{int(num_beams)}"'
     run_cmd += f' --top_p="{top_p}"'
-    run_cmd += f' --max_length="{max_length}"'
-    run_cmd += f' --min_length="{min_length}"'
+    run_cmd += f' --max_length="{int(max_length)}"'
+    run_cmd += f' --min_length="{int(min_length)}"'
     if beam_search:
         run_cmd += f" --beam_search"
     if caption_file_ext:
