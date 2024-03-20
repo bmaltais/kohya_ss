@@ -386,6 +386,7 @@ The documentation in this section will be moved to a separate document later.
 
 - Add support for toml dataset configuration fole to all trainers
 - Add new setup menu option to install Triton 2.1.0 for Windows
+- Add support for LyCORIS BOFT and DoRA and QLyCORIS options for LoHA, LoKr and LoCon
 
 ### 2024/03/19 (v23.0.14)
 
