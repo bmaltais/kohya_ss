@@ -196,7 +196,7 @@ class SourceModel:
                     create_refresh_button(self.dataset_config, lambda: None, lambda: {"choices": [""] + list_dataset_config_dirs(self.current_dataset_config_dir)}, "open_folder_small")
                     # Toml directory button
                     self.dataset_config_folder = gr.Button(
-                        '📂', elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
+                        document_symbol, elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
                     )
                     
                     # Toml directory button click event

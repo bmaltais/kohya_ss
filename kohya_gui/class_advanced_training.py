@@ -7,6 +7,7 @@ from .common_gui import (
     list_files,
     list_dirs,
     create_refresh_button,
+    document_symbol
 )
 
 
@@ -437,7 +438,7 @@ class AdvancedTraining:
                 "open_folder_small",
             )
             self.log_tracker_config_button = gr.Button(
-                "📂", elem_id="open_folder_small", visible=(not headless)
+                document_symbol, elem_id="open_folder_small", visible=(not headless)
             )
             self.log_tracker_config_button.click(
                 get_any_file_path,
