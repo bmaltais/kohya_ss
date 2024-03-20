@@ -139,6 +139,8 @@ def save_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
+    bypass_mode,
+    dora_wd,
     use_cp,
     use_tucker,
     use_scalar,
@@ -318,6 +320,8 @@ def open_configuration(
     multires_noise_discount,
     LoRA_type,
     factor,
+    bypass_mode,
+    dora_wd,
     use_cp,
     use_tucker,
     use_scalar,
@@ -393,7 +397,7 @@ def open_configuration(
 
     # Store the original file path for potential reuse
     original_file_path = file_path
-    
+
     # Request a file path from the user if required
     if ask_for_file:
         file_path = get_file_path(file_path)
@@ -410,7 +414,7 @@ def open_configuration(
     else:
         # Reset the file path to the original if the operation was cancelled or invalid
         file_path = original_file_path  # In case a file_path was provided and the user decides to cancel the open action
-        my_data = {} # Initialize an empty dict if no data was loaded
+        my_data = {}  # Initialize an empty dict if no data was loaded
 
     values = [file_path]
     # Iterate over parameters to set their values from `my_data` or use default if not found
@@ -525,6 +529,8 @@ def train_model(
     multires_noise_discount,
     LoRA_type,
     factor,
+    bypass_mode,
+    dora_wd,
     use_cp,
     use_tucker,
     use_scalar,
@@ -638,7 +644,9 @@ def train_model(
         unet_lr = 0
 
     if dataset_config:
-        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+        log.info(
+            "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
+        )
     else:
         # Get a list of all subfolders in train_data_dir
         subfolders = [
@@ -679,7 +687,9 @@ def train_model(
 
             except ValueError:
                 # Handle the case where the folder name does not contain an underscore
-                log.info(f"Error: '{folder}' does not contain an underscore, skipping...")
+                log.info(
+                    f"Error: '{folder}' does not contain an underscore, skipping..."
+                )
 
         if reg_data_dir == "":
             reg_factor = 1
@@ -711,7 +721,9 @@ def train_model(
             )
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
+    if stop_text_encoder_training_pct == None or (
+        not max_train_steps == "" or not max_train_steps == "0"
+    ):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -740,9 +752,13 @@ def train_model(
     else:
         run_cmd += rf' "{scriptdir}/sd-scripts/train_network.py"'
 
+    if LoRA_type == "LyCORIS/BOFT":
+        network_module = "lycoris.kohya"
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout={rank_dropout}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=boft" "train_norm={train_norm}"'
+
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft"  "train_norm={train_norm}"'
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout={rank_dropout}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/DyLoRA":
         network_module = "lycoris.kohya"
@@ -758,15 +774,15 @@ def train_model(
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoHa":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/LoKr":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
+        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
         network_module = "lycoris.kohya"
@@ -880,7 +896,6 @@ def train_model(
         return
     text_encoder_lr_float = float(text_encoder_lr)
     unet_lr_float = float(unet_lr)
-
 
     # Determine the training configuration based on learning rate values
     if text_encoder_lr_float == 0 and unet_lr_float == 0:
@@ -1111,9 +1126,10 @@ def lora_tab(
                             "Kohya DyLoRA",
                             "Kohya LoCon",
                             "LoRA-FA",
-                            "LyCORIS/DyLoRA",
                             "LyCORIS/iA3",
+                            "LyCORIS/BOFT",
                             "LyCORIS/Diag-OFT",
+                            "LyCORIS/DyLoRA",
                             "LyCORIS/GLoRA",
                             "LyCORIS/LoCon",
                             "LyCORIS/LoHa",
@@ -1196,6 +1212,18 @@ def lora_tab(
                         minimum=-1,
                         maximum=64,
                         step=1,
+                        visible=False,
+                    )
+                    bypass_mode = gr.Checkbox(
+                        value=False,
+                        label="Bypass mode",
+                        info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
+                        visible=False,
+                    )
+                    dora_wd = gr.Checkbox(
+                        value=False,
+                        label="DoRA Weight Decompose",
+                        info="Enable the DoRA method for these algorithms",
                         visible=False,
                     )
                     use_cp = gr.Checkbox(
@@ -1348,6 +1376,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1367,6 +1396,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/LoHa",
@@ -1408,6 +1438,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1427,6 +1458,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1446,6 +1478,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1473,6 +1506,7 @@ def lora_tab(
                                         in {
                                             "LyCORIS/LoHa",
                                             "LyCORIS/LoKr",
+                                            "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
                                         }
                                         else 512
@@ -1489,11 +1523,34 @@ def lora_tab(
                                         in {
                                             "LyCORIS/LoHa",
                                             "LyCORIS/LoKr",
+                                            "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
                                         }
                                         else 512
                                     ),
                                     "value": network_dim,  # if network_dim > 512 else network_dim,
+                                },
+                            },
+                            "bypass_mode": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                    },
+                                },
+                            },
+                            "dora_wd": {
+                                "gr_type": gr.Checkbox,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                    },
                                 },
                             },
                             "use_cp": {
@@ -1510,6 +1567,7 @@ def lora_tab(
                                 "update_params": {
                                     "visible": LoRA_type
                                     in {
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/LoCon",
@@ -1523,6 +1581,7 @@ def lora_tab(
                                 "update_params": {
                                     "visible": LoRA_type
                                     in {
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/LoCon",
                                         "LyCORIS/LoHa",
@@ -1536,6 +1595,7 @@ def lora_tab(
                                 "update_params": {
                                     "visible": LoRA_type
                                     in {
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/GLoRA",
                                         "LyCORIS/LoCon",
@@ -1550,6 +1610,7 @@ def lora_tab(
                                 "update_params": {
                                     "visible": LoRA_type
                                     in {
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                     },
                                 },
@@ -1559,6 +1620,7 @@ def lora_tab(
                                 "update_params": {
                                     "visible": LoRA_type
                                     in {
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                     },
                                 },
@@ -1569,6 +1631,7 @@ def lora_tab(
                                     "visible": LoRA_type
                                     in {
                                         "LyCORIS/DyLoRA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/GLoRA",
                                         "LyCORIS/LoCon",
@@ -1617,6 +1680,7 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1635,6 +1699,8 @@ def lora_tab(
                                     in {
                                         "LoCon",
                                         "Kohya DyLoRA",
+                                        "LyCORIS/BOFT",
+                                        "LyCORIS/Diag-OFT",
                                         "LyCORIS/GLoRA",
                                         "LyCORIS/LoCon",
                                         "LyCORIS/LoHa",
@@ -1652,6 +1718,7 @@ def lora_tab(
                                     "visible": LoRA_type
                                     in {
                                         "LoCon",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "Kohya DyLoRA",
                                         "LyCORIS/GLoRA",
@@ -1672,6 +1739,7 @@ def lora_tab(
                                     in {
                                         "LyCORIS/DyLoRA",
                                         "LyCORIS/iA3",
+                                        "LyCORIS/BOFT",
                                         "LyCORIS/Diag-OFT",
                                         "LyCORIS/GLoRA",
                                         "LyCORIS/LoCon",
@@ -1770,6 +1838,8 @@ def lora_tab(
                     factor,
                     conv_dim,
                     network_dim,
+                    bypass_mode,
+                    dora_wd,
                     use_cp,
                     use_tucker,
                     use_scalar,
@@ -1911,6 +1981,8 @@ def lora_tab(
             advanced_training.multires_noise_discount,
             LoRA_type,
             factor,
+            bypass_mode,
+            dora_wd,
             use_cp,
             use_tucker,
             use_scalar,
