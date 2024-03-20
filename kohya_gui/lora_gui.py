@@ -55,6 +55,32 @@ document_symbol = "\U0001F4C4"  # 📄
 presets_dir = rf"{scriptdir}/presets"
 
 
+def update_network_args_with_kohya_lora_vars(
+    network_args: str, kohya_lora_var_list: list, vars: dict
+) -> str:
+    """
+    Update network arguments with Kohya LoRA variables.
+
+    Args:
+        network_args (str): The network arguments.
+        kohya_lora_var_list (list): The list of Kohya LoRA variables.
+        vars (dict): The dictionary of variables.
+
+    Returns:
+        str: The updated network arguments.
+    """
+    # Filter out variables that are in the Kohya LoRA variable list and have a value
+    kohya_lora_vars = {
+        key: value for key, value in vars if key in kohya_lora_var_list and value
+    }
+
+    # Iterate over the Kohya LoRA variables and append them to the network arguments
+    for key, value in kohya_lora_vars.items():
+        # Append each variable as a key-value pair to the network_args
+        network_args += f' {key}="{value}"'
+    return network_args
+
+
 def save_configuration(
     save_as,
     file_path,
@@ -752,41 +778,43 @@ def train_model(
     else:
         run_cmd += rf' "{scriptdir}/sd-scripts/train_network.py"'
 
+    network_args = ""
+
     if LoRA_type == "LyCORIS/BOFT":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout={rank_dropout}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=boft" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout="{rank_dropout}" rank_dropout_scale="{rank_dropout_scale}" constrain="{constrain}" rescaled="{rescaled}" algo="boft" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout={rank_dropout}" "rank_dropout_scale={rank_dropout_scale}" "constrain={constrain}" "rescaled={rescaled}" "algo=diag-oft" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout="{rank_dropout}" rank_dropout_scale="{rank_dropout_scale}" constrain="{constrain}" rescaled="{rescaled}" algo="diag-oft" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/DyLoRA":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "use_tucker={use_tucker}" "block_size={unit}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "algo=dylora" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" use_tucker="{use_tucker}" block_size="{unit}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" algo="dylora" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/GLoRA":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "rank_dropout_scale={rank_dropout_scale}" "algo=glora" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" rank_dropout_scale="{rank_dropout_scale}" algo="glora" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/iA3":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "train_on_input={train_on_input}" "algo=ia3"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" train_on_input="{train_on_input}" algo="ia3"'
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=locon" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="locon" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/LoHa":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=loha" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="loha" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/LoKr":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "conv_dim={conv_dim}" "conv_alpha={conv_alpha}" "rank_dropout={rank_dropout}" "bypass_mode={bypass_mode}" "dora_wd={dora_wd}" "module_dropout={module_dropout}" "factor={factor}" "use_cp={use_cp}" "use_scalar={use_scalar}" "decompose_both={decompose_both}" "rank_dropout_scale={rank_dropout_scale}" "algo=lokr" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" factor="{factor}" use_cp="{use_cp}" use_scalar="{use_scalar}" decompose_both="{decompose_both}" rank_dropout_scale="{rank_dropout_scale}" algo="lokr" train_norm="{train_norm}"'
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
         network_module = "lycoris.kohya"
-        network_args = f' "preset={LyCORIS_preset}" "rank_dropout={rank_dropout}" "module_dropout={module_dropout}" "use_tucker={use_tucker}" "use_scalar={use_scalar}" "rank_dropout_scale={rank_dropout_scale}" "algo=full" "train_norm={train_norm}"'
+        network_args = f' preset="{LyCORIS_preset}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="full" train_norm="{train_norm}"'
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -801,25 +829,14 @@ def train_model(
             "rank_dropout",
             "module_dropout",
         ]
-
         network_module = "networks.lora"
-        kohya_lora_vars = {
-            key: value
-            for key, value in vars().items()
-            if key in kohya_lora_var_list and value
-        }
+        network_args += update_network_args_with_kohya_lora_vars(
+            network_args=network_args,
+            kohya_lora_var_list=kohya_lora_var_list,
+            vars=vars().items(),
+        )
 
-        network_args = ""
-        if LoRA_type == "Kohya LoCon":
-            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
-
-        for key, value in kohya_lora_vars.items():
-            if value:
-                network_args += f' {key}="{value}"'
-
-    if LoRA_type in [
-        "LoRA-FA",
-    ]:
+    if LoRA_type in ["LoRA-FA"]:
         kohya_lora_var_list = [
             "down_lr_weight",
             "mid_lr_weight",
@@ -832,21 +849,12 @@ def train_model(
             "rank_dropout",
             "module_dropout",
         ]
-
         network_module = "networks.lora_fa"
-        kohya_lora_vars = {
-            key: value
-            for key, value in vars().items()
-            if key in kohya_lora_var_list and value
-        }
-
-        network_args = ""
-        if LoRA_type == "Kohya LoCon":
-            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
-
-        for key, value in kohya_lora_vars.items():
-            if value:
-                network_args += f' {key}="{value}"'
+        network_args += update_network_args_with_kohya_lora_vars(
+            network_args=network_args,
+            kohya_lora_var_list=kohya_lora_var_list,
+            vars=vars().items(),
+        )
 
     if LoRA_type in ["Kohya DyLoRA"]:
         kohya_lora_var_list = [
@@ -864,153 +872,134 @@ def train_model(
             "module_dropout",
             "unit",
         ]
-
         network_module = "networks.dylora"
-        kohya_lora_vars = {
-            key: value
-            for key, value in vars().items()
-            if key in kohya_lora_var_list and value
-        }
-
-        network_args = ""
-
-        for key, value in kohya_lora_vars.items():
-            if value:
-                network_args += f' {key}="{value}"'
-
-    network_train_text_encoder_only = False
-    network_train_unet_only = False
-
+        network_args += update_network_args_with_kohya_lora_vars(
+            network_args=network_args,
+            kohya_lora_var_list=kohya_lora_var_list,
+            vars=vars().items(),
+        )
     # Convert learning rates to float once and store the result for re-use
-    if text_encoder_lr is None:
-        output_message(
-            msg="Please input valid Text Encoder learning rate (between 0 and 1)",
-            headless=headless_bool,
-        )
-        return
-    if unet_lr is None:
-        output_message(
-            msg="Please input valid Unet learning rate (between 0 and 1)",
-            headless=headless_bool,
-        )
-        return
-    text_encoder_lr_float = float(text_encoder_lr)
-    unet_lr_float = float(unet_lr)
+    learning_rate = float(learning_rate) if learning_rate is not None else 0.0
+    text_encoder_lr_float = float(text_encoder_lr) if text_encoder_lr is not None else 0.0
+    unet_lr_float = float(unet_lr) if unet_lr is not None else 0.0
 
     # Determine the training configuration based on learning rate values
-    if text_encoder_lr_float == 0 and unet_lr_float == 0:
-        if float(learning_rate) == 0:
-            output_message(
-                msg="Please input learning rate values.", headless=headless_bool
-            )
-            return
-    elif text_encoder_lr_float != 0 and unet_lr_float == 0:
-        network_train_text_encoder_only = True
-    elif text_encoder_lr_float == 0 and unet_lr_float != 0:
-        network_train_unet_only = True
-    # If both learning rates are non-zero, no specific flags need to be set
+    # Sets flags for training specific components based on the provided learning rates.
+    if float(learning_rate) == unet_lr_float == text_encoder_lr_float == 0:
+        output_message(
+            msg="Please input learning rate values.", headless=headless_bool
+        )
+        return
+    # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
+    network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
+    # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
+    network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
-    run_cmd += run_cmd_advanced_training(
-        adaptive_noise_scale=adaptive_noise_scale,
-        additional_parameters=additional_parameters,
-        bucket_no_upscale=bucket_no_upscale,
-        bucket_reso_steps=bucket_reso_steps,
-        cache_latents=cache_latents,
-        cache_latents_to_disk=cache_latents_to_disk,
-        cache_text_encoder_outputs=(
+
+    # Define a dictionary of parameters
+    run_cmd_params = {
+        "adaptive_noise_scale": adaptive_noise_scale,
+        "additional_parameters": additional_parameters,
+        "bucket_no_upscale": bucket_no_upscale,
+        "bucket_reso_steps": bucket_reso_steps,
+        "cache_latents": cache_latents,
+        "cache_latents_to_disk": cache_latents_to_disk,
+        "cache_text_encoder_outputs": (
             True if sdxl and sdxl_cache_text_encoder_outputs else None
         ),
-        caption_dropout_every_n_epochs=caption_dropout_every_n_epochs,
-        caption_dropout_rate=caption_dropout_rate,
-        caption_extension=caption_extension,
-        clip_skip=clip_skip,
-        color_aug=color_aug,
-        dataset_config=dataset_config,
-        debiased_estimation_loss=debiased_estimation_loss,
-        dim_from_weights=dim_from_weights,
-        enable_bucket=enable_bucket,
-        epoch=epoch,
-        flip_aug=flip_aug,
-        fp8_base=fp8_base,
-        full_bf16=full_bf16,
-        full_fp16=full_fp16,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        gradient_checkpointing=gradient_checkpointing,
-        keep_tokens=keep_tokens,
-        learning_rate=learning_rate,
-        logging_dir=logging_dir,
-        log_tracker_name=log_tracker_name,
-        log_tracker_config=log_tracker_config,
-        lora_network_weights=lora_network_weights,
-        lr_scheduler=lr_scheduler,
-        lr_scheduler_args=lr_scheduler_args,
-        lr_scheduler_num_cycles=lr_scheduler_num_cycles,
-        lr_scheduler_power=lr_scheduler_power,
-        lr_warmup_steps=lr_warmup_steps,
-        max_bucket_reso=max_bucket_reso,
-        max_data_loader_n_workers=max_data_loader_n_workers,
-        max_grad_norm=max_grad_norm,
-        max_resolution=max_resolution,
-        max_timestep=max_timestep,
-        max_token_length=max_token_length,
-        max_train_epochs=max_train_epochs,
-        max_train_steps=max_train_steps,
-        mem_eff_attn=mem_eff_attn,
-        min_bucket_reso=min_bucket_reso,
-        min_snr_gamma=min_snr_gamma,
-        min_timestep=min_timestep,
-        mixed_precision=mixed_precision,
-        multires_noise_discount=multires_noise_discount,
-        multires_noise_iterations=multires_noise_iterations,
-        network_alpha=network_alpha,
-        network_args=network_args,
-        network_dim=network_dim,
-        network_dropout=network_dropout,
-        network_module=network_module,
-        network_train_unet_only=network_train_unet_only,
-        network_train_text_encoder_only=network_train_text_encoder_only,
-        no_half_vae=True if sdxl and sdxl_no_half_vae else None,
-        # no_token_padding=no_token_padding,
-        noise_offset=noise_offset,
-        noise_offset_type=noise_offset_type,
-        optimizer=optimizer,
-        optimizer_args=optimizer_args,
-        output_dir=output_dir,
-        output_name=output_name,
-        persistent_data_loader_workers=persistent_data_loader_workers,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        prior_loss_weight=prior_loss_weight,
-        random_crop=random_crop,
-        reg_data_dir=reg_data_dir,
-        resume=resume,
-        save_every_n_epochs=save_every_n_epochs,
-        save_every_n_steps=save_every_n_steps,
-        save_last_n_steps=save_last_n_steps,
-        save_last_n_steps_state=save_last_n_steps_state,
-        save_model_as=save_model_as,
-        save_precision=save_precision,
-        save_state=save_state,
-        scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
-        scale_weight_norms=scale_weight_norms,
-        seed=seed,
-        shuffle_caption=shuffle_caption,
-        stop_text_encoder_training=stop_text_encoder_training,
-        text_encoder_lr=text_encoder_lr,
-        train_batch_size=train_batch_size,
-        train_data_dir=train_data_dir,
-        training_comment=training_comment,
-        unet_lr=unet_lr,
-        use_wandb=use_wandb,
-        v2=v2,
-        v_parameterization=v_parameterization,
-        v_pred_like_loss=v_pred_like_loss,
-        vae=vae,
-        vae_batch_size=vae_batch_size,
-        wandb_api_key=wandb_api_key,
-        wandb_run_name=wandb_run_name,
-        weighted_captions=weighted_captions,
-        xformers=xformers,
-    )
+        "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        "caption_dropout_rate": caption_dropout_rate,
+        "caption_extension": caption_extension,
+        "clip_skip": clip_skip,
+        "color_aug": color_aug,
+        "dataset_config": dataset_config,
+        "debiased_estimation_loss": debiased_estimation_loss,
+        "dim_from_weights": dim_from_weights,
+        "enable_bucket": enable_bucket,
+        "epoch": epoch,
+        "flip_aug": flip_aug,
+        "fp8_base": fp8_base,
+        "full_bf16": full_bf16,
+        "full_fp16": full_fp16,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_checkpointing": gradient_checkpointing,
+        "keep_tokens": keep_tokens,
+        "learning_rate": learning_rate,
+        "logging_dir": logging_dir,
+        "log_tracker_name": log_tracker_name,
+        "log_tracker_config": log_tracker_config,
+        "lora_network_weights": lora_network_weights,
+        "lr_scheduler": lr_scheduler,
+        "lr_scheduler_args": lr_scheduler_args,
+        "lr_scheduler_num_cycles": lr_scheduler_num_cycles,
+        "lr_scheduler_power": lr_scheduler_power,
+        "lr_warmup_steps": lr_warmup_steps,
+        "max_bucket_reso": max_bucket_reso,
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        "max_grad_norm": max_grad_norm,
+        "max_resolution": max_resolution,
+        "max_timestep": max_timestep,
+        "max_token_length": max_token_length,
+        "max_train_epochs": max_train_epochs,
+        "max_train_steps": max_train_steps,
+        "mem_eff_attn": mem_eff_attn,
+        "min_bucket_reso": min_bucket_reso,
+        "min_snr_gamma": min_snr_gamma,
+        "min_timestep": min_timestep,
+        "mixed_precision": mixed_precision,
+        "multires_noise_discount": multires_noise_discount,
+        "multires_noise_iterations": multires_noise_iterations,
+        "network_alpha": network_alpha,
+        "network_args": network_args,
+        "network_dim": network_dim,
+        "network_dropout": network_dropout,
+        "network_module": network_module,
+        "network_train_unet_only": network_train_unet_only,
+        "network_train_text_encoder_only": network_train_text_encoder_only,
+        "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
+        "noise_offset": noise_offset,
+        "noise_offset_type": noise_offset_type,
+        "optimizer": optimizer,
+        "optimizer_args": optimizer_args,
+        "output_dir": output_dir,
+        "output_name": output_name,
+        "persistent_data_loader_workers": persistent_data_loader_workers,
+        "pretrained_model_name_or_path": pretrained_model_name_or_path,
+        "prior_loss_weight": prior_loss_weight,
+        "random_crop": random_crop,
+        "reg_data_dir": reg_data_dir,
+        "resume": resume,
+        "save_every_n_epochs": save_every_n_epochs,
+        "save_every_n_steps": save_every_n_steps,
+        "save_last_n_steps": save_last_n_steps,
+        "save_last_n_steps_state": save_last_n_steps_state,
+        "save_model_as": save_model_as,
+        "save_precision": save_precision,
+        "save_state": save_state,
+        "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
+        "scale_weight_norms": scale_weight_norms,
+        "seed": seed,
+        "shuffle_caption": shuffle_caption,
+        "stop_text_encoder_training": stop_text_encoder_training,
+        "text_encoder_lr": text_encoder_lr,
+        "train_batch_size": train_batch_size,
+        "train_data_dir": train_data_dir,
+        "training_comment": training_comment,
+        "unet_lr": unet_lr,
+        "use_wandb": use_wandb,
+        "v2": v2,
+        "v_parameterization": v_parameterization,
+        "v_pred_like_loss": v_pred_like_loss,
+        "vae": vae,
+        "vae_batch_size": vae_batch_size,
+        "wandb_api_key": wandb_api_key,
+        "wandb_run_name": wandb_run_name,
+        "weighted_captions": weighted_captions,
+        "xformers": xformers,
+    }
+
+    # Use the ** syntax to unpack the dictionary when calling the function
+    run_cmd += run_cmd_advanced_training(**run_cmd_params)
 
     run_cmd += run_cmd_sample(
         sample_every_n_steps,
@@ -1050,15 +1039,6 @@ def train_model(
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
-
-        # # check if output_dir/last is a folder... therefore it is a diffuser model
-        # last_dir = pathlib.Path(f'{output_dir}/{output_name}')
-
-        # if not last_dir.is_dir():
-        #     # Copy inference model for v2 if required
-        #     save_inference_file(
-        #         output_dir, v2, v_parameterization, output_name
-        #     )
 
 
 def lora_tab(
@@ -1205,81 +1185,84 @@ def lora_tab(
                 # Add SDXL Parameters
                 sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
 
-                with gr.Row():
-                    factor = gr.Slider(
-                        label="LoKr factor",
-                        value=-1,
-                        minimum=-1,
-                        maximum=64,
-                        step=1,
-                        visible=False,
-                    )
-                    bypass_mode = gr.Checkbox(
-                        value=False,
-                        label="Bypass mode",
-                        info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
-                        visible=False,
-                    )
-                    dora_wd = gr.Checkbox(
-                        value=False,
-                        label="DoRA Weight Decompose",
-                        info="Enable the DoRA method for these algorithms",
-                        visible=False,
-                    )
-                    use_cp = gr.Checkbox(
-                        value=False,
-                        label="Use CP decomposition",
-                        info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
-                        visible=False,
-                    )
-                    use_tucker = gr.Checkbox(
-                        value=False,
-                        label="Use Tucker decomposition",
-                        info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
-                        visible=False,
-                    )
-                    use_scalar = gr.Checkbox(
-                        value=False,
-                        label="Use Scalar",
-                        info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
-                        visible=False,
-                    )
-                    rank_dropout_scale = gr.Checkbox(
-                        value=False,
-                        label="Rank Dropout Scale",
-                        info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
-                        visible=False,
-                    )
-                    constrain = gr.Number(
-                        value="0.0",
-                        label="Constrain OFT",
-                        info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
-                        visible=False,
-                    )
-                    rescaled = gr.Checkbox(
-                        value=False,
-                        label="Rescaled OFT",
-                        info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
-                        visible=False,
-                    )
-                    train_norm = gr.Checkbox(
-                        value=False,
-                        label="Train Norm",
-                        info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
-                        visible=False,
-                    )
-                    decompose_both = gr.Checkbox(
-                        value=False,
-                        label="LoKr decompose both",
-                        info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
-                        visible=False,
-                    )
-                    train_on_input = gr.Checkbox(
-                        value=True,
-                        label="iA3 train on input",
-                        info="Set if we change the information going into the system (True) or the information coming out of it (False).",
-                        visible=False,
-                    )
+                # LyCORIS Specific parameters
+                with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
+                    with gr.Row():
+                        factor = gr.Slider(
+                            label="LoKr factor",
+                            value=-1,
+                            minimum=-1,
+                            maximum=64,
+                            step=1,
+                            visible=False,
+                        )
+                        bypass_mode = gr.Checkbox(
+                            value=False,
+                            label="Bypass mode",
+                            info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
+                            visible=False,
+                        )
+                        dora_wd = gr.Checkbox(
+                            value=False,
+                            label="DoRA Weight Decompose",
+                            info="Enable the DoRA method for these algorithms",
+                            visible=False,
+                        )
+                        use_cp = gr.Checkbox(
+                            value=False,
+                            label="Use CP decomposition",
+                            info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
+                            visible=False,
+                        )
+                        use_tucker = gr.Checkbox(
+                            value=False,
+                            label="Use Tucker decomposition",
+                            info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
+                            visible=False,
+                        )
+                        use_scalar = gr.Checkbox(
+                            value=False,
+                            label="Use Scalar",
+                            info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
+                            visible=False,
+                        )
+                    with gr.Row():
+                        rank_dropout_scale = gr.Checkbox(
+                            value=False,
+                            label="Rank Dropout Scale",
+                            info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
+                            visible=False,
+                        )
+                        constrain = gr.Number(
+                            value="0.0",
+                            label="Constrain OFT",
+                            info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
+                            visible=False,
+                        )
+                        rescaled = gr.Checkbox(
+                            value=False,
+                            label="Rescaled OFT",
+                            info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
+                            visible=False,
+                        )
+                        train_norm = gr.Checkbox(
+                            value=False,
+                            label="Train Norm",
+                            info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
+                            visible=False,
+                        )
+                        decompose_both = gr.Checkbox(
+                            value=False,
+                            label="LoKr decompose both",
+                            info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
+                            visible=False,
+                        )
+                        train_on_input = gr.Checkbox(
+                            value=True,
+                            label="iA3 train on input",
+                            info="Set if we change the information going into the system (True) or the information coming out of it (False).",
+                            visible=False,
+                        )
 
                 with gr.Row() as network_row:
                     network_dim = gr.Slider(
@@ -1349,7 +1332,7 @@ def lora_tab(
                         step=0.01,
                         info="can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3",
                     )
-                with gr.Row(visible=False) as kohya_dylora:
+                with gr.Row(visible=False):
                     unit = gr.Slider(
                         minimum=1,
                         maximum=64,
@@ -1415,16 +1398,6 @@ def lora_tab(
                                         "Kohya DyLoRA",
                                         "Kohya LoCon",
                                         "LoRA-FA",
-                                    },
-                                },
-                            },
-                            "kohya_dylora": {
-                                "gr_type": gr.Row,
-                                "update_params": {
-                                    "visible": LoRA_type
-                                    in {
-                                        "Kohya DyLoRA",
-                                        "LyCORIS/DyLoRA",
                                     },
                                 },
                             },
@@ -1749,6 +1722,33 @@ def lora_tab(
                                     },
                                 },
                             },
+                            "unit": {
+                                "gr_type": gr.Slider,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "Kohya DyLoRA",
+                                        "LyCORIS/DyLoRA",
+                                    },
+                                },
+                            },
+                            "lycoris_accordion": {
+                                "gr_type": gr.Accordion,
+                                "update_params": {
+                                    "visible": LoRA_type
+                                    in {
+                                        "LyCORIS/DyLoRA",
+                                        "LyCORIS/iA3",
+                                        "LyCORIS/BOFT",
+                                        "LyCORIS/Diag-OFT",
+                                        "LyCORIS/GLoRA",
+                                        "LyCORIS/LoCon",
+                                        "LyCORIS/LoHa",
+                                        "LyCORIS/LoKr",
+                                        "LyCORIS/Native Fine-Tuning",
+                                    },
+                                },
+                            },
                         }
 
                         results = []
@@ -1831,7 +1831,6 @@ def lora_tab(
                     network_row,
                     convolution_row,
                     kohya_advanced_lora,
-                    kohya_dylora,
                     lora_network_weights,
                     lora_network_weights_file,
                     dim_from_weights,
@@ -1854,6 +1853,8 @@ def lora_tab(
                     rank_dropout,
                     module_dropout,
                     LyCORIS_preset,
+                    unit,
+                    lycoris_accordion,
                 ],
             )
 
