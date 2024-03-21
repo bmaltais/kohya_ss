@@ -58,6 +58,7 @@ def save_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -192,6 +193,7 @@ def open_configuration(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -319,6 +321,7 @@ def train_model(
     train_data_dir,
     reg_data_dir,
     output_dir,
+    dataset_config,
     max_resolution,
     learning_rate,
     lr_scheduler,
@@ -424,6 +427,7 @@ def train_model(
         log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
+        dataset_config=dataset_config,
     ):
         return
 
@@ -440,68 +444,71 @@ def train_model(
     ):
         return
 
-    # Get a list of all subfolders in train_data_dir
-    subfolders = [
-        f
-        for f in os.listdir(train_data_dir)
-        if os.path.isdir(os.path.join(train_data_dir, f))
-    ]
+    if dataset_config:
+        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+    else:
+        # Get a list of all subfolders in train_data_dir
+        subfolders = [
+            f
+            for f in os.listdir(train_data_dir)
+            if os.path.isdir(os.path.join(train_data_dir, f))
+        ]
 
-    total_steps = 0
+        total_steps = 0
 
-    # Loop through each subfolder and extract the number of repeats
-    for folder in subfolders:
-        # Extract the number of repeats from the folder name
-        repeats = int(folder.split("_")[0])
+        # Loop through each subfolder and extract the number of repeats
+        for folder in subfolders:
+            # Extract the number of repeats from the folder name
+            repeats = int(folder.split("_")[0])
 
-        # Count the number of images in the folder
-        num_images = len(
-            [
-                f
-                for f, lower_f in (
-                    (file, file.lower())
-                    for file in os.listdir(os.path.join(train_data_dir, folder))
-                )
-                if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-            ]
-        )
+            # Count the number of images in the folder
+            num_images = len(
+                [
+                    f
+                    for f, lower_f in (
+                        (file, file.lower())
+                        for file in os.listdir(os.path.join(train_data_dir, folder))
+                    )
+                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                ]
+            )
 
-        # Calculate the total number of steps for this folder
-        steps = repeats * num_images
-        total_steps += steps
+            # Calculate the total number of steps for this folder
+            steps = repeats * num_images
+            total_steps += steps
+
+            # Print the result
+            log.info(f"Folder {folder}: {steps} steps")
 
         # Print the result
-        log.info(f"Folder {folder}: {steps} steps")
+        # log.info(f"{total_steps} total steps")
 
-    # Print the result
-    # log.info(f"{total_steps} total steps")
-
-    if reg_data_dir == "":
-        reg_factor = 1
-    else:
-        log.info(
-            "Regularisation images are used... Will double the number of steps required..."
-        )
-        reg_factor = 2
-
-    # calculate max_train_steps
-    if max_train_steps == "" or max_train_steps == "0":
-        max_train_steps = int(
-            math.ceil(
-                float(total_steps)
-                / int(train_batch_size)
-                / int(gradient_accumulation_steps)
-                * int(epoch)
-                * int(reg_factor)
+        if reg_data_dir == "":
+            reg_factor = 1
+        else:
+            log.info(
+                "Regularisation images are used... Will double the number of steps required..."
             )
-        )
-    else:
-        max_train_steps = int(max_train_steps)
+            reg_factor = 2
 
-    log.info(f"max_train_steps = {max_train_steps}")
+        # calculate max_train_steps
+        if max_train_steps == "" or max_train_steps == "0":
+            max_train_steps = int(
+                math.ceil(
+                    float(total_steps)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                    * int(reg_factor)
+                )
+            )
+        else:
+            max_train_steps = int(max_train_steps)
+
+        log.info(f"max_train_steps = {max_train_steps}")
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None:
+    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -509,7 +516,10 @@ def train_model(
         )
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
-    lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    if not max_train_steps == "":
+        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    else:
+        lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = "accelerate launch"
@@ -538,6 +548,7 @@ def train_model(
         caption_extension=caption_extension,
         clip_skip=clip_skip,
         color_aug=color_aug,
+        dataset_config=dataset_config,
         enable_bucket=enable_bucket,
         epoch=epoch,
         flip_aug=flip_aug,
@@ -843,6 +854,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             source_model.train_data_dir,
             folders.reg_data_dir,
             folders.output_dir,
+            source_model.dataset_config,
             basic_training.max_resolution,
             basic_training.learning_rate,
             basic_training.lr_scheduler,

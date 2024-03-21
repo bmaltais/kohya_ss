@@ -1,6 +1,6 @@
 import gradio as gr
 import os
-from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
+from .common_gui import get_folder_path, scriptdir, list_dirs, list_files, create_refresh_button
 
 class Folders:
     """
