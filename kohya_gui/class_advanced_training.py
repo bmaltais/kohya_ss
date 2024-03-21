@@ -39,8 +39,7 @@ class AdvancedTraining:
             headless (bool): Run in headless mode without GUI.
             finetuning (bool): Enable model fine-tuning.
             training_type (str): The type of training to be performed.
-            default_vae_dir (str): Default directory for VAE models.
-            default_output_dir (str): Default directory for output files.
+            config (dict): Configuration options for the training process.
         """
         self.headless = headless
         self.finetuning = finetuning
@@ -369,10 +368,6 @@ class AdvancedTraining:
                 outputs=self.resume,
                 show_progress=False,
             )
-            # self.max_train_epochs = gr.Textbox(
-            #     label='Max train epoch',
-            #     placeholder='(Optional) Override number of epoch',
-            # )
             self.max_data_loader_n_workers = gr.Textbox(
                 label="Max num workers for DataLoader",
                 placeholder="(Optional) Override number of epoch. Default: 8",

@@ -1775,6 +1775,13 @@ def validate_paths(headless: bool = False, **kwargs: Optional[str]) -> bool:
         if key in ["output_dir", "logging_dir"]:
             if not validate_path(value, key, create_if_missing=True):
                 return False
+        elif key in ["vae"]:
+            # Check if it matches the Hugging Face model pattern
+            if re.match(r"^[\w-]+\/[\w-]+$", value):
+                log.info("Checking vae... huggingface.co model, skipping validation")
+            else:
+                if not validate_path(value, key):
+                    return False
         else:
             if key not in ["pretrained_model_name_or_path"]:
                 if not validate_path(value, key):

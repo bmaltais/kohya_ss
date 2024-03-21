@@ -382,11 +382,13 @@ The documentation in this section will be moved to a separate document later.
 
 ## Change History
 
-### 2024/03/20 (v23.0.15)
+### 2024/03/21 (v23.0.15)
 
 - Add support for toml dataset configuration fole to all trainers
 - Add new setup menu option to install Triton 2.1.0 for Windows
 - Add support for LyCORIS BOFT and DoRA and QLyCORIS options for LoHA, LoKr and LoCon
+- Fix issue with vae path validation
+- Other fixes
 
 ### 2024/03/19 (v23.0.14)
 
