@@ -27,6 +27,7 @@ onnxruntime-gpu==1.16.0
 # onnxruntime==1.16.0
 # this is for onnx:
 # tensorboard==2.14.1
+prodigyopt==1.0
 protobuf==3.20.3
 # open clip for SDXL
 open-clip-torch==2.20.0
@@ -35,6 +36,7 @@ prodigyopt==1.0
 pytorch-lightning==1.9.0
 rich==13.7.0
 safetensors==0.4.2
+scipy==1.11.4
 timm==0.6.12
 tk==0.1.0
 toml==0.10.2

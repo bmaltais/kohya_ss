@@ -118,8 +118,16 @@ def install_kohya_ss_torch2(headless: bool = False):
 
     setup_common.install("pip")
 
-    setup_common.install_requirements(
-        "requirements_windows_torch2.txt", check_no_verify_flag=False
+    # setup_common.install_requirements(
+    #     "requirements_windows_torch2.txt", check_no_verify_flag=False
+    # )
+    
+    setup_common.install_requirements_inbulk(
+        "requirements_pytorch_windows.txt", show_stdout=True, optional_parm="--index-url https://download.pytorch.org/whl/cu118"
+    )
+    
+    setup_common.install_requirements_inbulk(
+        "requirements_windows.txt", show_stdout=True, upgrade=True
     )
 
     setup_common.configure_accelerate(

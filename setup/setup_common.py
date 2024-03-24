@@ -218,6 +218,24 @@ def setup_logging(clean=False):
     log.addHandler(rh)
 
 
+def install_requirements_inbulk(requirements_file, show_stdout=True, optional_parm="", upgrade = False):
+    if not os.path.exists(requirements_file):
+        log.error(f'Could not find the requirements file in {requirements_file}.')
+        return
+
+    log.info(f'Installing requirements from {requirements_file}...')
+
+    if upgrade:
+        optional_parm += " -U"
+
+    if show_stdout:
+        run_cmd(f'pip install -r {requirements_file} {optional_parm}')
+    else:
+        run_cmd(f'pip install -r {requirements_file} {optional_parm} --quiet')
+    log.info(f'Requirements from {requirements_file} installed.')
+    
+
+
 def configure_accelerate(run_accelerate=False):
     #
     # This function was taken and adapted from code written by jstayco

@@ -1,0 +1,4 @@
+bitsandbytes==0.43.0
+tensorboard
+tensorflow
+-r requirements.txt

@@ -16,6 +16,7 @@ TENSORBOARD = 'tensorboard' if os.name == 'posix' else 'tensorboard.exe'
 DEFAULT_TENSORBOARD_PORT = 6006
 
 def start_tensorboard(headless, logging_dir, wait_time=5):
+    os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
     global tensorboard_proc
     
     headless_bool = True if headless.get('label') == 'True' else False
@@ -49,7 +50,13 @@ def start_tensorboard(headless, logging_dir, wait_time=5):
     # Start background process
     log.info('Starting TensorBoard on port {}'.format(tensorboard_port))
     try:
-        tensorboard_proc = subprocess.Popen(run_cmd)
+        # Copy the current environment
+        env = os.environ.copy()
+
+        # Set your specific environment variable
+        env['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+        tensorboard_proc = subprocess.Popen(run_cmd, env=env)
     except Exception as e:
         log.error('Failed to start Tensorboard:', e)
         return
