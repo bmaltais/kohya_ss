@@ -190,7 +190,7 @@ def main_menu(headless: bool = False):
             print(
                 "2. (Optional) Install CuDNN files (to use the latest supported CuDNN version)"
             )
-            print("3. (Optional) Install Triton 2.1.0 for Windows")
+            print("3. (DANGER) Install Triton 2.1.0 for Windows... only do it if you know you need it... might break training...")
             print("4. (Optional) Install specific version of bitsandbytes")
             print("5. (Optional) Manually configure Accelerate")
             print("6. (Optional) Launch Kohya_ss GUI in browser")
