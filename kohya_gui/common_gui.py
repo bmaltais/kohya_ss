@@ -1232,9 +1232,10 @@ def run_cmd_advanced_training(**kwargs):
     if max_data_loader_n_workers and not max_data_loader_n_workers == "":
         run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
 
-    max_grad_norm = kwargs.get("max_grad_norm")
-    if max_grad_norm != "":
-        run_cmd += f' --max_grad_norm="{max_grad_norm}"'
+    if "max_grad_norm" in kwargs:
+        max_grad_norm = kwargs.get("max_grad_norm")
+        if max_grad_norm != "":
+            run_cmd += f' --max_grad_norm="{max_grad_norm}"'
 
     max_resolution = kwargs.get("max_resolution")
     if max_resolution:
