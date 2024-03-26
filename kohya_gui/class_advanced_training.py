@@ -356,6 +356,9 @@ class AdvancedTraining:
             )
         with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(label="Save training state", value=False)
+            
+            
+            self.save_state_on_train_end = gr.Checkbox(label="Save training state at end of training", value=False)
 
             def list_state_dirs(path):
                 self.current_state_dir = path if not path == "" else "."

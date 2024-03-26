@@ -1455,6 +1455,10 @@ def run_cmd_advanced_training(**kwargs):
     if "save_state" in kwargs:
         if kwargs.get("save_state"):
             run_cmd += " --save_state"
+            
+    if "save_state_on_train_end" in kwargs:
+        if kwargs.get("save_state_on_train_end"):
+            run_cmd += " --save_state_on_train_end"
 
     if "scale_v_pred_loss_like_noise_pred" in kwargs:
         if kwargs.get("scale_v_pred_loss_like_noise_pred"):
