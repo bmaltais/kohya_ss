@@ -22,8 +22,8 @@ lycoris_lora==2.2.0.post3
 # tensorflow==2.14.0
 # for WD14 captioning (onnx)
 omegaconf==2.3.0
-onnx==1.14.1
-onnxruntime-gpu==1.16.0
+onnx==1.15.0
+onnxruntime-gpu==1.17.1
 # onnxruntime==1.16.0
 # this is for onnx:
 # tensorboard==2.14.1

@@ -9,6 +9,7 @@ import gradio as gr
 import shutil
 import sys
 import json
+import math
 
 # Set up logging
 log = setup_logging()
@@ -1150,6 +1151,14 @@ def run_cmd_advanced_training(**kwargs):
 
     if kwargs.get("gradient_checkpointing"):
         run_cmd += " --gradient_checkpointing"
+        
+    if kwargs.get("ip_noise_gamma"):
+        if float(kwargs["ip_noise_gamma"]) > 0:
+            run_cmd += f' --ip_noise_gamma={kwargs["ip_noise_gamma"]}'
+        
+    if kwargs.get("ip_noise_gamma_random_strength"):
+        if kwargs["ip_noise_gamma_random_strength"]:
+            run_cmd += f' --ip_noise_gamma_random_strength'
 
     if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
         run_cmd += f' --keep_tokens="{int(kwargs["keep_tokens"])}"'
@@ -1224,231 +1233,259 @@ def run_cmd_advanced_training(**kwargs):
         else:
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
-    gpu_ids = kwargs.get("gpu_ids")
-    if gpu_ids:
-        run_cmd += f' --gpu_ids="{gpu_ids}"'
+    if "gpu_ids" in kwargs:
+        gpu_ids = kwargs.get("gpu_ids")
+        if not gpu_ids == "":
+            run_cmd += f' --gpu_ids="{gpu_ids}"'
 
-    max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
-    if max_data_loader_n_workers and not max_data_loader_n_workers == "":
-        run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+    if "max_data_loader_n_workers" in kwargs:
+        max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
+        if not max_data_loader_n_workers == "":
+            run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
 
     if "max_grad_norm" in kwargs:
         max_grad_norm = kwargs.get("max_grad_norm")
         if max_grad_norm != "":
             run_cmd += f' --max_grad_norm="{max_grad_norm}"'
 
-    max_resolution = kwargs.get("max_resolution")
-    if max_resolution:
-        run_cmd += f' --resolution="{max_resolution}"'
+    if "max_resolution" in kwargs:
+        run_cmd += fr' --resolution="{kwargs.get("max_resolution")}"'
 
-    max_timestep = kwargs.get("max_timestep")
-    if max_timestep and int(max_timestep) < 1000:
-        run_cmd += f" --max_timestep={int(max_timestep)}"
+    if "max_timestep" in kwargs:
+        max_timestep = kwargs.get("max_timestep")
+        if int(max_timestep) < 1000:
+            run_cmd += f" --max_timestep={int(max_timestep)}"
 
-    max_token_length = kwargs.get("max_token_length")
-    if max_token_length and int(max_token_length) > 75:
-        run_cmd += f" --max_token_length={int(max_token_length)}"
+    if "max_token_length" in kwargs:
+        max_token_length = kwargs.get("max_token_length")
+        if int(max_token_length) > 75:
+            run_cmd += f" --max_token_length={int(max_token_length)}"
 
-    max_train_epochs = kwargs.get("max_train_epochs")
-    if max_train_epochs and not max_train_epochs == "":
-        run_cmd += f" --max_train_epochs={max_train_epochs}"
+    if "max_train_epochs" in kwargs:
+        max_train_epochs = kwargs.get("max_train_epochs")
+        if not max_train_epochs == "":
+            run_cmd += f" --max_train_epochs={max_train_epochs}"
 
-    max_train_steps = kwargs.get("max_train_steps")
-    if max_train_steps:
-        run_cmd += f' --max_train_steps="{max_train_steps}"'
+    if "max_train_steps" in kwargs:
+        max_train_steps = kwargs.get("max_train_steps")
+        if not max_train_steps == "":
+            run_cmd += f' --max_train_steps="{max_train_steps}"'
 
-    mem_eff_attn = kwargs.get("mem_eff_attn")
-    if mem_eff_attn:
-        run_cmd += " --mem_eff_attn"
+    if "mem_eff_attn" in kwargs:
+        if kwargs.get("mem_eff_attn"): # Test if the value is true as it could be false
+            run_cmd += " --mem_eff_attn"
 
-    min_snr_gamma = kwargs.get("min_snr_gamma")
-    if min_snr_gamma and int(min_snr_gamma) >= 1:
-        run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
+    if "min_snr_gamma" in kwargs:
+        min_snr_gamma = kwargs.get("min_snr_gamma")
+        if int(min_snr_gamma) >= 1:
+            run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
 
-    min_timestep = kwargs.get("min_timestep")
-    if min_timestep and int(min_timestep) > 0:
-        run_cmd += f" --min_timestep={int(min_timestep)}"
+    if "min_timestep" in kwargs:
+        min_timestep = kwargs.get("min_timestep")
+        if int(min_timestep) > -1:
+            run_cmd += f" --min_timestep={int(min_timestep)}"
 
-    mixed_precision = kwargs.get("mixed_precision")
-    if mixed_precision:
-        run_cmd += f' --mixed_precision="{mixed_precision}"'
+    if "mixed_precision" in kwargs:
+        run_cmd += fr' --mixed_precision="{kwargs.get("mixed_precision")}"'
 
-    multi_gpu = kwargs.get("multi_gpu")
-    if multi_gpu:
-        run_cmd += " --multi_gpu"
+    if "multi_gpu" in kwargs:
+        if kwargs.get("multi_gpu"):
+            run_cmd += " --multi_gpu"
 
-    network_alpha = kwargs.get("network_alpha")
-    if network_alpha:
-        run_cmd += f' --network_alpha="{network_alpha}"'
+    if "network_alpha" in kwargs:
+        run_cmd += fr' --network_alpha="{kwargs.get("network_alpha")}"'
 
-    network_args = kwargs.get("network_args")
-    if network_args and len(network_args):
-        run_cmd += f" --network_args{network_args}"
+    if "network_args" in kwargs:
+        network_args = kwargs.get("network_args")
+        if network_args != "":
+            run_cmd += f' --network_args{network_args}'
 
-    network_dim = kwargs.get("network_dim")
-    if network_dim:
-        run_cmd += f" --network_dim={network_dim}"
+    if "network_dim" in kwargs:
+        run_cmd += fr' --network_dim={kwargs.get("network_dim")}'
 
-    network_dropout = kwargs.get("network_dropout")
-    if network_dropout and network_dropout > 0.0:
-        run_cmd += f" --network_dropout={network_dropout}"
+    if "network_dropout" in kwargs:
+        network_dropout = kwargs.get("network_dropout")
+        if network_dropout > 0.0:
+            run_cmd += f" --network_dropout={network_dropout}"
 
-    network_module = kwargs.get("network_module")
-    if network_module:
-        run_cmd += f" --network_module={network_module}"
+    if "network_module" in kwargs:
+        network_module = kwargs.get("network_module")
+        if network_module != "":
+            run_cmd += f' --network_module={network_module}'
 
-    network_train_text_encoder_only = kwargs.get("network_train_text_encoder_only")
-    if network_train_text_encoder_only:
-        run_cmd += " --network_train_text_encoder_only"
+    if "network_train_text_encoder_only" in kwargs:
+        if kwargs.get("network_train_text_encoder_only"):
+            run_cmd += " --network_train_text_encoder_only"
 
-    network_train_unet_only = kwargs.get("network_train_unet_only")
-    if network_train_unet_only:
-        run_cmd += " --network_train_unet_only"
+    if "network_train_unet_only" in kwargs:
+        if kwargs.get("network_train_unet_only"):
+            run_cmd += " --network_train_unet_only"
 
-    no_half_vae = kwargs.get("no_half_vae")
-    if no_half_vae:
-        run_cmd += " --no_half_vae"
+    if "no_half_vae" in kwargs:
+        if kwargs.get("no_half_vae"): # Test if the value is true as it could be false
+            run_cmd += " --no_half_vae"
 
-    no_token_padding = kwargs.get("no_token_padding")
-    if no_token_padding:
-        run_cmd += " --no_token_padding"
+    if "no_token_padding" in kwargs:
+        if kwargs.get("no_token_padding"): # Test if the value is true as it could be false
+            run_cmd += " --no_token_padding"
 
     if "noise_offset_type" in kwargs:
         noise_offset_type = kwargs["noise_offset_type"]
 
-        if kwargs["noise_offset_type"] == "Original":
-            noise_offset = float(kwargs.get("noise_offset", 0))
-            if noise_offset:
-                run_cmd += f" --noise_offset={noise_offset}"
+        if noise_offset_type == "Original":
+            if "noise_offset" in kwargs:
+                noise_offset = float(kwargs.get("noise_offset", 0))
+                if noise_offset:
+                    run_cmd += f" --noise_offset={float(noise_offset)}"
 
-            adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
-            if adaptive_noise_scale != 0 and noise_offset > 0:
-                run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
-
+                if "adaptive_noise_scale" in kwargs:
+                    adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
+                    if adaptive_noise_scale != 0 and noise_offset > 0:
+                        run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
+                        
+                if "noise_offset_random_strength" in kwargs:
+                    if kwargs.get("noise_offset_random_strength"):
+                        run_cmd += f" --noise_offset_random_strength"
         elif noise_offset_type == "Multires":
-            multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
-            if multires_noise_iterations > 0:
-                run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
+            if "multires_noise_iterations" in kwargs:
+                multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
+                if multires_noise_iterations > 0:
+                    run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
 
-            multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
-            if multires_noise_discount > 0:
-                run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
+            if "multires_noise_discount" in kwargs:
+                multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
+                if multires_noise_discount > 0:
+                    run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
 
-    num_machines = kwargs.get("num_machines")
-    if num_machines and int(num_machines) > 1:
-        run_cmd += f" --num_machines={int(num_machines)}"
+    if "num_machines" in kwargs:
+        num_machines = kwargs.get("num_machines")
+        if int(num_machines) > 1:
+            run_cmd += f" --num_machines={int(num_machines)}"
 
-    num_processes = kwargs.get("num_processes")
-    if num_processes and int(num_processes) > 1:
-        run_cmd += f" --num_processes={int(num_processes)}"
+    if "num_processes" in kwargs:
+        num_processes = kwargs.get("num_processes")
+        if int(num_processes) > 1:
+            run_cmd += f" --num_processes={int(num_processes)}"
 
-    num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
-    if num_cpu_threads_per_process and int(num_cpu_threads_per_process) > 1:
-        run_cmd += f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
+    if "num_cpu_threads_per_process" in kwargs:
+        num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
+        if int(num_cpu_threads_per_process) > 1:
+            run_cmd += f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
 
-    optimizer_args = kwargs.get("optimizer_args")
-    if optimizer_args and optimizer_args != "":
-        run_cmd += f" --optimizer_args {optimizer_args}"
+    if "optimizer_args" in kwargs:
+        optimizer_args = kwargs.get("optimizer_args")
+        if optimizer_args != "":
+            run_cmd += f" --optimizer_args {optimizer_args}"
 
-    optimizer_type = kwargs.get("optimizer")
-    if optimizer_type:
-        run_cmd += f' --optimizer_type="{optimizer_type}"'
+    if "optimizer" in kwargs:
+        run_cmd += fr' --optimizer_type="{kwargs.get("optimizer")}"'
 
-    output_dir = kwargs.get("output_dir")
-    if output_dir:
+    if "output_dir" in kwargs:
+        output_dir = kwargs.get("output_dir")
         if output_dir.startswith('"') and output_dir.endswith('"'):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
             run_cmd += rf' --output_dir="{output_dir}"'
 
-    output_name = kwargs.get("output_name")
-    if output_name and not output_name == "":
-        run_cmd += f' --output_name="{output_name}"'
+    if "output_name" in kwargs:
+        output_name = kwargs.get("output_name")
+        if not output_name == "":
+            run_cmd += f' --output_name="{output_name}"'
 
-    persistent_data_loader_workers = kwargs.get("persistent_data_loader_workers")
-    if persistent_data_loader_workers:
-        run_cmd += " --persistent_data_loader_workers"
+    if "persistent_data_loader_workers" in kwargs:
+        if kwargs.get("persistent_data_loader_workers"):
+            run_cmd += " --persistent_data_loader_workers"
 
-    pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
-    if pretrained_model_name_or_path:
+    if "pretrained_model_name_or_path" in kwargs:
         run_cmd += (
-            rf' --pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+            rf' --pretrained_model_name_or_path="{kwargs.get("pretrained_model_name_or_path")}"'
         )
 
-    prior_loss_weight = kwargs.get("prior_loss_weight")
-    if prior_loss_weight and not float(prior_loss_weight) == 1.0:
-        run_cmd += f" --prior_loss_weight={prior_loss_weight}"
+    if "prior_loss_weight" in kwargs:
+        prior_loss_weight = kwargs.get("prior_loss_weight")
+        if not float(prior_loss_weight) == 1.0:
+            run_cmd += f" --prior_loss_weight={prior_loss_weight}"
 
-    random_crop = kwargs.get("random_crop")
-    if random_crop:
-        run_cmd += " --random_crop"
+    if "random_crop" in kwargs:
+        random_crop = kwargs.get("random_crop")
+        if random_crop:
+            run_cmd += " --random_crop"
 
-    reg_data_dir = kwargs.get("reg_data_dir")
-    if reg_data_dir and len(reg_data_dir):
-        if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
-            reg_data_dir = reg_data_dir[1:-1]
-        if os.path.isdir(reg_data_dir):
-            run_cmd += rf' --reg_data_dir="{reg_data_dir}"'
+    if "reg_data_dir" in kwargs:
+        reg_data_dir = kwargs.get("reg_data_dir")
+        if len(reg_data_dir):
+            if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
+                reg_data_dir = reg_data_dir[1:-1]
+            if os.path.isdir(reg_data_dir):
+                run_cmd += rf' --reg_data_dir="{reg_data_dir}"'
 
-    resume = kwargs.get("resume")
-    if resume:
-        run_cmd += f' --resume="{resume}"'
+    if "resume" in kwargs:
+        resume = kwargs.get("resume")
+        if len(resume):
+            run_cmd += f' --resume="{resume}"'
 
-    save_every_n_epochs = kwargs.get("save_every_n_epochs")
-    if save_every_n_epochs:
-        run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
+    if "save_every_n_epochs" in kwargs:
+        save_every_n_epochs = kwargs.get("save_every_n_epochs")
+        if int(save_every_n_epochs) > 0:
+            run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
 
-    save_every_n_steps = kwargs.get("save_every_n_steps")
-    if save_every_n_steps and int(save_every_n_steps) > 0:
-        run_cmd += f' --save_every_n_steps="{int(save_every_n_steps)}"'
+    if "save_every_n_steps" in kwargs:
+        save_every_n_steps = kwargs.get("save_every_n_steps")
+        if int(save_every_n_steps) > 0:
+            run_cmd += f' --save_every_n_steps="{int(save_every_n_steps)}"'
 
-    save_last_n_steps = kwargs.get("save_last_n_steps")
-    if save_last_n_steps and int(save_last_n_steps) > 0:
-        run_cmd += f' --save_last_n_steps="{int(save_last_n_steps)}"'
+    if "save_last_n_steps" in kwargs:
+        save_last_n_steps = kwargs.get("save_last_n_steps")
+        if int(save_last_n_steps) > 0:
+            run_cmd += f' --save_last_n_steps="{int(save_last_n_steps)}"'
 
-    save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
-    if save_last_n_steps_state and int(save_last_n_steps_state) > 0:
-        run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
+    if "save_last_n_steps_state" in kwargs:
+        save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
+        if int(save_last_n_steps_state) > 0:
+            run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
 
-    save_model_as = kwargs.get("save_model_as")
-    if save_model_as and not save_model_as == "same as source model":
-        run_cmd += f" --save_model_as={save_model_as}"
+    if "save_model_as" in kwargs:
+        save_model_as = kwargs.get("save_model_as")
+        if save_model_as != "same as source model":
+            run_cmd += f" --save_model_as={save_model_as}"
 
-    save_precision = kwargs.get("save_precision")
-    if save_precision:
-        run_cmd += f' --save_precision="{save_precision}"'
+    if "save_precision" in kwargs:
+        run_cmd += fr' --save_precision="{kwargs.get("save_precision")}"'
 
-    save_state = kwargs.get("save_state")
-    if save_state:
-        run_cmd += " --save_state"
+    if "save_state" in kwargs:
+        if kwargs.get("save_state"):
+            run_cmd += " --save_state"
 
-    scale_v_pred_loss_like_noise_pred = kwargs.get("scale_v_pred_loss_like_noise_pred")
-    if scale_v_pred_loss_like_noise_pred:
-        run_cmd += " --scale_v_pred_loss_like_noise_pred"
+    if "scale_v_pred_loss_like_noise_pred" in kwargs:
+        if kwargs.get("scale_v_pred_loss_like_noise_pred"):
+            run_cmd += " --scale_v_pred_loss_like_noise_pred"
 
-    scale_weight_norms = kwargs.get("scale_weight_norms")
-    if scale_weight_norms and scale_weight_norms > 0.0:
-        run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
+    if "scale_weight_norms" in kwargs:
+        scale_weight_norms = kwargs.get("scale_weight_norms")
+        if scale_weight_norms > 0.0:
+            run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
 
-    seed = kwargs.get("seed")
-    if seed and seed != "":
-        run_cmd += f' --seed="{seed}"'
+    if "seed" in kwargs:
+        seed = kwargs.get("seed")
+        if seed != "":
+            run_cmd += f' --seed="{seed}"'
 
-    shuffle_caption = kwargs.get("shuffle_caption")
-    if shuffle_caption:
-        run_cmd += " --shuffle_caption"
+    if "shuffle_caption" in kwargs:
+        if kwargs.get("shuffle_caption"):
+            run_cmd += " --shuffle_caption"
 
-    stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
-    if stop_text_encoder_training and stop_text_encoder_training > 0:
-        run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
+    if "stop_text_encoder_training" in kwargs:
+        stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
+        if stop_text_encoder_training > 0:
+            run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
 
-    text_encoder_lr = kwargs.get("text_encoder_lr")
-    if text_encoder_lr and (float(text_encoder_lr) > 0):
-        run_cmd += f" --text_encoder_lr={text_encoder_lr}"
+    if "text_encoder_lr" in kwargs:
+        text_encoder_lr = kwargs.get("text_encoder_lr")
+        if float(text_encoder_lr) > -1:
+            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
 
-    train_batch_size = kwargs.get("train_batch_size")
-    if train_batch_size:
-        run_cmd += f' --train_batch_size="{train_batch_size}"'
+    if "train_batch_size" in kwargs:
+        run_cmd += fr' --train_batch_size="{kwargs.get("train_batch_size")}"'
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):

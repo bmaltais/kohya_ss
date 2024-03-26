@@ -281,6 +281,7 @@ class AdvancedTraining:
                     "Multires",
                 ],
                 value="Original",
+                scale=1
             )
             with gr.Row(visible=True) as self.noise_offset_original:
                 self.noise_offset = gr.Slider(
@@ -291,13 +292,18 @@ class AdvancedTraining:
                     step=0.01,
                     info='Recommended values are 0.05 - 0.15',
                 )
+                self.noise_offset_random_strength  = gr.Checkbox(
+                    label="Noise offset random strength",
+                    value=False,
+                    info='Use random strength between 0~noise_offset for noise offset',
+                )
                 self.adaptive_noise_scale = gr.Slider(
                     label="Adaptive noise scale",
                     value=0,
                     minimum=-1,
                     maximum=1,
                     step=0.001,
-                    info="(Experimental, Optional) Since the latent is close to a normal distribution, it may be a good idea to specify a value around 1/10 the noise offset.",
+                    info="Add `latent mean absolute value * this value` to noise_offset",
                 )
             with gr.Row(visible=False) as self.noise_offset_multires:
                 self.multires_noise_iterations = gr.Slider(
@@ -306,7 +312,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=64,
                     step=1,
-                  info='Enable multires noise (recommended values are 6-10)',
+                    info='Enable multires noise (recommended values are 6-10)',
                 )
                 self.multires_noise_discount = gr.Slider(
                     label="Multires noise discount",
@@ -315,6 +321,20 @@ class AdvancedTraining:
                     maximum=1,
                     step=0.01,
                     info='Recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+                )
+            with gr.Row(visible=True):
+                self.ip_noise_gamma = gr.Slider(
+                    label="IP noise gamma",
+                    value=0,
+                    minimum=0,
+                    maximum=1,
+                    step=0.01,
+                    info='enable input perturbation noise. used for regularization. recommended value: around 0.1',
+                )
+                self.ip_noise_gamma_random_strength  = gr.Checkbox(
+                    label="IP noise gamma random strength",
+                    value=False,
+                    info='Use random strength between 0~ip_noise_gamma for input perturbation noise',
                 )
             self.noise_offset_type.change(
                 noise_offset_type_change,
