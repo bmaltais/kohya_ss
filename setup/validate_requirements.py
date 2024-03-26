@@ -69,7 +69,6 @@ def check_torch():
                 log.info(
                     f'Torch detected GPU: {torch.cuda.get_device_name(device)} VRAM {round(torch.cuda.get_device_properties(device).total_memory / 1024 / 1024)} Arch {torch.cuda.get_device_capability(device)} Cores {torch.cuda.get_device_properties(device).multi_processor_count}'
                 )
-            return int(torch.__version__[0])
         # Check if XPU is available
         elif hasattr(torch, "xpu") and torch.xpu.is_available():
             # Log Intel IPEX version
@@ -80,10 +79,10 @@ def check_torch():
                 log.info(
                     f'Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
                 )
-            return int(torch.__version__[0])
         else:
             log.warning('Torch reports GPU not available')
-            return int(torch.__version__[0])
+        
+        return int(torch.__version__[0])
     except Exception as e:
         log.error(f'Could not load torch: {e}')
         sys.exit(1)
