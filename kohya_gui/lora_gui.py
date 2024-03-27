@@ -1169,7 +1169,7 @@ def lora_tab(
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
                         value="0.0001",
-                        info="Optional",
+                        info="(Optional)",
                         minimum=0,
                         maximum=1,
                     )
@@ -1177,7 +1177,7 @@ def lora_tab(
                     unet_lr = gr.Number(
                         label="Unet learning rate",
                         value="0.0001",
-                        info="Optional",
+                        info="(Optional)",
                         minimum=0,
                         maximum=1,
                     )
