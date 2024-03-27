@@ -386,7 +386,34 @@ The documentation in this section will be moved to a separate document later.
 ### 2024/03/27 (v23.1.0)
 
 - Update sd-scripts to 0.8.6
-- Add support for ... to the GUI.
+  - The .toml file for the dataset config is now read in UTF-8 encoding. PR #1167 Thanks to Horizon1704!
+
+  - Fixed a bug that the last subset settings are applied to all images when multiple subsets of regularization images are specified in the dataset settings. The settings for each subset are correctly applied to each image. PR #1205 Thanks to feffy380!
+
+  - train_network.py and sdxl_train_network.py are modified to record some dataset settings in the metadata of the trained model (caption_prefix, caption_suffix, keep_tokens_separator, secondary_separator, enable_wildcard).
+
+  - Some features are added to the dataset subset settings.
+
+    - secondary_separator is added to specify the tag separator that is not the target of shuffling or dropping.
+      Specify secondary_separator=";;;". When you specify secondary_separator, the part is not shuffled or dropped.
+    - enable_wildcard is added. When set to true, the wildcard notation {aaa|bbb|ccc} can be used. The multi-line caption is also enabled.
+    - keep_tokens_separator is updated to be used twice in the caption. When you specify keep_tokens_separator="|||", the part divided by the second ||| is not shuffled or dropped and remains at the end.
+    - The existing features caption_prefix and caption_suffix can be used together. caption_prefix and caption_suffix are processed first, and then enable_wildcard, keep_tokens_separator, shuffling and dropping, and secondary_separator are processed in order.
+    - See Dataset config for details.
+  - The support for v3 repositories is added to tag_image_by_wd14_tagger.py (--onnx option only). PR #1192 Thanks to sdbds!
+
+    - Onnx may need to be updated. Onnx is not installed by default, so please install or update it with pip install onnx==1.15.0 onnxruntime-gpu==1.17.1 etc. Please also check the comments in requirements.txt.
+  - The model is now saved in the subdirectory as --repo_id in tag_image_by_wd14_tagger.py . This caches multiple repo_id models. Please delete unnecessary files under --model_dir.
+
+  - The options --noise_offset_random_strength and --ip_noise_gamma_random_strength are added to each training script. These options can be used to vary the noise offset and ip noise gamma in the range of 0 to the specified value. PR #1177 Thanks to KohakuBlueleaf!
+
+  - The options --save_state_on_train_end are added to each training script. PR #1168 Thanks to gesen2egee!
+
+  - The options --sample_every_n_epochs and --sample_every_n_steps in each training script now display a warning and ignore them when a number less than or equal to 0 is specified. Thanks to S-Del for raising the issue.
+
+  - The English version of the dataset settings documentation is added. PR #1175 Thanks to darkstorm2150!
+
+- Add GUI support for the new parameters listed above.
 
 ### 2024/03/21 (v23.0.15)
 
