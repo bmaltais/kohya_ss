@@ -222,8 +222,13 @@ class AdvancedTraining:
                 choices=["none", "sdpa", "xformers"],
                 value="xformers",
             )
-            self.color_aug = gr.Checkbox(label="Color augmentation", value=False)
-            self.flip_aug = gr.Checkbox(label="Flip augmentation", value=False)
+            self.color_aug = gr.Checkbox(label="Color augmentation", value=False, info="Enable weak color augmentation")
+            self.flip_aug = gr.Checkbox(label="Flip augmentation", value=False, info="Enable horizontal flip augmentation")
+            self.masked_loss = gr.Checkbox(
+                label="Masked loss",
+                value=False,
+                info="Apply mask for calculating loss. conditioning_data_dir is required for dataset"
+            )
             self.min_snr_gamma = gr.Slider(
                 label="Min SNR gamma",
                 value=0,

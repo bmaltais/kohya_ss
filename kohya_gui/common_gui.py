@@ -1237,6 +1237,10 @@ def run_cmd_advanced_training(**kwargs):
         gpu_ids = kwargs.get("gpu_ids")
         if not gpu_ids == "":
             run_cmd += f' --gpu_ids="{gpu_ids}"'
+            
+    if "masked_loss" in kwargs:
+        if kwargs.get("masked_loss"): # Test if the value is true as it could be false
+            run_cmd += " --masked_loss"
 
     if "max_data_loader_n_workers" in kwargs:
         max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
