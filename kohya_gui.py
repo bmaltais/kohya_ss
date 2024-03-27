@@ -133,6 +133,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
+    parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
 
     args = parser.parse_args()
 
