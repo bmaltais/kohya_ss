@@ -37,6 +37,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Page File Limit](#page-file-limit)
     - [No module called tkinter](#no-module-called-tkinter)
   - [SDXL training](#sdxl-training)
+  - [Masked loss](#masked-loss)
   - [Change History](#change-history)
     - [2024/03/27 (v23.1.0)](#20240327-v2310)
     - [2024/03/21 (v23.0.15)](#20240321-v23015)
@@ -381,37 +382,43 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 
 The documentation in this section will be moved to a separate document later.
 
+## Masked loss
+
+The masked loss is supported in each training script. To enable the masked loss, specify the `--masked_loss` option.
+
+The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
+
+ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
+
 ## Change History
 
 ### 2024/03/27 (v23.1.0)
 
 - Update sd-scripts to 0.8.6
-  - The .toml file for the dataset config is now read in UTF-8 encoding. PR #1167 Thanks to Horizon1704!
-
-  - Fixed a bug that the last subset settings are applied to all images when multiple subsets of regularization images are specified in the dataset settings. The settings for each subset are correctly applied to each image. PR #1205 Thanks to feffy380!
-
-  - train_network.py and sdxl_train_network.py are modified to record some dataset settings in the metadata of the trained model (caption_prefix, caption_suffix, keep_tokens_separator, secondary_separator, enable_wildcard).
-
+  - The dependent libraries are updated. Please see [Upgrade](#upgrade) and update the libraries.
+    - Especially `imagesize` is newly added, so if you cannot update immediately, please install with `pip install imagesize==1.4.1`.
+    - `bitsandbytes==0.43.0`, `prodigyopt==1.0`, `lion-pytorch==0.0.6` are included in the requirements.txt.
+  - Colab seems to stop with log output. Try specifying `--console_log_simple` option in the training script to disable rich logging.
+  - The `.toml` file for the dataset config is now read in UTF-8 encoding. PR [#1167](https://github.com/kohya-ss/sd-scripts/pull/1167) Thanks to Horizon1704!
+  - Fixed a bug that the last subset settings are applied to all images when multiple subsets of regularization images are specified in the dataset settings. The settings for each subset are correctly applied to each image. PR [#1205](https://github.com/kohya-ss/sd-scripts/pull/1205) Thanks to feffy380!
+  - `train_network.py` and `sdxl_train_network.py` are modified to record some dataset settings in the metadata of the trained model (`caption_prefix`, `caption_suffix`, `keep_tokens_separator`, `secondary_separator`, `enable_wildcard`).
+  - DeepSpeed is supported. PR [#1101](https://github.com/kohya-ss/sd-scripts/pull/1101)  and [#1139](https://github.com/kohya-ss/sd-scripts/pull/1139) Thanks to BootsofLagrangian! See PR [#1101](https://github.com/kohya-ss/sd-scripts/pull/1101) for details.
+  - The masked loss is supported in each training script. PR [#1207](https://github.com/kohya-ss/sd-scripts/pull/1207) See [Masked loss](#masked-loss) for details.
   - Some features are added to the dataset subset settings.
-
-    - secondary_separator is added to specify the tag separator that is not the target of shuffling or dropping.
-      Specify secondary_separator=";;;". When you specify secondary_separator, the part is not shuffled or dropped.
-    - enable_wildcard is added. When set to true, the wildcard notation {aaa|bbb|ccc} can be used. The multi-line caption is also enabled.
-    - keep_tokens_separator is updated to be used twice in the caption. When you specify keep_tokens_separator="|||", the part divided by the second ||| is not shuffled or dropped and remains at the end.
-    - The existing features caption_prefix and caption_suffix can be used together. caption_prefix and caption_suffix are processed first, and then enable_wildcard, keep_tokens_separator, shuffling and dropping, and secondary_separator are processed in order.
-    - See Dataset config for details.
-  - The support for v3 repositories is added to tag_image_by_wd14_tagger.py (--onnx option only). PR #1192 Thanks to sdbds!
-
-    - Onnx may need to be updated. Onnx is not installed by default, so please install or update it with pip install onnx==1.15.0 onnxruntime-gpu==1.17.1 etc. Please also check the comments in requirements.txt.
-  - The model is now saved in the subdirectory as --repo_id in tag_image_by_wd14_tagger.py . This caches multiple repo_id models. Please delete unnecessary files under --model_dir.
-
-  - The options --noise_offset_random_strength and --ip_noise_gamma_random_strength are added to each training script. These options can be used to vary the noise offset and ip noise gamma in the range of 0 to the specified value. PR #1177 Thanks to KohakuBlueleaf!
-
-  - The options --save_state_on_train_end are added to each training script. PR #1168 Thanks to gesen2egee!
-
-  - The options --sample_every_n_epochs and --sample_every_n_steps in each training script now display a warning and ignore them when a number less than or equal to 0 is specified. Thanks to S-Del for raising the issue.
-
-  - The English version of the dataset settings documentation is added. PR #1175 Thanks to darkstorm2150!
+    - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping. 
+      - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped. 
+    - `enable_wildcard` is added. When set to `true`, the wildcard notation `{aaa|bbb|ccc}` can be used. The multi-line caption is also enabled.
+    - `keep_tokens_separator` is updated to be used twice in the caption. When you specify `keep_tokens_separator="|||"`, the part divided by the second `|||` is not shuffled or dropped and remains at the end.
+    - The existing features `caption_prefix` and `caption_suffix` can be used together. `caption_prefix` and `caption_suffix` are processed first, and then `enable_wildcard`, `keep_tokens_separator`, shuffling and dropping, and `secondary_separator` are processed in order.
+    - See [Dataset config](./docs/config_README-en.md) for details.
+  - The dataset with DreamBooth method supports caching image information (size, caption). PR [#1178](https://github.com/kohya-ss/sd-scripts/pull/1178) and [#1206](https://github.com/kohya-ss/sd-scripts/pull/1206) Thanks to KohakuBlueleaf! See [DreamBooth method specific options](./docs/config_README-en.md#dreambooth-specific-options) for details.
+  - The support for v3 repositories is added to `tag_image_by_wd14_tagger.py` (`--onnx` option only). PR [#1192](https://github.com/kohya-ss/sd-scripts/pull/1192) Thanks to sdbds!
+    - Onnx may need to be updated. Onnx is not installed by default, so please install or update it with `pip install onnx==1.15.0 onnxruntime-gpu==1.17.1` etc. Please also check the comments in `requirements.txt`.
+  - The model is now saved in the subdirectory as `--repo_id` in `tag_image_by_wd14_tagger.py` . This caches multiple repo_id models. Please delete unnecessary files under `--model_dir`.
+  - The options `--noise_offset_random_strength` and `--ip_noise_gamma_random_strength` are added to each training script. These options can be used to vary the noise offset and ip noise gamma in the range of 0 to the specified value. PR [#1177](https://github.com/kohya-ss/sd-scripts/pull/1177) Thanks to KohakuBlueleaf!
+  - The options `--save_state_on_train_end` are added to each training script. PR [#1168](https://github.com/kohya-ss/sd-scripts/pull/1168) Thanks to gesen2egee!
+  - The options `--sample_every_n_epochs` and `--sample_every_n_steps` in each training script now display a warning and ignore them when a number less than or equal to `0` is specified. Thanks to S-Del for raising the issue.
+  - The [English version of the dataset settings documentation](./docs/config_README-en.md) is added. PR [#1175](https://github.com/kohya-ss/sd-scripts/pull/1175) Thanks to darkstorm2150!
 
 - Add GUI support for the new parameters listed above.
 
