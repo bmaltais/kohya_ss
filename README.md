@@ -332,10 +332,15 @@ gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 
 ## Custom Path Defaults
 
-You can now specify custom paths more easily:
+The repository now provides a default configuration file named `config.toml`. This file is a template that you can customize to suit your needs.
 
-- Simply copy the `config example.toml` file located in the root directory of the repository to `config.toml`.
-- Edit the `config.toml` file to adjust paths and settings according to your preferences.
+To use the default configuration file, follow these steps:
+
+1. Copy the `config example.toml` file from the root directory of the repository to `config.toml`.
+2. Open the `config.toml` file in a text editor.
+3. Modify the paths and settings as per your requirements.
+
+This approach allows you to easily adjust the configuration to suit your specific needs to open the desired default folders for each type of folder/file input supported in the GUI.
 
 ## LoRA
 
