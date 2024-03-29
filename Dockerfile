@@ -17,10 +17,10 @@ ARG PIP_NO_WARN_SCRIPT_LOCATION=0
 ARG PIP_ROOT_USER_ACTION="ignore"
 
 # Install build dependencies
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends python3-launchpadlib git curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/cache/apt \
+    --mount=type=cache,id=aptlists-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/lib/apt/lists \
+    apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends python3-launchpadlib git curl
 
 # Install PyTorch and TensorFlow
 # The versions must align and be in sync with the requirements_linux_docker.txt
@@ -44,24 +44,27 @@ RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/r
 
 # Replace pillow with pillow-simd (Only for x86)
 ARG TARGETPLATFORM
-RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/cache/apt \
+    --mount=type=cache,id=aptlists-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/lib/apt/lists \
+    if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
     apt-get update && apt-get install -y --no-install-recommends zlib1g-dev libjpeg62-turbo-dev build-essential && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
     pip uninstall -y pillow && \
     CC="cc -mavx2" pip install -U --force-reinstall pillow-simd; \
     fi
 
 FROM python:3.10-slim as final
 
+ARG TARGETARCH
+ARG TARGETVARIANT
+
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 # Install runtime dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libjpeg62 libtcl8.6 libtk8.6 libgoogle-perftools-dev dumb-init && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/cache/apt \
+    --mount=type=cache,id=aptlists-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libjpeg62 libtcl8.6 libtk8.6 libgoogle-perftools-dev dumb-init
 
 # Fix missing libnvinfer7
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
