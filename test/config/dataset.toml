@@ -9,7 +9,7 @@ bucket_reso_steps = 32
 bucket_no_upscale = true
 
   [[datasets.subsets]]
-  image_dir = '.\test\img\10_darius kawasaki person'
+  image_dir = './test/img/10_darius kawasaki person'
   num_repeats = 10
   class_tokens = 'darius kawasaki person'
   caption_extension = '.txt'

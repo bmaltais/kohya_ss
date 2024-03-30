@@ -383,6 +383,14 @@ If you encounter an X error related to the page file, you may need to increase t
 
 If you encounter an error indicating that the module `tkinter` is not found, try reinstalling Python 3.10 on your system.
 
+### LORA Training on TESLA V100 - GPU Utilization Issue
+#### Issue Summary
+When training LORA on a TESLA V100, users reported low GPU utilization. Additionally, there was difficulty in specifying GPUs other than the default for training.
+
+#### Potential Solutions
+- **GPU Selection:** Users can specify GPU IDs in the setup configuration to select the desired GPUs for training.
+- **Improving GPU Load:** Utilizing `adamW8bit` optimizer and increasing the batch size can help achieve 70-80% GPU utilization without exceeding GPU memory limits.
+
 ## SDXL training
 
 The documentation in this section will be moved to a separate document later.

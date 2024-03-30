@@ -1237,7 +1237,12 @@ def run_cmd_advanced_training(**kwargs):
         gpu_ids = kwargs.get("gpu_ids")
         if not gpu_ids == "":
             run_cmd += f' --gpu_ids="{gpu_ids}"'
-            
+    
+    if "main_process_port" in kwargs:
+        main_process_port = kwargs.get("main_process_port")
+        if main_process_port > 0:
+            run_cmd += f' --main_process_port="{main_process_port}"'
+
     if "masked_loss" in kwargs:
         if kwargs.get("masked_loss"): # Test if the value is true as it could be false
             run_cmd += " --masked_loss"

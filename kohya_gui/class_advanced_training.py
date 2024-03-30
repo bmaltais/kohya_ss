@@ -412,6 +412,14 @@ class AdvancedTraining:
             self.gpu_ids = gr.Textbox(
                 label="GPU IDs", value="", placeholder="example: 0,1"
             )
+            self.main_process_port = gr.Number(
+                label="Main process port",
+                value=0,
+                precision=1,
+                minimum=0,
+                maximum=65535,
+                info="The port to use to communicate with the machine of rank 0.",
+            )
         with gr.Row():
             self.use_wandb = gr.Checkbox(
                 label="WANDB Logging",
