@@ -12,7 +12,7 @@ log = logging.getLogger('sd')
 
 def check_python_version():
     """
-    Check if the current Python version is >= 3.10.9 and < 3.11.0
+    Check if the current Python version is within the acceptable range.
     
     Returns:
     bool: True if the current Python version is valid, False otherwise.
@@ -27,7 +27,7 @@ def check_python_version():
         log.info(f"Python version is {sys.version}")
         
         if not (min_version <= current_version < max_version):
-            log.error("The current version of python is not appropriate to run Kohya_ss GUI")
+            log.error(f"The current version of python ({current_version}) is not appropriate to run Kohya_ss GUI")
             log.error("The python version needs to be greater or equal to 3.10.9 and less than 3.11.0")
             return False
         return True
