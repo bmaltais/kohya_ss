@@ -549,7 +549,6 @@ def train_model(
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
         "adaptive_noise_scale": adaptive_noise_scale,
-        "additional_parameters": additional_parameters,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -627,6 +626,7 @@ def train_model(
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
         "xformers": xformers,
+        "additional_parameters": additional_parameters,
     }
 
     # Conditionally include specific keyword arguments based on sdxl
