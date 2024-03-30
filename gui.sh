@@ -92,9 +92,12 @@ then
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
-    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]] && [ -x "$(command -v ipexrun)" ]
+    if [[ ! -z "${IPEXRUN}" ]] && [ ${IPEXRUN}="True" ] && [ -x "$(command -v ipexrun)" ]
     then
-        STARTUP_CMD=ipexrun
+        if [[ -z "$STARTUP_CMD" ]]
+        then
+            STARTUP_CMD=ipexrun
+        fi
         if [[ -z "$STARTUP_CMD_ARGS" ]]
         then
             STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator tcmalloc"
