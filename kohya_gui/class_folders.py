@@ -16,7 +16,7 @@ class Folders:
         """
         self.headless = headless
         self.finetune = finetune
-        
+
         # Load kohya_ss GUI configs from config.toml if it exist
         self.config = config
 
@@ -28,7 +28,7 @@ class Folders:
         # Create directories if they don't exist
         self.create_directory_if_not_exists(self.current_output_dir)
         self.create_directory_if_not_exists(self.current_logging_dir)
-        
+
         # Create the GUI for folder selection
         self.create_folders_gui()
 
@@ -89,7 +89,7 @@ class Folders:
         with gr.Row():
             # Output directory dropdown
             self.output_dir = gr.Dropdown(
-                label=f'Output directory for trained model',
+                label="Output directory for trained model",
                 choices=[""] + self.list_output_dirs(self.current_output_dir),
                 value="",
                 interactive=True,

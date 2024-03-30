@@ -120,6 +120,9 @@ def gradio_merge_lycoris_tab(headless=False):
             lycoris_model = gr.Dropdown(
                 label='LyCORIS model (path to the LyCORIS model)',
                 interactive=True,
+                choices=[""] + list_lycoris_model(current_save_dir),
+                value="",
+                allow_custom_value=True,
             )
             button_lycoris_model_file = gr.Button(
                 folder_symbol,

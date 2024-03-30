@@ -470,7 +470,7 @@ def train_model(
 
     if dataset_config:
         log.info("Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation...")
-    else:   
+    else:
         # create caption json file
         if generate_caption_database:
             run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
@@ -582,7 +582,6 @@ def train_model(
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
         "adaptive_noise_scale": adaptive_noise_scale,
-        "additional_parameters": additional_parameters,
         "block_lr": block_lr,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -656,6 +655,7 @@ def train_model(
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
         "xformers": xformers,
+        "additional_parameters": additional_parameters,
     }
 
     # Conditionally include specific keyword arguments based on sdxl_checkbox
