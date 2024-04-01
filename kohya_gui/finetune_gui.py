@@ -19,6 +19,7 @@ from .common_gui import (
     scriptdir,
     validate_paths,
 )
+from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
@@ -576,13 +577,14 @@ def train_model(
 
     run_cmd = "accelerate launch"
 
-    run_cmd += run_cmd_advanced_training(
+    run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
+        mixed_precision=mixed_precision,
     )
 
     if sdxl_checkbox:
@@ -746,6 +748,9 @@ def finetune_tab(headless=False, config: dict = {}):
     dummy_headless = gr.Label(value=headless, visible=False)
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
+            
+        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+            accelerate_launch = AccelerateLaunch()
 
         with gr.Column():
             source_model = SourceModel(headless=headless, finetuning=True, config=config)
@@ -782,21 +787,22 @@ def finetune_tab(headless=False, config: dict = {}):
                 elem_id="myDropdown",
             )
 
-            with gr.Group(elem_id="basic_tab"):
-                basic_training = BasicTraining(
-                    learning_rate_value="1e-5",
-                    finetuning=True,
-                    sdxl_checkbox=source_model.sdxl_checkbox,
-                )
-
-                # Add SDXL Parameters
-                sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
-
-                with gr.Row():
-                    dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
-                    train_text_encoder = gr.Checkbox(
-                        label="Train text encoder", value=True
+            with gr.Accordion("Basic", open="True"):
+                with gr.Group(elem_id="basic_tab"):
+                    basic_training = BasicTraining(
+                        learning_rate_value="1e-5",
+                        finetuning=True,
+                        sdxl_checkbox=source_model.sdxl_checkbox,
                     )
+
+                    # Add SDXL Parameters
+                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+
+                    with gr.Row():
+                        dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
+                        train_text_encoder = gr.Checkbox(
+                            label="Train text encoder", value=True
+                        )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
@@ -916,10 +922,10 @@ def finetune_tab(headless=False, config: dict = {}):
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
-            basic_training.mixed_precision,
+            accelerate_launch.mixed_precision,
             source_model.save_precision,
             basic_training.seed,
-            basic_training.num_cpu_threads_per_process,
+            accelerate_launch.num_cpu_threads_per_process,
             basic_training.learning_rate_te,
             basic_training.learning_rate_te1,
             basic_training.learning_rate_te2,
@@ -931,11 +937,11 @@ def finetune_tab(headless=False, config: dict = {}):
             basic_training.caption_extension,
             advanced_training.xformers,
             advanced_training.clip_skip,
-            advanced_training.num_processes,
-            advanced_training.num_machines,
-            advanced_training.multi_gpu,
-            advanced_training.gpu_ids,
-            advanced_training.main_process_port,
+            accelerate_launch.num_processes,
+            accelerate_launch.num_machines,
+            accelerate_launch.multi_gpu,
+            accelerate_launch.gpu_ids,
+            accelerate_launch.main_process_port,
             advanced_training.save_state,
             advanced_training.save_state_on_train_end,
             advanced_training.resume,

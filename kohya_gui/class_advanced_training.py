@@ -1,5 +1,4 @@
 import gradio as gr
-import os
 from typing import Tuple
 from .common_gui import (
     get_folder_path,
@@ -400,25 +399,6 @@ class AdvancedTraining:
                 label="Max num workers for DataLoader",
                 placeholder="(Optional) Override number of epoch. Default: 8",
                 value="0",
-            )
-        with gr.Row():
-            self.num_processes = gr.Number(
-                label="Number of processes", value=1, precision=0, minimum=1
-            )
-            self.num_machines = gr.Number(
-                label="Number of machines", value=1, precision=0, minimum=1
-            )
-            self.multi_gpu = gr.Checkbox(label="Multi GPU", value=False)
-            self.gpu_ids = gr.Textbox(
-                label="GPU IDs", value="", placeholder="example: 0,1"
-            )
-            self.main_process_port = gr.Number(
-                label="Main process port",
-                value=0,
-                precision=1,
-                minimum=0,
-                maximum=65535,
-                info="The port to use to communicate with the machine of rank 0.",
             )
         with gr.Row():
             self.use_wandb = gr.Checkbox(
