@@ -49,7 +49,7 @@ class AccelerateLaunch:
                     label="GPU IDs",
                     value="",
                     placeholder="example: 0,1",
-                    info=" What GPUs (by id) should be used for training on this machine as a comma-seperated list",
+                    info=" What GPUs (by id) should be used for training on this machine as a comma-separated list",
                 )
                 self.main_process_port = gr.Number(
                     label="Main process port",
