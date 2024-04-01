@@ -18,6 +18,7 @@ from .common_gui import (
     scriptdir,
     validate_paths,
 )
+from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
@@ -551,13 +552,14 @@ def train_model(
     # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
     run_cmd = "accelerate launch"
 
-    run_cmd += run_cmd_advanced_training(
+    run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
+        mixed_precision=mixed_precision,
     )
 
     if sdxl:
@@ -726,24 +728,29 @@ def dreambooth_tab(
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
+        
+        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+            accelerate_launch = AccelerateLaunch()
 
         with gr.Column():
             source_model = SourceModel(headless=headless, config=config)
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
+            
         with gr.Accordion("Parameters", open=False), gr.Column():
-            with gr.Group(elem_id="basic_tab"):
-                basic_training = BasicTraining(
-                    learning_rate_value="1e-5",
-                    lr_scheduler_value="cosine",
-                    lr_warmup_value="10",
-                    dreambooth=True,
-                    sdxl_checkbox=source_model.sdxl_checkbox,
-                )
+            with gr.Accordion("Basic", open="True"):
+                with gr.Group(elem_id="basic_tab"):
+                    basic_training = BasicTraining(
+                        learning_rate_value="1e-5",
+                        lr_scheduler_value="cosine",
+                        lr_warmup_value="10",
+                        dreambooth=True,
+                        sdxl_checkbox=source_model.sdxl_checkbox,
+                    )
 
-                # # Add SDXL Parameters
-                # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
+                    # # Add SDXL Parameters
+                    # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
@@ -819,10 +826,10 @@ def dreambooth_tab(
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
-            basic_training.mixed_precision,
+            accelerate_launch.mixed_precision,
             source_model.save_precision,
             basic_training.seed,
-            basic_training.num_cpu_threads_per_process,
+            accelerate_launch.num_cpu_threads_per_process,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
             basic_training.caption_extension,
@@ -846,11 +853,11 @@ def dreambooth_tab(
             advanced_training.masked_loss,
             advanced_training.clip_skip,
             advanced_training.vae,
-            advanced_training.num_processes,
-            advanced_training.num_machines,
-            advanced_training.multi_gpu,
-            advanced_training.gpu_ids,
-            advanced_training.main_process_port,
+            accelerate_launch.num_processes,
+            accelerate_launch.num_machines,
+            accelerate_launch.multi_gpu,
+            accelerate_launch.gpu_ids,
+            accelerate_launch.main_process_port,
             source_model.output_name,
             advanced_training.max_token_length,
             basic_training.max_train_epochs,

@@ -20,6 +20,7 @@ from .common_gui import (
     create_refresh_button,
     validate_paths,
 )
+from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
@@ -539,13 +540,14 @@ def train_model(
 
     run_cmd = "accelerate launch"
 
-    run_cmd += run_cmd_advanced_training(
+    run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
+        mixed_precision=mixed_precision,
     )
 
     if sdxl:
@@ -709,6 +711,9 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
 
+        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+            accelerate_launch = AccelerateLaunch()
+            
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -721,95 +726,97 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
+            
         with gr.Accordion("Parameters", open=False), gr.Column():
-            with gr.Group(elem_id="basic_tab"):
-                with gr.Row():
+            with gr.Accordion("Basic", open="True"):
+                with gr.Group(elem_id="basic_tab"):
+                    with gr.Row():
 
-                    def list_embedding_files(path):
-                        nonlocal current_embedding_dir
-                        current_embedding_dir = path
-                        return list(
-                            list_files(
-                                path, exts=[".pt", ".ckpt", ".safetensors"], all=True
+                        def list_embedding_files(path):
+                            nonlocal current_embedding_dir
+                            current_embedding_dir = path
+                            return list(
+                                list_files(
+                                    path, exts=[".pt", ".ckpt", ".safetensors"], all=True
+                                )
                             )
+
+                        weights = gr.Dropdown(
+                            label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
+                            choices=[""] + list_embedding_files(current_embedding_dir),
+                            value="",
+                            interactive=True,
+                            allow_custom_value=True,
+                        )
+                        create_refresh_button(
+                            weights,
+                            lambda: None,
+                            lambda: {
+                                "choices": list_embedding_files(current_embedding_dir)
+                            },
+                            "open_folder_small",
+                        )
+                        weights_file_input = gr.Button(
+                            "📂",
+                            elem_id="open_folder_small",
+                            elem_classes=["tool"],
+                            visible=(not headless),
+                        )
+                        weights_file_input.click(
+                            get_file_path,
+                            outputs=weights,
+                            show_progress=False,
+                        )
+                        weights.change(
+                            fn=lambda path: gr.Dropdown(
+                                choices=[""] + list_embedding_files(path)
+                            ),
+                            inputs=weights,
+                            outputs=weights,
+                            show_progress=False,
                         )
 
-                    weights = gr.Dropdown(
-                        label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
-                        choices=[""] + list_embedding_files(current_embedding_dir),
-                        value="",
-                        interactive=True,
-                        allow_custom_value=True,
-                    )
-                    create_refresh_button(
-                        weights,
-                        lambda: None,
-                        lambda: {
-                            "choices": list_embedding_files(current_embedding_dir)
-                        },
-                        "open_folder_small",
-                    )
-                    weights_file_input = gr.Button(
-                        "📂",
-                        elem_id="open_folder_small",
-                        elem_classes=["tool"],
-                        visible=(not headless),
-                    )
-                    weights_file_input.click(
-                        get_file_path,
-                        outputs=weights,
-                        show_progress=False,
-                    )
-                    weights.change(
-                        fn=lambda path: gr.Dropdown(
-                            choices=[""] + list_embedding_files(path)
-                        ),
-                        inputs=weights,
-                        outputs=weights,
-                        show_progress=False,
+                    with gr.Row():
+                        token_string = gr.Textbox(
+                            label="Token string",
+                            placeholder="eg: cat",
+                        )
+                        init_word = gr.Textbox(
+                            label="Init word",
+                            value="*",
+                        )
+                        num_vectors_per_token = gr.Slider(
+                            minimum=1,
+                            maximum=75,
+                            value=1,
+                            step=1,
+                            label="Vectors",
+                        )
+                        # max_train_steps = gr.Textbox(
+                        #     label='Max train steps',
+                        #     placeholder='(Optional) Maximum number of steps',
+                        # )
+                        template = gr.Dropdown(
+                            label="Template",
+                            choices=[
+                                "caption",
+                                "object template",
+                                "style template",
+                            ],
+                            value="caption",
+                        )
+                    basic_training = BasicTraining(
+                        learning_rate_value="1e-5",
+                        lr_scheduler_value="cosine",
+                        lr_warmup_value="10",
+                        sdxl_checkbox=source_model.sdxl_checkbox,
                     )
 
-                with gr.Row():
-                    token_string = gr.Textbox(
-                        label="Token string",
-                        placeholder="eg: cat",
+                    # Add SDXL Parameters
+                    sdxl_params = SDXLParameters(
+                        source_model.sdxl_checkbox,
+                        show_sdxl_cache_text_encoder_outputs=False,
                     )
-                    init_word = gr.Textbox(
-                        label="Init word",
-                        value="*",
-                    )
-                    num_vectors_per_token = gr.Slider(
-                        minimum=1,
-                        maximum=75,
-                        value=1,
-                        step=1,
-                        label="Vectors",
-                    )
-                    # max_train_steps = gr.Textbox(
-                    #     label='Max train steps',
-                    #     placeholder='(Optional) Maximum number of steps',
-                    # )
-                    template = gr.Dropdown(
-                        label="Template",
-                        choices=[
-                            "caption",
-                            "object template",
-                            "style template",
-                        ],
-                        value="caption",
-                    )
-                basic_training = BasicTraining(
-                    learning_rate_value="1e-5",
-                    lr_scheduler_value="cosine",
-                    lr_warmup_value="10",
-                    sdxl_checkbox=source_model.sdxl_checkbox,
-                )
-
-                # Add SDXL Parameters
-                sdxl_params = SDXLParameters(
-                    source_model.sdxl_checkbox,
-                    show_sdxl_cache_text_encoder_outputs=False,
-                )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
@@ -882,10 +889,10 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
-            basic_training.mixed_precision,
+            accelerate_launch.mixed_precision,
             source_model.save_precision,
             basic_training.seed,
-            basic_training.num_cpu_threads_per_process,
+            accelerate_launch.num_cpu_threads_per_process,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
             basic_training.caption_extension,
@@ -906,11 +913,11 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
-            advanced_training.num_processes,
-            advanced_training.num_machines,
-            advanced_training.multi_gpu,
-            advanced_training.gpu_ids,
-            advanced_training.main_process_port,
+            accelerate_launch.num_processes,
+            accelerate_launch.num_machines,
+            accelerate_launch.multi_gpu,
+            accelerate_launch.gpu_ids,
+            accelerate_launch.main_process_port,
             advanced_training.vae,
             source_model.output_name,
             advanced_training.max_token_length,

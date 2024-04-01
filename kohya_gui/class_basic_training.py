@@ -105,18 +105,6 @@ class BasicTraining:
         Initializes the precision and resources controls for the model.
         """
         with gr.Row():
-            # Initialize the mixed precision dropdown
-            self.mixed_precision = gr.Dropdown(
-                label="Mixed precision", choices=["no", "fp16", "bf16"], value="fp16"
-            )
-            # Initialize the number of CPU threads per core slider
-            self.num_cpu_threads_per_process = gr.Slider(
-                minimum=1,
-                maximum=os.cpu_count(),
-                step=1,
-                label="Number of CPU threads per core",
-                value=2,
-            )
             # Initialize the seed textbox
             self.seed = gr.Textbox(label="Seed", placeholder="(Optional) eg:1234")
             # Initialize the cache latents checkbox

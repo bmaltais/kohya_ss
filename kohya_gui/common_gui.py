@@ -1233,16 +1233,6 @@ def run_cmd_advanced_training(**kwargs):
         else:
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
-    if "gpu_ids" in kwargs:
-        gpu_ids = kwargs.get("gpu_ids")
-        if not gpu_ids == "":
-            run_cmd += f' --gpu_ids="{gpu_ids}"'
-    
-    if "main_process_port" in kwargs:
-        main_process_port = kwargs.get("main_process_port")
-        if main_process_port > 0:
-            run_cmd += f' --main_process_port="{main_process_port}"'
-
     if "masked_loss" in kwargs:
         if kwargs.get("masked_loss"): # Test if the value is true as it could be false
             run_cmd += " --masked_loss"
@@ -1293,13 +1283,9 @@ def run_cmd_advanced_training(**kwargs):
         min_timestep = kwargs.get("min_timestep")
         if int(min_timestep) > -1:
             run_cmd += f" --min_timestep={int(min_timestep)}"
-
+            
     if "mixed_precision" in kwargs:
-        run_cmd += fr' --mixed_precision="{kwargs.get("mixed_precision")}"'
-
-    if "multi_gpu" in kwargs:
-        if kwargs.get("multi_gpu"):
-            run_cmd += " --multi_gpu"
+        run_cmd += rf' --mixed_precision="{kwargs.get("mixed_precision")}"'
 
     if "network_alpha" in kwargs:
         run_cmd += fr' --network_alpha="{kwargs.get("network_alpha")}"'
@@ -1365,21 +1351,6 @@ def run_cmd_advanced_training(**kwargs):
                 multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
                 if multires_noise_discount > 0:
                     run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
-
-    if "num_machines" in kwargs:
-        num_machines = kwargs.get("num_machines")
-        if int(num_machines) > 1:
-            run_cmd += f" --num_machines={int(num_machines)}"
-
-    if "num_processes" in kwargs:
-        num_processes = kwargs.get("num_processes")
-        if int(num_processes) > 1:
-            run_cmd += f" --num_processes={int(num_processes)}"
-
-    if "num_cpu_threads_per_process" in kwargs:
-        num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
-        if int(num_cpu_threads_per_process) > 1:
-            run_cmd += f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
 
     if "optimizer_args" in kwargs:
         optimizer_args = kwargs.get("optimizer_args")
