@@ -555,7 +555,6 @@ def train_model(
 
     run_cmd += run_cmd_advanced_training(
         adaptive_noise_scale=adaptive_noise_scale,
-        additional_parameters=additional_parameters,
         bucket_no_upscale=bucket_no_upscale,
         bucket_reso_steps=bucket_reso_steps,
         cache_latents=cache_latents,
@@ -635,6 +634,7 @@ def train_model(
         wandb_api_key=wandb_api_key,
         wandb_run_name=wandb_run_name,
         xformers=xformers,
+        additional_parameters=additional_parameters,
     )
     run_cmd += f' --token_string="{token_string}"'
     run_cmd += f' --init_word="{init_word}"'

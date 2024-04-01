@@ -918,7 +918,6 @@ def train_model(
     # Define a dictionary of parameters
     run_cmd_params = {
         "adaptive_noise_scale": adaptive_noise_scale,
-        "additional_parameters": additional_parameters,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -1020,6 +1019,7 @@ def train_model(
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
         "xformers": xformers,
+        "additional_parameters": additional_parameters,
     }
 
     # Use the ** syntax to unpack the dictionary when calling the function
@@ -1193,7 +1193,7 @@ def lora_tab(
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
                         value="0.0001",
-                        info="Optional",
+                        info="(Optional)",
                         minimum=0,
                         maximum=1,
                     )
@@ -1201,7 +1201,7 @@ def lora_tab(
                     unet_lr = gr.Number(
                         label="Unet learning rate",
                         value="0.0001",
-                        info="Optional",
+                        info="(Optional)",
                         minimum=0,
                         maximum=1,
                     )
@@ -1298,11 +1298,11 @@ def lora_tab(
                         interactive=True,
                     )
                     network_alpha = gr.Slider(
-                        minimum=0.1,
+                        minimum=0.00001,
                         maximum=1024,
                         label="Network Alpha",
                         value=1,
-                        step=0.1,
+                        step=0.00001,
                         interactive=True,
                         info="alpha for LoRA weight scaling",
                     )
