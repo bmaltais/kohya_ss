@@ -1899,6 +1899,7 @@ def lora_tab(
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
                 headless=headless,
+                config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
 

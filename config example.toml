@@ -14,3 +14,11 @@ vae_dir = "./models/vae"          # VAEs folder path
 
 # Example custom folder location
 # models_dir = "e:/models"    # Pretrained model name or path
+
+# This next section can be used to set default values for the Dataset Preparation section
+# The "Destination training direcroty" field will be equal to "train_data_dir" as specified above
+# [dataset_preparation]
+# instance_prompt = "instance"
+# class_prompt = "class"
+# images_folder = "/some/folder/where/images/are"
+# reg_images_folder = "/some/folder/where/reg/images/are"
