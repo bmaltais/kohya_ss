@@ -36,6 +36,9 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Troubleshooting](#troubleshooting)
     - [Page File Limit](#page-file-limit)
     - [No module called tkinter](#no-module-called-tkinter)
+    - [LORA Training on TESLA V100 - GPU Utilization Issue](#lora-training-on-tesla-v100---gpu-utilization-issue)
+      - [Issue Summary](#issue-summary)
+      - [Potential Solutions](#potential-solutions)
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
@@ -434,6 +437,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
   - The [English version of the dataset settings documentation](./docs/config_README-en.md) is added. PR [#1175](https://github.com/kohya-ss/sd-scripts/pull/1175) Thanks to darkstorm2150!
 
 - Add GUI support for the new parameters listed above.
+- Move accelerate launch parameters to new `Accelerate launch` accordion above `Model` accordion.
+- Add support for `Debiased Estimation loss` to Dreambooth settings.
 
 ### 2024/03/21 (v23.0.15)
 

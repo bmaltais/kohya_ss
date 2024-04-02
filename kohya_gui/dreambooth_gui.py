@@ -151,6 +151,7 @@ def save_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -289,6 +290,7 @@ def open_configuration(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -422,6 +424,7 @@ def train_model(
     scale_v_pred_loss_like_noise_pred,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -580,6 +583,7 @@ def train_model(
         "clip_skip": clip_skip,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
+        "debiased_estimation_loss": debiased_estimation_loss,
         "enable_bucket": enable_bucket,
         "epoch": epoch,
         "flip_aug": flip_aug,
@@ -906,6 +910,7 @@ def dreambooth_tab(
             advanced_training.scale_v_pred_loss_like_noise_pred,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
+            advanced_training.debiased_estimation_loss,
         ]
 
         configuration.button_open_config.click(
