@@ -3,6 +3,7 @@ from easygui import diropenbox, msgbox
 from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
 import shutil
 import os
+from .class_gui_config import KohyaSSGUIConfig
 
 from .custom_logging import setup_logging
 
@@ -119,6 +120,7 @@ def dreambooth_folder_preparation(
 
 
 def gradio_dreambooth_folder_creation_tab(
+    config: KohyaSSGUIConfig,
     train_data_dir_input=gr.Dropdown(),
     reg_data_dir_input=gr.Dropdown(),
     output_dir_input=gr.Dropdown(),
@@ -139,11 +141,13 @@ def gradio_dreambooth_folder_creation_tab(
                 label='Instance prompt',
                 placeholder='Eg: asd',
                 interactive=True,
+                value = config.get(key="dataset_preparation.instance_prompt", default="")
             )
             util_class_prompt_input = gr.Textbox(
                 label='Class prompt',
                 placeholder='Eg: person',
                 interactive=True,
+                value = config.get(key="dataset_preparation.class_prompt", default=""),
             )
         with gr.Group(), gr.Row():
 
@@ -155,8 +159,8 @@ def gradio_dreambooth_folder_creation_tab(
             util_training_images_dir_input = gr.Dropdown(
                 label='Training images (directory containing the training images)',
                 interactive=True,
-                choices=[""] + list_train_data_dirs(current_train_data_dir),
-                value="",
+                choices=[config.get(key="dataset_preparation.images_folder", default="")] + list_train_data_dirs(current_train_data_dir),
+                value=config.get(key="dataset_preparation.images_folder", default=""),
                 allow_custom_value=True,
             )
             create_refresh_button(util_training_images_dir_input, lambda: None, lambda: {"choices": list_train_data_dirs(current_train_data_dir)}, "open_folder_small")
@@ -190,11 +194,11 @@ def gradio_dreambooth_folder_creation_tab(
             util_regularization_images_dir_input = gr.Dropdown(
                 label='Regularisation images (Optional. directory containing the regularisation images)',
                 interactive=True,
-                choices=[""] + list_reg_data_dirs(current_reg_data_dir),
-                value="",
+                choices=[config.get(key="dataset_preparation.reg_images_folder", default="")] + list_reg_data_dirs(current_reg_data_dir),
+                value=config.get(key="dataset_preparation.reg_images_folder", default=""),
                 allow_custom_value=True,
             )
-            create_refresh_button(util_regularization_images_dir_input, lambda: None, lambda: {"choices": list_reg_data_dir(current_reg_data_dir)}, "open_folder_small")
+            create_refresh_button(util_regularization_images_dir_input, lambda: None, lambda: {"choices": list_reg_data_dirs(current_reg_data_dir)}, "open_folder_small")
             button_util_regularization_images_dir_input = gr.Button(
                 '📂', elem_id='open_folder_small', elem_classes=['tool'], visible=(not headless)
             )
@@ -224,8 +228,8 @@ def gradio_dreambooth_folder_creation_tab(
             util_training_dir_output = gr.Dropdown(
                 label='Destination training directory (where formatted training and regularisation folders will be placed)',
                 interactive=True,
-                choices=[""] + list_train_output_dirs(current_train_output_dir),
-                value="",
+                choices=[config.get(key="train_data_dir", default="")] + list_train_output_dirs(current_train_output_dir),
+                value=config.get(key="train_data_dir", default=""),
                 allow_custom_value=True,
             )
             create_refresh_button(util_training_dir_output, lambda: None, lambda: {"choices": list_train_output_dirs(current_train_output_dir)}, "open_folder_small")
@@ -255,15 +259,15 @@ def gradio_dreambooth_folder_creation_tab(
             ],
             show_progress=False,
         )
-        button_copy_info_to_Folders_tab = gr.Button('Copy info to Folders Tab')
-        button_copy_info_to_Folders_tab.click(
-            copy_info_to_Folders_tab,
-            inputs=[util_training_dir_output],
-            outputs=[
-                train_data_dir_input,
-                reg_data_dir_input,
-                output_dir_input,
-                logging_dir_input,
-            ],
-            show_progress=False,
-        )
+        # button_copy_info_to_Folders_tab = gr.Button('Copy info to Folders Tab')
+        # button_copy_info_to_Folders_tab.click(
+        #     copy_info_to_Folders_tab,
+        #     inputs=[util_training_dir_output],
+        #     outputs=[
+        #         train_data_dir_input,
+        #         reg_data_dir_input,
+        #         output_dir_input,
+        #         logging_dir_input,
+        #     ],
+        #     show_progress=False,
+        # )

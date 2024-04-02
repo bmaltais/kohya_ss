@@ -839,6 +839,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
                 headless=headless,
+                config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
 

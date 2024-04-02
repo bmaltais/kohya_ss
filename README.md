@@ -439,6 +439,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Add GUI support for the new parameters listed above.
 - Move accelerate launch parameters to new `Accelerate launch` accordion above `Model` accordion.
 - Add support for `Debiased Estimation loss` to Dreambooth settings.
+- Add support for "Dataset Preparation" defaults via the config.toml file.
 
 ### 2024/03/21 (v23.0.15)
 
