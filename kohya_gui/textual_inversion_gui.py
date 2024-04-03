@@ -151,6 +151,7 @@ def save_configuration(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -291,6 +292,7 @@ def open_configuration(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -424,6 +426,7 @@ def train_model(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -548,6 +551,7 @@ def train_model(
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
         mixed_precision=mixed_precision,
+        extra_accelerate_launch_args=extra_accelerate_launch_args,
     )
 
     if sdxl:
@@ -973,6 +977,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             sdxl_params.sdxl_no_half_vae,
+            accelerate_launch.extra_accelerate_launch_args,
         ]
 
         configuration.button_open_config.click(
