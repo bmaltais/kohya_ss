@@ -161,6 +161,7 @@ def save_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -307,6 +308,7 @@ def open_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    extra_accelerate_launch_args,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -460,6 +462,7 @@ def train_model(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -585,6 +588,7 @@ def train_model(
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
         mixed_precision=mixed_precision,
+        extra_accelerate_launch_args=extra_accelerate_launch_args,
     )
 
     if sdxl_checkbox:
@@ -1001,6 +1005,7 @@ def finetune_tab(headless=False, config: dict = {}):
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
+            accelerate_launch.extra_accelerate_launch_args,
         ]
 
         configuration.button_open_config.click(

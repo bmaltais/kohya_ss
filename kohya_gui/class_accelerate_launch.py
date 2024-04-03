@@ -59,9 +59,21 @@ class AccelerateLaunch:
                     maximum=65535,
                     info="The port to use to communicate with the machine of rank 0.",
                 )
+        with gr.Row():
+            self.extra_accelerate_launch_args = gr.Textbox(
+                label="Extra accelerate launch arguments",
+                value="",
+                placeholder="example: --same_network --machine_rank 4",
+                info="List of extra parameters to pass to accelerate launch",
+            )
 
     def run_cmd(**kwargs):
         run_cmd = ""
+        
+        if "extra_accelerate_launch_args" in kwargs:
+            extra_accelerate_launch_args = kwargs.get("extra_accelerate_launch_args")
+            if extra_accelerate_launch_args != "":
+                run_cmd += fr' {extra_accelerate_launch_args}'
         
         if "gpu_ids" in kwargs:
             gpu_ids = kwargs.get("gpu_ids")

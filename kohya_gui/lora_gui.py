@@ -223,6 +223,7 @@ def save_configuration(
     vae,
     LyCORIS_preset,
     debiased_estimation_loss,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -410,6 +411,7 @@ def open_configuration(
     vae,
     LyCORIS_preset,
     debiased_estimation_loss,
+    extra_accelerate_launch_args,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -625,6 +627,7 @@ def train_model(
     vae,
     LyCORIS_preset,
     debiased_estimation_loss,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -792,6 +795,7 @@ def train_model(
         main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
         mixed_precision=mixed_precision,
+        extra_accelerate_launch_args=extra_accelerate_launch_args,
     )
 
     if sdxl:
@@ -2071,6 +2075,7 @@ def lora_tab(
             advanced_training.vae,
             LyCORIS_preset,
             advanced_training.debiased_estimation_loss,
+            accelerate_launch.extra_accelerate_launch_args,
         ]
 
         configuration.button_open_config.click(
