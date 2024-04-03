@@ -20,6 +20,7 @@ from .common_gui import (
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
+from .class_gui_config import KohyaSSGUIConfig
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
@@ -724,7 +725,7 @@ def dreambooth_tab(
     # output_dir=gr.Textbox(),
     # logging_dir=gr.Textbox(),
     headless=False,
-    config: dict = {},
+    config: KohyaSSGUIConfig = {},
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)

@@ -228,6 +228,12 @@ class AdvancedTraining:
                 value=False,
                 info="Apply mask for calculating loss. conditioning_data_dir is required for dataset"
             )
+        with gr.Row():
+            self.scale_v_pred_loss_like_noise_pred = gr.Checkbox(
+                label="Scale v prediction loss",
+                value=False,
+                info="Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.",
+            )
             self.min_snr_gamma = gr.Slider(
                 label="Min SNR gamma",
                 value=0,
@@ -235,6 +241,11 @@ class AdvancedTraining:
                 maximum=20,
                 step=1,
                 info="Recommended value of 5 when used",
+            )
+            self.debiased_estimation_loss = gr.Checkbox(
+                label="Debiased Estimation loss",
+                value=False,
+                info="Automates the processing of noise, allowing for faster model fitting, as well as balancing out color issues. Do not use if Min SNR gamma is specified.",
             )
         with gr.Row():
             # self.sdpa = gr.Checkbox(label='Use sdpa', value=False, info='Use sdpa for CrossAttention')
@@ -463,15 +474,4 @@ class AdvancedTraining:
                 inputs=self.log_tracker_config,
                 outputs=self.log_tracker_config,
                 show_progress=False,
-            )
-        with gr.Row():
-            self.scale_v_pred_loss_like_noise_pred = gr.Checkbox(
-                label="Scale v prediction loss",
-                value=False,
-                info="Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.",
-            )
-            self.debiased_estimation_loss = gr.Checkbox(
-                label="Debiased Estimation loss",
-                value=False,
-                info="Automates the processing of noise, allowing for faster model fitting, as well as balancing out color issues",
             )

@@ -10,6 +10,7 @@ from .common_gui import (
     list_files,
     create_refresh_button,
 )
+from .class_gui_config import KohyaSSGUIConfig
 
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
@@ -47,7 +48,7 @@ class SourceModel:
         ],
         headless=False,
         finetuning=False,
-        config: dict = {},
+        config: KohyaSSGUIConfig = {},
     ):
         self.headless = headless
         self.save_model_as_choices = save_model_as_choices
