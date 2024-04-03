@@ -40,7 +40,7 @@ def UI(**kwargs):
         css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
     )
     
-    config = KohyaSSGUIConfig()
+    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config_file_path"))
 
     with interface:
         with gr.Tab("Dreambooth"):
@@ -106,6 +106,12 @@ if __name__ == "__main__":
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--config",
+        type=str,
+        default="./config.toml",
+        help="Path to the toml config file for interface defaults",
+    )
+    parser.add_argument(
         "--listen",
         type=str,
         default="127.0.0.1",
@@ -138,6 +144,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     UI(
+        config_file_path=args.config,
         username=args.username,
         password=args.password,
         inbrowser=args.inbrowser,
