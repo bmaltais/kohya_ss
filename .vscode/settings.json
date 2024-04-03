@@ -2,5 +2,5 @@
     "python.linting.enabled": true,
     "python.formatting.provider": "yapf",
     "DockerRun.DisableDockerrc": true,
-    "augment.enableAutomaticCompletions": false
+    "augment.enableAutomaticCompletions": true
 }

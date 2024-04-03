@@ -15,8 +15,8 @@ log = setup_logging()
 def UI(**kwargs):
     css = ''
 
-    if os.path.exists('./style.css'):
-        with open(os.path.join('./style.css'), 'r', encoding='utf8') as file:
+    if os.path.exists('./assets/style.css'):
+        with open(os.path.join('./assets/style.css'), 'r', encoding='utf8') as file:
             print('Load CSS...')
             css += file.read() + '\n'
 
