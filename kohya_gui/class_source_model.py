@@ -62,8 +62,9 @@ class SourceModel:
         self.current_train_data_dir = self.config.get(
             "train_data_dir", os.path.join(scriptdir, "data")
         )
-        self.current_dataset_config_dir = self.config.get('dataset_config_dir', os.path.join(scriptdir, "dataset_config"))
-
+        self.current_dataset_config_dir = self.config.get(
+            "dataset_config_dir", os.path.join(scriptdir, "dataset_config")
+        )
 
         model_checkpoints = list(
             list_files(
@@ -82,7 +83,7 @@ class SourceModel:
         def list_train_data_dirs(path):
             self.current_train_data_dir = path if not path == "" else "."
             return list(list_dirs(path))
-        
+
         def list_dataset_config_dirs(path: str) -> list:
             """
             List directories and toml files in the dataset_config directory.
@@ -95,8 +96,9 @@ class SourceModel:
             """
             current_dataset_config_dir = path if not path == "" else "."
             # Lists all .json files in the current configuration directory, used for populating dropdown choices.
-            return list(list_files(current_dataset_config_dir, exts=[".toml"], all=True))
-
+            return list(
+                list_files(current_dataset_config_dir, exts=[".toml"], all=True)
+            )
 
         with gr.Accordion("Model", open=True):
             with gr.Column(), gr.Group():
@@ -143,7 +145,7 @@ class SourceModel:
                             outputs=self.pretrained_model_name_or_path,
                             show_progress=False,
                         )
-                        
+
                     with gr.Column(), gr.Row():
                         self.output_name = gr.Textbox(
                             label="Trained Model output name",
@@ -188,29 +190,49 @@ class SourceModel:
                     with gr.Column(), gr.Row():
                         # Toml directory dropdown
                         self.dataset_config = gr.Dropdown(
-                            label='Dataset config file (Optional. Select the toml configuration file to use for the dataset)',
-                            choices=[""] + list_dataset_config_dirs(self.current_dataset_config_dir),
+                            label="Dataset config file (Optional. Select the toml configuration file to use for the dataset)",
+                            choices=[""]
+                            + list_dataset_config_dirs(self.current_dataset_config_dir),
                             value="",
                             interactive=True,
                             allow_custom_value=True,
                         )
                         # Refresh button for dataset_config directory
-                        create_refresh_button(self.dataset_config, lambda: None, lambda: {"choices": [""] + list_dataset_config_dirs(self.current_dataset_config_dir)}, "open_folder_small")
+                        create_refresh_button(
+                            self.dataset_config,
+                            lambda: None,
+                            lambda: {
+                                "choices": [""]
+                                + list_dataset_config_dirs(
+                                    self.current_dataset_config_dir
+                                )
+                            },
+                            "open_folder_small",
+                        )
                         # Toml directory button
                         self.dataset_config_folder = gr.Button(
-                            document_symbol, elem_id='open_folder_small', elem_classes=["tool"], visible=(not self.headless)
+                            document_symbol,
+                            elem_id="open_folder_small",
+                            elem_classes=["tool"],
+                            visible=(not self.headless),
                         )
-                        
+
                         # Toml directory button click event
                         self.dataset_config_folder.click(
                             get_file_path,
-                            inputs=[self.dataset_config, gr.Textbox(value='*.toml', visible=False), gr.Textbox(value='Dataset config types', visible=False)],
+                            inputs=[
+                                self.dataset_config,
+                                gr.Textbox(value="*.toml", visible=False),
+                                gr.Textbox(value="Dataset config types", visible=False),
+                            ],
                             outputs=self.dataset_config,
                             show_progress=False,
                         )
                         # Change event for dataset_config directory dropdown
                         self.dataset_config.change(
-                            fn=lambda path: gr.Dropdown(choices=[""] + list_dataset_config_dirs(path)),
+                            fn=lambda path: gr.Dropdown(
+                                choices=[""] + list_dataset_config_dirs(path)
+                            ),
                             inputs=self.dataset_config,
                             outputs=self.dataset_config,
                             show_progress=False,
@@ -273,7 +295,9 @@ class SourceModel:
                 )
 
                 self.train_data_dir.change(
-                    fn=lambda path: gr.Dropdown(choices=[""] + list_train_data_dirs(path)),
+                    fn=lambda path: gr.Dropdown(
+                        choices=[""] + list_train_data_dirs(path)
+                    ),
                     inputs=self.train_data_dir,
                     outputs=self.train_data_dir,
                     show_progress=False,

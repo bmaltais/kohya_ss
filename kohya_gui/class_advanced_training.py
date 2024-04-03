@@ -6,7 +6,7 @@ from .common_gui import (
     list_files,
     list_dirs,
     create_refresh_button,
-    document_symbol
+    document_symbol,
 )
 
 
@@ -221,12 +221,20 @@ class AdvancedTraining:
                 choices=["none", "sdpa", "xformers"],
                 value="xformers",
             )
-            self.color_aug = gr.Checkbox(label="Color augmentation", value=False, info="Enable weak color augmentation")
-            self.flip_aug = gr.Checkbox(label="Flip augmentation", value=False, info="Enable horizontal flip augmentation")
+            self.color_aug = gr.Checkbox(
+                label="Color augmentation",
+                value=False,
+                info="Enable weak color augmentation",
+            )
+            self.flip_aug = gr.Checkbox(
+                label="Flip augmentation",
+                value=False,
+                info="Enable horizontal flip augmentation",
+            )
             self.masked_loss = gr.Checkbox(
                 label="Masked loss",
                 value=False,
-                info="Apply mask for calculating loss. conditioning_data_dir is required for dataset"
+                info="Apply mask for calculating loss. conditioning_data_dir is required for dataset",
             )
         with gr.Row():
             self.scale_v_pred_loss_like_noise_pred = gr.Checkbox(
@@ -296,7 +304,7 @@ class AdvancedTraining:
                     "Multires",
                 ],
                 value="Original",
-                scale=1
+                scale=1,
             )
             with gr.Row(visible=True) as self.noise_offset_original:
                 self.noise_offset = gr.Slider(
@@ -305,12 +313,12 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=1,
                     step=0.01,
-                    info='Recommended values are 0.05 - 0.15',
+                    info="Recommended values are 0.05 - 0.15",
                 )
-                self.noise_offset_random_strength  = gr.Checkbox(
+                self.noise_offset_random_strength = gr.Checkbox(
                     label="Noise offset random strength",
                     value=False,
-                    info='Use random strength between 0~noise_offset for noise offset',
+                    info="Use random strength between 0~noise_offset for noise offset",
                 )
                 self.adaptive_noise_scale = gr.Slider(
                     label="Adaptive noise scale",
@@ -327,7 +335,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=64,
                     step=1,
-                    info='Enable multires noise (recommended values are 6-10)',
+                    info="Enable multires noise (recommended values are 6-10)",
                 )
                 self.multires_noise_discount = gr.Slider(
                     label="Multires noise discount",
@@ -335,7 +343,7 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=1,
                     step=0.01,
-                    info='Recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3',
+                    info="Recommended values are 0.8. For LoRAs with small datasets, 0.1-0.3",
                 )
             with gr.Row(visible=True):
                 self.ip_noise_gamma = gr.Slider(
@@ -344,12 +352,12 @@ class AdvancedTraining:
                     minimum=0,
                     maximum=1,
                     step=0.01,
-                    info='enable input perturbation noise. used for regularization. recommended value: around 0.1',
+                    info="enable input perturbation noise. used for regularization. recommended value: around 0.1",
                 )
-                self.ip_noise_gamma_random_strength  = gr.Checkbox(
+                self.ip_noise_gamma_random_strength = gr.Checkbox(
                     label="IP noise gamma random strength",
                     value=False,
-                    info='Use random strength between 0~ip_noise_gamma for input perturbation noise',
+                    info="Use random strength between 0~ip_noise_gamma for input perturbation noise",
                 )
             self.noise_offset_type.change(
                 noise_offset_type_change,
@@ -371,9 +379,10 @@ class AdvancedTraining:
             )
         with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(label="Save training state", value=False)
-            
-            
-            self.save_state_on_train_end = gr.Checkbox(label="Save training state at end of training", value=False)
+
+            self.save_state_on_train_end = gr.Checkbox(
+                label="Save training state at end of training", value=False
+            )
 
             def list_state_dirs(path):
                 self.current_state_dir = path if not path == "" else "."

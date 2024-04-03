@@ -1,5 +1,4 @@
 import gradio as gr
-import os
 from typing import Tuple
 
 

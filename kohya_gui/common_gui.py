@@ -6,7 +6,6 @@ from .custom_logging import setup_logging
 import os
 import re
 import gradio as gr
-import shutil
 import sys
 import json
 import math
@@ -55,6 +54,7 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
+
 def calculate_max_train_steps(
     total_steps: int,
     train_batch_size: int,
@@ -71,6 +71,7 @@ def calculate_max_train_steps(
             * int(reg_factor)
         )
     )
+
 
 def check_if_model_exist(
     output_name: str, output_dir: str, save_model_as: str, headless: bool = False
@@ -1097,14 +1098,14 @@ def run_cmd_advanced_training(**kwargs):
 
     if kwargs.get("gradient_checkpointing"):
         run_cmd += " --gradient_checkpointing"
-        
+
     if kwargs.get("ip_noise_gamma"):
         if float(kwargs["ip_noise_gamma"]) > 0:
             run_cmd += f' --ip_noise_gamma={kwargs["ip_noise_gamma"]}'
-        
+
     if kwargs.get("ip_noise_gamma_random_strength"):
         if kwargs["ip_noise_gamma_random_strength"]:
-            run_cmd += f' --ip_noise_gamma_random_strength'
+            run_cmd += f" --ip_noise_gamma_random_strength"
 
     if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
         run_cmd += f' --keep_tokens="{int(kwargs["keep_tokens"])}"'
@@ -1180,7 +1181,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
 
     if "masked_loss" in kwargs:
-        if kwargs.get("masked_loss"): # Test if the value is true as it could be false
+        if kwargs.get("masked_loss"):  # Test if the value is true as it could be false
             run_cmd += " --masked_loss"
 
     if "max_data_loader_n_workers" in kwargs:
@@ -1194,7 +1195,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f' --max_grad_norm="{max_grad_norm}"'
 
     if "max_resolution" in kwargs:
-        run_cmd += fr' --resolution="{kwargs.get("max_resolution")}"'
+        run_cmd += rf' --resolution="{kwargs.get("max_resolution")}"'
 
     if "max_timestep" in kwargs:
         max_timestep = kwargs.get("max_timestep")
@@ -1217,7 +1218,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f' --max_train_steps="{max_train_steps}"'
 
     if "mem_eff_attn" in kwargs:
-        if kwargs.get("mem_eff_attn"): # Test if the value is true as it could be false
+        if kwargs.get("mem_eff_attn"):  # Test if the value is true as it could be false
             run_cmd += " --mem_eff_attn"
 
     if "min_snr_gamma" in kwargs:
@@ -1229,20 +1230,20 @@ def run_cmd_advanced_training(**kwargs):
         min_timestep = kwargs.get("min_timestep")
         if int(min_timestep) > -1:
             run_cmd += f" --min_timestep={int(min_timestep)}"
-            
+
     if "mixed_precision" in kwargs:
         run_cmd += rf' --mixed_precision="{kwargs.get("mixed_precision")}"'
 
     if "network_alpha" in kwargs:
-        run_cmd += fr' --network_alpha="{kwargs.get("network_alpha")}"'
+        run_cmd += rf' --network_alpha="{kwargs.get("network_alpha")}"'
 
     if "network_args" in kwargs:
         network_args = kwargs.get("network_args")
         if network_args != "":
-            run_cmd += f' --network_args{network_args}'
+            run_cmd += f" --network_args{network_args}"
 
     if "network_dim" in kwargs:
-        run_cmd += fr' --network_dim={kwargs.get("network_dim")}'
+        run_cmd += rf' --network_dim={kwargs.get("network_dim")}'
 
     if "network_dropout" in kwargs:
         network_dropout = kwargs.get("network_dropout")
@@ -1252,7 +1253,7 @@ def run_cmd_advanced_training(**kwargs):
     if "network_module" in kwargs:
         network_module = kwargs.get("network_module")
         if network_module != "":
-            run_cmd += f' --network_module={network_module}'
+            run_cmd += f" --network_module={network_module}"
 
     if "network_train_text_encoder_only" in kwargs:
         if kwargs.get("network_train_text_encoder_only"):
@@ -1263,11 +1264,13 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += " --network_train_unet_only"
 
     if "no_half_vae" in kwargs:
-        if kwargs.get("no_half_vae"): # Test if the value is true as it could be false
+        if kwargs.get("no_half_vae"):  # Test if the value is true as it could be false
             run_cmd += " --no_half_vae"
 
     if "no_token_padding" in kwargs:
-        if kwargs.get("no_token_padding"): # Test if the value is true as it could be false
+        if kwargs.get(
+            "no_token_padding"
+        ):  # Test if the value is true as it could be false
             run_cmd += " --no_token_padding"
 
     if "noise_offset_type" in kwargs:
@@ -1283,18 +1286,24 @@ def run_cmd_advanced_training(**kwargs):
                     adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
                     if adaptive_noise_scale != 0 and noise_offset > 0:
                         run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
-                        
+
                 if "noise_offset_random_strength" in kwargs:
                     if kwargs.get("noise_offset_random_strength"):
                         run_cmd += f" --noise_offset_random_strength"
         elif noise_offset_type == "Multires":
             if "multires_noise_iterations" in kwargs:
-                multires_noise_iterations = int(kwargs.get("multires_noise_iterations", 0))
+                multires_noise_iterations = int(
+                    kwargs.get("multires_noise_iterations", 0)
+                )
                 if multires_noise_iterations > 0:
-                    run_cmd += f' --multires_noise_iterations="{multires_noise_iterations}"'
+                    run_cmd += (
+                        f' --multires_noise_iterations="{multires_noise_iterations}"'
+                    )
 
             if "multires_noise_discount" in kwargs:
-                multires_noise_discount = float(kwargs.get("multires_noise_discount", 0))
+                multires_noise_discount = float(
+                    kwargs.get("multires_noise_discount", 0)
+                )
                 if multires_noise_discount > 0:
                     run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
 
@@ -1304,7 +1313,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f" --optimizer_args {optimizer_args}"
 
     if "optimizer" in kwargs:
-        run_cmd += fr' --optimizer_type="{kwargs.get("optimizer")}"'
+        run_cmd += rf' --optimizer_type="{kwargs.get("optimizer")}"'
 
     if "output_dir" in kwargs:
         output_dir = kwargs.get("output_dir")
@@ -1323,9 +1332,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += " --persistent_data_loader_workers"
 
     if "pretrained_model_name_or_path" in kwargs:
-        run_cmd += (
-            rf' --pretrained_model_name_or_path="{kwargs.get("pretrained_model_name_or_path")}"'
-        )
+        run_cmd += rf' --pretrained_model_name_or_path="{kwargs.get("pretrained_model_name_or_path")}"'
 
     if "prior_loss_weight" in kwargs:
         prior_loss_weight = kwargs.get("prior_loss_weight")
@@ -1376,12 +1383,12 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f" --save_model_as={save_model_as}"
 
     if "save_precision" in kwargs:
-        run_cmd += fr' --save_precision="{kwargs.get("save_precision")}"'
+        run_cmd += rf' --save_precision="{kwargs.get("save_precision")}"'
 
     if "save_state" in kwargs:
         if kwargs.get("save_state"):
             run_cmd += " --save_state"
-            
+
     if "save_state_on_train_end" in kwargs:
         if kwargs.get("save_state_on_train_end"):
             run_cmd += " --save_state_on_train_end"
@@ -1415,7 +1422,7 @@ def run_cmd_advanced_training(**kwargs):
             run_cmd += f" --text_encoder_lr={text_encoder_lr}"
 
     if "train_batch_size" in kwargs:
-        run_cmd += fr' --train_batch_size="{kwargs.get("train_batch_size")}"'
+        run_cmd += rf' --train_batch_size="{kwargs.get("train_batch_size")}"'
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):

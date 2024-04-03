@@ -4,7 +4,6 @@ import math
 import os
 import subprocess
 import sys
-import pathlib
 from datetime import datetime
 from .common_gui import (
     get_file_path,
@@ -50,7 +49,8 @@ document_symbol = "\U0001F4C4"  # 📄
 
 PYTHON = sys.executable
 
-presets_dir = fr'{scriptdir}/presets'
+presets_dir = rf"{scriptdir}/presets"
+
 
 def save_configuration(
     save_as,
@@ -319,7 +319,7 @@ def open_configuration(
     # Check if we are "applying" a preset or a config
     if apply_preset:
         log.info(f"Applying preset {training_preset}...")
-        file_path = fr'{presets_dir}/finetune/{training_preset}.json'
+        file_path = rf"{presets_dir}/finetune/{training_preset}.json"
     else:
         # If not applying a preset, set the `training_preset` field to an empty string
         # Find the index of the `training_preset` parameter using the `index()` method
@@ -482,32 +482,38 @@ def train_model(
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
-        dataset_config=dataset_config
+        dataset_config=dataset_config,
     ):
         return
 
-    if not print_only_bool and check_if_model_exist(output_name, output_dir, save_model_as, headless_bool):
+    if not print_only_bool and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless_bool
+    ):
         return
 
     if dataset_config:
-        log.info("Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation...")
+        log.info(
+            "Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation..."
+        )
     else:
         # create caption json file
         if generate_caption_database:
-            run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
             if caption_extension == "":
                 run_cmd += f' --caption_extension=".caption"'
             else:
                 run_cmd += f" --caption_extension={caption_extension}"
-            run_cmd += fr' "{image_folder}"'
-            run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
+            run_cmd += rf' "{image_folder}"'
+            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
             if full_path:
                 run_cmd += f" --full_path"
 
             log.info(run_cmd)
 
             env = os.environ.copy()
-            env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            env["PYTHONPATH"] = (
+                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            )
 
             if not print_only_bool:
                 # Run the command
@@ -515,11 +521,11 @@ def train_model(
 
         # create images buckets
         if generate_image_buckets:
-            run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
-            run_cmd += fr' "{image_folder}"'
-            run_cmd += fr' "{train_dir}/{caption_metadata_filename}"'
-            run_cmd += fr' "{train_dir}/{latent_metadata_filename}"'
-            run_cmd += fr' "{pretrained_model_name_or_path}"'
+            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
+            run_cmd += rf' "{image_folder}"'
+            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
+            run_cmd += rf' "{train_dir}/{latent_metadata_filename}"'
+            run_cmd += rf' "{pretrained_model_name_or_path}"'
             run_cmd += f" --batch_size={batch_size}"
             run_cmd += f" --max_resolution={max_resolution}"
             run_cmd += f" --min_bucket_reso={min_bucket_reso}"
@@ -530,13 +536,17 @@ def train_model(
             if full_path:
                 run_cmd += f" --full_path"
             if sdxl_checkbox and sdxl_no_half_vae:
-                log.info("Using mixed_precision = no because no half vae is selected...")
+                log.info(
+                    "Using mixed_precision = no because no half vae is selected..."
+                )
                 run_cmd += f' --mixed_precision="no"'
 
             log.info(run_cmd)
 
             env = os.environ.copy()
-            env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            env["PYTHONPATH"] = (
+                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            )
 
             if not print_only_bool:
                 # Run the command
@@ -591,14 +601,14 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += fr' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
     else:
-        run_cmd += fr' "{scriptdir}/sd-scripts/fine_tune.py"'
+        run_cmd += rf' "{scriptdir}/sd-scripts/fine_tune.py"'
 
     in_json = (
-        fr"{train_dir}/{latent_metadata_filename}"
+        rf"{train_dir}/{latent_metadata_filename}"
         if use_latent_files == "Yes"
-        else fr"{train_dir}/{caption_metadata_filename}"
+        else rf"{train_dir}/{caption_metadata_filename}"
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
@@ -732,7 +742,9 @@ def train_model(
         log.info(run_cmd)
 
         env = os.environ.copy()
-        env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = (
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        )
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
@@ -744,12 +756,14 @@ def finetune_tab(headless=False, config: dict = {}):
     dummy_headless = gr.Label(value=headless, visible=False)
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
-            
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch()
 
         with gr.Column():
-            source_model = SourceModel(headless=headless, finetuning=True, config=config)
+            source_model = SourceModel(
+                headless=headless, finetuning=True, config=config
+            )
             image_folder = source_model.train_data_dir
             output_name = source_model.output_name
 
@@ -803,14 +817,17 @@ def finetune_tab(headless=False, config: dict = {}):
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
                     gradient_accumulation_steps = gr.Number(
-                        label="Gradient accumulate steps", value="1",
+                        label="Gradient accumulate steps",
+                        value="1",
                     )
                     block_lr = gr.Textbox(
                         label="Block LR (SDXL)",
                         placeholder="(Optional)",
                         info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
                     )
-                advanced_training = AdvancedTraining(headless=headless, finetuning=True, config=config)
+                advanced_training = AdvancedTraining(
+                    headless=headless, finetuning=True, config=config
+                )
                 advanced_training.color_aug.change(
                     color_aug_changed,
                     inputs=[advanced_training.color_aug],
@@ -865,7 +882,6 @@ def finetune_tab(headless=False, config: dict = {}):
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
             configuration = ConfigurationFile(headless=headless, config=config)
-
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -1005,7 +1021,9 @@ def finetune_tab(headless=False, config: dict = {}):
             inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[configuration.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name]
+            + settings_list
+            + [training_preset],
             show_progress=False,
         )
 
@@ -1021,7 +1039,9 @@ def finetune_tab(headless=False, config: dict = {}):
             inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
             + settings_list
             + [training_preset],
-            outputs=[configuration.config_file_name] + settings_list + [training_preset],
+            outputs=[configuration.config_file_name]
+            + settings_list
+            + [training_preset],
             show_progress=False,
         )
 
@@ -1062,16 +1082,16 @@ def finetune_tab(headless=False, config: dict = {}):
             show_progress=False,
         )
 
-        #config.button_save_as_config.click(
+        # config.button_save_as_config.click(
         #    save_configuration,
         #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
         #    outputs=[config.config_file_name],
         #    show_progress=False,
-        #)
+        # )
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various Finetuning guides and information...")
-        top_level_path = fr"{scriptdir}/docs/Finetuning/top_level.md"
+        top_level_path = rf"{scriptdir}/docs/Finetuning/top_level.md"
         if os.path.exists(top_level_path):
             with open(os.path.join(top_level_path), "r", encoding="utf8") as file:
                 guides_top_level = file.read() + "\n"

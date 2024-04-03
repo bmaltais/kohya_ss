@@ -3,7 +3,6 @@ import json
 import math
 import os
 import sys
-import pathlib
 from datetime import datetime
 from .common_gui import (
     get_file_path,
@@ -25,7 +24,6 @@ from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
-from .class_sdxl_parameters import SDXLParameters
 from .tensorboard_gui import (
     gradio_tensorboard,
     start_tensorboard,
@@ -459,7 +457,9 @@ def train_model(
         return
 
     if dataset_config:
-        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+        log.info(
+            "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
+        )
     else:
         # Get a list of all subfolders in train_data_dir, excluding hidden folders
         subfolders = [
@@ -509,7 +509,9 @@ def train_model(
                 log.info(f"Folder {folder} : steps {steps}")
 
         if total_steps == 0:
-            log.info(f"No images were found in folder {train_data_dir}... please rectify!")
+            log.info(
+                f"No images were found in folder {train_data_dir}... please rectify!"
+            )
             return
 
         # Print the result
@@ -541,7 +543,9 @@ def train_model(
     # calculate stop encoder training
     if int(stop_text_encoder_training_pct) == -1:
         stop_text_encoder_training = -1
-    elif stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
+    elif stop_text_encoder_training_pct == None or (
+        not max_train_steps == "" or not max_train_steps == "0"
+    ):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -729,7 +733,7 @@ def dreambooth_tab(
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
-        
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch()
 
@@ -738,7 +742,7 @@ def dreambooth_tab(
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
-            
+
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):

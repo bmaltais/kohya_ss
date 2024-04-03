@@ -7,7 +7,7 @@ localizationMap = {}
 
 def load_localizations():
     localizationMap.clear()
-    dirname = './localizations'
+    dirname = "./localizations"
     for file in os.listdir(dirname):
         fn, ext = os.path.splitext(file)
         if ext.lower() != ".json":

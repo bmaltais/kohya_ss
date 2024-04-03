@@ -12,7 +12,9 @@ class ConfigurationFile:
     A class to handle configuration file operations in the GUI.
     """
 
-    def __init__(self, headless: bool = False, config_dir: str = None, config:dict = {}):
+    def __init__(
+        self, headless: bool = False, config_dir: str = None, config: dict = {}
+    ):
         """
         Initialize the ConfigurationFile class.
 
@@ -22,11 +24,13 @@ class ConfigurationFile:
         """
 
         self.headless = headless
-        
+
         self.config = config
 
         # Sets the directory for storing configuration files, defaults to a 'presets' folder within the script directory.
-        self.current_config_dir = self.config.get('config_dir', os.path.join(scriptdir, "presets"))
+        self.current_config_dir = self.config.get(
+            "config_dir", os.path.join(scriptdir, "presets")
+        )
 
         # Initialize the GUI components for configuration.
         self.create_config_gui()

@@ -5,6 +5,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
+
 class KohyaSSGUIConfig:
     """
     A class to handle the configuration for the Kohya SS GUI.
@@ -30,7 +31,9 @@ class KohyaSSGUIConfig:
         except FileNotFoundError:
             # If the config file is not found, initialize `config` as an empty dictionary to handle missing configurations gracefully.
             config = {}
-            log.debug(f"No configuration file found at {config_file_path}. Initializing empty configuration.")
+            log.debug(
+                f"No configuration file found at {config_file_path}. Initializing empty configuration."
+            )
 
         return config
 
@@ -66,7 +69,9 @@ class KohyaSSGUIConfig:
             log.debug(k)
             # If the key is not found in the current data, return the default value
             if k not in data:
-                log.debug(f"Key '{key}' not found in configuration. Returning default value.")
+                log.debug(
+                    f"Key '{key}' not found in configuration. Returning default value."
+                )
                 return default
 
             # Update `data` to the value associated with the current key

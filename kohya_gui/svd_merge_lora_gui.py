@@ -5,7 +5,6 @@ import os
 import sys
 from .common_gui import (
     get_saveasfilename_path,
-    get_any_file_path,
     get_file_path,
     scriptdir,
     list_files,
@@ -17,10 +16,10 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 
@@ -53,49 +52,51 @@ def svd_merge_lora(
         ratio_c /= total_ratio
         ratio_d /= total_ratio
 
-    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/svd_merge_lora.py"'
-    run_cmd += f' --save_precision {save_precision}'
-    run_cmd += f' --precision {precision}'
-    run_cmd += fr' --save_to "{save_to}"'
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/svd_merge_lora.py"'
+    run_cmd += f" --save_precision {save_precision}"
+    run_cmd += f" --precision {precision}"
+    run_cmd += rf' --save_to "{save_to}"'
 
-    run_cmd_models = ' --models'
-    run_cmd_ratios = ' --ratios'
+    run_cmd_models = " --models"
+    run_cmd_ratios = " --ratios"
     # Add non-empty models and their ratios to the command
     if lora_a_model:
         if not os.path.isfile(lora_a_model):
-            msgbox('The provided model A is not a file')
+            msgbox("The provided model A is not a file")
             return
-        run_cmd_models += fr' "{lora_a_model}"'
-        run_cmd_ratios += f' {ratio_a}'
+        run_cmd_models += rf' "{lora_a_model}"'
+        run_cmd_ratios += f" {ratio_a}"
     if lora_b_model:
         if not os.path.isfile(lora_b_model):
-            msgbox('The provided model B is not a file')
+            msgbox("The provided model B is not a file")
             return
-        run_cmd_models += fr' "{lora_b_model}"'
-        run_cmd_ratios += f' {ratio_b}'
+        run_cmd_models += rf' "{lora_b_model}"'
+        run_cmd_ratios += f" {ratio_b}"
     if lora_c_model:
         if not os.path.isfile(lora_c_model):
-            msgbox('The provided model C is not a file')
+            msgbox("The provided model C is not a file")
             return
-        run_cmd_models += fr' "{lora_c_model}"'
-        run_cmd_ratios += f' {ratio_c}'
+        run_cmd_models += rf' "{lora_c_model}"'
+        run_cmd_ratios += f" {ratio_c}"
     if lora_d_model:
         if not os.path.isfile(lora_d_model):
-            msgbox('The provided model D is not a file')
+            msgbox("The provided model D is not a file")
             return
-        run_cmd_models += fr' "{lora_d_model}"'
-        run_cmd_ratios += f' {ratio_d}'
+        run_cmd_models += rf' "{lora_d_model}"'
+        run_cmd_ratios += f" {ratio_d}"
 
     run_cmd += run_cmd_models
     run_cmd += run_cmd_ratios
-    run_cmd += f' --device {device}'
+    run_cmd += f" --device {device}"
     run_cmd += f' --new_rank "{new_rank}"'
     run_cmd += f' --new_conv_rank "{new_conv_rank}"'
 
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = (
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -138,13 +139,13 @@ def gradio_svd_merge_lora_tab(headless=False):
         current_save_dir = path
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
-    with gr.Tab('Merge LoRA (SVD)'):
+    with gr.Tab("Merge LoRA (SVD)"):
         gr.Markdown(
-            'This utility can merge two LoRA networks together into a new LoRA.'
+            "This utility can merge two LoRA networks together into a new LoRA."
         )
 
-        lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
-        lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
+        lora_ext = gr.Textbox(value="*.safetensors *.pt", visible=False)
+        lora_ext_name = gr.Textbox(value="LoRA model types", visible=False)
 
         with gr.Group(), gr.Row():
             lora_a_model = gr.Dropdown(
@@ -154,11 +155,16 @@ def gradio_svd_merge_lora_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(lora_a_model, lambda: None, lambda: {"choices": list_a_models(current_a_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                lora_a_model,
+                lambda: None,
+                lambda: {"choices": list_a_models(current_a_model_dir)},
+                "open_folder_small",
+            )
             button_lora_a_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_lora_a_model_file.click(
@@ -175,11 +181,16 @@ def gradio_svd_merge_lora_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(lora_b_model, lambda: None, lambda: {"choices": list_b_models(current_b_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                lora_b_model,
+                lambda: None,
+                lambda: {"choices": list_b_models(current_b_model_dir)},
+                "open_folder_small",
+            )
             button_lora_b_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_lora_b_model_file.click(
@@ -202,7 +213,7 @@ def gradio_svd_merge_lora_tab(headless=False):
             )
         with gr.Row():
             ratio_a = gr.Slider(
-                label='Merge ratio model A',
+                label="Merge ratio model A",
                 minimum=0,
                 maximum=1,
                 step=0.01,
@@ -210,7 +221,7 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             ratio_b = gr.Slider(
-                label='Merge ratio model B',
+                label="Merge ratio model B",
                 minimum=0,
                 maximum=1,
                 step=0.01,
@@ -225,11 +236,16 @@ def gradio_svd_merge_lora_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(lora_c_model, lambda: None, lambda: {"choices": list_c_models(current_c_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                lora_c_model,
+                lambda: None,
+                lambda: {"choices": list_c_models(current_c_model_dir)},
+                "open_folder_small",
+            )
             button_lora_c_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_lora_c_model_file.click(
@@ -246,11 +262,16 @@ def gradio_svd_merge_lora_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(lora_d_model, lambda: None, lambda: {"choices": list_d_models(current_d_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                lora_d_model,
+                lambda: None,
+                lambda: {"choices": list_d_models(current_d_model_dir)},
+                "open_folder_small",
+            )
             button_lora_d_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_lora_d_model_file.click(
@@ -274,7 +295,7 @@ def gradio_svd_merge_lora_tab(headless=False):
             )
         with gr.Row():
             ratio_c = gr.Slider(
-                label='Merge ratio model C',
+                label="Merge ratio model C",
                 minimum=0,
                 maximum=1,
                 step=0.01,
@@ -282,7 +303,7 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             ratio_d = gr.Slider(
-                label='Merge ratio model D',
+                label="Merge ratio model D",
                 minimum=0,
                 maximum=1,
                 step=0.01,
@@ -291,7 +312,7 @@ def gradio_svd_merge_lora_tab(headless=False):
             )
         with gr.Row():
             new_rank = gr.Slider(
-                label='New Rank',
+                label="New Rank",
                 minimum=1,
                 maximum=1024,
                 step=1,
@@ -299,7 +320,7 @@ def gradio_svd_merge_lora_tab(headless=False):
                 interactive=True,
             )
             new_conv_rank = gr.Slider(
-                label='New Conv Rank',
+                label="New Conv Rank",
                 minimum=1,
                 maximum=1024,
                 step=1,
@@ -309,17 +330,22 @@ def gradio_svd_merge_lora_tab(headless=False):
 
         with gr.Group(), gr.Row():
             save_to = gr.Dropdown(
-                label='Save to (path for the new LoRA file to save...)',
+                label="Save to (path for the new LoRA file to save...)",
                 interactive=True,
                 choices=[""] + list_save_to(current_d_model_dir),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(save_to, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
+            create_refresh_button(
+                save_to,
+                lambda: None,
+                lambda: {"choices": list_save_to(current_save_dir)},
+                "open_folder_small",
+            )
             button_save_to = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_save_to.click(
@@ -336,28 +362,28 @@ def gradio_svd_merge_lora_tab(headless=False):
             )
         with gr.Group(), gr.Row():
             precision = gr.Radio(
-                label='Merge precision',
-                choices=['fp16', 'bf16', 'float'],
-                value='float',
+                label="Merge precision",
+                choices=["fp16", "bf16", "float"],
+                value="float",
                 interactive=True,
             )
             save_precision = gr.Radio(
-                label='Save precision',
-                choices=['fp16', 'bf16', 'float'],
-                value='float',
+                label="Save precision",
+                choices=["fp16", "bf16", "float"],
+                value="float",
                 interactive=True,
             )
             device = gr.Radio(
-                label='Device',
+                label="Device",
                 choices=[
-                    'cpu',
-                    'cuda',
+                    "cpu",
+                    "cuda",
                 ],
-                value='cuda',
+                value="cuda",
                 interactive=True,
             )
 
-        convert_button = gr.Button('Merge model')
+        convert_button = gr.Button("Merge model")
 
         convert_button.click(
             svd_merge_lora,

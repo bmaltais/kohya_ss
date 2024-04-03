@@ -905,21 +905,20 @@ def train_model(
         )
     # Convert learning rates to float once and store the result for re-use
     learning_rate = float(learning_rate) if learning_rate is not None else 0.0
-    text_encoder_lr_float = float(text_encoder_lr) if text_encoder_lr is not None else 0.0
+    text_encoder_lr_float = (
+        float(text_encoder_lr) if text_encoder_lr is not None else 0.0
+    )
     unet_lr_float = float(unet_lr) if unet_lr is not None else 0.0
 
     # Determine the training configuration based on learning rate values
     # Sets flags for training specific components based on the provided learning rates.
     if float(learning_rate) == unet_lr_float == text_encoder_lr_float == 0:
-        output_message(
-            msg="Please input learning rate values.", headless=headless_bool
-        )
+        output_message(msg="Please input learning rate values.", headless=headless_bool)
         return
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
-
 
     # Define a dictionary of parameters
     run_cmd_params = {
@@ -1087,10 +1086,10 @@ def lora_tab(
         gr.Markdown(
             "Train a custom model using kohya train network LoRA python code..."
         )
-        
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch()
-        
+
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -1124,7 +1123,7 @@ def lora_tab(
                             json_files.append(os.path.join("user_presets", preset_name))
 
                 return json_files
-            
+
             with gr.Accordion("Basic", open="True"):
                 training_preset = gr.Dropdown(
                     label="Presets",

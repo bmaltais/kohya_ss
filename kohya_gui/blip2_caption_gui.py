@@ -4,7 +4,7 @@ import torch
 import gradio as gr
 import os
 
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
+from .common_gui import get_folder_path, scriptdir, list_dirs
 from .custom_logging import setup_logging
 
 # Set up logging

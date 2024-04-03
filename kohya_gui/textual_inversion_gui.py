@@ -2,7 +2,6 @@ import gradio as gr
 import json
 import math
 import os
-import pathlib
 from datetime import datetime
 from .common_gui import (
     get_file_path,
@@ -463,7 +462,9 @@ def train_model(
         return
 
     if dataset_config:
-        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+        log.info(
+            "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
+        )
     else:
         # Get a list of all subfolders in train_data_dir
         subfolders = [
@@ -526,7 +527,9 @@ def train_model(
         log.info(f"max_train_steps = {max_train_steps}")
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
+    if stop_text_encoder_training_pct == None or (
+        not max_train_steps == "" or not max_train_steps == "0"
+    ):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -709,7 +712,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch()
-            
+
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -722,7 +725,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
-            
+
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
@@ -733,7 +736,9 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                             current_embedding_dir = path
                             return list(
                                 list_files(
-                                    path, exts=[".pt", ".ckpt", ".safetensors"], all=True
+                                    path,
+                                    exts=[".pt", ".ckpt", ".safetensors"],
+                                    all=True,
                                 )
                             )
 

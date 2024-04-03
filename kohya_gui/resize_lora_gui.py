@@ -3,17 +3,23 @@ from easygui import msgbox
 import subprocess
 import os
 import sys
-from .common_gui import get_saveasfilename_path, get_file_path, scriptdir, list_files, create_refresh_button
+from .common_gui import (
+    get_saveasfilename_path,
+    get_file_path,
+    scriptdir,
+    list_files,
+    create_refresh_button,
+)
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 
-folder_symbol = '\U0001f4c2'  # 📂
-refresh_symbol = '\U0001f504'  # 🔄
-save_style_symbol = '\U0001f4be'  # 💾
-document_symbol = '\U0001F4C4'   # 📄
+folder_symbol = "\U0001f4c2"  # 📂
+refresh_symbol = "\U0001f504"  # 🔄
+save_style_symbol = "\U0001f4be"  # 💾
+document_symbol = "\U0001F4C4"  # 📄
 
 PYTHON = sys.executable
 
@@ -29,57 +35,57 @@ def resize_lora(
     verbose,
 ):
     # Check for caption_text_input
-    if model == '':
-        msgbox('Invalid model file')
+    if model == "":
+        msgbox("Invalid model file")
         return
 
     # Check if source model exist
     if not os.path.isfile(model):
-        msgbox('The provided model is not a file')
+        msgbox("The provided model is not a file")
         return
 
-    if dynamic_method == 'sv_ratio':
+    if dynamic_method == "sv_ratio":
         if float(dynamic_param) < 2:
-            msgbox(
-                f'Dynamic parameter for {dynamic_method} need to be 2 or greater...'
-            )
+            msgbox(f"Dynamic parameter for {dynamic_method} need to be 2 or greater...")
             return
 
-    if dynamic_method == 'sv_fro' or dynamic_method == 'sv_cumulative':
+    if dynamic_method == "sv_fro" or dynamic_method == "sv_cumulative":
         if float(dynamic_param) < 0 or float(dynamic_param) > 1:
             msgbox(
-                f'Dynamic parameter for {dynamic_method} need to be between 0 and 1...'
+                f"Dynamic parameter for {dynamic_method} need to be between 0 and 1..."
             )
             return
 
     # Check if save_to end with one of the defines extension. If not add .safetensors.
-    if not save_to.endswith(('.pt', '.safetensors')):
-        save_to += '.safetensors'
+    if not save_to.endswith((".pt", ".safetensors")):
+        save_to += ".safetensors"
 
-    if device == '':
-        device = 'cuda'
+    if device == "":
+        device = "cuda"
 
-    run_cmd = fr'"{PYTHON}" "{scriptdir}/sd-scripts/networks/resize_lora.py"'
-    run_cmd += f' --save_precision {save_precision}'
-    run_cmd += fr' --save_to "{save_to}"'
-    run_cmd += fr' --model "{model}"'
-    run_cmd += f' --new_rank {new_rank}'
-    run_cmd += f' --device {device}'
-    if not dynamic_method == 'None':
-        run_cmd += f' --dynamic_method {dynamic_method}'
-        run_cmd += f' --dynamic_param {dynamic_param}'
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/resize_lora.py"'
+    run_cmd += f" --save_precision {save_precision}"
+    run_cmd += rf' --save_to "{save_to}"'
+    run_cmd += rf' --model "{model}"'
+    run_cmd += f" --new_rank {new_rank}"
+    run_cmd += f" --device {device}"
+    if not dynamic_method == "None":
+        run_cmd += f" --dynamic_method {dynamic_method}"
+        run_cmd += f" --dynamic_param {dynamic_param}"
     if verbose:
-        run_cmd += f' --verbose'
+        run_cmd += f" --verbose"
 
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = (
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
 
-    log.info('Done resizing...')
+    log.info("Done resizing...")
 
 
 ###
@@ -101,25 +107,30 @@ def gradio_resize_lora_tab(headless=False):
         current_save_dir = path
         return list(list_files(path, exts=[".pt", ".safetensors"], all=True))
 
-    with gr.Tab('Resize LoRA'):
-        gr.Markdown('This utility can resize a LoRA.')
+    with gr.Tab("Resize LoRA"):
+        gr.Markdown("This utility can resize a LoRA.")
 
-        lora_ext = gr.Textbox(value='*.safetensors *.pt', visible=False)
-        lora_ext_name = gr.Textbox(value='LoRA model types', visible=False)
+        lora_ext = gr.Textbox(value="*.safetensors *.pt", visible=False)
+        lora_ext_name = gr.Textbox(value="LoRA model types", visible=False)
 
         with gr.Group(), gr.Row():
             model = gr.Dropdown(
-                label='Source LoRA (path to the LoRA to resize)',
+                label="Source LoRA (path to the LoRA to resize)",
                 interactive=True,
                 choices=[""] + list_models(current_model_dir),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(model, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                model,
+                lambda: None,
+                lambda: {"choices": list_models(current_model_dir)},
+                "open_folder_small",
+            )
             button_lora_a_model_file = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_lora_a_model_file.click(
@@ -129,17 +140,22 @@ def gradio_resize_lora_tab(headless=False):
                 show_progress=False,
             )
             save_to = gr.Dropdown(
-                label='Save to (path for the LoRA file to save...)',
+                label="Save to (path for the LoRA file to save...)",
                 interactive=True,
                 choices=[""] + list_save_to(current_save_dir),
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(save_to, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
+            create_refresh_button(
+                save_to,
+                lambda: None,
+                lambda: {"choices": list_save_to(current_save_dir)},
+                "open_folder_small",
+            )
             button_save_to = gr.Button(
                 folder_symbol,
-                elem_id='open_folder_small',
-                elem_classes=['tool'],
+                elem_id="open_folder_small",
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_save_to.click(
@@ -162,7 +178,7 @@ def gradio_resize_lora_tab(headless=False):
             )
         with gr.Row():
             new_rank = gr.Slider(
-                label='Desired LoRA rank',
+                label="Desired LoRA rank",
                 minimum=1,
                 maximum=1024,
                 step=1,
@@ -170,37 +186,37 @@ def gradio_resize_lora_tab(headless=False):
                 interactive=True,
             )
             dynamic_method = gr.Radio(
-                choices=['None', 'sv_ratio', 'sv_fro', 'sv_cumulative'],
-                value='sv_fro',
-                label='Dynamic method',
+                choices=["None", "sv_ratio", "sv_fro", "sv_cumulative"],
+                value="sv_fro",
+                label="Dynamic method",
                 interactive=True,
             )
             dynamic_param = gr.Textbox(
-                label='Dynamic parameter',
-                value='0.9',
+                label="Dynamic parameter",
+                value="0.9",
                 interactive=True,
-                placeholder='Value for the dynamic method selected.',
+                placeholder="Value for the dynamic method selected.",
             )
         with gr.Row():
 
-            verbose = gr.Checkbox(label='Verbose logging', value=True)
+            verbose = gr.Checkbox(label="Verbose logging", value=True)
             save_precision = gr.Radio(
-                label='Save precision',
-                choices=['fp16', 'bf16', 'float'],
-                value='fp16',
+                label="Save precision",
+                choices=["fp16", "bf16", "float"],
+                value="fp16",
                 interactive=True,
             )
             device = gr.Radio(
-                label='Device',
+                label="Device",
                 choices=[
-                    'cpu',
-                    'cuda',
+                    "cpu",
+                    "cuda",
                 ],
-                value='cuda',
+                value="cuda",
                 interactive=True,
             )
 
-        convert_button = gr.Button('Resize model')
+        convert_button = gr.Button("Resize model")
 
         convert_button.click(
             resize_lora,
