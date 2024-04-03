@@ -789,60 +789,6 @@ def color_aug_changed(color_aug):
         return gr.Checkbox(interactive=True)
 
 
-def save_inference_file(
-    output_dir: str,
-    v2: bool,
-    v_parameterization: bool,
-    output_name: str,
-) -> None:
-    """
-    Save inference file to the specified output directory.
-
-    Args:
-        output_dir (str): Path to the output directory.
-        v2 (bool): Flag indicating whether to use v2 inference.
-        v_parameterization (bool): Flag indicating whether to use v parameterization.
-        output_name (str): Name of the output file.
-    """
-    try:
-        # List all files in the directory
-        files = os.listdir(output_dir)
-    except Exception as e:
-        log.error(f"Error listing directory contents: {e}")
-        return  # Early return on failure
-
-    # Iterate over the list of files
-    for file in files:
-        # Check if the file starts with the value of output_name
-        if file.startswith(output_name):
-            # Check if it is a file or a directory
-            file_path = os.path.join(output_dir, file)
-            if os.path.isfile(file_path):
-                # Split the file name and extension
-                file_name, ext = os.path.splitext(file)
-
-                # Determine the source file path based on the v2 and v_parameterization flags
-                source_file_path = (
-                    rf"{scriptdir}/v2_inference/v2-inference-v.yaml"
-                    if v2 and v_parameterization
-                    else rf"{scriptdir}/v2_inference/v2-inference.yaml"
-                )
-
-                # Copy the source file to the current file, with a .yaml extension
-                try:
-                    log.info(
-                        f"Saving {source_file_path} as {output_dir}/{file_name}.yaml"
-                    )
-                    shutil.copy(
-                        source_file_path,
-                        f"{output_dir}/{file_name}.yaml",
-                    )
-                except Exception as e:
-                    log.error(
-                        f"Error copying file to {output_dir}/{file_name}.yaml: {e}"
-                    )
-
-
 def set_pretrained_model_name_or_path_input(
     pretrained_model_name_or_path, refresh_method=None
 ):
