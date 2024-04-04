@@ -2,6 +2,7 @@ import os
 import gradio as gr
 
 from .custom_logging import setup_logging
+from .class_gui_config import KohyaSSGUIConfig
 
 # Set up logging
 log = setup_logging()
@@ -76,10 +77,13 @@ class SampleImages:
 
     def __init__(
         self,
+        config: KohyaSSGUIConfig = {},
     ):
         """
         Initializes the SampleImages class.
         """
+        self.config = config
+        
         self.initialize_accordion()
 
     def initialize_accordion(self):
@@ -89,13 +93,13 @@ class SampleImages:
         with gr.Row():
             self.sample_every_n_steps = gr.Number(
                 label="Sample every n steps",
-                value=0,
+                value=self.config.get("samples.sample_every_n_steps", 0),
                 precision=0,
                 interactive=True,
             )
             self.sample_every_n_epochs = gr.Number(
                 label="Sample every n epochs",
-                value=0,
+                value=self.config.get("samples.sample_every_n_epochs", 0),
                 precision=0,
                 interactive=True,
             )
@@ -119,7 +123,7 @@ class SampleImages:
                     "k_dpm_2",
                     "k_dpm_2_a",
                 ],
-                value="euler_a",
+                value=self.config.get("samples.sample_sampler", "euler_a"),
                 interactive=True,
             )
         with gr.Row():
@@ -129,4 +133,5 @@ class SampleImages:
                 interactive=True,
                 placeholder="masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28",
                 info="Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps) and --n (negative prompt). To modify sample prompts during training, edit the prompt.txt file in the samples directory.",
+                value=self.config.get("samples.sample_prompts", ""),
             )

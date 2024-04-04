@@ -759,7 +759,7 @@ def finetune_tab(headless=False, config: dict = {}):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
-            accelerate_launch = AccelerateLaunch()
+            accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
             source_model = SourceModel(
@@ -808,7 +808,7 @@ def finetune_tab(headless=False, config: dict = {}):
                     )
 
                     # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
 
                     with gr.Row():
                         dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
@@ -839,7 +839,7 @@ def finetune_tab(headless=False, config: dict = {}):
                 )
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages()
+                sample = SampleImages(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             with gr.Row():

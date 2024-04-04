@@ -19,6 +19,16 @@ logging_dir = "./logs"      # Logging directory
 [configuration]
 config_dir = "./presets" # Load/Save Config file
 
+[accelerate_launch]
+extra_accelerate_launch_args = "" # Extra accelerate launch args
+gpu_ids = ""                      # GPU IDs
+main_process_port = 0             # Main process port
+mixed_precision = "fp16"          # Mixed precision (fp16, bf16, fp8)
+multi_gpu = false                 # Multi GPU
+num_cpu_threads_per_process = 2   # Number of CPU threads per process
+num_machines = 1                  # Number of machines
+num_processes = 1                 # Number of processes
+
 [basic]
 cache_latents = true           # Cache latents
 cache_latents_to_disk = false  # Cache latents to disk
@@ -105,7 +115,20 @@ xformers = "xformers"                     # CrossAttention (none, sdp, xformers)
 # This next section can be used to set default values for the Dataset Preparation section
 # The "Destination training direcroty" field will be equal to "train_data_dir" as specified above
 [dataset_preparation]
-instance_prompt = "instance"
-class_prompt = "class"
-images_folder = "/some/folder/where/images/are"
-reg_images_folder = "/some/folder/where/reg/images/are"
+class_prompt = "class"                                  # Class prompt
+images_folder = "/some/folder/where/images/are"         # Training images directory
+instance_prompt = "instance"                            # Instance prompt
+reg_images_folder = "/some/folder/where/reg/images/are" # Regularisation images directory
+reg_images_repeat = 1                                   # Regularisation images repeat
+util_regularization_images_repeat_input = 1             # Regularisation images repeat input
+util_training_images_repeat_input = 40                  # Training images repeat input
+
+[samples]
+sample_every_n_steps = 0   # Sample every n steps
+sample_every_n_epochs = 0  # Sample every n epochs
+sample_prompts = ""        # Sample prompts
+sample_sampler = "euler_a" # Sampler to use for image sampling
+
+[sdxl]
+sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
+sdxl_no_half_vae = true                 # No half VAE

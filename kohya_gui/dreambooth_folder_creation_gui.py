@@ -179,12 +179,12 @@ def gradio_dreambooth_folder_creation_tab(
             )
             util_training_images_repeat_input = gr.Number(
                 label="Repeats",
-                value=40,
+                value=config.get(key="dataset_preparation.util_training_images_repeat_input", default=40),
                 interactive=True,
                 elem_id="number_input",
             )
             util_training_images_dir_input.change(
-                fn=lambda path: gr.Dropdown(choices=[""] + list_train_data_dirs(path)),
+                fn=lambda path: gr.Dropdown(choices=[config.get(key="dataset_preparation.images_folder", default="")] + list_train_data_dirs(path)),
                 inputs=util_training_images_dir_input,
                 outputs=util_training_images_dir_input,
                 show_progress=False,
@@ -228,7 +228,10 @@ def gradio_dreambooth_folder_creation_tab(
             )
             util_regularization_images_repeat_input = gr.Number(
                 label="Repeats",
-                value=1,
+                value=config.get(
+                    key="dataset_preparation.util_regularization_images_repeat_input",
+                    default=1
+                ),
                 interactive=True,
                 elem_id="number_input",
             )
@@ -270,7 +273,7 @@ def gradio_dreambooth_folder_creation_tab(
             )
             util_training_dir_output.change(
                 fn=lambda path: gr.Dropdown(
-                    choices=[""] + list_train_output_dirs(path)
+                    choices=[config.get(key="train_data_dir", default="")] + list_train_output_dirs(path)
                 ),
                 inputs=util_training_dir_output,
                 outputs=util_training_dir_output,

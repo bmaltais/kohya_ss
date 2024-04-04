@@ -712,7 +712,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
-            accelerate_launch = AccelerateLaunch()
+            accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
             source_model = SourceModel(
@@ -819,6 +819,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                     sdxl_params = SDXLParameters(
                         source_model.sdxl_checkbox,
                         show_sdxl_cache_text_encoder_outputs=False,
+                        config=config,
                     )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
@@ -830,7 +831,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                 )
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages()
+                sample = SampleImages(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(

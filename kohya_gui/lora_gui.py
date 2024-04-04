@@ -1089,7 +1089,7 @@ def lora_tab(
         )
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
-            accelerate_launch = AccelerateLaunch()
+            accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
             source_model = SourceModel(
@@ -1219,7 +1219,7 @@ def lora_tab(
                         )
 
                     # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox)
+                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
 
                     # LyCORIS Specific parameters
                     with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
@@ -1854,7 +1854,7 @@ def lora_tab(
                 )
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages()
+                sample = SampleImages(config=config)
 
             LoRA_type.change(
                 update_LoRA_settings,

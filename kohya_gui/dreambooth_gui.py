@@ -736,7 +736,7 @@ def dreambooth_tab(
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
-            accelerate_launch = AccelerateLaunch()
+            accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
             source_model = SourceModel(headless=headless, config=config)
@@ -756,9 +756,6 @@ def dreambooth_tab(
                         config=config,
                     )
 
-                    # # Add SDXL Parameters
-                    # sdxl_params = SDXLParameters(source_model.sdxl_checkbox, show_sdxl_cache_text_encoder_outputs=False)
-
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
                 advanced_training.color_aug.change(
@@ -768,7 +765,7 @@ def dreambooth_tab(
                 )
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages()
+                sample = SampleImages(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
