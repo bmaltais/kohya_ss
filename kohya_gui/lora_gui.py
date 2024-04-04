@@ -1198,6 +1198,7 @@ def lora_tab(
                         lr_scheduler_value="cosine",
                         lr_warmup_value="10",
                         sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
                     )
 
                     with gr.Row():

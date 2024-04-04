@@ -19,6 +19,35 @@ logging_dir = "./logs"      # Logging directory
 [configuration]
 config_dir = "./presets" # Load/Save Config file
 
+[basic]
+cache_latents = true           # Cache latents
+cache_latents_to_disk = false  # Cache latents to disk
+caption_extension = ".txt"     # Caption extension
+enable_bucket = true           # Enable bucket
+epoch = 1                      # Epoch
+learning_rate = 0.0001         # Learning rate
+learning_rate_te = 0.0001      # Learning rate text encoder
+learning_rate_te1 = 0.0001     # Learning rate text encoder 1
+learning_rate_te2 = 0.0001     # Learning rate text encoder 2
+lr_scheduler = "cosine"        # LR Scheduler
+lr_scheduler_args = ""         # LR Scheduler args
+lr_warmup = 0                  # LR Warmup (% of total steps)
+lr_scheduler_num_cycles = ""   # LR Scheduler num cycles
+lr_scheduler_power = ""        # LR Scheduler power
+max_bucket_reso = 2048         # Max bucket resolution
+max_grad_norm = 1.0            # Max grad norm
+max_resolution = "512,512"     # Max resolution
+max_train_steps = ""           # Max train steps
+max_train_epochs = ""          # Max train epochs
+min_bucket_reso = 256          # Min bucket resolution
+optimizer = "AdamW8bit"        # Optimizer (AdamW, AdamW8bit, Adafactor, DAdaptation, DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptAdamPreprint, DAdaptLion, DAdaptSGD, Lion, Lion8bit, PagedAdam
+optimizer_args = ""            # Optimizer args
+save_every_n_epochs = 1        # Save every n epochs
+save_every_n_steps = 1         # Save every n steps
+seed = "1234"                  # Seed
+stop_text_encoder_training = 0 # Stop text encoder training (% of total steps)
+train_batch_size = 1           # Train batch size
+
 [advanced]
 adaptive_noise_scale = 0                  # Adaptive noise scale
 additional_parameters = ""                # Additional parameters

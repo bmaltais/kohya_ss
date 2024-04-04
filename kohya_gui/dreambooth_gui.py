@@ -753,6 +753,7 @@ def dreambooth_tab(
                         lr_warmup_value="10",
                         dreambooth=True,
                         sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
                     )
 
                     # # Add SDXL Parameters

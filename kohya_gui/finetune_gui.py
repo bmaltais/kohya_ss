@@ -804,6 +804,7 @@ def finetune_tab(headless=False, config: dict = {}):
                         learning_rate_value="1e-5",
                         finetuning=True,
                         sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
                     )
 
                     # Add SDXL Parameters

@@ -812,6 +812,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                         lr_scheduler_value="cosine",
                         lr_warmup_value="10",
                         sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
                     )
 
                     # Add SDXL Parameters
