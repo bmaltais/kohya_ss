@@ -103,8 +103,8 @@ class Folders:
             # Output directory dropdown
             self.output_dir = gr.Dropdown(
                 label="Output directory for trained model",
-                choices=[""] + self.list_output_dirs(self.current_output_dir),
-                value="",
+                choices=[self.config.get("folders.output_dir", "")] + self.list_output_dirs(self.current_output_dir),
+                value=self.config.get("folders.output_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
             )
@@ -138,8 +138,8 @@ class Folders:
                     if not self.finetune
                     else "Train config directory (Optional. where config files will be saved)"
                 ),
-                choices=[""] + self.list_reg_data_dirs(self.current_reg_data_dir),
-                value="",
+                choices=[self.config.get("folders.reg_data_dir", "")] + self.list_reg_data_dirs(self.current_reg_data_dir),
+                value=self.config.get("folders.reg_data_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
             )
@@ -169,8 +169,8 @@ class Folders:
             # Logging directory dropdown
             self.logging_dir = gr.Dropdown(
                 label="Logging directory (Optional. to enable logging and output Tensorboard log)",
-                choices=[""] + self.list_logging_dirs(self.current_logging_dir),
-                value="",
+                choices=[self.config.get("folders.logging_dir", "")] + self.list_logging_dirs(self.current_logging_dir),
+                value=self.config.get("folders.logging_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
             )

@@ -51,16 +51,6 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Software Updates](#software-updates)
       - [Recommendations for Users](#recommendations-for-users)
     - [2024/03/13 (v23.0.11)](#20240313-v23011)
-    - [2024/03/13 (v23.0.9)](#20240313-v2309)
-    - [2024/03/12 (v23.0.8)](#20240312-v2308)
-    - [2024/03/12 (v23.0.7)](#20240312-v2307)
-    - [2024/03/11 (v23.0.6)](#20240311-v2306)
-    - [2024/03/11 (v23.0.5)](#20240311-v2305)
-    - [2024/03/10 (v23.0.4)](#20240310-v2304)
-    - [2024/03/10 (v23.0.3)](#20240310-v2303)
-    - [2024/03/10 (v23.0.2)](#20240310-v2302)
-    - [2024/03/09 (v23.0.1)](#20240309-v2301)
-    - [2024/03/02 (v23.0.0)](#20240302-v2300)
 
 ## 🦒 Colab
 
@@ -345,6 +335,8 @@ To use the default configuration file, follow these steps:
 
 This approach allows you to easily adjust the configuration to suit your specific needs to open the desired default folders for each type of folder/file input supported in the GUI.
 
+You can specify the path to your config.toml (or any other name you like) when running the GUI. For instance: ./gui.bat --config c:\my_config.toml
+
 ## LoRA
 
 To train a LoRA, you can currently use the `train_network.py` code. You can create a LoRA network by using the all-in-one GUI.
@@ -387,10 +379,13 @@ If you encounter an X error related to the page file, you may need to increase t
 If you encounter an error indicating that the module `tkinter` is not found, try reinstalling Python 3.10 on your system.
 
 ### LORA Training on TESLA V100 - GPU Utilization Issue
+
 #### Issue Summary
+
 When training LORA on a TESLA V100, users reported low GPU utilization. Additionally, there was difficulty in specifying GPUs other than the default for training.
 
 #### Potential Solutions
+
 - **GPU Selection:** Users can specify GPU IDs in the setup configuration to select the desired GPUs for training.
 - **Improving GPU Load:** Utilizing `adamW8bit` optimizer and increasing the batch size can help achieve 70-80% GPU utilization without exceeding GPU memory limits.
 
@@ -421,8 +416,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
   - DeepSpeed is supported. PR [#1101](https://github.com/kohya-ss/sd-scripts/pull/1101)  and [#1139](https://github.com/kohya-ss/sd-scripts/pull/1139) Thanks to BootsofLagrangian! See PR [#1101](https://github.com/kohya-ss/sd-scripts/pull/1101) for details.
   - The masked loss is supported in each training script. PR [#1207](https://github.com/kohya-ss/sd-scripts/pull/1207) See [Masked loss](#masked-loss) for details.
   - Some features are added to the dataset subset settings.
-    - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping. 
-      - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped. 
+    - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping.
+      - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped.
     - `enable_wildcard` is added. When set to `true`, the wildcard notation `{aaa|bbb|ccc}` can be used. The multi-line caption is also enabled.
     - `keep_tokens_separator` is updated to be used twice in the caption. When you specify `keep_tokens_separator="|||"`, the part divided by the second `|||` is not shuffled or dropped and remains at the end.
     - The existing features `caption_prefix` and `caption_suffix` can be used together. `caption_prefix` and `caption_suffix` are processed first, and then `enable_wildcard`, `keep_tokens_separator`, shuffling and dropping, and `secondary_separator` are processed in order.
@@ -436,11 +431,11 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
   - The options `--sample_every_n_epochs` and `--sample_every_n_steps` in each training script now display a warning and ignore them when a number less than or equal to `0` is specified. Thanks to S-Del for raising the issue.
   - The [English version of the dataset settings documentation](./docs/config_README-en.md) is added. PR [#1175](https://github.com/kohya-ss/sd-scripts/pull/1175) Thanks to darkstorm2150!
 
-- Add GUI support for the new parameters listed above.
-- Move accelerate launch parameters to new `Accelerate launch` accordion above `Model` accordion.
-- Add support for `Debiased Estimation loss` to Dreambooth settings.
-- Add support for "Dataset Preparation" defaults via the config.toml file.
-- Add field to allow for the input of extra accelerate launch arguments.
+- Added GUI support for the new parameters listed above.
+- Moved accelerate launch parameters to a new `Accelerate launch` accordion above the `Model` accordion.
+- Added support for `Debiased Estimation loss` to Dreambooth settings.
+- Added support for "Dataset Preparation" defaults via the config.toml file.
+- Added a field to allow for the input of extra accelerate launch arguments.
 
 ### 2024/03/21 (v23.0.15)
 
@@ -491,50 +486,3 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 - Increase icon size.
 - More setup fixes.
-
-### 2024/03/13 (v23.0.9)
-
-- Reworked how setup can be run to improve Stability Matrix support.
-- Added support for huggingface-based vea path.
-
-### 2024/03/12 (v23.0.8)
-
-- Add the ability to create output and logs folder if it does not exist
-
-### 2024/03/12 (v23.0.7)
-
-- Fixed minor issues related to functions and file paths.
-
-### 2024/03/11 (v23.0.6)
-
-- Fixed an issue with PYTHON paths that have "spaces" in them.
-
-### 2024/03/11 (v23.0.5)
-
-- Updated python module verification.
-- Removed cudnn module installation in Windows.
-
-### 2024/03/10 (v23.0.4)
-
-- Updated bitsandbytes to 0.43.0.
-- Added packaging to runpod setup.
-
-### 2024/03/10 (v23.0.3)
-
-- Fixed a bug with setup.
-- Enforced proper python version before running the GUI to prevent issues with execution of the GUI.
-
-### 2024/03/10 (v23.0.2)
-
-- Improved validation of the path provided by users before running training.
-
-### 2024/03/09 (v23.0.1)
-
-- Updated bitsandbytes module to 0.43.0 as it provides native Windows support.
-- Minor fixes to the code.
-
-### 2024/03/02 (v23.0.0)
-
-- Used sd-scripts release [0.8.4](https://github.com/kohya-ss/sd-scripts/releases/tag/v0.8.4) post commit [fccbee27277d65a8dcbdeeb81787ed4116b92e0b](https://github.com/kohya-ss/sd-scripts/commit/fccbee27277d65a8dcbdeeb81787ed4116b92e0b).
-- Major code refactoring thanks to @wkpark. This will make updating sd-scripts cleaner by keeping sd-scripts files separate from the GUI files. This will also make configuration more streamlined with fewer tabs and more accordion elements. Hope you like the new style.
-- This new release is implementing a significant structure change, moving all of the sd-scripts written by kohya under a folder called sd-scripts in the root of this project. This folder is a submodule that will be populated during setup or GUI execution.

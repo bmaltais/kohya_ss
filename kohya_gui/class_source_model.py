@@ -57,13 +57,13 @@ class SourceModel:
 
         # Set default directories if not provided
         self.current_models_dir = self.config.get(
-            "models_dir", os.path.join(scriptdir, "models")
+            "model.models_dir", os.path.join(scriptdir, "models")
         )
         self.current_train_data_dir = self.config.get(
-            "train_data_dir", os.path.join(scriptdir, "data")
+            "model.train_data_dir", os.path.join(scriptdir, "data")
         )
         self.current_dataset_config_dir = self.config.get(
-            "dataset_config_dir", os.path.join(scriptdir, "dataset_config")
+            "model.dataset_config", os.path.join(scriptdir, "dataset_config")
         )
 
         model_checkpoints = list(
@@ -82,7 +82,7 @@ class SourceModel:
 
         def list_train_data_dirs(path):
             self.current_train_data_dir = path if not path == "" else "."
-            return list(list_dirs(path))
+            return list(list_dirs(self.current_train_data_dir))
 
         def list_dataset_config_dirs(path: str) -> list:
             """
@@ -109,7 +109,7 @@ class SourceModel:
                         self.pretrained_model_name_or_path = gr.Dropdown(
                             label="Pretrained model name or path",
                             choices=default_models + model_checkpoints,
-                            value="runwayml/stable-diffusion-v1-5",
+                            value=self.config.get("model.models_dir", "runwayml/stable-diffusion-v1-5"),
                             allow_custom_value=True,
                             visible=True,
                             min_width=100,
@@ -150,7 +150,7 @@ class SourceModel:
                         self.output_name = gr.Textbox(
                             label="Trained Model output name",
                             placeholder="(Name of the model to output)",
-                            value="last",
+                            value=self.config.get("model.output_name", "last"),
                             interactive=True,
                         )
                 with gr.Row():
@@ -163,7 +163,7 @@ class SourceModel:
                             ),
                             choices=[""]
                             + list_train_data_dirs(self.current_train_data_dir),
-                            value="",
+                            value=self.config.get("model.train_data_dir", ""),
                             interactive=True,
                             allow_custom_value=True,
                         )
@@ -191,9 +191,9 @@ class SourceModel:
                         # Toml directory dropdown
                         self.dataset_config = gr.Dropdown(
                             label="Dataset config file (Optional. Select the toml configuration file to use for the dataset)",
-                            choices=[""]
+                            choices=[self.config.get("model.dataset_config", "")]
                             + list_dataset_config_dirs(self.current_dataset_config_dir),
-                            value="",
+                            value=self.config.get("model.dataset_config", ""),
                             interactive=True,
                             allow_custom_value=True,
                         )
@@ -264,18 +264,19 @@ class SourceModel:
                         label="Training comment",
                         placeholder="(Optional) Add training comment to be included in metadata",
                         interactive=True,
+                        value=self.config.get("model.training_comment", ""),
                     )
 
                 with gr.Row():
                     self.save_model_as = gr.Radio(
                         save_model_as_choices,
                         label="Save trained model as",
-                        value="safetensors",
+                        value=self.config.get("model.save_model_as", "safetensors"),
                     )
                     self.save_precision = gr.Radio(
                         save_precision_choices,
                         label="Save precision",
-                        value="fp16",
+                        value=self.config.get("model.save_precision", "fp16"),
                     )
 
                 self.pretrained_model_name_or_path.change(
