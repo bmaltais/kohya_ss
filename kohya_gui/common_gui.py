@@ -1418,7 +1418,7 @@ def run_cmd_advanced_training(**kwargs):
 
     if "text_encoder_lr" in kwargs:
         text_encoder_lr = kwargs.get("text_encoder_lr")
-        if float(text_encoder_lr) > -1:
+        if float(text_encoder_lr) > 0:
             run_cmd += f" --text_encoder_lr={text_encoder_lr}"
 
     if "train_batch_size" in kwargs:

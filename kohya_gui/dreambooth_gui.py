@@ -713,6 +713,7 @@ def train_model(
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
+        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
 
