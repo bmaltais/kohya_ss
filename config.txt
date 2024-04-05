@@ -1,3 +1,4 @@
+#note put your dir here👇
 [dirs]
 image_directory = ./baka
 output_directory = ./baka
