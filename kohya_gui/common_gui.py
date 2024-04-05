@@ -1591,6 +1591,16 @@ def SaveConfigFile(
         if name not in exclusion
     }
 
+    # Check if the folder path for the file_path is valid
+    # Extrach folder path
+    folder_path = os.path.dirname(file_path)
+    
+    # Check if the folder exists
+    if not os.path.exists(folder_path):
+        # If not, create the folder
+        os.makedirs(os.path.dirname(folder_path))
+        log.info(f"Creating folder {folder_path} for the configuration file...")
+
     # Save the data to the specified JSON file
     with open(file_path, "w") as file:
         json.dump(variables, file, indent=2)
