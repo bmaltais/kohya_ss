@@ -1,4 +1,4 @@
-#note put your dir here👇
+#note put your dir here👇{./baka=random dir replace it with your dir}
 [dirs]
 image_directory = ./baka
 output_directory = ./baka
