@@ -6,9 +6,9 @@ config.read('./config.txt')
 
 # Directory containing the image files
 image_directory = config.get('dirs','image_directory')
+# Output directory where text files will be saved
 output_directory = config.get('dirs','output_directory')
 
-# Output directory where text files will be saved
 
 # Ensure the output directory exists, create it if necessary
 os.makedirs(output_directory, exist_ok=True)
