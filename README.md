@@ -436,6 +436,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Added support for `Debiased Estimation loss` to Dreambooth settings.
 - Added support for "Dataset Preparation" defaults via the config.toml file.
 - Added a field to allow for the input of extra accelerate launch arguments.
+- Added new caption tool from https://github.com/kainatquaderee
 
 ### 2024/03/21 (v23.0.15)
 
