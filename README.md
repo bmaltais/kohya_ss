@@ -42,6 +42,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [2024/04/07 (v23.1.1)](#20240407-v2311)
     - [2024/04/07 (v23.1.0)](#20240407-v2310)
     - [2024/03/21 (v23.0.15)](#20240321-v23015)
     - [2024/03/19 (v23.0.14)](#20240319-v23014)
@@ -403,6 +404,10 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
+### 2024/04/07 (v23.1.1)
+
+- Added support for Huber loss under the Parameters / Advanced tab.
+
 ### 2024/04/07 (v23.1.0)
 
 - Update sd-scripts to 0.8.7
@@ -444,7 +449,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
       - See [Dataset config](./docs/config_README-en.md) for details.
     - The dataset with DreamBooth method supports caching image information (size, caption). PR [#1178](https://github.com/kohya-ss/sd-scripts/pull/1178) and [#1206](https://github.com/kohya-ss/sd-scripts/pull/1206) Thanks to KohakuBlueleaf! See [DreamBooth method specific options](./docs/config_README-en.md#dreambooth-specific-options) for details.
 
-  - Image tagging
+  - Image tagging (not implemented yet in the GUI)
     - The support for v3 repositories is added to `tag_image_by_wd14_tagger.py` (`--onnx` option only). PR [#1192](https://github.com/kohya-ss/sd-scripts/pull/1192) Thanks to sdbds!
       - Onnx may need to be updated. Onnx is not installed by default, so please install or update it with `pip install onnx==1.15.0 onnxruntime-gpu==1.17.1` etc. Please also check the comments in `requirements.txt`.
     - The model is now saved in the subdirectory as `--repo_id` in `tag_image_by_wd14_tagger.py` . This caches multiple repo_id models. Please delete unnecessary files under `--model_dir`.
