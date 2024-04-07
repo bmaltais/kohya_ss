@@ -1098,6 +1098,12 @@ def run_cmd_advanced_training(**kwargs):
 
     if kwargs.get("gradient_checkpointing"):
         run_cmd += " --gradient_checkpointing"
+        
+    if kwargs.get("huber_c"):
+        run_cmd += fr' --huber_c="{kwargs.get("huber_c")}"'
+        
+    if kwargs.get("huber_schedule"):
+        run_cmd += fr' --huber_schedule="{kwargs.get("huber_schedule")}"'
 
     if kwargs.get("ip_noise_gamma"):
         if float(kwargs["ip_noise_gamma"]) > 0:
@@ -1152,6 +1158,9 @@ def run_cmd_advanced_training(**kwargs):
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
         run_cmd += f' --network_weights="{lora_network_weights}"'  # Yes, the parameter is now called network_weights instead of lora_network_weights
+        
+    if "loss_type" in kwargs:
+        run_cmd += fr' --loss_type="{kwargs.get("loss_type")}"'
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
