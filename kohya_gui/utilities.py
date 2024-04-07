@@ -18,13 +18,14 @@ def utilities_tab(
     enable_copy_info_button=bool(False),
     enable_dreambooth_tab=True,
     headless=False,
+    config: dict = {},
 ):
     with gr.Tab("Captioning"):
         gradio_basic_caption_gui_tab(headless=headless)
         gradio_blip_caption_gui_tab(headless=headless)
         gradio_blip2_caption_gui_tab(headless=headless)
         gradio_git_caption_gui_tab(headless=headless)
-        gradio_wd14_caption_gui_tab(headless=headless)
+        gradio_wd14_caption_gui_tab(headless=headless, config=config)
         gradio_manual_caption_gui_tab(headless=headless)
     gradio_convert_model_tab(headless=headless)
     gradio_group_images_gui_tab(headless=headless)

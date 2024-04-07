@@ -64,6 +64,7 @@ def UI(**kwargs):
                 logging_dir_input=logging_dir_input,
                 enable_copy_info_button=True,
                 headless=headless,
+                config=config,
             )
             with gr.Tab("LoRA"):
                 _ = LoRATools(headless=headless)
