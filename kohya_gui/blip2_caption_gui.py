@@ -70,6 +70,7 @@ def generate_caption(
     max_new_tokens=40,
     min_new_tokens=20,
     do_sample=True,
+    temperature=1.0,
     top_p=0.0,
 ):
     """
@@ -108,6 +109,7 @@ def generate_caption(
                 top_p=top_p,
                 max_new_tokens=max_new_tokens,
                 min_new_tokens=min_new_tokens,
+                temperature=temperature,
             )
 
         generated_text = processor.batch_decode(
@@ -154,7 +156,7 @@ def caption_images_beam_search(
         model=model,
         device=device,
         num_beams=int(num_beams),
-        repetition_penalty=repetition_penalty,
+        repetition_penalty=float(repetition_penalty),
         length_penalty=length_penalty,
         min_new_tokens=int(min_new_tokens),
         max_new_tokens=int(max_new_tokens),
@@ -165,6 +167,7 @@ def caption_images_beam_search(
 def caption_images_nucleus(
     directory_path,
     do_sample,
+    temperature,
     top_p,
     min_new_tokens,
     max_new_tokens,
@@ -190,6 +193,7 @@ def caption_images_nucleus(
         model=model,
         device=device,
         do_sample=do_sample,
+        temperature=temperature,
         top_p=top_p,
         min_new_tokens=int(min_new_tokens),
         max_new_tokens=int(max_new_tokens),
@@ -278,16 +282,6 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
                         label="Number of beams",
                     )
 
-                    temperature = gr.Slider(
-                        minimum=0.5,
-                        maximum=1.0,
-                        value=1.0,
-                        step=0.1,
-                        interactive=True,
-                        label="Temperature",
-                        info="used with nucleus sampling",
-                    )
-
                     len_penalty = gr.Slider(
                         minimum=-1.0,
                         maximum=2.0,
@@ -326,6 +320,16 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
             with gr.Tab("Nucleus sampling"):
                 with gr.Row():
                     do_sample = gr.Checkbox(label="Sample", value=True)
+                    
+                    temperature = gr.Slider(
+                        minimum=0.5,
+                        maximum=1.0,
+                        value=1.0,
+                        step=0.1,
+                        interactive=True,
+                        label="Temperature",
+                        info="used with nucleus sampling",
+                    )
 
                     top_p = gr.Slider(
                         minimum=-0,
@@ -344,6 +348,7 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
                     inputs=[
                         directory_path_dir,
                         do_sample,
+                        temperature,
                         top_p,
                         min_new_tokens,
                         max_new_tokens,
