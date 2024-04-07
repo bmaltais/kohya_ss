@@ -5,7 +5,6 @@ import os
 import sys
 from .common_gui import (
     get_saveasfilename_path,
-    get_any_file_path,
     get_file_path,
     scriptdir,
     list_files,
@@ -74,7 +73,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = fr'"{PYTHON}" "{scriptdir}/tools/lycoris_locon_extract.py"'
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lycoris_locon_extract.py"'
     if is_sdxl:
         run_cmd += f" --is_sdxl"
     if is_v2:
@@ -99,19 +98,21 @@ def extract_lycoris_locon(
     run_cmd += f" --sparsity {sparsity}"
     if disable_cp:
         run_cmd += f" --disable_cp"
-    run_cmd += fr' "{base_model}"'
-    run_cmd += fr' "{db_model}"'
-    run_cmd += fr' "{output_name}"'
+    run_cmd += rf' "{base_model}"'
+    run_cmd += rf' "{db_model}"'
+    run_cmd += rf' "{output_name}"'
 
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = (
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
 
-    log.info('Done extracting...')
+    log.info("Done extracting...")
 
 
 ###
@@ -185,11 +186,16 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(db_model, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                db_model,
+                lambda: None,
+                lambda: {"choices": list_models(current_model_dir)},
+                "open_folder_small",
+            )
             button_db_model_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
-                elem_classes=['tool'],
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_db_model_file.click(
@@ -205,11 +211,16 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(base_model, lambda: None, lambda: {"choices": list_base_models(current_base_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                base_model,
+                lambda: None,
+                lambda: {"choices": list_base_models(current_base_model_dir)},
+                "open_folder_small",
+            )
             button_base_model_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
-                elem_classes=['tool'],
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_base_model_file.click(
@@ -227,11 +238,16 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 allow_custom_value=True,
                 scale=2,
             )
-            create_refresh_button(output_name, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
+            create_refresh_button(
+                output_name,
+                lambda: None,
+                lambda: {"choices": list_save_to(current_save_dir)},
+                "open_folder_small",
+            )
             button_output_name = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
-                elem_classes=['tool'],
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_output_name.click(
@@ -270,7 +286,9 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 show_progress=False,
             )
 
-            is_sdxl = gr.Checkbox(label="is SDXL", value=False, interactive=True, scale=1)
+            is_sdxl = gr.Checkbox(
+                label="is SDXL", value=False, interactive=True, scale=1
+            )
 
             is_v2 = gr.Checkbox(label="is v2", value=False, interactive=True, scale=1)
         with gr.Row():

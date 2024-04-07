@@ -28,6 +28,7 @@ Options:
   -u, --no-gui                  Skips launching the GUI.
   -v, --verbose                 Increase verbosity levels up to 3.
       --use-ipex                Use IPEX with Intel ARC GPUs.
+      --use-rocm                Use ROCm with AMD GPUs.
 EOF
 }
 
@@ -89,6 +90,7 @@ DIR=""
 PARENT_DIR=""
 VENV_DIR=""
 USE_IPEX=false
+USE_ROCM=false
 
 # Function to get the distro name
 get_distro_name() {
@@ -207,6 +209,8 @@ install_python_dependencies() {
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
       elif [ "$USE_IPEX" = true ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt
+      elif [ "$USE_ROCM" = true ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt
       else
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
       fi
@@ -323,6 +327,7 @@ while getopts ":vb:d:g:inprus-:" opt; do
   u | no-gui) SKIP_GUI=true ;;
   v) ((VERBOSITY = VERBOSITY + 1)) ;;
   use-ipex) USE_IPEX=true ;;
+  use-rocm) USE_ROCM=true ;;
   h) display_help && exit 0 ;;
   *) display_help && exit 0 ;;
   esac

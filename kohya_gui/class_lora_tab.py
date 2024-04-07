@@ -14,9 +14,7 @@ class LoRATools:
     def __init__(self, headless: bool = False):
         self.headless = headless
 
-        gr.Markdown(
-            'This section provide various LoRA tools...'
-        )
+        gr.Markdown("This section provide various LoRA tools...")
         gradio_extract_dylora_tab(headless=headless)
         gradio_convert_lcm_tab(headless=headless)
         gradio_extract_lora_tab(headless=headless)

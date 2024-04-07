@@ -12,7 +12,7 @@ log = logging.getLogger('sd')
 
 def check_python_version():
     """
-    Check if the current Python version is >= 3.10.9 and < 3.11.0
+    Check if the current Python version is within the acceptable range.
     
     Returns:
     bool: True if the current Python version is valid, False otherwise.
@@ -27,7 +27,7 @@ def check_python_version():
         log.info(f"Python version is {sys.version}")
         
         if not (min_version <= current_version < max_version):
-            log.error("The current version of python is not appropriate to run Kohya_ss GUI")
+            log.error(f"The current version of python ({current_version}) is not appropriate to run Kohya_ss GUI")
             log.error("The python version needs to be greater or equal to 3.10.9 and less than 3.11.0")
             return False
         return True
@@ -35,34 +35,48 @@ def check_python_version():
         log.error(f"Failed to verify Python version. Error: {e}")
         return False
 
-def update_submodule():
+def update_submodule(quiet=True):
     """
     Ensure the submodule is initialized and updated.
+    
+    This function uses the Git command line interface to initialize and update 
+    the specified submodule recursively. Errors during the Git operation
+    or if Git is not found are caught and logged.
+    
+    Parameters:
+    - quiet: If True, suppresses the output of the Git command.
     """
+    git_command = ["git", "submodule", "update", "--init", "--recursive"]
+    
+    if quiet:
+        git_command.append("--quiet")
+        
     try:
         # Initialize and update the submodule
-        subprocess.run(["git", "submodule", "update", "--init", "--recursive", "--quiet"], check=True)
+        subprocess.run(git_command, check=True)
         log.info("Submodule initialized and updated.")
         
     except subprocess.CalledProcessError as e:
+        # Log the error if the Git operation fails
         log.error(f"Error during Git operation: {e}")
     except FileNotFoundError as e:
+        # Log the error if the file is not found
         log.error(e)
 
-def read_tag_version_from_file(file_path):
-    """
-    Read the tag version from a given file.
+# def read_tag_version_from_file(file_path):
+#     """
+#     Read the tag version from a given file.
 
-    Parameters:
-    - file_path: The path to the file containing the tag version.
+#     Parameters:
+#     - file_path: The path to the file containing the tag version.
 
-    Returns:
-    The tag version as a string.
-    """
-    with open(file_path, 'r') as file:
-        # Read the first line and strip whitespace
-        tag_version = file.readline().strip()
-    return tag_version
+#     Returns:
+#     The tag version as a string.
+#     """
+#     with open(file_path, 'r') as file:
+#         # Read the first line and strip whitespace
+#         tag_version = file.readline().strip()
+#     return tag_version
 
 def clone_or_checkout(repo_url, branch_or_tag, directory_name):
     """
@@ -202,6 +216,24 @@ def setup_logging(clean=False):
     while log.hasHandlers() and len(log.handlers) > 0:
         log.removeHandler(log.handlers[0])
     log.addHandler(rh)
+
+
+def install_requirements_inbulk(requirements_file, show_stdout=True, optional_parm="", upgrade = False):
+    if not os.path.exists(requirements_file):
+        log.error(f'Could not find the requirements file in {requirements_file}.')
+        return
+
+    log.info(f'Installing requirements from {requirements_file}...')
+
+    if upgrade:
+        optional_parm += " -U"
+
+    if show_stdout:
+        run_cmd(f'pip install -r {requirements_file} {optional_parm}')
+    else:
+        run_cmd(f'pip install -r {requirements_file} {optional_parm} --quiet')
+    log.info(f'Requirements from {requirements_file} installed.')
+    
 
 
 def configure_accelerate(run_accelerate=False):
@@ -369,20 +401,43 @@ def check_torch():
 
 
 # report current version of code
-def check_repo_version(): # pylint: disable=unused-argument
+def check_repo_version():
+    """
+    This function checks the version of the repository by reading the contents of a file named '.release'
+    in the current directory. If the file exists, it reads the release version from the file and logs it.
+    If the file does not exist, it logs a debug message indicating that the release could not be read.
+    """
     if os.path.exists('.release'):
-        with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
-            release= file.read()
-        
-        log.info(f'Kohya_ss GUI version: {release}')
+        try:
+            with open(os.path.join('./.release'), 'r', encoding='utf8') as file:
+                release= file.read()
+            
+            log.info(f'Kohya_ss GUI version: {release}')
+        except Exception as e:
+            log.error(f'Could not read release: {e}')
     else:
         log.debug('Could not read release...')
     
 # execute git command
 def git(arg: str, folder: str = None, ignore: bool = False):
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
+    """
+    Executes a Git command with the specified arguments.
+
+    This function is designed to run Git commands and handle their output.
+    It can be used to execute Git commands in a specific folder or the current directory.
+    If an error occurs during the Git operation and the 'ignore' flag is not set,
+    it logs the error message and the Git output for debugging purposes.
+
+    Parameters:
+    - arg: A string containing the Git command arguments.
+    - folder: An optional string specifying the folder where the Git command should be executed.
+               If not provided, the current directory is used.
+    - ignore: A boolean flag indicating whether to ignore errors during the Git operation.
+               If set to True, errors will not be logged.
+
+    Note:
+    This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
+    """
     
     git_cmd = os.environ.get('GIT', "git")
     result = subprocess.run(f'"{git_cmd}" {arg}', check=False, shell=True, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=folder or '.')
@@ -391,7 +446,7 @@ def git(arg: str, folder: str = None, ignore: bool = False):
         txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
     txt = txt.strip()
     if result.returncode != 0 and not ignore:
-        global errors # pylint: disable=global-statement
+        global errors
         errors += 1
         log.error(f'Error running git: {folder} / {arg}')
         if 'or stash them' in txt:
@@ -400,6 +455,27 @@ def git(arg: str, folder: str = None, ignore: bool = False):
 
 
 def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool = False):
+    """
+    Executes a pip command with the specified arguments.
+
+    This function is designed to run pip commands and handle their output.
+    It can be used to install, upgrade, or uninstall packages using pip.
+    If an error occurs during the pip operation and the 'ignore' flag is not set,
+    it logs the error message and the pip output for debugging purposes.
+
+    Parameters:
+    - arg: A string containing the pip command arguments.
+    - ignore: A boolean flag indicating whether to ignore errors during the pip operation.
+               If set to True, errors will not be logged.
+    - quiet: A boolean flag indicating whether to suppress the output of the pip command.
+              If set to True, the function will not log any output.
+    - show_stdout: A boolean flag indicating whether to display the pip command's output
+                    to the console. If set to True, the function will print the output
+                    to the console.
+
+    Returns:
+    - The output of the pip command as a string, or None if the 'show_stdout' flag is set.
+    """
     # arg = arg.replace('>=', '==')
     if not quiet:
         log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
@@ -513,15 +589,36 @@ def installed(package, friendly: str = None):
 
 # install package using pip if not already installed
 def install(
-    #
-    # This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
-    #
     package,
     friendly: str = None,
     ignore: bool = False,
     reinstall: bool = False,
     show_stdout: bool = False,
 ):
+    """
+    Installs or upgrades a Python package using pip, with options to ignode errors,
+    reinstall packages, and display outputs.
+    
+    Parameters:
+    - package (str): The name of the package to be installed or upgraded. Can include
+      version specifiers. Anything after a '#' in the package name will be ignored.
+    - friendly (str, optional): A more user-friendly name for the package, used for
+      logging or user interface purposes. Defaults to None.
+    - ignore (bool, optional): If True, any errors encountered during the installation
+      will be ignored. Defaults to False.
+    - reinstall (bool, optional): If True, forces the reinstallation of the package
+      even if it's already installed. This also disables any quick install checks. Defaults to False.
+    - show_stdout (bool, optional): If True, displays the standard output from the pip
+      command to the console. Useful for debugging. Defaults to False.
+
+    Returns:
+    None. The function performs operations that affect the environment but does not return
+    any value.
+    
+    Note:
+    If `reinstall` is True, it disables any mechanism that allows for skipping installations
+    when the package is already present, forcing a fresh install.
+    """
     # Remove anything after '#' in the package variable
     package = package.split('#')[0].strip()
 

@@ -5,6 +5,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
+
 class CommandExecutor:
     """
     A class to execute and manage commands.
@@ -43,7 +44,9 @@ class CommandExecutor:
                 log.info("The running process has been terminated.")
             except psutil.NoSuchProcess:
                 # Explicitly handle the case where the process does not exist
-                log.info("The process does not exist. It might have terminated before the kill command was issued.")
+                log.info(
+                    "The process does not exist. It might have terminated before the kill command was issued."
+                )
             except Exception as e:
                 # General exception handling for any other errors
                 log.info(f"Error when terminating process: {e}")

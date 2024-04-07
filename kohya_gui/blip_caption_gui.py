@@ -74,7 +74,9 @@ def caption_images(
 
     # Set up the environment
     env = os.environ.copy()
-    env["PYTHONPATH"] = f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = (
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
 
     # Run the command in the sd-scripts folder context
     subprocess.run(run_cmd, shell=True, env=env, cwd=f"{scriptdir}/sd-scripts")

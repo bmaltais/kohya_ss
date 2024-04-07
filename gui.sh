@@ -74,6 +74,8 @@ else
     if [ "$RUNPOD" = false ]; then
         if [[ "$@" == *"--use-ipex"* ]]; then
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_ipex.txt"
+        elif [[ "$@" == *"--use-rocm"* ]]; then
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_rocm.txt"
         else
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
         fi
@@ -90,9 +92,12 @@ then
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
-    if [[ -z "$STARTUP_CMD" ]] && [[ -z "$DISABLE_IPEXRUN" ]] && [ -x "$(command -v ipexrun)" ]
+    if [[ ! -z "${IPEXRUN}" ]] && [ ${IPEXRUN}="True" ] && [ -x "$(command -v ipexrun)" ]
     then
-        STARTUP_CMD=ipexrun
+        if [[ -z "$STARTUP_CMD" ]]
+        then
+            STARTUP_CMD=ipexrun
+        fi
         if [[ -z "$STARTUP_CMD_ARGS" ]]
         then
             STARTUP_CMD_ARGS="--multi-task-manager taskset --memory-allocator tcmalloc"

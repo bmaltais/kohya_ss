@@ -22,17 +22,12 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 
-def convert_lcm(
-    name,
-    model_path,
-    lora_scale,
-    model_type
-):
-    run_cmd = fr'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
+def convert_lcm(name, model_path, lora_scale, model_type):
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
 
     # Check if source model exist
     if not os.path.isfile(model_path):
-        log.error('The provided DyLoRA model is not a file')
+        log.error("The provided DyLoRA model is not a file")
         return
 
     if os.path.dirname(name) == "":
@@ -46,12 +41,11 @@ def convert_lcm(
         path, ext = os.path.splitext(save_to)
         save_to = f"{path}_lcm{ext}"
 
-
     # Construct the command to run the script
     run_cmd += f" --lora-scale {lora_scale}"
     run_cmd += f' --model "{model_path}"'
     run_cmd += f' --name "{name}"'
-    
+
     if model_type == "SDXL":
         run_cmd += f" --sdxl"
     if model_type == "SSD-1B":
@@ -60,7 +54,9 @@ def convert_lcm(
     log.info(run_cmd)
 
     env = os.environ.copy()
-    env['PYTHONPATH'] = fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = (
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
@@ -98,11 +94,16 @@ def gradio_convert_lcm_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(model_path, lambda: None, lambda: {"choices": list_models(current_model_dir)}, "open_folder_small")
+            create_refresh_button(
+                model_path,
+                lambda: None,
+                lambda: {"choices": list_models(current_model_dir)},
+                "open_folder_small",
+            )
             button_model_path_file = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
-                elem_classes=['tool'],
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_model_path_file.click(
@@ -119,11 +120,16 @@ def gradio_convert_lcm_tab(headless=False):
                 value="",
                 allow_custom_value=True,
             )
-            create_refresh_button(name, lambda: None, lambda: {"choices": list_save_to(current_save_dir)}, "open_folder_small")
+            create_refresh_button(
+                name,
+                lambda: None,
+                lambda: {"choices": list_save_to(current_save_dir)},
+                "open_folder_small",
+            )
             button_name = gr.Button(
                 folder_symbol,
                 elem_id="open_folder_small",
-                elem_classes=['tool'],
+                elem_classes=["tool"],
                 visible=(not headless),
             )
             button_name.click(
@@ -154,7 +160,7 @@ def gradio_convert_lcm_tab(headless=False):
                 value=1.0,
                 interactive=True,
             )
-        # with gr.Row():
+            # with gr.Row():
             # no_half = gr.Checkbox(label="Convert the new LCM model to FP32", value=False)
             model_type = gr.Radio(
                 label="Model type", choices=["SD15", "SDXL", "SD-1B"], value="SD15"
@@ -164,11 +170,6 @@ def gradio_convert_lcm_tab(headless=False):
 
         extract_button.click(
             convert_lcm,
-            inputs=[
-                name,
-                model_path,
-                lora_scale,
-                model_type
-            ],
+            inputs=[name, model_path, lora_scale, model_type],
             show_progress=False,
         )

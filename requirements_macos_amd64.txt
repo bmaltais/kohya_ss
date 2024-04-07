@@ -1,4 +1,5 @@
 torch==2.0.0 torchvision==0.15.1 -f https://download.pytorch.org/whl/cpu/torch_stable.html
 xformers bitsandbytes==0.41.1
 tensorflow-macos tensorboard==2.14.1
+onnxruntime==1.17.1
 -r requirements.txt

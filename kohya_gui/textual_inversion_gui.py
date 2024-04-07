@@ -2,13 +2,11 @@ import gradio as gr
 import json
 import math
 import os
-import pathlib
 from datetime import datetime
 from .common_gui import (
     get_file_path,
     get_saveasfile_path,
     color_aug_changed,
-    save_inference_file,
     run_cmd_advanced_training,
     update_my_data,
     check_if_model_exist,
@@ -20,6 +18,7 @@ from .common_gui import (
     create_refresh_button,
     validate_paths,
 )
+from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
@@ -85,6 +84,7 @@ def save_configuration(
     save_model_as,
     shuffle_caption,
     save_state,
+    save_state_on_train_end,
     resume,
     prior_loss_weight,
     color_aug,
@@ -94,6 +94,7 @@ def save_configuration(
     num_machines,
     multi_gpu,
     gpu_ids,
+    main_process_port,
     vae,
     output_name,
     max_token_length,
@@ -123,9 +124,12 @@ def save_configuration(
     lr_scheduler_args,
     noise_offset_type,
     noise_offset,
+    noise_offset_random_strength,
     adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
+    ip_noise_gamma,
+    ip_noise_gamma_random_strength,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -145,6 +149,7 @@ def save_configuration(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -220,6 +225,7 @@ def open_configuration(
     save_model_as,
     shuffle_caption,
     save_state,
+    save_state_on_train_end,
     resume,
     prior_loss_weight,
     color_aug,
@@ -229,6 +235,7 @@ def open_configuration(
     num_machines,
     multi_gpu,
     gpu_ids,
+    main_process_port,
     vae,
     output_name,
     max_token_length,
@@ -258,9 +265,12 @@ def open_configuration(
     lr_scheduler_args,
     noise_offset_type,
     noise_offset,
+    noise_offset_random_strength,
     adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
+    ip_noise_gamma,
+    ip_noise_gamma_random_strength,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -280,6 +290,7 @@ def open_configuration(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -348,6 +359,7 @@ def train_model(
     save_model_as,
     shuffle_caption,
     save_state,
+    save_state_on_train_end,
     resume,
     prior_loss_weight,
     color_aug,
@@ -357,6 +369,7 @@ def train_model(
     num_machines,
     multi_gpu,
     gpu_ids,
+    main_process_port,
     vae,
     output_name,
     max_token_length,
@@ -386,9 +399,12 @@ def train_model(
     lr_scheduler_args,
     noise_offset_type,
     noise_offset,
+    noise_offset_random_strength,
     adaptive_noise_scale,
     multires_noise_iterations,
     multires_noise_discount,
+    ip_noise_gamma,
+    ip_noise_gamma_random_strength,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -408,6 +424,7 @@ def train_model(
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
+    extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -445,7 +462,9 @@ def train_model(
         return
 
     if dataset_config:
-        log.info("Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations...")
+        log.info(
+            "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
+        )
     else:
         # Get a list of all subfolders in train_data_dir
         subfolders = [
@@ -508,7 +527,9 @@ def train_model(
         log.info(f"max_train_steps = {max_train_steps}")
 
     # calculate stop encoder training
-    if stop_text_encoder_training_pct == None or (not max_train_steps == "" or not max_train_steps == "0"):
+    if stop_text_encoder_training_pct == None or (
+        not max_train_steps == "" or not max_train_steps == "0"
+    ):
         stop_text_encoder_training = 0
     else:
         stop_text_encoder_training = math.ceil(
@@ -524,12 +545,15 @@ def train_model(
 
     run_cmd = "accelerate launch"
 
-    run_cmd += run_cmd_advanced_training(
+    run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
         gpu_ids=gpu_ids,
+        main_process_port=main_process_port,
         num_cpu_threads_per_process=num_cpu_threads_per_process,
+        mixed_precision=mixed_precision,
+        extra_accelerate_launch_args=extra_accelerate_launch_args,
     )
 
     if sdxl:
@@ -554,6 +578,8 @@ def train_model(
         full_fp16=full_fp16,
         gradient_accumulation_steps=gradient_accumulation_steps,
         gradient_checkpointing=gradient_checkpointing,
+        ip_noise_gamma=ip_noise_gamma,
+        ip_noise_gamma_random_strength=ip_noise_gamma_random_strength,
         keep_tokens=keep_tokens,
         learning_rate=learning_rate,
         logging_dir=logging_dir,
@@ -581,6 +607,7 @@ def train_model(
         no_half_vae=True if sdxl and sdxl_no_half_vae else None,
         no_token_padding=no_token_padding,
         noise_offset=noise_offset,
+        noise_offset_random_strength=noise_offset_random_strength,
         noise_offset_type=noise_offset_type,
         optimizer=optimizer,
         optimizer_args=optimizer_args,
@@ -599,6 +626,7 @@ def train_model(
         save_model_as=save_model_as,
         save_precision=save_precision,
         save_state=save_state,
+        save_state_on_train_end=save_state_on_train_end,
         scale_v_pred_loss_like_noise_pred=scale_v_pred_loss_like_noise_pred,
         seed=seed,
         shuffle_caption=shuffle_caption,
@@ -662,17 +690,11 @@ def train_model(
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
+        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, env=env)
-
-        # # check if output_dir/last is a folder... therefore it is a diffuser model
-        # last_dir = pathlib.Path(fr"{output_dir}/{output_name}")
-
-        # if not last_dir.is_dir():
-        #     # Copy inference model for v2 if required
-        #     save_inference_file(output_dir, v2, v_parameterization, output_name)
 
 
 def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
@@ -689,6 +711,9 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
 
+        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+            accelerate_launch = AccelerateLaunch(config=config)
+
         with gr.Column():
             source_model = SourceModel(
                 save_model_as_choices=[
@@ -701,95 +726,101 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
-        with gr.Accordion("Parameters", open=False), gr.Column():
-            with gr.Group(elem_id="basic_tab"):
-                with gr.Row():
 
-                    def list_embedding_files(path):
-                        nonlocal current_embedding_dir
-                        current_embedding_dir = path
-                        return list(
-                            list_files(
-                                path, exts=[".pt", ".ckpt", ".safetensors"], all=True
+        with gr.Accordion("Parameters", open=False), gr.Column():
+            with gr.Accordion("Basic", open="True"):
+                with gr.Group(elem_id="basic_tab"):
+                    with gr.Row():
+
+                        def list_embedding_files(path):
+                            nonlocal current_embedding_dir
+                            current_embedding_dir = path
+                            return list(
+                                list_files(
+                                    path,
+                                    exts=[".pt", ".ckpt", ".safetensors"],
+                                    all=True,
+                                )
                             )
+
+                        weights = gr.Dropdown(
+                            label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
+                            choices=[""] + list_embedding_files(current_embedding_dir),
+                            value="",
+                            interactive=True,
+                            allow_custom_value=True,
+                        )
+                        create_refresh_button(
+                            weights,
+                            lambda: None,
+                            lambda: {
+                                "choices": list_embedding_files(current_embedding_dir)
+                            },
+                            "open_folder_small",
+                        )
+                        weights_file_input = gr.Button(
+                            "📂",
+                            elem_id="open_folder_small",
+                            elem_classes=["tool"],
+                            visible=(not headless),
+                        )
+                        weights_file_input.click(
+                            get_file_path,
+                            outputs=weights,
+                            show_progress=False,
+                        )
+                        weights.change(
+                            fn=lambda path: gr.Dropdown(
+                                choices=[""] + list_embedding_files(path)
+                            ),
+                            inputs=weights,
+                            outputs=weights,
+                            show_progress=False,
                         )
 
-                    weights = gr.Dropdown(
-                        label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
-                        choices=[""] + list_embedding_files(current_embedding_dir),
-                        value="",
-                        interactive=True,
-                        allow_custom_value=True,
-                    )
-                    create_refresh_button(
-                        weights,
-                        lambda: None,
-                        lambda: {
-                            "choices": list_embedding_files(current_embedding_dir)
-                        },
-                        "open_folder_small",
-                    )
-                    weights_file_input = gr.Button(
-                        "📂",
-                        elem_id="open_folder_small",
-                        elem_classes=["tool"],
-                        visible=(not headless),
-                    )
-                    weights_file_input.click(
-                        get_file_path,
-                        outputs=weights,
-                        show_progress=False,
-                    )
-                    weights.change(
-                        fn=lambda path: gr.Dropdown(
-                            choices=[""] + list_embedding_files(path)
-                        ),
-                        inputs=weights,
-                        outputs=weights,
-                        show_progress=False,
+                    with gr.Row():
+                        token_string = gr.Textbox(
+                            label="Token string",
+                            placeholder="eg: cat",
+                        )
+                        init_word = gr.Textbox(
+                            label="Init word",
+                            value="*",
+                        )
+                        num_vectors_per_token = gr.Slider(
+                            minimum=1,
+                            maximum=75,
+                            value=1,
+                            step=1,
+                            label="Vectors",
+                        )
+                        # max_train_steps = gr.Textbox(
+                        #     label='Max train steps',
+                        #     placeholder='(Optional) Maximum number of steps',
+                        # )
+                        template = gr.Dropdown(
+                            label="Template",
+                            choices=[
+                                "caption",
+                                "object template",
+                                "style template",
+                            ],
+                            value="caption",
+                        )
+                    basic_training = BasicTraining(
+                        learning_rate_value="1e-5",
+                        lr_scheduler_value="cosine",
+                        lr_warmup_value="10",
+                        sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
                     )
 
-                with gr.Row():
-                    token_string = gr.Textbox(
-                        label="Token string",
-                        placeholder="eg: cat",
+                    # Add SDXL Parameters
+                    sdxl_params = SDXLParameters(
+                        source_model.sdxl_checkbox,
+                        show_sdxl_cache_text_encoder_outputs=False,
+                        config=config,
                     )
-                    init_word = gr.Textbox(
-                        label="Init word",
-                        value="*",
-                    )
-                    num_vectors_per_token = gr.Slider(
-                        minimum=1,
-                        maximum=75,
-                        value=1,
-                        step=1,
-                        label="Vectors",
-                    )
-                    # max_train_steps = gr.Textbox(
-                    #     label='Max train steps',
-                    #     placeholder='(Optional) Maximum number of steps',
-                    # )
-                    template = gr.Dropdown(
-                        label="Template",
-                        choices=[
-                            "caption",
-                            "object template",
-                            "style template",
-                        ],
-                        value="caption",
-                    )
-                basic_training = BasicTraining(
-                    learning_rate_value="1e-5",
-                    lr_scheduler_value="cosine",
-                    lr_warmup_value="10",
-                    sdxl_checkbox=source_model.sdxl_checkbox,
-                )
-
-                # Add SDXL Parameters
-                sdxl_params = SDXLParameters(
-                    source_model.sdxl_checkbox,
-                    show_sdxl_cache_text_encoder_outputs=False,
-                )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
@@ -800,7 +831,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                 )
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages()
+                sample = SampleImages(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
@@ -812,6 +843,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                 output_dir_input=folders.output_dir,
                 logging_dir_input=folders.logging_dir,
                 headless=headless,
+                config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
 
@@ -862,10 +894,10 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
-            basic_training.mixed_precision,
+            accelerate_launch.mixed_precision,
             source_model.save_precision,
             basic_training.seed,
-            basic_training.num_cpu_threads_per_process,
+            accelerate_launch.num_cpu_threads_per_process,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
             basic_training.caption_extension,
@@ -880,15 +912,17 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             source_model.save_model_as,
             advanced_training.shuffle_caption,
             advanced_training.save_state,
+            advanced_training.save_state_on_train_end,
             advanced_training.resume,
             advanced_training.prior_loss_weight,
             advanced_training.color_aug,
             advanced_training.flip_aug,
             advanced_training.clip_skip,
-            advanced_training.num_processes,
-            advanced_training.num_machines,
-            advanced_training.multi_gpu,
-            advanced_training.gpu_ids,
+            accelerate_launch.num_processes,
+            accelerate_launch.num_machines,
+            accelerate_launch.multi_gpu,
+            accelerate_launch.gpu_ids,
+            accelerate_launch.main_process_port,
             advanced_training.vae,
             source_model.output_name,
             advanced_training.max_token_length,
@@ -918,9 +952,12 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             basic_training.lr_scheduler_args,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
+            advanced_training.noise_offset_random_strength,
             advanced_training.adaptive_noise_scale,
             advanced_training.multires_noise_iterations,
             advanced_training.multires_noise_discount,
+            advanced_training.ip_noise_gamma,
+            advanced_training.ip_noise_gamma_random_strength,
             sample.sample_every_n_steps,
             sample.sample_every_n_epochs,
             sample.sample_sampler,
@@ -940,6 +977,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             sdxl_params.sdxl_no_half_vae,
+            accelerate_launch.extra_accelerate_launch_args,
         ]
 
         configuration.button_open_config.click(

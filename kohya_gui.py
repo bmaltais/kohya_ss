@@ -2,11 +2,11 @@ import gradio as gr
 import os
 import argparse
 from kohya_gui.class_gui_config import KohyaSSGUIConfig
-from dreambooth_gui import dreambooth_tab
-from finetune_gui import finetune_tab
-from textual_inversion_gui import ti_tab
+from kohya_gui.dreambooth_gui import dreambooth_tab
+from kohya_gui.finetune_gui import finetune_tab
+from kohya_gui.textual_inversion_gui import ti_tab
 from kohya_gui.utilities import utilities_tab
-from lora_gui import lora_tab
+from kohya_gui.lora_gui import lora_tab
 from kohya_gui.class_lora_tab import LoRATools
 
 from kohya_gui.custom_logging import setup_logging
@@ -23,8 +23,8 @@ def UI(**kwargs):
     headless = kwargs.get("headless", False)
     log.info(f"headless: {headless}")
 
-    if os.path.exists("./style.css"):
-        with open(os.path.join("./style.css"), "r", encoding="utf8") as file:
+    if os.path.exists("./assets/style.css"):
+        with open(os.path.join("./assets/style.css"), "r", encoding="utf8") as file:
             log.debug("Load CSS...")
             css += file.read() + "\n"
 
@@ -40,7 +40,7 @@ def UI(**kwargs):
         css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
     )
     
-    config = KohyaSSGUIConfig()
+    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config_file_path"))
 
     with interface:
         with gr.Tab("Dreambooth"):
@@ -106,6 +106,12 @@ if __name__ == "__main__":
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--config",
+        type=str,
+        default="./config.toml",
+        help="Path to the toml config file for interface defaults",
+    )
+    parser.add_argument(
         "--listen",
         type=str,
         default="127.0.0.1",
@@ -133,10 +139,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
+    parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
 
     args = parser.parse_args()
 
     UI(
+        config_file_path=args.config,
         username=args.username,
         password=args.password,
         inbrowser=args.inbrowser,

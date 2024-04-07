@@ -164,9 +164,9 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
             )
 
             caption_extension = gr.Textbox(
-                label='Caption file extension',
-                placeholder='Extension for caption file (e.g., .caption, .txt)',
-                value='.txt',
+                label="Caption file extension",
+                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                value=".txt",
                 interactive=True,
             )
 
@@ -266,7 +266,7 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
             )
             character_threshold = gr.Slider(
                 value=0.35,
-                label='Character threshold',
+                label="Character threshold",
                 minimum=0,
                 maximum=1,
                 step=0.05,

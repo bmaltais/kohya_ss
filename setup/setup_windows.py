@@ -118,13 +118,19 @@ def install_kohya_ss_torch2(headless: bool = False):
 
     setup_common.install("pip")
 
-    setup_common.install_requirements(
-        "requirements_windows_torch2.txt", check_no_verify_flag=False
+    # setup_common.install_requirements(
+    #     "requirements_windows_torch2.txt", check_no_verify_flag=False
+    # )
+    
+    setup_common.install_requirements_inbulk(
+        "requirements_pytorch_windows.txt", show_stdout=True, optional_parm="--index-url https://download.pytorch.org/whl/cu118"
+    )
+    
+    setup_common.install_requirements_inbulk(
+        "requirements_windows.txt", show_stdout=True, upgrade=True
     )
 
-    setup_common.configure_accelerate(
-        run_accelerate=not headless
-    )  # False if headless is True and vice versa
+    setup_common.run_cmd("accelerate config default")
 
 
 def install_bitsandbytes_0_35_0():
@@ -182,7 +188,7 @@ def main_menu(headless: bool = False):
             print(
                 "2. (Optional) Install CuDNN files (to use the latest supported CuDNN version)"
             )
-            print("3. (Optional) Install Triton 2.1.0 for Windows")
+            print("3. (DANGER) Install Triton 2.1.0 for Windows... only do it if you know you need it... might break training...")
             print("4. (Optional) Install specific version of bitsandbytes")
             print("5. (Optional) Manually configure Accelerate")
             print("6. (Optional) Launch Kohya_ss GUI in browser")

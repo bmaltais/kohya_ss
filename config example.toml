@@ -2,15 +2,133 @@
 # Edit the values to suit your needs
 
 # Default folders location
-models_dir = "./models"           # Pretrained model name or path
-train_data_dir = "./data"         # Image folder (containing training images subfolders) / Image folder (containing training images)
-output_dir = "./outputs"          # Output directory for trained model
-reg_data_dir = "./data/reg"       # Regularisation directory
-logging_dir = "./logs"            # Logging directory
-config_dir = "./presets"          # Load/Save Config file
-log_tracker_config_dir = "./logs" # Log tracker configs directory
-state_dir = "./outputs"           # Resume from saved training state
-vae_dir = "./models/vae"          # VAEs folder path
+[model]
+models_dir = "./models"                    # Pretrained model name or path
+output_name = "new model"                  # Trained model output name
+train_data_dir = "./data"                  # Image folder (containing training images subfolders) / Image folder (containing training images)
+dataset_config = "./test.toml"             # Dataset config file (Optional. Select the toml configuration file to use for the dataset)
+training_comment = "Some training comment" # Training comment
+save_model_as = "safetensors"              # Save model as (ckpt, safetensors, diffusers, diffusers_safetensors)
+save_precision = "bf16"                    # Save model precision (fp16, bf16, float)
 
-# Example custom folder location
-# models_dir = "e:/models"    # Pretrained model name or path
+[folders]
+output_dir = "./outputs"    # Output directory for trained model
+reg_data_dir = "./data/reg" # Regularisation directory
+logging_dir = "./logs"      # Logging directory
+
+[configuration]
+config_dir = "./presets" # Load/Save Config file
+
+[accelerate_launch]
+extra_accelerate_launch_args = "" # Extra accelerate launch args
+gpu_ids = ""                      # GPU IDs
+main_process_port = 0             # Main process port
+mixed_precision = "fp16"          # Mixed precision (fp16, bf16, fp8)
+multi_gpu = false                 # Multi GPU
+num_cpu_threads_per_process = 2   # Number of CPU threads per process
+num_machines = 1                  # Number of machines
+num_processes = 1                 # Number of processes
+
+[basic]
+cache_latents = true           # Cache latents
+cache_latents_to_disk = false  # Cache latents to disk
+caption_extension = ".txt"     # Caption extension
+enable_bucket = true           # Enable bucket
+epoch = 1                      # Epoch
+learning_rate = 0.0001         # Learning rate
+learning_rate_te = 0.0001      # Learning rate text encoder
+learning_rate_te1 = 0.0001     # Learning rate text encoder 1
+learning_rate_te2 = 0.0001     # Learning rate text encoder 2
+lr_scheduler = "cosine"        # LR Scheduler
+lr_scheduler_args = ""         # LR Scheduler args
+lr_warmup = 0                  # LR Warmup (% of total steps)
+lr_scheduler_num_cycles = ""   # LR Scheduler num cycles
+lr_scheduler_power = ""        # LR Scheduler power
+max_bucket_reso = 2048         # Max bucket resolution
+max_grad_norm = 1.0            # Max grad norm
+max_resolution = "512,512"     # Max resolution
+max_train_steps = ""           # Max train steps
+max_train_epochs = ""          # Max train epochs
+min_bucket_reso = 256          # Min bucket resolution
+optimizer = "AdamW8bit"        # Optimizer (AdamW, AdamW8bit, Adafactor, DAdaptation, DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptAdamPreprint, DAdaptLion, DAdaptSGD, Lion, Lion8bit, PagedAdam
+optimizer_args = ""            # Optimizer args
+save_every_n_epochs = 1        # Save every n epochs
+save_every_n_steps = 1         # Save every n steps
+seed = "1234"                  # Seed
+stop_text_encoder_training = 0 # Stop text encoder training (% of total steps)
+train_batch_size = 1           # Train batch size
+
+[advanced]
+adaptive_noise_scale = 0                  # Adaptive noise scale
+additional_parameters = ""                # Additional parameters
+bucket_no_upscale = true                  # Don't upscale bucket resolution
+bucket_reso_steps = 64                    # Bucket resolution steps
+caption_dropout_every_n_epochs = 0        # Caption dropout every n epochs
+caption_dropout_rate = 0                  # Caption dropout rate
+color_aug = false                         # Color augmentation
+clip_skip = 1                             # Clip skip
+debiased_estimation_loss = false          # Debiased estimation loss
+flip_aug = false                          # Flip augmentation
+fp8_base = false                          # FP8 base training (experimental)
+full_bf16 = false                         # Full bf16 training (experimental)
+full_fp16 = false                         # Full fp16 training (experimental)
+gradient_accumulation_steps = 1           # Gradient accumulation steps
+gradient_checkpointing = false            # Gradient checkpointing
+ip_noise_gamma = 0                        # IP noise gamma
+ip_noise_gamma_random_strength = false    # IP noise gamma random strength (true, false)
+keep_tokens = 0                           # Keep tokens
+log_tracker_config_dir = "./logs"         # Log tracker configs directory
+log_tracker_name = ""                     # Log tracker name
+masked_loss = false                       # Masked loss
+max_data_loader_n_workers = "0"           # Max data loader n workers (string)
+max_timestep = 1000                       # Max timestep
+max_token_length = "150"                  # Max token length ("75", "150", "225")
+mem_eff_attn = false                      # Memory efficient attention
+min_snr_gamma = 0                         # Min SNR gamma
+min_timestep = 0                          # Min timestep
+multires_noise_iterations = 0             # Multires noise iterations
+multires_noise_discount = 0               # Multires noise discount
+no_token_padding = false                  # Disable token padding
+noise_offset = 0                          # Noise offset
+noise_offset_random_strength = false      # Noise offset random strength (true, false)
+noise_offset_type = "Original"            # Noise offset type ("Original", "Multires")
+persistent_data_loader_workers = false    # Persistent data loader workers
+prior_loss_weight = 1.0                   # Prior loss weight
+random_crop = false                       # Random crop
+save_every_n_steps = 0                    # Save every n steps
+save_last_n_steps = 0                     # Save last n steps
+save_last_n_steps_state = 0               # Save last n steps state
+save_state = false                        # Save state
+save_state_on_train_end = false           # Save state on train end
+scale_v_pred_loss_like_noise_pred = false # Scale v pred loss like noise pred
+shuffle_caption = false                   # Shuffle captions
+state_dir = "./outputs"                   # Resume from saved training state
+use_wandb = false                         # Use wandb
+vae_batch_size = 0                        # VAE batch size
+vae_dir = "./models/vae"                  # VAEs folder path
+v_pred_like_loss = 0                      # V pred like loss weight
+wandb_api_key = ""                        # Wandb api key
+wandb_run_name = ""                       # Wandb run name
+weighted_captions = false                 # Weighted captions
+xformers = "xformers"                     # CrossAttention (none, sdp, xformers)
+
+# This next section can be used to set default values for the Dataset Preparation section
+# The "Destination training direcroty" field will be equal to "train_data_dir" as specified above
+[dataset_preparation]
+class_prompt = "class"                                  # Class prompt
+images_folder = "/some/folder/where/images/are"         # Training images directory
+instance_prompt = "instance"                            # Instance prompt
+reg_images_folder = "/some/folder/where/reg/images/are" # Regularisation images directory
+reg_images_repeat = 1                                   # Regularisation images repeat
+util_regularization_images_repeat_input = 1             # Regularisation images repeat input
+util_training_images_repeat_input = 40                  # Training images repeat input
+
+[samples]
+sample_every_n_steps = 0   # Sample every n steps
+sample_every_n_epochs = 0  # Sample every n epochs
+sample_prompts = ""        # Sample prompts
+sample_sampler = "euler_a" # Sampler to use for image sampling
+
+[sdxl]
+sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
+sdxl_no_half_vae = true                 # No half VAE
