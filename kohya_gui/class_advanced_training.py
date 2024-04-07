@@ -128,6 +128,33 @@ class AdvancedTraining:
                 placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
                 value=self.config.get("advanced.additional_parameters", ""),
             )
+        with gr.Accordion("Scheduled Huber Loss", open=False):
+            with gr.Row():
+                self.loss_type = gr.Dropdown(
+                    label="Loss type",
+                    choices=["huber", "smooth_l1", "l2"],
+                    value=self.config.get("advanced.loss_type", "l2"),
+                    info="The type of loss to use and whether it's scheduled based on the timestep",
+                )
+                self.huber_schedule = gr.Dropdown(
+                    label="Huber schedule",
+                    choices=[
+                        "constant",
+                        "exponential",
+                        "snr",
+                    ],
+                    value=self.config.get("advanced.huber_schedule", "snr"),
+                    info="The type of loss to use and whether it's scheduled based on the timestep",
+                )
+                self.huber_c = gr.Number(
+                    label="Huber C",
+                    value=self.config.get("advanced.huber_c", 0.1),
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    info="The huber loss parameter. Only used if one of the huber loss modes (huber or smooth l1) is selected with loss_type",
+                )
+
         with gr.Row():
             self.save_every_n_steps = gr.Number(
                 label="Save every N steps",
