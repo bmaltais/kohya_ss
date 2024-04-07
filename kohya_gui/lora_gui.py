@@ -1299,7 +1299,6 @@ def lora_tab(
                                 info="Set if we change the information going into the system (True) or the information coming out of it (False).",
                                 visible=False,
                             )
-
                     with gr.Row() as network_row:
                         network_dim = gr.Slider(
                             minimum=1,
