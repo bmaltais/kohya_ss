@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
+from .common_gui import get_folder_path, scriptdir, list_dirs
 import os
 
 from .custom_logging import setup_logging
@@ -16,43 +16,24 @@ def caption_images(
     batch_size: int,
     general_threshold: float,
     character_threshold: float,
-    replace_underscores: bool,
     repo_id: str,
     recursive: bool,
     max_data_loader_n_workers: int,
     debug: bool,
     undesired_tags: str,
     frequency_tags: bool,
-    prefix: str,
-    postfix: str,
+    always_first_tags: str,
     onnx: bool,
     append_tags: bool,
     force_download: bool,
     caption_separator: str,
+    tag_replacement: bool,
+    character_tag_expand: str,
+    use_rating_tags: bool,
+    use_ratuse_rating_tags_as_last_taging_tags: bool,
+    remove_underscore: bool,
+    thresh: float,
 ) -> None:
-    """
-    Captions images in a given directory using the WD14 model.
-
-    Args:
-        train_data_dir (str): The directory containing the images to be captioned.
-        caption_extension (str): The extension to be used for the caption files.
-        batch_size (int): The batch size for the captioning process.
-        general_threshold (float): The general threshold for the captioning process.
-        character_threshold (float): The character threshold for the captioning process.
-        replace_underscores (bool): Whether to replace underscores in filenames with spaces.
-        repo_id (str): The ID of the repository containing the WD14 model.
-        recursive (bool): Whether to process subdirectories recursively.
-        max_data_loader_n_workers (int): The maximum number of workers for the data loader.
-        debug (bool): Whether to enable debug mode.
-        undesired_tags (str): Comma-separated list of tags to be removed from the captions.
-        frequency_tags (bool): Whether to include frequency tags in the captions.
-        prefix (str): The prefix to be added to the captions.
-        postfix (str): The postfix to be added to the captions.
-        onnx (bool): Whether to use ONNX for the captioning process.
-        append_tags (bool): Whether to append tags to existing tags.
-        force_download (bool): Whether to force the model to be downloaded.
-        caption_separator (str): The separator to be used for the captions.
-    """
     # Check for images_dir_input
     if train_data_dir == "":
         msgbox("Image folder is missing...")
@@ -64,11 +45,15 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = rf'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
+    if always_first_tags:
+        run_cmd += f' --always_first_tags="{always_first_tags}'
     if append_tags:
         run_cmd += f" --append_tags"
     run_cmd += f" --batch_size={int(batch_size)}"
     run_cmd += f' --caption_extension="{caption_extension}"'
     run_cmd += f' --caption_separator="{caption_separator}"'
+    if character_tag_expand:
+        run_cmd += f' --character_tag_expand="{character_tag_expand}"'
     run_cmd += f" --character_threshold={character_threshold}"
     if debug:
         run_cmd += f" --debug"
@@ -82,11 +67,19 @@ def caption_images(
         run_cmd += f" --onnx"
     if recursive:
         run_cmd += f" --recursive"
-    if replace_underscores:
+    if remove_underscore:
         run_cmd += f" --remove_underscore"
     run_cmd += f' --repo_id="{repo_id}"'
+    if tag_replacement:
+        run_cmd += f" --tag_replacement"
+    if thresh:
+        run_cmd += f" --thresh={thresh}"
     if not undesired_tags == "":
         run_cmd += f' --undesired_tags="{undesired_tags}"'
+    if use_rating_tags:
+        run_cmd += f" --use_rating_tags"
+    if use_ratuse_rating_tags_as_last_taging_tags:
+        run_cmd += f" --use_ratuse_rating_tags_as_last_taging_tags"
     run_cmd += rf' "{train_data_dir}"'
 
     log.info(run_cmd)
@@ -95,17 +88,10 @@ def caption_images(
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
-
-    # Add prefix and postfix
-    add_pre_postfix(
-        folder=train_data_dir,
-        caption_file_ext=caption_extension,
-        prefix=prefix,
-        postfix=postfix,
-    )
 
     log.info("...captioning done")
 
@@ -162,6 +148,30 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 outputs=train_data_dir,
                 show_progress=False,
             )
+            
+            repo_id = gr.Dropdown(
+                label="Repo ID",
+                choices=[
+                    "SmilingWolf/wd-v1-4-convnext-tagger-v2",
+                    "SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
+                    "SmilingWolf/wd-v1-4-vit-tagger-v2",
+                    "SmilingWolf/wd-v1-4-swinv2-tagger-v2",
+                    "SmilingWolf/wd-v1-4-moat-tagger-v2",
+                    'SmilingWolf/wd-swinv2-tagger-v3',
+                    'SmilingWolf/wd-vit-tagger-v3',
+                    'SmilingWolf/wd-convnext-tagger-v3',
+                ],
+                value="SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
+                show_label="Repo id for wd14 tagger on Hugging Face",
+            )
+
+            force_download = gr.Checkbox(
+                label="Force model re-download",
+                value=False,
+                info="Useful to force model re download when switching to onnx",
+            )
+            
+        with gr.Row():
 
             caption_extension = gr.Textbox(
                 label="Caption file extension",
@@ -175,6 +185,22 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 value=",",
                 interactive=True,
             )
+            
+        with gr.Row():
+            
+            tag_replacement = gr.Textbox(
+                label="Tag replacement",
+                info="tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`",
+                value="",
+                interactive=True,
+            )
+            
+            character_tag_expand = gr.Textbox(
+                label="Character tag expand",
+                info="expand tag tail parenthesis to another tag for character tags. `chara_name_(series)` becomes `chara_name, series`",
+                value="",
+                interactive=True,
+            )
 
         undesired_tags = gr.Textbox(
             label="Undesired tags",
@@ -183,14 +209,9 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
         )
 
         with gr.Row():
-            prefix = gr.Textbox(
+            always_first_tags = gr.Textbox(
                 label="Prefix to add to WD14 caption",
-                placeholder="(Optional)",
-                interactive=True,
-            )
-
-            postfix = gr.Textbox(
-                label="Postfix to add to WD14 caption",
+                info="comma-separated list of tags to always put at the beginning, e.g. 1girl,1boy",
                 placeholder="(Optional)",
                 interactive=True,
             )
@@ -198,7 +219,7 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
         with gr.Row():
             onnx = gr.Checkbox(
                 label="Use onnx",
-                value=False,
+                value=True,
                 interactive=True,
                 info="https://github.com/onnx/onnx",
             )
@@ -208,54 +229,54 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 interactive=True,
                 info="This option appends the tags to the existing tags, instead of replacing them.",
             )
+            
+            use_rating_tags = gr.Checkbox(
+                label="Use rating tags",
+                value=False,
+                interactive=True,
+                info="Adds rating tags as the first tag",
+            )
+            
+            use_ratuse_rating_tags_as_last_taging_tags = gr.Checkbox(
+                label="Use rating tags as last tag",
+                value=False,
+                interactive=True,
+                info="Adds rating tags as the last tag",
+            )
 
         with gr.Row():
-            replace_underscores = gr.Checkbox(
-                label="Replace underscores in filenames with spaces",
-                value=True,
-                interactive=True,
-            )
             recursive = gr.Checkbox(
                 label="Recursive",
                 value=False,
                 info="Tag subfolders images as well",
             )
+            remove_underscore = gr.Checkbox(
+                label="Remove underscore",
+                value=True,
+                info="replace underscores with spaces in the output tags",
+            )
 
             debug = gr.Checkbox(
-                label="Verbose logging",
+                label="Debug",
                 value=True,
-                info="Debug while tagging, it will print your image file with general tags and character tags.",
+                info="Debug mode",
             )
             frequency_tags = gr.Checkbox(
                 label="Show tags frequency",
                 value=True,
                 info="Show frequency of tags for images.",
             )
-
-        # Model Settings
+            
         with gr.Row():
-            repo_id = gr.Dropdown(
-                label="Repo ID",
-                choices=[
-                    "SmilingWolf/wd-v1-4-convnext-tagger-v2",
-                    "SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
-                    "SmilingWolf/wd-v1-4-vit-tagger-v2",
-                    "SmilingWolf/wd-v1-4-swinv2-tagger-v2",
-                    "SmilingWolf/wd-v1-4-moat-tagger-v2",
-                    # 'SmilingWolf/wd-swinv2-tagger-v3',
-                    # 'SmilingWolf/wd-vit-tagger-v3',
-                    # 'SmilingWolf/wd-convnext-tagger-v3',
-                ],
-                value="SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
-                show_label="Repo id for wd14 tagger on Hugging Face",
+            thresh = gr.Slider(
+                value=0.35,
+                label="Threshold",
+                info="threshold of confidence to add a tag",
+                minimum=0,
+                maximum=1,
+                step=0.05,
             )
-
-            force_download = gr.Checkbox(
-                label="Force model re-download",
-                value=False,
-                info="Useful to force model re download when switching to onnx",
-            )
-
+            
             general_threshold = gr.Slider(
                 value=0.35,
                 label="General threshold",
@@ -290,19 +311,23 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 batch_size,
                 general_threshold,
                 character_threshold,
-                replace_underscores,
                 repo_id,
                 recursive,
                 max_data_loader_n_workers,
                 debug,
                 undesired_tags,
                 frequency_tags,
-                prefix,
-                postfix,
+                always_first_tags,
                 onnx,
                 append_tags,
                 force_download,
                 caption_separator,
+                tag_replacement,
+                character_tag_expand,
+                use_rating_tags,
+                use_ratuse_rating_tags_as_last_taging_tags,
+                remove_underscore,
+                thresh,
             ],
             show_progress=False,
         )
