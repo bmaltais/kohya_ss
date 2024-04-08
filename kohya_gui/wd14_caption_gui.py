@@ -1,7 +1,8 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
+from .common_gui import get_folder_path, scriptdir, list_dirs
+from .class_gui_config import KohyaSSGUIConfig
 import os
 
 from .custom_logging import setup_logging
@@ -16,43 +17,24 @@ def caption_images(
     batch_size: int,
     general_threshold: float,
     character_threshold: float,
-    replace_underscores: bool,
     repo_id: str,
     recursive: bool,
     max_data_loader_n_workers: int,
     debug: bool,
     undesired_tags: str,
     frequency_tags: bool,
-    prefix: str,
-    postfix: str,
+    always_first_tags: str,
     onnx: bool,
     append_tags: bool,
     force_download: bool,
     caption_separator: str,
+    tag_replacement: bool,
+    character_tag_expand: str,
+    use_rating_tags: bool,
+    use_rating_tags_as_last_tag: bool,
+    remove_underscore: bool,
+    thresh: float,
 ) -> None:
-    """
-    Captions images in a given directory using the WD14 model.
-
-    Args:
-        train_data_dir (str): The directory containing the images to be captioned.
-        caption_extension (str): The extension to be used for the caption files.
-        batch_size (int): The batch size for the captioning process.
-        general_threshold (float): The general threshold for the captioning process.
-        character_threshold (float): The character threshold for the captioning process.
-        replace_underscores (bool): Whether to replace underscores in filenames with spaces.
-        repo_id (str): The ID of the repository containing the WD14 model.
-        recursive (bool): Whether to process subdirectories recursively.
-        max_data_loader_n_workers (int): The maximum number of workers for the data loader.
-        debug (bool): Whether to enable debug mode.
-        undesired_tags (str): Comma-separated list of tags to be removed from the captions.
-        frequency_tags (bool): Whether to include frequency tags in the captions.
-        prefix (str): The prefix to be added to the captions.
-        postfix (str): The postfix to be added to the captions.
-        onnx (bool): Whether to use ONNX for the captioning process.
-        append_tags (bool): Whether to append tags to existing tags.
-        force_download (bool): Whether to force the model to be downloaded.
-        caption_separator (str): The separator to be used for the captions.
-    """
     # Check for images_dir_input
     if train_data_dir == "":
         msgbox("Image folder is missing...")
@@ -64,29 +46,43 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = rf'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
+    if always_first_tags:
+        run_cmd += f' --always_first_tags="{always_first_tags}'
     if append_tags:
         run_cmd += f" --append_tags"
     run_cmd += f" --batch_size={int(batch_size)}"
     run_cmd += f' --caption_extension="{caption_extension}"'
     run_cmd += f' --caption_separator="{caption_separator}"'
-    run_cmd += f" --character_threshold={character_threshold}"
+    if character_tag_expand:
+        run_cmd += f" --character_tag_expand"
+    if not character_threshold == 0.35:
+        run_cmd += f" --character_threshold={character_threshold}"
     if debug:
         run_cmd += f" --debug"
     if force_download:
         run_cmd += f" --force_download"
     if frequency_tags:
         run_cmd += f" --frequency_tags"
-    run_cmd += f" --general_threshold={general_threshold}"
+    if not general_threshold == 0.35:
+        run_cmd += f" --general_threshold={general_threshold}"
     run_cmd += f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
     if onnx:
         run_cmd += f" --onnx"
     if recursive:
         run_cmd += f" --recursive"
-    if replace_underscores:
+    if remove_underscore:
         run_cmd += f" --remove_underscore"
     run_cmd += f' --repo_id="{repo_id}"'
+    if tag_replacement:
+        run_cmd += f" --tag_replacement"
+    if not thresh == 0.35:
+        run_cmd += f" --thresh={thresh}"
     if not undesired_tags == "":
         run_cmd += f' --undesired_tags="{undesired_tags}"'
+    if use_rating_tags:
+        run_cmd += f" --use_rating_tags"
+    if use_rating_tags_as_last_tag:
+        run_cmd += f" --use_rating_tags_as_last_tag"
     run_cmd += rf' "{train_data_dir}"'
 
     log.info(run_cmd)
@@ -95,17 +91,10 @@ def caption_images(
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
-
-    # Add prefix and postfix
-    add_pre_postfix(
-        folder=train_data_dir,
-        caption_file_ext=caption_extension,
-        prefix=prefix,
-        postfix=postfix,
-    )
 
     log.info("...captioning done")
 
@@ -115,7 +104,9 @@ def caption_images(
 ###
 
 
-def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
+def gradio_wd14_caption_gui_tab(
+    headless=False, default_train_dir=None, config: KohyaSSGUIConfig = {}
+):
     from .common_gui import create_refresh_button
 
     default_train_dir = (
@@ -140,8 +131,9 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
         with gr.Group(), gr.Row():
             train_data_dir = gr.Dropdown(
                 label="Image folder to caption (containing the images to caption)",
-                choices=[""] + list_train_dirs(default_train_dir),
-                value="",
+                choices=[config.get("wd14_caption.train_data_dir", "")]
+                + list_train_dirs(default_train_dir),
+                value=config.get("wd14_caption.train_data_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
             )
@@ -163,77 +155,6 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 show_progress=False,
             )
 
-            caption_extension = gr.Textbox(
-                label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
-                value=".txt",
-                interactive=True,
-            )
-
-            caption_separator = gr.Textbox(
-                label="Caption Separator",
-                value=",",
-                interactive=True,
-            )
-
-        undesired_tags = gr.Textbox(
-            label="Undesired tags",
-            placeholder="(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`.",
-            interactive=True,
-        )
-
-        with gr.Row():
-            prefix = gr.Textbox(
-                label="Prefix to add to WD14 caption",
-                placeholder="(Optional)",
-                interactive=True,
-            )
-
-            postfix = gr.Textbox(
-                label="Postfix to add to WD14 caption",
-                placeholder="(Optional)",
-                interactive=True,
-            )
-
-        with gr.Row():
-            onnx = gr.Checkbox(
-                label="Use onnx",
-                value=False,
-                interactive=True,
-                info="https://github.com/onnx/onnx",
-            )
-            append_tags = gr.Checkbox(
-                label="Append TAGs",
-                value=False,
-                interactive=True,
-                info="This option appends the tags to the existing tags, instead of replacing them.",
-            )
-
-        with gr.Row():
-            replace_underscores = gr.Checkbox(
-                label="Replace underscores in filenames with spaces",
-                value=True,
-                interactive=True,
-            )
-            recursive = gr.Checkbox(
-                label="Recursive",
-                value=False,
-                info="Tag subfolders images as well",
-            )
-
-            debug = gr.Checkbox(
-                label="Verbose logging",
-                value=True,
-                info="Debug while tagging, it will print your image file with general tags and character tags.",
-            )
-            frequency_tags = gr.Checkbox(
-                label="Show tags frequency",
-                value=True,
-                info="Show frequency of tags for images.",
-            )
-
-        # Model Settings
-        with gr.Row():
             repo_id = gr.Dropdown(
                 label="Repo ID",
                 choices=[
@@ -242,22 +163,134 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                     "SmilingWolf/wd-v1-4-vit-tagger-v2",
                     "SmilingWolf/wd-v1-4-swinv2-tagger-v2",
                     "SmilingWolf/wd-v1-4-moat-tagger-v2",
-                    # 'SmilingWolf/wd-swinv2-tagger-v3',
-                    # 'SmilingWolf/wd-vit-tagger-v3',
-                    # 'SmilingWolf/wd-convnext-tagger-v3',
+                    "SmilingWolf/wd-swinv2-tagger-v3",
+                    "SmilingWolf/wd-vit-tagger-v3",
+                    "SmilingWolf/wd-convnext-tagger-v3",
                 ],
-                value="SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
+                value=config.get(
+                    "wd14_caption.repo_id", "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
+                ),
                 show_label="Repo id for wd14 tagger on Hugging Face",
             )
 
             force_download = gr.Checkbox(
                 label="Force model re-download",
-                value=False,
+                value=config.get("wd14_caption.force_download", False),
                 info="Useful to force model re download when switching to onnx",
             )
 
+        with gr.Row():
+
+            caption_extension = gr.Textbox(
+                label="Caption file extension",
+                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                value=config.get("wd14_caption.caption_extension", ".txt"),
+                interactive=True,
+            )
+
+            caption_separator = gr.Textbox(
+                label="Caption Separator",
+                value=config.get("wd14_caption.caption_separator", ", "),
+                interactive=True,
+            )
+
+        with gr.Row():
+
+            tag_replacement = gr.Textbox(
+                label="Tag replacement",
+                info="tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`",
+                value=config.get("wd14_caption.tag_replacement", ""),
+                interactive=True,
+            )
+
+            character_tag_expand = gr.Checkbox(
+                label="Character tag expand",
+                info="expand tag tail parenthesis to another tag for character tags. `chara_name_(series)` becomes `chara_name, series`",
+                value=config.get("wd14_caption.character_tag_expand", False),
+                interactive=True,
+            )
+
+        undesired_tags = gr.Textbox(
+            label="Undesired tags",
+            placeholder="(Optional) Separate `undesired_tags` with comma `(,)` if you want to remove multiple tags, e.g. `1girl,solo,smile`.",
+            interactive=True,
+            value=config.get("wd14_caption.undesired_tags", ""),
+        )
+
+        with gr.Row():
+            always_first_tags = gr.Textbox(
+                label="Prefix to add to WD14 caption",
+                info="comma-separated list of tags to always put at the beginning, e.g. 1girl,1boy",
+                placeholder="(Optional)",
+                interactive=True,
+                value=config.get("wd14_caption.always_first_tags", ""),
+            )
+
+        with gr.Row():
+            onnx = gr.Checkbox(
+                label="Use onnx",
+                value=config.get("wd14_caption.onnx", True),
+                interactive=True,
+                info="https://github.com/onnx/onnx",
+            )
+            append_tags = gr.Checkbox(
+                label="Append TAGs",
+                value=config.get("wd14_caption.append_tags", False),
+                interactive=True,
+                info="This option appends the tags to the existing tags, instead of replacing them.",
+            )
+
+            use_rating_tags = gr.Checkbox(
+                label="Use rating tags",
+                value=config.get("wd14_caption.use_rating_tags", False),
+                interactive=True,
+                info="Adds rating tags as the first tag",
+            )
+
+            use_rating_tags_as_last_tag = gr.Checkbox(
+                label="Use rating tags as last tag",
+                value=config.get(
+                    "wd14_caption.use_rating_tags_as_last_tag", False
+                ),
+                interactive=True,
+                info="Adds rating tags as the last tag",
+            )
+
+        with gr.Row():
+            recursive = gr.Checkbox(
+                label="Recursive",
+                value=config.get("wd14_caption.recursive", False),
+                info="Tag subfolders images as well",
+            )
+            remove_underscore = gr.Checkbox(
+                label="Remove underscore",
+                value=config.get("wd14_caption.remove_underscore", True),
+                info="replace underscores with spaces in the output tags",
+            )
+
+            debug = gr.Checkbox(
+                label="Debug",
+                value=config.get("wd14_caption.debug", True),
+                info="Debug mode",
+            )
+            frequency_tags = gr.Checkbox(
+                label="Show tags frequency",
+                value=config.get("wd14_caption.frequency_tags", True),
+                info="Show frequency of tags for images.",
+            )
+
+        with gr.Row():
+            thresh = gr.Slider(
+                value=config.get("wd14_caption.thresh", 0.35),
+                label="Threshold",
+                info="threshold of confidence to add a tag",
+                minimum=0,
+                maximum=1,
+                step=0.05,
+            )
+
             general_threshold = gr.Slider(
-                value=0.35,
+                value=config.get("wd14_caption.general_threshold", 0.35),
                 label="General threshold",
                 info="Adjust `general_threshold` for pruning tags (less tags, less flexible)",
                 minimum=0,
@@ -265,7 +298,7 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 step=0.05,
             )
             character_threshold = gr.Slider(
-                value=0.35,
+                value=config.get("wd14_caption.character_threshold", 0.35),
                 label="Character threshold",
                 minimum=0,
                 maximum=1,
@@ -274,10 +307,16 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
 
         # Advanced Settings
         with gr.Row():
-            batch_size = gr.Number(value=8, label="Batch size", interactive=True)
+            batch_size = gr.Number(
+                value=config.get("wd14_caption.batch_size", 8),
+                label="Batch size",
+                interactive=True,
+            )
 
             max_data_loader_n_workers = gr.Number(
-                value=2, label="Max dataloader workers", interactive=True
+                value=config.get("wd14_caption.max_data_loader_n_workers", 2),
+                label="Max dataloader workers",
+                interactive=True,
             )
 
         caption_button = gr.Button("Caption images")
@@ -290,19 +329,23 @@ def gradio_wd14_caption_gui_tab(headless=False, default_train_dir=None):
                 batch_size,
                 general_threshold,
                 character_threshold,
-                replace_underscores,
                 repo_id,
                 recursive,
                 max_data_loader_n_workers,
                 debug,
                 undesired_tags,
                 frequency_tags,
-                prefix,
-                postfix,
+                always_first_tags,
                 onnx,
                 append_tags,
                 force_download,
                 caption_separator,
+                tag_replacement,
+                character_tag_expand,
+                use_rating_tags,
+                use_rating_tags_as_last_tag,
+                remove_underscore,
+                thresh,
             ],
             show_progress=False,
         )

@@ -135,3 +135,27 @@ sample_sampler = "euler_a" # Sampler to use for image sampling
 [sdxl]
 sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
 sdxl_no_half_vae = true                 # No half VAE
+
+[wd14_caption]
+always_first_tags = ""                        # comma-separated list of tags to always put at the beginning, e.g. 1girl,1boy
+append_tags = false                           # Append TAGs
+batch_size = 8                                # Batch size
+caption_extension = ".txt"                    # Extension for caption file (e.g., .caption, .txt)
+caption_separator = ", "                      # Caption Separator
+character_tag_expand = false                  # Expand tag tail parenthesis to another tag for character tags. `chara_name_(series)` becomes `chara_name, series`
+character_threshold = 0.35                    # Character threshold
+debug = false                                 # Debug mode
+force_download = false                        # Force model re-download when switching to onnx
+frequency_tags = false                        # Frequency tags
+general_threshold = 0.35                      # General threshold
+max_data_loader_n_workers = 2                 # Max dataloader workers
+onnx = true                                   # ONNX
+recursive = false                             # Recursive
+remove_underscore = false                     # Remove underscore
+repo_id = "SmilingWolf/wd-convnext-tagger-v3" # Repo id for wd14 tagger on Hugging Face
+tag_replacement = ""                          # Tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`
+thresh = 0.36                                 # Threshold
+train_data_dir = ""                           # Image folder to caption (containing the images to caption)
+undesired_tags = ""                           # comma-separated list of tags to remove, e.g. 1girl,1boy
+use_rating_tags = false                       # Use rating tags
+use_rating_tags_as_last_tag = false           # Use rating tags as last tagging tags
