@@ -47,7 +47,7 @@ def caption_images(
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = rf'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
     if always_first_tags:
-        run_cmd += f' --always_first_tags="{always_first_tags}'
+        run_cmd += f' --always_first_tags="{always_first_tags}"'
     if append_tags:
         run_cmd += f" --append_tags"
     run_cmd += f" --batch_size={int(batch_size)}"
@@ -249,9 +249,7 @@ def gradio_wd14_caption_gui_tab(
 
             use_rating_tags_as_last_tag = gr.Checkbox(
                 label="Use rating tags as last tag",
-                value=config.get(
-                    "wd14_caption.use_rating_tags_as_last_tag", False
-                ),
+                value=config.get("wd14_caption.use_rating_tags_as_last_tag", False),
                 interactive=True,
                 info="Adds rating tags as the last tag",
             )
