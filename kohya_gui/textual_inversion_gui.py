@@ -723,6 +723,10 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
 
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            configuration = ConfigurationFile(headless=headless)
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 

@@ -1100,6 +1100,10 @@ def lora_tab(
             "Train a custom model using kohya train network LoRA python code..."
         )
 
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            configuration = ConfigurationFile(headless=headless, config=config)
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
@@ -1918,10 +1922,6 @@ def lora_tab(
                 config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
-
-        # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
-            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():

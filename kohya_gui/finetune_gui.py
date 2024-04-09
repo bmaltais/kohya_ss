@@ -770,6 +770,10 @@ def finetune_tab(headless=False, config: dict = {}):
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            configuration = ConfigurationFile(headless=headless, config=config)
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
@@ -892,10 +896,6 @@ def finetune_tab(headless=False, config: dict = {}):
                     weighted_captions = gr.Checkbox(
                         label="Weighted captions", value=False
                     )
-
-        # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
-            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
