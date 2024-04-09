@@ -74,7 +74,7 @@ else
     if [ "$RUNPOD" = false ]; then
         if [[ "$@" == *"--use-ipex"* ]]; then
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_ipex.txt"
-        elif [[ "$@" == *"--use-rocm"* ]]; then
+        elif [[ "$@" == *"--use-rocm"* ]] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_rocm.txt"
         else
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
