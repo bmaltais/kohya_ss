@@ -21,7 +21,7 @@ from kohya_gui.custom_logging import setup_logging
 log = setup_logging()
 
 def check_torch():
-    # Check for nVidia toolkit or AMD toolkit
+    # Check for toolkit
     if shutil.which('nvidia-smi') is not None or os.path.exists(
         os.path.join(
             os.environ.get('SystemRoot') or r'C:\Windows',
