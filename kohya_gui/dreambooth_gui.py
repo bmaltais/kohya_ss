@@ -747,6 +747,10 @@ def dreambooth_tab(
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
+        # Setup Configuration Files Gradio
+        with gr.Accordion("Configuration", open=False):
+            configuration = ConfigurationFile(headless=headless, config=config)
+
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
@@ -792,10 +796,6 @@ def dreambooth_tab(
                 config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
-
-        # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
-            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():
