@@ -12,13 +12,13 @@ log = setup_logging()
 
 
 def copy_info_to_Folders_tab(training_folder):
-    img_folder = os.path.join(training_folder, "img")
+    img_folder = gr.Dropdown(value=os.path.join(training_folder, "img"))
     if os.path.exists(os.path.join(training_folder, "reg")):
-        reg_folder = os.path.join(training_folder, "reg")
+        reg_folder = gr.Dropdown(value=os.path.join(training_folder, "reg"))
     else:
-        reg_folder = ""
-    model_folder = os.path.join(training_folder, "model")
-    log_folder = os.path.join(training_folder, "log")
+        reg_folder = gr.Dropdown(value="")
+    model_folder = gr.Dropdown(value=os.path.join(training_folder, "model"))
+    log_folder = gr.Dropdown(value=os.path.join(training_folder, "log"))
 
     return img_folder, reg_folder, model_folder, log_folder
 
@@ -290,6 +290,20 @@ def gradio_dreambooth_folder_creation_tab(
                 util_regularization_images_repeat_input,
                 util_class_prompt_input,
                 util_training_dir_output,
+            ],
+            show_progress=False,
+        )
+        
+        
+        button_copy_info_to_Folders_tab = gr.Button('Copy info to respective fields')
+        button_copy_info_to_Folders_tab.click(
+            copy_info_to_Folders_tab,
+            inputs=[util_training_dir_output],
+            outputs=[
+                train_data_dir_input,
+                reg_data_dir_input,
+                output_dir_input,
+                logging_dir_input,
             ],
             show_progress=False,
         )
