@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, scriptdir, list_dirs
+from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
 from .class_gui_config import KohyaSSGUIConfig
 import os
 
@@ -46,8 +46,8 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = rf'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
-    if always_first_tags:
-        run_cmd += f' --always_first_tags="{always_first_tags}"'
+    # if always_first_tags:
+    #     run_cmd += f' --always_first_tags="{always_first_tags}"'
     if append_tags:
         run_cmd += f" --append_tags"
     run_cmd += f" --batch_size={int(batch_size)}"
@@ -73,8 +73,8 @@ def caption_images(
     if remove_underscore:
         run_cmd += f" --remove_underscore"
     run_cmd += f' --repo_id="{repo_id}"'
-    if tag_replacement:
-        run_cmd += f" --tag_replacement"
+    if not tag_replacement == "":
+        run_cmd += f" --tag_replacement={tag_replacement}"
     if not thresh == 0.35:
         run_cmd += f" --thresh={thresh}"
     if not undesired_tags == "":
@@ -95,6 +95,13 @@ def caption_images(
 
     # Run the command
     subprocess.run(run_cmd, shell=True, env=env)
+    
+    # Add prefix and postfix
+    add_pre_postfix(
+        folder=train_data_dir,
+        caption_file_ext=caption_extension,
+        prefix=always_first_tags,
+    )
 
     log.info("...captioning done")
 
@@ -220,7 +227,7 @@ def gradio_wd14_caption_gui_tab(
         with gr.Row():
             always_first_tags = gr.Textbox(
                 label="Prefix to add to WD14 caption",
-                info="comma-separated list of tags to always put at the beginning, e.g. 1girl,1boy",
+                info="comma-separated list of tags to always put at the beginning, e.g. 1girl, 1boy, ",
                 placeholder="(Optional)",
                 interactive=True,
                 value=config.get("wd14_caption.always_first_tags", ""),
@@ -306,7 +313,7 @@ def gradio_wd14_caption_gui_tab(
         # Advanced Settings
         with gr.Row():
             batch_size = gr.Number(
-                value=config.get("wd14_caption.batch_size", 8),
+                value=config.get("wd14_caption.batch_size", 1),
                 label="Batch size",
                 interactive=True,
             )
