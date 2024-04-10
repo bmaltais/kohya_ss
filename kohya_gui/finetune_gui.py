@@ -810,8 +810,9 @@ def finetune_tab(headless=False, config: dict = {}):
 
             training_preset = gr.Dropdown(
                 label="Presets",
-                choices=[""] + list_presets(f"{presets_dir}/finetune"),
-                elem_id="myDropdown",
+                choices=["none"] + list_presets(f"{presets_dir}/finetune"),
+                # elem_id="myDropdown",
+                value="none",
             )
 
             with gr.Accordion("Basic", open="True"):

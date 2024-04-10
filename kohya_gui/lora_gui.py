@@ -1126,7 +1126,7 @@ def lora_tab(
                 json_files = []
 
                 # Insert an empty string at the beginning
-                json_files.insert(0, "none")
+                #json_files.insert(0, "none")
 
                 for file in os.listdir(path):
                     if file.endswith(".json"):
@@ -1141,14 +1141,14 @@ def lora_tab(
 
                 return json_files
 
-            with gr.Accordion("Basic", open="True"):
-                training_preset = gr.Dropdown(
-                    label="Presets",
-                    choices=[""] + list_presets(rf"{presets_dir}/lora"),
-                    elem_id="myDropdown",
-                    value="none",
-                )
+            training_preset = gr.Dropdown(
+                label="Presets",
+                choices=["none"] + list_presets(rf"{presets_dir}/lora"),
+                # elem_id="myDropdown",
+                value="none",
+            )
 
+            with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
                     with gr.Row():
                         LoRA_type = gr.Dropdown(
@@ -1399,7 +1399,7 @@ def lora_tab(
                             conv_dim,
                             network_dim,
                         ):
-                            log.info("LoRA type changed...")
+                            log.debug("LoRA type changed...")
 
                             lora_settings_config = {
                                 "network_row": {
