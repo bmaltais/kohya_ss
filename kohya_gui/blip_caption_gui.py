@@ -79,7 +79,7 @@ def caption_images(
     )
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, shell=True, env=env, cwd=f"{scriptdir}/sd-scripts")
+    subprocess.run(run_cmd, env=env, cwd=f"{scriptdir}/sd-scripts")
 
     # Add prefix and postfix
     add_pre_postfix(

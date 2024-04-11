@@ -83,7 +83,7 @@ def caption_images(
         )
 
         # Run the command based on the operating system
-        subprocess.run(run_cmd, shell=True, env=env)
+        subprocess.run(run_cmd, env=env)
 
     # Check if overwrite option is enabled
     if overwrite:

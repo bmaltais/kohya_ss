@@ -51,7 +51,7 @@ def caption_images(
     )
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, env=env)
 
     # Add prefix and postfix
     add_pre_postfix(

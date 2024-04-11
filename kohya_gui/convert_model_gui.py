@@ -104,7 +104,7 @@ def convert_model(
     )
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, env=env)
 
 
 ###
