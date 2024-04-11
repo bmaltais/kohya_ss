@@ -88,6 +88,7 @@ def UI(**kwargs):
     server_port = kwargs.get("server_port", 0)
     inbrowser = kwargs.get("inbrowser", False)
     share = kwargs.get("share", False)
+    do_not_share = kwargs.get("do_not_share", False)
     server_name = kwargs.get("listen")
 
     launch_kwargs["server_name"] = server_name
@@ -97,8 +98,11 @@ def UI(**kwargs):
         launch_kwargs["server_port"] = server_port
     if inbrowser:
         launch_kwargs["inbrowser"] = inbrowser
-    if share and not kwargs.get("do_not_share", False):
-        launch_kwargs["share"] = share
+    if do_not_share:
+        launch_kwargs["share"] = False
+    else:
+        if share:
+            launch_kwargs["share"] = share
     launch_kwargs["debug"] = True
     interface.launch(**launch_kwargs)
     interface.launch()
