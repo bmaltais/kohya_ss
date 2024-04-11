@@ -715,7 +715,6 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
     # If no file with the specified extension is found, return False
     return False
 
-
 def find_replace(
     folder_path: str = "",
     caption_file_ext: str = ".caption",
@@ -747,21 +746,41 @@ def find_replace(
         )
         # Exit the function early
         return
+    
+    # Check if the caption file extension is one of the supported extensions
+    if caption_file_ext not in [".caption", ".txt", ".txt2", ".cap"]:
+        log.error(
+            f"Unsupported file extension {caption_file_ext} for caption files. Please use .caption, .txt, .txt2, or .cap."
+        )
+        # Exit the function early
+        return
+    
+    # Check if the folder path exists
+    if not os.path.exists(folder_path):
+        log.error(f"The provided path '{folder_path}' is not a valid folder.")
+        return
 
     # List all caption files in the folder
-    caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
+    try:
+        caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
+    except Exception as e:
+        log.error(f"Error accessing folder {folder_path}: {e}")
+        return
 
     # Iterate over the list of caption files
     for caption_file in caption_files:
         # Construct the full path for each caption file
         file_path = os.path.join(folder_path, caption_file)
         # Read and replace text
-        with open(file_path, "r", errors="ignore") as f:
-            content = f.read().replace(search_text, replace_text)
+        try:
+            with open(file_path, "r", errors="ignore") as f:
+                content = f.read().replace(search_text, replace_text)
 
-        # Write the updated content back to the file
-        with open(file_path, "w") as f:
-            f.write(content)
+            # Write the updated content back to the file
+            with open(file_path, "w") as f:
+                f.write(content)
+        except Exception as e:
+            log.error(f"Error processing file {file_path}: {e}")
 
 
 def color_aug_changed(color_aug):
