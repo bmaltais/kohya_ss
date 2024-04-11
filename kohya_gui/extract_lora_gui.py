@@ -102,7 +102,7 @@ def extract_lora(
     )
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, env=env)
 
 
 ###

@@ -59,7 +59,7 @@ def convert_lcm(name, model_path, lora_scale, model_type):
     )
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, env=env)
 
     # Return a success message
     log.info("Done extracting...")

@@ -517,10 +517,11 @@ def train_model(
             env["PYTHONPATH"] = (
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
+            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
             if not print_only:
                 # Run the command
-                subprocess.run(run_cmd, shell=True, env=env)
+                subprocess.run(run_cmd, env=env)
 
         # create images buckets
         if generate_image_buckets:
@@ -550,10 +551,11 @@ def train_model(
             env["PYTHONPATH"] = (
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
+            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
             if not print_only:
                 # Run the command
-                subprocess.run(run_cmd, shell=True, env=env)
+                subprocess.run(run_cmd, env=env)
 
         image_num = len(
             [
