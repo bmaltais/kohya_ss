@@ -142,9 +142,9 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
                 show_progress=False,
             )
         with gr.Row():
-            caption_file_ext = gr.Textbox(
+            caption_file_ext = gr.Dropdown(
                 label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )

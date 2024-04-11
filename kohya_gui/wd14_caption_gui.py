@@ -188,10 +188,10 @@ def gradio_wd14_caption_gui_tab(
 
         with gr.Row():
 
-            caption_extension = gr.Textbox(
+            caption_extension = gr.Dropdown(
                 label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
-                value=config.get("wd14_caption.caption_extension", ".txt"),
+                choices=[".cap", ".caption", ".txt"],
+                value=".txt",
                 interactive=True,
             )
 
