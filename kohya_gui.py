@@ -149,15 +149,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    UI(
-        config_file_path=args.config,
-        username=args.username,
-        password=args.password,
-        inbrowser=args.inbrowser,
-        server_port=args.server_port,
-        share=args.share,
-        do_not_share=args.do_not_share,
-        listen=args.listen,
-        headless=args.headless,
-        language=args.language,
-    )
+    UI(**vars(args))

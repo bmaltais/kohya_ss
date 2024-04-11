@@ -469,11 +469,10 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    print_only_bool = True if print_only.get("label") == "True" else False
+    
+    log.debug(f"headless = {headless} ; print_only = {print_only}")
+    
     log.info(f"Start Finetuning...")
-
-    headless_bool = True if headless.get("label") == "True" else False
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
@@ -482,7 +481,7 @@ def train_model(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         finetune_image_folder=image_folder,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -490,8 +489,8 @@ def train_model(
     ):
         return
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless
     ):
         return
 
@@ -519,7 +518,7 @@ def train_model(
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
 
-            if not print_only_bool:
+            if not print_only:
                 # Run the command
                 subprocess.run(run_cmd, shell=True, env=env)
 
@@ -552,7 +551,7 @@ def train_model(
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
 
-            if not print_only_bool:
+            if not print_only:
                 # Run the command
                 subprocess.run(run_cmd, shell=True, env=env)
 
@@ -724,7 +723,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -761,7 +760,7 @@ def train_model(
 def finetune_tab(headless=False, config: dict = {}):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
@@ -784,6 +783,46 @@ def finetune_tab(headless=False, config: dict = {}):
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
+
+        with gr.Accordion("Dataset Preparation", open=False):
+            with gr.Row():
+                max_resolution = gr.Textbox(
+                    label="Resolution (width,height)", value="512,512"
+                )
+                min_bucket_reso = gr.Textbox(label="Min bucket resolution", value="256")
+                max_bucket_reso = gr.Textbox(
+                    label="Max bucket resolution", value="1024"
+                )
+                batch_size = gr.Textbox(label="Batch size", value="1")
+            with gr.Row():
+                create_caption = gr.Checkbox(
+                    label="Generate caption metadata", value=True
+                )
+                create_buckets = gr.Checkbox(
+                    label="Generate image buckets metadata", value=True
+                )
+                use_latent_files = gr.Dropdown(
+                    label="Use latent files",
+                    choices=[
+                        "No",
+                        "Yes",
+                    ],
+                    value="Yes",
+                )
+            with gr.Accordion("Advanced parameters", open=False):
+                with gr.Row():
+                    caption_metadata_filename = gr.Textbox(
+                        label="Caption metadata filename",
+                        value="meta_cap.json",
+                    )
+                    latent_metadata_filename = gr.Textbox(
+                        label="Latent metadata filename", value="meta_lat.json"
+                    )
+                with gr.Row():
+                    full_path = gr.Checkbox(label="Use full path", value=True)
+                    weighted_captions = gr.Checkbox(
+                        label="Weighted captions", value=False
+                    )
 
         with gr.Accordion("Parameters", open=False), gr.Column():
 
@@ -852,46 +891,6 @@ def finetune_tab(headless=False, config: dict = {}):
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages(config=config)
-
-        with gr.Accordion("Dataset Preparation", open=False):
-            with gr.Row():
-                max_resolution = gr.Textbox(
-                    label="Resolution (width,height)", value="512,512"
-                )
-                min_bucket_reso = gr.Textbox(label="Min bucket resolution", value="256")
-                max_bucket_reso = gr.Textbox(
-                    label="Max bucket resolution", value="1024"
-                )
-                batch_size = gr.Textbox(label="Batch size", value="1")
-            with gr.Row():
-                create_caption = gr.Checkbox(
-                    label="Generate caption metadata", value=True
-                )
-                create_buckets = gr.Checkbox(
-                    label="Generate image buckets metadata", value=True
-                )
-                use_latent_files = gr.Dropdown(
-                    label="Use latent files",
-                    choices=[
-                        "No",
-                        "Yes",
-                    ],
-                    value="Yes",
-                )
-            with gr.Accordion("Advanced parameters", open=False):
-                with gr.Row():
-                    caption_metadata_filename = gr.Textbox(
-                        label="Caption metadata filename",
-                        value="meta_cap.json",
-                    )
-                    latent_metadata_filename = gr.Textbox(
-                        label="Latent metadata filename", value="meta_lat.json"
-                    )
-                with gr.Row():
-                    full_path = gr.Checkbox(label="Use full path", value=True)
-                    weighted_captions = gr.Checkbox(
-                        label="Weighted captions", value=False
-                    )
 
         with gr.Column(), gr.Group():
             with gr.Row():

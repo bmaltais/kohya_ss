@@ -20,8 +20,6 @@ def start_tensorboard(headless, logging_dir, wait_time=5):
     os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
     global tensorboard_proc
 
-    headless_bool = True if headless.get("label") == "True" else False
-
     # Read the TENSORBOARD_PORT from the environment, or use the default
     tensorboard_port = os.environ.get("TENSORBOARD_PORT", DEFAULT_TENSORBOARD_PORT)
 
@@ -62,7 +60,7 @@ def start_tensorboard(headless, logging_dir, wait_time=5):
         log.error("Failed to start Tensorboard:", e)
         return
 
-    if not headless_bool:
+    if not headless:
         # Wait for some time to allow TensorBoard to start up
         time.sleep(wait_time)
 

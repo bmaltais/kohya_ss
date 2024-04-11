@@ -434,17 +434,14 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    print_only_bool = True if print_only.get("label") == "True" else False
     log.info(f"Start training TI...")
-
-    headless_bool = True if headless.get("label") == "True" else False
 
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         train_data_dir=train_data_dir,
         reg_data_dir=reg_data_dir,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -454,15 +451,15 @@ def train_model(
         return
 
     if token_string == "":
-        output_message(msg="Token string is missing", headless=headless_bool)
+        output_message(msg="Token string is missing", headless=headless)
         return
 
     if init_word == "":
-        output_message(msg="Init word is missing", headless=headless_bool)
+        output_message(msg="Init word is missing", headless=headless)
         return
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless
     ):
         return
 
@@ -670,7 +667,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -708,7 +705,7 @@ def train_model(
 def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
 
     current_embedding_dir = (
         default_output_dir
@@ -738,6 +735,21 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
+
+        with gr.Accordion("Dataset Preparation", open=False):
+            gr.Markdown(
+                "This section provide Dreambooth tools to help setup your dataset..."
+            )
+            gradio_dreambooth_folder_creation_tab(
+                train_data_dir_input=source_model.train_data_dir,
+                reg_data_dir_input=folders.reg_data_dir,
+                output_dir_input=folders.output_dir,
+                logging_dir_input=folders.logging_dir,
+                headless=headless,
+                config=config,
+            )
+            
+            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Accordion("Basic", open="True"):
@@ -844,20 +856,6 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages(config=config)
-
-        with gr.Accordion("Dataset Preparation", open=False):
-            gr.Markdown(
-                "This section provide Dreambooth tools to help setup your dataset..."
-            )
-            gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=source_model.train_data_dir,
-                reg_data_dir_input=folders.reg_data_dir,
-                output_dir_input=folders.output_dir,
-                logging_dir_input=folders.logging_dir,
-                headless=headless,
-                config=config,
-            )
-            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():

@@ -633,16 +633,14 @@ def train_model(
     parameters = list(locals().items())
     global command_running
 
-    print_only_bool = True if print_only.get("label") == "True" else False
     log.info(f"Start training LoRA {LoRA_type} ...")
-    headless_bool = True if headless.get("label") == "True" else False
 
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         train_data_dir=train_data_dir,
         reg_data_dir=reg_data_dir,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -655,7 +653,7 @@ def train_model(
     if int(bucket_reso_steps) < 1:
         output_message(
             msg="Bucket resolution steps need to be greater than 0",
-            headless=headless_bool,
+            headless=headless,
         )
         return
 
@@ -665,7 +663,7 @@ def train_model(
     if float(noise_offset) > 1 or float(noise_offset) < 0:
         output_message(
             msg="Noise offset need to be a value between 0 and 1",
-            headless=headless_bool,
+            headless=headless,
         )
         return
 
@@ -676,12 +674,12 @@ def train_model(
     if stop_text_encoder_training_pct > 0:
         output_message(
             msg='Output "stop text encoder training" is not yet supported. Ignoring',
-            headless=headless_bool,
+            headless=headless,
         )
         stop_text_encoder_training_pct = 0
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless=headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless
     ):
         return
 
@@ -913,7 +911,7 @@ def train_model(
     # Determine the training configuration based on learning rate values
     # Sets flags for training specific components based on the provided learning rates.
     if float(learning_rate) == unet_lr_float == text_encoder_lr_float == 0:
-        output_message(msg="Please input learning rate values.", headless=headless_bool)
+        output_message(msg="Please input learning rate values.", headless=headless)
         return
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
@@ -1041,7 +1039,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -1084,7 +1082,7 @@ def lora_tab(
 ):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
 
     with gr.Tab("Training"), gr.Column(variant="compact") as tab:
         gr.Markdown(
@@ -1110,6 +1108,21 @@ def lora_tab(
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
+
+        with gr.Accordion("Dataset Preparation", open=False):
+            gr.Markdown(
+                "This section provide Dreambooth tools to help setup your dataset..."
+            )
+            gradio_dreambooth_folder_creation_tab(
+                train_data_dir_input=source_model.train_data_dir,
+                reg_data_dir_input=folders.reg_data_dir,
+                output_dir_input=folders.output_dir,
+                logging_dir_input=folders.logging_dir,
+                headless=headless,
+                config=config,
+            )
+            
+            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
 
@@ -1899,20 +1912,6 @@ def lora_tab(
                     lycoris_accordion,
                 ],
             )
-
-        with gr.Accordion("Dataset Preparation", open=False):
-            gr.Markdown(
-                "This section provide Dreambooth tools to help setup your dataset..."
-            )
-            gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=source_model.train_data_dir,
-                reg_data_dir_input=folders.reg_data_dir,
-                output_dir_input=folders.output_dir,
-                logging_dir_input=folders.logging_dir,
-                headless=headless,
-                config=config,
-            )
-            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():
