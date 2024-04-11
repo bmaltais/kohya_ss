@@ -27,7 +27,7 @@ scipy==1.11.4
 timm==0.6.12
 tk==0.1.0
 toml==0.10.2
-transformers==4.36.2
+transformers==4.38.0
 voluptuous==0.13.1
 wandb==0.15.11
 scipy==1.11.4

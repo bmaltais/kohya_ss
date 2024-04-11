@@ -97,10 +97,11 @@ def UI(**kwargs):
         launch_kwargs["server_port"] = server_port
     if inbrowser:
         launch_kwargs["inbrowser"] = inbrowser
-    if share:
+    if share and not kwargs.get("do_not_share", False):
         launch_kwargs["share"] = share
     launch_kwargs["debug"] = True
     interface.launch(**launch_kwargs)
+    interface.launch()
 
 
 if __name__ == "__main__":
@@ -141,6 +142,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
+    
+    parser.add_argument("--do_not_share", action="store_true", help="Do not share the gradio UI")
 
     args = parser.parse_args()
 

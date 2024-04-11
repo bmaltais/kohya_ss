@@ -412,6 +412,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 - Fix issue with Textual Inversion configuration file selection.
 - Upgrade to gradio 4.19.2 to fix several high security risks associated to earlier versions. Hoping this will not introduce undorseen issues.
+- Upgrade transformers to 4.38.0 to fix a low severity security issue.
+- Add explicit --do_not_share parameter to kohya_gui.py to avoid sharing the GUI on platforms like Kaggle.
 
 ### 2024/04/08 (v23.1.4)
 
