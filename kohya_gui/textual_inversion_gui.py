@@ -47,7 +47,7 @@ executor = CommandExecutor()
 
 
 def save_configuration(
-    save_as,
+    save_as_bool,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -158,8 +158,6 @@ def save_configuration(
     parameters = list(locals().items())
 
     original_file_path = file_path
-
-    save_as_bool = True if save_as.get("label") == "True" else False
 
     if save_as_bool:
         log.info("Save as...")
@@ -300,8 +298,6 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    ask_for_file = True if ask_for_file.get("label") == "True" else False
 
     original_file_path = file_path
 
@@ -710,8 +706,8 @@ def train_model(
 
 
 def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
-    dummy_db_true = gr.Label(value=True, visible=False)
-    dummy_db_false = gr.Label(value=False, visible=False)
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
+    dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
     current_embedding_dir = (
@@ -725,7 +721,7 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         # Setup Configuration Files Gradio
         with gr.Accordion("Configuration", open=False):
-            configuration = ConfigurationFile(headless=headless)
+            configuration = ConfigurationFile(headless=headless, config=config)
 
         with gr.Accordion("Accelerate launch", open=False), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
@@ -824,9 +820,9 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                             value="caption",
                         )
                     basic_training = BasicTraining(
-                        learning_rate_value="1e-5",
+                        learning_rate_value=1e-5,
                         lr_scheduler_value="cosine",
-                        lr_warmup_value="10",
+                        lr_warmup_value=10,
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
@@ -862,10 +858,6 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
                 config=config,
             )
             gradio_dataset_balancing_tab(headless=headless)
-
-        # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
-            configuration = ConfigurationFile(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():

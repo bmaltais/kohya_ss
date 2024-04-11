@@ -257,7 +257,7 @@ class SourceModel:
                                 min_width=60,
                             )
                     with gr.Column():
-                        gr.Box(visible=False)
+                        gr.Group(visible=False)
 
                 with gr.Row():
                     self.training_comment = gr.Textbox(

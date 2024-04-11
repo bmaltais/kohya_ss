@@ -19,9 +19,9 @@ class BasicTraining:
     def __init__(
         self,
         sdxl_checkbox: gr.Checkbox,
-        learning_rate_value: str = "1e-6",
+        learning_rate_value: float = "1e-6",
         lr_scheduler_value: str = "constant",
-        lr_warmup_value: str = "0",
+        lr_warmup_value: float = "0",
         finetuning: bool = False,
         dreambooth: bool = False,
         config: dict = {},

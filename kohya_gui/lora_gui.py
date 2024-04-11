@@ -83,7 +83,7 @@ def update_network_args_with_kohya_lora_vars(
 
 
 def save_configuration(
-    save_as,
+    save_as_bool,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -232,9 +232,6 @@ def save_configuration(
     parameters = list(locals().items())
 
     original_file_path = file_path
-
-    # Determine whether to save as a new file or overwrite the existing file
-    save_as_bool = True if save_as.get("label") == "True" else False
 
     # If saving as a new file, get the file path for saving
     if save_as_bool:
@@ -422,12 +419,6 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    # Convert 'ask_for_file' and 'apply_preset' from string to boolean based on their 'label' value
-    # This corrects a critical oversight in the original code, where `.get("label")` method calls were
-    # made on boolean variables instead of dictionaries
-    ask_for_file = True if ask_for_file.get("label") == "True" else False
-    apply_preset = True if apply_preset.get("label") == "True" else False
 
     # Determines if a preset configuration is being applied
     if apply_preset:
@@ -1091,8 +1082,8 @@ def lora_tab(
     headless=False,
     config: dict = {},
 ):
-    dummy_db_true = gr.Label(value=True, visible=False)
-    dummy_db_false = gr.Label(value=False, visible=False)
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
+    dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
     with gr.Tab("Training"), gr.Column(variant="compact") as tab:
@@ -1210,9 +1201,9 @@ def lora_tab(
                                     info="Automatically determine the dim(rank) from the weight file.",
                                 )
                     basic_training = BasicTraining(
-                        learning_rate_value="0.0001",
+                        learning_rate_value=0.0001,
                         lr_scheduler_value="cosine",
-                        lr_warmup_value="10",
+                        lr_warmup_value=10,
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
@@ -1220,7 +1211,7 @@ def lora_tab(
                     with gr.Row():
                         text_encoder_lr = gr.Number(
                             label="Text Encoder learning rate",
-                            value="0.0001",
+                            value=0.0001,
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
@@ -1228,7 +1219,7 @@ def lora_tab(
 
                         unet_lr = gr.Number(
                             label="Unet learning rate",
-                            value="0.0001",
+                            value=0.0001,
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
@@ -1286,7 +1277,7 @@ def lora_tab(
                                 visible=False,
                             )
                             constrain = gr.Number(
-                                value="0.0",
+                                value=0.0,
                                 label="Constrain OFT",
                                 info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
                                 visible=False,

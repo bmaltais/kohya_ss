@@ -269,8 +269,8 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
 
     with gr.Tab("Manual Captioning"):
         gr.Markdown("This utility allows quick captioning and tagging of images.")
-        page = gr.Number(-1, visible=False)
-        max_page = gr.Number(1, visible=False)
+        page = gr.Number(value=-1, visible=False)
+        max_page = gr.Number(value=1, visible=False)
         loaded_images_dir = gr.Text(visible=False)
         with gr.Group(), gr.Row():
             images_dir = gr.Dropdown(
@@ -336,7 +336,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
         def render_pagination():
             gr.Button("< Prev", elem_id="open_folder").click(
                 paginate,
-                inputs=[page, max_page, gr.Number(-1, visible=False)],
+                inputs=[page, max_page, gr.Number(value=-1, visible=False)],
                 outputs=[page],
             )
             page_count = gr.Label("Page 1", label="Page")
@@ -352,7 +352,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
             )
             gr.Button("Next >", elem_id="open_folder").click(
                 paginate,
-                inputs=[page, max_page, gr.Number(1, visible=False)],
+                inputs=[page, max_page, gr.Number(value=1, visible=False)],
                 outputs=[page],
             )
             return page_count
