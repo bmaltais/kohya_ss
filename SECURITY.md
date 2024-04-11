@@ -11,6 +11,4 @@ Versions that are currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
-
 Please open an issue if you discover a security issue.
