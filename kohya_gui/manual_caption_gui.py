@@ -298,9 +298,9 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 show_progress=False,
             )
             load_images_button = gr.Button("Load", elem_id="open_folder")
-            caption_ext = gr.Textbox(
+            caption_ext = gr.Dropdown(
                 label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )

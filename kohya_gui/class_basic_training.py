@@ -98,10 +98,11 @@ class BasicTraining:
                 label="Save every N epochs", value=self.config.get("basic.save_every_n_epochs", 1), precision=0
             )
             # Initialize the caption extension input
-            self.caption_extension = gr.Textbox(
-                label="Caption Extension",
-                placeholder="(Optional) default: .caption",
-                value=self.config.get("basic.caption_extension", ""),
+            self.caption_extension = gr.Dropdown(
+                label="Caption file extension",
+                choices=[".cap", ".caption", ".txt"],
+                value=".txt",
+                interactive=True,
             )
 
     def init_precision_and_resources_controls(self) -> None:

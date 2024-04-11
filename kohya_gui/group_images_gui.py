@@ -171,9 +171,9 @@ def gradio_group_images_gui_tab(headless=False):
                 info="Generate caption files for the grouped images based on their folder name",
             )
 
-            caption_ext = gr.Textbox(
-                label="Caption Extension",
-                placeholder="Caption file extension (e.g., .txt)",
+            caption_ext = gr.Dropdown(
+                label="Caption file extension",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )
