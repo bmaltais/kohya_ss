@@ -27,7 +27,7 @@ rik="rik"
 koo="koo"
 yos="yos"
 wn="wn"
-optional_parm = "optional_parm"
+parm = "parm"
 
 
 [files]
