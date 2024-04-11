@@ -43,19 +43,12 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
     - [2024/04/10 (v23.1.5)](#20240410-v2315)
+      - [Security Improvements](#security-improvements)
     - [2024/04/08 (v23.1.4)](#20240408-v2314)
     - [2024/04/08 (v23.1.3)](#20240408-v2313)
     - [2024/04/08 (v23.1.2)](#20240408-v2312)
     - [2024/04/07 (v23.1.1)](#20240407-v2311)
     - [2024/04/07 (v23.1.0)](#20240407-v2310)
-    - [2024/03/21 (v23.0.15)](#20240321-v23015)
-    - [2024/03/19 (v23.0.14)](#20240319-v23014)
-    - [2024/03/19 (v23.0.13)](#20240319-v23013)
-    - [2024/03/16 (v23.0.12)](#20240316-v23012)
-      - [New Features \& Improvements](#new-features--improvements)
-      - [Software Updates](#software-updates)
-      - [Recommendations for Users](#recommendations-for-users)
-    - [2024/03/13 (v23.0.11)](#20240313-v23011)
 
 ## 🦒 Colab
 
@@ -413,8 +406,12 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Fix issue with Textual Inversion configuration file selection.
 - Upgrade to gradio 4.19.2 to fix several high security risks associated to earlier versions. This is a major upgrade, moving from 3.x to 4.x. Hoping this will not introduce undorseen issues.
 - Upgrade transformers to 4.38.0 to fix a low severity security issue.
+
+#### Security Improvements
+
 - Add explicit --do_not_share parameter to kohya_gui.py to avoid sharing the GUI on platforms like Kaggle.
 - Remove shell=True from subprocess calls to avoid security issues when using the GUI.
+- Limit caption extensions to a fixed set of extensions to limit the risk of finding and replacing text content in unexpected files.
 
 ### 2024/04/08 (v23.1.4)
 
@@ -519,53 +516,3 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Added support for "Dataset Preparation" defaults via the config.toml file.
 - Added a field to allow for the input of extra accelerate launch arguments.
 - Added new caption tool from https://github.com/kainatquaderee
-
-### 2024/03/21 (v23.0.15)
-
-- Add support for toml dataset configuration fole to all trainers
-- Add new setup menu option to install Triton 2.1.0 for Windows
-- Add support for LyCORIS BOFT and DoRA and QLyCORIS options for LoHA, LoKr and LoCon
-- Fix issue with vae path validation
-- Other fixes
-
-### 2024/03/19 (v23.0.14)
-
-- Fix blip caption issue
-
-### 2024/03/19 (v23.0.13)
-
-- Fix issue with image samples.
-
-### 2024/03/16 (v23.0.12)
-
-#### New Features & Improvements
-
-- **Enhanced Logging and Tracking Capabilities**
-  - Added support for configuring advanced logging and tracking:
-    - `wandb_run_name`: Set a custom name for your Weights & Biases runs to easily identify and organize your experiments.
-    - `log_tracker_name` and `log_tracker_config`: Integrate custom logging trackers with your projects. Specify the tracker name and provide its configuration to enable detailed monitoring and logging of your runs.
-
-- **Custom Path Defaults**
-  - You can now specify custom paths more easily:
-    - Simply copy the `config example.toml` file located in the root directory of the repository to `config.toml`.
-    - Edit the `config.toml` file to adjust paths and settings according to your preferences.
-
-#### Software Updates
-
-- **sd-scripts updated to v0.8.5**
-  - **Bug Fixes:**
-    - Corrected an issue where the value of timestep embedding was incorrect during SDXL training. This fix ensures accurate training progress and results.
-    - Addressed a related inference issue with the generation script, improving the reliability of SDXL model outputs.
-  - **Note:** The exact impact of this bug is currently unknown, but it's recommended to update to v0.8.5 for anyone engaged in SDXL training to ensure optimal performance and results.
-
-- **Upgrade of `lycoris_lora` Python Module**
-  - Updated the `lycoris_lora` module to version 2.2.0.post3. This update may include bug fixes, performance improvements, and new features.
-
-#### Recommendations for Users
-
-- To benefit from the latest features and improvements, users are encouraged to update their installations and configurations accordingly.
-
-### 2024/03/13 (v23.0.11)
-
-- Increase icon size.
-- More setup fixes.

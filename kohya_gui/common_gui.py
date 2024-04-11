@@ -646,6 +646,10 @@ def add_pre_postfix(
         postfix (str, optional): Postfix to add to the content of the caption files.
         caption_file_ext (str, optional): Extension of the caption files.
     """
+    # Enforce that the provided extension is one of .caption, .cap, .txt
+    if caption_file_ext not in (".caption", ".cap", ".txt"):
+        log.error("Invalid caption file extension. Must be on of .caption, .cap, .txt")
+        return
 
     # If neither prefix nor postfix is provided, return early
     if prefix == "" and postfix == "":
