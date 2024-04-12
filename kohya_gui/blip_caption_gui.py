@@ -79,7 +79,7 @@ def caption_images(
     )
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, shell=True, env=env, cwd=f"{scriptdir}/sd-scripts")
+    subprocess.run(run_cmd, env=env, cwd=f"{scriptdir}/sd-scripts")
 
     # Add prefix and postfix
     add_pre_postfix(
@@ -142,9 +142,9 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
                 show_progress=False,
             )
         with gr.Row():
-            caption_file_ext = gr.Textbox(
+            caption_file_ext = gr.Dropdown(
                 label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )

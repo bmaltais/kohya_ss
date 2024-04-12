@@ -332,7 +332,7 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
                     )
 
                     top_p = gr.Slider(
-                        minimum=-0,
+                        minimum=0,
                         maximum=1,
                         value=0.9,
                         step=0.1,

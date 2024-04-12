@@ -83,7 +83,7 @@ def caption_images(
         )
 
         # Run the command based on the operating system
-        subprocess.run(run_cmd, shell=True, env=env)
+        subprocess.run(run_cmd, env=env)
 
     # Check if overwrite option is enabled
     if overwrite:
@@ -190,9 +190,9 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 show_progress=False,
             )
             # Textbox for caption file extension
-            caption_ext = gr.Textbox(
+            caption_ext = gr.Dropdown(
                 label="Caption file extension",
-                placeholder="Extension for caption file (e.g., .caption, .txt)",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )

@@ -88,6 +88,7 @@ def UI(**kwargs):
     server_port = kwargs.get("server_port", 0)
     inbrowser = kwargs.get("inbrowser", False)
     share = kwargs.get("share", False)
+    do_not_share = kwargs.get("do_not_share", False)
     server_name = kwargs.get("listen")
 
     launch_kwargs["server_name"] = server_name
@@ -97,11 +98,13 @@ def UI(**kwargs):
         launch_kwargs["server_port"] = server_port
     if inbrowser:
         launch_kwargs["inbrowser"] = inbrowser
-    if share:
-        launch_kwargs["share"] = share
+    if do_not_share:
+        launch_kwargs["share"] = False
+    else:
+        if share:
+            launch_kwargs["share"] = share
     launch_kwargs["debug"] = True
     interface.launch(**launch_kwargs)
-
 
 if __name__ == "__main__":
     # torch.cuda.set_per_process_memory_fraction(0.48)
@@ -141,17 +144,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
+    
+    parser.add_argument("--do_not_share", action="store_true", help="Do not share the gradio UI")
 
     args = parser.parse_args()
 
-    UI(
-        config_file_path=args.config,
-        username=args.username,
-        password=args.password,
-        inbrowser=args.inbrowser,
-        server_port=args.server_port,
-        share=args.share,
-        listen=args.listen,
-        headless=args.headless,
-        language=args.language,
-    )
+    UI(**vars(args))

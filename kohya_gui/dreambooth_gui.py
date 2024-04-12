@@ -47,7 +47,7 @@ PYTHON = sys.executable
 
 
 def save_configuration(
-    save_as,
+    save_as_bool,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -159,8 +159,6 @@ def save_configuration(
     parameters = list(locals().items())
 
     original_file_path = file_path
-
-    save_as_bool = True if save_as.get("label") == "True" else False
 
     if save_as_bool:
         log.info("Save as...")
@@ -301,8 +299,6 @@ def open_configuration(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    ask_for_file = True if ask_for_file.get("label") == "True" else False
-
     original_file_path = file_path
 
     if ask_for_file:
@@ -439,10 +435,7 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
 
-    print_only_bool = True if print_only.get("label") == "True" else False
     log.info(f"Start training Dreambooth...")
-
-    headless_bool = True if headless.get("label") == "True" else False
 
     # This function validates files or folder paths. Simply add new variables containing file of folder path
     # to validate below
@@ -451,7 +444,7 @@ def train_model(
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         train_data_dir=train_data_dir,
         reg_data_dir=reg_data_dir,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -460,8 +453,8 @@ def train_model(
     ):
         return
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless=headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless
     ):
         return
 
@@ -697,7 +690,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -740,9 +733,9 @@ def dreambooth_tab(
     headless=False,
     config: KohyaSSGUIConfig = {},
 ):
-    dummy_db_true = gr.Label(value=True, visible=False)
-    dummy_db_false = gr.Label(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
+    dummy_db_false = gr.Checkbox(value=False, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
@@ -760,13 +753,28 @@ def dreambooth_tab(
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
 
+        with gr.Accordion("Dataset Preparation", open=False):
+            gr.Markdown(
+                "This section provide Dreambooth tools to help setup your dataset..."
+            )
+            gradio_dreambooth_folder_creation_tab(
+                train_data_dir_input=source_model.train_data_dir,
+                reg_data_dir_input=folders.reg_data_dir,
+                output_dir_input=folders.output_dir,
+                logging_dir_input=folders.logging_dir,
+                headless=headless,
+                config=config,
+            )
+            
+            gradio_dataset_balancing_tab(headless=headless)
+
         with gr.Accordion("Parameters", open=False), gr.Column():
             with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
                     basic_training = BasicTraining(
-                        learning_rate_value="1e-5",
+                        learning_rate_value=1e-5,
                         lr_scheduler_value="cosine",
-                        lr_warmup_value="10",
+                        lr_warmup_value=10,
                         dreambooth=True,
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
@@ -782,20 +790,6 @@ def dreambooth_tab(
 
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages(config=config)
-
-        with gr.Accordion("Dataset Preparation", open=False):
-            gr.Markdown(
-                "This section provide Dreambooth tools to help setup your dataset..."
-            )
-            gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=source_model.train_data_dir,
-                reg_data_dir_input=folders.reg_data_dir,
-                output_dir_input=folders.output_dir,
-                logging_dir_input=folders.logging_dir,
-                headless=headless,
-                config=config,
-            )
-            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():

@@ -83,7 +83,7 @@ def update_network_args_with_kohya_lora_vars(
 
 
 def save_configuration(
-    save_as,
+    save_as_bool,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -232,9 +232,6 @@ def save_configuration(
     parameters = list(locals().items())
 
     original_file_path = file_path
-
-    # Determine whether to save as a new file or overwrite the existing file
-    save_as_bool = True if save_as.get("label") == "True" else False
 
     # If saving as a new file, get the file path for saving
     if save_as_bool:
@@ -422,12 +419,6 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    # Convert 'ask_for_file' and 'apply_preset' from string to boolean based on their 'label' value
-    # This corrects a critical oversight in the original code, where `.get("label")` method calls were
-    # made on boolean variables instead of dictionaries
-    ask_for_file = True if ask_for_file.get("label") == "True" else False
-    apply_preset = True if apply_preset.get("label") == "True" else False
 
     # Determines if a preset configuration is being applied
     if apply_preset:
@@ -642,16 +633,14 @@ def train_model(
     parameters = list(locals().items())
     global command_running
 
-    print_only_bool = True if print_only.get("label") == "True" else False
     log.info(f"Start training LoRA {LoRA_type} ...")
-    headless_bool = True if headless.get("label") == "True" else False
 
     if not validate_paths(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         train_data_dir=train_data_dir,
         reg_data_dir=reg_data_dir,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -664,7 +653,7 @@ def train_model(
     if int(bucket_reso_steps) < 1:
         output_message(
             msg="Bucket resolution steps need to be greater than 0",
-            headless=headless_bool,
+            headless=headless,
         )
         return
 
@@ -674,7 +663,7 @@ def train_model(
     if float(noise_offset) > 1 or float(noise_offset) < 0:
         output_message(
             msg="Noise offset need to be a value between 0 and 1",
-            headless=headless_bool,
+            headless=headless,
         )
         return
 
@@ -685,12 +674,12 @@ def train_model(
     if stop_text_encoder_training_pct > 0:
         output_message(
             msg='Output "stop text encoder training" is not yet supported. Ignoring',
-            headless=headless_bool,
+            headless=headless,
         )
         stop_text_encoder_training_pct = 0
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless=headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless=headless
     ):
         return
 
@@ -922,7 +911,7 @@ def train_model(
     # Determine the training configuration based on learning rate values
     # Sets flags for training specific components based on the provided learning rates.
     if float(learning_rate) == unet_lr_float == text_encoder_lr_float == 0:
-        output_message(msg="Please input learning rate values.", headless=headless_bool)
+        output_message(msg="Please input learning rate values.", headless=headless)
         return
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
@@ -1050,7 +1039,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -1091,9 +1080,9 @@ def lora_tab(
     headless=False,
     config: dict = {},
 ):
-    dummy_db_true = gr.Label(value=True, visible=False)
-    dummy_db_false = gr.Label(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
+    dummy_db_false = gr.Checkbox(value=False, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
 
     with gr.Tab("Training"), gr.Column(variant="compact") as tab:
         gr.Markdown(
@@ -1120,13 +1109,28 @@ def lora_tab(
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
 
+        with gr.Accordion("Dataset Preparation", open=False):
+            gr.Markdown(
+                "This section provide Dreambooth tools to help setup your dataset..."
+            )
+            gradio_dreambooth_folder_creation_tab(
+                train_data_dir_input=source_model.train_data_dir,
+                reg_data_dir_input=folders.reg_data_dir,
+                output_dir_input=folders.output_dir,
+                logging_dir_input=folders.logging_dir,
+                headless=headless,
+                config=config,
+            )
+            
+            gradio_dataset_balancing_tab(headless=headless)
+
         with gr.Accordion("Parameters", open=False), gr.Column():
 
             def list_presets(path):
                 json_files = []
 
                 # Insert an empty string at the beginning
-                json_files.insert(0, "none")
+                #json_files.insert(0, "none")
 
                 for file in os.listdir(path):
                     if file.endswith(".json"):
@@ -1141,14 +1145,14 @@ def lora_tab(
 
                 return json_files
 
-            with gr.Accordion("Basic", open="True"):
-                training_preset = gr.Dropdown(
-                    label="Presets",
-                    choices=[""] + list_presets(rf"{presets_dir}/lora"),
-                    elem_id="myDropdown",
-                    value="none",
-                )
+            training_preset = gr.Dropdown(
+                label="Presets",
+                choices=["none"] + list_presets(rf"{presets_dir}/lora"),
+                # elem_id="myDropdown",
+                value="none",
+            )
 
+            with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
                     with gr.Row():
                         LoRA_type = gr.Dropdown(
@@ -1210,9 +1214,9 @@ def lora_tab(
                                     info="Automatically determine the dim(rank) from the weight file.",
                                 )
                     basic_training = BasicTraining(
-                        learning_rate_value="0.0001",
+                        learning_rate_value=0.0001,
                         lr_scheduler_value="cosine",
-                        lr_warmup_value="10",
+                        lr_warmup_value=10,
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
@@ -1220,7 +1224,7 @@ def lora_tab(
                     with gr.Row():
                         text_encoder_lr = gr.Number(
                             label="Text Encoder learning rate",
-                            value="0.0001",
+                            value=0.0001,
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
@@ -1228,7 +1232,7 @@ def lora_tab(
 
                         unet_lr = gr.Number(
                             label="Unet learning rate",
-                            value="0.0001",
+                            value=0.0001,
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
@@ -1286,7 +1290,7 @@ def lora_tab(
                                 visible=False,
                             )
                             constrain = gr.Number(
-                                value="0.0",
+                                value=0.0,
                                 label="Constrain OFT",
                                 info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
                                 visible=False,
@@ -1399,7 +1403,7 @@ def lora_tab(
                             conv_dim,
                             network_dim,
                         ):
-                            log.info("LoRA type changed...")
+                            log.debug("LoRA type changed...")
 
                             lora_settings_config = {
                                 "network_row": {
@@ -1908,20 +1912,6 @@ def lora_tab(
                     lycoris_accordion,
                 ],
             )
-
-        with gr.Accordion("Dataset Preparation", open=False):
-            gr.Markdown(
-                "This section provide Dreambooth tools to help setup your dataset..."
-            )
-            gradio_dreambooth_folder_creation_tab(
-                train_data_dir_input=source_model.train_data_dir,
-                reg_data_dir_input=folders.reg_data_dir,
-                output_dir_input=folders.output_dir,
-                logging_dir_input=folders.logging_dir,
-                headless=headless,
-                config=config,
-            )
-            gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():

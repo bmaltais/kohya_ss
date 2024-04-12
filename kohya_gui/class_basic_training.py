@@ -19,9 +19,9 @@ class BasicTraining:
     def __init__(
         self,
         sdxl_checkbox: gr.Checkbox,
-        learning_rate_value: str = "1e-6",
+        learning_rate_value: float = "1e-6",
         lr_scheduler_value: str = "constant",
-        lr_warmup_value: str = "0",
+        lr_warmup_value: float = "0",
         finetuning: bool = False,
         dreambooth: bool = False,
         config: dict = {},
@@ -98,10 +98,11 @@ class BasicTraining:
                 label="Save every N epochs", value=self.config.get("basic.save_every_n_epochs", 1), precision=0
             )
             # Initialize the caption extension input
-            self.caption_extension = gr.Textbox(
-                label="Caption Extension",
-                placeholder="(Optional) default: .caption",
-                value=self.config.get("basic.caption_extension", ""),
+            self.caption_extension = gr.Dropdown(
+                label="Caption file extension",
+                choices=[".cap", ".caption", ".txt"],
+                value=".txt",
+                interactive=True,
             )
 
     def init_precision_and_resources_controls(self) -> None:

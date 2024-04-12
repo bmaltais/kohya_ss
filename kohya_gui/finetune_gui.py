@@ -53,7 +53,7 @@ presets_dir = rf"{scriptdir}/presets"
 
 
 def save_configuration(
-    save_as,
+    save_as_bool,
     file_path,
     pretrained_model_name_or_path,
     v2,
@@ -169,8 +169,6 @@ def save_configuration(
     parameters = list(locals().items())
 
     original_file_path = file_path
-
-    save_as_bool = True if save_as.get("label") == "True" else False
 
     if save_as_bool:
         log.info("Save as...")
@@ -318,9 +316,6 @@ def open_configuration(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    ask_for_file = True if ask_for_file.get("label") == "True" else False
-    apply_preset = True if apply_preset.get("label") == "True" else False
 
     # Check if we are "applying" a preset or a config
     if apply_preset:
@@ -474,11 +469,10 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-
-    print_only_bool = True if print_only.get("label") == "True" else False
+    
+    log.debug(f"headless = {headless} ; print_only = {print_only}")
+    
     log.info(f"Start Finetuning...")
-
-    headless_bool = True if headless.get("label") == "True" else False
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
@@ -487,7 +481,7 @@ def train_model(
         output_dir=output_dir,
         pretrained_model_name_or_path=pretrained_model_name_or_path,
         finetune_image_folder=image_folder,
-        headless=headless_bool,
+        headless=headless,
         logging_dir=logging_dir,
         log_tracker_config=log_tracker_config,
         resume=resume,
@@ -495,8 +489,8 @@ def train_model(
     ):
         return
 
-    if not print_only_bool and check_if_model_exist(
-        output_name, output_dir, save_model_as, headless_bool
+    if not print_only and check_if_model_exist(
+        output_name, output_dir, save_model_as, headless
     ):
         return
 
@@ -523,10 +517,11 @@ def train_model(
             env["PYTHONPATH"] = (
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
+            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-            if not print_only_bool:
+            if not print_only:
                 # Run the command
-                subprocess.run(run_cmd, shell=True, env=env)
+                subprocess.run(run_cmd, env=env)
 
         # create images buckets
         if generate_image_buckets:
@@ -556,10 +551,11 @@ def train_model(
             env["PYTHONPATH"] = (
                 rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
+            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-            if not print_only_bool:
+            if not print_only:
                 # Run the command
-                subprocess.run(run_cmd, shell=True, env=env)
+                subprocess.run(run_cmd, env=env)
 
         image_num = len(
             [
@@ -729,7 +725,7 @@ def train_model(
         output_dir,
     )
 
-    if print_only_bool:
+    if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
@@ -764,9 +760,9 @@ def train_model(
 
 
 def finetune_tab(headless=False, config: dict = {}):
-    dummy_db_true = gr.Label(value=True, visible=False)
-    dummy_db_false = gr.Label(value=False, visible=False)
-    dummy_headless = gr.Label(value=headless, visible=False)
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
+    dummy_db_false = gr.Checkbox(value=False, visible=False)
+    dummy_headless = gr.Checkbox(value=headless, visible=False)
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
@@ -789,73 +785,6 @@ def finetune_tab(headless=False, config: dict = {}):
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
-
-        with gr.Accordion("Parameters", open=False), gr.Column():
-
-            def list_presets(path):
-                json_files = []
-
-                for file in os.listdir(path):
-                    if file.endswith(".json"):
-                        json_files.append(os.path.splitext(file)[0])
-
-                user_presets_path = os.path.join(path, "user_presets")
-                if os.path.isdir(user_presets_path):
-                    for file in os.listdir(user_presets_path):
-                        if file.endswith(".json"):
-                            preset_name = os.path.splitext(file)[0]
-                            json_files.append(os.path.join("user_presets", preset_name))
-
-                return json_files
-
-            training_preset = gr.Dropdown(
-                label="Presets",
-                choices=[""] + list_presets(f"{presets_dir}/finetune"),
-                elem_id="myDropdown",
-            )
-
-            with gr.Accordion("Basic", open="True"):
-                with gr.Group(elem_id="basic_tab"):
-                    basic_training = BasicTraining(
-                        learning_rate_value="1e-5",
-                        finetuning=True,
-                        sdxl_checkbox=source_model.sdxl_checkbox,
-                        config=config,
-                    )
-
-                    # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
-
-                    with gr.Row():
-                        dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
-                        train_text_encoder = gr.Checkbox(
-                            label="Train text encoder", value=True
-                        )
-
-            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
-                with gr.Row():
-                    gradient_accumulation_steps = gr.Number(
-                        label="Gradient accumulate steps",
-                        value="1",
-                    )
-                    block_lr = gr.Textbox(
-                        label="Block LR (SDXL)",
-                        placeholder="(Optional)",
-                        info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
-                    )
-                advanced_training = AdvancedTraining(
-                    headless=headless, finetuning=True, config=config
-                )
-                advanced_training.color_aug.change(
-                    color_aug_changed,
-                    inputs=[advanced_training.color_aug],
-                    outputs=[
-                        basic_training.cache_latents
-                    ],  # Not applicable to fine_tune.py
-                )
-
-            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
-                sample = SampleImages(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             with gr.Row():
@@ -896,6 +825,74 @@ def finetune_tab(headless=False, config: dict = {}):
                     weighted_captions = gr.Checkbox(
                         label="Weighted captions", value=False
                     )
+
+        with gr.Accordion("Parameters", open=False), gr.Column():
+
+            def list_presets(path):
+                json_files = []
+
+                for file in os.listdir(path):
+                    if file.endswith(".json"):
+                        json_files.append(os.path.splitext(file)[0])
+
+                user_presets_path = os.path.join(path, "user_presets")
+                if os.path.isdir(user_presets_path):
+                    for file in os.listdir(user_presets_path):
+                        if file.endswith(".json"):
+                            preset_name = os.path.splitext(file)[0]
+                            json_files.append(os.path.join("user_presets", preset_name))
+
+                return json_files
+
+            training_preset = gr.Dropdown(
+                label="Presets",
+                choices=["none"] + list_presets(f"{presets_dir}/finetune"),
+                # elem_id="myDropdown",
+                value="none",
+            )
+
+            with gr.Accordion("Basic", open="True"):
+                with gr.Group(elem_id="basic_tab"):
+                    basic_training = BasicTraining(
+                        learning_rate_value=1e-5,
+                        finetuning=True,
+                        sdxl_checkbox=source_model.sdxl_checkbox,
+                        config=config,
+                    )
+
+                    # Add SDXL Parameters
+                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
+
+                    with gr.Row():
+                        dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
+                        train_text_encoder = gr.Checkbox(
+                            label="Train text encoder", value=True
+                        )
+
+            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
+                with gr.Row():
+                    gradient_accumulation_steps = gr.Number(
+                        label="Gradient accumulate steps",
+                        value=1,
+                    )
+                    block_lr = gr.Textbox(
+                        label="Block LR (SDXL)",
+                        placeholder="(Optional)",
+                        info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
+                    )
+                advanced_training = AdvancedTraining(
+                    headless=headless, finetuning=True, config=config
+                )
+                advanced_training.color_aug.change(
+                    color_aug_changed,
+                    inputs=[advanced_training.color_aug],
+                    outputs=[
+                        basic_training.cache_latents
+                    ],  # Not applicable to fine_tune.py
+                )
+
+            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
+                sample = SampleImages(config=config)
 
         with gr.Column(), gr.Group():
             with gr.Row():

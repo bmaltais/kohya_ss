@@ -53,7 +53,7 @@ def group_images(
     )
 
     # Run the command
-    subprocess.run(run_cmd, shell=True, env=env)
+    subprocess.run(run_cmd, env=env)
 
     log.info("...grouping done")
 
@@ -146,7 +146,7 @@ def gradio_group_images_gui_tab(headless=False):
             group_size = gr.Slider(
                 label="Group size",
                 info="Number of images to group together",
-                value="4",
+                value=4,
                 minimum=1,
                 maximum=64,
                 step=1,
@@ -171,9 +171,9 @@ def gradio_group_images_gui_tab(headless=False):
                 info="Generate caption files for the grouped images based on their folder name",
             )
 
-            caption_ext = gr.Textbox(
-                label="Caption Extension",
-                placeholder="Caption file extension (e.g., .txt)",
+            caption_ext = gr.Dropdown(
+                label="Caption file extension",
+                choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )
