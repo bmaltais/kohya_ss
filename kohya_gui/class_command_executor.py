@@ -1,5 +1,6 @@
 import subprocess
 import psutil
+import gradio as gr
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -52,3 +53,5 @@ class CommandExecutor:
                 log.info(f"Error when terminating process: {e}")
         else:
             log.info("There is no running process to kill.")
+            
+        return gr.Button(visible=True), gr.Button(visible=False)
