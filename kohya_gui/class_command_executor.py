@@ -1,6 +1,8 @@
 import subprocess
 import psutil
+import os
 import gradio as gr
+import shlex
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -29,6 +31,11 @@ class CommandExecutor:
         if self.process and self.process.poll() is None:
             log.info("The command is already running. Please wait for it to finish.")
         else:
+            # Reconstruct the safe command string for display
+            command_to_run = ' '.join(run_cmd)
+            log.info(f"Executings command: {command_to_run}")
+
+            # Execute the command securely
             self.process = subprocess.Popen(run_cmd, **kwargs)
 
     def kill_command(self):

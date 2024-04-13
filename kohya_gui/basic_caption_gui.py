@@ -62,25 +62,31 @@ def caption_images(
         log.info(f"Captioning files in {images_dir} with {caption_text}...")
 
         # Build the command to run caption.py
-        run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/caption.py"'
-        run_cmd += f' --caption_text="{caption_text}"'
+        run_cmd = [PYTHON, f"{scriptdir}/tools/caption.py"]
+
+        # Add required arguments
+        run_cmd.append('--caption_text')
+        run_cmd.append(caption_text)
 
         # Add optional flags to the command
         if overwrite:
-            run_cmd += f" --overwrite"
+            run_cmd.append("--overwrite")
         if caption_ext:
-            run_cmd += f' --caption_file_ext="{caption_ext}"'
+            run_cmd.append('--caption_file_ext')
+            run_cmd.append(caption_ext)
 
-        run_cmd += f' "{images_dir}"'
+        # Add the directory containing the images
+        run_cmd.append(images_dir)
 
         # Log the command
-        log.info(run_cmd)
+        log.info(' '.join(run_cmd))
 
         # Set the environment variable for the Python path
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
+        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command based on the operating system
         subprocess.run(run_cmd, env=env)

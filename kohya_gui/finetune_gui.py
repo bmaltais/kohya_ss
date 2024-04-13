@@ -3,9 +3,11 @@ import json
 import math
 import os
 import subprocess
+import shlex
 import sys
 from datetime import datetime
 from .common_gui import (
+    get_executable_path,
     get_file_path,
     get_saveasfile_path,
     run_cmd_advanced_training,
@@ -497,61 +499,80 @@ def train_model(
     else:
         # create caption json file
         if generate_caption_database:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+            # Define the command components
+            run_cmd = [
+                PYTHON, f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"
+            ]
+
+            # Add the caption extension
+            run_cmd.append('--caption_extension')
             if caption_extension == "":
-                run_cmd += f' --caption_extension=".caption"'
+                run_cmd.append('.caption')  # Default extension
             else:
-                run_cmd += f" --caption_extension={caption_extension}"
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
+                run_cmd.append(caption_extension)
+
+            # Add paths for the image folder and the caption metadata file
+            run_cmd.append(image_folder)
+            run_cmd.append(os.path.join(train_dir, caption_metadata_filename))
+
+            # Include the full path flag if specified
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append("--full_path")
 
-            log.info(run_cmd)
+            # Log the built command
+            log.info(' '.join(run_cmd))
 
+            # Prepare environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not in print-only mode
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
+
 
         # create images buckets
         if generate_image_buckets:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
-            run_cmd += rf' "{train_dir}/{latent_metadata_filename}"'
-            run_cmd += rf' "{pretrained_model_name_or_path}"'
-            run_cmd += f" --batch_size={batch_size}"
-            run_cmd += f" --max_resolution={max_resolution}"
-            run_cmd += f" --min_bucket_reso={min_bucket_reso}"
-            run_cmd += f" --max_bucket_reso={max_bucket_reso}"
-            run_cmd += f" --mixed_precision={mixed_precision}"
-            # if flip_aug:
-            #     run_cmd += f' --flip_aug'
+            # Build the command to run the preparation script
+            run_cmd = [
+                PYTHON,
+                f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
+                image_folder,
+                os.path.join(train_dir, caption_metadata_filename),
+                os.path.join(train_dir, latent_metadata_filename),
+                pretrained_model_name_or_path,
+                '--batch_size', str(batch_size),
+                '--max_resolution', str(max_resolution),
+                '--min_bucket_reso', str(min_bucket_reso),
+                '--max_bucket_reso', str(max_bucket_reso),
+                '--mixed_precision', str(mixed_precision)
+            ]
+
+            # Conditional flags
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append('--full_path')
             if sdxl_checkbox and sdxl_no_half_vae:
-                log.info(
-                    "Using mixed_precision = no because no half vae is selected..."
-                )
-                run_cmd += f' --mixed_precision="no"'
+                log.info("Using mixed_precision = no because no half vae is selected...")
+                # Ensure 'no' is correctly handled without extra quotes that might be interpreted literally in command line
+                run_cmd.append('--mixed_precision=no')
 
-            log.info(run_cmd)
+            # Log the complete command as a string for clarity
+            log.info(' '.join(run_cmd))
 
+            # Copy and modify environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not just for printing
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
+
 
         if image_folder == "":
             log.error("Image folder dir is empty")
@@ -592,9 +613,10 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = "accelerate launch"
+    run_cmd = ["accelerate", "launch"]
 
-    run_cmd += AccelerateLaunch.run_cmd(
+    run_cmd = AccelerateLaunch.run_cmd(
+        run_cmd=run_cmd,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -606,14 +628,14 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd.append(f'{scriptdir}/sd-scripts/sdxl_train.py')
     else:
-        run_cmd += rf' "{scriptdir}/sd-scripts/fine_tune.py"'
+        run_cmd.append(f'{scriptdir}/sd-scripts/fine_tune.py')
 
     in_json = (
-        rf"{train_dir}/{latent_metadata_filename}"
+        f"{train_dir}/{latent_metadata_filename}"
         if use_latent_files == "Yes"
-        else rf"{train_dir}/{caption_metadata_filename}"
+        else f"{train_dir}/{caption_metadata_filename}"
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
@@ -715,9 +737,10 @@ def train_model(
         kwargs_for_training["learning_rate_te"] = learning_rate_te
 
     # Pass the dynamically constructed keyword arguments to the function
-    run_cmd += run_cmd_advanced_training(**kwargs_for_training)
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
-    run_cmd += run_cmd_sample(
+    run_cmd = run_cmd_sample(
+        run_cmd,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
@@ -729,9 +752,12 @@ def train_model(
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
-        print(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = ' '.join(run_cmd)
+        
+        print(command_to_run)
 
-        save_to_file(run_cmd)
+        save_to_file(command_to_run)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -747,7 +773,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        log.info(run_cmd)
+        # log.info(run_cmd)
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (

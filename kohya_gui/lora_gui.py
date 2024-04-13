@@ -2,8 +2,11 @@ import gradio as gr
 import json
 import math
 import os
+import shlex
+
 from datetime import datetime
 from .common_gui import (
+    get_executable_path,
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
@@ -440,6 +443,11 @@ def open_configuration(
 
     # Proceed if the file path is valid (not empty or None)
     if not file_path == "" and not file_path == None:
+        # Check if the file exists before opening it
+        if not os.path.isfile(file_path):
+            log.error(f"Config file {file_path} does not exist.")
+            return
+
         # Load variables from JSON file
         with open(file_path, "r") as f:
             my_data = json.load(f)
@@ -785,9 +793,10 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = "accelerate launch"
+    run_cmd = ["accelerate", "launch"]
 
-    run_cmd += AccelerateLaunch.run_cmd(
+    run_cmd = AccelerateLaunch.run_cmd(
+        run_cmd=run_cmd,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -799,9 +808,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train_network.py"'
+        run_cmd.append(f'{scriptdir}/sd-scripts/sdxl_train_network.py')
     else:
-        run_cmd += rf' "{scriptdir}/sd-scripts/train_network.py"'
+        run_cmd.append(f'{scriptdir}/sd-scripts/train_network.py')
 
     network_args = ""
 
@@ -1031,9 +1040,10 @@ def train_model(
     }
 
     # Use the ** syntax to unpack the dictionary when calling the function
-    run_cmd += run_cmd_advanced_training(**run_cmd_params)
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **run_cmd_params)
 
-    run_cmd += run_cmd_sample(
+    run_cmd = run_cmd_sample(
+        run_cmd,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
@@ -1045,9 +1055,12 @@ def train_model(
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
-        print(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = ' '.join(run_cmd)
+        
+        print(command_to_run)
 
-        save_to_file(run_cmd)
+        save_to_file(command_to_run)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -1063,7 +1076,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        log.info(run_cmd)
+        # log.info(run_cmd)
         env = os.environ.copy()
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"

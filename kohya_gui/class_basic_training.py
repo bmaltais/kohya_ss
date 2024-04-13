@@ -179,7 +179,7 @@ class BasicTraining:
             self.lr_scheduler_args = gr.Textbox(
                 label="LR scheduler extra arguments",
                 lines=2,
-                placeholder='(Optional) eg: "milestones=[1,10,30,50]" "gamma=0.1"',
+                placeholder='(Optional) eg: milestones=[1,10,30,50] gamma=0.1',
                 value=self.config.get("basic.lr_scheduler_args", ""),
             )
             # Initialize the optimizer extra arguments textbox
