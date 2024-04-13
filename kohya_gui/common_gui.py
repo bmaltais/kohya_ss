@@ -1094,7 +1094,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if os.name == 'nt':
                 dataset_config = dataset_config.replace('\\', '/')
                 
-        run_cmd.append(f'--dataset_config="{shlex.quote(dataset_config)}"')
+        run_cmd.append(f'--dataset_config="{dataset_config}"')
 
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
@@ -1193,9 +1193,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if logging_dir.startswith('"') and logging_dir.endswith('"'):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
+            logging_dir = os.path.abspath(os.path.normpath(logging_dir))
             if os.name == 'nt':
                     logging_dir = logging_dir.replace('\\', '/')
-            run_cmd.append(rf'--logging_dir="{shlex.quote(logging_dir)}"')
+            run_cmd.append(rf'--logging_dir="{logging_dir}"')
 
     log_tracker_name = kwargs.get("log_tracker_name")
     if log_tracker_name:
@@ -1206,9 +1207,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if log_tracker_config.startswith('"') and log_tracker_config.endswith('"'):
             log_tracker_config = log_tracker_config[1:-1]
         if os.path.exists(log_tracker_config):
+            log_tracker_config = os.path.abspath(os.path.normpath(log_tracker_config))
             if os.name == 'nt':
                     log_tracker_config = log_tracker_config.replace('\\', '/')
-            run_cmd.append(rf'--log_tracker_config="{shlex.quote(log_tracker_config)}"')
+            run_cmd.append(rf'--log_tracker_config="{log_tracker_config}"')
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
@@ -1386,9 +1388,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if output_dir.startswith('"') and output_dir.endswith('"'):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
+            output_dir = os.path.abspath(os.path.normpath(output_dir))
             if os.name == 'nt':
                     output_dir = output_dir.replace('\\', '/')
-            run_cmd.append(rf'--output_dir="{shlex.quote(output_dir)}"')
+            run_cmd.append(rf'--output_dir="{output_dir}"')
 
     if "output_name" in kwargs:
         output_name = kwargs.get("output_name")
@@ -1400,7 +1403,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             run_cmd.append("--persistent_data_loader_workers")
 
     if "pretrained_model_name_or_path" in kwargs:
-        run_cmd.append(rf'--pretrained_model_name_or_path="{shlex.quote(kwargs.get("pretrained_model_name_or_path"))}"')
+        pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
+        if os.name == 'nt':
+            pretrained_model_name_or_path = pretrained_model_name_or_path.replace('\\', '/')
+        run_cmd.append(rf'--pretrained_model_name_or_path="{pretrained_model_name_or_path}"')
 
     if "prior_loss_weight" in kwargs:
         prior_loss_weight = kwargs.get("prior_loss_weight")
@@ -1418,9 +1424,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
                 reg_data_dir = reg_data_dir[1:-1]
             if os.path.isdir(reg_data_dir):
+                reg_data_dir = os.path.abspath(os.path.normpath(reg_data_dir))
                 if os.name == 'nt':
                         reg_data_dir = reg_data_dir.replace('\\', '/')
-                run_cmd.append(rf'--reg_data_dir="{shlex.quote(reg_data_dir)}"')
+                run_cmd.append(rf'--reg_data_dir="{reg_data_dir}"')
 
     if "resume" in kwargs:
         resume = kwargs.get("resume")
@@ -1503,6 +1510,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
             train_data_dir = train_data_dir[1:-1]
         if os.path.exists(train_data_dir):
+            train_data_dir = os.path.abspath(os.path.normpath(train_data_dir))
             if os.name == 'nt':
                     train_data_dir = train_data_dir.replace('\\', '/')
             run_cmd.append(rf'--train_data_dir="{train_data_dir}"')
@@ -1536,6 +1544,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         if not os.path.exists(vae):
             vae = os.path.join("models", "VAE", vae).replace(os.sep, "/")
         if os.path.exists(vae):
+            vae = os.path.abspath(os.path.normpath(vae))
             if os.name == 'nt':
                     vae = vae.replace('\\', '/')
             run_cmd.append(f'--vae="{vae}"')
