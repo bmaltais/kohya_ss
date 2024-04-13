@@ -499,71 +499,80 @@ def train_model(
     else:
         # create caption json file
         if generate_caption_database:
-            run_cmd = [f'{PYTHON}',
-                       f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"]
+            # Define the command components
+            run_cmd = [
+                PYTHON, f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"
+            ]
+
+            # Add the caption extension
+            run_cmd.append('--caption_extension')
             if caption_extension == "":
-                run_cmd.append(f'--caption_extension')
-                run_cmd.append('.caption')
+                run_cmd.append('.caption')  # Default extension
             else:
-                run_cmd.append(f'--caption_extension')
-                run_cmd.append(f'{caption_extension}')
-            run_cmd.append(f'{image_folder}')
-            run_cmd.append(f'{train_dir}/{caption_metadata_filename}')
+                run_cmd.append(caption_extension)
+
+            # Add paths for the image folder and the caption metadata file
+            run_cmd.append(image_folder)
+            run_cmd.append(os.path.join(train_dir, caption_metadata_filename))
+
+            # Include the full path flag if specified
             if full_path:
-                run_cmd.append(f"--full_path")
+                run_cmd.append("--full_path")
 
-
+            # Log the built command
             log.info(' '.join(run_cmd))
 
+            # Prepare environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not in print-only mode
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
+
 
         # create images buckets
         if generate_image_buckets:
-            run_cmd = [f'{PYTHON}',
-                       f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"]
-            run_cmd.append(f'{image_folder}')
-            run_cmd.append(f'{train_dir}/{caption_metadata_filename}')
-            run_cmd.append(f'{train_dir}/{latent_metadata_filename}')
-            run_cmd.append(f'{pretrained_model_name_or_path}')
-            run_cmd.append(f'--batch_size')
-            run_cmd.append(f'{batch_size}')
-            run_cmd.append(f'--max_resolution')
-            run_cmd.append(f'{max_resolution}')
-            run_cmd.append(f'--min_bucket_reso')
-            run_cmd.append(f'{min_bucket_reso}')
-            run_cmd.append(f'--max_bucket_reso')
-            run_cmd.append(f'{max_bucket_reso}')
-            run_cmd.append(f'--mixed_precision')
-            run_cmd.append(f'{mixed_precision}')
-            # if flip_aug:
-            #     run_cmd.append('--flip_aug')
+            # Build the command to run the preparation script
+            run_cmd = [
+                PYTHON,
+                f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
+                image_folder,
+                os.path.join(train_dir, caption_metadata_filename),
+                os.path.join(train_dir, latent_metadata_filename),
+                pretrained_model_name_or_path,
+                '--batch_size', str(batch_size),
+                '--max_resolution', str(max_resolution),
+                '--min_bucket_reso', str(min_bucket_reso),
+                '--max_bucket_reso', str(max_bucket_reso),
+                '--mixed_precision', str(mixed_precision)
+            ]
+
+            # Conditional flags
             if full_path:
                 run_cmd.append('--full_path')
             if sdxl_checkbox and sdxl_no_half_vae:
-                log.info(
-                    "Using mixed_precision = no because no half vae is selected..."
-                )
-                run_cmd.append('--mixed_precision="no"')
+                log.info("Using mixed_precision = no because no half vae is selected...")
+                # Ensure 'no' is correctly handled without extra quotes that might be interpreted literally in command line
+                run_cmd.append('--mixed_precision=no')
 
+            # Log the complete command as a string for clarity
             log.info(' '.join(run_cmd))
 
+            # Copy and modify environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not just for printing
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
+
 
         if image_folder == "":
             log.error("Image folder dir is empty")
@@ -604,9 +613,7 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = []
-    run_cmd.append(get_executable_path("accelerate"))
-    run_cmd.append('launch')
+    run_cmd = ["accelerate", "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,

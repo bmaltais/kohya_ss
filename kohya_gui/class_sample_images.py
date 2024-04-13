@@ -58,22 +58,31 @@ def run_cmd_sample(
     with open(sample_prompts_path, "w") as f:
         f.write(sample_prompts)
 
-    run_cmd.append(f"--sample_sampler={shlex.quote(sample_sampler)}")
-    
+    # Append the sampler with proper quoting for safety against special characters
+    run_cmd.append("--sample_sampler")
+    run_cmd.append(shlex.quote(sample_sampler))
+
+    # Normalize and fix the path for the sample prompts, handle cross-platform path differences
     sample_prompts_path = os.path.abspath(os.path.normpath(sample_prompts_path))
-    if os.name == "nt":
+    if os.name == "nt":  # Normalize path for Windows
         sample_prompts_path = sample_prompts_path.replace("\\", "/")
-    
-    run_cmd.append(f'--sample_prompts')
-    run_cmd.append(f'{sample_prompts_path}')
 
+    # Append the sample prompts path
+    run_cmd.append('--sample_prompts')
+    run_cmd.append(sample_prompts_path)
+
+    # Append the sampling frequency for epochs, only if non-zero
     if sample_every_n_epochs != 0:
-        run_cmd.append(f"--sample_every_n_epochs={sample_every_n_epochs}")
+        run_cmd.append("--sample_every_n_epochs")
+        run_cmd.append(sample_every_n_epochs)
 
+    # Append the sampling frequency for steps, only if non-zero
     if sample_every_n_steps != 0:
-        run_cmd.append(f"--sample_every_n_steps={sample_every_n_steps}")
+        run_cmd.append("--sample_every_n_steps")
+        run_cmd.append(sample_every_n_steps)
 
     return run_cmd
+
 
 
 class SampleImages:
