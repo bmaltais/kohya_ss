@@ -21,8 +21,8 @@ save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-if os.name == 'nt':
-    scriptdir = scriptdir.replace('\\', '/')
+if os.name == "nt":
+    scriptdir = scriptdir.replace("\\", "/")
 
 # insert sd-scripts path into PYTHONPATH
 sys.path.insert(0, os.path.join(scriptdir, "sd-scripts"))
@@ -58,13 +58,14 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
+
 def get_executable_path(executable_name: str = None) -> str:
     """
     Retrieve and sanitize the path to an executable in the system's PATH.
-    
+
     Args:
     executable_name (str): The name of the executable to find.
-    
+
     Returns:
     str: The full, sanitized path to the executable if found, otherwise an empty string.
     """
@@ -72,13 +73,14 @@ def get_executable_path(executable_name: str = None) -> str:
         executable_path = shutil.which(executable_name)
         if executable_path:
             # Replace backslashes with forward slashes on Windows
-            if os.name == 'nt':
-                executable_path = executable_path.replace('\\', '/')
+            if os.name == "nt":
+                executable_path = executable_path.replace("\\", "/")
             return executable_path
         else:
             return ""  # Return empty string if the executable is not found
     else:
         return ""  # Return empty string if no executable name is provided
+
 
 def calculate_max_train_steps(
     total_steps: int,
@@ -744,6 +746,7 @@ def has_ext_files(folder_path: str, file_extension: str) -> bool:
     # If no file with the specified extension is found, return False
     return False
 
+
 def find_replace(
     folder_path: str = "",
     caption_file_ext: str = ".caption",
@@ -775,7 +778,7 @@ def find_replace(
         )
         # Exit the function early
         return
-    
+
     # Check if the caption file extension is one of the supported extensions
     if caption_file_ext not in [".caption", ".txt", ".txt2", ".cap"]:
         log.error(
@@ -783,7 +786,7 @@ def find_replace(
         )
         # Exit the function early
         return
-    
+
     # Check if the folder path exists
     if not os.path.exists(folder_path):
         log.error(f"The provided path '{folder_path}' is not a valid folder.")
@@ -791,7 +794,9 @@ def find_replace(
 
     # List all caption files in the folder
     try:
-        caption_files = [f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)]
+        caption_files = [
+            f for f in os.listdir(folder_path) if f.endswith(caption_file_ext)
+        ]
     except Exception as e:
         log.error(f"Error accessing folder {folder_path}: {e}")
         return
@@ -1024,7 +1029,7 @@ def get_str_or_default(kwargs, key, default_value=""):
         return str(value)
 
 
-def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
+def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     """
     This function, run_cmd_advanced_training, dynamically constructs a command line string for advanced training
     configurations based on provided keyword arguments (kwargs). Each argument represents a different training parameter
@@ -1046,7 +1051,11 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
              command and additional parameters and flags tailored to the user's specifications for the training process
     """
     if "additional_parameters" in kwargs:
-        run_cmd.append(kwargs["additional_parameters"])
+        additional_parameters = kwargs["additional_parameters"]
+        if additional_parameters != "":
+            args = additional_parameters.split()
+            for arg in args:
+                run_cmd.append(f"{shlex.quote(arg)}")
 
     if "block_lr" in kwargs and kwargs["block_lr"] != "":
         run_cmd.append(f'--block_lr="{shlex.quote(kwargs["block_lr"])}"')
@@ -1070,15 +1079,17 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         "caption_dropout_every_n_epochs" in kwargs
         and int(kwargs["caption_dropout_every_n_epochs"]) > 0
     ):
-        run_cmd.append(f'--caption_dropout_every_n_epochs={int(kwargs["caption_dropout_every_n_epochs"])}')
+        run_cmd.append(
+            f'--caption_dropout_every_n_epochs={int(kwargs["caption_dropout_every_n_epochs"])}'
+        )
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
-        run_cmd.append(f'--caption_dropout_rate={caption_dropout_rate}')
+        run_cmd.append(f"--caption_dropout_rate={caption_dropout_rate}")
 
     caption_extension = kwargs.get("caption_extension")
     if caption_extension:
-        run_cmd.append(f'--caption_extension={shlex.quote(caption_extension)}')
+        run_cmd.append(f"--caption_extension={shlex.quote(caption_extension)}")
 
     clip_skip = kwargs.get("clip_skip")
     if clip_skip and int(clip_skip) > 1:
@@ -1091,14 +1102,14 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     dataset_config = kwargs.get("dataset_config")
     if dataset_config:
         dataset_config = os.path.abspath(os.path.normpath(dataset_config))
-        if os.name == 'nt':
-                dataset_config = dataset_config.replace('\\', '/')
-                
+        if os.name == "nt":
+            dataset_config = dataset_config.replace("\\", "/")
+
         run_cmd.append(f'--dataset_config="{dataset_config}"')
 
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
-        run_cmd.append(f'--dataset_repeats={shlex.quote(dataset_repeats)}')
+        run_cmd.append(f"--dataset_repeats={shlex.quote(dataset_repeats)}")
 
     debiased_estimation_loss = kwargs.get("debiased_estimation_loss")
     if debiased_estimation_loss:
@@ -1145,16 +1156,20 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
         "gradient_accumulation_steps" in kwargs
         and int(kwargs["gradient_accumulation_steps"]) > 1
     ):
-        run_cmd.append(f"--gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}")
+        run_cmd.append(
+            f"--gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}"
+        )
 
     if kwargs.get("gradient_checkpointing"):
         run_cmd.append("--gradient_checkpointing")
-        
+
     if kwargs.get("huber_c"):
         run_cmd.append(f'--huber_c="{kwargs.get("huber_c")}"')
-        
+
     if kwargs.get("huber_schedule"):
-        run_cmd.append(f'--huber_schedule="{shlex.quote(kwargs.get("huber_schedule"))}"')
+        run_cmd.append(
+            f'--huber_schedule="{shlex.quote(kwargs.get("huber_schedule"))}"'
+        )
 
     if kwargs.get("ip_noise_gamma"):
         if float(kwargs["ip_noise_gamma"]) > 0:
@@ -1194,8 +1209,8 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
             logging_dir = os.path.abspath(os.path.normpath(logging_dir))
-            if os.name == 'nt':
-                    logging_dir = logging_dir.replace('\\', '/')
+            if os.name == "nt":
+                logging_dir = logging_dir.replace("\\", "/")
             run_cmd.append(rf'--logging_dir="{logging_dir}"')
 
     log_tracker_name = kwargs.get("log_tracker_name")
@@ -1208,16 +1223,18 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             log_tracker_config = log_tracker_config[1:-1]
         if os.path.exists(log_tracker_config):
             log_tracker_config = os.path.abspath(os.path.normpath(log_tracker_config))
-            if os.name == 'nt':
-                    log_tracker_config = log_tracker_config.replace('\\', '/')
+            if os.name == "nt":
+                log_tracker_config = log_tracker_config.replace("\\", "/")
             run_cmd.append(rf'--log_tracker_config="{log_tracker_config}"')
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd.append(f'--network_weights="{shlex.quote(lora_network_weights)}"')  # Yes, the parameter is now called network_weights instead of lora_network_weights
-        
+        run_cmd.append(
+            f'--network_weights="{shlex.quote(lora_network_weights)}"'
+        )  # Yes, the parameter is now called network_weights instead of lora_network_weights
+
     if "loss_type" in kwargs:
-        run_cmd.append(fr'--loss_type="{shlex.quote(kwargs.get("loss_type"))}"')
+        run_cmd.append(rf'--loss_type="{shlex.quote(kwargs.get("loss_type"))}"')
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
@@ -1225,7 +1242,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
 
     lr_scheduler_args = kwargs.get("lr_scheduler_args")
     if lr_scheduler_args and lr_scheduler_args != "":
-        run_cmd.append(f"--lr_scheduler_args {shlex.quote(lr_scheduler_args)}")
+        args = lr_scheduler_args.split()
+        run_cmd.append(f"--lr_scheduler_args")
+        for arg in args:
+            run_cmd.append(f"{shlex.quote(arg)}")
 
     lr_scheduler_num_cycles = kwargs.get("lr_scheduler_num_cycles")
     if lr_scheduler_num_cycles and not lr_scheduler_num_cycles == "":
@@ -1258,7 +1278,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "max_grad_norm" in kwargs:
         max_grad_norm = kwargs.get("max_grad_norm")
         if max_grad_norm != "":
-            run_cmd.append(f'--max_grad_norm="{shlex.quote(max_grad_norm)}"')
+            run_cmd.append(f"--max_grad_norm={float(max_grad_norm)}")
 
     if "max_resolution" in kwargs:
         run_cmd.append(rf'--resolution="{shlex.quote(kwargs.get("max_resolution"))}"')
@@ -1276,12 +1296,12 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "max_train_epochs" in kwargs:
         max_train_epochs = kwargs.get("max_train_epochs")
         if max_train_epochs != "":
-            run_cmd.append(f"--max_train_epochs={max_train_epochs}")
+            run_cmd.append(f"--max_train_epochs={int(max_train_epochs)}")
 
     if "max_train_steps" in kwargs:
         max_train_steps = kwargs.get("max_train_steps")
         if not max_train_steps == "":
-            run_cmd.append(f'--max_train_steps="{max_train_steps}"')
+            run_cmd.append(f'--max_train_steps="{int(max_train_steps)}"')
 
     if "mem_eff_attn" in kwargs:
         if kwargs.get("mem_eff_attn"):  # Test if the value is true as it could be false
@@ -1298,7 +1318,9 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             run_cmd.append(f"--min_timestep={int(min_timestep)}")
 
     if "mixed_precision" in kwargs:
-        run_cmd.append(rf'--mixed_precision="{shlex.quote(kwargs.get("mixed_precision"))}"')
+        run_cmd.append(
+            rf'--mixed_precision="{shlex.quote(kwargs.get("mixed_precision"))}"'
+        )
 
     if "network_alpha" in kwargs:
         run_cmd.append(rf'--network_alpha="{kwargs.get("network_alpha")}"')
@@ -1306,7 +1328,10 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "network_args" in kwargs:
         network_args = kwargs.get("network_args")
         if network_args != "":
-            run_cmd.append(f"--network_args{shlex.quote(network_args)}")
+            args = network_args.split()
+            run_cmd.append(f"--network_args")
+            for arg in args:
+                run_cmd.append(f"{shlex.quote(arg)}")
 
     if "network_dim" in kwargs:
         run_cmd.append(rf'--network_dim={kwargs.get("network_dim")}')
@@ -1378,7 +1403,12 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "optimizer_args" in kwargs:
         optimizer_args = kwargs.get("optimizer_args")
         if optimizer_args != "":
-            run_cmd.append(f"--optimizer_args {shlex.quote(optimizer_args)}")
+            run_cmd.append(f"--optimizer_args")
+            # Split the optimizer_args string into separate arguments
+            args = optimizer_args.split()
+            # Add each argument to the run_cmd list
+            for arg in args:
+                run_cmd.append(f"{shlex.quote(arg)}")
 
     if "optimizer" in kwargs:
         run_cmd.append(rf'--optimizer_type="{shlex.quote(kwargs.get("optimizer"))}"')
@@ -1389,8 +1419,8 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
             output_dir = os.path.abspath(os.path.normpath(output_dir))
-            if os.name == 'nt':
-                    output_dir = output_dir.replace('\\', '/')
+            if os.name == "nt":
+                output_dir = output_dir.replace("\\", "/")
             run_cmd.append(rf'--output_dir="{output_dir}"')
 
     if "output_name" in kwargs:
@@ -1404,9 +1434,13 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
 
     if "pretrained_model_name_or_path" in kwargs:
         pretrained_model_name_or_path = kwargs.get("pretrained_model_name_or_path")
-        if os.name == 'nt':
-            pretrained_model_name_or_path = pretrained_model_name_or_path.replace('\\', '/')
-        run_cmd.append(rf'--pretrained_model_name_or_path="{pretrained_model_name_or_path}"')
+        if os.name == "nt":
+            pretrained_model_name_or_path = pretrained_model_name_or_path.replace(
+                "\\", "/"
+            )
+        run_cmd.append(
+            rf'--pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+        )
 
     if "prior_loss_weight" in kwargs:
         prior_loss_weight = kwargs.get("prior_loss_weight")
@@ -1425,8 +1459,8 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
                 reg_data_dir = reg_data_dir[1:-1]
             if os.path.isdir(reg_data_dir):
                 reg_data_dir = os.path.abspath(os.path.normpath(reg_data_dir))
-                if os.name == 'nt':
-                        reg_data_dir = reg_data_dir.replace('\\', '/')
+                if os.name == "nt":
+                    reg_data_dir = reg_data_dir.replace("\\", "/")
                 run_cmd.append(rf'--reg_data_dir="{reg_data_dir}"')
 
     if "resume" in kwargs:
@@ -1437,22 +1471,22 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "save_every_n_epochs" in kwargs:
         save_every_n_epochs = kwargs.get("save_every_n_epochs")
         if int(save_every_n_epochs) > 0:
-            run_cmd.append(f'--save_every_n_epochs="{int(save_every_n_epochs)}"')
+            run_cmd.append(f"--save_every_n_epochs={int(save_every_n_epochs)}")
 
     if "save_every_n_steps" in kwargs:
         save_every_n_steps = kwargs.get("save_every_n_steps")
         if int(save_every_n_steps) > 0:
-            run_cmd.append(f'--save_every_n_steps="{int(save_every_n_steps)}"')
+            run_cmd.append(f"--save_every_n_steps={int(save_every_n_steps)}")
 
     if "save_last_n_steps" in kwargs:
         save_last_n_steps = kwargs.get("save_last_n_steps")
         if int(save_last_n_steps) > 0:
-            run_cmd.append(f'--save_last_n_steps="{int(save_last_n_steps)}"')
+            run_cmd.append(f"--save_last_n_steps={int(save_last_n_steps)}")
 
     if "save_last_n_steps_state" in kwargs:
         save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
         if int(save_last_n_steps_state) > 0:
-            run_cmd.append(f'--save_last_n_steps_state="{int(save_last_n_steps_state)}"')
+            run_cmd.append(f"--save_last_n_steps_state={int(save_last_n_steps_state)}")
 
     if "save_model_as" in kwargs:
         save_model_as = kwargs.get("save_model_as")
@@ -1460,7 +1494,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             run_cmd.append(f"--save_model_as={save_model_as}")
 
     if "save_precision" in kwargs:
-        run_cmd.append(rf'--save_precision="{kwargs.get("save_precision")}"')
+        run_cmd.append(rf'--save_precision={kwargs.get("save_precision")}')
 
     if "save_state" in kwargs:
         if kwargs.get("save_state"):
@@ -1482,7 +1516,7 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "seed" in kwargs:
         seed = kwargs.get("seed")
         if seed != "":
-            run_cmd.append(f'--seed="{seed}"')
+            run_cmd.append(f"--seed={int(seed)}")
 
     if "shuffle_caption" in kwargs:
         if kwargs.get("shuffle_caption"):
@@ -1491,7 +1525,9 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     if "stop_text_encoder_training" in kwargs:
         stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
         if stop_text_encoder_training > 0:
-            run_cmd.append(f'--stop_text_encoder_training="{stop_text_encoder_training}"')
+            run_cmd.append(
+                f'--stop_text_encoder_training="{stop_text_encoder_training}"'
+            )
 
     if "text_encoder_lr" in kwargs:
         text_encoder_lr = kwargs.get("text_encoder_lr")
@@ -1499,20 +1535,20 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             run_cmd.append(f"--text_encoder_lr={text_encoder_lr}")
 
     if "train_batch_size" in kwargs:
-        run_cmd.append(rf'--train_batch_size="{kwargs.get("train_batch_size")}"')
+        run_cmd.append(rf'--train_batch_size={int(kwargs.get("train_batch_size"))}')
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):
-        run_cmd.append(f"--training_comment='{training_comment}'")
-        
+        run_cmd.append(rf'--training_comment="{shlex.quote(training_comment)}"')
+
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
             train_data_dir = train_data_dir[1:-1]
         if os.path.exists(train_data_dir):
             train_data_dir = os.path.abspath(os.path.normpath(train_data_dir))
-            if os.name == 'nt':
-                    train_data_dir = train_data_dir.replace('\\', '/')
+            if os.name == "nt":
+                train_data_dir = train_data_dir.replace("\\", "/")
             run_cmd.append(rf'--train_data_dir="{train_data_dir}"')
 
     train_text_encoder = kwargs.get("train_text_encoder")
@@ -1545,8 +1581,8 @@ def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
             vae = os.path.join("models", "VAE", vae).replace(os.sep, "/")
         if os.path.exists(vae):
             vae = os.path.abspath(os.path.normpath(vae))
-            if os.name == 'nt':
-                    vae = vae.replace('\\', '/')
+            if os.name == "nt":
+                vae = vae.replace("\\", "/")
             run_cmd.append(f'--vae="{vae}"')
 
     vae_batch_size = kwargs.get("vae_batch_size")
@@ -1677,7 +1713,7 @@ def SaveConfigFile(
     # Check if the folder path for the file_path is valid
     # Extrach folder path
     folder_path = os.path.dirname(file_path)
-    
+
     # Check if the folder exists
     if not os.path.exists(folder_path):
         # If not, create the folder
