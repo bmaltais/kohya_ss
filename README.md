@@ -42,7 +42,6 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/12 (v23.1.6)](#20240412-v2316)
     - [2024/04/10 (v23.1.5)](#20240410-v2315)
       - [Security Improvements](#security-improvements)
     - [2024/04/08 (v23.1.4)](#20240408-v2314)
@@ -401,10 +400,6 @@ The feature is not fully tested, so there may be bugs. If you find any issues, p
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
 ## Change History
-
-### 2024/04/12 (v23.1.6)
-
-- Improved the training and tensorboard buttons and code
 
 ### 2024/04/10 (v23.1.5)
 

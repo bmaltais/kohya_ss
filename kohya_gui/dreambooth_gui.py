@@ -24,13 +24,16 @@ from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
-
+from .tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
+)
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from .dataset_balancing_gui import gradio_dataset_balancing_tab
 from .class_sample_images import SampleImages, run_cmd_sample
-from .class_tensorboard import TensorboardManager
 
 from .custom_logging import setup_logging
 
@@ -42,7 +45,6 @@ executor = CommandExecutor()
 
 PYTHON = sys.executable
 
-TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
 
 def save_configuration(
     save_as_bool,
@@ -449,22 +451,18 @@ def train_model(
         vae=vae,
         dataset_config=dataset_config,
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if dataset_config:
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
     else:
-        if train_data_dir == "":
-            log.error("Train data dir is empty")
-            return TRAIN_BUTTON_VISIBLE
-        
         # Get a list of all subfolders in train_data_dir, excluding hidden folders
         subfolders = [
             f
@@ -475,7 +473,7 @@ def train_model(
         # Check if subfolders are present. If not let the user know and return
         if not subfolders:
             log.info(f"No {subfolders} were found in train_data_dir can't train...")
-            return TRAIN_BUTTON_VISIBLE
+            return
 
         total_steps = 0
 
@@ -516,7 +514,7 @@ def train_model(
             log.info(
                 f"No images were found in folder {train_data_dir}... please rectify!"
             )
-            return TRAIN_BUTTON_VISIBLE
+            return
 
         # Print the result
         # log.info(f"{total_steps} total steps")
@@ -725,8 +723,6 @@ def train_model(
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
-        return gr.Button(visible=False), gr.Button(visible=True)
 
 
 def dreambooth_tab(
@@ -799,15 +795,27 @@ def dreambooth_tab(
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
+                button_stop_training = gr.Button("Stop training")
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_print = gr.Button("Print training command")
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
+
+        button_start_tensorboard.click(
+            start_tensorboard,
+            inputs=[dummy_headless, folders.logging_dir],
+            show_progress=False,
+        )
+
+        button_stop_tensorboard.click(
+            stop_tensorboard,
+            show_progress=False,
+        )
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -947,11 +955,10 @@ def dreambooth_tab(
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
+        button_stop_training.click(executor.kill_command)
 
         button_print.click(
             train_model,
