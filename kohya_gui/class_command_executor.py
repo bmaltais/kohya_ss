@@ -42,10 +42,6 @@ class CommandExecutor:
             # The remaining parts are the arguments, which we will quote for safety
             safe_args = [shlex.quote(part) for part in parts[1:]]
             
-            # Log the executable and arguments to debug path issues
-            log.info(f"Executable: {executable}")
-            log.info(f"Arguments: {' '.join(safe_args)}")
-            
             # Reconstruct the safe command string for display
             command_to_run = ' '.join([executable] + safe_args)
             log.info(f"Executing command: {command_to_run}")

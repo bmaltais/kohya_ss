@@ -1482,8 +1482,8 @@ def run_cmd_advanced_training(**kwargs):
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):
-        run_cmd += f' --training_comment="{training_comment}"'
-
+        run_cmd += f" --training_comment='{training_comment}'"
+        
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):

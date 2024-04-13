@@ -4,6 +4,7 @@ import math
 import os
 from datetime import datetime
 from .common_gui import (
+    get_executable_path,
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
@@ -785,7 +786,7 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = "accelerate launch"
+    run_cmd = f'{get_executable_path("accelerate")} launch'
 
     run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
@@ -1063,7 +1064,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        log.info(run_cmd)
+        # log.info(run_cmd)
         env = os.environ.copy()
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"

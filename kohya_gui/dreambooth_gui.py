@@ -564,9 +564,7 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    accelerate_path = get_executable_path("accelerate")
-    
-    run_cmd = f"{accelerate_path} launch"
+    run_cmd = f'{get_executable_path("accelerate")} launch'
 
     run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
@@ -716,7 +714,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        log.info(run_cmd)
+        # log.info(run_cmd)
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
