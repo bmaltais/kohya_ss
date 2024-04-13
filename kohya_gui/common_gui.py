@@ -9,6 +9,7 @@ import gradio as gr
 import sys
 import json
 import math
+import shutil
 
 # Set up logging
 log = setup_logging()
@@ -19,6 +20,8 @@ save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+if os.name == 'nt':
+    scriptdir = scriptdir.replace('\\', '/')
 
 # insert sd-scripts path into PYTHONPATH
 sys.path.insert(0, os.path.join(scriptdir, "sd-scripts"))
@@ -54,6 +57,27 @@ ALL_PRESET_MODELS = V2_BASE_MODELS + V_PARAMETERIZATION_MODELS + V1_MODELS + SDX
 
 ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
+def get_executable_path(executable_name: str = None) -> str:
+    """
+    Retrieve and sanitize the path to an executable in the system's PATH.
+    
+    Args:
+    executable_name (str): The name of the executable to find.
+    
+    Returns:
+    str: The full, sanitized path to the executable if found, otherwise an empty string.
+    """
+    if executable_name:
+        executable_path = shutil.which(executable_name)
+        if executable_path:
+            # Replace backslashes with forward slashes on Windows
+            if os.name == 'nt':
+                executable_path = executable_path.replace('\\', '/')
+            return executable_path
+        else:
+            return ""  # Return empty string if the executable is not found
+    else:
+        return ""  # Return empty string if no executable name is provided
 
 def calculate_max_train_steps(
     total_steps: int,

@@ -1,6 +1,8 @@
 import subprocess
 import psutil
+import os
 import gradio as gr
+import shlex
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -29,7 +31,27 @@ class CommandExecutor:
         if self.process and self.process.poll() is None:
             log.info("The command is already running. Please wait for it to finish.")
         else:
-            self.process = subprocess.Popen(run_cmd, **kwargs)
+            if os.name == 'nt':
+                run_cmd = run_cmd.replace('\\', '/')
+                
+            # Split the command string into components
+            parts = shlex.split(run_cmd)
+            # The first part is the executable, and it doesn't need quoting
+            executable = parts[0]
+            
+            # The remaining parts are the arguments, which we will quote for safety
+            safe_args = [shlex.quote(part) for part in parts[1:]]
+            
+            # Log the executable and arguments to debug path issues
+            log.info(f"Executable: {executable}")
+            log.info(f"Arguments: {' '.join(safe_args)}")
+            
+            # Reconstruct the safe command string for display
+            command_to_run = ' '.join([executable] + safe_args)
+            log.info(f"Executing command: {command_to_run}")
+
+            # Execute the command securely
+            self.process = subprocess.Popen([executable] + safe_args, **kwargs)
 
     def kill_command(self):
         """

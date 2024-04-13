@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 from .common_gui import (
+    get_executable_path,
     get_file_path,
     get_saveasfile_path,
     color_aug_changed,
@@ -563,8 +564,9 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    # run_cmd = f'accelerate launch --num_cpu_threads_per_process={num_cpu_threads_per_process} "train_db.py"'
-    run_cmd = "accelerate launch"
+    accelerate_path = get_executable_path("accelerate")
+    
+    run_cmd = f"{accelerate_path} launch"
 
     run_cmd += AccelerateLaunch.run_cmd(
         num_processes=num_processes,
