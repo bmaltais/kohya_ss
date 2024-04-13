@@ -789,8 +789,8 @@ def train_model(
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = []
-    run_cmd.append(f'{get_executable_path("accelerate")}')
-    run_cmd.append(f'launch')
+    run_cmd.append(fr'"{get_executable_path("accelerate")}"')
+    run_cmd.append('launch')
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -805,9 +805,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/sdxl_train_network.py'))
+        run_cmd.append(fr'"{scriptdir}/sd-scripts/sdxl_train_network.py"')
     else:
-        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/train_network.py'))
+        run_cmd.append(fr'"{scriptdir}/sd-scripts/train_network.py"')
 
     network_args = ""
 
