@@ -1053,6 +1053,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "additional_parameters" in kwargs:
         additional_parameters = kwargs["additional_parameters"]
         if additional_parameters != "":
+            additional_parameters = additional_parameters.replace('"', '')
             args = additional_parameters.split()
             for arg in args:
                 run_cmd.append(f"{shlex.quote(arg)}")
@@ -1242,6 +1243,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     lr_scheduler_args = kwargs.get("lr_scheduler_args")
     if lr_scheduler_args and lr_scheduler_args != "":
+        lr_scheduler_args = lr_scheduler_args.replace('"', '')
         args = lr_scheduler_args.split()
         run_cmd.append(f"--lr_scheduler_args")
         for arg in args:
@@ -1331,7 +1333,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             args = network_args.split()
             run_cmd.append(f"--network_args")
             for arg in args:
-                run_cmd.append(f"{shlex.quote(arg)}")
+                run_cmd.append(arg)
 
     if "network_dim" in kwargs:
         run_cmd.append(rf'--network_dim={kwargs.get("network_dim")}')
@@ -1405,6 +1407,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
         if optimizer_args != "":
             run_cmd.append(f"--optimizer_args")
             # Split the optimizer_args string into separate arguments
+            optimizer_args = optimizer_args.replace('"', '')
             args = optimizer_args.split()
             # Add each argument to the run_cmd list
             for arg in args:
