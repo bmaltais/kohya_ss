@@ -1,5 +1,7 @@
 import gradio as gr
 import os
+import shlex
+
 from .class_gui_config import KohyaSSGUIConfig
 
 
@@ -75,46 +77,44 @@ class AccelerateLaunch:
                 info="List of extra parameters to pass to accelerate launch",
             )
 
-    def run_cmd(**kwargs):
-        run_cmd = ""
-
+    def run_cmd(run_cmd: list, **kwargs):
         if "extra_accelerate_launch_args" in kwargs:
             extra_accelerate_launch_args = kwargs.get("extra_accelerate_launch_args")
             if extra_accelerate_launch_args != "":
-                run_cmd += rf" {extra_accelerate_launch_args}"
+                run_cmd.append(extra_accelerate_launch_args)
 
         if "gpu_ids" in kwargs:
             gpu_ids = kwargs.get("gpu_ids")
             if not gpu_ids == "":
-                run_cmd += f' --gpu_ids="{gpu_ids}"'
+                run_cmd.append(f"--gpu_ids={shlex.quote(gpu_ids)}")
 
         if "main_process_port" in kwargs:
             main_process_port = kwargs.get("main_process_port")
             if main_process_port > 0:
-                run_cmd += f' --main_process_port="{main_process_port}"'
+                run_cmd.append(f"--main_process_port={int(main_process_port)}")
 
         if "mixed_precision" in kwargs:
-            run_cmd += rf' --mixed_precision="{kwargs.get("mixed_precision")}"'
+            run_cmd.append(f"--mixed_precision={shlex.quote(kwargs.get('mixed_precision'))}")
 
         if "multi_gpu" in kwargs:
             if kwargs.get("multi_gpu"):
-                run_cmd += " --multi_gpu"
+                run_cmd.append("--multi_gpu")
 
         if "num_processes" in kwargs:
             num_processes = kwargs.get("num_processes")
             if int(num_processes) > 0:
-                run_cmd += f" --num_processes={int(num_processes)}"
+                run_cmd.append(f"--num_processes={int(num_processes)}")
 
         if "num_machines" in kwargs:
             num_machines = kwargs.get("num_machines")
             if int(num_machines) > 0:
-                run_cmd += f" --num_machines={int(num_machines)}"
+                run_cmd.append(f"--num_machines={int(num_machines)}")
 
         if "num_cpu_threads_per_process" in kwargs:
             num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
             if int(num_cpu_threads_per_process) > 0:
-                run_cmd += (
-                    f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
+                run_cmd.append(
+                    f"--num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
                 )
 
         return run_cmd

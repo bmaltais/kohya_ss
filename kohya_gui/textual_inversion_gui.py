@@ -2,6 +2,7 @@ import gradio as gr
 import json
 import math
 import os
+import shlex
 from datetime import datetime
 from .common_gui import (
     get_executable_path,
@@ -544,9 +545,12 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = f'{get_executable_path("accelerate")} launch'
+    run_cmd = []
+    run_cmd.append(f'{get_executable_path("accelerate")}')
+    run_cmd.append(f'launch')
 
-    run_cmd += AccelerateLaunch.run_cmd(
+    run_cmd = AccelerateLaunch.run_cmd(
+        run_cmd=run_cmd,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -558,11 +562,12 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"'
+        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py'))
     else:
-        run_cmd += rf' "{scriptdir}/sd-scripts/train_textual_inversion.py"'
+        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/train_textual_inversion.py'))
 
-    run_cmd += run_cmd_advanced_training(
+    run_cmd = run_cmd_advanced_training(
+        run_cmd=run_cmd,
         adaptive_noise_scale=adaptive_noise_scale,
         bucket_no_upscale=bucket_no_upscale,
         bucket_reso_steps=bucket_reso_steps,
@@ -648,17 +653,18 @@ def train_model(
         huber_schedule=huber_schedule,
         huber_c=huber_c,
     )
-    run_cmd += f' --token_string="{token_string}"'
-    run_cmd += f' --init_word="{init_word}"'
-    run_cmd += f" --num_vectors_per_token={num_vectors_per_token}"
+    run_cmd.append(f'--token_string="{shlex.quote(token_string)}"')
+    run_cmd.append(f'--init_word="{shlex.quote(init_word)}"')
+    run_cmd.append(f"--num_vectors_per_token={int(num_vectors_per_token)}")
     if not weights == "":
-        run_cmd += f' --weights="{weights}"'
+        run_cmd.append(f'--weights="{shlex.quote(weights)}"')
     if template == "object template":
-        run_cmd += f" --use_object_template"
+        run_cmd.append("--use_object_template")
     elif template == "style template":
-        run_cmd += f" --use_style_template"
+        run_cmd.append("--use_style_template")
 
-    run_cmd += run_cmd_sample(
+    run_cmd = run_cmd_sample(
+        run_cmd,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
@@ -670,9 +676,12 @@ def train_model(
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
-        print(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = ' '.join(run_cmd)
+        
+        print(command_to_run)
 
-        save_to_file(run_cmd)
+        save_to_file(command_to_run)
     else:
         # Saving config file for model
         current_datetime = datetime.now()

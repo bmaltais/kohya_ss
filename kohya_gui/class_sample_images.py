@@ -1,5 +1,6 @@
 import os
 import gradio as gr
+import shlex
 
 from .custom_logging import setup_logging
 from .class_gui_config import KohyaSSGUIConfig
@@ -19,6 +20,7 @@ document_symbol = "\U0001F4C4"  # 📄
 
 
 def run_cmd_sample(
+    run_cmd: list,
     sample_every_n_steps,
     sample_every_n_epochs,
     sample_sampler,
@@ -41,8 +43,6 @@ def run_cmd_sample(
     output_dir = os.path.join(output_dir, "sample")
     os.makedirs(output_dir, exist_ok=True)
 
-    run_cmd = ""
-
     if sample_every_n_epochs is None:
         sample_every_n_epochs = 0
 
@@ -58,14 +58,14 @@ def run_cmd_sample(
     with open(sample_prompts_path, "w") as f:
         f.write(sample_prompts)
 
-    run_cmd += f" --sample_sampler={sample_sampler}"
-    run_cmd += f' --sample_prompts="{sample_prompts_path}"'
+    run_cmd.append(f"--sample_sampler={shlex.quote(sample_sampler)}")
+    run_cmd.append(f"--sample_prompts={shlex.quote(sample_prompts_path)}")
 
     if sample_every_n_epochs != 0:
-        run_cmd += f" --sample_every_n_epochs={sample_every_n_epochs}"
+        run_cmd.append(f"--sample_every_n_epochs={sample_every_n_epochs}")
 
     if sample_every_n_steps != 0:
-        run_cmd += f" --sample_every_n_steps={sample_every_n_steps}"
+        run_cmd.append(f"--sample_every_n_steps={sample_every_n_steps}")
 
     return run_cmd
 

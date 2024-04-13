@@ -31,23 +31,12 @@ class CommandExecutor:
         if self.process and self.process.poll() is None:
             log.info("The command is already running. Please wait for it to finish.")
         else:
-            if os.name == 'nt':
-                run_cmd = run_cmd.replace('\\', '/')
-                
-            # Split the command string into components
-            parts = shlex.split(run_cmd)
-            # The first part is the executable, and it doesn't need quoting
-            executable = parts[0]
-            
-            # The remaining parts are the arguments, which we will quote for safety
-            safe_args = [shlex.quote(part) for part in parts[1:]]
-            
             # Reconstruct the safe command string for display
-            command_to_run = ' '.join([executable] + safe_args)
+            command_to_run = ' '.join(run_cmd)
             log.info(f"Executing command: {command_to_run}")
 
             # Execute the command securely
-            self.process = subprocess.Popen([executable] + safe_args, **kwargs)
+            self.process = subprocess.Popen(command_to_run, **kwargs)
 
     def kill_command(self):
         """

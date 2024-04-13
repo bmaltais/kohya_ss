@@ -7,6 +7,7 @@ import os
 import re
 import gradio as gr
 import sys
+import shlex
 import json
 import math
 import shutil
@@ -1023,7 +1024,7 @@ def get_str_or_default(kwargs, key, default_value=""):
         return str(value)
 
 
-def run_cmd_advanced_training(**kwargs):
+def run_cmd_advanced_training(run_cmd:list = [], **kwargs):
     """
     This function, run_cmd_advanced_training, dynamically constructs a command line string for advanced training
     configurations based on provided keyword arguments (kwargs). Each argument represents a different training parameter
@@ -1044,69 +1045,70 @@ def run_cmd_advanced_training(**kwargs):
         str: A command line string constructed based on the provided keyword arguments. This string includes the base
              command and additional parameters and flags tailored to the user's specifications for the training process
     """
-    run_cmd = ""
-
     if "additional_parameters" in kwargs:
-        run_cmd += f' {kwargs["additional_parameters"]}'
+        run_cmd.append(kwargs["additional_parameters"])
 
     if "block_lr" in kwargs and kwargs["block_lr"] != "":
-        run_cmd += f' --block_lr="{kwargs["block_lr"]}"'
+        run_cmd.append(f'--block_lr="{shlex.quote(kwargs["block_lr"])}"')
 
     if kwargs.get("bucket_no_upscale"):
-        run_cmd += " --bucket_no_upscale"
+        run_cmd.append("--bucket_no_upscale")
 
     if "bucket_reso_steps" in kwargs:
-        run_cmd += f' --bucket_reso_steps={int(kwargs["bucket_reso_steps"])}'
+        run_cmd.append(f"--bucket_reso_steps={int(kwargs['bucket_reso_steps'])}")
 
     if kwargs.get("cache_latents"):
-        run_cmd += " --cache_latents"
+        run_cmd.append("--cache_latents")
 
     if kwargs.get("cache_latents_to_disk"):
-        run_cmd += " --cache_latents_to_disk"
+        run_cmd.append("--cache_latents_to_disk")
 
     if kwargs.get("cache_text_encoder_outputs"):
-        run_cmd += " --cache_text_encoder_outputs"
+        run_cmd.append("--cache_text_encoder_outputs")
 
     if (
         "caption_dropout_every_n_epochs" in kwargs
         and int(kwargs["caption_dropout_every_n_epochs"]) > 0
     ):
-        run_cmd += f' --caption_dropout_every_n_epochs="{int(kwargs["caption_dropout_every_n_epochs"])}"'
+        run_cmd.append(f'--caption_dropout_every_n_epochs={int(kwargs["caption_dropout_every_n_epochs"])}')
 
     caption_dropout_rate = kwargs.get("caption_dropout_rate")
     if caption_dropout_rate and float(caption_dropout_rate) > 0:
-        run_cmd += f' --caption_dropout_rate="{caption_dropout_rate}"'
+        run_cmd.append(f'--caption_dropout_rate={caption_dropout_rate}')
 
     caption_extension = kwargs.get("caption_extension")
     if caption_extension:
-        run_cmd += f' --caption_extension="{caption_extension}"'
+        run_cmd.append(f'--caption_extension={shlex.quote(caption_extension)}')
 
     clip_skip = kwargs.get("clip_skip")
     if clip_skip and int(clip_skip) > 1:
-        run_cmd += f" --clip_skip={int(clip_skip)}"
+        run_cmd.append(f"--clip_skip={int(clip_skip)}")
 
     color_aug = kwargs.get("color_aug")
     if color_aug:
-        run_cmd += " --color_aug"
+        run_cmd.append("--color_aug")
 
     dataset_config = kwargs.get("dataset_config")
     if dataset_config:
         dataset_config = os.path.abspath(os.path.normpath(dataset_config))
-        run_cmd += f' --dataset_config="{dataset_config}"'
+        if os.name == 'nt':
+                dataset_config = dataset_config.replace('\\', '/')
+                
+        run_cmd.append(f'--dataset_config="{shlex.quote(dataset_config)}"')
 
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
-        run_cmd += f' --dataset_repeats="{dataset_repeats}"'
+        run_cmd.append(f'--dataset_repeats={shlex.quote(dataset_repeats)}')
 
     debiased_estimation_loss = kwargs.get("debiased_estimation_loss")
     if debiased_estimation_loss:
-        run_cmd += " --debiased_estimation_loss"
+        run_cmd.append("--debiased_estimation_loss")
 
     dim_from_weights = kwargs.get("dim_from_weights")
     if dim_from_weights and kwargs.get(
         "lora_network_weights"
     ):  # Only if lora_network_weights is true
-        run_cmd += f" --dim_from_weights"
+        run_cmd.append("--dim_from_weights")
 
     # Check if enable_bucket is true and both min_bucket_reso and max_bucket_reso are provided as part of the kwargs
     if (
@@ -1114,24 +1116,26 @@ def run_cmd_advanced_training(**kwargs):
         and "min_bucket_reso" in kwargs
         and "max_bucket_reso" in kwargs
     ):
-        # Append the enable_bucket flag and min/max bucket resolution values to the run_cmd string
-        run_cmd += f' --enable_bucket --min_bucket_reso={kwargs["min_bucket_reso"]} --max_bucket_reso={kwargs["max_bucket_reso"]}'
+        # Append the enable_bucket flag and min/max bucket resolution values to the run_cmd list
+        run_cmd.append("--enable_bucket")
+        run_cmd.append(f"--min_bucket_reso={kwargs['min_bucket_reso']}")
+        run_cmd.append(f"--max_bucket_reso={kwargs['max_bucket_reso']}")
 
     in_json = kwargs.get("in_json")
     if in_json:
-        run_cmd += f' --in_json="{in_json}"'
+        run_cmd.append(f'--in_json="{shlex.quote(in_json)}"')
 
     flip_aug = kwargs.get("flip_aug")
     if flip_aug:
-        run_cmd += " --flip_aug"
+        run_cmd.append("--flip_aug")
 
     fp8_base = kwargs.get("fp8_base")
     if fp8_base:
-        run_cmd += " --fp8_base"
+        run_cmd.append("--fp8_base")
 
     full_bf16 = kwargs.get("full_bf16")
     if full_bf16:
-        run_cmd += " --full_bf16"
+        run_cmd.append("--full_bf16")
 
     full_fp16 = kwargs.get("full_fp16")
     if full_fp16:
@@ -1141,193 +1145,197 @@ def run_cmd_advanced_training(**kwargs):
         "gradient_accumulation_steps" in kwargs
         and int(kwargs["gradient_accumulation_steps"]) > 1
     ):
-        run_cmd += f" --gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}"
+        run_cmd.append(f"--gradient_accumulation_steps={int(kwargs['gradient_accumulation_steps'])}")
 
     if kwargs.get("gradient_checkpointing"):
-        run_cmd += " --gradient_checkpointing"
+        run_cmd.append("--gradient_checkpointing")
         
     if kwargs.get("huber_c"):
-        run_cmd += fr' --huber_c="{kwargs.get("huber_c")}"'
+        run_cmd.append(f'--huber_c="{kwargs.get("huber_c")}"')
         
     if kwargs.get("huber_schedule"):
-        run_cmd += fr' --huber_schedule="{kwargs.get("huber_schedule")}"'
+        run_cmd.append(f'--huber_schedule="{shlex.quote(kwargs.get("huber_schedule"))}"')
 
     if kwargs.get("ip_noise_gamma"):
         if float(kwargs["ip_noise_gamma"]) > 0:
-            run_cmd += f' --ip_noise_gamma={kwargs["ip_noise_gamma"]}'
+            run_cmd.append(f'--ip_noise_gamma={kwargs["ip_noise_gamma"]}')
 
     if kwargs.get("ip_noise_gamma_random_strength"):
         if kwargs["ip_noise_gamma_random_strength"]:
-            run_cmd += f" --ip_noise_gamma_random_strength"
+            run_cmd.append("--ip_noise_gamma_random_strength")
 
     if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
-        run_cmd += f' --keep_tokens="{int(kwargs["keep_tokens"])}"'
+        run_cmd.append(f'--keep_tokens="{int(kwargs["keep_tokens"])}"')
 
     if "learning_rate" in kwargs:
-        run_cmd += f' --learning_rate="{kwargs["learning_rate"]}"'
+        run_cmd.append(f'--learning_rate="{kwargs["learning_rate"]}"')
 
     if "learning_rate_te" in kwargs:
         if kwargs["learning_rate_te"] == 0:
-            run_cmd += f' --learning_rate_te="0"'
+            run_cmd.append('--learning_rate_te="0"')
         else:
-            run_cmd += f' --learning_rate_te="{kwargs["learning_rate_te"]}"'
+            run_cmd.append(f'--learning_rate_te="{kwargs["learning_rate_te"]}"')
 
     if "learning_rate_te1" in kwargs:
         if kwargs["learning_rate_te1"] == 0:
-            run_cmd += f' --learning_rate_te1="0"'
+            run_cmd.append('--learning_rate_te1="0"')
         else:
-            run_cmd += f' --learning_rate_te1="{kwargs["learning_rate_te1"]}"'
+            run_cmd.append(f'--learning_rate_te1="{kwargs["learning_rate_te1"]}"')
 
     if "learning_rate_te2" in kwargs:
         if kwargs["learning_rate_te2"] == 0:
-            run_cmd += f' --learning_rate_te2="0"'
+            run_cmd.append(f'--learning_rate_te2="0"')
         else:
-            run_cmd += f' --learning_rate_te2="{kwargs["learning_rate_te2"]}"'
+            run_cmd.append(f'--learning_rate_te2="{kwargs["learning_rate_te2"]}"')
 
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
         if logging_dir.startswith('"') and logging_dir.endswith('"'):
             logging_dir = logging_dir[1:-1]
         if os.path.exists(logging_dir):
-            run_cmd += rf' --logging_dir="{logging_dir}"'
+            if os.name == 'nt':
+                    logging_dir = logging_dir.replace('\\', '/')
+            run_cmd.append(rf'--logging_dir="{shlex.quote(logging_dir)}"')
 
     log_tracker_name = kwargs.get("log_tracker_name")
     if log_tracker_name:
-        run_cmd += rf' --log_tracker_name="{log_tracker_name}"'
+        run_cmd.append(rf'--log_tracker_name="{shlex.quote(log_tracker_name)}"')
 
     log_tracker_config = kwargs.get("log_tracker_config")
     if log_tracker_config:
         if log_tracker_config.startswith('"') and log_tracker_config.endswith('"'):
             log_tracker_config = log_tracker_config[1:-1]
         if os.path.exists(log_tracker_config):
-            run_cmd += rf' --log_tracker_config="{log_tracker_config}"'
+            if os.name == 'nt':
+                    log_tracker_config = log_tracker_config.replace('\\', '/')
+            run_cmd.append(rf'--log_tracker_config="{shlex.quote(log_tracker_config)}"')
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
-        run_cmd += f' --network_weights="{lora_network_weights}"'  # Yes, the parameter is now called network_weights instead of lora_network_weights
+        run_cmd.append(f'--network_weights="{shlex.quote(lora_network_weights)}"')  # Yes, the parameter is now called network_weights instead of lora_network_weights
         
     if "loss_type" in kwargs:
-        run_cmd += fr' --loss_type="{kwargs.get("loss_type")}"'
+        run_cmd.append(fr'--loss_type="{shlex.quote(kwargs.get("loss_type"))}"')
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
-        run_cmd += f' --lr_scheduler="{lr_scheduler}"'
+        run_cmd.append(f'--lr_scheduler="{shlex.quote(lr_scheduler)}"')
 
     lr_scheduler_args = kwargs.get("lr_scheduler_args")
     if lr_scheduler_args and lr_scheduler_args != "":
-        run_cmd += f" --lr_scheduler_args {lr_scheduler_args}"
+        run_cmd.append(f"--lr_scheduler_args {shlex.quote(lr_scheduler_args)}")
 
     lr_scheduler_num_cycles = kwargs.get("lr_scheduler_num_cycles")
     if lr_scheduler_num_cycles and not lr_scheduler_num_cycles == "":
-        run_cmd += f' --lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"'
+        run_cmd.append(f'--lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"')
     else:
         epoch = kwargs.get("epoch")
         if epoch:
-            run_cmd += f' --lr_scheduler_num_cycles="{epoch}"'
+            run_cmd.append(f'--lr_scheduler_num_cycles="{epoch}"')
 
     lr_scheduler_power = kwargs.get("lr_scheduler_power")
-    if lr_scheduler_power and not lr_scheduler_power == "":
-        run_cmd += f' --lr_scheduler_power="{lr_scheduler_power}"'
+    if lr_scheduler_power and lr_scheduler_power != "":
+        run_cmd.append(f'--lr_scheduler_power="{lr_scheduler_power}"')
 
     lr_warmup_steps = kwargs.get("lr_warmup_steps")
     if lr_warmup_steps:
         if lr_scheduler == "constant":
             log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
         else:
-            run_cmd += f' --lr_warmup_steps="{lr_warmup_steps}"'
+            run_cmd.append(f'--lr_warmup_steps="{lr_warmup_steps}"')
 
     if "masked_loss" in kwargs:
         if kwargs.get("masked_loss"):  # Test if the value is true as it could be false
-            run_cmd += " --masked_loss"
+            run_cmd.append("--masked_loss")
 
     if "max_data_loader_n_workers" in kwargs:
         max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
-        if not max_data_loader_n_workers == "":
-            run_cmd += f' --max_data_loader_n_workers="{max_data_loader_n_workers}"'
+        if max_data_loader_n_workers != "":
+            run_cmd.append(f'--max_data_loader_n_workers="{max_data_loader_n_workers}"')
 
     if "max_grad_norm" in kwargs:
         max_grad_norm = kwargs.get("max_grad_norm")
         if max_grad_norm != "":
-            run_cmd += f' --max_grad_norm="{max_grad_norm}"'
+            run_cmd.append(f'--max_grad_norm="{shlex.quote(max_grad_norm)}"')
 
     if "max_resolution" in kwargs:
-        run_cmd += rf' --resolution="{kwargs.get("max_resolution")}"'
+        run_cmd.append(rf'--resolution="{shlex.quote(kwargs.get("max_resolution"))}"')
 
     if "max_timestep" in kwargs:
         max_timestep = kwargs.get("max_timestep")
         if int(max_timestep) < 1000:
-            run_cmd += f" --max_timestep={int(max_timestep)}"
+            run_cmd.append(f"--max_timestep={int(max_timestep)}")
 
     if "max_token_length" in kwargs:
         max_token_length = kwargs.get("max_token_length")
         if int(max_token_length) > 75:
-            run_cmd += f" --max_token_length={int(max_token_length)}"
+            run_cmd.append(f"--max_token_length={int(max_token_length)}")
 
     if "max_train_epochs" in kwargs:
         max_train_epochs = kwargs.get("max_train_epochs")
-        if not max_train_epochs == "":
-            run_cmd += f" --max_train_epochs={max_train_epochs}"
+        if max_train_epochs != "":
+            run_cmd.append(f"--max_train_epochs={max_train_epochs}")
 
     if "max_train_steps" in kwargs:
         max_train_steps = kwargs.get("max_train_steps")
         if not max_train_steps == "":
-            run_cmd += f' --max_train_steps="{max_train_steps}"'
+            run_cmd.append(f'--max_train_steps="{max_train_steps}"')
 
     if "mem_eff_attn" in kwargs:
         if kwargs.get("mem_eff_attn"):  # Test if the value is true as it could be false
-            run_cmd += " --mem_eff_attn"
+            run_cmd.append("--mem_eff_attn")
 
     if "min_snr_gamma" in kwargs:
         min_snr_gamma = kwargs.get("min_snr_gamma")
         if int(min_snr_gamma) >= 1:
-            run_cmd += f" --min_snr_gamma={int(min_snr_gamma)}"
+            run_cmd.append(f"--min_snr_gamma={int(min_snr_gamma)}")
 
     if "min_timestep" in kwargs:
         min_timestep = kwargs.get("min_timestep")
         if int(min_timestep) > -1:
-            run_cmd += f" --min_timestep={int(min_timestep)}"
+            run_cmd.append(f"--min_timestep={int(min_timestep)}")
 
     if "mixed_precision" in kwargs:
-        run_cmd += rf' --mixed_precision="{kwargs.get("mixed_precision")}"'
+        run_cmd.append(rf'--mixed_precision="{shlex.quote(kwargs.get("mixed_precision"))}"')
 
     if "network_alpha" in kwargs:
-        run_cmd += rf' --network_alpha="{kwargs.get("network_alpha")}"'
+        run_cmd.append(rf'--network_alpha="{kwargs.get("network_alpha")}"')
 
     if "network_args" in kwargs:
         network_args = kwargs.get("network_args")
         if network_args != "":
-            run_cmd += f" --network_args{network_args}"
+            run_cmd.append(f"--network_args{shlex.quote(network_args)}")
 
     if "network_dim" in kwargs:
-        run_cmd += rf' --network_dim={kwargs.get("network_dim")}'
+        run_cmd.append(rf'--network_dim={kwargs.get("network_dim")}')
 
     if "network_dropout" in kwargs:
         network_dropout = kwargs.get("network_dropout")
         if network_dropout > 0.0:
-            run_cmd += f" --network_dropout={network_dropout}"
+            run_cmd.append(f"--network_dropout={network_dropout}")
 
     if "network_module" in kwargs:
         network_module = kwargs.get("network_module")
         if network_module != "":
-            run_cmd += f" --network_module={network_module}"
+            run_cmd.append(f"--network_module={shlex.quote(network_module)}")
 
     if "network_train_text_encoder_only" in kwargs:
         if kwargs.get("network_train_text_encoder_only"):
-            run_cmd += " --network_train_text_encoder_only"
+            run_cmd.append("--network_train_text_encoder_only")
 
     if "network_train_unet_only" in kwargs:
         if kwargs.get("network_train_unet_only"):
-            run_cmd += " --network_train_unet_only"
+            run_cmd.append("--network_train_unet_only")
 
     if "no_half_vae" in kwargs:
         if kwargs.get("no_half_vae"):  # Test if the value is true as it could be false
-            run_cmd += " --no_half_vae"
+            run_cmd.append("--no_half_vae")
 
     if "no_token_padding" in kwargs:
         if kwargs.get(
             "no_token_padding"
         ):  # Test if the value is true as it could be false
-            run_cmd += " --no_token_padding"
+            run_cmd.append("--no_token_padding")
 
     if "noise_offset_type" in kwargs:
         noise_offset_type = kwargs["noise_offset_type"]
@@ -1336,24 +1344,24 @@ def run_cmd_advanced_training(**kwargs):
             if "noise_offset" in kwargs:
                 noise_offset = float(kwargs.get("noise_offset", 0))
                 if noise_offset:
-                    run_cmd += f" --noise_offset={float(noise_offset)}"
+                    run_cmd.append(f"--noise_offset={float(noise_offset)}")
 
                 if "adaptive_noise_scale" in kwargs:
                     adaptive_noise_scale = float(kwargs.get("adaptive_noise_scale", 0))
                     if adaptive_noise_scale != 0 and noise_offset > 0:
-                        run_cmd += f" --adaptive_noise_scale={adaptive_noise_scale}"
+                        run_cmd.append(f"--adaptive_noise_scale={adaptive_noise_scale}")
 
                 if "noise_offset_random_strength" in kwargs:
                     if kwargs.get("noise_offset_random_strength"):
-                        run_cmd += f" --noise_offset_random_strength"
+                        run_cmd.append("--noise_offset_random_strength")
         elif noise_offset_type == "Multires":
             if "multires_noise_iterations" in kwargs:
                 multires_noise_iterations = int(
                     kwargs.get("multires_noise_iterations", 0)
                 )
                 if multires_noise_iterations > 0:
-                    run_cmd += (
-                        f' --multires_noise_iterations="{multires_noise_iterations}"'
+                    run_cmd.append(
+                        f'--multires_noise_iterations="{multires_noise_iterations}"'
                     )
 
             if "multires_noise_discount" in kwargs:
@@ -1361,44 +1369,48 @@ def run_cmd_advanced_training(**kwargs):
                     kwargs.get("multires_noise_discount", 0)
                 )
                 if multires_noise_discount > 0:
-                    run_cmd += f' --multires_noise_discount="{multires_noise_discount}"'
+                    run_cmd.append(
+                        f'--multires_noise_discount="{multires_noise_discount}"'
+                    )
 
     if "optimizer_args" in kwargs:
         optimizer_args = kwargs.get("optimizer_args")
         if optimizer_args != "":
-            run_cmd += f" --optimizer_args {optimizer_args}"
+            run_cmd.append(f"--optimizer_args {shlex.quote(optimizer_args)}")
 
     if "optimizer" in kwargs:
-        run_cmd += rf' --optimizer_type="{kwargs.get("optimizer")}"'
+        run_cmd.append(rf'--optimizer_type="{shlex.quote(kwargs.get("optimizer"))}"')
 
     if "output_dir" in kwargs:
         output_dir = kwargs.get("output_dir")
         if output_dir.startswith('"') and output_dir.endswith('"'):
             output_dir = output_dir[1:-1]
         if os.path.exists(output_dir):
-            run_cmd += rf' --output_dir="{output_dir}"'
+            if os.name == 'nt':
+                    output_dir = output_dir.replace('\\', '/')
+            run_cmd.append(rf'--output_dir="{shlex.quote(output_dir)}"')
 
     if "output_name" in kwargs:
         output_name = kwargs.get("output_name")
         if not output_name == "":
-            run_cmd += f' --output_name="{output_name}"'
+            run_cmd.append(f'--output_name="{shlex.quote(output_name)}"')
 
     if "persistent_data_loader_workers" in kwargs:
         if kwargs.get("persistent_data_loader_workers"):
-            run_cmd += " --persistent_data_loader_workers"
+            run_cmd.append("--persistent_data_loader_workers")
 
     if "pretrained_model_name_or_path" in kwargs:
-        run_cmd += rf' --pretrained_model_name_or_path="{kwargs.get("pretrained_model_name_or_path")}"'
+        run_cmd.append(rf'--pretrained_model_name_or_path="{shlex.quote(kwargs.get("pretrained_model_name_or_path"))}"')
 
     if "prior_loss_weight" in kwargs:
         prior_loss_weight = kwargs.get("prior_loss_weight")
         if not float(prior_loss_weight) == 1.0:
-            run_cmd += f" --prior_loss_weight={prior_loss_weight}"
+            run_cmd.append(f"--prior_loss_weight={shlex.quote(str(prior_loss_weight))}")
 
     if "random_crop" in kwargs:
         random_crop = kwargs.get("random_crop")
         if random_crop:
-            run_cmd += " --random_crop"
+            run_cmd.append("--random_crop")
 
     if "reg_data_dir" in kwargs:
         reg_data_dir = kwargs.get("reg_data_dir")
@@ -1406,143 +1418,149 @@ def run_cmd_advanced_training(**kwargs):
             if reg_data_dir.startswith('"') and reg_data_dir.endswith('"'):
                 reg_data_dir = reg_data_dir[1:-1]
             if os.path.isdir(reg_data_dir):
-                run_cmd += rf' --reg_data_dir="{reg_data_dir}"'
+                if os.name == 'nt':
+                        reg_data_dir = reg_data_dir.replace('\\', '/')
+                run_cmd.append(rf'--reg_data_dir="{shlex.quote(reg_data_dir)}"')
 
     if "resume" in kwargs:
         resume = kwargs.get("resume")
         if len(resume):
-            run_cmd += f' --resume="{resume}"'
+            run_cmd.append(f'--resume="{shlex.quote(resume)}"')
 
     if "save_every_n_epochs" in kwargs:
         save_every_n_epochs = kwargs.get("save_every_n_epochs")
         if int(save_every_n_epochs) > 0:
-            run_cmd += f' --save_every_n_epochs="{int(save_every_n_epochs)}"'
+            run_cmd.append(f'--save_every_n_epochs="{int(save_every_n_epochs)}"')
 
     if "save_every_n_steps" in kwargs:
         save_every_n_steps = kwargs.get("save_every_n_steps")
         if int(save_every_n_steps) > 0:
-            run_cmd += f' --save_every_n_steps="{int(save_every_n_steps)}"'
+            run_cmd.append(f'--save_every_n_steps="{int(save_every_n_steps)}"')
 
     if "save_last_n_steps" in kwargs:
         save_last_n_steps = kwargs.get("save_last_n_steps")
         if int(save_last_n_steps) > 0:
-            run_cmd += f' --save_last_n_steps="{int(save_last_n_steps)}"'
+            run_cmd.append(f'--save_last_n_steps="{int(save_last_n_steps)}"')
 
     if "save_last_n_steps_state" in kwargs:
         save_last_n_steps_state = kwargs.get("save_last_n_steps_state")
         if int(save_last_n_steps_state) > 0:
-            run_cmd += f' --save_last_n_steps_state="{int(save_last_n_steps_state)}"'
+            run_cmd.append(f'--save_last_n_steps_state="{int(save_last_n_steps_state)}"')
 
     if "save_model_as" in kwargs:
         save_model_as = kwargs.get("save_model_as")
         if save_model_as != "same as source model":
-            run_cmd += f" --save_model_as={save_model_as}"
+            run_cmd.append(f"--save_model_as={save_model_as}")
 
     if "save_precision" in kwargs:
-        run_cmd += rf' --save_precision="{kwargs.get("save_precision")}"'
+        run_cmd.append(rf'--save_precision="{kwargs.get("save_precision")}"')
 
     if "save_state" in kwargs:
         if kwargs.get("save_state"):
-            run_cmd += " --save_state"
+            run_cmd.append("--save_state")
 
     if "save_state_on_train_end" in kwargs:
         if kwargs.get("save_state_on_train_end"):
-            run_cmd += " --save_state_on_train_end"
+            run_cmd.append("--save_state_on_train_end")
 
     if "scale_v_pred_loss_like_noise_pred" in kwargs:
         if kwargs.get("scale_v_pred_loss_like_noise_pred"):
-            run_cmd += " --scale_v_pred_loss_like_noise_pred"
+            run_cmd.append("--scale_v_pred_loss_like_noise_pred")
 
     if "scale_weight_norms" in kwargs:
         scale_weight_norms = kwargs.get("scale_weight_norms")
         if scale_weight_norms > 0.0:
-            run_cmd += f' --scale_weight_norms="{scale_weight_norms}"'
+            run_cmd.append(f'--scale_weight_norms="{scale_weight_norms}"')
 
     if "seed" in kwargs:
         seed = kwargs.get("seed")
         if seed != "":
-            run_cmd += f' --seed="{seed}"'
+            run_cmd.append(f'--seed="{seed}"')
 
     if "shuffle_caption" in kwargs:
         if kwargs.get("shuffle_caption"):
-            run_cmd += " --shuffle_caption"
+            run_cmd.append("--shuffle_caption")
 
     if "stop_text_encoder_training" in kwargs:
         stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
         if stop_text_encoder_training > 0:
-            run_cmd += f' --stop_text_encoder_training="{stop_text_encoder_training}"'
+            run_cmd.append(f'--stop_text_encoder_training="{stop_text_encoder_training}"')
 
     if "text_encoder_lr" in kwargs:
         text_encoder_lr = kwargs.get("text_encoder_lr")
         if float(text_encoder_lr) > 0:
-            run_cmd += f" --text_encoder_lr={text_encoder_lr}"
+            run_cmd.append(f"--text_encoder_lr={text_encoder_lr}")
 
     if "train_batch_size" in kwargs:
-        run_cmd += rf' --train_batch_size="{kwargs.get("train_batch_size")}"'
+        run_cmd.append(rf'--train_batch_size="{kwargs.get("train_batch_size")}"')
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):
-        run_cmd += f" --training_comment='{training_comment}'"
+        run_cmd.append(f"--training_comment='{training_comment}'")
         
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
         if train_data_dir.startswith('"') and train_data_dir.endswith('"'):
             train_data_dir = train_data_dir[1:-1]
         if os.path.exists(train_data_dir):
-            run_cmd += rf' --train_data_dir="{train_data_dir}"'
+            if os.name == 'nt':
+                    train_data_dir = train_data_dir.replace('\\', '/')
+            run_cmd.append(rf'--train_data_dir="{train_data_dir}"')
 
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:
-        run_cmd += " --train_text_encoder"
+        run_cmd.append("--train_text_encoder")
 
     unet_lr = kwargs.get("unet_lr")
     if unet_lr and (float(unet_lr) > 0):
-        run_cmd += f" --unet_lr={unet_lr}"
+        run_cmd.append(f"--unet_lr={unet_lr}")
 
     use_wandb = kwargs.get("use_wandb")
     if use_wandb:
-        run_cmd += " --log_with wandb"
+        run_cmd.append("--log_with wandb")
 
     v_parameterization = kwargs.get("v_parameterization")
     if v_parameterization:
-        run_cmd += " --v_parameterization"
+        run_cmd.append("--v_parameterization")
 
     v_pred_like_loss = kwargs.get("v_pred_like_loss")
     if v_pred_like_loss and float(v_pred_like_loss) > 0:
-        run_cmd += f' --v_pred_like_loss="{float(v_pred_like_loss)}"'
+        run_cmd.append(f'--v_pred_like_loss="{float(v_pred_like_loss)}"')
 
     v2 = kwargs.get("v2")
     if v2:
-        run_cmd += " --v2"
+        run_cmd.append("--v2")
 
     vae = kwargs.get("vae")
     if vae and not vae == "":
         if not os.path.exists(vae):
             vae = os.path.join("models", "VAE", vae).replace(os.sep, "/")
         if os.path.exists(vae):
-            run_cmd += f' --vae="{vae}"'
+            if os.name == 'nt':
+                    vae = vae.replace('\\', '/')
+            run_cmd.append(f'--vae="{vae}"')
 
     vae_batch_size = kwargs.get("vae_batch_size")
     if vae_batch_size and int(vae_batch_size) > 0:
-        run_cmd += f' --vae_batch_size="{int(vae_batch_size)}"'
+        run_cmd.append(f'--vae_batch_size="{int(vae_batch_size)}"')
 
     wandb_api_key = kwargs.get("wandb_api_key")
     if wandb_api_key:
-        run_cmd += f' --wandb_api_key="{wandb_api_key}"'
+        run_cmd.append(f'--wandb_api_key="{shlex.quote(wandb_api_key)}"')
 
     wandb_run_name = kwargs.get("wandb_run_name")
     if wandb_run_name:
-        run_cmd += f' --wandb_run_name="{wandb_run_name}"'
+        run_cmd.append(f'--wandb_run_name="{shlex.quote(wandb_run_name)}"')
 
     weighted_captions = kwargs.get("weighted_captions")
     if weighted_captions:
-        run_cmd += " --weighted_captions"
+        run_cmd.append("--weighted_captions")
 
     xformers = kwargs.get("xformers")
     if xformers and xformers == "xformers":
-        run_cmd += " --xformers"
+        run_cmd.append("--xformers")
     elif xformers and xformers == "sdpa":
-        run_cmd += " --sdpa"
+        run_cmd.append("--sdpa")
 
     return run_cmd
 

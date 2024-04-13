@@ -3,6 +3,7 @@ import json
 import math
 import os
 import subprocess
+import shlex
 import sys
 from datetime import datetime
 from .common_gui import (
@@ -593,9 +594,12 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = f'{get_executable_path("accelerate")} launch'
+    run_cmd = []
+    run_cmd.append(f'{get_executable_path("accelerate")}')
+    run_cmd.append(f'launch')
 
-    run_cmd += AccelerateLaunch.run_cmd(
+    run_cmd = AccelerateLaunch.run_cmd(
+        run_cmd=run_cmd,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -607,9 +611,9 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/sdxl_train.py'))
     else:
-        run_cmd += rf' "{scriptdir}/sd-scripts/fine_tune.py"'
+        run_cmd.append(shlex.quote(f'{scriptdir}/sd-scripts/fine_tune.py'))
 
     in_json = (
         rf"{train_dir}/{latent_metadata_filename}"
@@ -716,9 +720,10 @@ def train_model(
         kwargs_for_training["learning_rate_te"] = learning_rate_te
 
     # Pass the dynamically constructed keyword arguments to the function
-    run_cmd += run_cmd_advanced_training(**kwargs_for_training)
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
-    run_cmd += run_cmd_sample(
+    run_cmd = run_cmd_sample(
+        run_cmd,
         sample_every_n_steps,
         sample_every_n_epochs,
         sample_sampler,
@@ -730,9 +735,12 @@ def train_model(
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
-        print(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = ' '.join(run_cmd)
+        
+        print(command_to_run)
 
-        save_to_file(run_cmd)
+        save_to_file(command_to_run)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
