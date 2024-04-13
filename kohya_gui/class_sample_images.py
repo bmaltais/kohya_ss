@@ -74,12 +74,12 @@ def run_cmd_sample(
     # Append the sampling frequency for epochs, only if non-zero
     if sample_every_n_epochs != 0:
         run_cmd.append("--sample_every_n_epochs")
-        run_cmd.append(sample_every_n_epochs)
+        run_cmd.append(str(sample_every_n_epochs))
 
     # Append the sampling frequency for steps, only if non-zero
     if sample_every_n_steps != 0:
         run_cmd.append("--sample_every_n_steps")
-        run_cmd.append(sample_every_n_steps)
+        run_cmd.append(str(sample_every_n_steps))
 
     return run_cmd
 
