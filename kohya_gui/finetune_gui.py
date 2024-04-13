@@ -616,9 +616,9 @@ def train_model(
         run_cmd.append(f'{scriptdir}/sd-scripts/fine_tune.py')
 
     in_json = (
-        rf"{train_dir}/{latent_metadata_filename}"
+        f"{train_dir}/{latent_metadata_filename}"
         if use_latent_files == "Yes"
-        else rf"{train_dir}/{caption_metadata_filename}"
+        else f"{train_dir}/{caption_metadata_filename}"
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae

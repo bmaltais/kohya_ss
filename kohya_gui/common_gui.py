@@ -1059,7 +1059,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 run_cmd.append(f"{shlex.quote(arg)}")
 
     if "block_lr" in kwargs and kwargs["block_lr"] != "":
-        run_cmd.append(f'--block_lr="{shlex.quote(kwargs["block_lr"])}"')
+        run_cmd.append(f'--block_lr={shlex.quote(kwargs["block_lr"])}')
 
     if kwargs.get("bucket_no_upscale"):
         run_cmd.append("--bucket_no_upscale")
@@ -1136,7 +1136,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     in_json = kwargs.get("in_json")
     if in_json:
-        run_cmd.append(f'--in_json="{shlex.quote(in_json)}"')
+        run_cmd.append(f'--in_json')
+        run_cmd.append(f'{shlex.quote(in_json)}')
 
     flip_aug = kwargs.get("flip_aug")
     if flip_aug:
@@ -1189,19 +1190,19 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     if "learning_rate_te" in kwargs:
         if kwargs["learning_rate_te"] == 0:
-            run_cmd.append('--learning_rate_te="0"')
+            run_cmd.append('--learning_rate_te=0')
         else:
             run_cmd.append(f'--learning_rate_te={float(kwargs["learning_rate_te"])}')
 
     if "learning_rate_te1" in kwargs:
         if kwargs["learning_rate_te1"] == 0:
-            run_cmd.append('--learning_rate_te1="0"')
+            run_cmd.append('--learning_rate_te1=0')
         else:
             run_cmd.append(f'--learning_rate_te1={float(kwargs["learning_rate_te1"])}')
 
     if "learning_rate_te2" in kwargs:
         if kwargs["learning_rate_te2"] == 0:
-            run_cmd.append(f'--learning_rate_te2="0"')
+            run_cmd.append(f'--learning_rate_te2=0')
         else:
             run_cmd.append(f'--learning_rate_te2={float(kwargs["learning_rate_te2"])}')
 
@@ -1218,7 +1219,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     log_tracker_name = kwargs.get("log_tracker_name")
     if log_tracker_name:
-        run_cmd.append(rf'--log_tracker_name="{shlex.quote(log_tracker_name)}"')
+        run_cmd.append(rf'--log_tracker_name')
+        run_cmd.append(f'{shlex.quote(log_tracker_name)}')
 
     log_tracker_config = kwargs.get("log_tracker_config")
     if log_tracker_config:
@@ -1234,7 +1236,9 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
         run_cmd.append(
-            f'--network_weights="{shlex.quote(lora_network_weights)}"'
+            f'--network_weights')
+        run_cmd.append(
+            f'{shlex.quote(lora_network_weights)}'
         )  # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     if "loss_type" in kwargs:
@@ -1306,7 +1310,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "max_train_steps" in kwargs:
         max_train_steps = kwargs.get("max_train_steps")
         if not max_train_steps == "":
-            run_cmd.append(f'--max_train_steps="{int(max_train_steps)}"')
+            run_cmd.append(f'--max_train_steps={int(max_train_steps)}')
 
     if "mem_eff_attn" in kwargs:
         if kwargs.get("mem_eff_attn"):  # Test if the value is true as it could be false
@@ -1478,7 +1482,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "resume" in kwargs:
         resume = kwargs.get("resume")
         if len(resume):
-            run_cmd.append(f'--resume="{shlex.quote(resume)}"')
+            run_cmd.append(f'--resume')
+            run_cmd.append(f'{shlex.quote(resume)}')
 
     if "save_every_n_epochs" in kwargs:
         save_every_n_epochs = kwargs.get("save_every_n_epochs")
@@ -1523,7 +1528,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "scale_weight_norms" in kwargs:
         scale_weight_norms = kwargs.get("scale_weight_norms")
         if scale_weight_norms > 0.0:
-            run_cmd.append(f'--scale_weight_norms="{scale_weight_norms}"')
+            run_cmd.append(f'--scale_weight_norms={float(scale_weight_norms)}')
 
     if "seed" in kwargs:
         seed = kwargs.get("seed")
@@ -1538,7 +1543,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
         stop_text_encoder_training = kwargs.get("stop_text_encoder_training")
         if stop_text_encoder_training > 0:
             run_cmd.append(
-                f'--stop_text_encoder_training="{stop_text_encoder_training}"'
+                f'--stop_text_encoder_training={int(stop_text_encoder_training)}'
             )
 
     if "text_encoder_lr" in kwargs:
@@ -1551,7 +1556,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     training_comment = kwargs.get("training_comment")
     if training_comment and len(training_comment):
-        run_cmd.append(rf'--training_comment="{shlex.quote(training_comment)}"')
+        run_cmd.append(rf'--training_comment')
+        run_cmd.append(f'{shlex.quote(training_comment)}')
 
     train_data_dir = kwargs.get("train_data_dir")
     if train_data_dir:
@@ -1582,7 +1588,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     v_pred_like_loss = kwargs.get("v_pred_like_loss")
     if v_pred_like_loss and float(v_pred_like_loss) > 0:
-        run_cmd.append(f'--v_pred_like_loss="{float(v_pred_like_loss)}"')
+        run_cmd.append(f'--v_pred_like_loss={float(v_pred_like_loss)}')
 
     v2 = kwargs.get("v2")
     if v2:
@@ -1601,15 +1607,16 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     vae_batch_size = kwargs.get("vae_batch_size")
     if vae_batch_size and int(vae_batch_size) > 0:
-        run_cmd.append(f'--vae_batch_size="{int(vae_batch_size)}"')
+        run_cmd.append(f'--vae_batch_size={int(vae_batch_size)}')
 
     wandb_api_key = kwargs.get("wandb_api_key")
     if wandb_api_key:
-        run_cmd.append(f'--wandb_api_key="{shlex.quote(wandb_api_key)}"')
+        run_cmd.append(f'--wandb_api_key={shlex.quote(wandb_api_key)}')
 
     wandb_run_name = kwargs.get("wandb_run_name")
     if wandb_run_name:
-        run_cmd.append(f'--wandb_run_name="{shlex.quote(wandb_run_name)}"')
+        run_cmd.append(f'--wandb_run_name')
+        run_cmd.append(f'{shlex.quote(wandb_run_name)}')
 
     weighted_captions = kwargs.get("weighted_captions")
     if weighted_captions:
