@@ -1106,7 +1106,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
         if os.name == "nt":
             dataset_config = dataset_config.replace("\\", "/")
 
-        run_cmd.append(f'--dataset_config="{dataset_config}"')
+        run_cmd.append(f'--dataset_config')
+        run_cmd.append(f'{dataset_config}')
 
     dataset_repeats = kwargs.get("dataset_repeats")
     if dataset_repeats:
@@ -1151,7 +1152,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     full_fp16 = kwargs.get("full_fp16")
     if full_fp16:
-        run_cmd += " --full_fp16"
+        run_cmd.append("--full_fp16")
 
     if (
         "gradient_accumulation_steps" in kwargs
@@ -1165,11 +1166,11 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
         run_cmd.append("--gradient_checkpointing")
 
     if kwargs.get("huber_c"):
-        run_cmd.append(f'--huber_c="{kwargs.get("huber_c")}"')
+        run_cmd.append(f'--huber_c={kwargs.get("huber_c")}')
 
     if kwargs.get("huber_schedule"):
         run_cmd.append(
-            f'--huber_schedule="{shlex.quote(kwargs.get("huber_schedule"))}"'
+            f'--huber_schedule={shlex.quote(kwargs.get("huber_schedule"))}'
         )
 
     if kwargs.get("ip_noise_gamma"):
@@ -1181,28 +1182,28 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             run_cmd.append("--ip_noise_gamma_random_strength")
 
     if "keep_tokens" in kwargs and int(kwargs["keep_tokens"]) > 0:
-        run_cmd.append(f'--keep_tokens="{int(kwargs["keep_tokens"])}"')
+        run_cmd.append(f'--keep_tokens={int(kwargs["keep_tokens"])}')
 
     if "learning_rate" in kwargs:
-        run_cmd.append(f'--learning_rate="{kwargs["learning_rate"]}"')
+        run_cmd.append(f'--learning_rate={float(kwargs["learning_rate"])}')
 
     if "learning_rate_te" in kwargs:
         if kwargs["learning_rate_te"] == 0:
             run_cmd.append('--learning_rate_te="0"')
         else:
-            run_cmd.append(f'--learning_rate_te="{kwargs["learning_rate_te"]}"')
+            run_cmd.append(f'--learning_rate_te={float(kwargs["learning_rate_te"])}')
 
     if "learning_rate_te1" in kwargs:
         if kwargs["learning_rate_te1"] == 0:
             run_cmd.append('--learning_rate_te1="0"')
         else:
-            run_cmd.append(f'--learning_rate_te1="{kwargs["learning_rate_te1"]}"')
+            run_cmd.append(f'--learning_rate_te1={float(kwargs["learning_rate_te1"])}')
 
     if "learning_rate_te2" in kwargs:
         if kwargs["learning_rate_te2"] == 0:
             run_cmd.append(f'--learning_rate_te2="0"')
         else:
-            run_cmd.append(f'--learning_rate_te2="{kwargs["learning_rate_te2"]}"')
+            run_cmd.append(f'--learning_rate_te2={float(kwargs["learning_rate_te2"])}')
 
     logging_dir = kwargs.get("logging_dir")
     if logging_dir:
@@ -1212,7 +1213,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             logging_dir = os.path.abspath(os.path.normpath(logging_dir))
             if os.name == "nt":
                 logging_dir = logging_dir.replace("\\", "/")
-            run_cmd.append(rf'--logging_dir="{logging_dir}"')
+            run_cmd.append(f'--logging_dir')
+            run_cmd.append(f'{logging_dir}')
 
     log_tracker_name = kwargs.get("log_tracker_name")
     if log_tracker_name:
@@ -1226,7 +1228,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             log_tracker_config = os.path.abspath(os.path.normpath(log_tracker_config))
             if os.name == "nt":
                 log_tracker_config = log_tracker_config.replace("\\", "/")
-            run_cmd.append(rf'--log_tracker_config="{log_tracker_config}"')
+            run_cmd.append(f'--log_tracker_config')
+            run_cmd.append(f'{log_tracker_config}')
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
@@ -1235,11 +1238,11 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
         )  # Yes, the parameter is now called network_weights instead of lora_network_weights
 
     if "loss_type" in kwargs:
-        run_cmd.append(rf'--loss_type="{shlex.quote(kwargs.get("loss_type"))}"')
+        run_cmd.append(rf'--loss_type={shlex.quote(kwargs.get("loss_type"))}')
 
     lr_scheduler = kwargs.get("lr_scheduler")
     if lr_scheduler:
-        run_cmd.append(f'--lr_scheduler="{shlex.quote(lr_scheduler)}"')
+        run_cmd.append(f'--lr_scheduler={shlex.quote(lr_scheduler)}')
 
     lr_scheduler_args = kwargs.get("lr_scheduler_args")
     if lr_scheduler_args and lr_scheduler_args != "":
@@ -1251,22 +1254,22 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     lr_scheduler_num_cycles = kwargs.get("lr_scheduler_num_cycles")
     if lr_scheduler_num_cycles and not lr_scheduler_num_cycles == "":
-        run_cmd.append(f'--lr_scheduler_num_cycles="{lr_scheduler_num_cycles}"')
+        run_cmd.append(f'--lr_scheduler_num_cycles={lr_scheduler_num_cycles}')
     else:
         epoch = kwargs.get("epoch")
         if epoch:
-            run_cmd.append(f'--lr_scheduler_num_cycles="{epoch}"')
+            run_cmd.append(f'--lr_scheduler_num_cycles={epoch}')
 
     lr_scheduler_power = kwargs.get("lr_scheduler_power")
     if lr_scheduler_power and lr_scheduler_power != "":
-        run_cmd.append(f'--lr_scheduler_power="{lr_scheduler_power}"')
+        run_cmd.append(f'--lr_scheduler_power={lr_scheduler_power}')
 
     lr_warmup_steps = kwargs.get("lr_warmup_steps")
     if lr_warmup_steps:
         if lr_scheduler == "constant":
             log.info("Can't use LR warmup with LR Scheduler constant... ignoring...")
         else:
-            run_cmd.append(f'--lr_warmup_steps="{lr_warmup_steps}"')
+            run_cmd.append(f'--lr_warmup_steps={lr_warmup_steps}')
 
     if "masked_loss" in kwargs:
         if kwargs.get("masked_loss"):  # Test if the value is true as it could be false
@@ -1275,7 +1278,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "max_data_loader_n_workers" in kwargs:
         max_data_loader_n_workers = kwargs.get("max_data_loader_n_workers")
         if max_data_loader_n_workers != "":
-            run_cmd.append(f'--max_data_loader_n_workers="{max_data_loader_n_workers}"')
+            run_cmd.append(f'--max_data_loader_n_workers={max_data_loader_n_workers}')
 
     if "max_grad_norm" in kwargs:
         max_grad_norm = kwargs.get("max_grad_norm")
@@ -1283,7 +1286,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             run_cmd.append(f"--max_grad_norm={float(max_grad_norm)}")
 
     if "max_resolution" in kwargs:
-        run_cmd.append(rf'--resolution="{shlex.quote(kwargs.get("max_resolution"))}"')
+        run_cmd.append(rf'--resolution={shlex.quote(kwargs.get("max_resolution"))}')
 
     if "max_timestep" in kwargs:
         max_timestep = kwargs.get("max_timestep")
@@ -1321,14 +1324,15 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     if "mixed_precision" in kwargs:
         run_cmd.append(
-            rf'--mixed_precision="{shlex.quote(kwargs.get("mixed_precision"))}"'
+            rf'--mixed_precision={shlex.quote(kwargs.get("mixed_precision"))}'
         )
 
     if "network_alpha" in kwargs:
-        run_cmd.append(rf'--network_alpha="{kwargs.get("network_alpha")}"')
+        run_cmd.append(rf'--network_alpha={int(kwargs.get("network_alpha"))}')
 
     if "network_args" in kwargs:
         network_args = kwargs.get("network_args")
+        network_args = network_args.replace('"', "")
         if network_args != "":
             args = network_args.split()
             run_cmd.append(f"--network_args")
@@ -1336,7 +1340,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 run_cmd.append(arg)
 
     if "network_dim" in kwargs:
-        run_cmd.append(rf'--network_dim={kwargs.get("network_dim")}')
+        run_cmd.append(rf'--network_dim={int(kwargs.get("network_dim"))}')
 
     if "network_dropout" in kwargs:
         network_dropout = kwargs.get("network_dropout")
@@ -1390,7 +1394,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 )
                 if multires_noise_iterations > 0:
                     run_cmd.append(
-                        f'--multires_noise_iterations="{multires_noise_iterations}"'
+                        f'--multires_noise_iterations={multires_noise_iterations}'
                     )
 
             if "multires_noise_discount" in kwargs:
@@ -1399,7 +1403,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 )
                 if multires_noise_discount > 0:
                     run_cmd.append(
-                        f'--multires_noise_discount="{multires_noise_discount}"'
+                        f'--multires_noise_discount={multires_noise_discount}'
                     )
 
     if "optimizer_args" in kwargs:
@@ -1414,7 +1418,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 run_cmd.append(f"{shlex.quote(arg)}")
 
     if "optimizer" in kwargs:
-        run_cmd.append(rf'--optimizer_type="{shlex.quote(kwargs.get("optimizer"))}"')
+        run_cmd.append(rf'--optimizer_type={shlex.quote(kwargs.get("optimizer"))}')
 
     if "output_dir" in kwargs:
         output_dir = kwargs.get("output_dir")
@@ -1424,7 +1428,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             output_dir = os.path.abspath(os.path.normpath(output_dir))
             if os.name == "nt":
                 output_dir = output_dir.replace("\\", "/")
-            run_cmd.append(rf'--output_dir="{output_dir}"')
+            run_cmd.append(f'--output_dir')
+            run_cmd.append(f'{output_dir}')
 
     if "output_name" in kwargs:
         output_name = kwargs.get("output_name")
@@ -1442,7 +1447,9 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 "\\", "/"
             )
         run_cmd.append(
-            rf'--pretrained_model_name_or_path="{pretrained_model_name_or_path}"'
+            f'--pretrained_model_name_or_path')
+        run_cmd.append(
+            f'{pretrained_model_name_or_path}'
         )
 
     if "prior_loss_weight" in kwargs:
@@ -1464,7 +1471,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
                 reg_data_dir = os.path.abspath(os.path.normpath(reg_data_dir))
                 if os.name == "nt":
                     reg_data_dir = reg_data_dir.replace("\\", "/")
-                run_cmd.append(rf'--reg_data_dir="{reg_data_dir}"')
+                run_cmd.append(f'--reg_data_dir')
+                run_cmd.append(f'{reg_data_dir}')
 
     if "resume" in kwargs:
         resume = kwargs.get("resume")
@@ -1552,7 +1560,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             train_data_dir = os.path.abspath(os.path.normpath(train_data_dir))
             if os.name == "nt":
                 train_data_dir = train_data_dir.replace("\\", "/")
-            run_cmd.append(rf'--train_data_dir="{train_data_dir}"')
+            run_cmd.append(f'--train_data_dir')
+            run_cmd.append(f'{train_data_dir}')
 
     train_text_encoder = kwargs.get("train_text_encoder")
     if train_text_encoder:
@@ -1586,7 +1595,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             vae = os.path.abspath(os.path.normpath(vae))
             if os.name == "nt":
                 vae = vae.replace("\\", "/")
-            run_cmd.append(f'--vae="{vae}"')
+            run_cmd.append(f'--vae')
+            run_cmd.append(f'{vae}')
 
     vae_batch_size = kwargs.get("vae_batch_size")
     if vae_batch_size and int(vae_batch_size) > 0:

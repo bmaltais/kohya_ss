@@ -33,10 +33,10 @@ class CommandExecutor:
         else:
             # Reconstruct the safe command string for display
             command_to_run = ' '.join(run_cmd)
-            log.info(f"Executing command: {command_to_run}")
+            log.info(f"Executings command: {command_to_run}")
 
             # Execute the command securely
-            self.process = subprocess.Popen(command_to_run, **kwargs)
+            self.process = subprocess.Popen(run_cmd, **kwargs)
 
     def kill_command(self):
         """
