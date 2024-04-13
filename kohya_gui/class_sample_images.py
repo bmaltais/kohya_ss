@@ -65,7 +65,7 @@ def run_cmd_sample(
         sample_prompts_path = sample_prompts_path.replace("\\", "/")
     
     run_cmd.append(f'--sample_prompts')
-    run_cmd.append(f'{shlex.quote(sample_prompts_path)}')
+    run_cmd.append(f'{sample_prompts_path}')
 
     if sample_every_n_epochs != 0:
         run_cmd.append(f"--sample_every_n_epochs={sample_every_n_epochs}")

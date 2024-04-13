@@ -1434,7 +1434,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if "output_name" in kwargs:
         output_name = kwargs.get("output_name")
         if not output_name == "":
-            run_cmd.append(f'--output_name="{shlex.quote(output_name)}"')
+            run_cmd.append(f'--output_name')
+            run_cmd.append(f'{shlex.quote(output_name)}')
 
     if "persistent_data_loader_workers" in kwargs:
         if kwargs.get("persistent_data_loader_workers"):
