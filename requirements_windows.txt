@@ -1,5 +1,5 @@
 bitsandbytes==0.43.0
 tensorboard
-tensorflow
+tensorflow>=2.16.1
 onnxruntime-gpu==1.17.1
 -r requirements.txt

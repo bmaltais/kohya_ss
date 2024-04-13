@@ -25,11 +25,7 @@ from .class_advanced_training import AdvancedTraining
 from .class_sdxl_parameters import SDXLParameters
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
-from .tensorboard_gui import (
-    gradio_tensorboard,
-    start_tensorboard,
-    stop_tensorboard,
-)
+from .class_tensorboard import TensorboardManager
 from .class_sample_images import SampleImages, run_cmd_sample
 from .class_lora_tab import LoRATools
 
@@ -48,12 +44,14 @@ executor = CommandExecutor()
 
 button_run = gr.Button("Start training", variant="primary")
 
-button_stop_training = gr.Button("Stop training")
+button_stop_training = gr.Button("Stop training", visible=False)
 
 document_symbol = "\U0001F4C4"  # 📄
 
 
 presets_dir = rf"{scriptdir}/presets"
+
+TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
 
 
 def update_network_args_with_kohya_lora_vars(
@@ -648,14 +646,14 @@ def train_model(
         lora_network_weights=lora_network_weights,
         dataset_config=dataset_config,
     ):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if int(bucket_reso_steps) < 1:
         output_message(
             msg="Bucket resolution steps need to be greater than 0",
             headless=headless,
         )
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if noise_offset == "":
         noise_offset = 0
@@ -665,7 +663,7 @@ def train_model(
             msg="Noise offset need to be a value between 0 and 1",
             headless=headless,
         )
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if output_dir != "":
         if not os.path.exists(output_dir):
@@ -681,7 +679,7 @@ def train_model(
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
     ):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     # If string is empty set string to 0.
     if text_encoder_lr == "":
@@ -694,6 +692,10 @@ def train_model(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
     else:
+        if train_data_dir == "":
+            log.error("Train data dir is empty")
+            return TRAIN_BUTTON_VISIBLE
+        
         # Get a list of all subfolders in train_data_dir
         subfolders = [
             f
@@ -912,7 +914,7 @@ def train_model(
     # Sets flags for training specific components based on the provided learning rates.
     if float(learning_rate) == unet_lr_float == text_encoder_lr_float == 0:
         output_message(msg="Please input learning rate values.", headless=headless)
-        return
+        return TRAIN_BUTTON_VISIBLE
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
@@ -1070,6 +1072,8 @@ def train_model(
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
+        
+        return gr.Button(visible=False), gr.Button(visible=True)
 
 
 def lora_tab(
@@ -1917,27 +1921,15 @@ def lora_tab(
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training")
+                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
 
-            button_print = gr.Button("Print training command")
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         with gr.Column(), gr.Group():
-            (
-                button_start_tensorboard,
-                button_stop_tensorboard,
-            ) = gradio_tensorboard()
-
-        button_start_tensorboard.click(
-            start_tensorboard,
-            inputs=[dummy_headless, folders.logging_dir],
-            show_progress=False,
-        )
-
-        button_stop_tensorboard.click(
-            stop_tensorboard,
-            show_progress=False,
-        )
+            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -2133,10 +2125,11 @@ def lora_tab(
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            outputs=[button_run, button_stop_training],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command)
+        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
 
         button_print.click(
             train_model,
