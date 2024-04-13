@@ -45,56 +45,79 @@ def caption_images(
         return
 
     log.info(f"Captioning files in {train_data_dir}...")
-    run_cmd = rf'accelerate launch "{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"'
-    # if always_first_tags:
-    #     run_cmd += f' --always_first_tags="{always_first_tags}"'
-    if append_tags:
-        run_cmd += f" --append_tags"
-    run_cmd += f" --batch_size={int(batch_size)}"
-    run_cmd += f' --caption_extension="{caption_extension}"'
-    run_cmd += f' --caption_separator="{caption_separator}"'
-    if character_tag_expand:
-        run_cmd += f" --character_tag_expand"
-    if not character_threshold == 0.35:
-        run_cmd += f" --character_threshold={character_threshold}"
-    if debug:
-        run_cmd += f" --debug"
-    if force_download:
-        run_cmd += f" --force_download"
-    if frequency_tags:
-        run_cmd += f" --frequency_tags"
-    if not general_threshold == 0.35:
-        run_cmd += f" --general_threshold={general_threshold}"
-    run_cmd += f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
-    if onnx:
-        run_cmd += f" --onnx"
-    if recursive:
-        run_cmd += f" --recursive"
-    if remove_underscore:
-        run_cmd += f" --remove_underscore"
-    run_cmd += f' --repo_id="{repo_id}"'
-    if not tag_replacement == "":
-        run_cmd += f" --tag_replacement={tag_replacement}"
-    if not thresh == 0.35:
-        run_cmd += f" --thresh={thresh}"
-    if not undesired_tags == "":
-        run_cmd += f' --undesired_tags="{undesired_tags}"'
-    if use_rating_tags:
-        run_cmd += f" --use_rating_tags"
-    if use_rating_tags_as_last_tag:
-        run_cmd += f" --use_rating_tags_as_last_tag"
-    run_cmd += rf' "{train_data_dir}"'
+    run_cmd = [
+        "accelerate", "launch", f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"
+    ]
 
-    log.info(run_cmd)
+    # Uncomment and modify if needed
+    # if always_first_tags:
+    #     run_cmd.append('--always_first_tags')
+    #     run_cmd.append(always_first_tags)
+
+    if append_tags:
+        run_cmd.append("--append_tags")
+    run_cmd.append("--batch_size")
+    run_cmd.append(str(int(batch_size)))
+    run_cmd.append("--caption_extension")
+    run_cmd.append(caption_extension)
+    run_cmd.append("--caption_separator")
+    run_cmd.append(caption_separator)
+
+    if character_tag_expand:
+        run_cmd.append("--character_tag_expand")
+    if not character_threshold == 0.35:
+        run_cmd.append("--character_threshold")
+        run_cmd.append(str(character_threshold))
+    if debug:
+        run_cmd.append("--debug")
+    if force_download:
+        run_cmd.append("--force_download")
+    if frequency_tags:
+        run_cmd.append("--frequency_tags")
+    if not general_threshold == 0.35:
+        run_cmd.append("--general_threshold")
+        run_cmd.append(str(general_threshold))
+    run_cmd.append("--max_data_loader_n_workers")
+    run_cmd.append(str(int(max_data_loader_n_workers)))
+
+    if onnx:
+        run_cmd.append("--onnx")
+    if recursive:
+        run_cmd.append("--recursive")
+    if remove_underscore:
+        run_cmd.append("--remove_underscore")
+    run_cmd.append("--repo_id")
+    run_cmd.append(repo_id)
+    if not tag_replacement == "":
+        run_cmd.append("--tag_replacement")
+        run_cmd.append(tag_replacement)
+    if not thresh == 0.35:
+        run_cmd.append("--thresh")
+        run_cmd.append(str(thresh))
+    if not undesired_tags == "":
+        run_cmd.append("--undesired_tags")
+        run_cmd.append(undesired_tags)
+    if use_rating_tags:
+        run_cmd.append("--use_rating_tags")
+    if use_rating_tags_as_last_tag:
+        run_cmd.append("--use_rating_tags_as_last_tag")
+
+    # Add the directory containing the training data
+    run_cmd.append(train_data_dir)
+
+    # Log the command
+    log.info(' '.join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)
+
     
     # Add prefix and postfix
     add_pre_postfix(

@@ -73,41 +73,66 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lycoris_locon_extract.py"'
-    if is_sdxl:
-        run_cmd += f" --is_sdxl"
-    if is_v2:
-        run_cmd += f" --is_v2"
-    run_cmd += f" --device {device}"
-    run_cmd += f" --mode {mode}"
-    run_cmd += f" --safetensors"
-    if mode == "fixed":
-        run_cmd += f" --linear_dim {linear_dim}"
-        run_cmd += f" --conv_dim {conv_dim}"
-    if mode == "threshold":
-        run_cmd += f" --linear_threshold {linear_threshold}"
-        run_cmd += f" --conv_threshold {conv_threshold}"
-    if mode == "ratio":
-        run_cmd += f" --linear_ratio {linear_ratio}"
-        run_cmd += f" --conv_ratio {conv_ratio}"
-    if mode == "quantile":
-        run_cmd += f" --linear_quantile {linear_quantile}"
-        run_cmd += f" --conv_quantile {conv_quantile}"
-    if use_sparse_bias:
-        run_cmd += f" --use_sparse_bias"
-    run_cmd += f" --sparsity {sparsity}"
-    if disable_cp:
-        run_cmd += f" --disable_cp"
-    run_cmd += rf' "{base_model}"'
-    run_cmd += rf' "{db_model}"'
-    run_cmd += rf' "{output_name}"'
+    run_cmd = [PYTHON, f"{scriptdir}/tools/lycoris_locon_extract.py"]
 
-    log.info(run_cmd)
+    if is_sdxl:
+        run_cmd.append("--is_sdxl")
+    if is_v2:
+        run_cmd.append("--is_v2")
+
+    # Adding required parameters
+    run_cmd.append("--device")
+    run_cmd.append(device)
+    run_cmd.append("--mode")
+    run_cmd.append(mode)
+    run_cmd.append("--safetensors")
+
+    # Handling conditional parameters based on mode
+    if mode == "fixed":
+        run_cmd.append("--linear_dim")
+        run_cmd.append(str(linear_dim))
+        run_cmd.append("--conv_dim")
+        run_cmd.append(str(conv_dim))
+    elif mode == "threshold":
+        run_cmd.append("--linear_threshold")
+        run_cmd.append(str(linear_threshold))
+        run_cmd.append("--conv_threshold")
+        run_cmd.append(str(conv_threshold))
+    elif mode == "ratio":
+        run_cmd.append("--linear_ratio")
+        run_cmd.append(str(linear_ratio))
+        run_cmd.append("--conv_ratio")
+        run_cmd.append(str(conv_ratio))
+    elif mode == "quantile":
+        run_cmd.append("--linear_quantile")
+        run_cmd.append(str(linear_quantile))
+        run_cmd.append("--conv_quantile")
+        run_cmd.append(str(conv_quantile))
+
+    if use_sparse_bias:
+        run_cmd.append("--use_sparse_bias")
+
+    # Adding additional options
+    run_cmd.append("--sparsity")
+    run_cmd.append(str(sparsity))
+
+    if disable_cp:
+        run_cmd.append("--disable_cp")
+
+    # Add paths
+    run_cmd.append(base_model)
+    run_cmd.append(db_model)
+    run_cmd.append(output_name)
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding an example of an environment variable that might be relevant
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)

@@ -63,24 +63,41 @@ def resize_lora(
     if device == "":
         device = "cuda"
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/resize_lora.py"'
-    run_cmd += f" --save_precision {save_precision}"
-    run_cmd += rf' --save_to "{save_to}"'
-    run_cmd += rf' --model "{model}"'
-    run_cmd += f" --new_rank {new_rank}"
-    run_cmd += f" --device {device}"
-    if not dynamic_method == "None":
-        run_cmd += f" --dynamic_method {dynamic_method}"
-        run_cmd += f" --dynamic_param {dynamic_param}"
-    if verbose:
-        run_cmd += f" --verbose"
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/resize_lora.py",
+        "--save_precision",
+        save_precision,
+        "--save_to",
+        save_to,
+        "--model",
+        model,
+        "--new_rank",
+        str(new_rank),
+        "--device",
+        device,
+    ]
 
-    log.info(run_cmd)
+    # Conditional checks for dynamic parameters
+    if dynamic_method != "None":
+        run_cmd.extend(
+            ["--dynamic_method", dynamic_method, "--dynamic_param", str(dynamic_param)]
+        )
+
+    # Check for verbosity
+    if verbose:
+        run_cmd.append("--verbose")
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+
+    # Adding example environment variables if relevant
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)

@@ -49,19 +49,26 @@ def extract_dylora(
         path, ext = os.path.splitext(save_to)
         save_to = f"{path}_tmp{ext}"
 
-    run_cmd = (
-        rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"'
-    )
-    run_cmd += rf' --save_to "{save_to}"'
-    run_cmd += rf' --model "{model}"'
-    run_cmd += f" --unit {unit}"
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py",
+        "--save_to",
+        save_to,
+        "--model",
+        model,
+        "--unit",
+        str(unit),
+    ]
 
-    log.info(run_cmd)
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Example environment variable adjustment for the Python environment
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)

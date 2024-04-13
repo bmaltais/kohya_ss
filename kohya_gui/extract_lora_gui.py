@@ -72,34 +72,52 @@ def extract_lora(
     if not is_file_writable(save_to):
         return
 
-    run_cmd = (
-        rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/extract_lora_from_models.py"'
-    )
-    run_cmd += f" --load_precision {load_precision}"
-    run_cmd += f" --save_precision {save_precision}"
-    run_cmd += rf' --save_to "{save_to}"'
-    run_cmd += rf' --model_org "{model_org}"'
-    run_cmd += rf' --model_tuned "{model_tuned}"'
-    run_cmd += f" --dim {dim}"
-    run_cmd += f" --device {device}"
-    if conv_dim > 0:
-        run_cmd += f" --conv_dim {conv_dim}"
-    if v2:
-        run_cmd += f" --v2"
-    if sdxl:
-        run_cmd += f" --sdxl"
-    run_cmd += f" --clamp_quantile {clamp_quantile}"
-    run_cmd += f" --min_diff {min_diff}"
-    if sdxl:
-        run_cmd += f" --load_original_model_to {load_original_model_to}"
-        run_cmd += f" --load_tuned_model_to {load_tuned_model_to}"
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py",
+        "--load_precision",
+        load_precision,
+        "--save_precision",
+        save_precision,
+        "--save_to",
+        save_to,
+        "--model_org",
+        model_org,
+        "--model_tuned",
+        model_tuned,
+        "--dim",
+        str(dim),
+        "--device",
+        device,
+        "--clamp_quantile",
+        str(clamp_quantile),
+        "--min_diff",
+        str(min_diff),
+    ]
 
-    log.info(run_cmd)
+    if conv_dim > 0:
+        run_cmd.append("--conv_dim")
+        run_cmd.append(str(conv_dim))
+
+    if v2:
+        run_cmd.append("--v2")
+
+    if sdxl:
+        run_cmd.append("--sdxl")
+        run_cmd.append("--load_original_model_to")
+        run_cmd.append(load_original_model_to)
+        run_cmd.append("--load_tuned_model_to")
+        run_cmd.append(load_tuned_model_to)
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding an example of another potentially relevant environment variable
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)

@@ -33,22 +33,41 @@ def caption_images(
         return
 
     log.info(f"GIT captioning files in {train_data_dir}...")
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"'
-    if not model_id == "":
-        run_cmd += f' --model_id="{model_id}"'
-    run_cmd += f' --batch_size="{int(batch_size)}"'
-    run_cmd += f' --max_data_loader_n_workers="{int(max_data_loader_n_workers)}"'
-    run_cmd += f' --max_length="{int(max_length)}"'
-    if caption_ext != "":
-        run_cmd += f' --caption_extension="{caption_ext}"'
-    run_cmd += f' "{train_data_dir}"'
 
-    log.info(run_cmd)
+    run_cmd = [PYTHON, f"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"]
+
+    # Add --model_id if provided
+    if model_id != "":
+        run_cmd.append("--model_id")
+        run_cmd.append(model_id)
+
+    # Add other arguments with their values
+    run_cmd.append("--batch_size")
+    run_cmd.append(str(batch_size))
+
+    run_cmd.append("--max_data_loader_n_workers")
+    run_cmd.append(str(max_data_loader_n_workers))
+
+    run_cmd.append("--max_length")
+    run_cmd.append(str(max_length))
+
+    # Add --caption_extension if provided
+    if caption_ext != "":
+        run_cmd.append("--caption_extension")
+        run_cmd.append(caption_ext)
+
+    # Add the directory containing the training data
+    run_cmd.append(train_data_dir)
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding an example of an environment variable that might be relevant
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)

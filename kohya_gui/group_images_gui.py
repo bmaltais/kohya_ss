@@ -32,25 +32,35 @@ def group_images(
 
     log.info(f"Grouping images in {input_folder}...")
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/group_images.py"'
-    run_cmd += f' "{input_folder}"'
-    run_cmd += f' "{output_folder}"'
-    run_cmd += f" {(group_size)}"
-    if include_subfolders:
-        run_cmd += f" --include_subfolders"
-    if do_not_copy_other_files:
-        run_cmd += f" --do_not_copy_other_files"
-    if generate_captions:
-        run_cmd += f" --caption"
-        if caption_ext:
-            run_cmd += f" --caption_ext={caption_ext}"
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/tools/group_images.py",
+        input_folder,
+        output_folder,
+        str(group_size),
+    ]
 
-    log.info(run_cmd)
+    if include_subfolders:
+        run_cmd.append("--include_subfolders")
+
+    if do_not_copy_other_files:
+        run_cmd.append("--do_not_copy_other_files")
+
+    if generate_captions:
+        run_cmd.append("--caption")
+        if caption_ext:
+            run_cmd.append("--caption_ext")
+            run_cmd.append(caption_ext)
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding a common environmental setting as an example if it's missing in the original context
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
     subprocess.run(run_cmd, env=env)
