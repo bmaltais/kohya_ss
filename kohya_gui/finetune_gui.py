@@ -499,17 +499,21 @@ def train_model(
     else:
         # create caption json file
         if generate_caption_database:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+            run_cmd = [f'{PYTHON}',
+                       f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"]
             if caption_extension == "":
-                run_cmd += f' --caption_extension=".caption"'
+                run_cmd.append(f'--caption_extension')
+                run_cmd.append('.caption')
             else:
-                run_cmd += f" --caption_extension={caption_extension}"
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
+                run_cmd.append(f'--caption_extension')
+                run_cmd.append(f'{caption_extension}')
+            run_cmd.append(f'{image_folder}')
+            run_cmd.append(f'{train_dir}/{caption_metadata_filename}')
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append(f"--full_path")
 
-            log.info(run_cmd)
+
+            log.info(' '.join(run_cmd))
 
             env = os.environ.copy()
             env["PYTHONPATH"] = (
@@ -523,27 +527,33 @@ def train_model(
 
         # create images buckets
         if generate_image_buckets:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
-            run_cmd += rf' "{train_dir}/{latent_metadata_filename}"'
-            run_cmd += rf' "{pretrained_model_name_or_path}"'
-            run_cmd += f" --batch_size={batch_size}"
-            run_cmd += f" --max_resolution={max_resolution}"
-            run_cmd += f" --min_bucket_reso={min_bucket_reso}"
-            run_cmd += f" --max_bucket_reso={max_bucket_reso}"
-            run_cmd += f" --mixed_precision={mixed_precision}"
+            run_cmd = [f'{PYTHON}',
+                       f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"]
+            run_cmd.append(f'{image_folder}')
+            run_cmd.append(f'{train_dir}/{caption_metadata_filename}')
+            run_cmd.append(f'{train_dir}/{latent_metadata_filename}')
+            run_cmd.append(f'{pretrained_model_name_or_path}')
+            run_cmd.append(f'--batch_size')
+            run_cmd.append(f'{batch_size}')
+            run_cmd.append(f'--max_resolution')
+            run_cmd.append(f'{max_resolution}')
+            run_cmd.append(f'--min_bucket_reso')
+            run_cmd.append(f'{min_bucket_reso}')
+            run_cmd.append(f'--max_bucket_reso')
+            run_cmd.append(f'{max_bucket_reso}')
+            run_cmd.append(f'--mixed_precision')
+            run_cmd.append(f'{mixed_precision}')
             # if flip_aug:
-            #     run_cmd += f' --flip_aug'
+            #     run_cmd.append('--flip_aug')
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append('--full_path')
             if sdxl_checkbox and sdxl_no_half_vae:
                 log.info(
                     "Using mixed_precision = no because no half vae is selected..."
                 )
-                run_cmd += f' --mixed_precision="no"'
+                run_cmd.append('--mixed_precision="no"')
 
-            log.info(run_cmd)
+            log.info(' '.join(run_cmd))
 
             env = os.environ.copy()
             env["PYTHONPATH"] = (
