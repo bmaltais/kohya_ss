@@ -25,7 +25,11 @@ from .class_advanced_training import AdvancedTraining
 from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
-from .class_tensorboard import TensorboardManager
+from .tensorboard_gui import (
+    gradio_tensorboard,
+    start_tensorboard,
+    stop_tensorboard,
+)
 from .class_sample_images import SampleImages, run_cmd_sample
 
 from .custom_logging import setup_logging
@@ -46,7 +50,7 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
-TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
+
 
 def save_configuration(
     save_as_bool,
@@ -483,12 +487,12 @@ def train_model(
         resume=resume,
         dataset_config=dataset_config,
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if dataset_config:
         log.info(
@@ -553,10 +557,6 @@ def train_model(
                 # Run the command
                 subprocess.run(run_cmd, env=env)
 
-        if image_folder == "":
-            log.error("Image folder dir is empty")
-            return TRAIN_BUTTON_VISIBLE
-        
         image_num = len(
             [
                 f
@@ -757,9 +757,6 @@ def train_model(
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
-        return gr.Button(visible=False), gr.Button(visible=True)
-        
 
 
 def finetune_tab(headless=False, config: dict = {}):
@@ -901,15 +898,26 @@ def finetune_tab(headless=False, config: dict = {}):
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
+                button_stop_training = gr.Button("Stop training")
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_print = gr.Button("Print training command")
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
+
+        button_start_tensorboard.click(
+            start_tensorboard,
+            inputs=[dummy_headless, logging_dir],
+        )
+
+        button_stop_tensorboard.click(
+            stop_tensorboard,
+            show_progress=False,
+        )
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -1070,11 +1078,10 @@ def finetune_tab(headless=False, config: dict = {}):
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
+        button_stop_training.click(executor.kill_command)
 
         button_print.click(
             train_model,
