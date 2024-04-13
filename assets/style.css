@@ -33,3 +33,15 @@
     width: 33%;
     flex-grow: 0;
 }
+
+#myTensorButton {
+    background: radial-gradient(ellipse, #007bff, #00b0ff);
+    color: white;
+    border: none;
+}
+
+#myTensorButtonStop {
+    background: radial-gradient(ellipse, #00b0ff, #007bff);
+    color: black;
+    border: none;
+}

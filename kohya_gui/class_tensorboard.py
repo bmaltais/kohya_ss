@@ -4,8 +4,8 @@ import subprocess
 import time
 import webbrowser
 from easygui import msgbox
+from threading import Thread, Event
 from .custom_logging import setup_logging
-
 
 class TensorboardManager:
     DEFAULT_TENSORBOARD_PORT = 6006
@@ -19,6 +19,8 @@ class TensorboardManager:
             "TENSORBOARD_PORT", self.DEFAULT_TENSORBOARD_PORT
         )
         self.log = setup_logging()
+        self.thread = None
+        self.stop_event = Event()
 
         self.gradio_interface()
 
@@ -61,16 +63,15 @@ class TensorboardManager:
 
         def open_tensorboard_url():
             time.sleep(self.wait_time)
-            tensorboard_url = f"http://localhost:{self.tensorboard_port}"
-            self.log.info(f"Opening TensorBoard URL in browser: {tensorboard_url}")
-            webbrowser.open(tensorboard_url)
+            if not self.stop_event.is_set():
+                tensorboard_url = f"http://localhost:{self.tensorboard_port}"
+                self.log.info(f"Opening TensorBoard URL in browser: {tensorboard_url}")
+                webbrowser.open(tensorboard_url)
 
         if not self.headless:
-            # Start a new thread to open the TensorBoard URL in the browser
-            import threading
-
-            thread = threading.Thread(target=open_tensorboard_url)
-            thread.start()  # This will start the function in a new thread
+            self.stop_event.clear()
+            self.thread = Thread(target=open_tensorboard_url)
+            self.thread.start()
 
         return self.get_button_states(started=True)
 
@@ -83,15 +84,24 @@ class TensorboardManager:
                 self.log.info("...process stopped")
             except Exception as e:
                 self.log.error("Failed to stop Tensorboard:", e)
-        else:
-            self.log.warning("Tensorboard is not running...")
+        
+        if self.thread is not None:
+            self.stop_event.set()
+            self.thread.join()  # Wait for the thread to finish
+            self.thread = None
+            self.log.info("Thread terminated successfully.")
+
         return self.get_button_states(started=False)
 
     def gradio_interface(self):
         with gr.Row():
-            button_start_tensorboard = gr.Button(value="Start tensorboard", variant="primary")
+            button_start_tensorboard = gr.Button(
+                value="Start tensorboard", elem_id="myTensorButton"
+            )
             button_stop_tensorboard = gr.Button(
-                value="Stop tensorboard", visible=False, variant="stop"
+                value="Stop tensorboard",
+                visible=False,
+                elem_id="myTensorButtonStop",
             )
             button_start_tensorboard.click(
                 self.start_tensorboard,
