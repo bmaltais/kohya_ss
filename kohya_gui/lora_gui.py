@@ -3,10 +3,10 @@ import json
 import math
 import os
 import time
+import toml
 
 from datetime import datetime
 from .common_gui import (
-    get_executable_path,
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
@@ -29,8 +29,9 @@ from .class_sdxl_parameters import SDXLParameters
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
 from .class_tensorboard import TensorboardManager
-from .class_sample_images import SampleImages, run_cmd_sample
+from .class_sample_images import SampleImages, run_cmd_sample, create_prompt_file
 from .class_lora_tab import LoRATools
+from .class_huggingface import HuggingFace
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -44,6 +45,9 @@ log = setup_logging()
 
 # Setup command executor
 executor = CommandExecutor()
+
+# Setup huggingface
+huggingface = None
 
 button_run = gr.Button("Start training", variant="primary")
 
@@ -79,7 +83,7 @@ def update_network_args_with_kohya_lora_vars(
     # Iterate over the Kohya LoRA variables and append them to the network arguments
     for key, value in kohya_lora_vars.items():
         # Append each variable as a key-value pair to the network_args
-        network_args += f' {key}="{value}"'
+        network_args += f' {key}={value}'
     return network_args
 
 
@@ -228,6 +232,14 @@ def save_configuration(
     LyCORIS_preset,
     debiased_estimation_loss,
     extra_accelerate_launch_args,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -416,6 +428,14 @@ def open_configuration(
     LyCORIS_preset,
     debiased_estimation_loss,
     extra_accelerate_launch_args,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -634,6 +654,14 @@ def train_model(
     LyCORIS_preset,
     debiased_estimation_loss,
     extra_accelerate_launch_args,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -816,39 +844,39 @@ def train_model(
 
     if LoRA_type == "LyCORIS/BOFT":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout="{rank_dropout}" rank_dropout_scale="{rank_dropout_scale}" constrain="{constrain}" rescaled="{rescaled}" algo="boft" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=boft train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout="{rank_dropout}" rank_dropout_scale="{rank_dropout_scale}" constrain="{constrain}" rescaled="{rescaled}" algo="diag-oft" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/DyLoRA":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" use_tucker="{use_tucker}" block_size="{unit}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" algo="dylora" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} block_size={unit} rank_dropout={rank_dropout} module_dropout={module_dropout} algo="dylora" train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/GLoRA":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" rank_dropout_scale="{rank_dropout_scale}" algo="glora" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo="glora" train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/iA3":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" train_on_input="{train_on_input}" algo="ia3"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} train_on_input={train_on_input} algo=ia3'
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="locon" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/LoHa":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="loha" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo="loha" train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/LoKr":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" conv_dim="{conv_dim}" conv_alpha="{conv_alpha}" rank_dropout="{rank_dropout}" bypass_mode="{bypass_mode}" dora_wd="{dora_wd}" module_dropout="{module_dropout}" factor="{factor}" use_cp="{use_cp}" use_scalar="{use_scalar}" decompose_both="{decompose_both}" rank_dropout_scale="{rank_dropout_scale}" algo="lokr" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
         network_module = "lycoris.kohya"
-        network_args = f' preset="{LyCORIS_preset}" rank_dropout="{rank_dropout}" module_dropout="{module_dropout}" use_tucker="{use_tucker}" use_scalar="{use_scalar}" rank_dropout_scale="{rank_dropout_scale}" algo="full" train_norm="{train_norm}"'
+        network_args = f' preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}'
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -931,6 +959,150 @@ def train_model(
 
     # Define a dictionary of parameters
     run_cmd_params = {
+        # "adaptive_noise_scale": adaptive_noise_scale,
+        # "bucket_no_upscale": bucket_no_upscale,
+        # "bucket_reso_steps": bucket_reso_steps,
+        # "cache_latents": cache_latents,
+        # "cache_latents_to_disk": cache_latents_to_disk,
+        # "cache_text_encoder_outputs": (
+        #     True if sdxl and sdxl_cache_text_encoder_outputs else None
+        # ),
+        # "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        # "caption_dropout_rate": caption_dropout_rate,
+        # "caption_extension": caption_extension,
+        # "clip_skip": clip_skip,
+        # "color_aug": color_aug,
+        # "dataset_config": dataset_config,
+        # "debiased_estimation_loss": debiased_estimation_loss,
+        # "dim_from_weights": dim_from_weights,
+        # "enable_bucket": enable_bucket,
+        # "epoch": epoch,
+        # "flip_aug": flip_aug,
+        # "masked_loss": masked_loss,
+        # "fp8_base": fp8_base,
+        # "full_bf16": full_bf16,
+        # "full_fp16": full_fp16,
+        # "gradient_accumulation_steps": gradient_accumulation_steps,
+        # "gradient_checkpointing": gradient_checkpointing,
+        # "ip_noise_gamma": ip_noise_gamma,
+        # "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
+        # "keep_tokens": keep_tokens,
+        # "learning_rate": learning_rate,
+        # "logging_dir": logging_dir,
+        # "log_tracker_name": log_tracker_name,
+        # "log_tracker_config": log_tracker_config,
+        # "lora_network_weights": lora_network_weights,
+        # "lr_scheduler": lr_scheduler,
+        # "lr_scheduler_args": lr_scheduler_args,
+        # "lr_scheduler_num_cycles": lr_scheduler_num_cycles,
+        # "lr_scheduler_power": lr_scheduler_power,
+        # "lr_warmup_steps": lr_warmup_steps,
+        # "max_bucket_reso": max_bucket_reso,
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        # "max_grad_norm": max_grad_norm,
+        # "max_resolution": max_resolution,
+        # "max_timestep": max_timestep,
+        # "max_token_length": max_token_length,
+        # "max_train_epochs": max_train_epochs,
+        # "max_train_steps": max_train_steps,
+        # "mem_eff_attn": mem_eff_attn,
+        # "min_bucket_reso": min_bucket_reso,
+        # "min_snr_gamma": min_snr_gamma,
+        # "min_timestep": min_timestep,
+        # "mixed_precision": mixed_precision,
+        # "multires_noise_discount": multires_noise_discount,
+        # "multires_noise_iterations": multires_noise_iterations,
+        # "network_alpha": network_alpha,
+        # "network_args": network_args,
+        # "network_dim": network_dim,
+        # "network_dropout": network_dropout,
+        # "network_module": network_module,
+        # "network_train_unet_only": network_train_unet_only,
+        # "network_train_text_encoder_only": network_train_text_encoder_only,
+        # "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
+        # "noise_offset": noise_offset,
+        # "noise_offset_random_strength": noise_offset_random_strength,
+        # "noise_offset_type": noise_offset_type,
+        # "optimizer": optimizer,
+        # "optimizer_args": optimizer_args,
+        # "output_dir": output_dir,
+        # "output_name": output_name,
+        # "persistent_data_loader_workers": persistent_data_loader_workers,
+        # "pretrained_model_name_or_path": pretrained_model_name_or_path,
+        # "prior_loss_weight": prior_loss_weight,
+        # "random_crop": random_crop,
+        # "reg_data_dir": reg_data_dir,
+        # "resume": resume,
+        # "save_every_n_epochs": save_every_n_epochs,
+        # "save_every_n_steps": save_every_n_steps,
+        # "save_last_n_steps": save_last_n_steps,
+        # "save_last_n_steps_state": save_last_n_steps_state,
+        # "save_model_as": save_model_as,
+        # "save_precision": save_precision,
+        # "save_state": save_state,
+        # "save_state_on_train_end": save_state_on_train_end,
+        # "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
+        # "scale_weight_norms": scale_weight_norms,
+        # "seed": seed,
+        # "shuffle_caption": shuffle_caption,
+        # "stop_text_encoder_training": stop_text_encoder_training,
+        # "text_encoder_lr": text_encoder_lr,
+        # "train_batch_size": train_batch_size,
+        # "train_data_dir": train_data_dir,
+        # "training_comment": training_comment,
+        # "unet_lr": unet_lr,
+        # "use_wandb": use_wandb,
+        # "v2": v2,
+        # "v_parameterization": v_parameterization,
+        # "v_pred_like_loss": v_pred_like_loss,
+        # "vae": vae,
+        # "vae_batch_size": vae_batch_size,
+        # "wandb_api_key": wandb_api_key,
+        # "wandb_run_name": wandb_run_name,
+        # "weighted_captions": weighted_captions,
+        # "xformers": xformers,
+        "additional_parameters": additional_parameters,
+        # "loss_type": loss_type,
+        # "huber_schedule": huber_schedule,
+        # "huber_c": huber_c,
+    }
+
+    # Use the ** syntax to unpack the dictionary when calling the function
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **run_cmd_params)
+
+    # run_cmd = run_cmd_sample(
+    #     run_cmd,
+    #     sample_every_n_steps,
+    #     sample_every_n_epochs,
+    #     sample_sampler,
+    #     sample_prompts,
+    #     output_dir,
+    # )
+
+    if max_data_loader_n_workers == "" or None:
+        max_data_loader_n_workers = 0
+    else:
+        max_data_loader_n_workers = int(max_data_loader_n_workers)
+
+    if max_train_steps == "" or None:
+        max_train_steps = 0
+    else:
+        max_train_steps = int(max_train_steps)
+        
+    if seed == "":
+        seed = 0
+    else:
+        seed = int(seed)
+
+    config_toml_data = {
+        "huggingface_repo_id": huggingface_repo_id,
+        "huggingface_token": huggingface_token,
+        "huggingface_repo_type": huggingface_repo_type,
+        "huggingface_repo_visibility": huggingface_repo_visibility,
+        "huggingface_path_in_repo": huggingface_path_in_repo,
+        "save_state_to_huggingface": save_state_to_huggingface,
+        "resume_from_huggingface": resume_from_huggingface,
+        "async_upload": async_upload,
         "adaptive_noise_scale": adaptive_noise_scale,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -942,13 +1114,13 @@ def train_model(
         "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
-        "clip_skip": clip_skip,
+        "clip_skip": int(clip_skip),
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
         "dim_from_weights": dim_from_weights,
         "enable_bucket": enable_bucket,
-        "epoch": epoch,
+        "epoch": int(epoch),
         "flip_aug": flip_aug,
         "masked_loss": masked_loss,
         "fp8_base": fp8_base,
@@ -958,34 +1130,33 @@ def train_model(
         "gradient_checkpointing": gradient_checkpointing,
         "ip_noise_gamma": ip_noise_gamma,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
-        "keep_tokens": keep_tokens,
+        "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
         "lora_network_weights": lora_network_weights,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": lr_scheduler_args,
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
         "lr_scheduler_num_cycles": lr_scheduler_num_cycles,
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
         "max_data_loader_n_workers": max_data_loader_n_workers,
         "max_grad_norm": max_grad_norm,
-        "max_resolution": max_resolution,
         "max_timestep": max_timestep,
-        "max_token_length": max_token_length,
+        "max_token_length": int(max_token_length),
         "max_train_epochs": max_train_epochs,
-        "max_train_steps": max_train_steps,
+        "max_train_steps": int(max_train_steps),
         "mem_eff_attn": mem_eff_attn,
-        "min_bucket_reso": min_bucket_reso,
+        "min_bucket_reso": int(min_bucket_reso),
         "min_snr_gamma": min_snr_gamma,
-        "min_timestep": min_timestep,
+        "min_timestep": int(min_timestep),
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
         "multires_noise_iterations": multires_noise_iterations,
         "network_alpha": network_alpha,
-        "network_args": network_args,
+        "network_args": str(network_args).replace('"', '').split(),
         "network_dim": network_dim,
         "network_dropout": network_dropout,
         "network_module": network_module,
@@ -995,8 +1166,8 @@ def train_model(
         "noise_offset": noise_offset,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
-        "optimizer": optimizer,
-        "optimizer_args": optimizer_args,
+        "optimizer_type": optimizer,
+        "optimizer_args": str(optimizer_args).replace('"', '').split(),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -1004,7 +1175,12 @@ def train_model(
         "prior_loss_weight": prior_loss_weight,
         "random_crop": random_crop,
         "reg_data_dir": reg_data_dir,
+        "resolution": max_resolution,
         "resume": resume,
+        "sample_every_n_epochs": sample_every_n_epochs,
+        "sample_every_n_steps": sample_every_n_steps,
+        "sample_prompts": create_prompt_file(output_dir, output_dir),
+        "sample_sampler": sample_sampler,
         "save_every_n_epochs": save_every_n_epochs,
         "save_every_n_steps": save_every_n_steps,
         "save_last_n_steps": save_last_n_steps,
@@ -1015,7 +1191,7 @@ def train_model(
         "save_state_on_train_end": save_state_on_train_end,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "scale_weight_norms": scale_weight_norms,
-        "seed": seed,
+        "seed": int(seed),
         "shuffle_caption": shuffle_caption,
         "stop_text_encoder_training": stop_text_encoder_training,
         "text_encoder_lr": text_encoder_lr,
@@ -1039,17 +1215,30 @@ def train_model(
         "huber_c": huber_c,
     }
 
-    # Use the ** syntax to unpack the dictionary when calling the function
-    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **run_cmd_params)
+    # Given dictionary `config_toml_data`
+    # Remove all values = ""
+    config_toml_data = {
+        key: value
+        for key, value in config_toml_data.items()
+        if value != "" and value != False
+    }
 
-    run_cmd = run_cmd_sample(
-        run_cmd,
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        output_dir,
-    )
+    tmpfilename = "./outputs/tmpfilelora.toml"
+    # Save the updated TOML data back to the file
+    with open(tmpfilename, "w") as toml_file:
+        toml.dump(config_toml_data, toml_file)
+
+        if not os.path.exists(toml_file.name):
+            log.error(f"Failed to write TOML file: {toml_file.name}")
+
+        toml_file_path = (
+            os.path.abspath(os.path.normpath(toml_file.name)).replace("\\", "/")
+            if os.name == "nt"
+            else toml_file.name
+        )
+
+    run_cmd.append(f"--config_file")
+    run_cmd.append(rf"{toml_file_path}")
 
     if print_only:
         log.warning(
@@ -1898,6 +2087,10 @@ def lora_tab(
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages(config=config)
 
+            global huggingface
+            with gr.Accordion("HuggingFace", open=False):
+                huggingface = HuggingFace(config=config)
+
             LoRA_type.change(
                 update_LoRA_settings,
                 inputs=[
@@ -2094,6 +2287,14 @@ def lora_tab(
             LyCORIS_preset,
             advanced_training.debiased_estimation_loss,
             accelerate_launch.extra_accelerate_launch_args,
+            huggingface.huggingface_repo_id,
+            huggingface.huggingface_token,
+            huggingface.huggingface_repo_type,
+            huggingface.huggingface_repo_visibility,
+            huggingface.huggingface_path_in_repo,
+            huggingface.save_state_to_huggingface,
+            huggingface.resume_from_huggingface,
+            huggingface.async_upload,
         ]
 
         configuration.button_open_config.click(

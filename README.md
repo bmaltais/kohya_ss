@@ -404,10 +404,12 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ### 2024/04/12 (v23.1.6)
 
-- Rewrote a lot of the code to fix issues resulting from the security upgrades to remove shell=True from process calls.
-- Improved the training and tensorboard buttons
-- Upgrade the gradio version to 4.20.0 to fix a bug with runpod.
-- Various other minor fixes.
+- Rewrote significant portions of the code to address security vulnerabilities and remove the `shell=True` parameter from process calls.
+- Enhanced the training and tensorboard buttons to provide a more intuitive and user-friendly experience.
+- Upgraded the gradio version to 4.20.0 to address a bug that was causing issues with the runpod platform.
+- Added a HuggingFace section to all trainers tabs, enabling users to authenticate and utilize HuggingFace's powerful AI models.
+- Converted the Graphical User Interface (GUI) to use the configuration TOML file format to pass arguments to sd-scripts. This change improves security by eliminating the need for sensitive information to be passed through the command-line interface (CLI).
+- Made various other minor improvements and bug fixes to enhance the overall functionality and user experience.
 
 ### 2024/04/10 (v23.1.5)
 
