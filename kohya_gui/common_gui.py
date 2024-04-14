@@ -2,6 +2,7 @@ from tkinter import filedialog, Tk
 from easygui import msgbox, ynbox
 from typing import Optional
 from .custom_logging import setup_logging
+from .class_command_executor import CommandExecutor
 
 import os
 import re
@@ -11,6 +12,7 @@ import shlex
 import json
 import math
 import shutil
+import time
 
 # Set up logging
 log = setup_logging()
@@ -1178,7 +1180,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     if kwargs.get("ip_noise_gamma"):
         if float(kwargs["ip_noise_gamma"]) > 0:
             run_cmd.append("--ip_noise_gamma")
-            run_cmd.append(kwargs["ip_noise_gamma"])
+            run_cmd.append(str(kwargs["ip_noise_gamma"]))
 
     if kwargs.get("ip_noise_gamma_random_strength"):
         if kwargs["ip_noise_gamma_random_strength"]:

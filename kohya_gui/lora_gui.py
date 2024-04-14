@@ -2,11 +2,10 @@ import gradio as gr
 import json
 import math
 import os
-import shlex
+import time
 
 from datetime import datetime
 from .common_gui import (
-    get_executable_path,
     get_file_path,
     get_any_file_path,
     get_saveasfile_path,
@@ -703,7 +702,7 @@ def train_model(
         if train_data_dir == "":
             log.error("Train data dir is empty")
             return TRAIN_BUTTON_VISIBLE
-        
+
         # Get a list of all subfolders in train_data_dir
         subfolders = [
             f
@@ -808,9 +807,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(f'{scriptdir}/sd-scripts/sdxl_train_network.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/sdxl_train_network.py")
     else:
-        run_cmd.append(f'{scriptdir}/sd-scripts/train_network.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/train_network.py")
 
     network_args = ""
 
@@ -1056,8 +1055,8 @@ def train_model(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
         # Reconstruct the safe command string for display
-        command_to_run = ' '.join(run_cmd)
-        
+        command_to_run = " ".join(run_cmd)
+
         print(command_to_run)
 
         save_to_file(command_to_run)
@@ -1085,8 +1084,12 @@ def train_model(
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
-        return gr.Button(visible=False), gr.Button(visible=True)
+
+        return (
+            gr.Button(visible=False),
+            gr.Button(visible=True),
+            gr.Textbox(value=time.time()),
+        )
 
 
 def lora_tab(
@@ -1138,7 +1141,7 @@ def lora_tab(
                 headless=headless,
                 config=config,
             )
-            
+
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
@@ -1147,7 +1150,7 @@ def lora_tab(
                 json_files = []
 
                 # Insert an empty string at the beginning
-                #json_files.insert(0, "none")
+                # json_files.insert(0, "none")
 
                 for file in os.listdir(path):
                     if file.endswith(".json"):
@@ -1256,7 +1259,9 @@ def lora_tab(
                         )
 
                     # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
+                    sdxl_params = SDXLParameters(
+                        source_model.sdxl_checkbox, config=config
+                    )
 
                     # LyCORIS Specific parameters
                     with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
@@ -1934,7 +1939,9 @@ def lora_tab(
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
+                button_stop_training = gr.Button(
+                    "Stop training", visible=False, variant="stop"
+                )
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -2135,14 +2142,23 @@ def lora_tab(
         #    show_progress=False,
         # )
 
+        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
+        run_state = gr.Textbox(value="", visible=False)
+        run_state.change(
+            fn=executor.wait_for_training_to_end,
+            outputs=[button_run, button_stop_training],
+        )
+
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training],
+            outputs=[button_run, button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
+        button_stop_training.click(
+            executor.kill_command, outputs=[button_run, button_stop_training]
+        )
 
         button_print.click(
             train_model,

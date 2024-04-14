@@ -2,11 +2,10 @@ import gradio as gr
 import json
 import math
 import os
-import shlex
+import time
 import sys
 from datetime import datetime
 from .common_gui import (
-    get_executable_path,
     get_file_path,
     get_saveasfile_path,
     color_aug_changed,
@@ -45,6 +44,7 @@ executor = CommandExecutor()
 PYTHON = sys.executable
 
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
+
 
 def save_configuration(
     save_as_bool,
@@ -466,7 +466,7 @@ def train_model(
         if train_data_dir == "":
             log.error("Train data dir is empty")
             return TRAIN_BUTTON_VISIBLE
-        
+
         # Get a list of all subfolders in train_data_dir, excluding hidden folders
         subfolders = [
             f
@@ -580,9 +580,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(f'{scriptdir}/sd-scripts/sdxl_train.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/sdxl_train.py")
     else:
-        run_cmd.append(f'{scriptdir}/sd-scripts/train_db.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/train_db.py")
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
@@ -700,8 +700,8 @@ def train_model(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
         # Reconstruct the safe command string for display
-        command_to_run = ' '.join(run_cmd)
-        
+        command_to_run = " ".join(run_cmd)
+
         print(command_to_run)
 
         save_to_file(command_to_run)
@@ -731,8 +731,12 @@ def train_model(
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
-        return gr.Button(visible=False), gr.Button(visible=True)
+
+        return (
+            gr.Button(visible=False),
+            gr.Button(visible=True),
+            gr.Textbox(value=time.time()),
+        )
 
 
 def dreambooth_tab(
@@ -775,7 +779,7 @@ def dreambooth_tab(
                 headless=headless,
                 config=config,
             )
-            
+
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
@@ -805,7 +809,9 @@ def dreambooth_tab(
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
+                button_stop_training = gr.Button(
+                    "Stop training", visible=False, variant="stop"
+                )
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -950,14 +956,30 @@ def dreambooth_tab(
         #    show_progress=False,
         # )
 
+        # def wait_for_training_to_end():
+        #     while executor.is_running():
+        #         time.sleep(1)
+        #         log.debug("Waiting for training to end...")
+        #     log.info("Training has ended.")
+        #     return gr.Button(visible=True), gr.Button(visible=False)
+
+        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
+        run_state = gr.Textbox(value="", visible=False)
+        run_state.change(
+            fn=executor.wait_for_training_to_end,
+            outputs=[button_run, button_stop_training],
+        )
+
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training],
+            outputs=[button_run, button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
+        button_stop_training.click(
+            executor.kill_command, outputs=[button_run, button_stop_training]
+        )
 
         button_print.click(
             train_model,

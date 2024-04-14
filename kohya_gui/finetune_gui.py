@@ -3,7 +3,7 @@ import json
 import math
 import os
 import subprocess
-import shlex
+import time
 import sys
 from datetime import datetime
 from .common_gui import (
@@ -49,6 +49,7 @@ PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
+
 
 def save_configuration(
     save_as_bool,
@@ -467,9 +468,9 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     log.debug(f"headless = {headless} ; print_only = {print_only}")
-    
+
     log.info(f"Start Finetuning...")
 
     if train_dir != "" and not os.path.exists(train_dir):
@@ -501,13 +502,14 @@ def train_model(
         if generate_caption_database:
             # Define the command components
             run_cmd = [
-                PYTHON, f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"
+                PYTHON,
+                f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py",
             ]
 
             # Add the caption extension
-            run_cmd.append('--caption_extension')
+            run_cmd.append("--caption_extension")
             if caption_extension == "":
-                run_cmd.append('.caption')  # Default extension
+                run_cmd.append(".caption")  # Default extension
             else:
                 run_cmd.append(caption_extension)
 
@@ -520,7 +522,7 @@ def train_model(
                 run_cmd.append("--full_path")
 
             # Log the built command
-            log.info(' '.join(run_cmd))
+            log.info(" ".join(run_cmd))
 
             # Prepare environment variables
             env = os.environ.copy()
@@ -533,7 +535,6 @@ def train_model(
             if not print_only:
                 subprocess.run(run_cmd, env=env)
 
-
         # create images buckets
         if generate_image_buckets:
             # Build the command to run the preparation script
@@ -544,23 +545,30 @@ def train_model(
                 os.path.join(train_dir, caption_metadata_filename),
                 os.path.join(train_dir, latent_metadata_filename),
                 pretrained_model_name_or_path,
-                '--batch_size', str(batch_size),
-                '--max_resolution', str(max_resolution),
-                '--min_bucket_reso', str(min_bucket_reso),
-                '--max_bucket_reso', str(max_bucket_reso),
-                '--mixed_precision', str(mixed_precision)
+                "--batch_size",
+                str(batch_size),
+                "--max_resolution",
+                str(max_resolution),
+                "--min_bucket_reso",
+                str(min_bucket_reso),
+                "--max_bucket_reso",
+                str(max_bucket_reso),
+                "--mixed_precision",
+                str(mixed_precision),
             ]
 
             # Conditional flags
             if full_path:
-                run_cmd.append('--full_path')
+                run_cmd.append("--full_path")
             if sdxl_checkbox and sdxl_no_half_vae:
-                log.info("Using mixed_precision = no because no half vae is selected...")
+                log.info(
+                    "Using mixed_precision = no because no half vae is selected..."
+                )
                 # Ensure 'no' is correctly handled without extra quotes that might be interpreted literally in command line
-                run_cmd.append('--mixed_precision=no')
+                run_cmd.append("--mixed_precision=no")
 
             # Log the complete command as a string for clarity
-            log.info(' '.join(run_cmd))
+            log.info(" ".join(run_cmd))
 
             # Copy and modify environment variables
             env = os.environ.copy()
@@ -573,11 +581,10 @@ def train_model(
             if not print_only:
                 subprocess.run(run_cmd, env=env)
 
-
         if image_folder == "":
             log.error("Image folder dir is empty")
             return TRAIN_BUTTON_VISIBLE
-        
+
         image_num = len(
             [
                 f
@@ -628,9 +635,9 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd.append(f'{scriptdir}/sd-scripts/sdxl_train.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/sdxl_train.py")
     else:
-        run_cmd.append(f'{scriptdir}/sd-scripts/fine_tune.py')
+        run_cmd.append(f"{scriptdir}/sd-scripts/fine_tune.py")
 
     in_json = (
         f"{train_dir}/{latent_metadata_filename}"
@@ -753,8 +760,8 @@ def train_model(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
         # Reconstruct the safe command string for display
-        command_to_run = ' '.join(run_cmd)
-        
+        command_to_run = " ".join(run_cmd)
+
         print(command_to_run)
 
         save_to_file(command_to_run)
@@ -783,9 +790,12 @@ def train_model(
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
-        return gr.Button(visible=False), gr.Button(visible=True)
-        
+
+        return (
+            gr.Button(visible=False),
+            gr.Button(visible=True),
+            gr.Textbox(value=time.time()),
+        )
 
 
 def finetune_tab(headless=False, config: dict = {}):
@@ -890,7 +900,9 @@ def finetune_tab(headless=False, config: dict = {}):
                     )
 
                     # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
+                    sdxl_params = SDXLParameters(
+                        source_model.sdxl_checkbox, config=config
+                    )
 
                     with gr.Row():
                         dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
@@ -927,7 +939,9 @@ def finetune_tab(headless=False, config: dict = {}):
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training", visible=False, variant="stop")
+                button_stop_training = gr.Button(
+                    "Stop training", visible=False, variant="stop"
+                )
 
         with gr.Column(), gr.Group():
             with gr.Row():
@@ -1093,14 +1107,23 @@ def finetune_tab(headless=False, config: dict = {}):
             show_progress=False,
         )
 
+        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
+        run_state = gr.Textbox(value="", visible=False)
+        run_state.change(
+            fn=executor.wait_for_training_to_end,
+            outputs=[button_run, button_stop_training],
+        )
+
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training],
+            outputs=[button_run, button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command, outputs=[button_run, button_stop_training])
+        button_stop_training.click(
+            executor.kill_command, outputs=[button_run, button_stop_training]
+        )
 
         button_print.click(
             train_model,
