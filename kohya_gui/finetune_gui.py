@@ -826,6 +826,8 @@ def train_model(
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": gradient_accumulation_steps,
         "gradient_checkpointing": gradient_checkpointing,
+        "huber_c": huber_c,
+        "huber_schedule": huber_schedule,
         "in_json": in_json,
         "ip_noise_gamma": ip_noise_gamma,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
@@ -837,6 +839,7 @@ def train_model(
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
         "lr_warmup_steps": lr_warmup_steps,
@@ -879,6 +882,7 @@ def train_model(
         "save_state": save_state,
         "save_state_on_train_end": save_state_on_train_end,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
+        "sdpa": True if xformers == "sdpa" else None,
         "seed": int(seed),
         "shuffle_caption": shuffle_caption,
         "train_batch_size": train_batch_size,
@@ -892,11 +896,7 @@ def train_model(
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
-        "xformers": xformers,
-        "additional_parameters": additional_parameters,
-        "loss_type": loss_type,
-        "huber_schedule": huber_schedule,
-        "huber_c": huber_c,
+        "xformers": True if xformers == "xformers" else None,
     }
 
     # Given dictionary `config_toml_data`
