@@ -1,6 +1,6 @@
 import subprocess
 import psutil
-import os
+import time
 import gradio as gr
 import shlex
 from .custom_logging import setup_logging
@@ -19,6 +19,7 @@ class CommandExecutor:
         Initialize the CommandExecutor.
         """
         self.process = None
+        self.run_state = gr.Textbox(value="", visible=False)
 
     def execute_command(self, run_cmd: str, **kwargs):
         """
@@ -31,6 +32,9 @@ class CommandExecutor:
         if self.process and self.process.poll() is None:
             log.info("The command is already running. Please wait for it to finish.")
         else:
+            for i, item in enumerate(run_cmd):
+                log.info(f"{i}: {item}")
+
             # Reconstruct the safe command string for display
             command_to_run = ' '.join(run_cmd)
             log.info(f"Executings command: {command_to_run}")
@@ -42,7 +46,7 @@ class CommandExecutor:
         """
         Kill the currently running command and its child processes.
         """
-        if self.process and self.process.poll() is None:
+        if self.is_running():
             try:
                 # Get the parent process and kill all its children
                 parent = psutil.Process(self.process.pid)
@@ -62,3 +66,19 @@ class CommandExecutor:
             log.info("There is no running process to kill.")
             
         return gr.Button(visible=True), gr.Button(visible=False)
+    
+    def wait_for_training_to_end(self):
+        while self.is_running():
+            time.sleep(1)
+            log.debug("Waiting for training to end...")
+        log.info("Training has ended.")
+        return gr.Button(visible=True), gr.Button(visible=False)
+
+    def is_running(self):
+        """
+        Check if the command is currently running.
+
+        Returns:
+        - bool: True if the command is running, False otherwise.
+        """
+        return self.process and self.process.poll() is None
