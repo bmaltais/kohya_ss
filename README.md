@@ -404,7 +404,10 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ### 2024/04/12 (v23.1.6)
 
-- Improved the training and tensorboard buttons and code
+- Rewrote a lot of the code to fix issues resulting from the security upgrades to remove shell=True from process calls.
+- Improved the training and tensorboard buttons
+- Upgrade the gradio version to 4.20.0 to fix a bug with runpod.
+- Various other minor fixes.
 
 ### 2024/04/10 (v23.1.5)
 

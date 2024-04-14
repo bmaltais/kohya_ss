@@ -1242,7 +1242,7 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
             if os.name == "nt":
                 log_tracker_config = log_tracker_config.replace("\\", "/")
             run_cmd.append(f"--log_tracker_config")
-            run_cmd.append(f"{log_tracker_config}")
+            run_cmd.append(log_tracker_config)
 
     lora_network_weights = kwargs.get("lora_network_weights")
     if lora_network_weights:
