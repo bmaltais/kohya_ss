@@ -17,6 +17,23 @@ document_symbol = "\U0001F4C4"  # 📄
 ###
 ### Gradio common sampler GUI section
 ###
+def create_prompt_file(sample_prompts, output_dir):
+    """
+    Creates a prompt file for image sampling.
+
+    Args:
+        sample_prompts (str): The prompts to use for image sampling.
+        output_dir (str): The directory where the output images will be saved.
+
+    Returns:
+        str: The path to the prompt file.
+    """
+    sample_prompts_path = os.path.join(output_dir, "prompt.txt")
+
+    with open(sample_prompts_path, "w") as f:
+        f.write(sample_prompts)
+
+    return sample_prompts_path
 
 
 def run_cmd_sample(

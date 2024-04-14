@@ -1575,7 +1575,8 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
 
     # Use Weights and Biases logging
     if kwargs.get("use_wandb"):
-        run_cmd.append("--log_with wandb")
+        run_cmd.append("--log_with")
+        run_cmd.append("wandb")
 
     # V parameterization
     if kwargs.get("v_parameterization"):
