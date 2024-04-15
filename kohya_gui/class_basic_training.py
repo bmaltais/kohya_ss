@@ -290,15 +290,15 @@ class BasicTraining:
                 if scheduler == "constant":
                     self.old_lr_warmup = value
                     value = 0
-                    interractive=False
+                    interactive=False
                     info="Can't use LR warmup with LR Scheduler constant... setting to 0 and disabling field..."
                 else:
                     if self.old_lr_warmup != 0:
                         value = self.old_lr_warmup
                         self.old_lr_warmup = 0
-                    interractive=True
+                    interactive=True
                     info=""
-                return gr.Slider(value=value, interactive=interractive, info=info)
+                return gr.Slider(value=value, interactive=interactive, info=info)
             
             self.lr_scheduler.change(
                 lr_scheduler_changed,
