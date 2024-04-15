@@ -40,7 +40,7 @@ def UI(**kwargs):
         css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
     )
     
-    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config_file_path"))
+    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config"))
 
     with interface:
         with gr.Tab("Dreambooth"):

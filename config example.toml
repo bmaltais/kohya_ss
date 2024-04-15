@@ -126,6 +126,16 @@ reg_images_repeat = 1                                   # Regularisation images 
 util_regularization_images_repeat_input = 1             # Regularisation images repeat input
 util_training_images_repeat_input = 40                  # Training images repeat input
 
+[huggingface]
+async_upload = false              # Async upload
+huggingface_path_in_repo = ""     # Huggingface path in repo
+huggingface_repo_id = ""          # Huggingface repo id
+huggingface_repo_type = ""        # Huggingface repo type
+huggingface_repo_visibility = ""  # Huggingface repo visibility
+huggingface_token = ""            # Huggingface token
+resume_from_huggingface = ""      # Resume from huggingface (ex: {repo_id}/{path_in_repo}:{revision}:{repo_type})
+save_state_to_huggingface = false # Save state to huggingface
+
 [samples]
 sample_every_n_steps = 0   # Sample every n steps
 sample_every_n_epochs = 0  # Sample every n epochs

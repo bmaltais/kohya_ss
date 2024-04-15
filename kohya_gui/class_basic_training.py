@@ -302,7 +302,7 @@ class BasicTraining:
             )
             # Initialize the stop text encoder training slider
             self.stop_text_encoder_training = gr.Slider(
-                minimum=0,
+                minimum=-1,
                 maximum=100,
                 value=self.config.get("basic.stop_text_encoder_training", 0),
                 step=1,

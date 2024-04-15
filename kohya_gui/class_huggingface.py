@@ -5,7 +5,7 @@ from .class_gui_config import KohyaSSGUIConfig
 class HuggingFace:
     def __init__(
         self,
-        config: KohyaSSGUIConfig = {},
+        config: KohyaSSGUIConfig,
     ) -> None:
         self.config = config
 
