@@ -30,6 +30,7 @@ from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
 from .class_huggingface import HuggingFace
+from .class_metadata import MetaData
 from .class_tensorboard import TensorboardManager
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -170,6 +171,11 @@ def save_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -324,6 +330,11 @@ def open_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -471,6 +482,11 @@ def train_model(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -670,6 +686,11 @@ def train_model(
         "max_train_epochs": max_train_epochs,
         "max_train_steps": int(max_train_steps),
         "mem_eff_attn": mem_eff_attn,
+        "metadata_author": metadata_author,
+        "metadata_description": metadata_description,
+        "metadata_license": metadata_license,
+        "metadata_tags": metadata_tags,
+        "metadata_title": metadata_title,
         "min_bucket_reso": int(min_bucket_reso),
         "min_snr_gamma": min_snr_gamma,
         "min_timestep": int(min_timestep),
@@ -832,6 +853,9 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
+
+        with gr.Accordion("Metadata", open=False), gr.Group():
+            metadata = MetaData(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
@@ -1090,6 +1114,11 @@ def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
             huggingface.save_state_to_huggingface,
             huggingface.resume_from_huggingface,
             huggingface.async_upload,
+            metadata.metadata_author,
+            metadata.metadata_description,
+            metadata.metadata_license,
+            metadata.metadata_tags,
+            metadata.metadata_title,
         ]
 
         configuration.button_open_config.click(
