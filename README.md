@@ -410,6 +410,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Added a HuggingFace section to all trainers tabs, enabling users to authenticate and utilize HuggingFace's powerful AI models.
 - Converted the Graphical User Interface (GUI) to use the configuration TOML file format to pass arguments to sd-scripts. This change improves security by eliminating the need for sensitive information to be passed through the command-line interface (CLI).
 - Made various other minor improvements and bug fixes to enhance the overall functionality and user experience.
+- Disabled LR Warmup when using the Constant LR Scheduler to prevent traceback errors with sd-scripts.
 
 ### 2024/04/10 (v23.1.5)
 
