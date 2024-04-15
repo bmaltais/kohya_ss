@@ -454,11 +454,13 @@ class AdvancedTraining:
             self.save_state = gr.Checkbox(
                 label="Save training state",
                 value=self.config.get("advanced.save_state", False),
+                info="Save training state (including optimizer states etc.) when saving models"
             )
 
             self.save_state_on_train_end = gr.Checkbox(
                 label="Save training state at end of training",
                 value=self.config.get("advanced.save_state_on_train_end", False),
+                info="Save training state (including optimizer states etc.) on train end"
             )
 
             def list_state_dirs(path):
@@ -472,6 +474,7 @@ class AdvancedTraining:
                 value=self.config.get("advanced.state_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
+                info="Saved state to resume training from"
             )
             create_refresh_button(
                 self.resume,

@@ -117,7 +117,7 @@ class BasicTraining:
             # Initialize the caption extension input
             self.caption_extension = gr.Dropdown(
                 label="Caption file extension",
-                choices=[".cap", ".caption", ".txt"],
+                choices=["", ".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )

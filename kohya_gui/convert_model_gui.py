@@ -199,6 +199,7 @@ def gradio_convert_model_tab(headless=False):
                         "runwayml/stable-diffusion-v1-5",
                         "CompVis/stable-diffusion-v1-4",
                     ],
+                    allow_custom_value=True,
                 )
         with gr.Group(), gr.Row():
             with gr.Column(), gr.Row():
