@@ -1,7 +1,7 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
+from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs, get_executable_path
 from .class_gui_config import KohyaSSGUIConfig
 import os
 
@@ -46,7 +46,7 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        "accelerate", "launch", f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"
+        get_executable_path("accelerate"), "launch", f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"
     ]
 
     # Uncomment and modify if needed
