@@ -82,8 +82,6 @@ class AccelerateLaunch:
             extra_accelerate_launch_args = kwargs["extra_accelerate_launch_args"].replace('"', "")
             for arg in extra_accelerate_launch_args.split():
                 run_cmd.append(shlex.quote(arg))
-            
-            run_cmd.append(kwargs["extra_accelerate_launch_args"])
 
         if "gpu_ids" in kwargs and kwargs.get("gpu_ids") != "":
             run_cmd.append("--gpu_ids")
