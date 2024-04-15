@@ -574,7 +574,7 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = ["accelerate", "launch"]
+    run_cmd = [get_executable_path("accelerate"), "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,

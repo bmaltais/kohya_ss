@@ -75,8 +75,8 @@ def get_executable_path(executable_name: str = None) -> str:
         executable_path = shutil.which(executable_name)
         if executable_path:
             # Replace backslashes with forward slashes on Windows
-            if os.name == "nt":
-                executable_path = executable_path.replace("\\", "/")
+            # if os.name == "nt":
+            #     executable_path = executable_path.replace("\\", "/")
             return executable_path
         else:
             return ""  # Return empty string if the executable is not found
