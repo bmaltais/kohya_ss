@@ -75,7 +75,8 @@ class AdvancedTraining:
             # Exclude token padding option for LoRA training type.
             if training_type != "lora":
                 self.no_token_padding = gr.Checkbox(
-                    label="No token padding", value=self.config.get("advanced.no_token_padding", False)
+                    label="No token padding",
+                    value=self.config.get("advanced.no_token_padding", False),
                 )
             self.gradient_accumulation_steps = gr.Slider(
                 label="Gradient accumulate steps",
@@ -85,9 +86,15 @@ class AdvancedTraining:
                 maximum=120,
                 step=1,
             )
-            self.weighted_captions = gr.Checkbox(label="Weighted captions", value=self.config.get("advanced.weighted_captions", False))
+            self.weighted_captions = gr.Checkbox(
+                label="Weighted captions",
+                value=self.config.get("advanced.weighted_captions", False),
+            )
         with gr.Group(), gr.Row(visible=not finetuning):
-            self.prior_loss_weight = gr.Number(label="Prior loss weight", value=self.config.get("advanced.prior_loss_weight", 1.0))
+            self.prior_loss_weight = gr.Number(
+                label="Prior loss weight",
+                value=self.config.get("advanced.prior_loss_weight", 1.0),
+            )
 
             def list_vae_files(path):
                 self.current_vae_dir = path if not path == "" else "."
@@ -96,14 +103,18 @@ class AdvancedTraining:
             self.vae = gr.Dropdown(
                 label="VAE (Optional: Path to checkpoint of vae for training)",
                 interactive=True,
-                choices=[self.config.get("advanced.vae_dir", "")] + list_vae_files(self.current_vae_dir),
+                choices=[self.config.get("advanced.vae_dir", "")]
+                + list_vae_files(self.current_vae_dir),
                 value=self.config.get("advanced.vae_dir", ""),
                 allow_custom_value=True,
             )
             create_refresh_button(
                 self.vae,
                 lambda: None,
-                lambda: {"choices": [self.config.get("advanced.vae_dir", "")] + list_vae_files(self.current_vae_dir)},
+                lambda: {
+                    "choices": [self.config.get("advanced.vae_dir", "")]
+                    + list_vae_files(self.current_vae_dir)
+                },
                 "open_folder_small",
             )
             self.vae_button = gr.Button(
@@ -116,7 +127,10 @@ class AdvancedTraining:
             )
 
             self.vae.change(
-                fn=lambda path: gr.Dropdown(choices=[self.config.get("advanced.vae_dir", "")] + list_vae_files(path)),
+                fn=lambda path: gr.Dropdown(
+                    choices=[self.config.get("advanced.vae_dir", "")]
+                    + list_vae_files(path)
+                ),
                 inputs=self.vae,
                 outputs=self.vae,
                 show_progress=False,
@@ -189,19 +203,28 @@ class AdvancedTraining:
                 ), gr.Checkbox(interactive=full_bf16_active)
 
             self.keep_tokens = gr.Slider(
-                label="Keep n tokens", value=self.config.get("advanced.keep_tokens", 0), minimum=0, maximum=32, step=1
+                label="Keep n tokens",
+                value=self.config.get("advanced.keep_tokens", 0),
+                minimum=0,
+                maximum=32,
+                step=1,
             )
             self.clip_skip = gr.Slider(
-                label="Clip skip", value=self.config.get("advanced.clip_skip", 1), minimum=1, maximum=12, step=1
+                label="Clip skip",
+                value=self.config.get("advanced.clip_skip", 1),
+                minimum=1,
+                maximum=12,
+                step=1,
             )
             self.max_token_length = gr.Dropdown(
                 label="Max Token Length",
                 choices=[
-                    "75",
-                    "150",
-                    "225",
+                    75,
+                    150,
+                    225,
                 ],
-                value=self.config.get("advanced.max_token_length", "75"),
+                info="max token length of text encoder",
+                value=self.config.get("advanced.max_token_length", 75),
             )
 
         with gr.Row():
@@ -234,14 +257,20 @@ class AdvancedTraining:
 
         with gr.Row():
             self.gradient_checkpointing = gr.Checkbox(
-                label="Gradient checkpointing", value=self.config.get("advanced.gradient_checkpointing", False)
+                label="Gradient checkpointing",
+                value=self.config.get("advanced.gradient_checkpointing", False),
             )
-            self.shuffle_caption = gr.Checkbox(label="Shuffle caption", value=self.config.get("advanced.shuffle_caption", False))
+            self.shuffle_caption = gr.Checkbox(
+                label="Shuffle caption",
+                value=self.config.get("advanced.shuffle_caption", False),
+            )
             self.persistent_data_loader_workers = gr.Checkbox(
-                label="Persistent data loader", value=self.config.get("advanced.persistent_data_loader_workers", False)
+                label="Persistent data loader",
+                value=self.config.get("advanced.persistent_data_loader_workers", False),
             )
             self.mem_eff_attn = gr.Checkbox(
-                label="Memory efficient attention", value=self.config.get("advanced.mem_eff_attn", False)
+                label="Memory efficient attention",
+                value=self.config.get("advanced.mem_eff_attn", False),
             )
         with gr.Row():
             self.xformers = gr.Dropdown(
@@ -267,7 +296,9 @@ class AdvancedTraining:
         with gr.Row():
             self.scale_v_pred_loss_like_noise_pred = gr.Checkbox(
                 label="Scale v prediction loss",
-                value=self.config.get("advanced.scale_v_pred_loss_like_noise_pred", False),
+                value=self.config.get(
+                    "advanced.scale_v_pred_loss_like_noise_pred", False
+                ),
                 info="Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.",
             )
             self.min_snr_gamma = gr.Slider(
@@ -286,7 +317,8 @@ class AdvancedTraining:
         with gr.Row():
             # self.sdpa = gr.Checkbox(label='Use sdpa', value=False, info='Use sdpa for CrossAttention')
             self.bucket_no_upscale = gr.Checkbox(
-                label="Don't upscale bucket resolution", value=self.config.get("advanced.bucket_no_upscale", True)
+                label="Don't upscale bucket resolution",
+                value=self.config.get("advanced.bucket_no_upscale", True),
             )
             self.bucket_reso_steps = gr.Slider(
                 label="Bucket resolution steps",
@@ -295,7 +327,8 @@ class AdvancedTraining:
                 maximum=128,
             )
             self.random_crop = gr.Checkbox(
-                label="Random crop instead of center crop", value=self.config.get("advanced.random_crop", False)
+                label="Random crop instead of center crop",
+                value=self.config.get("advanced.random_crop", False),
             )
             self.v_pred_like_loss = gr.Slider(
                 label="V Pred like loss",
@@ -345,7 +378,9 @@ class AdvancedTraining:
                 )
                 self.noise_offset_random_strength = gr.Checkbox(
                     label="Noise offset random strength",
-                    value=self.config.get("advanced.noise_offset_random_strength", False),
+                    value=self.config.get(
+                        "advanced.noise_offset_random_strength", False
+                    ),
                     info="Use random strength between 0~noise_offset for noise offset",
                 )
                 self.adaptive_noise_scale = gr.Slider(
@@ -384,7 +419,9 @@ class AdvancedTraining:
                 )
                 self.ip_noise_gamma_random_strength = gr.Checkbox(
                     label="IP noise gamma random strength",
-                    value=self.config.get("advanced.ip_noise_gamma_random_strength", False),
+                    value=self.config.get(
+                        "advanced.ip_noise_gamma_random_strength", False
+                    ),
                     info="Use random strength between 0~ip_noise_gamma for input perturbation noise",
                 )
             self.noise_offset_type.change(
@@ -397,19 +434,31 @@ class AdvancedTraining:
             )
         with gr.Row():
             self.caption_dropout_every_n_epochs = gr.Number(
-                label="Dropout caption every n epochs", value=self.config.get("advanced.caption_dropout_every_n_epochs", 0),
+                label="Dropout caption every n epochs",
+                value=self.config.get("advanced.caption_dropout_every_n_epochs", 0),
             )
             self.caption_dropout_rate = gr.Slider(
-                label="Rate of caption dropout", value=self.config.get("advanced.caption_dropout_rate", 0), minimum=0, maximum=1
+                label="Rate of caption dropout",
+                value=self.config.get("advanced.caption_dropout_rate", 0),
+                minimum=0,
+                maximum=1,
             )
             self.vae_batch_size = gr.Slider(
-                label="VAE batch size", minimum=0, maximum=32, value=self.config.get("advanced.vae_batch_size", 0), step=1
+                label="VAE batch size",
+                minimum=0,
+                maximum=32,
+                value=self.config.get("advanced.vae_batch_size", 0),
+                step=1,
             )
         with gr.Group(), gr.Row():
-            self.save_state = gr.Checkbox(label="Save training state", value=self.config.get("advanced.save_state", False))
+            self.save_state = gr.Checkbox(
+                label="Save training state",
+                value=self.config.get("advanced.save_state", False),
+            )
 
             self.save_state_on_train_end = gr.Checkbox(
-                label="Save training state at end of training", value=self.config.get("advanced.save_state_on_train_end", False)
+                label="Save training state at end of training",
+                value=self.config.get("advanced.save_state_on_train_end", False),
             )
 
             def list_state_dirs(path):
@@ -418,7 +467,8 @@ class AdvancedTraining:
 
             self.resume = gr.Dropdown(
                 label='Resume from saved training state (path to "last-state" state folder)',
-                choices=[self.config.get("advanced.state_dir", "")] + list_state_dirs(self.current_state_dir),
+                choices=[self.config.get("advanced.state_dir", "")]
+                + list_state_dirs(self.current_state_dir),
                 value=self.config.get("advanced.state_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
@@ -426,7 +476,10 @@ class AdvancedTraining:
             create_refresh_button(
                 self.resume,
                 lambda: None,
-                lambda: {"choices": [self.config.get("advanced.state_dir", "")] + list_state_dirs(self.current_state_dir)},
+                lambda: {
+                    "choices": [self.config.get("advanced.state_dir", "")]
+                    + list_state_dirs(self.current_state_dir)
+                },
                 "open_folder_small",
             )
             self.resume_button = gr.Button(
@@ -438,15 +491,20 @@ class AdvancedTraining:
                 show_progress=False,
             )
             self.resume.change(
-                fn=lambda path: gr.Dropdown(choices=[self.config.get("advanced.state_dir", "")] + list_state_dirs(path)),
+                fn=lambda path: gr.Dropdown(
+                    choices=[self.config.get("advanced.state_dir", "")]
+                    + list_state_dirs(path)
+                ),
                 inputs=self.resume,
                 outputs=self.resume,
                 show_progress=False,
             )
-            self.max_data_loader_n_workers = gr.Textbox(
+            self.max_data_loader_n_workers = gr.Number(
                 label="Max num workers for DataLoader",
-                placeholder="(Optional) Override number of epoch. Default: 8",
-                value=self.config.get("advanced.max_data_loader_n_workers", "0"),
+                info="Override number of epoch. Default: 0",
+                step=1,
+                minimum=0,
+                value=self.config.get("advanced.max_data_loader_n_workers", 0),
             )
         with gr.Row():
             self.use_wandb = gr.Checkbox(
@@ -506,7 +564,8 @@ class AdvancedTraining:
             )
             self.log_tracker_config.change(
                 fn=lambda path: gr.Dropdown(
-                    choices=[self.config.get("log_tracker_config_dir", "")] + list_log_tracker_config_files(path)
+                    choices=[self.config.get("log_tracker_config_dir", "")]
+                    + list_log_tracker_config_files(path)
                 ),
                 inputs=self.log_tracker_config,
                 outputs=self.log_tracker_config,

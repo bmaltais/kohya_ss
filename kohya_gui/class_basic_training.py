@@ -88,16 +88,21 @@ class BasicTraining:
                 label="Epoch", value=self.config.get("basic.epoch", 1), precision=0
             )
             # Initialize the maximum train epochs input
-            self.max_train_epochs = gr.Textbox(
+            self.max_train_epochs = gr.Number(
                 label="Max train epoch",
-                placeholder="(Optional) Enforce # epochs",
-                value=self.config.get("basic.max_train_epochs", ""),
+                info="training epochs (overrides max_train_steps). 0 = no override",
+                step=1,
+                # precision=0,
+                minimum=0,
+                value=self.config.get("basic.max_train_epochs", 0),
             )
             # Initialize the maximum train steps input
-            self.max_train_steps = gr.Textbox(
+            self.max_train_steps = gr.Number(
                 label="Max train steps",
-                placeholder="(Optional) Enforce # steps",
-                value=self.config.get("basic.max_train_steps", ""),
+                info="Overrides # training steps. 0 = no override",
+                step=1,
+                # precision=0,
+                value=self.config.get("basic.max_train_steps", 0),
             )
             # Initialize the save every N epochs input
             self.save_every_n_epochs = gr.Number(
@@ -119,10 +124,13 @@ class BasicTraining:
         """
         with gr.Row():
             # Initialize the seed textbox
-            self.seed = gr.Textbox(
+            self.seed = gr.Number(
                 label="Seed",
-                placeholder="(Optional) eg:1234",
-                value=self.config.get("basic.seed", ""),
+                # precision=0,
+                step=1,
+                minimum=0,
+                value=self.config.get("basic.seed", 0),
+                info="Set to 0 to make random",
             )
             # Initialize the cache latents checkbox
             self.cache_latents = gr.Checkbox(
@@ -277,16 +285,21 @@ class BasicTraining:
         """
         with gr.Row(visible=not self.finetuning):
             # Initialize the learning rate scheduler number of cycles textbox
-            self.lr_scheduler_num_cycles = gr.Textbox(
+            self.lr_scheduler_num_cycles = gr.Number(
                 label="LR # cycles",
-                placeholder="(Optional) For Cosine with restart and polynomial only",
-                value=self.config.get("basic.lr_scheduler_num_cycles", ""),
+                minimum=1,
+                # precision=0, # round to nearest integer
+                step=1, # Increment value by 1
+                info="Number of restarts for cosine scheduler with restarts",
+                value=self.config.get("basic.lr_scheduler_num_cycles", 1),
             )
             # Initialize the learning rate scheduler power textbox
-            self.lr_scheduler_power = gr.Textbox(
+            self.lr_scheduler_power = gr.Number(
                 label="LR power",
-                placeholder="(Optional) For Cosine with restart and polynomial only",
-                value=self.config.get("basic.lr_scheduler_power", ""),
+                minimum=1.0,
+                step=0.01,
+                info="Polynomial power for polynomial scheduler",
+                value=self.config.get("basic.lr_scheduler_power", 1.0),
             )
 
     def init_resolution_and_bucket_controls(self) -> None:

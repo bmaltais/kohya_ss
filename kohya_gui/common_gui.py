@@ -323,24 +323,63 @@ def update_my_data(my_data):
         my_data["model_list"] = "custom"
 
     # Convert values to int if they are strings
-    for key in ["epoch", "save_every_n_epochs", "lr_warmup"]:
-        value = my_data.get(key, 0)
-        if isinstance(value, str) and value.strip().isdigit():
-            my_data[key] = int(value)
-        elif not value:
-            my_data[key] = 0
+    for key in [
+        "epoch",
+        "keep_tokens",
+        "lr_warmup",
+        "max_data_loader_n_workers",
+        "max_train_epochs",
+        "max_train_steps",
+        "save_every_n_epochs",
+        "seed",
+    ]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                my_data[key] = int(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = int(0)
+
+    # Convert values to int if they are strings
+    for key in ["lr_scheduler_num_cycles"]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                my_data[key] = int(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = int(1)
+                
+    # Convert values to int if they are strings
+    for key in ["max_token_length"]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                my_data[key] = int(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = int(75)
 
     # Convert values to float if they are strings, correctly handling float representations
     for key in ["noise_offset", "learning_rate", "text_encoder_lr", "unet_lr"]:
-        value = my_data.get(key, 0)
-        if isinstance(value, str):
+        value = my_data.get(key)
+        if value is not None:
             try:
                 my_data[key] = float(value)
             except ValueError:
                 # Handle the case where the string is not a valid float
-                my_data[key] = 0
-        elif not value:
-            my_data[key] = 0
+                my_data[key] = float(0.0)
+
+    # Convert values to float if they are strings, correctly handling float representations
+    for key in ["lr_scheduler_power"]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                my_data[key] = float(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = float(1.0)
 
     # Update LoRA_type if it is set to LoCon
     if my_data.get("LoRA_type", "Standard") == "LoCon":
