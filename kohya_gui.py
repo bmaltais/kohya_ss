@@ -12,10 +12,6 @@ from kohya_gui.class_lora_tab import LoRATools
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
 
-# Set up logging
-log = setup_logging()
-
-
 def UI(**kwargs):
     add_javascript(kwargs.get("language"))
     css = ""
@@ -115,6 +111,7 @@ if __name__ == "__main__":
         default="./config.toml",
         help="Path to the toml config file for interface defaults",
     )
+    parser.add_argument("--debug", action="store_true", help="Debug on")
     parser.add_argument(
         "--listen",
         type=str,
@@ -148,5 +145,8 @@ if __name__ == "__main__":
     parser.add_argument("--do_not_share", action="store_true", help="Do not share the gradio UI")
 
     args = parser.parse_args()
+    
+    # Set up logging
+    log = setup_logging(debug=args.debug)
 
     UI(**vars(args))

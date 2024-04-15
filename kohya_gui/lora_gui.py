@@ -42,7 +42,7 @@ from .dataset_balancing_gui import gradio_dataset_balancing_tab
 from .custom_logging import setup_logging
 
 # Set up logging
-log = setup_logging()
+log = setup_logging(debug=True)
 
 # Setup command executor
 executor = CommandExecutor()
@@ -230,9 +230,13 @@ def save_configuration(
     min_timestep,
     max_timestep,
     vae,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     LyCORIS_preset,
     debiased_estimation_loss,
-    extra_accelerate_launch_args,
     huggingface_repo_id,
     huggingface_token,
     huggingface_repo_type,
@@ -426,9 +430,13 @@ def open_configuration(
     min_timestep,
     max_timestep,
     vae,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     LyCORIS_preset,
     debiased_estimation_loss,
-    extra_accelerate_launch_args,
     huggingface_repo_id,
     huggingface_token,
     huggingface_repo_type,
@@ -652,9 +660,13 @@ def train_model(
     min_timestep,
     max_timestep,
     vae,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     LyCORIS_preset,
     debiased_estimation_loss,
-    extra_accelerate_launch_args,
     huggingface_repo_id,
     huggingface_token,
     huggingface_repo_type,
@@ -826,6 +838,10 @@ def train_model(
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
+        dynamo_backend=dynamo_backend,
+        dynamo_mode=dynamo_mode,
+        dynamo_use_fullgraph=dynamo_use_fullgraph,
+        dynamo_use_dynamic=dynamo_use_dynamic,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -997,6 +1013,7 @@ def train_model(
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
+        "dynamo_backend": dynamo_backend,
         "dim_from_weights": dim_from_weights,
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
@@ -2166,9 +2183,13 @@ def lora_tab(
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             advanced_training.vae,
+            accelerate_launch.dynamo_backend,
+            accelerate_launch.dynamo_mode,
+            accelerate_launch.dynamo_use_fullgraph,
+            accelerate_launch.dynamo_use_dynamic,
+            accelerate_launch.extra_accelerate_launch_args,
             LyCORIS_preset,
             advanced_training.debiased_estimation_loss,
-            accelerate_launch.extra_accelerate_launch_args,
             huggingface.huggingface_repo_id,
             huggingface.huggingface_token,
             huggingface.huggingface_repo_type,

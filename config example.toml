@@ -20,6 +20,10 @@ logging_dir = "./logs"      # Logging directory
 config_dir = "./presets" # Load/Save Config file
 
 [accelerate_launch]
+dynamo_backend = "no"             # Dynamo backend
+dynamo_mode = "default"           # Dynamo mode
+dynamo_use_dynamic = false        # Dynamo use dynamic
+dynamo_use_fullgraph = false      # Dynamo use fullgraph
 extra_accelerate_launch_args = "" # Extra accelerate launch args
 gpu_ids = ""                      # GPU IDs
 main_process_port = 0             # Main process port
@@ -54,7 +58,7 @@ optimizer = "AdamW8bit"        # Optimizer (AdamW, AdamW8bit, Adafactor, DAdapta
 optimizer_args = ""            # Optimizer args
 save_every_n_epochs = 1        # Save every n epochs
 save_every_n_steps = 1         # Save every n steps
-seed = 1234                  # Seed
+seed = 1234                    # Seed
 stop_text_encoder_training = 0 # Stop text encoder training (% of total steps)
 train_batch_size = 1           # Train batch size
 

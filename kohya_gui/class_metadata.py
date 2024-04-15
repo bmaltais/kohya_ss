@@ -5,7 +5,7 @@ import shlex
 from .class_gui_config import KohyaSSGUIConfig
 
 
-class AccelerateLaunch:
+class MetaData:
     def __init__(
         self,
         config: KohyaSSGUIConfig = {},
@@ -23,16 +23,14 @@ class AccelerateLaunch:
                 self.num_processes = gr.Number(
                     label="Number of processes",
                     value=self.config.get("accelerate_launch.num_processes", 1),
-                    # precision=0,
-                    step=1,
+                    precision=0,
                     minimum=1,
                     info="The total number of processes to be launched in parallel.",
                 )
                 self.num_machines = gr.Number(
                     label="Number of machines",
                     value=self.config.get("accelerate_launch.num_machines", 1),
-                    # precision=0,
-                    step=1,
+                    precision=0,
                     minimum=1,
                     info="The total number of machines used in this training.",
                 )
@@ -106,8 +104,7 @@ class AccelerateLaunch:
                 self.main_process_port = gr.Number(
                     label="Main process port",
                     value=self.config.get("accelerate_launch.main_process_port", 0),
-                    # precision=1,
-                    step=1,
+                    precision=1,
                     minimum=0,
                     maximum=65535,
                     info="The port to use to communicate with the machine of rank 0.",
