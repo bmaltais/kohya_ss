@@ -697,7 +697,7 @@ def train_model(
         # "masked_loss": masked_loss,
         # "full_bf16": full_bf16,
         # "full_fp16": full_fp16,
-        # "gradient_accumulation_steps": gradient_accumulation_steps,
+        # "gradient_accumulation_steps": int(gradient_accumulation_steps),
         # "gradient_checkpointing": gradient_checkpointing,
         # "in_json": in_json,
         # "ip_noise_gamma": ip_noise_gamma,
@@ -824,7 +824,7 @@ def train_model(
         "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
-        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
@@ -1081,9 +1081,13 @@ def finetune_tab(headless=False, config: dict = {}):
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
-                    gradient_accumulation_steps = gr.Number(
+                    gradient_accumulation_steps = gr.Slider(
                         label="Gradient accumulate steps",
-                        value=1,
+                        info="Number of updates steps to accumulate before performing a backward/update pass",
+                        value=config.get("advanced.gradient_accumulation_steps", 1),
+                        minimum=1,
+                        maximum=120,
+                        step=1,
                     )
                     block_lr = gr.Textbox(
                         label="Block LR (SDXL)",

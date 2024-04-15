@@ -656,7 +656,7 @@ def train_model(
         "epoch": int(epoch),
         "flip_aug": flip_aug,
         "full_fp16": full_fp16,
-        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
