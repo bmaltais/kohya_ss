@@ -42,7 +42,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/12 (v23.1.6)](#20240412-v2316)
+    - [2024/04/12 (v24.0.0)](#20240412-v2400)
     - [2024/04/10 (v23.1.5)](#20240410-v2315)
       - [Security Improvements](#security-improvements)
     - [2024/04/08 (v23.1.4)](#20240408-v2314)
@@ -402,7 +402,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
-### 2024/04/12 (v23.1.6)
+### 2024/04/12 (v24.0.0)
 
 - Rewrote significant portions of the code to address security vulnerabilities and remove the `shell=True` parameter from process calls.
 - Enhanced the training and tensorboard buttons to provide a more intuitive and user-friendly experience.
@@ -411,6 +411,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Converted the Graphical User Interface (GUI) to use the configuration TOML file format to pass arguments to sd-scripts. This change improves security by eliminating the need for sensitive information to be passed through the command-line interface (CLI).
 - Made various other minor improvements and bug fixes to enhance the overall functionality and user experience.
 - Disabled LR Warmup when using the Constant LR Scheduler to prevent traceback errors with sd-scripts.
+- Added support for metadata capture to the GUI
 
 ### 2024/04/10 (v23.1.5)
 

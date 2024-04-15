@@ -173,3 +173,10 @@ train_data_dir = ""                           # Image folder to caption (contain
 undesired_tags = ""                           # comma-separated list of tags to remove, e.g. 1girl,1boy
 use_rating_tags = false                       # Use rating tags
 use_rating_tags_as_last_tag = false           # Use rating tags as last tagging tags
+
+[metadata]
+metadata_title = ""       # Title for model metadata (default is output_name)
+metadata_author = ""      # Author name for model metadata
+metadata_description = "" # Description for model metadata
+metadata_license = ""     # License for model metadata
+metadata_tags = ""        # Tags for model metadata

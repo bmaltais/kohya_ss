@@ -33,6 +33,7 @@ from .class_tensorboard import TensorboardManager
 from .class_sample_images import SampleImages, create_prompt_file
 from .class_lora_tab import LoRATools
 from .class_huggingface import HuggingFace
+from .class_metadata import MetaData
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -42,7 +43,7 @@ from .dataset_balancing_gui import gradio_dataset_balancing_tab
 from .custom_logging import setup_logging
 
 # Set up logging
-log = setup_logging(debug=True)
+log = setup_logging()
 
 # Setup command executor
 executor = CommandExecutor()
@@ -245,6 +246,11 @@ def save_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -445,6 +451,11 @@ def open_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -675,6 +686,11 @@ def train_model(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1048,6 +1064,11 @@ def train_model(
         "max_train_epochs": max_train_epochs,
         "max_train_steps": int(max_train_steps),
         "mem_eff_attn": mem_eff_attn,
+        "metadata_author": metadata_author,
+        "metadata_description": metadata_description,
+        "metadata_license": metadata_license,
+        "metadata_tags": metadata_tags,
+        "metadata_title": metadata_title,
         "min_bucket_reso": int(min_bucket_reso),
         "min_snr_gamma": min_snr_gamma,
         "min_timestep": int(min_timestep),
@@ -1214,6 +1235,9 @@ def lora_tab(
                 headless=headless,
                 config=config,
             )
+
+        with gr.Accordion("Metadata", open=False), gr.Group():
+            metadata = MetaData(config=config)
 
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
@@ -2198,6 +2222,11 @@ def lora_tab(
             huggingface.save_state_to_huggingface,
             huggingface.resume_from_huggingface,
             huggingface.async_upload,
+            metadata.metadata_author,
+            metadata.metadata_description,
+            metadata.metadata_license,
+            metadata.metadata_tags,
+            metadata.metadata_title,
         ]
 
         configuration.button_open_config.click(

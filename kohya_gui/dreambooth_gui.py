@@ -28,6 +28,7 @@ from .class_advanced_training import AdvancedTraining
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
 from .class_huggingface import HuggingFace
+from .class_metadata import MetaData
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -172,6 +173,11 @@ def save_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -325,6 +331,11 @@ def open_configuration(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -473,6 +484,11 @@ def train_model(
     save_state_to_huggingface,
     resume_from_huggingface,
     async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -681,10 +697,10 @@ def train_model(
         "ip_noise_gamma": ip_noise_gamma,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
-        "learning_rate": learning_rate,
-        "learning_rate_te": learning_rate_te,
-        "learning_rate_te1": learning_rate_te1,
-        "learning_rate_te2": learning_rate_te2,
+        "learning_rate": learning_rate, # both for sd1.5 and sdxl
+        "learning_rate_te": learning_rate_te if not sdxl else None, # only for sd1.5
+        "learning_rate_te1": learning_rate_te1 if sdxl else None, # only for sdxl
+        "learning_rate_te2": learning_rate_te2 if sdxl else None, # only for sdxl
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
@@ -703,6 +719,11 @@ def train_model(
         "max_train_epochs": max_train_epochs,
         "max_train_steps": int(max_train_steps),
         "mem_eff_attn": mem_eff_attn,
+        "metadata_author": metadata_author,
+        "metadata_description": metadata_description,
+        "metadata_license": metadata_license,
+        "metadata_tags": metadata_tags,
+        "metadata_title": metadata_title,
         "min_bucket_reso": int(min_bucket_reso),
         "min_snr_gamma": min_snr_gamma,
         "min_timestep": int(min_timestep),
@@ -859,6 +880,9 @@ def dreambooth_tab(
         with gr.Accordion("Folders", open=False), gr.Group():
             folders = Folders(headless=headless, config=config)
 
+        with gr.Accordion("Metadata", open=False), gr.Group():
+            metadata = MetaData(config=config)
+            
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
@@ -1034,6 +1058,11 @@ def dreambooth_tab(
             huggingface.save_state_to_huggingface,
             huggingface.resume_from_huggingface,
             huggingface.async_upload,
+            metadata.metadata_author,
+            metadata.metadata_description,
+            metadata.metadata_license,
+            metadata.metadata_tags,
+            metadata.metadata_title,
         ]
 
         configuration.button_open_config.click(
