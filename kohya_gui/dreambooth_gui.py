@@ -378,7 +378,7 @@ def train_model(
     full_fp16,
     full_bf16,
     no_token_padding,
-    stop_text_encoder_training_pct,
+    stop_text_encoder_training,
     min_bucket_reso,
     max_bucket_reso,
     # use_8bit_adam,
@@ -487,6 +487,11 @@ def train_model(
     ):
         return TRAIN_BUTTON_VISIBLE
 
+    try:
+        max_train_steps = int(max_train_steps)
+    except ValueError:
+        max_train_steps = 0
+
     if dataset_config:
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
@@ -560,7 +565,7 @@ def train_model(
             )
             reg_factor = 2
 
-        if max_train_steps == "" or max_train_steps == "0":
+        if max_train_steps == 0:
             # calculate max_train_steps
             max_train_steps = int(
                 math.ceil(
@@ -576,16 +581,15 @@ def train_model(
             )
 
     # calculate stop encoder training
-    if int(stop_text_encoder_training_pct) == -1:
-        stop_text_encoder_training = -1
-    elif stop_text_encoder_training_pct == None or (
-        not max_train_steps == "" or not max_train_steps == "0"
-    ):
-        stop_text_encoder_training = 0
-    else:
-        stop_text_encoder_training = math.ceil(
-            float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-        )
+    if stop_text_encoder_training > 0:
+        if max_train_steps != 0:
+            stop_text_encoder_training = int(
+                math.ceil(float(max_train_steps) / 100 * int(stop_text_encoder_training))
+            )
+        else:
+            stop_text_encoder_training = 0
+            log.warning("Can't use stop text encoder training without max_train_steps... setting to 0...")
+            
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
 
     if not max_train_steps == "":
@@ -779,8 +783,10 @@ def train_model(
         "log_tracker_config": log_tracker_config,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
-        "lr_scheduler_num_cycles":  lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch),
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
+        "lr_scheduler_num_cycles": (
+            lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch)
+        ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
@@ -801,7 +807,11 @@ def train_model(
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', '').split(),
+        "optimizer_args": (
+            str(optimizer_args).replace('"', "").split()
+            if optimizer_args != ""
+            else None
+        ),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
