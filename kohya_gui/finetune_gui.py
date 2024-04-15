@@ -29,7 +29,7 @@ from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
 from .class_tensorboard import TensorboardManager
-from .class_sample_images import SampleImages, run_cmd_sample, create_prompt_file
+from .class_sample_images import SampleImages, create_prompt_file
 from .class_huggingface import HuggingFace
 
 from .custom_logging import setup_logging
@@ -677,114 +677,6 @@ def train_model(
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
-
-    # Initialize a dictionary with always-included keyword arguments
-    kwargs_for_training = {
-        # "adaptive_noise_scale": adaptive_noise_scale,
-        # "block_lr": block_lr,
-        # "bucket_no_upscale": bucket_no_upscale,
-        # "bucket_reso_steps": bucket_reso_steps,
-        # "cache_latents": cache_latents,
-        # "cache_latents_to_disk": cache_latents_to_disk,
-        # "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
-        # "caption_dropout_rate": caption_dropout_rate,
-        # "caption_extension": caption_extension,
-        # "clip_skip": clip_skip,
-        # "color_aug": color_aug,
-        # "dataset_config": dataset_config,
-        # "dataset_repeats": dataset_repeats,
-        # "enable_bucket": True,
-        # "flip_aug": flip_aug,
-        # "masked_loss": masked_loss,
-        # "full_bf16": full_bf16,
-        # "full_fp16": full_fp16,
-        # "gradient_accumulation_steps": int(gradient_accumulation_steps),
-        # "gradient_checkpointing": gradient_checkpointing,
-        # "in_json": in_json,
-        # "ip_noise_gamma": ip_noise_gamma,
-        # "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
-        # "keep_tokens": keep_tokens,
-        # "learning_rate": learning_rate,
-        # "logging_dir": logging_dir,
-        # "log_tracker_name": log_tracker_name,
-        # "log_tracker_config": log_tracker_config,
-        # "lr_scheduler": lr_scheduler,
-        # "lr_scheduler_args": lr_scheduler_args,
-        # "lr_warmup_steps": lr_warmup_steps,
-        # "max_bucket_reso": max_bucket_reso,
-        "max_data_loader_n_workers": max_data_loader_n_workers,
-        # "max_resolution": max_resolution,
-        # "max_timestep": max_timestep,
-        # "max_token_length": max_token_length,
-        # "max_train_epochs": max_train_epochs,
-        # "max_train_steps": max_train_steps,
-        # "mem_eff_attn": mem_eff_attn,
-        # "min_bucket_reso": min_bucket_reso,
-        # "min_snr_gamma": min_snr_gamma,
-        # "min_timestep": min_timestep,
-        # "mixed_precision": mixed_precision,
-        # "multires_noise_discount": multires_noise_discount,
-        # "multires_noise_iterations": multires_noise_iterations,
-        # "noise_offset": noise_offset,
-        # "noise_offset_random_strength": noise_offset_random_strength,
-        # "noise_offset_type": noise_offset_type,
-        # "optimizer": optimizer,
-        # "optimizer_args": optimizer_args,
-        # "output_dir": output_dir,
-        # "output_name": output_name,
-        # "persistent_data_loader_workers": persistent_data_loader_workers,
-        # "pretrained_model_name_or_path": pretrained_model_name_or_path,
-        # "random_crop": random_crop,
-        # "resume": resume,
-        # "save_every_n_epochs": save_every_n_epochs,
-        # "save_every_n_steps": save_every_n_steps,
-        # "save_last_n_steps": save_last_n_steps,
-        # "save_last_n_steps_state": save_last_n_steps_state,
-        # "save_model_as": save_model_as,
-        # "save_precision": save_precision,
-        # "save_state": save_state,
-        # "save_state_on_train_end": save_state_on_train_end,
-        # "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
-        # "seed": seed,
-        # "shuffle_caption": shuffle_caption,
-        # "train_batch_size": train_batch_size,
-        # "train_data_dir": image_folder,
-        # "train_text_encoder": train_text_encoder,
-        # "use_wandb": use_wandb,
-        # "v2": v2,
-        # "v_parameterization": v_parameterization,
-        # "v_pred_like_loss": v_pred_like_loss,
-        # "vae_batch_size": vae_batch_size,
-        # "wandb_api_key": wandb_api_key,
-        # "wandb_run_name": wandb_run_name,
-        # "weighted_captions": weighted_captions,
-        # "xformers": xformers,
-        "additional_parameters": additional_parameters,
-        # "loss_type": loss_type,
-        # "huber_schedule": huber_schedule,
-        # "huber_c": huber_c,
-    }
-
-    # Conditionally include specific keyword arguments based on sdxl_checkbox
-    # if sdxl_checkbox:
-    #     kwargs_for_training["cache_text_encoder_outputs"] = cache_text_encoder_outputs
-    #     kwargs_for_training["learning_rate_te1"] = learning_rate_te1
-    #     kwargs_for_training["learning_rate_te2"] = learning_rate_te2
-    #     kwargs_for_training["no_half_vae"] = no_half_vae
-    # else:
-    #     kwargs_for_training["learning_rate_te"] = learning_rate_te
-
-    # Pass the dynamically constructed keyword arguments to the function
-    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
-
-    # run_cmd = run_cmd_sample(
-    #     run_cmd,
-    #     sample_every_n_steps,
-    #     sample_every_n_epochs,
-    #     sample_sampler,
-    #     sample_prompts,
-    #     output_dir,
-    # )
     
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
@@ -916,14 +808,17 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-        toml_file_path = (
-            os.path.abspath(os.path.normpath(toml_file.name)).replace("\\", "/")
-            if os.name == "nt"
-            else toml_file.name
-        )
-
     run_cmd.append(f"--config_file")
-    run_cmd.append(rf"{toml_file_path}")
+    run_cmd.append(tmpfilename)
+
+    # Initialize a dictionary with always-included keyword arguments
+    kwargs_for_training = {
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        "additional_parameters": additional_parameters,
+    }
+
+    # Pass the dynamically constructed keyword arguments to the function
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
     if print_only:
         log.warning(

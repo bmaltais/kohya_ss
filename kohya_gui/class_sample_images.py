@@ -36,69 +36,69 @@ def create_prompt_file(sample_prompts, output_dir):
     return sample_prompts_path
 
 
-def run_cmd_sample(
-    run_cmd: list,
-    sample_every_n_steps,
-    sample_every_n_epochs,
-    sample_sampler,
-    sample_prompts,
-    output_dir,
-):
-    """
-    Generates a command string for sampling images during training.
+# def run_cmd_sample(
+#     run_cmd: list,
+#     sample_every_n_steps,
+#     sample_every_n_epochs,
+#     sample_sampler,
+#     sample_prompts,
+#     output_dir,
+# ):
+#     """
+#     Generates a command string for sampling images during training.
 
-    Args:
-        sample_every_n_steps (int): The number of steps after which to sample images.
-        sample_every_n_epochs (int): The number of epochs after which to sample images.
-        sample_sampler (str): The sampler to use for image sampling.
-        sample_prompts (str): The prompts to use for image sampling.
-        output_dir (str): The directory where the output images will be saved.
+#     Args:
+#         sample_every_n_steps (int): The number of steps after which to sample images.
+#         sample_every_n_epochs (int): The number of epochs after which to sample images.
+#         sample_sampler (str): The sampler to use for image sampling.
+#         sample_prompts (str): The prompts to use for image sampling.
+#         output_dir (str): The directory where the output images will be saved.
 
-    Returns:
-        str: The command string for sampling images.
-    """
-    output_dir = os.path.join(output_dir, "sample")
-    os.makedirs(output_dir, exist_ok=True)
+#     Returns:
+#         str: The command string for sampling images.
+#     """
+#     output_dir = os.path.join(output_dir, "sample")
+#     os.makedirs(output_dir, exist_ok=True)
 
-    if sample_every_n_epochs is None:
-        sample_every_n_epochs = 0
+#     if sample_every_n_epochs is None:
+#         sample_every_n_epochs = 0
 
-    if sample_every_n_steps is None:
-        sample_every_n_steps = 0
+#     if sample_every_n_steps is None:
+#         sample_every_n_steps = 0
 
-    if sample_every_n_epochs == sample_every_n_steps == 0:
-        return run_cmd
+#     if sample_every_n_epochs == sample_every_n_steps == 0:
+#         return run_cmd
 
-    # Create the prompt file and get its path
-    sample_prompts_path = os.path.join(output_dir, "prompt.txt")
+#     # Create the prompt file and get its path
+#     sample_prompts_path = os.path.join(output_dir, "prompt.txt")
 
-    with open(sample_prompts_path, "w") as f:
-        f.write(sample_prompts)
+#     with open(sample_prompts_path, "w") as f:
+#         f.write(sample_prompts)
 
-    # Append the sampler with proper quoting for safety against special characters
-    run_cmd.append("--sample_sampler")
-    run_cmd.append(shlex.quote(sample_sampler))
+#     # Append the sampler with proper quoting for safety against special characters
+#     run_cmd.append("--sample_sampler")
+#     run_cmd.append(shlex.quote(sample_sampler))
 
-    # Normalize and fix the path for the sample prompts, handle cross-platform path differences
-    sample_prompts_path = os.path.abspath(os.path.normpath(sample_prompts_path))
-    if os.name == "nt":  # Normalize path for Windows
-        sample_prompts_path = sample_prompts_path.replace("\\", "/")
+#     # Normalize and fix the path for the sample prompts, handle cross-platform path differences
+#     sample_prompts_path = os.path.abspath(os.path.normpath(sample_prompts_path))
+#     if os.name == "nt":  # Normalize path for Windows
+#         sample_prompts_path = sample_prompts_path.replace("\\", "/")
 
-    # Append the sample prompts path
-    run_cmd.append('--sample_prompts')
-    run_cmd.append(sample_prompts_path)
+#     # Append the sample prompts path
+#     run_cmd.append('--sample_prompts')
+#     run_cmd.append(sample_prompts_path)
 
-    # Append the sampling frequency for epochs, only if non-zero
-    if sample_every_n_epochs != 0:
-        run_cmd.append("--sample_every_n_epochs")
-        run_cmd.append(str(sample_every_n_epochs))
+#     # Append the sampling frequency for epochs, only if non-zero
+#     if sample_every_n_epochs != 0:
+#         run_cmd.append("--sample_every_n_epochs")
+#         run_cmd.append(str(sample_every_n_epochs))
 
-    # Append the sampling frequency for steps, only if non-zero
-    if sample_every_n_steps != 0:
-        run_cmd.append("--sample_every_n_steps")
-        run_cmd.append(str(sample_every_n_steps))
+#     # Append the sampling frequency for steps, only if non-zero
+#     if sample_every_n_steps != 0:
+#         run_cmd.append("--sample_every_n_steps")
+#         run_cmd.append(str(sample_every_n_steps))
 
-    return run_cmd
+#     return run_cmd
 
 
 

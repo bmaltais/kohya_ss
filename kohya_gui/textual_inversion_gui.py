@@ -35,7 +35,7 @@ from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
 )
 from .dataset_balancing_gui import gradio_dataset_balancing_tab
-from .class_sample_images import SampleImages, run_cmd_sample, create_prompt_file
+from .class_sample_images import SampleImages, create_prompt_file
 
 from .custom_logging import setup_logging
 
@@ -592,34 +592,6 @@ def train_model(
         run_cmd.append(f"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py")
     else:
         run_cmd.append(f"{scriptdir}/sd-scripts/train_textual_inversion.py")
-
-    # Initialize a dictionary with always-included keyword arguments
-    kwargs_for_training = {
-        "max_data_loader_n_workers": max_data_loader_n_workers,
-        "additional_parameters": additional_parameters,
-    }
-    
-    # run_cmd.append(f'--token_string="{shlex.quote(token_string)}"')
-    # run_cmd.append(f'--init_word="{shlex.quote(init_word)}"')
-    # run_cmd.append(f"--num_vectors_per_token={int(num_vectors_per_token)}")
-    # if not weights == "":
-    #     run_cmd.append(f'--weights="{shlex.quote(weights)}"')
-    # if template == "object template":
-    #     run_cmd.append("--use_object_template")
-    # elif template == "style template":
-    #     run_cmd.append("--use_style_template")
-
-    # Pass the dynamically constructed keyword arguments to the function
-    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
-
-    # run_cmd = run_cmd_sample(
-    #     run_cmd,
-    #     sample_every_n_steps,
-    #     sample_every_n_epochs,
-    #     sample_sampler,
-    #     sample_prompts,
-    #     output_dir,
-    # )
     
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
@@ -754,14 +726,17 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-        toml_file_path = (
-            os.path.abspath(os.path.normpath(toml_file.name)).replace("\\", "/")
-            if os.name == "nt"
-            else toml_file.name
-        )
-
     run_cmd.append(f"--config_file")
-    run_cmd.append(rf"{toml_file_path}")
+    run_cmd.append(tmpfilename)
+    
+    # Initialize a dictionary with always-included keyword arguments
+    kwargs_for_training = {
+        "max_data_loader_n_workers": max_data_loader_n_workers,
+        "additional_parameters": additional_parameters,
+    }
+
+    # Pass the dynamically constructed keyword arguments to the function
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
     if print_only:
         log.warning(

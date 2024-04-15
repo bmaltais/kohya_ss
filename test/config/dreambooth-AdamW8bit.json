@@ -1,6 +1,6 @@
 {
   "adaptive_noise_scale": 0,
-  "additional_parameters": "--config_file ./outputs/tmpfile.toml",
+  "additional_parameters": "",
   "async_upload": false,
   "bucket_no_upscale": true,
   "bucket_reso_steps": 64,
