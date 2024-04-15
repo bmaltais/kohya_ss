@@ -1,6 +1,9 @@
 import gradio as gr
 from typing import Tuple
+from .custom_logging import setup_logging
 
+# Set up logging
+log = setup_logging()
 
 class BasicTraining:
     """
@@ -44,6 +47,7 @@ class BasicTraining:
         self.finetuning = finetuning
         self.dreambooth = dreambooth
         self.config = config
+        self.old_lr_warmup = 0
 
         # Initialize the UI components
         self.initialize_ui_components()
@@ -162,6 +166,9 @@ class BasicTraining:
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
+            
+            
+            
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
                 label="Optimizer",
@@ -277,6 +284,26 @@ class BasicTraining:
                 minimum=0,
                 maximum=100,
                 step=1,
+            )
+            
+            def lr_scheduler_changed(scheduler, value):
+                if scheduler == "constant":
+                    self.old_lr_warmup = value
+                    value = 0
+                    interactive=False
+                    info="Can't use LR warmup with LR Scheduler constant... setting to 0 and disabling field..."
+                else:
+                    if self.old_lr_warmup != 0:
+                        value = self.old_lr_warmup
+                        self.old_lr_warmup = 0
+                    interactive=True
+                    info=""
+                return gr.Slider(value=value, interactive=interactive, info=info)
+            
+            self.lr_scheduler.change(
+                lr_scheduler_changed,
+                inputs=[self.lr_scheduler, self.lr_warmup],
+                outputs=self.lr_warmup,
             )
 
     def init_scheduler_controls(self) -> None:
