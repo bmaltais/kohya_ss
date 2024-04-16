@@ -43,6 +43,10 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
     - [2024/04/12 (v24.0.0)](#20240412-v2400)
+      - [Enhancements](#enhancements)
+      - [Security and Stability](#security-and-stability)
+      - [Shell Execution](#shell-execution)
+      - [Miscellaneous](#miscellaneous)
     - [2024/04/10 (v23.1.5)](#20240410-v2315)
       - [Security Improvements](#security-improvements)
     - [2024/04/08 (v23.1.4)](#20240408-v2314)
@@ -404,14 +408,30 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ### 2024/04/12 (v24.0.0)
 
-- Rewrote significant portions of the code to address security vulnerabilities and remove the `shell=True` parameter from process calls.
-- Enhanced the training and tensorboard buttons to provide a more intuitive and user-friendly experience.
-- Upgraded the gradio version to 4.20.0 to address a bug that was causing issues with the runpod platform.
-- Added a HuggingFace section to all trainers tabs, enabling users to authenticate and utilize HuggingFace's powerful AI models.
-- Converted the Graphical User Interface (GUI) to use the configuration TOML file format to pass arguments to sd-scripts. This change improves security by eliminating the need for sensitive information to be passed through the command-line interface (CLI).
-- Made various other minor improvements and bug fixes to enhance the overall functionality and user experience.
-- Disabled LR Warmup when using the Constant LR Scheduler to prevent traceback errors with sd-scripts.
-- Added support for metadata capture to the GUI
+#### Enhancements
+
+- **User Interface:** Converted the GUI to utilize a configuration TOML file for passing arguments to sd-scripts, enhancing security by avoiding the command-line interface (CLI) for sensitive information.
+- **Training Tools:** Enhanced the functionality of the training and TensorBoard buttons to offer a more intuitive user experience.
+- **HuggingFace Integration:** Added a HuggingFace section to all trainers' tabs, allowing users to authenticate and leverage HuggingFace's advanced AI models.
+- **Gradio Upgrade:** Upgraded to gradio version 4.20.0, resolving a bug affecting the runpod platform.
+- **Metadata Support:** Introduced support for metadata capture within the GUI.
+
+#### Security and Stability
+
+- **Code Refactoring:** Rewrote significant portions of the code to address security vulnerabilities, including the removal of the `shell=True` parameter from process calls.
+- **Scheduler Update:** Disabled LR Warmup when using the Constant LR Scheduler to avoid traceback errors with sd-scripts.
+
+#### Shell Execution
+
+- **Conditional Shell Usage:** Implemented support for optional shell usage when running external sd-scripts commands to accommodate specific platform requirements, following security enhancements.
+  - **How to Enable Shell Execution:**
+    1. Start the GUI with the `--use_shell` option.
+    2. Set the `use_shell` value in the config.toml file to `true`, allowing the GUI to apply user-specified settings at startup.
+    - **Note:** The `--use_shell` option will take precedence over settings in the config.toml file.
+
+#### Miscellaneous
+
+- Made various other minor improvements and bug fixes to enhance overall functionality and user experience.
 
 ### 2024/04/10 (v23.1.5)
 
@@ -474,8 +494,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
     - The `.toml` file for the dataset config is now read in UTF-8 encoding. PR [#1167](https://github.com/kohya-ss/sd-scripts/pull/1167) Thanks to Horizon1704!
     - Fixed a bug that the last subset settings are applied to all images when multiple subsets of regularization images are specified in the dataset settings. The settings for each subset are correctly applied to each image. PR [#1205](https://github.com/kohya-ss/sd-scripts/pull/1205) Thanks to feffy380!
     - Some features are added to the dataset subset settings.
-      - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping. 
-        - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped. 
+      - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping.
+        - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped.
       - `enable_wildcard` is added. When set to `true`, the wildcard notation `{aaa|bbb|ccc}` can be used. The multi-line caption is also enabled.
       - `keep_tokens_separator` is updated to be used twice in the caption. When you specify `keep_tokens_separator="|||"`, the part divided by the second `|||` is not shuffled or dropped and remains at the end.
       - The existing features `caption_prefix` and `caption_suffix` can be used together. `caption_prefix` and `caption_suffix` are processed first, and then `enable_wildcard`, `keep_tokens_separator`, shuffling and dropping, and `secondary_separator` are processed in order.
@@ -527,4 +547,4 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Added support for `Debiased Estimation loss` to Dreambooth settings.
 - Added support for "Dataset Preparation" defaults via the config.toml file.
 - Added a field to allow for the input of extra accelerate launch arguments.
-- Added new caption tool from https://github.com/kainatquaderee
+- Added new caption tool from <https://github.com/kainatquaderee>
