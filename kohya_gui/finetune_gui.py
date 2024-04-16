@@ -163,6 +163,7 @@ def save_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
     extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
@@ -311,6 +312,7 @@ def open_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
     extra_accelerate_launch_args,
     training_preset,
 ):
@@ -465,6 +467,7 @@ def train_model(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
+    debiased_estimation_loss,
     extra_accelerate_launch_args,
 ):
     # Get list of function parameters and values
@@ -633,6 +636,7 @@ def train_model(
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": dataset_repeats,
+        "debiased_estimation_loss": debiased_estimation_loss,
         "enable_bucket": True,
         "flip_aug": flip_aug,
         "masked_loss": masked_loss,
@@ -1027,6 +1031,7 @@ def finetune_tab(headless=False, config: dict = {}):
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
+            advanced_training.debiased_estimation_loss,
             accelerate_launch.extra_accelerate_launch_args,
         ]
 
