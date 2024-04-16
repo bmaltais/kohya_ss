@@ -32,15 +32,15 @@ class CommandExecutor:
         if self.process and self.process.poll() is None:
             log.info("The command is already running. Please wait for it to finish.")
         else:
-            # for i, item in enumerate(run_cmd):
-            #     log.info(f"{i}: {item}")
+            for i, item in enumerate(run_cmd):
+                log.info(f"{i}: {item}")
 
             # Reconstruct the safe command string for display
             command_to_run = " ".join(run_cmd)
             log.info(f"Executing command: {command_to_run} with shell={use_shell}")
 
             # Execute the command securely
-            self.process = subprocess.Popen(run_cmd, **kwargs, shell=use_shell)
+            self.process = subprocess.Popen(command_to_run, **kwargs, shell=use_shell)
             log.info("Command executed.")
 
     def kill_command(self):
