@@ -526,7 +526,32 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
+        if max_train_steps > 0:
+            # calculate stop encoder training
+            if stop_text_encoder_training_pct == 0:
+                stop_text_encoder_training = 0
+            else:
+                stop_text_encoder_training = math.ceil(
+                    float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
+                )
+
+            if lr_warmup != 0:
+                lr_warmup_steps = round(
+                    float(int(lr_warmup) * int(max_train_steps) / 100)
+                )
+            else:
+                lr_warmup_steps = 0
+        else:
+            stop_text_encoder_training = 0
+            lr_warmup_steps = 0
+            
+        max_train_steps_info = f"Max train steps: {max_train_steps}"
+
     else:
+        if train_data_dir == "":
+            log.error("Train data dir is empty")
+            return TRAIN_BUTTON_VISIBLE
+
         # Get a list of all subfolders in train_data_dir
         subfolders = [
             f
@@ -538,41 +563,51 @@ def train_model(
 
         # Loop through each subfolder and extract the number of repeats
         for folder in subfolders:
-            # Extract the number of repeats from the folder name
-            repeats = int(folder.split("_")[0])
+            try:
+                # Extract the number of repeats from the folder name
+                repeats = int(folder.split("_")[0])
+                log.info(f"Folder {folder}: {repeats} repeats found")
 
-            # Count the number of images in the folder
-            num_images = len(
-                [
-                    f
-                    for f, lower_f in (
-                        (file, file.lower())
-                        for file in os.listdir(os.path.join(train_data_dir, folder))
-                    )
-                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-                ]
-            )
+                # Count the number of images in the folder
+                num_images = len(
+                    [
+                        f
+                        for f, lower_f in (
+                            (file, file.lower())
+                            for file in os.listdir(os.path.join(train_data_dir, folder))
+                        )
+                        if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                    ]
+                )
 
-            # Calculate the total number of steps for this folder
-            steps = repeats * num_images
-            total_steps += steps
+                log.info(f"Folder {folder}: {num_images} images found")
 
-            # Print the result
-            log.info(f"Folder {folder}: {steps} steps")
+                # Calculate the total number of steps for this folder
+                steps = repeats * num_images
 
-        # Print the result
-        # log.info(f"{total_steps} total steps")
+                # log.info the result
+                log.info(f"Folder {folder}: {num_images} * {repeats} = {steps} steps")
+
+                total_steps += steps
+
+            except ValueError:
+                # Handle the case where the folder name does not contain an underscore
+                log.info(
+                    f"Error: '{folder}' does not contain an underscore, skipping..."
+                )
 
         if reg_data_dir == "":
             reg_factor = 1
         else:
-            log.info(
+            log.warning(
                 "Regularisation images are used... Will double the number of steps required..."
             )
             reg_factor = 2
-
-        # calculate max_train_steps
-        if max_train_steps == "" or max_train_steps == "0":
+        
+        log.info(f"Regulatization factor: {reg_factor}")
+        
+        if max_train_steps == 0:
+            # calculate max_train_steps
             max_train_steps = int(
                 math.ceil(
                     float(total_steps)
@@ -582,27 +617,30 @@ def train_model(
                     * int(reg_factor)
                 )
             )
+            max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
         else:
-            max_train_steps = int(max_train_steps)
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-        log.info(f"max_train_steps = {max_train_steps}")
+        # calculate stop encoder training
+        if stop_text_encoder_training_pct == 0:
+            stop_text_encoder_training = 0
+        else:
+            stop_text_encoder_training = math.ceil(
+                float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
+            )
 
-    # calculate stop encoder training
-    if stop_text_encoder_training_pct == None or (
-        not max_train_steps == "" or not max_train_steps == "0"
-    ):
-        stop_text_encoder_training = 0
-    else:
-        stop_text_encoder_training = math.ceil(
-            float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-        )
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
-
-    if not max_train_steps == "":
-        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    else:
-        lr_warmup_steps = 0
-    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
+        if lr_warmup != 0:
+            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        else:
+            lr_warmup_steps = 0
+            
+        log.info(f"Total steps: {total_steps}")
+        log.info(f"Train batch size: {train_batch_size}")
+        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+        log.info(f"Epoch: {epoch}")
+        log.info(max_train_steps_info)
+        log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+        log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
 

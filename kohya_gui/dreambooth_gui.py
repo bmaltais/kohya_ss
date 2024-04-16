@@ -517,84 +517,80 @@ def train_model(
     ):
         return TRAIN_BUTTON_VISIBLE
 
-    try:
-        max_train_steps = int(max_train_steps)
-    except ValueError:
-        max_train_steps = 0
-
     if dataset_config:
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
+        if max_train_steps > 0:
+            if lr_warmup != 0:
+                lr_warmup_steps = round(
+                    float(int(lr_warmup) * int(max_train_steps) / 100)
+                )
+            else:
+                lr_warmup_steps = 0
+        else:
+            lr_warmup_steps = 0
+            
+        max_train_steps_info = f"Max train steps: {max_train_steps}"
     else:
         if train_data_dir == "":
             log.error("Train data dir is empty")
             return TRAIN_BUTTON_VISIBLE
 
-        # Get a list of all subfolders in train_data_dir, excluding hidden folders
+        # Get a list of all subfolders in train_data_dir
         subfolders = [
             f
             for f in os.listdir(train_data_dir)
-            if os.path.isdir(os.path.join(train_data_dir, f)) and not f.startswith(".")
+            if os.path.isdir(os.path.join(train_data_dir, f))
         ]
-
-        # Check if subfolders are present. If not let the user know and return
-        if not subfolders:
-            log.info(f"No {subfolders} were found in train_data_dir can't train...")
-            return TRAIN_BUTTON_VISIBLE
 
         total_steps = 0
 
         # Loop through each subfolder and extract the number of repeats
         for folder in subfolders:
-            # Extract the number of repeats from the folder name
             try:
+                # Extract the number of repeats from the folder name
                 repeats = int(folder.split("_")[0])
-            except ValueError:
-                log.info(
-                    f"Subfolder {folder} does not have a proper repeat value, please correct the name or remove it... can't train..."
+                log.info(f"Folder {folder}: {repeats} repeats found")
+
+                # Count the number of images in the folder
+                num_images = len(
+                    [
+                        f
+                        for f, lower_f in (
+                            (file, file.lower())
+                            for file in os.listdir(os.path.join(train_data_dir, folder))
+                        )
+                        if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
+                    ]
                 )
-                continue
 
-            # Count the number of images in the folder
-            num_images = len(
-                [
-                    f
-                    for f, lower_f in (
-                        (file, file.lower())
-                        for file in os.listdir(os.path.join(train_data_dir, folder))
-                    )
-                    if lower_f.endswith((".jpg", ".jpeg", ".png", ".webp"))
-                ]
-            )
+                log.info(f"Folder {folder}: {num_images} images found")
 
-            if num_images == 0:
-                log.info(f"{folder} folder contain no images, skipping...")
-            else:
                 # Calculate the total number of steps for this folder
                 steps = repeats * num_images
+
+                # log.info the result
+                log.info(f"Folder {folder}: {num_images} * {repeats} = {steps} steps")
+
                 total_steps += steps
 
-                # Print the result
-                log.info(f"Folder {folder} : steps {steps}")
-
-        if total_steps == 0:
-            log.info(
-                f"No images were found in folder {train_data_dir}... please rectify!"
-            )
-            return TRAIN_BUTTON_VISIBLE
-
-        # Print the result
-        # log.info(f"{total_steps} total steps")
+            except ValueError:
+                # Handle the case where the folder name does not contain an underscore
+                log.info(
+                    f"Error: '{folder}' does not contain an underscore, skipping..."
+                )
 
         if reg_data_dir == "":
             reg_factor = 1
         else:
-            log.info(
-                f"Regularisation images are used... Will double the number of steps required..."
+            log.warning(
+                "Regularisation images are used... Will double the number of steps required..."
             )
             reg_factor = 2
-
+        
+        log.info(f"Regulatization factor: {reg_factor}")
+        
         if max_train_steps == 0:
             # calculate max_train_steps
             max_train_steps = int(
@@ -606,27 +602,21 @@ def train_model(
                     * int(reg_factor)
                 )
             )
-            log.info(
-                f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
-            )
-
-    # calculate stop encoder training
-    if stop_text_encoder_training > 0:
-        if max_train_steps != 0:
-            stop_text_encoder_training = int(
-                math.ceil(float(max_train_steps) / 100 * int(stop_text_encoder_training))
-            )
+            max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
         else:
-            stop_text_encoder_training = 0
-            log.warning("Can't use stop text encoder training without max_train_steps... setting to 0...")
-            
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-    if not max_train_steps == "":
-        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    else:
-        lr_warmup_steps = 0
-    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
+        if lr_warmup != 0:
+            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        else:
+            lr_warmup_steps = 0
+            
+        log.info(f"Total steps: {total_steps}")
+        log.info(f"Train batch size: {train_batch_size}")
+        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+        log.info(f"Epoch: {epoch}")
+        log.info(max_train_steps_info)
+        log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
 

@@ -87,7 +87,7 @@ def update_network_args_with_kohya_lora_vars(
     # Iterate over the Kohya LoRA variables and append them to the network arguments
     for key, value in kohya_lora_vars.items():
         # Append each variable as a key-value pair to the network_args
-        network_args += f' {key}={value}'
+        network_args += f" {key}={value}"
     return network_args
 
 
@@ -722,8 +722,8 @@ def train_model(
         )
         return TRAIN_BUTTON_VISIBLE
 
-    if noise_offset == "":
-        noise_offset = 0
+    # if noise_offset == "":
+    #     noise_offset = 0
 
     if float(noise_offset) > 1 or float(noise_offset) < 0:
         output_message(
@@ -749,15 +749,36 @@ def train_model(
         return TRAIN_BUTTON_VISIBLE
 
     # If string is empty set string to 0.
-    if text_encoder_lr == "":
-        text_encoder_lr = 0
-    if unet_lr == "":
-        unet_lr = 0
+    # if text_encoder_lr == "":
+    #     text_encoder_lr = 0
+    # if unet_lr == "":
+    #     unet_lr = 0
 
     if dataset_config:
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
+        if max_train_steps > 0:
+            # calculate stop encoder training
+            if stop_text_encoder_training_pct == 0:
+                stop_text_encoder_training = 0
+            else:
+                stop_text_encoder_training = math.ceil(
+                    float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
+                )
+
+            if lr_warmup != 0:
+                lr_warmup_steps = round(
+                    float(int(lr_warmup) * int(max_train_steps) / 100)
+                )
+            else:
+                lr_warmup_steps = 0
+        else:
+            stop_text_encoder_training = 0
+            lr_warmup_steps = 0
+            
+        max_train_steps_info = f"Max train steps: {max_train_steps}"
+
     else:
         if train_data_dir == "":
             log.error("Train data dir is empty")
@@ -777,6 +798,7 @@ def train_model(
             try:
                 # Extract the number of repeats from the folder name
                 repeats = int(folder.split("_")[0])
+                log.info(f"Folder {folder}: {repeats} repeats found")
 
                 # Count the number of images in the folder
                 num_images = len(
@@ -796,7 +818,7 @@ def train_model(
                 steps = repeats * num_images
 
                 # log.info the result
-                log.info(f"Folder {folder}: {steps} steps")
+                log.info(f"Folder {folder}: {num_images} * {repeats} = {steps} steps")
 
                 total_steps += steps
 
@@ -813,14 +835,10 @@ def train_model(
                 "Regularisation images are used... Will double the number of steps required..."
             )
             reg_factor = 2
-
-        log.info(f"Total steps: {total_steps}")
-        log.info(f"Train batch size: {train_batch_size}")
-        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
-        log.info(f"Epoch: {epoch}")
+        
         log.info(f"Regulatization factor: {reg_factor}")
-
-        if max_train_steps == "" or max_train_steps == "0":
+        
+        if max_train_steps == 0:
             # calculate max_train_steps
             max_train_steps = int(
                 math.ceil(
@@ -831,28 +849,32 @@ def train_model(
                     * int(reg_factor)
                 )
             )
-            log.info(
-                f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+            max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
+
+        # calculate stop encoder training
+        if stop_text_encoder_training_pct == 0:
+            stop_text_encoder_training = 0
+        else:
+            stop_text_encoder_training = math.ceil(
+                float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
             )
 
-    # calculate stop encoder training
-    if stop_text_encoder_training_pct == None or (
-        not max_train_steps == "" or not max_train_steps == "0"
-    ):
-        stop_text_encoder_training = 0
-    else:
-        stop_text_encoder_training = math.ceil(
-            float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-        )
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+        if lr_warmup != 0:
+            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        else:
+            lr_warmup_steps = 0
+            
+        log.info(f"Total steps: {total_steps}")
+        log.info(f"Train batch size: {train_batch_size}")
+        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+        log.info(f"Epoch: {epoch}")
+        log.info(max_train_steps_info)
+        log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+        log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    if not max_train_steps == "":
-        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-    else:
-        lr_warmup_steps = 0
-    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
-
-    run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
+    run_cmd = [rf'"{get_executable_path("accelerate")}"', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -871,19 +893,19 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(fr'"{scriptdir}/sd-scripts/sdxl_train_network.py"')
+        run_cmd.append(rf'"{scriptdir}/sd-scripts/sdxl_train_network.py"')
     else:
-        run_cmd.append(fr'"{scriptdir}/sd-scripts/train_network.py"')
+        run_cmd.append(rf'"{scriptdir}/sd-scripts/train_network.py"')
 
     network_args = ""
 
     if LoRA_type == "LyCORIS/BOFT":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=boft train_norm={train_norm}'
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=boft train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}'
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/DyLoRA":
         network_module = "lycoris.kohya"
@@ -895,11 +917,11 @@ def train_model(
 
     if LoRA_type == "LyCORIS/iA3":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} train_on_input={train_on_input} algo=ia3'
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} train_on_input={train_on_input} algo=ia3"
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}'
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/LoHa":
         network_module = "lycoris.kohya"
@@ -907,11 +929,11 @@ def train_model(
 
     if LoRA_type == "LyCORIS/LoKr":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}'
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}'
+        network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -992,21 +1014,6 @@ def train_model(
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
-    if max_data_loader_n_workers == "" or None:
-        max_data_loader_n_workers = 0
-    else:
-        max_data_loader_n_workers = int(max_data_loader_n_workers)
-
-    if max_train_steps == "" or None:
-        max_train_steps = 0
-    else:
-        max_train_steps = int(max_train_steps)
-        
-    if seed == "":
-        seed = 0
-    else:
-        seed = int(seed)
-
     config_toml_data = {
         "huggingface_repo_id": huggingface_repo_id,
         "huggingface_token": huggingface_token,
@@ -1054,8 +1061,10 @@ def train_model(
         "lora_network_weights": lora_network_weights,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
-        "lr_scheduler_num_cycles": lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch),
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
+        "lr_scheduler_num_cycles": (
+            lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch)
+        ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
@@ -1078,7 +1087,7 @@ def train_model(
         "multires_noise_discount": multires_noise_discount,
         "multires_noise_iterations": multires_noise_iterations,
         "network_alpha": network_alpha,
-        "network_args": str(network_args).replace('"', '').split(),
+        "network_args": str(network_args).replace('"', "").split(),
         "network_dim": network_dim,
         "network_dropout": network_dropout,
         "network_module": network_module,
@@ -1089,7 +1098,7 @@ def train_model(
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', '').split(),
+        "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -1151,7 +1160,7 @@ def train_model(
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
     run_cmd.append(f"--config_file")
-    run_cmd.append(fr'"{tmpfilename}"')
+    run_cmd.append(rf'"{tmpfilename}"')
 
     # Define a dictionary of parameters
     run_cmd_params = {
@@ -1216,7 +1225,7 @@ def lora_tab(
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
-    
+
     global use_shell
     use_shell = use_shell_flag
 
