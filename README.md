@@ -410,24 +410,26 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 #### Enhancements
 
-- **User Interface:** Converted the GUI to utilize a configuration TOML file for passing arguments to sd-scripts, enhancing security by avoiding the command-line interface (CLI) for sensitive information.
-- **Training Tools:** Enhanced the functionality of the training and TensorBoard buttons to offer a more intuitive user experience.
-- **HuggingFace Integration:** Added a HuggingFace section to all trainers' tabs, allowing users to authenticate and leverage HuggingFace's advanced AI models.
-- **Gradio Upgrade:** Upgraded to gradio version 4.20.0, resolving a bug affecting the runpod platform.
-- **Metadata Support:** Introduced support for metadata capture within the GUI.
+- **User Interface:** Transitioned the GUI to use a TOML file for argument passing to sd-scripts, significantly enhancing security by eliminating the need for command-line interface (CLI) use for sensitive data.
+- **Training Tools:** Improved the training and TensorBoard buttons to provide a more intuitive user experience.
+- **HuggingFace Integration:** Integrated a HuggingFace section in all trainer tabs, enabling authentication and use of HuggingFace's advanced AI models.
+- **Gradio Upgrade:** Upgraded Gradio to version 4.20.0 to fix a previously identified bug impacting the runpod platform.
+- **Metadata Support:** Added functionality for metadata capture within the GUI.
 
 #### Security and Stability
 
-- **Code Refactoring:** Rewrote significant portions of the code to address security vulnerabilities, including the removal of the `shell=True` parameter from process calls.
-- **Scheduler Update:** Disabled LR Warmup when using the Constant LR Scheduler to avoid traceback errors with sd-scripts.
+- **Code Refactoring:** Extensively rewrote the code to address various security vulnerabilities, including removing the `shell=True` parameter from process calls.
+- **Scheduler Update:** Disabled LR Warmup when using the Constant LR Scheduler to prevent traceback errors associated with sd-scripts.
 
 #### Shell Execution
 
-- **Conditional Shell Usage:** Implemented support for optional shell usage when running external sd-scripts commands to accommodate specific platform requirements, following security enhancements.
-  - **How to Enable Shell Execution:**
-    1. Start the GUI with the `--use_shell` option.
-    2. Set the `use_shell` value in the config.toml file to `true`, allowing the GUI to apply user-specified settings at startup.
-    - **Note:** The `--use_shell` option will take precedence over settings in the config.toml file.
+- **Conditional Shell Usage:** Added support for optional shell usage when executing external sd-scripts commands, tailored to meet specific platform needs and recent security updates.
+
+The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument to prevent shell execution (`shell=True`) during external process handling. Unix-like systems automatically set `use_shell` to True internally, as required for proper execution of external commands. To enforce disabling shell execution, use the `--do_not_use_shell` argument.
+
+- **How to Enable Shell Execution via Config File:**
+  1. In the `config.toml` file, set `use_shell` to `true` to enable shell usage as per GUI startup settings.
+  **Note:** The `--do_not_use_shell` option will override the `config.toml` settings, setting `use_shell` to False even if it is set to True in the config file.
 
 #### Miscellaneous
 
