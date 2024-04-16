@@ -33,6 +33,7 @@ def merge_lycoris(
     device,
     is_sdxl,
     is_v2,
+    use_shell: bool = False,
 ):
     log.info("Merge model...")
 
@@ -67,7 +68,7 @@ def merge_lycoris(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Execute the command with the modified environment
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     log.info("Done merging...")
 
@@ -77,7 +78,7 @@ def merge_lycoris(
 ###
 
 
-def gradio_merge_lycoris_tab(headless=False):
+def gradio_merge_lycoris_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_lycoris_dir = current_model_dir
     current_save_dir = current_model_dir
@@ -250,6 +251,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 device,
                 is_sdxl,
                 is_v2,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

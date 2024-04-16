@@ -22,7 +22,13 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 
-def convert_lcm(name, model_path, lora_scale, model_type):
+def convert_lcm(
+    name,
+    model_path,
+    lora_scale,
+    model_type,
+    use_shell: bool = False,
+):
     run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
 
     # Check if source model exist
@@ -62,7 +68,7 @@ def convert_lcm(name, model_path, lora_scale, model_type):
         run_cmd.append("--ssd-1b")
 
     # Log the command
-    log.info(' '.join(run_cmd))
+    log.info(" ".join(run_cmd))
 
     # Set up the environment
     env = os.environ.copy()
@@ -72,13 +78,13 @@ def convert_lcm(name, model_path, lora_scale, model_type):
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     # Return a success message
     log.info("Done extracting...")
 
 
-def gradio_convert_lcm_tab(headless=False):
+def gradio_convert_lcm_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -183,6 +189,12 @@ def gradio_convert_lcm_tab(headless=False):
 
         extract_button.click(
             convert_lcm,
-            inputs=[name, model_path, lora_scale, model_type],
+            inputs=[
+                name,
+                model_path,
+                lora_scale,
+                model_type,
+                gr.Checkbox(value=use_shell, visible=False),
+            ],
             show_progress=False,
         )

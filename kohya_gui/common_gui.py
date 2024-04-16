@@ -2,7 +2,6 @@ from tkinter import filedialog, Tk
 from easygui import msgbox, ynbox
 from typing import Optional
 from .custom_logging import setup_logging
-from .class_command_executor import CommandExecutor
 
 import os
 import re
@@ -12,7 +11,6 @@ import shlex
 import json
 import math
 import shutil
-import time
 
 # Set up logging
 log = setup_logging()
@@ -23,6 +21,7 @@ save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
 if os.name == "nt":
     scriptdir = scriptdir.replace("\\", "/")
 

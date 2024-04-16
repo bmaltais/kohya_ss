@@ -38,6 +38,7 @@ def svd_merge_lora(
     new_rank,
     new_conv_rank,
     device,
+    use_shell: bool = False,
 ):
     # Check if the output file already exists
     if os.path.isfile(save_to):
@@ -53,10 +54,14 @@ def svd_merge_lora(
         ratio_d /= total_ratio
 
     run_cmd = [
-        PYTHON, f"{scriptdir}/sd-scripts/networks/svd_merge_lora.py",
-        '--save_precision', save_precision,
-        '--precision', precision,
-        '--save_to', save_to
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/svd_merge_lora.py",
+        "--save_precision",
+        save_precision,
+        "--precision",
+        precision,
+        "--save_to",
+        save_to,
     ]
 
     # Variables for model paths and their ratios
@@ -82,17 +87,15 @@ def svd_merge_lora(
         pass
 
     if models and ratios:  # Ensure we have valid models and ratios before appending
-        run_cmd.extend(['--models'] + models)
-        run_cmd.extend(['--ratios'] + ratios)
+        run_cmd.extend(["--models"] + models)
+        run_cmd.extend(["--ratios"] + ratios)
 
-    run_cmd.extend([
-        '--device', device,
-        '--new_rank', new_rank,
-        '--new_conv_rank', new_conv_rank
-    ])
+    run_cmd.extend(
+        ["--device", device, "--new_rank", new_rank, "--new_conv_rank", new_conv_rank]
+    )
 
     # Log the command
-    log.info(' '.join(run_cmd))
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -102,8 +105,7 @@ def svd_merge_lora(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
-
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
 
 ###
@@ -111,7 +113,7 @@ def svd_merge_lora(
 ###
 
 
-def gradio_svd_merge_lora_tab(headless=False):
+def gradio_svd_merge_lora_tab(headless=False, use_shell: bool = False):
     current_save_dir = os.path.join(scriptdir, "outputs")
     current_a_model_dir = current_save_dir
     current_b_model_dir = current_save_dir
@@ -406,6 +408,7 @@ def gradio_svd_merge_lora_tab(headless=False):
                 new_rank,
                 new_conv_rank,
                 device,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

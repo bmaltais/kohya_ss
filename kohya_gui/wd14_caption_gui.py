@@ -1,7 +1,13 @@
 import gradio as gr
 from easygui import msgbox
 import subprocess
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs, get_executable_path
+from .common_gui import (
+    get_folder_path,
+    add_pre_postfix,
+    scriptdir,
+    list_dirs,
+    get_executable_path,
+)
 from .class_gui_config import KohyaSSGUIConfig
 import os
 
@@ -34,6 +40,7 @@ def caption_images(
     use_rating_tags_as_last_tag: bool,
     remove_underscore: bool,
     thresh: float,
+    use_shell: bool = False,
 ) -> None:
     # Check for images_dir_input
     if train_data_dir == "":
@@ -46,7 +53,9 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        get_executable_path("accelerate"), "launch", f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"
+        get_executable_path("accelerate"),
+        "launch",
+        f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
     ]
 
     # Uncomment and modify if needed
@@ -106,7 +115,7 @@ def caption_images(
     run_cmd.append(train_data_dir)
 
     # Log the command
-    log.info(' '.join(run_cmd))
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -116,9 +125,8 @@ def caption_images(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
-    
     # Add prefix and postfix
     add_pre_postfix(
         folder=train_data_dir,
@@ -135,7 +143,10 @@ def caption_images(
 
 
 def gradio_wd14_caption_gui_tab(
-    headless=False, default_train_dir=None, config: KohyaSSGUIConfig = {}
+    headless=False,
+    default_train_dir=None,
+    config: KohyaSSGUIConfig = {},
+    use_shell: bool = False,
 ):
     from .common_gui import create_refresh_button
 
@@ -374,6 +385,7 @@ def gradio_wd14_caption_gui_tab(
                 use_rating_tags_as_last_tag,
                 remove_underscore,
                 thresh,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

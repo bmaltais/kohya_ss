@@ -80,3 +80,14 @@ class KohyaSSGUIConfig:
         # Return the final value
         log.debug(f"Returned {data}")
         return data
+
+    def is_config_loaded(self) -> bool:
+        """
+        Checks if the configuration was loaded from a file.
+
+        Returns:
+        bool: True if the configuration was loaded from a file, False otherwise.
+        """
+        is_loaded = self.config != {}
+        log.debug(f"Configuration was loaded from file: {is_loaded}")
+        return is_loaded

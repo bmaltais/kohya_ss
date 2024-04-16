@@ -24,6 +24,7 @@ PYTHON = sys.executable
 
 def verify_lora(
     lora_model,
+    use_shell: bool = False,
 ):
     # verify for caption_text_input
     if lora_model == "":
@@ -37,11 +38,13 @@ def verify_lora(
 
     # Build the command to run check_lora_weights.py
     run_cmd = [
-        PYTHON, f"{scriptdir}/sd-scripts/networks/check_lora_weights.py", lora_model
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/check_lora_weights.py",
+        lora_model,
     ]
 
     # Log the command
-    log.info(' '.join(run_cmd))
+    log.info(" ".join(run_cmd))
 
     # Set the environment variable for the Python path
     env = os.environ.copy()
@@ -57,6 +60,7 @@ def verify_lora(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
+        shell=use_shell,
     )
     output, error = process.communicate()
 
@@ -68,7 +72,7 @@ def verify_lora(
 ###
 
 
-def gradio_verify_lora_tab(headless=False):
+def gradio_verify_lora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
@@ -139,6 +143,7 @@ def gradio_verify_lora_tab(headless=False):
             verify_lora,
             inputs=[
                 lora_model,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             outputs=[lora_model_verif_output, lora_model_verif_error],
             show_progress=False,

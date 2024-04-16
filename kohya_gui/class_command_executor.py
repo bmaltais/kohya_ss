@@ -2,7 +2,7 @@ import subprocess
 import psutil
 import time
 import gradio as gr
-import shlex
+
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -21,7 +21,7 @@ class CommandExecutor:
         self.process = None
         self.run_state = gr.Textbox(value="", visible=False)
 
-    def execute_command(self, run_cmd: str, **kwargs):
+    def execute_command(self, run_cmd: str, use_shell: bool = False, **kwargs):
         """
         Execute a command if no other command is currently running.
 
@@ -36,11 +36,12 @@ class CommandExecutor:
             #     log.info(f"{i}: {item}")
 
             # Reconstruct the safe command string for display
-            command_to_run = ' '.join(run_cmd)
-            log.info(f"Executing command: {command_to_run}")
+            command_to_run = " ".join(run_cmd)
+            log.info(f"Executing command: {command_to_run} with shell={use_shell}")
 
             # Execute the command securely
-            self.process = subprocess.Popen(run_cmd, **kwargs)
+            self.process = subprocess.Popen(run_cmd, **kwargs, shell=use_shell)
+            log.info("Command executed.")
 
     def kill_command(self):
         """
@@ -64,9 +65,9 @@ class CommandExecutor:
                 log.info(f"Error when terminating process: {e}")
         else:
             log.info("There is no running process to kill.")
-            
+
         return gr.Button(visible=True), gr.Button(visible=False)
-    
+
     def wait_for_training_to_end(self):
         while self.is_running():
             time.sleep(1)

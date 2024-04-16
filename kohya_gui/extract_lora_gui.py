@@ -39,6 +39,7 @@ def extract_lora(
     load_original_model_to,
     load_tuned_model_to,
     load_precision,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model_tuned == "":
@@ -120,7 +121,7 @@ def extract_lora(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
 
 ###
@@ -128,7 +129,7 @@ def extract_lora(
 ###
 
 
-def gradio_extract_lora_tab(headless=False):
+def gradio_extract_lora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_model_org_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
@@ -358,6 +359,7 @@ def gradio_extract_lora_tab(headless=False):
                 load_original_model_to,
                 load_tuned_model_to,
                 load_precision,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

@@ -43,6 +43,7 @@ def extract_lycoris_locon(
     use_sparse_bias,
     sparsity,
     disable_cp,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if db_model == "":
@@ -135,7 +136,7 @@ def extract_lycoris_locon(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     log.info("Done extracting...")
 
@@ -171,7 +172,7 @@ def update_mode(mode):
     return tuple(updates)
 
 
-def gradio_extract_lycoris_locon_tab(headless=False):
+def gradio_extract_lycoris_locon_tab(headless=False, use_shell: bool = False):
 
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_base_model_dir = os.path.join(scriptdir, "outputs")
@@ -449,6 +450,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 use_sparse_bias,
                 sparsity,
                 disable_cp,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

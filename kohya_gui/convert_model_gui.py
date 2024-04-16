@@ -26,6 +26,7 @@ def convert_model(
     target_model_type,
     target_save_precision_type,
     unet_use_linear_projection,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if source_model_type == "":
@@ -107,7 +108,7 @@ def convert_model(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
 
 
@@ -116,7 +117,7 @@ def convert_model(
 ###
 
 
-def gradio_convert_model_tab(headless=False):
+def gradio_convert_model_tab(headless=False, use_shell: bool = False):
     from .common_gui import create_refresh_button
 
     default_source_model = os.path.join(scriptdir, "outputs")
@@ -276,6 +277,7 @@ def gradio_convert_model_tab(headless=False):
                 target_model_type,
                 target_save_precision_type,
                 unet_use_linear_projection,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

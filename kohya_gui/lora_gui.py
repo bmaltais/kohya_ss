@@ -34,6 +34,7 @@ from .class_sample_images import SampleImages, create_prompt_file
 from .class_lora_tab import LoRATools
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
+from .class_gui_config import KohyaSSGUIConfig
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -50,6 +51,7 @@ executor = CommandExecutor()
 
 # Setup huggingface
 huggingface = None
+use_shell = False
 
 button_run = gr.Button("Start training", variant="primary")
 
@@ -1193,7 +1195,7 @@ def train_model(
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
-        executor.execute_command(run_cmd=run_cmd, env=env)
+        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
 
         return (
             gr.Button(visible=False),
@@ -1208,11 +1210,15 @@ def lora_tab(
     output_dir_input=gr.Dropdown(),
     logging_dir_input=gr.Dropdown(),
     headless=False,
-    config: dict = {},
+    config: KohyaSSGUIConfig = {},
+    use_shell_flag: bool = False,
 ):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
+    
+    global use_shell
+    use_shell = use_shell_flag
 
     with gr.Tab("Training"), gr.Column(variant="compact") as tab:
         gr.Markdown(

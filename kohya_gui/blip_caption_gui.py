@@ -23,6 +23,7 @@ def caption_images(
     beam_search: bool,
     prefix: str = "",
     postfix: str = "",
+    use_shell: bool = False,
 ) -> None:
     """
     Automatically generates captions for images in the specified directory using the BLIP model.
@@ -96,7 +97,7 @@ def caption_images(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, env=env, cwd=f"{scriptdir}/sd-scripts")
+    subprocess.run(run_cmd, env=env, shell=use_shell, cwd=f"{scriptdir}/sd-scripts")
 
 
     # Add prefix and postfix
@@ -115,7 +116,7 @@ def caption_images(
 ###
 
 
-def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
+def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None, use_shell: bool = False):
     from .common_gui import create_refresh_button
 
     default_train_dir = (
@@ -205,6 +206,7 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
                 beam_search,
                 prefix,
                 postfix,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

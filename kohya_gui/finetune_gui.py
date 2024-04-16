@@ -32,6 +32,7 @@ from .class_tensorboard import TensorboardManager
 from .class_sample_images import SampleImages, create_prompt_file
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
+from .class_gui_config import KohyaSSGUIConfig
 
 from .custom_logging import setup_logging
 
@@ -43,6 +44,7 @@ executor = CommandExecutor()
 
 # Setup huggingface
 huggingface = None
+use_shell = False
 
 # from easygui import msgbox
 
@@ -592,7 +594,6 @@ def train_model(
             if not print_only:
                 subprocess.run(run_cmd, env=env)
 
-
         # create images buckets
         if generate_image_buckets:
             # Build the command to run the preparation script
@@ -638,7 +639,6 @@ def train_model(
             # Execute the command if not just for printing
             if not print_only:
                 subprocess.run(run_cmd, env=env)
-
 
         if image_folder == "":
             log.error("Image folder dir is empty")
@@ -709,7 +709,7 @@ def train_model(
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
-    
+
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
@@ -719,7 +719,7 @@ def train_model(
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)
-    
+
     config_toml_data = {
         # Update the values in the TOML data
         "huggingface_repo_id": huggingface_repo_id,
@@ -758,16 +758,22 @@ def train_model(
         "ip_noise_gamma": ip_noise_gamma,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
-        "learning_rate": learning_rate, # both for sd1.5 and sdxl
-        "learning_rate_te": learning_rate_te if not sdxl_checkbox else None, # only for sd1.5
-        "learning_rate_te1": learning_rate_te1 if sdxl_checkbox else None, # only for sdxl
-        "learning_rate_te2": learning_rate_te2 if sdxl_checkbox else None, # only for sdxl
+        "learning_rate": learning_rate,  # both for sd1.5 and sdxl
+        "learning_rate_te": (
+            learning_rate_te if not sdxl_checkbox else None
+        ),  # only for sd1.5
+        "learning_rate_te1": (
+            learning_rate_te1 if sdxl_checkbox else None
+        ),  # only for sdxl
+        "learning_rate_te2": (
+            learning_rate_te2 if sdxl_checkbox else None
+        ),  # only for sdxl
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": int(max_bucket_reso),
         "max_data_loader_n_workers": max_data_loader_n_workers,
@@ -792,7 +798,7 @@ def train_model(
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', '').split(),
+        "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -892,7 +898,7 @@ def train_model(
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
-        executor.execute_command(run_cmd=run_cmd, env=env)
+        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
 
         return (
             gr.Button(visible=False),
@@ -901,10 +907,18 @@ def train_model(
         )
 
 
-def finetune_tab(headless=False, config: dict = {}):
+def finetune_tab(
+    headless=False,
+    config: KohyaSSGUIConfig = {},
+    use_shell_flag: bool = False,
+):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
+    
+    global use_shell
+    use_shell = use_shell_flag
+    
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
