@@ -42,12 +42,11 @@ def UI(**kwargs):
     if config.is_config_loaded():
         log.info(f"Loaded default GUI values from '{kwargs.get('config')}'...")
 
-    use_shell_flag = False
-    if os.name == "posix":
-        use_shell_flag = True
+    use_shell_flag = True
+    # if os.name == "posix":
+    #     use_shell_flag = True
         
-    if config.get("settings.use_shell", False):
-        use_shell_flag = True
+    use_shell_flag = config.get("settings.use_shell", use_shell_flag)
         
     if kwargs.get("do_not_use_shell", False):
         use_shell_flag = False
