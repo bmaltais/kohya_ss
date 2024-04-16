@@ -36,3 +36,19 @@ services:
             - driver: nvidia
               capabilities: [gpu]
               device_ids: ['all']
+  
+  tensorboard:
+    container_name: tensorboard
+    image: tensorflow/tensorflow:latest-gpu
+    ports:
+      - 6006:6006
+    volumes:
+      - ./dataset/logs:/app/logs
+    command: tensorboard --logdir=/app/logs --bind_all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              device_ids: ['all']
