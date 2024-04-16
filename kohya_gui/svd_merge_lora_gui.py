@@ -55,13 +55,13 @@ def svd_merge_lora(
 
     run_cmd = [
         PYTHON,
-        f"{scriptdir}/sd-scripts/networks/svd_merge_lora.py",
+        fr'"{scriptdir}/sd-scripts/networks/svd_merge_lora.py"',
         "--save_precision",
         save_precision,
         "--precision",
         precision,
         "--save_to",
-        save_to,
+        fr'"{save_to}"',
     ]
 
     # Variables for model paths and their ratios
@@ -73,7 +73,7 @@ def svd_merge_lora(
         if not os.path.isfile(model_path):
             msgbox(f"The provided model at {model_path} is not a file")
             return False
-        models.append(model_path)
+        models.append(fr'"{model_path}"')
         ratios.append(str(ratio))
         return True
 
@@ -94,9 +94,6 @@ def svd_merge_lora(
         ["--device", device, "--new_rank", new_rank, "--new_conv_rank", new_conv_rank]
     )
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
@@ -104,8 +101,13 @@ def svd_merge_lora(
     # Example of setting additional environment variables if needed
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
 
 ###

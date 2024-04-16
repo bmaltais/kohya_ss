@@ -58,7 +58,7 @@ def caption_images(
     log.info(f"Captioning files in {train_data_dir}...")
 
     # Construct the command to run make_captions.py
-    run_cmd = [PYTHON, f"{scriptdir}/sd-scripts/finetune/make_captions.py"]
+    run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/finetune/make_captions.py"']
 
     # Add required arguments
     run_cmd.append('--batch_size')
@@ -80,14 +80,11 @@ def caption_images(
         run_cmd.append(caption_file_ext)
 
     # Add the directory containing the training data
-    run_cmd.append(train_data_dir)
+    run_cmd.append(fr'"{train_data_dir}"')
 
     # Add URL for caption model weights
     run_cmd.append('--caption_weights')
     run_cmd.append("https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth")
-
-    # Log the command
-    log.info(' '.join(run_cmd))
 
     # Set up the environment
     env = os.environ.copy()
@@ -96,8 +93,12 @@ def caption_images(
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, env=env, shell=use_shell, cwd=f"{scriptdir}/sd-scripts")
+    subprocess.run(command_to_run, env=env, shell=use_shell, cwd=f"{scriptdir}/sd-scripts")
 
 
     # Add prefix and postfix

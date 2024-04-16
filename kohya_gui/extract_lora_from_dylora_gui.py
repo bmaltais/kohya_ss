@@ -52,17 +52,14 @@ def extract_dylora(
 
     run_cmd = [
         PYTHON,
-        f"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py",
+        rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
         "--save_to",
-        save_to,
+        rf'"{save_to}"',
         "--model",
-        model,
+        rf'"{model}"',
         "--unit",
         str(unit),
     ]
-
-    # Log the command
-    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -71,8 +68,12 @@ def extract_dylora(
     # Example environment variable adjustment for the Python environment
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
 
     log.info("Done extracting DyLoRA...")
 

@@ -57,7 +57,7 @@ def convert_lcm(
     run_cmd.append("--lora-scale")
     run_cmd.append(str(lora_scale))
     run_cmd.append("--model")
-    run_cmd.append(model_path)
+    run_cmd.append(rf'"{model_path}"')
     run_cmd.append("--name")
     run_cmd.append(name)
 
@@ -67,9 +67,6 @@ def convert_lcm(
     if model_type == "SSD-1B":
         run_cmd.append("--ssd-1b")
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     # Set up the environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -77,8 +74,14 @@ def convert_lcm(
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+
+    # Run the command in the sd-scripts folder context
+    subprocess.run(
+        command_to_run, env=env, shell=use_shell
+    )
 
     # Return a success message
     log.info("Done extracting...")

@@ -35,7 +35,7 @@ def caption_images(
 
     log.info(f"GIT captioning files in {train_data_dir}...")
 
-    run_cmd = [PYTHON, f"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"]
+    run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"']
 
     # Add --model_id if provided
     if model_id != "":
@@ -58,10 +58,7 @@ def caption_images(
         run_cmd.append(caption_ext)
 
     # Add the directory containing the training data
-    run_cmd.append(train_data_dir)
-
-    # Log the command
-    log.info(" ".join(run_cmd))
+    run_cmd.append(fr'"{train_data_dir}"')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -70,8 +67,13 @@ def caption_images(
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     # Add prefix and postfix
     add_pre_postfix(

@@ -55,7 +55,7 @@ def caption_images(
     run_cmd = [
         get_executable_path("accelerate"),
         "launch",
-        f"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
+        fr'"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"',
     ]
 
     # Uncomment and modify if needed
@@ -112,10 +112,7 @@ def caption_images(
         run_cmd.append("--use_rating_tags_as_last_tag")
 
     # Add the directory containing the training data
-    run_cmd.append(train_data_dir)
-
-    # Log the command
-    log.info(" ".join(run_cmd))
+    run_cmd.append(fr'"{train_data_dir}"')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -124,8 +121,13 @@ def caption_images(
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     # Add prefix and postfix
     add_pre_postfix(

@@ -42,9 +42,16 @@ def UI(**kwargs):
     if config.is_config_loaded():
         log.info(f"Loaded default GUI values from '{kwargs.get('config')}'...")
 
-    use_shell_flag = kwargs.get("use_shell", False)
-    if use_shell_flag == False:
-        use_shell_flag = config.get("settings.use_shell", False)
+    use_shell_flag = False
+    if os.name == "posix":
+        use_shell_flag = True
+        
+    if config.get("settings.use_shell", False):
+        use_shell_flag = True
+        
+    if kwargs.get("do_not_use_shell", False):
+        use_shell_flag = False
+        
     if use_shell_flag:
         log.info("Using shell=True when running external commands...")
 
@@ -159,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
 
     parser.add_argument(
-        "--use_shell", action="store_true", help="Use shell environment"
+        "--do_not_use_shell", action="store_true", help="Enforce not to use shell=True when running external commands"
     )
 
     parser.add_argument(

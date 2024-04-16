@@ -40,10 +40,10 @@ def merge_lycoris(
     # Build the command to run merge_lycoris.py using list format
     run_cmd = [
         PYTHON,
-        f"{scriptdir}/tools/merge_lycoris.py",
-        base_model,
-        lycoris_model,
-        output_name,
+        fr'"{scriptdir}/tools/merge_lycoris.py"',
+        fr'"{base_model}"',
+        fr'"{lycoris_model}"',
+        fr'"{output_name}"',
     ]
 
     # Add additional required arguments with their values
@@ -57,9 +57,6 @@ def merge_lycoris(
     if is_v2:
         run_cmd.append("--is_v2")
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     # Copy and update the environment variables
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -67,8 +64,13 @@ def merge_lycoris(
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Execute the command with the modified environment
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("Done merging...")
 

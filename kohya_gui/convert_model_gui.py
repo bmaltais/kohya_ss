@@ -50,7 +50,8 @@ def convert_model(
         return
 
     run_cmd = [
-        PYTHON, f"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"
+        PYTHON,
+        fr'"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"',
     ]
 
     v1_models = [
@@ -70,7 +71,7 @@ def convert_model(
         run_cmd.append(f"--{target_save_precision_type}")
 
     if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
-        run_cmd.append('--reference_model')
+        run_cmd.append("--reference_model")
         run_cmd.append(source_model_type)
 
     if target_model_type == "diffuser_safetensors":
@@ -81,7 +82,7 @@ def convert_model(
         run_cmd.append("--unet_use_linear_projection")
 
     # Add the source model input path
-    run_cmd.append(source_model_input)
+    run_cmd.append(fr'"{source_model_input}"')
 
     # Determine the target model path
     if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
@@ -95,10 +96,7 @@ def convert_model(
         )
 
     # Add the target model path
-    run_cmd.append(target_model_path)
-
-    # Log the command
-    log.info(' '.join(run_cmd))
+    run_cmd.append(fr'"{target_model_path}"')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -107,9 +105,14 @@ def convert_model(
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
 
+    # Run the command in the sd-scripts folder context
+    subprocess.run(
+        command_to_run, env=env, shell=use_shell
+    )
 
 
 ###

@@ -75,17 +75,17 @@ def extract_lora(
 
     run_cmd = [
         PYTHON,
-        f"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py",
+        fr'"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py"',
         "--load_precision",
         load_precision,
         "--save_precision",
         save_precision,
         "--save_to",
-        save_to,
+        fr'"{save_to}"',
         "--model_org",
-        model_org,
+        fr'"{model_org}"',
         "--model_tuned",
-        model_tuned,
+        fr'"{model_tuned}"',
         "--dim",
         str(dim),
         "--device",
@@ -110,9 +110,6 @@ def extract_lora(
         run_cmd.append("--load_tuned_model_to")
         run_cmd.append(load_tuned_model_to)
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
@@ -120,8 +117,13 @@ def extract_lora(
     # Adding an example of another potentially relevant environment variable
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
 
 ###
