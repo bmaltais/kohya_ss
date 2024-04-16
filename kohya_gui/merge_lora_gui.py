@@ -425,18 +425,18 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = [PYTHON, f"{scriptdir}/sd-scripts/networks/merge_lora.py"]
+            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
         else:
-            run_cmd = [PYTHON, f"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"]
+            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
 
         if sd_model:
             run_cmd.append("--sd_model")
-            run_cmd.append(sd_model)
+            run_cmd.append(fr'"{sd_model}"')
 
         run_cmd.extend(["--save_precision", save_precision])
         run_cmd.extend(["--precision", precision])
         run_cmd.append("--save_to")
-        run_cmd.append(save_to)
+        run_cmd.append(fr'"{save_to}"')
 
         # Prepare model and ratios command as lists, including only non-empty models
         valid_models = [model for model in lora_models if model]
@@ -450,9 +450,6 @@ class GradioMergeLoRaTab:
                 map(str, valid_ratios)
             )  # Convert ratios to strings and include them as separate arguments
 
-        # Log the command
-        log.info(" ".join(run_cmd))
-
         env = os.environ.copy()
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
@@ -460,7 +457,12 @@ class GradioMergeLoRaTab:
         # Example of adding an environment variable for TensorFlow, if necessary
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-        # Run the command
-        subprocess.run(run_cmd, env=env, shell=use_shell)
+        # Reconstruct the safe command string for display
+        command_to_run = " ".join(run_cmd)
+        log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+                
+        # Run the command in the sd-scripts folder context
+        subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
         log.info("Done merging...")

@@ -66,13 +66,13 @@ def resize_lora(
 
     run_cmd = [
         PYTHON,
-        f"{scriptdir}/sd-scripts/networks/resize_lora.py",
+        fr'"{scriptdir}/sd-scripts/networks/resize_lora.py"',
         "--save_precision",
         save_precision,
         "--save_to",
-        save_to,
+        fr'"{save_to}"',
         "--model",
-        model,
+        fr'"{model}"',
         "--new_rank",
         str(new_rank),
         "--device",
@@ -89,9 +89,6 @@ def resize_lora(
     if verbose:
         run_cmd.append("--verbose")
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
@@ -100,8 +97,13 @@ def resize_lora(
     # Adding example environment variables if relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("Done resizing...")
 

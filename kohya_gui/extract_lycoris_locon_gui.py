@@ -74,7 +74,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = [PYTHON, f"{scriptdir}/tools/lycoris_locon_extract.py"]
+    run_cmd = [PYTHON, fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
 
     if is_sdxl:
         run_cmd.append("--is_sdxl")
@@ -121,12 +121,9 @@ def extract_lycoris_locon(
         run_cmd.append("--disable_cp")
 
     # Add paths
-    run_cmd.append(base_model)
-    run_cmd.append(db_model)
-    run_cmd.append(output_name)
-
-    # Log the command
-    log.info(" ".join(run_cmd))
+    run_cmd.append(fr'"{base_model}"')
+    run_cmd.append(fr'"{db_model}"')
+    run_cmd.append(fr'"{output_name}"')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
@@ -135,8 +132,13 @@ def extract_lycoris_locon(
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("Done extracting...")
 

@@ -23,7 +23,7 @@ def utilities_tab(
     use_shell_flag: bool = False,
 ):
     with gr.Tab("Captioning"):
-        gradio_basic_caption_gui_tab(headless=headless)
+        gradio_basic_caption_gui_tab(headless=headless, use_shell=use_shell_flag)
         gradio_blip_caption_gui_tab(headless=headless, use_shell=use_shell_flag)
         gradio_blip2_caption_gui_tab(headless=headless)
         gradio_git_caption_gui_tab(headless=headless, use_shell=use_shell_flag)

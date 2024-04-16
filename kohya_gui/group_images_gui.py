@@ -36,8 +36,8 @@ def group_images(
     run_cmd = [
         PYTHON,
         f"{scriptdir}/tools/group_images.py",
-        input_folder,
-        output_folder,
+        fr'"{input_folder}"',
+        fr'"{output_folder}"',
         str(group_size),
     ]
 
@@ -53,9 +53,6 @@ def group_images(
             run_cmd.append("--caption_ext")
             run_cmd.append(caption_ext)
 
-    # Log the command
-    log.info(" ".join(run_cmd))
-
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
@@ -63,8 +60,13 @@ def group_images(
     # Adding a common environmental setting as an example if it's missing in the original context
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("...grouping done")
 
