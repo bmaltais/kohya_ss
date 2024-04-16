@@ -48,8 +48,9 @@ def verify_conditions(sd_model, lora_models):
 
 
 class GradioMergeLoRaTab:
-    def __init__(self, headless=False):
+    def __init__(self, headless=False, use_shell: bool = False):
         self.headless = headless
+        self.use_shell = use_shell
         self.build_tab()
 
     def save_inputs_to_json(self, file_path, inputs):
@@ -379,6 +380,7 @@ class GradioMergeLoRaTab:
                     save_to,
                     precision,
                     save_precision,
+                    gr.Checkbox(value=self.use_shell, visible=False),
                 ],
                 show_progress=False,
             )
@@ -398,6 +400,7 @@ class GradioMergeLoRaTab:
         save_to,
         precision,
         save_precision,
+        use_shell: bool = False,
     ):
 
         log.info("Merge model...")
@@ -458,6 +461,6 @@ class GradioMergeLoRaTab:
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
-        subprocess.run(run_cmd, env=env)
+        subprocess.run(run_cmd, env=env, shell=use_shell)
 
         log.info("Done merging...")

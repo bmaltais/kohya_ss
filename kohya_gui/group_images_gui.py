@@ -21,6 +21,7 @@ def group_images(
     do_not_copy_other_files,
     generate_captions,
     caption_ext,
+    use_shell: bool = False,
 ):
     if input_folder == "":
         msgbox("Input folder is missing...")
@@ -63,12 +64,12 @@ def group_images(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     log.info("...grouping done")
 
 
-def gradio_group_images_gui_tab(headless=False):
+def gradio_group_images_gui_tab(headless=False, use_shell: bool = False):
     from .common_gui import create_refresh_button
 
     current_input_folder = os.path.join(scriptdir, "data")
@@ -200,6 +201,7 @@ def gradio_group_images_gui_tab(headless=False):
                 do_not_copy_other_files,
                 generate_captions,
                 caption_ext,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

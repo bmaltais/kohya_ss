@@ -33,6 +33,7 @@ def resize_lora(
     dynamic_method,
     dynamic_param,
     verbose,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -100,7 +101,7 @@ def resize_lora(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     log.info("Done resizing...")
 
@@ -110,7 +111,7 @@ def resize_lora(
 ###
 
 
-def gradio_resize_lora_tab(headless=False):
+def gradio_resize_lora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -246,6 +247,7 @@ def gradio_resize_lora_tab(headless=False):
                 dynamic_method,
                 dynamic_param,
                 verbose,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

@@ -22,6 +22,7 @@ def caption_images(
     model_id,
     prefix,
     postfix,
+    use_shell: bool = False,
 ):
     # Check for images_dir_input
     if train_data_dir == "":
@@ -70,7 +71,7 @@ def caption_images(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     # Add prefix and postfix
     add_pre_postfix(
@@ -88,7 +89,9 @@ def caption_images(
 ###
 
 
-def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
+def gradio_git_caption_gui_tab(
+    headless=False, default_train_dir=None, use_shell: bool = False
+):
     from .common_gui import create_refresh_button
 
     default_train_dir = (
@@ -178,6 +181,7 @@ def gradio_git_caption_gui_tab(headless=False, default_train_dir=None):
                 model_id,
                 prefix,
                 postfix,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

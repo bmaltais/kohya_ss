@@ -27,6 +27,7 @@ def extract_dylora(
     model,
     save_to,
     unit,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -71,7 +72,7 @@ def extract_dylora(
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Run the command
-    subprocess.run(run_cmd, env=env)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
     log.info("Done extracting DyLoRA...")
 
@@ -81,7 +82,7 @@ def extract_dylora(
 ###
 
 
-def gradio_extract_dylora_tab(headless=False):
+def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -170,6 +171,7 @@ def gradio_extract_dylora_tab(headless=False):
                 model,
                 save_to,
                 unit,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

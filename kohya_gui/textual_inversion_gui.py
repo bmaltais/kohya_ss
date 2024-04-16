@@ -37,6 +37,7 @@ from .dreambooth_folder_creation_gui import (
 )
 from .dataset_balancing_gui import gradio_dataset_balancing_tab
 from .class_sample_images import SampleImages, create_prompt_file
+from .class_gui_config import KohyaSSGUIConfig
 
 from .custom_logging import setup_logging
 
@@ -48,6 +49,7 @@ executor = CommandExecutor()
 
 # Setup huggingface
 huggingface = None
+use_shell = False
 
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
 
@@ -624,7 +626,7 @@ def train_model(
         run_cmd.append(f"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py")
     else:
         run_cmd.append(f"{scriptdir}/sd-scripts/train_textual_inversion.py")
-    
+
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
@@ -634,7 +636,7 @@ def train_model(
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)
-    
+
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
@@ -675,8 +677,10 @@ def train_model(
         "log_tracker_config": log_tracker_config,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": str(lr_scheduler_args).replace('"', '').split(),
-        "lr_scheduler_num_cycles":  lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch),
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
+        "lr_scheduler_num_cycles": (
+            lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch)
+        ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
@@ -704,7 +708,7 @@ def train_model(
         "noise_offset_type": noise_offset_type,
         "num_vectors_per_token": int(num_vectors_per_token),
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', '').split(),
+        "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -766,7 +770,7 @@ def train_model(
 
     run_cmd.append(f"--config_file")
     run_cmd.append(tmpfilename)
-    
+
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
         "max_data_loader_n_workers": max_data_loader_n_workers,
@@ -811,7 +815,7 @@ def train_model(
 
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd, env=env)
+        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
 
         return (
             gr.Button(visible=False),
@@ -820,10 +824,18 @@ def train_model(
         )
 
 
-def ti_tab(headless=False, default_output_dir=None, config: dict = {}):
+def ti_tab(
+    headless=False,
+    default_output_dir=None,
+    config: KohyaSSGUIConfig = {},
+    use_shell_flag: bool = False,
+):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
+
+    global use_shell
+    use_shell = use_shell_flag
 
     current_embedding_dir = (
         default_output_dir
