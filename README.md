@@ -42,7 +42,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/12 (v24.0.1)](#20240412-v2401)
+    - [2024/04/17 (v24.0.1)](#20240417-v2401)
       - [Enhancements](#enhancements)
       - [Security and Stability](#security-and-stability)
       - [Shell Execution](#shell-execution)
@@ -406,7 +406,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
-### 2024/04/12 (v24.0.1)
+### 2024/04/17 (v24.0.1)
 
 #### Enhancements
 
@@ -425,7 +425,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 - **Conditional Shell Usage:** Added support for optional shell usage when executing external sd-scripts commands, tailored to meet specific platform needs and recent security updates.
 
-The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument to prevent shell execution (`shell=True`) during external process handling. Unix-like systems automatically set `use_shell` to True internally, as required for proper execution of external commands. To enforce disabling shell execution, use the `--do_not_use_shell` argument.
+The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument to prevent shell execution (`shell=True`) during external process handling.The GUI will automatically set `use_shell` to True internally, as required for proper execution of external commands. To enforce disabling shell execution, use the `--do_not_use_shell` argument.
 
 - **How to Enable Shell Execution via Config File:**
   1. In the `config.toml` file, set `use_shell` to `true` to enable shell usage as per GUI startup settings.
