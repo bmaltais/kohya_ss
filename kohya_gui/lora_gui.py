@@ -7,18 +7,18 @@ import toml
 
 from datetime import datetime
 from .common_gui import (
+    check_if_model_exist,
+    color_aug_changed,
+    get_any_file_path,
     get_executable_path,
     get_file_path,
-    get_any_file_path,
     get_saveasfile_path,
-    color_aug_changed,
-    run_cmd_advanced_training,
-    update_my_data,
-    check_if_model_exist,
     output_message,
+    print_command_and_toml,
+    run_cmd_advanced_training,
     SaveConfigFile,
-    save_to_file,
     scriptdir,
+    update_my_data,
     validate_paths,
 )
 from .class_accelerate_launch import AccelerateLaunch
@@ -1178,15 +1178,7 @@ def train_model(
     run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **run_cmd_params)
 
     if print_only:
-        log.warning(
-            "Here is the trainer command as a reference. It will not be executed:\n"
-        )
-        # Reconstruct the safe command string for display
-        command_to_run = " ".join(run_cmd)
-
-        print(command_to_run)
-
-        save_to_file(command_to_run)
+        print_command_and_toml(run_cmd, tmpfilename)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -1205,7 +1197,7 @@ def train_model(
         # log.info(run_cmd)
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 

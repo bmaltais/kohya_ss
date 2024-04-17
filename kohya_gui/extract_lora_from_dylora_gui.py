@@ -20,7 +20,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = sys.executable
+PYTHON = fr'"{sys.executable}"'
 
 
 def extract_dylora(
@@ -63,7 +63,7 @@ def extract_dylora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Example environment variable adjustment for the Python environment
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

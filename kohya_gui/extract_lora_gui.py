@@ -21,7 +21,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = sys.executable
+PYTHON = fr'"{sys.executable}"'
 
 
 def extract_lora(
@@ -112,7 +112,7 @@ def extract_lora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of another potentially relevant environment variable
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

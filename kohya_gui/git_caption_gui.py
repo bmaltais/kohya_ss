@@ -10,7 +10,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
-PYTHON = sys.executable
+PYTHON = fr'"{sys.executable}"'
 
 
 def caption_images(
@@ -62,7 +62,7 @@ def caption_images(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

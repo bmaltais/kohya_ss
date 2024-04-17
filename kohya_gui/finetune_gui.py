@@ -8,16 +8,16 @@ import sys
 import toml
 from datetime import datetime
 from .common_gui import (
+    check_if_model_exist,
+    color_aug_changed,
     get_executable_path,
     get_file_path,
     get_saveasfile_path,
+    print_command_and_toml,
     run_cmd_advanced_training,
-    color_aug_changed,
-    update_my_data,
-    check_if_model_exist,
     SaveConfigFile,
-    save_to_file,
     scriptdir,
+    update_my_data,
     validate_paths,
 )
 from .class_accelerate_launch import AccelerateLaunch
@@ -53,7 +53,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = sys.executable
+PYTHON = fr'"{sys.executable}"'
 
 presets_dir = rf"{scriptdir}/presets"
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
@@ -570,7 +570,7 @@ def train_model(
             # Define the command components
             run_cmd = [
                 PYTHON,
-                f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py",
+                f'"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"',
             ]
 
             # Add the caption extension
@@ -607,7 +607,7 @@ def train_model(
             # Build the command to run the preparation script
             run_cmd = [
                 PYTHON,
-                f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
+                f'"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"',
                 image_folder,
                 os.path.join(train_dir, caption_metadata_filename),
                 os.path.join(train_dir, latent_metadata_filename),
@@ -880,15 +880,7 @@ def train_model(
     run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
     if print_only:
-        log.warning(
-            "Here is the trainer command as a reference. It will not be executed:\n"
-        )
-        # Reconstruct the safe command string for display
-        command_to_run = " ".join(run_cmd)
-
-        print(command_to_run)
-
-        save_to_file(command_to_run)
+        print_command_and_toml(run_cmd, tmpfilename)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -908,7 +900,7 @@ def train_model(
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -1308,7 +1300,7 @@ def finetune_tab(
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various Finetuning guides and information...")
-        top_level_path = rf"{scriptdir}/docs/Finetuning/top_level.md"
+        top_level_path = rf'"{scriptdir}/docs/Finetuning/top_level.md"'
         if os.path.exists(top_level_path):
             with open(os.path.join(top_level_path), "r", encoding="utf8") as file:
                 guides_top_level = file.read() + "\n"

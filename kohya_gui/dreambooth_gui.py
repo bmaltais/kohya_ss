@@ -7,16 +7,16 @@ import sys
 import toml
 from datetime import datetime
 from .common_gui import (
+    check_if_model_exist,
+    color_aug_changed,
     get_executable_path,
     get_file_path,
     get_saveasfile_path,
-    color_aug_changed,
+    print_command_and_toml,
     run_cmd_advanced_training,
-    update_my_data,
-    check_if_model_exist,
     SaveConfigFile,
-    save_to_file,
     scriptdir,
+    update_my_data,
     validate_paths,
 )
 from .class_accelerate_launch import AccelerateLaunch
@@ -49,7 +49,7 @@ executor = CommandExecutor()
 huggingface = None
 use_shell = False
 
-PYTHON = sys.executable
+PYTHON = fr'"{sys.executable}"'
 
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
 
@@ -669,7 +669,7 @@ def train_model(
         "save_state_to_huggingface": save_state_to_huggingface,
         "resume_from_huggingface": resume_from_huggingface,
         "async_upload": async_upload,
-        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
+        "adaptive_noise_scale": adaptive_noise_scale if not 0 else None,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -806,15 +806,7 @@ def train_model(
     run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
     if print_only:
-        log.warning(
-            "Here is the trainer command as a reference. It will not be executed:\n"
-        )
-        # Reconstruct the safe command string for display
-        command_to_run = " ".join(run_cmd)
-
-        print(command_to_run)
-
-        save_to_file(command_to_run)
+        print_command_and_toml(run_cmd, tmpfilename)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -834,7 +826,7 @@ def train_model(
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
