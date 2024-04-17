@@ -42,7 +42,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/12 (v24.0.0)](#20240412-v2400)
+    - [2024/04/12 (v24.0.1)](#20240412-v2401)
       - [Enhancements](#enhancements)
       - [Security and Stability](#security-and-stability)
       - [Shell Execution](#shell-execution)
@@ -406,7 +406,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
-### 2024/04/12 (v24.0.0)
+### 2024/04/12 (v24.0.1)
 
 #### Enhancements
 
