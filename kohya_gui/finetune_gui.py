@@ -56,7 +56,7 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
-TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False)]
+TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
 
 
 def save_configuration(
@@ -735,7 +735,7 @@ def train_model(
         "save_state_to_huggingface": save_state_to_huggingface,
         "resume_from_huggingface": resume_from_huggingface,
         "async_upload": async_upload,
-        "adaptive_noise_scale": adaptive_noise_scale,
+        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
         "block_lr": block_lr,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -745,7 +745,7 @@ def train_model(
         "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
-        "clip_skip": int(clip_skip),
+        "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
@@ -761,7 +761,7 @@ def train_model(
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
         "in_json": in_json,
-        "ip_noise_gamma": ip_noise_gamma,
+        "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,  # both for sd1.5 and sdxl
@@ -783,10 +783,10 @@ def train_model(
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": int(max_bucket_reso),
         "max_data_loader_n_workers": max_data_loader_n_workers,
-        "max_timestep": max_timestep,
+        "max_timestep": max_timestep if max_timestep!= 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": max_train_epochs,
-        "max_train_steps": int(max_train_steps),
+        "max_train_epochs": max_train_epochs if max_train_epochs != 0 else None,
+        "max_train_steps": max_train_steps if max_train_steps != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
         "metadata_description": metadata_description,
@@ -794,13 +794,13 @@ def train_model(
         "metadata_tags": metadata_tags,
         "metadata_title": metadata_title,
         "min_bucket_reso": int(min_bucket_reso),
-        "min_snr_gamma": min_snr_gamma,
-        "min_timestep": int(min_timestep),
+        "min_snr_gamma": min_snr_gamma if min_snr_gamma != 0 else None,
+        "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations,
+        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
         "no_half_vae": no_half_vae,
-        "noise_offset": noise_offset,
+        "noise_offset": noise_offset if noise_offset != 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
@@ -812,21 +812,21 @@ def train_model(
         "random_crop": random_crop,
         "resolution": max_resolution,
         "resume": resume,
-        "sample_every_n_epochs": sample_every_n_epochs,
-        "sample_every_n_steps": sample_every_n_steps,
+        "sample_every_n_epochs": sample_every_n_epochs if sample_every_n_epochs != 0 else None,
+        "sample_every_n_steps": sample_every_n_steps if sample_every_n_steps != 0 else None,
         "sample_prompts": create_prompt_file(output_dir, output_dir),
         "sample_sampler": sample_sampler,
-        "save_every_n_epochs": save_every_n_epochs,
-        "save_every_n_steps": save_every_n_steps,
-        "save_last_n_steps": save_last_n_steps,
-        "save_last_n_steps_state": save_last_n_steps_state,
+        "save_every_n_epochs": save_every_n_epochs if save_every_n_epochs!= 0 else None,
+        "save_every_n_steps": save_every_n_steps if save_every_n_steps != 0 else None,
+        "save_last_n_steps": save_last_n_steps if save_last_n_steps != 0 else None,
+        "save_last_n_steps_state": save_last_n_steps_state if save_last_n_steps_state != 0 else None,
         "save_model_as": save_model_as,
         "save_precision": save_precision,
         "save_state": save_state,
         "save_state_on_train_end": save_state_on_train_end,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "sdpa": True if xformers == "sdpa" else None,
-        "seed": int(seed),
+        "seed": seed if seed != 0 else None,
         "shuffle_caption": shuffle_caption,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
@@ -834,8 +834,8 @@ def train_model(
         "use_wandb": use_wandb,
         "v2": v2,
         "v_parameterization": v_parameterization,
-        "v_pred_like_loss": v_pred_like_loss,
-        "vae_batch_size": vae_batch_size,
+        "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
+        "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
@@ -847,7 +847,7 @@ def train_model(
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value != "" and value != False
+        if value != "" and value is not False
     }
 
     tmpfilename = "./outputs/tmpfilefinetune.toml"
@@ -863,7 +863,6 @@ def train_model(
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
-        "max_data_loader_n_workers": max_data_loader_n_workers,
         "additional_parameters": additional_parameters,
     }
 

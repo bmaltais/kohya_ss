@@ -98,7 +98,7 @@ class BasicTraining:
                 step=1,
                 # precision=0,
                 minimum=0,
-                value=self.config.get("basic.max_train_epochs", 0),
+                value=self.config.get("basic.max_train_epochs", 1600),
             )
             # Initialize the maximum train steps input
             self.max_train_steps = gr.Number(
