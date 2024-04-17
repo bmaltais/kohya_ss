@@ -1,6 +1,9 @@
 import gradio as gr
 from typing import Tuple
+from .custom_logging import setup_logging
 
+# Set up logging
+log = setup_logging()
 
 class BasicTraining:
     """
@@ -44,6 +47,7 @@ class BasicTraining:
         self.finetuning = finetuning
         self.dreambooth = dreambooth
         self.config = config
+        self.old_lr_warmup = 0
 
         # Initialize the UI components
         self.initialize_ui_components()
@@ -77,30 +81,43 @@ class BasicTraining:
         with gr.Row():
             # Initialize the train batch size slider
             self.train_batch_size = gr.Slider(
-                minimum=1, maximum=64, label="Train batch size", value=1, step=self.config.get("basic.train_batch_size", 1),
+                minimum=1,
+                maximum=64,
+                label="Train batch size",
+                value=1,
+                step=self.config.get("basic.train_batch_size", 1),
             )
             # Initialize the epoch number input
-            self.epoch = gr.Number(label="Epoch", value=self.config.get("basic.epoch", 1), precision=0)
+            self.epoch = gr.Number(
+                label="Epoch", value=self.config.get("basic.epoch", 1), precision=0
+            )
             # Initialize the maximum train epochs input
-            self.max_train_epochs = gr.Textbox(
+            self.max_train_epochs = gr.Number(
                 label="Max train epoch",
-                placeholder="(Optional) Enforce # epochs",
-                value=self.config.get("basic.max_train_epochs", ""),
+                info="training epochs (overrides max_train_steps). 0 = no override",
+                step=1,
+                # precision=0,
+                minimum=0,
+                value=self.config.get("basic.max_train_epochs", 1600),
             )
             # Initialize the maximum train steps input
-            self.max_train_steps = gr.Textbox(
+            self.max_train_steps = gr.Number(
                 label="Max train steps",
-                placeholder="(Optional) Enforce # steps",
-                value=self.config.get("basic.max_train_steps", ""),
+                info="Overrides # training steps. 0 = no override",
+                step=1,
+                # precision=0,
+                value=self.config.get("basic.max_train_steps", 0),
             )
             # Initialize the save every N epochs input
             self.save_every_n_epochs = gr.Number(
-                label="Save every N epochs", value=self.config.get("basic.save_every_n_epochs", 1), precision=0
+                label="Save every N epochs",
+                value=self.config.get("basic.save_every_n_epochs", 1),
+                precision=0,
             )
             # Initialize the caption extension input
             self.caption_extension = gr.Dropdown(
                 label="Caption file extension",
-                choices=[".cap", ".caption", ".txt"],
+                choices=["", ".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
             )
@@ -111,12 +128,23 @@ class BasicTraining:
         """
         with gr.Row():
             # Initialize the seed textbox
-            self.seed = gr.Textbox(label="Seed", placeholder="(Optional) eg:1234", value=self.config.get("basic.seed", ""))
+            self.seed = gr.Number(
+                label="Seed",
+                # precision=0,
+                step=1,
+                minimum=0,
+                value=self.config.get("basic.seed", 0),
+                info="Set to 0 to make random",
+            )
             # Initialize the cache latents checkbox
-            self.cache_latents = gr.Checkbox(label="Cache latents", value=self.config.get("basic.cache_latents", True))
+            self.cache_latents = gr.Checkbox(
+                label="Cache latents",
+                value=self.config.get("basic.cache_latents", True),
+            )
             # Initialize the cache latents to disk checkbox
             self.cache_latents_to_disk = gr.Checkbox(
-                label="Cache latents to disk", value=self.config.get("basic.cache_latents_to_disk", False)
+                label="Cache latents to disk",
+                value=self.config.get("basic.cache_latents_to_disk", False),
             )
 
     def init_lr_and_optimizer_controls(self) -> None:
@@ -138,6 +166,9 @@ class BasicTraining:
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
+            
+            
+            
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
                 label="Optimizer",
@@ -173,13 +204,17 @@ class BasicTraining:
         with gr.Row():
             # Initialize the maximum gradient norm slider
             self.max_grad_norm = gr.Slider(
-                label="Max grad norm", value=self.config.get("basic.max_grad_norm", 1.0), minimum=0.0, maximum=1.0
+                label="Max grad norm",
+                value=self.config.get("basic.max_grad_norm", 1.0),
+                minimum=0.0,
+                maximum=1.0,
+                interactive=True,
             )
             # Initialize the learning rate scheduler extra arguments textbox
             self.lr_scheduler_args = gr.Textbox(
                 label="LR scheduler extra arguments",
                 lines=2,
-                placeholder='(Optional) eg: "milestones=[1,10,30,50]" "gamma=0.1"',
+                placeholder="(Optional) eg: milestones=[1,10,30,50] gamma=0.1",
                 value=self.config.get("basic.lr_scheduler_args", ""),
             )
             # Initialize the optimizer extra arguments textbox
@@ -212,7 +247,9 @@ class BasicTraining:
             # Initialize the learning rate TE number input
             self.learning_rate_te = gr.Number(
                 label="Learning rate TE",
-                value=self.config.get("basic.learning_rate_te", self.learning_rate_value),
+                value=self.config.get(
+                    "basic.learning_rate_te", self.learning_rate_value
+                ),
                 visible=self.finetuning or self.dreambooth,
                 minimum=0,
                 maximum=1,
@@ -221,7 +258,9 @@ class BasicTraining:
             # Initialize the learning rate TE1 number input
             self.learning_rate_te1 = gr.Number(
                 label="Learning rate TE1",
-                value=self.config.get("basic.learning_rate_te1", self.learning_rate_value),
+                value=self.config.get(
+                    "basic.learning_rate_te1", self.learning_rate_value
+                ),
                 visible=False,
                 minimum=0,
                 maximum=1,
@@ -230,7 +269,9 @@ class BasicTraining:
             # Initialize the learning rate TE2 number input
             self.learning_rate_te2 = gr.Number(
                 label="Learning rate TE2",
-                value=self.config.get("basic.learning_rate_te2", self.learning_rate_value),
+                value=self.config.get(
+                    "basic.learning_rate_te2", self.learning_rate_value
+                ),
                 visible=False,
                 minimum=0,
                 maximum=1,
@@ -244,6 +285,26 @@ class BasicTraining:
                 maximum=100,
                 step=1,
             )
+            
+            def lr_scheduler_changed(scheduler, value):
+                if scheduler == "constant":
+                    self.old_lr_warmup = value
+                    value = 0
+                    interactive=False
+                    info="Can't use LR warmup with LR Scheduler constant... setting to 0 and disabling field..."
+                else:
+                    if self.old_lr_warmup != 0:
+                        value = self.old_lr_warmup
+                        self.old_lr_warmup = 0
+                    interactive=True
+                    info=""
+                return gr.Slider(value=value, interactive=interactive, info=info)
+            
+            self.lr_scheduler.change(
+                lr_scheduler_changed,
+                inputs=[self.lr_scheduler, self.lr_warmup],
+                outputs=self.lr_warmup,
+            )
 
     def init_scheduler_controls(self) -> None:
         """
@@ -251,16 +312,21 @@ class BasicTraining:
         """
         with gr.Row(visible=not self.finetuning):
             # Initialize the learning rate scheduler number of cycles textbox
-            self.lr_scheduler_num_cycles = gr.Textbox(
+            self.lr_scheduler_num_cycles = gr.Number(
                 label="LR # cycles",
-                placeholder="(Optional) For Cosine with restart and polynomial only",
-                value=self.config.get("basic.lr_scheduler_num_cycles", ""),
+                minimum=1,
+                # precision=0, # round to nearest integer
+                step=1, # Increment value by 1
+                info="Number of restarts for cosine scheduler with restarts",
+                value=self.config.get("basic.lr_scheduler_num_cycles", 1),
             )
             # Initialize the learning rate scheduler power textbox
-            self.lr_scheduler_power = gr.Textbox(
+            self.lr_scheduler_power = gr.Number(
                 label="LR power",
-                placeholder="(Optional) For Cosine with restart and polynomial only",
-                value=self.config.get("basic.lr_scheduler_power", ""),
+                minimum=1.0,
+                step=0.01,
+                info="Polynomial power for polynomial scheduler",
+                value=self.config.get("basic.lr_scheduler_power", 1.0),
             )
 
     def init_resolution_and_bucket_controls(self) -> None:
@@ -270,7 +336,9 @@ class BasicTraining:
         with gr.Row(visible=not self.finetuning):
             # Initialize the maximum resolution textbox
             self.max_resolution = gr.Textbox(
-                label="Max resolution", value=self.config.get("basic.max_resolution", "512,512"), placeholder="512,512"
+                label="Max resolution",
+                value=self.config.get("basic.max_resolution", "512,512"),
+                placeholder="512,512",
             )
             # Initialize the stop text encoder training slider
             self.stop_text_encoder_training = gr.Slider(
@@ -281,7 +349,10 @@ class BasicTraining:
                 label="Stop TE (% of total steps)",
             )
             # Initialize the enable buckets checkbox
-            self.enable_bucket = gr.Checkbox(label="Enable buckets", value=self.config.get("basic.enable_bucket", True))
+            self.enable_bucket = gr.Checkbox(
+                label="Enable buckets",
+                value=self.config.get("basic.enable_bucket", True),
+            )
             # Initialize the minimum bucket resolution slider
             self.min_bucket_reso = gr.Slider(
                 label="Minimum bucket resolution",

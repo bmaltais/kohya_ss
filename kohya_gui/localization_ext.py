@@ -10,9 +10,9 @@ def file_path(fn):
 def js_html_str(language):
     head = f'<script type="text/javascript">{localization.load_language_js(language)}</script>\n'
     head += (
-        f'<script type="text/javascript" src="{file_path("assets/js/script.js")}"></script>\n'
+        f'<script type="text/javascript">{open("./assets/js/script.js", "r", encoding="utf8").read()}</script>\n'
     )
-    head += f'<script type="text/javascript" src="{file_path("assets/js/localization.js")}"></script>\n'
+    head += f'<script type="text/javascript">{open("./assets/js/localization.js", "r", encoding="utf8").read()}</script>\n'
     return head
 
 

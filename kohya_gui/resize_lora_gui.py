@@ -33,6 +33,7 @@ def resize_lora(
     dynamic_method,
     dynamic_param,
     verbose,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -63,27 +64,46 @@ def resize_lora(
     if device == "":
         device = "cuda"
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/resize_lora.py"'
-    run_cmd += f" --save_precision {save_precision}"
-    run_cmd += rf' --save_to "{save_to}"'
-    run_cmd += rf' --model "{model}"'
-    run_cmd += f" --new_rank {new_rank}"
-    run_cmd += f" --device {device}"
-    if not dynamic_method == "None":
-        run_cmd += f" --dynamic_method {dynamic_method}"
-        run_cmd += f" --dynamic_param {dynamic_param}"
-    if verbose:
-        run_cmd += f" --verbose"
+    run_cmd = [
+        PYTHON,
+        fr'"{scriptdir}/sd-scripts/networks/resize_lora.py"',
+        "--save_precision",
+        save_precision,
+        "--save_to",
+        fr'"{save_to}"',
+        "--model",
+        fr'"{model}"',
+        "--new_rank",
+        str(new_rank),
+        "--device",
+        device,
+    ]
 
-    log.info(run_cmd)
+    # Conditional checks for dynamic parameters
+    if dynamic_method != "None":
+        run_cmd.extend(
+            ["--dynamic_method", dynamic_method, "--dynamic_param", str(dynamic_param)]
+        )
+
+    # Check for verbosity
+    if verbose:
+        run_cmd.append("--verbose")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
 
-    # Run the command
-    subprocess.run(run_cmd, env=env)
+    # Adding example environment variables if relevant
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("Done resizing...")
 
@@ -93,7 +113,7 @@ def resize_lora(
 ###
 
 
-def gradio_resize_lora_tab(headless=False):
+def gradio_resize_lora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -229,6 +249,7 @@ def gradio_resize_lora_tab(headless=False):
                 dynamic_method,
                 dynamic_param,
                 verbose,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

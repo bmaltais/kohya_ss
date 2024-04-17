@@ -22,7 +22,13 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 
-def convert_lcm(name, model_path, lora_scale, model_type):
+def convert_lcm(
+    name,
+    model_path,
+    lora_scale,
+    model_type,
+    use_shell: bool = False,
+):
     run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
 
     # Check if source model exist
@@ -41,31 +47,47 @@ def convert_lcm(name, model_path, lora_scale, model_type):
         path, ext = os.path.splitext(save_to)
         save_to = f"{path}_lcm{ext}"
 
-    # Construct the command to run the script
-    run_cmd += f" --lora-scale {lora_scale}"
-    run_cmd += f' --model "{model_path}"'
-    run_cmd += f' --name "{name}"'
+    # Initialize the command to run the script
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/path_to_script.py",
+    ]  # Adjust the script path accordingly
 
+    # Add required arguments
+    run_cmd.append("--lora-scale")
+    run_cmd.append(str(lora_scale))
+    run_cmd.append("--model")
+    run_cmd.append(rf'"{model_path}"')
+    run_cmd.append("--name")
+    run_cmd.append(name)
+
+    # Add conditional flags based on the model type
     if model_type == "SDXL":
-        run_cmd += f" --sdxl"
+        run_cmd.append("--sdxl")
     if model_type == "SSD-1B":
-        run_cmd += f" --ssd-1b"
+        run_cmd.append("--ssd-1b")
 
-    log.info(run_cmd)
-
+    # Set up the environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+
+    # Run the command in the sd-scripts folder context
+    subprocess.run(
+        command_to_run, env=env, shell=use_shell
+    )
 
     # Return a success message
     log.info("Done extracting...")
 
 
-def gradio_convert_lcm_tab(headless=False):
+def gradio_convert_lcm_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -170,6 +192,12 @@ def gradio_convert_lcm_tab(headless=False):
 
         extract_button.click(
             convert_lcm,
-            inputs=[name, model_path, lora_scale, model_type],
+            inputs=[
+                name,
+                model_path,
+                lora_scale,
+                model_type,
+                gr.Checkbox(value=use_shell, visible=False),
+            ],
             show_progress=False,
         )

@@ -24,6 +24,7 @@ PYTHON = sys.executable
 
 def verify_lora(
     lora_model,
+    use_shell: bool = False,
 ):
     # verify for caption_text_input
     if lora_model == "":
@@ -35,21 +36,31 @@ def verify_lora(
         msgbox("The provided model A is not a file")
         return
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
+    # Build the command to run check_lora_weights.py
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/sd-scripts/networks/check_lora_weights.py",
+        lora_model,
+    ]
 
-    log.info(run_cmd)
+    # Log the command
+    log.info(" ".join(run_cmd))
 
+    # Set the environment variable for the Python path
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Example of adding an environment variable for TensorFlow, if necessary
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
+    # Run the command using subprocess.Popen for asynchronous handling
     process = subprocess.Popen(
         run_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
+        shell=use_shell,
     )
     output, error = process.communicate()
 
@@ -61,7 +72,7 @@ def verify_lora(
 ###
 
 
-def gradio_verify_lora_tab(headless=False):
+def gradio_verify_lora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
@@ -132,6 +143,7 @@ def gradio_verify_lora_tab(headless=False):
             verify_lora,
             inputs=[
                 lora_model,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             outputs=[lora_model_verif_output, lora_model_verif_error],
             show_progress=False,

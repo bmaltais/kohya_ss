@@ -27,6 +27,7 @@ def extract_dylora(
     model,
     save_to,
     unit,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -49,22 +50,30 @@ def extract_dylora(
         path, ext = os.path.splitext(save_to)
         save_to = f"{path}_tmp{ext}"
 
-    run_cmd = (
-        rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"'
-    )
-    run_cmd += rf' --save_to "{save_to}"'
-    run_cmd += rf' --model "{model}"'
-    run_cmd += f" --unit {unit}"
-
-    log.info(run_cmd)
+    run_cmd = [
+        PYTHON,
+        rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
+        "--save_to",
+        rf'"{save_to}"',
+        "--model",
+        rf'"{model}"',
+        "--unit",
+        str(unit),
+    ]
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Example environment variable adjustment for the Python environment
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
 
     log.info("Done extracting DyLoRA...")
 
@@ -74,7 +83,7 @@ def extract_dylora(
 ###
 
 
-def gradio_extract_dylora_tab(headless=False):
+def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -163,6 +172,7 @@ def gradio_extract_dylora_tab(headless=False):
                 model,
                 save_to,
                 unit,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

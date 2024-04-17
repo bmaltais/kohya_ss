@@ -3,9 +3,12 @@ import json
 import math
 import os
 import subprocess
+import time
 import sys
+import toml
 from datetime import datetime
 from .common_gui import (
+    get_executable_path,
     get_file_path,
     get_saveasfile_path,
     run_cmd_advanced_training,
@@ -25,12 +28,11 @@ from .class_advanced_training import AdvancedTraining
 from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
-from .tensorboard_gui import (
-    gradio_tensorboard,
-    start_tensorboard,
-    stop_tensorboard,
-)
-from .class_sample_images import SampleImages, run_cmd_sample
+from .class_tensorboard import TensorboardManager
+from .class_sample_images import SampleImages, create_prompt_file
+from .class_huggingface import HuggingFace
+from .class_metadata import MetaData
+from .class_gui_config import KohyaSSGUIConfig
 
 from .custom_logging import setup_logging
 
@@ -39,6 +41,10 @@ log = setup_logging()
 
 # Setup command executor
 executor = CommandExecutor()
+
+# Setup huggingface
+huggingface = None
+use_shell = False
 
 # from easygui import msgbox
 
@@ -50,6 +56,7 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
+TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
 
 
 def save_configuration(
@@ -96,6 +103,11 @@ def save_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     num_processes,
     num_machines,
     multi_gpu,
@@ -163,7 +175,20 @@ def save_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
-    extra_accelerate_launch_args,
+    debiased_estimation_loss,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -244,6 +269,11 @@ def open_configuration(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     num_processes,
     num_machines,
     multi_gpu,
@@ -311,7 +341,20 @@ def open_configuration(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
-    extra_accelerate_launch_args,
+    debiased_estimation_loss,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -398,6 +441,11 @@ def train_model(
     # use_8bit_adam,
     xformers,
     clip_skip,
+    dynamo_backend,
+    dynamo_mode,
+    dynamo_use_fullgraph,
+    dynamo_use_dynamic,
+    extra_accelerate_launch_args,
     num_processes,
     num_machines,
     multi_gpu,
@@ -465,13 +513,26 @@ def train_model(
     sdxl_no_half_vae,
     min_timestep,
     max_timestep,
-    extra_accelerate_launch_args,
+    debiased_estimation_loss,
+    huggingface_repo_id,
+    huggingface_token,
+    huggingface_repo_type,
+    huggingface_repo_visibility,
+    huggingface_path_in_repo,
+    save_state_to_huggingface,
+    resume_from_huggingface,
+    async_upload,
+    metadata_author,
+    metadata_description,
+    metadata_license,
+    metadata_tags,
+    metadata_title,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    
+
     log.debug(f"headless = {headless} ; print_only = {print_only}")
-    
+
     log.info(f"Start Finetuning...")
 
     if train_dir != "" and not os.path.exists(train_dir):
@@ -498,64 +559,98 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation..."
         )
+        
+        if max_train_steps == 0:
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
     else:
         # create caption json file
         if generate_caption_database:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"'
+            # Define the command components
+            run_cmd = [
+                PYTHON,
+                f"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py",
+            ]
+
+            # Add the caption extension
+            run_cmd.append("--caption_extension")
             if caption_extension == "":
-                run_cmd += f' --caption_extension=".caption"'
+                run_cmd.append(".caption")  # Default extension
             else:
-                run_cmd += f" --caption_extension={caption_extension}"
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
+                run_cmd.append(caption_extension)
+
+            # Add paths for the image folder and the caption metadata file
+            run_cmd.append(image_folder)
+            run_cmd.append(os.path.join(train_dir, caption_metadata_filename))
+
+            # Include the full path flag if specified
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append("--full_path")
 
-            log.info(run_cmd)
+            # Log the built command
+            log.info(" ".join(run_cmd))
 
+            # Prepare environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not in print-only mode
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
 
         # create images buckets
         if generate_image_buckets:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"'
-            run_cmd += rf' "{image_folder}"'
-            run_cmd += rf' "{train_dir}/{caption_metadata_filename}"'
-            run_cmd += rf' "{train_dir}/{latent_metadata_filename}"'
-            run_cmd += rf' "{pretrained_model_name_or_path}"'
-            run_cmd += f" --batch_size={batch_size}"
-            run_cmd += f" --max_resolution={max_resolution}"
-            run_cmd += f" --min_bucket_reso={min_bucket_reso}"
-            run_cmd += f" --max_bucket_reso={max_bucket_reso}"
-            run_cmd += f" --mixed_precision={mixed_precision}"
-            # if flip_aug:
-            #     run_cmd += f' --flip_aug'
+            # Build the command to run the preparation script
+            run_cmd = [
+                PYTHON,
+                f"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
+                image_folder,
+                os.path.join(train_dir, caption_metadata_filename),
+                os.path.join(train_dir, latent_metadata_filename),
+                pretrained_model_name_or_path,
+                "--batch_size",
+                str(batch_size),
+                "--max_resolution",
+                str(max_resolution),
+                "--min_bucket_reso",
+                str(min_bucket_reso),
+                "--max_bucket_reso",
+                str(max_bucket_reso),
+                "--mixed_precision",
+                str(mixed_precision),
+            ]
+
+            # Conditional flags
             if full_path:
-                run_cmd += f" --full_path"
+                run_cmd.append("--full_path")
             if sdxl_checkbox and sdxl_no_half_vae:
                 log.info(
                     "Using mixed_precision = no because no half vae is selected..."
                 )
-                run_cmd += f' --mixed_precision="no"'
+                # Ensure 'no' is correctly handled without extra quotes that might be interpreted literally in command line
+                run_cmd.append("--mixed_precision=no")
 
-            log.info(run_cmd)
+            # Log the complete command as a string for clarity
+            log.info(" ".join(run_cmd))
 
+            # Copy and modify environment variables
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+                f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
             )
             env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
+            # Execute the command if not just for printing
             if not print_only:
-                # Run the command
                 subprocess.run(run_cmd, env=env)
+
+        if image_folder == "":
+            log.error("Image folder dir is empty")
+            return TRAIN_BUTTON_VISIBLE
 
         image_num = len(
             [
@@ -571,30 +666,42 @@ def train_model(
         repeats = int(image_num) * int(dataset_repeats)
         log.info(f"repeats = {str(repeats)}")
 
-        # calculate max_train_steps
-        max_train_steps = int(
-            math.ceil(
-                float(repeats)
-                / int(train_batch_size)
-                / int(gradient_accumulation_steps)
-                * int(epoch)
+        if max_train_steps == 0:
+            # calculate max_train_steps
+            max_train_steps = int(
+                math.ceil(
+                    float(repeats)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                )
             )
-        )
 
         # Divide by two because flip augmentation create two copied of the source images
         if flip_aug and max_train_steps:
             max_train_steps = int(math.ceil(float(max_train_steps) / 2))
-
-    if max_train_steps != "":
-        log.info(f"max_train_steps = {max_train_steps}")
+            
+        if max_train_steps == 0:
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
+    
+    log.info(max_train_steps_info)
+    
+    if max_train_steps != 0:
         lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
     else:
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = "accelerate launch"
+    run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
 
-    run_cmd += AccelerateLaunch.run_cmd(
+    run_cmd = AccelerateLaunch.run_cmd(
+        run_cmd=run_cmd,
+        dynamo_backend=dynamo_backend,
+        dynamo_mode=dynamo_mode,
+        dynamo_use_fullgraph=dynamo_use_fullgraph,
+        dynamo_use_dynamic=dynamo_use_dynamic,
         num_processes=num_processes,
         num_machines=num_machines,
         multi_gpu=multi_gpu,
@@ -606,86 +713,130 @@ def train_model(
     )
 
     if sdxl_checkbox:
-        run_cmd += rf' "{scriptdir}/sd-scripts/sdxl_train.py"'
+        run_cmd.append(fr'"{scriptdir}/sd-scripts/sdxl_train.py"')
     else:
-        run_cmd += rf' "{scriptdir}/sd-scripts/fine_tune.py"'
+        run_cmd.append(fr'"{scriptdir}/sd-scripts/fine_tune.py"')
 
     in_json = (
-        rf"{train_dir}/{latent_metadata_filename}"
+        f"{train_dir}/{latent_metadata_filename}"
         if use_latent_files == "Yes"
-        else rf"{train_dir}/{caption_metadata_filename}"
+        else f"{train_dir}/{caption_metadata_filename}"
     )
     cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
-    # Initialize a dictionary with always-included keyword arguments
-    kwargs_for_training = {
-        "adaptive_noise_scale": adaptive_noise_scale,
+    if max_data_loader_n_workers == "" or None:
+        max_data_loader_n_workers = 0
+    else:
+        max_data_loader_n_workers = int(max_data_loader_n_workers)
+
+    if max_train_steps == "" or None:
+        max_train_steps = 0
+    else:
+        max_train_steps = int(max_train_steps)
+
+    config_toml_data = {
+        # Update the values in the TOML data
+        "huggingface_repo_id": huggingface_repo_id,
+        "huggingface_token": huggingface_token,
+        "huggingface_repo_type": huggingface_repo_type,
+        "huggingface_repo_visibility": huggingface_repo_visibility,
+        "huggingface_path_in_repo": huggingface_path_in_repo,
+        "save_state_to_huggingface": save_state_to_huggingface,
+        "resume_from_huggingface": resume_from_huggingface,
+        "async_upload": async_upload,
+        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
         "block_lr": block_lr,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
+        "cache_text_encoder_outputs": cache_text_encoder_outputs,
         "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
-        "clip_skip": clip_skip,
+        "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
-        "dataset_repeats": dataset_repeats,
+        "dataset_repeats": int(dataset_repeats),
+        "debiased_estimation_loss": debiased_estimation_loss,
+        "dynamo_backend": dynamo_backend,
         "enable_bucket": True,
         "flip_aug": flip_aug,
         "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
-        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
+        "huber_c": huber_c,
+        "huber_schedule": huber_schedule,
         "in_json": in_json,
-        "ip_noise_gamma": ip_noise_gamma,
+        "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
-        "keep_tokens": keep_tokens,
-        "learning_rate": learning_rate,
+        "keep_tokens": int(keep_tokens),
+        "learning_rate": learning_rate,  # both for sd1.5 and sdxl
+        "learning_rate_te": (
+            learning_rate_te if not sdxl_checkbox else None
+        ),  # only for sd1.5
+        "learning_rate_te1": (
+            learning_rate_te1 if sdxl_checkbox else None
+        ),  # only for sdxl
+        "learning_rate_te2": (
+            learning_rate_te2 if sdxl_checkbox else None
+        ),  # only for sdxl
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
-        "lr_scheduler_args": lr_scheduler_args,
+        "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_warmup_steps": lr_warmup_steps,
-        "max_bucket_reso": max_bucket_reso,
+        "max_bucket_reso": int(max_bucket_reso),
         "max_data_loader_n_workers": max_data_loader_n_workers,
-        "max_resolution": max_resolution,
-        "max_timestep": max_timestep,
-        "max_token_length": max_token_length,
-        "max_train_epochs": max_train_epochs,
-        "max_train_steps": max_train_steps,
+        "max_timestep": max_timestep if max_timestep!= 0 else None,
+        "max_token_length": int(max_token_length),
+        "max_train_epochs": max_train_epochs if max_train_epochs != 0 else None,
+        "max_train_steps": max_train_steps if max_train_steps != 0 else None,
         "mem_eff_attn": mem_eff_attn,
-        "min_bucket_reso": min_bucket_reso,
-        "min_snr_gamma": min_snr_gamma,
-        "min_timestep": min_timestep,
+        "metadata_author": metadata_author,
+        "metadata_description": metadata_description,
+        "metadata_license": metadata_license,
+        "metadata_tags": metadata_tags,
+        "metadata_title": metadata_title,
+        "min_bucket_reso": int(min_bucket_reso),
+        "min_snr_gamma": min_snr_gamma if min_snr_gamma != 0 else None,
+        "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations,
-        "noise_offset": noise_offset,
+        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
+        "no_half_vae": no_half_vae,
+        "noise_offset": noise_offset if noise_offset != 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
-        "optimizer": optimizer,
-        "optimizer_args": optimizer_args,
+        "optimizer_type": optimizer,
+        "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
         "pretrained_model_name_or_path": pretrained_model_name_or_path,
         "random_crop": random_crop,
+        "resolution": max_resolution,
         "resume": resume,
-        "save_every_n_epochs": save_every_n_epochs,
-        "save_every_n_steps": save_every_n_steps,
-        "save_last_n_steps": save_last_n_steps,
-        "save_last_n_steps_state": save_last_n_steps_state,
+        "sample_every_n_epochs": sample_every_n_epochs if sample_every_n_epochs != 0 else None,
+        "sample_every_n_steps": sample_every_n_steps if sample_every_n_steps != 0 else None,
+        "sample_prompts": create_prompt_file(output_dir, output_dir),
+        "sample_sampler": sample_sampler,
+        "save_every_n_epochs": save_every_n_epochs if save_every_n_epochs!= 0 else None,
+        "save_every_n_steps": save_every_n_steps if save_every_n_steps != 0 else None,
+        "save_last_n_steps": save_last_n_steps if save_last_n_steps != 0 else None,
+        "save_last_n_steps_state": save_last_n_steps_state if save_last_n_steps_state != 0 else None,
         "save_model_as": save_model_as,
         "save_precision": save_precision,
         "save_state": save_state,
         "save_state_on_train_end": save_state_on_train_end,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
-        "seed": seed,
+        "sdpa": True if xformers == "sdpa" else None,
+        "seed": seed if seed != 0 else None,
         "shuffle_caption": shuffle_caption,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
@@ -693,45 +844,51 @@ def train_model(
         "use_wandb": use_wandb,
         "v2": v2,
         "v_parameterization": v_parameterization,
-        "v_pred_like_loss": v_pred_like_loss,
-        "vae_batch_size": vae_batch_size,
+        "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
+        "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name,
         "weighted_captions": weighted_captions,
-        "xformers": xformers,
-        "additional_parameters": additional_parameters,
-        "loss_type": loss_type,
-        "huber_schedule": huber_schedule,
-        "huber_c": huber_c,
+        "xformers": True if xformers == "xformers" else None,
     }
 
-    # Conditionally include specific keyword arguments based on sdxl_checkbox
-    if sdxl_checkbox:
-        kwargs_for_training["cache_text_encoder_outputs"] = cache_text_encoder_outputs
-        kwargs_for_training["learning_rate_te1"] = learning_rate_te1
-        kwargs_for_training["learning_rate_te2"] = learning_rate_te2
-        kwargs_for_training["no_half_vae"] = no_half_vae
-    else:
-        kwargs_for_training["learning_rate_te"] = learning_rate_te
+    # Given dictionary `config_toml_data`
+    # Remove all values = ""
+    config_toml_data = {
+        key: value
+        for key, value in config_toml_data.items()
+        if value != "" and value is not False
+    }
+
+    tmpfilename = "./outputs/tmpfilefinetune.toml"
+    # Save the updated TOML data back to the file
+    with open(tmpfilename, "w") as toml_file:
+        toml.dump(config_toml_data, toml_file)
+
+        if not os.path.exists(toml_file.name):
+            log.error(f"Failed to write TOML file: {toml_file.name}")
+
+    run_cmd.append(f"--config_file")
+    run_cmd.append(fr'"{tmpfilename}"')
+
+    # Initialize a dictionary with always-included keyword arguments
+    kwargs_for_training = {
+        "additional_parameters": additional_parameters,
+    }
 
     # Pass the dynamically constructed keyword arguments to the function
-    run_cmd += run_cmd_advanced_training(**kwargs_for_training)
-
-    run_cmd += run_cmd_sample(
-        sample_every_n_steps,
-        sample_every_n_epochs,
-        sample_sampler,
-        sample_prompts,
-        output_dir,
-    )
+    run_cmd = run_cmd_advanced_training(run_cmd=run_cmd, **kwargs_for_training)
 
     if print_only:
         log.warning(
             "Here is the trainer command as a reference. It will not be executed:\n"
         )
-        print(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = " ".join(run_cmd)
 
-        save_to_file(run_cmd)
+        print(command_to_run)
+
+        save_to_file(command_to_run)
     else:
         # Saving config file for model
         current_datetime = datetime.now()
@@ -747,7 +904,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        log.info(run_cmd)
+        # log.info(run_cmd)
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
@@ -756,13 +913,27 @@ def train_model(
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
-        executor.execute_command(run_cmd=run_cmd, env=env)
+        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+
+        return (
+            gr.Button(visible=False),
+            gr.Button(visible=True),
+            gr.Textbox(value=time.time()),
+        )
 
 
-def finetune_tab(headless=False, config: dict = {}):
+def finetune_tab(
+    headless=False,
+    config: KohyaSSGUIConfig = {},
+    use_shell_flag: bool = False,
+):
     dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
+    
+    global use_shell
+    use_shell = use_shell_flag
+    
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
@@ -785,6 +956,9 @@ def finetune_tab(headless=False, config: dict = {}):
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
+
+        with gr.Accordion("Metadata", open=False), gr.Group():
+            metadata = MetaData(config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             with gr.Row():
@@ -861,7 +1035,9 @@ def finetune_tab(headless=False, config: dict = {}):
                     )
 
                     # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
+                    sdxl_params = SDXLParameters(
+                        source_model.sdxl_checkbox, config=config
+                    )
 
                     with gr.Row():
                         dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
@@ -871,9 +1047,13 @@ def finetune_tab(headless=False, config: dict = {}):
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
-                    gradient_accumulation_steps = gr.Number(
+                    gradient_accumulation_steps = gr.Slider(
                         label="Gradient accumulate steps",
-                        value=1,
+                        info="Number of updates steps to accumulate before performing a backward/update pass",
+                        value=config.get("advanced.gradient_accumulation_steps", 1),
+                        minimum=1,
+                        maximum=120,
+                        step=1,
                     )
                     block_lr = gr.Textbox(
                         label="Block LR (SDXL)",
@@ -894,11 +1074,17 @@ def finetune_tab(headless=False, config: dict = {}):
             with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
                 sample = SampleImages(config=config)
 
+            global huggingface
+            with gr.Accordion("HuggingFace", open=False):
+                huggingface = HuggingFace(config=config)
+
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_run = gr.Button("Start training", variant="primary")
 
-                button_stop_training = gr.Button("Stop training")
+                button_stop_training = gr.Button(
+                    "Stop training", visible=False, variant="stop"
+                )
 
             button_print = gr.Button("Print training command")
 
@@ -960,6 +1146,11 @@ def finetune_tab(headless=False, config: dict = {}):
             basic_training.caption_extension,
             advanced_training.xformers,
             advanced_training.clip_skip,
+            accelerate_launch.dynamo_backend,
+            accelerate_launch.dynamo_mode,
+            accelerate_launch.dynamo_use_fullgraph,
+            accelerate_launch.dynamo_use_dynamic,
+            accelerate_launch.extra_accelerate_launch_args,
             accelerate_launch.num_processes,
             accelerate_launch.num_machines,
             accelerate_launch.multi_gpu,
@@ -1027,7 +1218,20 @@ def finetune_tab(headless=False, config: dict = {}):
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
-            accelerate_launch.extra_accelerate_launch_args,
+            advanced_training.debiased_estimation_loss,
+            huggingface.huggingface_repo_id,
+            huggingface.huggingface_token,
+            huggingface.huggingface_repo_type,
+            huggingface.huggingface_repo_visibility,
+            huggingface.huggingface_path_in_repo,
+            huggingface.save_state_to_huggingface,
+            huggingface.resume_from_huggingface,
+            huggingface.async_upload,
+            metadata.metadata_author,
+            metadata.metadata_description,
+            metadata.metadata_license,
+            metadata.metadata_tags,
+            metadata.metadata_title,
         ]
 
         configuration.button_open_config.click(
@@ -1075,13 +1279,23 @@ def finetune_tab(headless=False, config: dict = {}):
             show_progress=False,
         )
 
+        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
+        run_state = gr.Textbox(value="", visible=False)
+        run_state.change(
+            fn=executor.wait_for_training_to_end,
+            outputs=[button_run, button_stop_training],
+        )
+
         button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            outputs=[button_run, button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(executor.kill_command)
+        button_stop_training.click(
+            executor.kill_command, outputs=[button_run, button_stop_training]
+        )
 
         button_print.click(
             train_model,

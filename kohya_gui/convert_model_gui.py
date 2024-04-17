@@ -26,6 +26,7 @@ def convert_model(
     target_model_type,
     target_save_precision_type,
     unet_use_linear_projection,
+    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if source_model_type == "":
@@ -48,63 +49,70 @@ def convert_model(
         msgbox("The provided target folder does not exist")
         return
 
-    run_cmd = (
-        rf'"{PYTHON}" "{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"'
-    )
+    run_cmd = [
+        PYTHON,
+        fr'"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"',
+    ]
 
     v1_models = [
         "runwayml/stable-diffusion-v1-5",
         "CompVis/stable-diffusion-v1-4",
     ]
 
-    # check if v1 models
+    # Check if v1 models
     if str(source_model_type) in v1_models:
         log.info("SD v1 model specified. Setting --v1 parameter")
-        run_cmd += " --v1"
+        run_cmd.append("--v1")
     else:
         log.info("SD v2 model specified. Setting --v2 parameter")
-        run_cmd += " --v2"
+        run_cmd.append("--v2")
 
     if not target_save_precision_type == "unspecified":
-        run_cmd += f" --{target_save_precision_type}"
+        run_cmd.append(f"--{target_save_precision_type}")
 
     if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
-        run_cmd += f' --reference_model="{source_model_type}"'
+        run_cmd.append("--reference_model")
+        run_cmd.append(source_model_type)
 
     if target_model_type == "diffuser_safetensors":
-        run_cmd += " --use_safetensors"
+        run_cmd.append("--use_safetensors")
 
-    # Fix for stabilityAI diffusers format. When saving v2 models in Diffusers format in training scripts and conversion scripts,
-    # it was found that the U-Net configuration is different from those of Hugging Face's stabilityai models (this repository is
-    # "use_linear_projection": false, stabilityai is true). Please note that the weight shapes are different, so please be careful
-    # when using the weight files directly.
-
+    # Fix for stabilityAI diffusers format
     if unet_use_linear_projection:
-        run_cmd += " --unet_use_linear_projection"
+        run_cmd.append("--unet_use_linear_projection")
 
-    run_cmd += f' "{source_model_input}"'
+    # Add the source model input path
+    run_cmd.append(fr'"{source_model_input}"')
 
+    # Determine the target model path
     if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
         target_model_path = os.path.join(
             target_model_folder_input, target_model_name_input
         )
-        run_cmd += f' "{target_model_path}"'
     else:
         target_model_path = os.path.join(
             target_model_folder_input,
             f"{target_model_name_input}.{target_model_type}",
         )
-        run_cmd += f' "{target_model_path}"'
 
-    log.info(run_cmd)
+    # Add the target model path
+    run_cmd.append(fr'"{target_model_path}"')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding an example of an environment variable that might be relevant
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+
+    # Run the command in the sd-scripts folder context
+    subprocess.run(
+        command_to_run, env=env, shell=use_shell
+    )
 
 
 ###
@@ -112,7 +120,7 @@ def convert_model(
 ###
 
 
-def gradio_convert_model_tab(headless=False):
+def gradio_convert_model_tab(headless=False, use_shell: bool = False):
     from .common_gui import create_refresh_button
 
     default_source_model = os.path.join(scriptdir, "outputs")
@@ -195,6 +203,7 @@ def gradio_convert_model_tab(headless=False):
                         "runwayml/stable-diffusion-v1-5",
                         "CompVis/stable-diffusion-v1-4",
                     ],
+                    allow_custom_value=True,
                 )
         with gr.Group(), gr.Row():
             with gr.Column(), gr.Row():
@@ -271,6 +280,7 @@ def gradio_convert_model_tab(headless=False):
                 target_model_type,
                 target_save_precision_type,
                 unet_use_linear_projection,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

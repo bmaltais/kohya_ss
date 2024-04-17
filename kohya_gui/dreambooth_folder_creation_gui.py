@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 from .common_gui import get_folder_path, scriptdir, list_dirs, create_refresh_button
 import shutil
 import os
@@ -45,12 +44,12 @@ def dreambooth_folder_preparation(
 
     # Check for instance prompt
     if util_instance_prompt_input == "":
-        msgbox("Instance prompt missing...")
+        log.error("Instance prompt missing...")
         return
 
     # Check for class prompt
     if util_class_prompt_input == "":
-        msgbox("Class prompt missing...")
+        log.error("Class prompt missing...")
         return
 
     # Create the training_dir path

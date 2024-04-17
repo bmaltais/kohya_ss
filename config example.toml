@@ -1,6 +1,9 @@
 # Copy this file and name it config.toml
 # Edit the values to suit your needs
 
+[settings]
+use_shell = false # Use shell furing process run of sd-scripts oython code. Most secure is false but some systems may require it to be true to properly run sd-scripts.
+
 # Default folders location
 [model]
 models_dir = "./models"                    # Pretrained model name or path
@@ -20,6 +23,10 @@ logging_dir = "./logs"      # Logging directory
 config_dir = "./presets" # Load/Save Config file
 
 [accelerate_launch]
+dynamo_backend = "no"             # Dynamo backend
+dynamo_mode = "default"           # Dynamo mode
+dynamo_use_dynamic = false        # Dynamo use dynamic
+dynamo_use_fullgraph = false      # Dynamo use fullgraph
 extra_accelerate_launch_args = "" # Extra accelerate launch args
 gpu_ids = ""                      # GPU IDs
 main_process_port = 0             # Main process port
@@ -42,19 +49,19 @@ learning_rate_te2 = 0.0001     # Learning rate text encoder 2
 lr_scheduler = "cosine"        # LR Scheduler
 lr_scheduler_args = ""         # LR Scheduler args
 lr_warmup = 0                  # LR Warmup (% of total steps)
-lr_scheduler_num_cycles = ""   # LR Scheduler num cycles
-lr_scheduler_power = ""        # LR Scheduler power
+lr_scheduler_num_cycles = 1    # LR Scheduler num cycles
+lr_scheduler_power = 1.0       # LR Scheduler power
 max_bucket_reso = 2048         # Max bucket resolution
 max_grad_norm = 1.0            # Max grad norm
 max_resolution = "512,512"     # Max resolution
-max_train_steps = ""           # Max train steps
-max_train_epochs = ""          # Max train epochs
+max_train_steps = 0            # Max train steps
+max_train_epochs = 0           # Max train epochs
 min_bucket_reso = 256          # Min bucket resolution
 optimizer = "AdamW8bit"        # Optimizer (AdamW, AdamW8bit, Adafactor, DAdaptation, DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptAdanIP, DAdaptAdamPreprint, DAdaptLion, DAdaptSGD, Lion, Lion8bit, PagedAdam
 optimizer_args = ""            # Optimizer args
 save_every_n_epochs = 1        # Save every n epochs
 save_every_n_steps = 1         # Save every n steps
-seed = "1234"                  # Seed
+seed = 1234                    # Seed
 stop_text_encoder_training = 0 # Stop text encoder training (% of total steps)
 train_batch_size = 1           # Train batch size
 
@@ -83,9 +90,9 @@ log_tracker_config_dir = "./logs"         # Log tracker configs directory
 log_tracker_name = ""                     # Log tracker name
 loss_type = "l2"                          # Loss type (l2, huber, smooth_l1)
 masked_loss = false                       # Masked loss
-max_data_loader_n_workers = "0"           # Max data loader n workers (string)
+max_data_loader_n_workers = 0             # Max data loader n workers (string)
 max_timestep = 1000                       # Max timestep
-max_token_length = "150"                  # Max token length ("75", "150", "225")
+max_token_length = 150                    # Max token length ("75", "150", "225")
 mem_eff_attn = false                      # Memory efficient attention
 min_snr_gamma = 0                         # Min SNR gamma
 min_timestep = 0                          # Min timestep
@@ -126,6 +133,16 @@ reg_images_repeat = 1                                   # Regularisation images 
 util_regularization_images_repeat_input = 1             # Regularisation images repeat input
 util_training_images_repeat_input = 40                  # Training images repeat input
 
+[huggingface]
+async_upload = false              # Async upload
+huggingface_path_in_repo = ""     # Huggingface path in repo
+huggingface_repo_id = ""          # Huggingface repo id
+huggingface_repo_type = ""        # Huggingface repo type
+huggingface_repo_visibility = ""  # Huggingface repo visibility
+huggingface_token = ""            # Huggingface token
+resume_from_huggingface = ""      # Resume from huggingface (ex: {repo_id}/{path_in_repo}:{revision}:{repo_type})
+save_state_to_huggingface = false # Save state to huggingface
+
 [samples]
 sample_every_n_steps = 0   # Sample every n steps
 sample_every_n_epochs = 0  # Sample every n epochs
@@ -159,3 +176,10 @@ train_data_dir = ""                           # Image folder to caption (contain
 undesired_tags = ""                           # comma-separated list of tags to remove, e.g. 1girl,1boy
 use_rating_tags = false                       # Use rating tags
 use_rating_tags_as_last_tag = false           # Use rating tags as last tagging tags
+
+[metadata]
+metadata_title = ""       # Title for model metadata (default is output_name)
+metadata_author = ""      # Author name for model metadata
+metadata_description = "" # Description for model metadata
+metadata_license = ""     # License for model metadata
+metadata_tags = ""        # Tags for model metadata

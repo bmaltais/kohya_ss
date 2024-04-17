@@ -48,8 +48,9 @@ def verify_conditions(sd_model, lora_models):
 
 
 class GradioMergeLoRaTab:
-    def __init__(self, headless=False):
+    def __init__(self, headless=False, use_shell: bool = False):
         self.headless = headless
+        self.use_shell = use_shell
         self.build_tab()
 
     def save_inputs_to_json(self, file_path, inputs):
@@ -379,6 +380,7 @@ class GradioMergeLoRaTab:
                     save_to,
                     precision,
                     save_precision,
+                    gr.Checkbox(value=self.use_shell, visible=False),
                 ],
                 show_progress=False,
             )
@@ -398,6 +400,7 @@ class GradioMergeLoRaTab:
         save_to,
         precision,
         save_precision,
+        use_shell: bool = False,
     ):
 
         log.info("Merge model...")
@@ -422,36 +425,44 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/merge_lora.py"'
+            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
         else:
-            run_cmd = (
-                rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"'
-            )
+            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
+
         if sd_model:
-            run_cmd += rf' --sd_model "{sd_model}"'
-        run_cmd += f" --save_precision {save_precision}"
-        run_cmd += f" --precision {precision}"
-        run_cmd += rf' --save_to "{save_to}"'
+            run_cmd.append("--sd_model")
+            run_cmd.append(fr'"{sd_model}"')
 
-        # Create a space-separated string of non-empty models (from the second element onwards), enclosed in double quotes
-        models_cmd = " ".join([rf'"{model}"' for model in lora_models if model])
+        run_cmd.extend(["--save_precision", save_precision])
+        run_cmd.extend(["--precision", precision])
+        run_cmd.append("--save_to")
+        run_cmd.append(fr'"{save_to}"')
 
-        # Create a space-separated string of non-zero ratios corresponding to non-empty LoRa models
+        # Prepare model and ratios command as lists, including only non-empty models
+        valid_models = [model for model in lora_models if model]
         valid_ratios = [ratios[i] for i, model in enumerate(lora_models) if model]
-        ratios_cmd = " ".join([str(ratio) for ratio in valid_ratios])
 
-        if models_cmd:
-            run_cmd += f" --models {models_cmd}"
-            run_cmd += f" --ratios {ratios_cmd}"
-
-        log.info(run_cmd)
+        if valid_models:
+            run_cmd.append("--models")
+            run_cmd.extend(valid_models)  # Each model is a separate argument
+            run_cmd.append("--ratios")
+            run_cmd.extend(
+                map(str, valid_ratios)
+            )  # Convert ratios to strings and include them as separate arguments
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
             rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
+        # Example of adding an environment variable for TensorFlow, if necessary
+        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-        # Run the command
-        subprocess.run(run_cmd, env=env)
+        # Reconstruct the safe command string for display
+        command_to_run = " ".join(run_cmd)
+        log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+                
+        # Run the command in the sd-scripts folder context
+        subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
         log.info("Done merging...")

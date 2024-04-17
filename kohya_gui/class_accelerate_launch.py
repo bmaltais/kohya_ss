@@ -1,5 +1,7 @@
 import gradio as gr
 import os
+import shlex
+
 from .class_gui_config import KohyaSSGUIConfig
 
 
@@ -21,14 +23,16 @@ class AccelerateLaunch:
                 self.num_processes = gr.Number(
                     label="Number of processes",
                     value=self.config.get("accelerate_launch.num_processes", 1),
-                    precision=0,
+                    # precision=0,
+                    step=1,
                     minimum=1,
                     info="The total number of processes to be launched in parallel.",
                 )
                 self.num_machines = gr.Number(
                     label="Number of machines",
                     value=self.config.get("accelerate_launch.num_machines", 1),
-                    precision=0,
+                    # precision=0,
+                    step=1,
                     minimum=1,
                     info="The total number of machines used in this training.",
                 )
@@ -42,6 +46,48 @@ class AccelerateLaunch:
                     ),
                     info="The number of CPU threads per process.",
                 )
+            with gr.Row():
+                self.dynamo_backend = gr.Dropdown(
+                    label="Dynamo backend",
+                    choices=[
+                        "no",
+                        "eager",
+                        "aot_eager",
+                        "inductor",
+                        "aot_ts_nvfuser",
+                        "nvprims_nvfuser",
+                        "cudagraphs",
+                        "ofi",
+                        "fx2trt",
+                        "onnxrt",
+                        "tensorrt",
+                        "ipex",
+                        "tvm",
+                    ],
+                    value=self.config.get("accelerate_launch.dynamo_backend", "no"),
+                    info="The backend to use for the dynamo JIT compiler.",
+                )
+                self.dynamo_mode = gr.Dropdown(
+                    label="Dynamo mode",
+                    choices=[
+                        "default",
+                        "reduce-overhead",
+                        "max-autotune",
+                    ],
+                    value=self.config.get("accelerate_launch.dynamo_mode", "default"),
+                    info="Choose a mode to optimize your training with dynamo.",
+                )
+                self.dynamo_use_fullgraph = gr.Checkbox(
+                    label="Dynamo use fullgraph",
+                    value=self.config.get("accelerate_launch.dynamo_use_fullgraph", False),
+                    info="Whether to use full graph mode for dynamo or it is ok to break model into several subgraphs",
+                )
+                self.dynamo_use_dynamic = gr.Checkbox(
+                    label="Dynamo use dynamic",
+                    value=self.config.get("accelerate_launch.dynamo_use_dynamic", False),
+                    info="Whether to enable dynamic shape tracing.",
+                )
+
         with gr.Accordion("Hardware Selection", open=True):
             with gr.Row():
                 self.multi_gpu = gr.Checkbox(
@@ -60,7 +106,8 @@ class AccelerateLaunch:
                 self.main_process_port = gr.Number(
                     label="Main process port",
                     value=self.config.get("accelerate_launch.main_process_port", 0),
-                    precision=1,
+                    # precision=1,
+                    step=1,
                     minimum=0,
                     maximum=65535,
                     info="The port to use to communicate with the machine of rank 0.",
@@ -75,46 +122,54 @@ class AccelerateLaunch:
                 info="List of extra parameters to pass to accelerate launch",
             )
 
-    def run_cmd(**kwargs):
-        run_cmd = ""
+    def run_cmd(run_cmd: list, **kwargs):
+        if "dynamo_backend" in kwargs and kwargs.get("dynamo_backend"):
+            run_cmd.append("--dynamo_backend")
+            run_cmd.append(kwargs["dynamo_backend"])
 
-        if "extra_accelerate_launch_args" in kwargs:
-            extra_accelerate_launch_args = kwargs.get("extra_accelerate_launch_args")
-            if extra_accelerate_launch_args != "":
-                run_cmd += rf" {extra_accelerate_launch_args}"
+        if "dynamo_mode" in kwargs and kwargs.get("dynamo_mode"):
+            run_cmd.append("--dynamo_mode")
+            run_cmd.append(kwargs["dynamo_mode"])
 
-        if "gpu_ids" in kwargs:
-            gpu_ids = kwargs.get("gpu_ids")
-            if not gpu_ids == "":
-                run_cmd += f' --gpu_ids="{gpu_ids}"'
+        if "dynamo_use_fullgraph" in kwargs and kwargs.get("dynamo_use_fullgraph"):
+            run_cmd.append("--dynamo_use_fullgraph")
 
-        if "main_process_port" in kwargs:
-            main_process_port = kwargs.get("main_process_port")
-            if main_process_port > 0:
-                run_cmd += f' --main_process_port="{main_process_port}"'
+        if "dynamo_use_dynamic" in kwargs and kwargs.get("dynamo_use_dynamic"):
+            run_cmd.append("--dynamo_use_dynamic")
+        
+        if "extra_accelerate_launch_args" in kwargs and kwargs["extra_accelerate_launch_args"] != "":
+            extra_accelerate_launch_args = kwargs["extra_accelerate_launch_args"].replace('"', "")
+            for arg in extra_accelerate_launch_args.split():
+                run_cmd.append(shlex.quote(arg))
 
-        if "mixed_precision" in kwargs:
-            run_cmd += rf' --mixed_precision="{kwargs.get("mixed_precision")}"'
+        if "gpu_ids" in kwargs and kwargs.get("gpu_ids") != "":
+            run_cmd.append("--gpu_ids")
+            run_cmd.append(shlex.quote(kwargs["gpu_ids"]))
 
-        if "multi_gpu" in kwargs:
-            if kwargs.get("multi_gpu"):
-                run_cmd += " --multi_gpu"
+        if "main_process_port" in kwargs and kwargs.get("main_process_port", 0) > 0:
+            run_cmd.append("--main_process_port")
+            run_cmd.append(str(int(kwargs["main_process_port"])))
 
-        if "num_processes" in kwargs:
-            num_processes = kwargs.get("num_processes")
-            if int(num_processes) > 0:
-                run_cmd += f" --num_processes={int(num_processes)}"
+        if "mixed_precision" in kwargs and kwargs.get("mixed_precision"):
+            run_cmd.append("--mixed_precision")
+            run_cmd.append(shlex.quote(kwargs["mixed_precision"]))
 
-        if "num_machines" in kwargs:
-            num_machines = kwargs.get("num_machines")
-            if int(num_machines) > 0:
-                run_cmd += f" --num_machines={int(num_machines)}"
+        if "multi_gpu" in kwargs and kwargs.get("multi_gpu"):
+            run_cmd.append("--multi_gpu")
 
-        if "num_cpu_threads_per_process" in kwargs:
-            num_cpu_threads_per_process = kwargs.get("num_cpu_threads_per_process")
-            if int(num_cpu_threads_per_process) > 0:
-                run_cmd += (
-                    f" --num_cpu_threads_per_process={int(num_cpu_threads_per_process)}"
-                )
+        if "num_processes" in kwargs and int(kwargs.get("num_processes", 0)) > 0:
+            run_cmd.append("--num_processes")
+            run_cmd.append(str(int(kwargs["num_processes"])))
+
+        if "num_machines" in kwargs and int(kwargs.get("num_machines", 0)) > 0:
+            run_cmd.append("--num_machines")
+            run_cmd.append(str(int(kwargs["num_machines"])))
+
+        if (
+            "num_cpu_threads_per_process" in kwargs
+            and int(kwargs.get("num_cpu_threads_per_process", 0)) > 0
+        ):
+            run_cmd.append("--num_cpu_threads_per_process")
+            run_cmd.append(str(int(kwargs["num_cpu_threads_per_process"])))
 
         return run_cmd

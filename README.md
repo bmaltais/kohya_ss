@@ -42,6 +42,11 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [2024/04/12 (v24.0.0)](#20240412-v2400)
+      - [Enhancements](#enhancements)
+      - [Security and Stability](#security-and-stability)
+      - [Shell Execution](#shell-execution)
+      - [Miscellaneous](#miscellaneous)
     - [2024/04/10 (v23.1.5)](#20240410-v2315)
       - [Security Improvements](#security-improvements)
     - [2024/04/08 (v23.1.4)](#20240408-v2314)
@@ -401,6 +406,35 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
+### 2024/04/12 (v24.0.0)
+
+#### Enhancements
+
+- **User Interface:** Transitioned the GUI to use a TOML file for argument passing to sd-scripts, significantly enhancing security by eliminating the need for command-line interface (CLI) use for sensitive data.
+- **Training Tools:** Improved the training and TensorBoard buttons to provide a more intuitive user experience.
+- **HuggingFace Integration:** Integrated a HuggingFace section in all trainer tabs, enabling authentication and use of HuggingFace's advanced AI models.
+- **Gradio Upgrade:** Upgraded Gradio to version 4.20.0 to fix a previously identified bug impacting the runpod platform.
+- **Metadata Support:** Added functionality for metadata capture within the GUI.
+
+#### Security and Stability
+
+- **Code Refactoring:** Extensively rewrote the code to address various security vulnerabilities, including removing the `shell=True` parameter from process calls.
+- **Scheduler Update:** Disabled LR Warmup when using the Constant LR Scheduler to prevent traceback errors associated with sd-scripts.
+
+#### Shell Execution
+
+- **Conditional Shell Usage:** Added support for optional shell usage when executing external sd-scripts commands, tailored to meet specific platform needs and recent security updates.
+
+The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument to prevent shell execution (`shell=True`) during external process handling. Unix-like systems automatically set `use_shell` to True internally, as required for proper execution of external commands. To enforce disabling shell execution, use the `--do_not_use_shell` argument.
+
+- **How to Enable Shell Execution via Config File:**
+  1. In the `config.toml` file, set `use_shell` to `true` to enable shell usage as per GUI startup settings.
+  **Note:** The `--do_not_use_shell` option will override the `config.toml` settings, setting `use_shell` to False even if it is set to True in the config file.
+
+#### Miscellaneous
+
+- Made various other minor improvements and bug fixes to enhance overall functionality and user experience.
+
 ### 2024/04/10 (v23.1.5)
 
 - Fix issue with Textual Inversion configuration file selection.
@@ -462,8 +496,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
     - The `.toml` file for the dataset config is now read in UTF-8 encoding. PR [#1167](https://github.com/kohya-ss/sd-scripts/pull/1167) Thanks to Horizon1704!
     - Fixed a bug that the last subset settings are applied to all images when multiple subsets of regularization images are specified in the dataset settings. The settings for each subset are correctly applied to each image. PR [#1205](https://github.com/kohya-ss/sd-scripts/pull/1205) Thanks to feffy380!
     - Some features are added to the dataset subset settings.
-      - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping. 
-        - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped. 
+      - `secondary_separator` is added to specify the tag separator that is not the target of shuffling or dropping.
+        - Specify `secondary_separator=";;;"`. When you specify `secondary_separator`, the part is not shuffled or dropped.
       - `enable_wildcard` is added. When set to `true`, the wildcard notation `{aaa|bbb|ccc}` can be used. The multi-line caption is also enabled.
       - `keep_tokens_separator` is updated to be used twice in the caption. When you specify `keep_tokens_separator="|||"`, the part divided by the second `|||` is not shuffled or dropped and remains at the end.
       - The existing features `caption_prefix` and `caption_suffix` can be used together. `caption_prefix` and `caption_suffix` are processed first, and then `enable_wildcard`, `keep_tokens_separator`, shuffling and dropping, and `secondary_separator` are processed in order.
@@ -515,4 +549,4 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Added support for `Debiased Estimation loss` to Dreambooth settings.
 - Added support for "Dataset Preparation" defaults via the config.toml file.
 - Added a field to allow for the input of extra accelerate launch arguments.
-- Added new caption tool from https://github.com/kainatquaderee
+- Added new caption tool from <https://github.com/kainatquaderee>

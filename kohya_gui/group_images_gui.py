@@ -21,6 +21,7 @@ def group_images(
     do_not_copy_other_files,
     generate_captions,
     caption_ext,
+    use_shell: bool = False,
 ):
     if input_folder == "":
         msgbox("Input folder is missing...")
@@ -32,33 +33,45 @@ def group_images(
 
     log.info(f"Grouping images in {input_folder}...")
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/group_images.py"'
-    run_cmd += f' "{input_folder}"'
-    run_cmd += f' "{output_folder}"'
-    run_cmd += f" {(group_size)}"
-    if include_subfolders:
-        run_cmd += f" --include_subfolders"
-    if do_not_copy_other_files:
-        run_cmd += f" --do_not_copy_other_files"
-    if generate_captions:
-        run_cmd += f" --caption"
-        if caption_ext:
-            run_cmd += f" --caption_ext={caption_ext}"
+    run_cmd = [
+        PYTHON,
+        f"{scriptdir}/tools/group_images.py",
+        fr'"{input_folder}"',
+        fr'"{output_folder}"',
+        str(group_size),
+    ]
 
-    log.info(run_cmd)
+    if include_subfolders:
+        run_cmd.append("--include_subfolders")
+
+    if do_not_copy_other_files:
+        run_cmd.append("--do_not_copy_other_files")
+
+    if generate_captions:
+        run_cmd.append("--caption")
+        if caption_ext:
+            run_cmd.append("--caption_ext")
+            run_cmd.append(caption_ext)
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    # Adding a common environmental setting as an example if it's missing in the original context
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Run the command
-    subprocess.run(run_cmd, env=env)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            
+    # Run the command in the sd-scripts folder context
+    subprocess.run(command_to_run, env=env, shell=use_shell)
+
 
     log.info("...grouping done")
 
 
-def gradio_group_images_gui_tab(headless=False):
+def gradio_group_images_gui_tab(headless=False, use_shell: bool = False):
     from .common_gui import create_refresh_button
 
     current_input_folder = os.path.join(scriptdir, "data")
@@ -190,6 +203,7 @@ def gradio_group_images_gui_tab(headless=False):
                 do_not_copy_other_files,
                 generate_captions,
                 caption_ext,
+                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )
