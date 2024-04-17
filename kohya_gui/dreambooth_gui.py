@@ -530,8 +530,11 @@ def train_model(
                 lr_warmup_steps = 0
         else:
             lr_warmup_steps = 0
-            
-        max_train_steps_info = f"Max train steps: {max_train_steps}"
+        
+        if max_train_steps == 0:
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
     else:
         if train_data_dir == "":
             log.error("Train data dir is empty")
@@ -604,7 +607,10 @@ def train_model(
             )
             max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
         else:
-            max_train_steps_info = f"Max train steps: {max_train_steps}"
+            if max_train_steps == 0:
+                max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+            else:
+                max_train_steps_info = f"Max train steps: {max_train_steps}"
 
         if lr_warmup != 0:
             lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
@@ -612,11 +618,12 @@ def train_model(
             lr_warmup_steps = 0
             
         log.info(f"Total steps: {total_steps}")
-        log.info(f"Train batch size: {train_batch_size}")
-        log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
-        log.info(f"Epoch: {epoch}")
-        log.info(max_train_steps_info)
-        log.info(f"lr_warmup_steps = {lr_warmup_steps}")
+        
+    log.info(f"Train batch size: {train_batch_size}")
+    log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+    log.info(f"Epoch: {epoch}")
+    log.info(max_train_steps_info)
+    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
 

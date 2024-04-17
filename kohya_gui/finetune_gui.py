@@ -559,6 +559,11 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping caption json file, image buckets, total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps creation..."
         )
+        
+        if max_train_steps == 0:
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
     else:
         # create caption json file
         if generate_caption_database:
@@ -675,8 +680,13 @@ def train_model(
         # Divide by two because flip augmentation create two copied of the source images
         if flip_aug and max_train_steps:
             max_train_steps = int(math.ceil(float(max_train_steps) / 2))
+            
+        if max_train_steps == 0:
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+        else:
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
     
-    log.info(f"max_train_steps = {max_train_steps}")
+    log.info(max_train_steps_info)
     
     if max_train_steps != 0:
         lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
