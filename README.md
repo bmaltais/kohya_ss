@@ -406,6 +406,10 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
+### 2024/04/24 (v24.0.2)
+
+- Fixed issue with clip_skip not being passed as an int to sd-scripts when using old config.json files.
+
 ### 2024/04/17 (v24.0.1)
 
 #### Enhancements

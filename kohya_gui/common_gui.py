@@ -323,7 +323,9 @@ def update_my_data(my_data):
 
     # Convert values to int if they are strings
     for key in [
+        "clip_skip",
         "epoch",
+        "gradient_accumulation_steps",
         "keep_tokens",
         "lr_warmup",
         "max_data_loader_n_workers",
