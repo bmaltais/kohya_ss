@@ -507,20 +507,20 @@ def train_model(
         vae=vae,
         dataset_config=dataset_config,
     ):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if token_string == "":
         output_message(msg="Token string is missing", headless=headless)
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if init_word == "":
         output_message(msg="Init word is missing", headless=headless)
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless
     ):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     if dataset_config:
         log.info(
@@ -1046,25 +1046,13 @@ def ti_tab(
                     "Stop training", visible=False, variant="stop"
                 )
 
-            button_print = gr.Button("Print training command")
+        with gr.Column(), gr.Group():
+            with gr.Row():
+                button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         with gr.Column(), gr.Group():
-            (
-                button_start_tensorboard,
-                button_stop_tensorboard,
-            ) = gradio_tensorboard()
-
-        button_start_tensorboard.click(
-            start_tensorboard,
-            inputs=[dummy_headless, folders.logging_dir],
-            show_progress=False,
-        )
-
-        button_stop_tensorboard.click(
-            stop_tensorboard,
-            show_progress=False,
-        )
+            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
