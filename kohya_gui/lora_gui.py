@@ -1117,7 +1117,7 @@ def train_model(
         "resume": resume,
         "sample_every_n_epochs": sample_every_n_epochs if sample_every_n_epochs != 0 else None,
         "sample_every_n_steps": sample_every_n_steps if sample_every_n_steps != 0 else None,
-        "sample_prompts": create_prompt_file(output_dir, output_dir),
+        "sample_prompts": create_prompt_file(sample_prompts, output_dir),
         "sample_sampler": sample_sampler,
         "save_every_n_epochs": save_every_n_epochs if save_every_n_epochs!= 0 else None,
         "save_every_n_steps": save_every_n_steps if save_every_n_steps != 0 else None,
