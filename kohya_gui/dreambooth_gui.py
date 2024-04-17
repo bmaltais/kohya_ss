@@ -510,12 +510,12 @@ def train_model(
         vae=vae,
         dataset_config=dataset_config,
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
     ):
-        return TRAIN_BUTTON_VISIBLE
+        return
 
     if dataset_config:
         log.info(
@@ -934,13 +934,25 @@ def dreambooth_tab(
                     "Stop training", visible=False, variant="stop"
                 )
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_print = gr.Button("Print training command")
+            button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
         with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+            (
+                button_start_tensorboard,
+                button_stop_tensorboard,
+            ) = gradio_tensorboard()
+
+        button_start_tensorboard.click(
+            start_tensorboard,
+            inputs=[dummy_headless, folders.logging_dir],
+            show_progress=False,
+        )
+
+        button_stop_tensorboard.click(
+            stop_tensorboard,
+            show_progress=False,
+        )
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
