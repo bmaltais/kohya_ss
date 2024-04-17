@@ -212,7 +212,7 @@ class AdvancedTraining:
             self.clip_skip = gr.Slider(
                 label="Clip skip",
                 value=self.config.get("advanced.clip_skip", 1),
-                minimum=1,
+                minimum=0,
                 maximum=12,
                 step=1,
             )
