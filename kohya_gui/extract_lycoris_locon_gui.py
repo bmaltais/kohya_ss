@@ -21,7 +21,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def extract_lycoris_locon(
@@ -74,7 +74,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = [PYTHON, fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
+    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
 
     if is_sdxl:
         run_cmd.append("--is_sdxl")

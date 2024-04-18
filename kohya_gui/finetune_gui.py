@@ -53,7 +53,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
@@ -569,7 +569,7 @@ def train_model(
         if generate_caption_database:
             # Define the command components
             run_cmd = [
-                PYTHON,
+                fr'"{PYTHON}"',
                 f'"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"',
             ]
 
@@ -606,7 +606,7 @@ def train_model(
         if generate_image_buckets:
             # Build the command to run the preparation script
             run_cmd = [
-                PYTHON,
+                fr'"{PYTHON}"',
                 f'"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"',
                 image_folder,
                 os.path.join(train_dir, caption_metadata_filename),

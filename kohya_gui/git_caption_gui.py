@@ -10,7 +10,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def caption_images(
@@ -35,7 +35,7 @@ def caption_images(
 
     log.info(f"GIT captioning files in {train_data_dir}...")
 
-    run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"']
+    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"']
 
     # Add --model_id if provided
     if model_id != "":

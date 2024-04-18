@@ -26,7 +26,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def check_model(model):
@@ -425,9 +425,9 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
+            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
         else:
-            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
+            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
 
         if sd_model:
             run_cmd.append("--sd_model")

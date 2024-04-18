@@ -20,7 +20,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def extract_dylora(
@@ -51,7 +51,7 @@ def extract_dylora(
         save_to = f"{path}_tmp{ext}"
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
         "--save_to",
         rf'"{save_to}"',

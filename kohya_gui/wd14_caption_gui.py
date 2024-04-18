@@ -53,7 +53,7 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        get_executable_path("accelerate"),
+        fr'"{get_executable_path("accelerate")}"',
         "launch",
         fr'"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"',
     ]

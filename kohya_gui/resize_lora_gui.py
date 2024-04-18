@@ -21,7 +21,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def resize_lora(
@@ -65,7 +65,7 @@ def resize_lora(
         device = "cuda"
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/sd-scripts/networks/resize_lora.py"',
         "--save_precision",
         save_precision,

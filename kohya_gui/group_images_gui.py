@@ -10,7 +10,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def group_images(
@@ -34,7 +34,7 @@ def group_images(
     log.info(f"Grouping images in {input_folder}...")
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         f'"{scriptdir}/tools/group_images.py"',
         fr'"{input_folder}"',
         fr'"{output_folder}"',

@@ -49,8 +49,6 @@ executor = CommandExecutor()
 huggingface = None
 use_shell = False
 
-PYTHON = fr'"{sys.executable}"'
-
 TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
 
 

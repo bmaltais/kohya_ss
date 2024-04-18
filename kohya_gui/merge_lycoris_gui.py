@@ -21,7 +21,7 @@ refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
-PYTHON = fr'"{sys.executable}"'
+PYTHON = sys.executable
 
 
 def merge_lycoris(
@@ -39,7 +39,7 @@ def merge_lycoris(
 
     # Build the command to run merge_lycoris.py using list format
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/tools/merge_lycoris.py"',
         fr'"{base_model}"',
         fr'"{lycoris_model}"',
