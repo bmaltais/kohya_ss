@@ -47,6 +47,7 @@ The LoRA updated text encoder is used in all Attention blocks, so any neural net
 The neural network added here is called "Text Encoder" in Kohya_ss.
 
 ## Basic training parameters
+
 ### LoRA type
 
 Specifies the type of LoRA learning. The LoRA explained above is the "standard" type. "DyLoRA" learns multiple ranks below the specified rank at the same time, so it is convenient when you want to select the optimum rank. LoHa is highly efficient LoRA, and LoCon extends learning to U-Net's Res block.
@@ -125,7 +126,6 @@ You can get LoRA with a sufficiently high accuracy at fp16.
 
 ### Save precision
 
-
 Specifies the type of weight data to save in the LoRA file.
 
 float is 32-bit, fp16 and bf16 are 16-bit units. The two below have smaller file sizes.
@@ -139,7 +139,8 @@ The number of threads per CPU core during training. Basically, the higher the nu
 Default is 2.
 
 ### Seeds
-During learning, there are a number of random processes such as ``in what order to read the images'' and ``how much noise to put on the training images (details omitted)''.
+
+During learning, there are a number of random processes such as ``in what order to read the images'' and``how much noise to put on the training images (details omitted)''.
 
 Seed is like an ID for determining the random processing procedure, and if the same Seed is specified, the same random procedure will be used each time, making it easier to reproduce the learning results.
 
@@ -167,7 +168,7 @@ However, if you turn this on, you will not be able to use augmentation and rando
 
 Default is off.
 
-### Learning rate:
+### Learning rate
 
 Specify the learning rate. " Learning" is to change the thickness (weight) of the wiring in the neural network so that a picture that looks exactly like the given picture can be made, but every time a picture is given, the wiring is changed. If you tune too much only to the given picture, you will not be able to draw other pictures at all.
 
@@ -175,7 +176,7 @@ To avoid this, we change the weights slightly each time to incorporate a little 
 
 The default value is 0.0001.
 
-### LR Scheduler:
+### LR Scheduler
 
 You can change the learning rate in the middle of learning. A scheduler is a setting for how to change the learning rate. Possible values include:
 
@@ -219,6 +220,7 @@ If you want more granularity for a given optimizer , write the command here.
 You can usually leave this field blank.
 
 ### Text Encoder learning rate
+
 Sets the learning rate for the text encoder . As I wrote earlier, the effect of additional training on text encoders affects the entire U-Net.
 
 Therefore, it is usually set lower than the learning rate (Unet learning rate) for each block of U-Net.
@@ -302,6 +304,7 @@ If your training images are all the same size, you can turn this option off, but
 Enlargement and reduction are performed while maintaining the aspect ratio of the image. If the aspect ratio is not the same as the standard size, the vertical or horizontal size of the image after scaling may exceed the standard size. For example, if the base size is 512x512 ( 1 aspect ratio ) and the image size is 1536x1024 ( 1.5 aspect ratio ), the image will be scaled down to 768x512 ( 1.5 aspect ratio remains).
 
 ## Advanced Configuration
+
 After this are the options in the Advanced Configuration section.
 
 ### Weights, Blocks, Conv
@@ -310,8 +313,8 @@ These are the "learning weight" and "rank" settings for each block in U-Net. Sel
 
 *These settings are for advanced users. If you have no preference, you can leave all fields blank.
 
-
 #### Weights: Down LR weights/Mid LR weights/Up LR weights
+
 As you can see from the U-Net structure diagram, U-Net consists of 12 IN blocks, 1 MID block, and 12 OUT blocks, a total of 25 blocks.
 
 If you want different learning rate weights for each block, you can set them here individually.
@@ -326,18 +329,16 @@ A weight of 0.5 means half the learning rate.
 
 "Up LR weights" specify the weight of each of the 12 OUT blocks.
 
- 
-
 #### Weights: Blocks LR zero threshold
+
 I explained that "LoRA adds neural nets ", but it doesn't make sense to add neural nets with too small weights (i.e. barely learned). Therefore, you can set "Do not add neural nets to blocks with too small weights ".
 
 Blocks that do not exceed the weight value set here will not be added to the neural net . For example, if you specify 0.1 here, the neural net will not be added to blocks with weights less than or equal to 0.1 (note that exclusions also include the specified value!).
 
 The default is blank, which is 0 (do nothing).
 
- 
-
 #### Blocks: Block dims, Block alphas
+
 Here you can set different rank (dim) and alpha values ​​for each of the 25 blocks IN0~11, MID, OUT0~11.
 
 See Network Rank, Network alpha for rank and alpha values.
@@ -348,9 +349,8 @@ You must always specify 25 numbers for this parameter value, but since LoRA targ
 
 *This is a setting for advanced users. If you don't care, you can leave it blank. If not specified here, "Network Rank(Dimension)" value and "Network Alpha" value will be applied to all blocks.
 
- 
-
 #### Conv: Conv dims, Conv, alphas
+
 The attention block that LoRA learns from has a neural network called "Conv ", which is also updated by additional learning (see the diagram of the attention layer structure at the top of the article). This is a process called "convolution", and the size of the "filter" used there is 1x1 square.
 
 Read this article about convolutions .
@@ -366,6 +366,7 @@ A 3x3 conv exists on all 25 layers.
 *This is a setting for advanced users. If you don't care, you can leave it blank.
 
 ### No token padding
+
 Captions attached to training images are processed every 75 tokens tokens " can basically be regarded as "words").
 
 If the caption length is less than 75 tokens align to 75 tokens This is called "padding".
@@ -374,9 +375,8 @@ Here you can specify not to pad tokens
 
 Default is off. You can basically leave it off.
 
- 
-
 ### Gradient accumulation steps
+
 Changing the weights (that is, "learning") is usually done for each batch read, but it is also possible to do multiple batches of training at once. This option specifies how many batches to learn at once.
 
 This has a similar effect (not the "same effect"!) as increasing the number of batches.
@@ -387,9 +387,8 @@ If you increase this value, the number of times of learning will decrease, so th
 
 Default is 1.
 
- 
-
 ### Weighted captions
+
 Currently, the most popular Stable Diffusion usage environment is "Stable Diffusion WebUI", which has a unique prompt description method. For example, if you want to emphasize "Black" very strongly when specifying " black cat " at the prompt, put the word you want to emphasize in parentheses like "(black:1.2) cat" and put ": number" after the word , Words are emphasized by multiples of that number.
 
 This option allows this notation to be used in the training image captions as well.
@@ -398,9 +397,8 @@ If you want to write complex captions, it's a good idea to give it a try.
 
 Default is off.
 
- 
-
 ### Prior loss weight
+
 The prior loss weight determines how much importance is given to the " regularization images" (see the description of the Regularization folder above for details) during training .
 
 If this value is low, the regularization images are considered less important, and LoRA is generated that is more characteristic of the training images.
@@ -410,6 +408,7 @@ This setting has no meaning if you are not using a regularized image.
 This is a value between 0 and 1, and defaults to 1 ( also respects regularized images).
 
 ### LR number of cycles
+
 If you select " Cosine with restart" or "Polynomial" for the scheduler, this option specifies how many cycles the scheduler runs during training.
 
 If the number of this option is 2 or greater, the scheduler will run multiple times during a single training run.
@@ -424,14 +423,12 @@ Since the specified number of cycles is executed within the determined learning 
 
 Default is blank, leaving blank equals 1.
 
-
-
 Example of learning rate movement
 Cosine with restart "LR number of cycle = 4" (purple)
 Polynomial "LR power = 2" (light green)
- 
 
 ### LR power
+
 This is an option when the scheduler is set to Polynomial. The higher this number, the steeper the initial learning rate drops. (The slope of the light green line in the image above becomes steeper).
 
 When power is 1, it has the same shape as the linear scheduler.
@@ -440,16 +437,14 @@ If the number is too large, the learning rate will stick close to 0, resulting i
 
 Defaults to blank, leaving blank equals 1 (that is, the same as the linear scheduler).
 
- 
-
 ### Additional parameters
+
 If you want to tweak learning setting parameters that are not displayed in the kohya_ss GUI , enter them here as commands.
 
 You can usually leave this field blank.
 
- 
-
 ### Save every N steps
+
 A LoRA file is created and saved each time the number of steps specified here is completed.
 
 For example, when the total number of learning steps is 1000, if you specify 200 here, LoRA files will be saved at the end of 200, 400, 600, and 800 steps.
@@ -458,9 +453,8 @@ See also "Save every N epochs" for saving intermediate LoRA.
 
 Default is 0 (do not save intermediate LoRA).
 
- 
-
 ### Save last N steps
+
 This is an option when Save every N steps is specified to save LoRA during learning.
 
 If you want to keep only recent LoRA files and discard old LoRA files, you can set "how many recent steps of LoRA files to keep" here.
@@ -469,20 +463,20 @@ For example, if the total number of training steps is 600 and the Save every N s
 
 Default is 0.
 
- 
-
 ### Keep n tokens
+
 If your training images have captions, you can randomly shuffle the comma-separated words in the captions (see Shuffle caption option for details). However, if you have words that you want to keep at the beginning, you can use this option to specify "Keep the first 0 words at the beginning".
 
 The number of first words specified here will always be fixed at the beginning.
 
 Default is 0. This option does nothing if the shuffle caption option is off.
 
-* A "word" here is a piece of text separated by commas. No matter how many words the delimited text contains, it counts as "one word".
+- A "word" here is a piece of text separated by commas. No matter how many words the delimited text contains, it counts as "one word".
 
 In the case of " black cat , eating, sitting", " black cat " is one word.
 
 ### Clip skip
+
 The text encoder uses a mechanism called "CLIP", which is made up of 12 similar layers.
 
 Texts ( tokens ) are originally converted to numeric sequences (vectors) through these 12 layers, and the vectors coming out of the last layer are sent to the U-Net Attention block.
@@ -495,10 +489,7 @@ Setting this to 2 sends the penultimate layer's output vector to the Attention b
 
 If the base model is a Novel AI model (or a mix of them), 2 should be fine. In other cases, 1 is fine.
 
- 
-
 ### Max Token Length
-
 
 Specifies the length of the maximum token included in the caption .
 
@@ -506,25 +497,22 @@ The "tokens" here are not the number of words, but the number of tokens Note tha
 
 It's unlikely that you'll use more than 75 tokens in your caption, but if you find your caption to be too long, specify a higher number here.
 
- 
-
 ### Full fp16 training (experimental)
+
 When the option "Mixed precision" described above is turned on (fp16 or bf16), a mixture of 32-bit and 16-bit data is used during training, but when this option is turned on, all weight data is 16-bit (fp16 format). Although it saves memory, the accuracy of some data is halved, so there is a possibility that the learning accuracy will also drop.
 
 Default is off. You should leave it off unless you really want to save memory.
 
- 
-
 ### Gradient checkpointing
+
 Normally, during training, we modify and update the weights of a large number of neural nets all at once each time an image is loaded. By fixing this "gradually" rather than "all at once," you can save memory by reducing computation.
 
 This option specifies that the weight calculation should be done incrementally. Turning this on or off will have no effect on LoRA's learning results.
 
 Default is off.
 
- 
-
 ### Shuffle caption
+
 If the training images have captions, most of the captions are written in the form of words separated by commas, such as " black cat , eating, sitting". The Shuffle caption option randomly changes the order of these comma-separated words each time.
 
 Words in captions are generally given more weight the closer they are to the beginning. Therefore, if the word order is fixed, backward words may not be learned well, and forward words may have unintended associations with training images. It is hoped that this bias can be corrected by reordering the words each time the image is loaded.
@@ -533,32 +521,30 @@ This option has no meaning if the caption is written in sentences instead of com
 
 Default is off.
 
-* A "word" here is a piece of text separated by commas. No matter how many words the delimited text contains, it counts as "one word".
+- A "word" here is a piece of text separated by commas. No matter how many words the delimited text contains, it counts as "one word".
 
 In the case of " black cat , eating, sitting", " black cat " is one word.
 
- 
-
 ### Persistent data loaders
+
 The data required for training is discarded and reloaded after each epoch. This is an option to keep it instead of throwing it away. Turning this option on speeds up the start of training for new epochs, but uses more memory to hold the data.
 
 Default is off.
 
- 
-
 ### Memory efficient attention
+
 If this is checked, VRAM usage is suppressed and attention block processing is performed. It's slower than the next option "xformers". Turn it on if you don't have enough VRAM.
 
 Default is off.
 
 ### Use xformers
+
 Using a Python library called "xformers" will trade attention blocking for less VRAM usage at the cost of some speed. Turn it on if you don't have enough VRAM.
 
 Default is on.
 
- 
-
 ### Color augmentation
+
 "augmentation" means "padded image". By slightly processing the training images each time, we artificially increase the number of types of training images.
 
 When Color Augmentation is turned on, the Hue of the image is changed randomly each time. LoRA learned from this is expected to have a slight range in color tone.
@@ -567,16 +553,14 @@ Not available if the Cache latents option is on.
 
 Default is off.
 
- 
-
 ### Flip augmentation
+
 If this option is turned on, the image will be horizontally flipped randomly. It can learn left and right angles, which is useful when you want to learn symmetrical people and objects .
 
 Default is off.
 
- 
-
 ### Min SNR gamma
+
 In LoRA learning, learning is performed by putting noise of various strengths on the training image (details about this are omitted), but depending on the difference in strength of the noise on which it is placed, learning will be stable by moving closer to or farther from the learning target. not, and the Min SNR gamma was introduced to compensate for that. Especially when learning images with little noise on them, it may deviate greatly from the target, so try to suppress this jump.
 
 I won't go into details because it's confusing, but you can set this value from 0 to 20, and the default is 0.
@@ -585,18 +569,16 @@ According to the paper that proposed this method, the optimal value is 5.
 
 I don't know how effective it is, but if you're unsatisfied with the learning results, try different values.
 
- 
-
 ### Don't upscale bucket resolution
+
 The Bucket size defaults to 256-1024 pixels (or a maximum resolution if specified with the Max resolution option, which takes precedence). Images that fall outside this size range, either vertically or horizontally, will be scaled (preserving the aspect ratio ) to fit within the specified range.
 
 However, when this option is turned on, the bucket size range setting is ignored and the buckets are automatically prepared according to the size of the training images, so all training images are loaded unscaled. . However, even at this time, some parts of the image may be cropped to fit the Bucket resolution steps (described later).
 
 Default is on.
 
- 
-
 ### Bucket resolution steps
+
 If using buckets , specify the resolution interval for each bucket here.
 
 For example, if you specify 64 here, each training image will be sorted into separate buckets by 64 pixels according to their size. This sorting is done for each vertical and horizontal.
@@ -607,59 +589,52 @@ For example, if the maximum resolution is 512 pixels and the bucket step size is
 
 Default is 64 pixels .
 
-* If this number is too small, the buckets will be divided too finely, and in the worst case, it will be like "one bucket for each image".
+- If this number is too small, the buckets will be divided too finely, and in the worst case, it will be like "one bucket for each image".
 
 Note that we always load images from the same bucket for each batch, so having too few images in a bucket will unintentionally reduce the number of batches.
 
- 
-
 ### Random crop instead of center crop
+
 As mentioned above, half-sized images are sorted into buckets and then partly cropped to align the size, but usually it is cropped so as to keep the center of the image.
 
 When this option is on, it randomly determines which part of the picture is cut. Turn on this option if you want to extend the learning range beyond the center of the image.
 
 *This option cannot be used when the cache latents option is on.
 
- 
-
 ### Noise offset type
+
 This is an option to specify which method to use when adding additional noise to training images. At the time of learning, we always add noise to the image (details are omitted here), but it is preferable that this noise is "hard to predict" noise, so adding more noise makes it more "predictable". "hard" noise.
 
 Default is Original. Multires adds noise in a slightly more complicated way.
 
- 
-
 #### Noise offset
+
 This is an option when "Original" is selected for Noise offset type. If you enter a value greater than 0 here, additional noise will be added. Values ​​range from 0 to 1, where 0 adds no noise at all. A value of 1 adds strong noise.
 
 It has been reported that adding about 0.1 noise makes LoRA's colors more vivid (brighter and darker). Default is 0.
 
- 
+#### A daptive noise scale
 
-####A daptive noise scale
 Used in combination with the Noise offset option. Specifying a number here will further adjust the amount of additional noise specified by Noise offset to be amplified or attenuated. The amount of amplification (or attenuation) is automatically adjusted depending on how noisy the image is currently. Values ​​range from -1 to 1, with positive values ​​increasing the amount of added noise and negative values ​​decreasing the amount of added noise.
 
 Default is 0.
 
- 
-
 #### Multires noise iterations
+
 This is an option when "Multires" is selected for Noise offset type. If you enter a value greater than 0 here, additional noise will be added.
 
 Multires creates noise of various resolutions and adds them together to create the final additive noise. Here you specify how many "various resolutions" to create.
 
 Default is 0, when 0 there is no additional noise. It is recommended to set it to 6 if you want to use it.
 
- 
-
 #### Multires noise discount
+
 Pair with the Multires noise iterations option. It is a numerical value for weakening the noise amount of each resolution to some extent. A value between 0 and 1, the lower the number, the weaker the noise. By the way, the amount of attenuation differs depending on the resolution, and noise with low resolution is attenuated a lot.
 
 Default is 0, if 0 it will be set to 0.3 when used. 0.8 is usually recommended. If the number of training images is relatively small, it seems to be good to lower it to about 0.3.
 
- 
-
 ### Dropout caption every n epochs
+
 Normally, images and captions are trained in pairs, but it is possible to train only "images without captions" without using captions for each specific epoch.
 
 This option allows you to specify "Don't use captions every 0 epochs ( Dropout )".
@@ -671,6 +646,7 @@ When learning images without captions, LoRA is expected to learn more comprehens
 The default is 0, which means no caption dropout .
 
 ### Rate of caption dropout
+
 It is similar to Dropout caption every n epochs above, but you can learn as "images without captions" without using captions for a certain percentage of the entire learning process.
 
 Here you can set the percentage of images without captions. 0 is the setting for "always use captions during learning", and 1 is the setting for "never use captions during learning".
@@ -681,90 +657,80 @@ For example, if 20 images are read 50 times each and LoRA learning is performed 
 
 Default is 0, which trains all images with captions.
 
- 
-
 ### VAE batch size
+
 If you turn on the Cache latents option, you can keep the "compressed" image data in the main memory. size. Since the number of images specified by batch size is learned at once, it is normal to match the VAE batch size with this.
 
 Default is 0, in which case it is set to the same number as Batch size.
 
- 
-
 ### Save training state
+
 LoRA will take a long time to train if there are many training images, number of iterations, and number of epochs.
 
 If you turn on this option, you can interrupt the study in the middle and resume the study from where you left off at a later date.
 
 Intermediate learning data is saved in a folder called "last-state".
 
- 
-
 ### Resume from saved training state
+
 Specify the location of the "last-state" folder here if you want to resume learning that has been interrupted.
 
 In order to resume learning, the intermediate progress data of learning must be saved.
 
- 
-
 ### Max train epoch
+
 Specify the maximum number of epochs for training. It is basic to specify the number of epochs with the Epoch option, but learning will always end when the number of epochs specified here is reached.
 
 Default is blank. You can leave this field blank.
 
- 
-
 ### Max num workers for DataLoader
+
 This option specifies the number of CPU processes to use when reading data for training. Increasing this number will enable subprocesses and increase the speed of reading data, but increasing the number too much may actually result in inefficiency.
 
 Note that no matter how large the number is specified, it will not exceed the number of concurrently executing threads of the CPU used.
 
 The default is 0, which loads data only in the CPU's main process.
 
- 
-
 ### WANDB API Key
+
 There is a machine learning service called " WandB " (Weights&Biases) . This is a service that displays the progress of learning in graphs to find the optimal settings, records and shares learning logs online, and kohya_ss can now use this service.
 
-However, you will need an account for this service. After creating an account, you can get an " API key" from https://app.wandb.ai/authorize . If you enter the acquired API key here, you will be automatically logged in when learning and you will be able to link with WandB services.
+However, you will need an account for this service. After creating an account, you can get an " API key" from <https://app.wandb.ai/authorize> . If you enter the acquired API key here, you will be automatically logged in when learning and you will be able to link with WandB services.
 
 I won't go into details about WandB, but if you want to become a "LoRA craftsman", give it a try.
 
- 
-
 ### WANDB Logging
+
 Here you can specify whether or not to record learning progress logs using the WandB service.
 
 The default is off, and when off, it logs in the form of a tool called 'tensorboard'.
 
 ## Sample images config
+
 If you want to check what image generation with LoRA looks like while learning, enter the image generation prompt here.
 
 However, since LoRA has a relatively short learning time, there may not be much need for image generation tests.
 
- 
-
 ### Sample every n steps
+
 Specify at what step you want to generate an image during learning. For example, specifying 100 will generate an image every 100 steps.
 
 Default is 0, if 0 no image is generated.
 
- 
-
 ### Sample every n epochs
+
 Specifies the number of epochs to generate images during training. For example, 2 will generate an image every 2 epochs.
 
 Default is 0, if 0 no image is generated.
 
- 
-
 ### Sample sampler
+
 Specifies the sampler to use for image generation . Many of the samplers specified here are the same as the samplers provided in the Stable Diffusion Web UI , so please refer to the web UI explanation site for details.
 
 The default is euler_a.
 
- 
-
 ### Sample prompts
+
 Enter the prompt here.
 
 However, you can enter other settings here than just prompts. If you want to enter other settings, specify the setting by combining two minus letters and alphabets like "--n". For example, if you want to put "white, dog" in the negative prompt, write "--n white, dog".
@@ -784,5 +750,3 @@ Here are some commonly used settings:
 --s: number of steps
 
 Default is blank. When the field is blank, the description example is displayed in faint color, so please refer to it.
-
- 
