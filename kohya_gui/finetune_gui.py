@@ -569,7 +569,7 @@ def train_model(
         if generate_caption_database:
             # Define the command components
             run_cmd = [
-                fr'"{PYTHON}"',
+                fr"{PYTHON}",
                 f'"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"',
             ]
 
@@ -606,7 +606,7 @@ def train_model(
         if generate_image_buckets:
             # Build the command to run the preparation script
             run_cmd = [
-                fr'"{PYTHON}"',
+                fr"{PYTHON}",
                 f'"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"',
                 image_folder,
                 os.path.join(train_dir, caption_metadata_filename),
