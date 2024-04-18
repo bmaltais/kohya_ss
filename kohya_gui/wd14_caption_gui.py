@@ -53,7 +53,7 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        get_executable_path("accelerate"),
+        fr'"{get_executable_path("accelerate")}"',
         "launch",
         fr'"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"',
     ]
@@ -116,7 +116,7 @@ def caption_images(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

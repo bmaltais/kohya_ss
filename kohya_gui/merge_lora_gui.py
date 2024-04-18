@@ -425,9 +425,9 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
+            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
         else:
-            run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
+            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
 
         if sd_model:
             run_cmd.append("--sd_model")
@@ -452,7 +452,7 @@ class GradioMergeLoRaTab:
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         # Example of adding an environment variable for TensorFlow, if necessary
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"

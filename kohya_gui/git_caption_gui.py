@@ -35,7 +35,7 @@ def caption_images(
 
     log.info(f"GIT captioning files in {train_data_dir}...")
 
-    run_cmd = [PYTHON, fr'"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"']
+    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/finetune/make_captions_by_git.py"']
 
     # Add --model_id if provided
     if model_id != "":
@@ -62,7 +62,7 @@ def caption_images(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

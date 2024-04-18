@@ -34,8 +34,8 @@ def group_images(
     log.info(f"Grouping images in {input_folder}...")
 
     run_cmd = [
-        PYTHON,
-        f"{scriptdir}/tools/group_images.py",
+        fr'"{PYTHON}"',
+        f'"{scriptdir}/tools/group_images.py"',
         fr'"{input_folder}"',
         fr'"{output_folder}"',
         str(group_size),

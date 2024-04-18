@@ -74,7 +74,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = [PYTHON, fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
+    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
 
     if is_sdxl:
         run_cmd.append("--is_sdxl")
@@ -127,7 +127,7 @@ def extract_lycoris_locon(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

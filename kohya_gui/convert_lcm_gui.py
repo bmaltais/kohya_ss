@@ -47,40 +47,29 @@ def convert_lcm(
         path, ext = os.path.splitext(save_to)
         save_to = f"{path}_lcm{ext}"
 
-    # Initialize the command to run the script
-    run_cmd = [
-        PYTHON,
-        f"{scriptdir}/path_to_script.py",
-    ]  # Adjust the script path accordingly
+    # Construct the command to run the script
+    run_cmd += f" --lora-scale {lora_scale}"
+    run_cmd += f' --model "{model_path}"'
+    run_cmd += f' --name "{name}"'
 
-    # Add required arguments
-    run_cmd.append("--lora-scale")
-    run_cmd.append(str(lora_scale))
-    run_cmd.append("--model")
-    run_cmd.append(rf'"{model_path}"')
-    run_cmd.append("--name")
-    run_cmd.append(name)
-
-    # Add conditional flags based on the model type
     if model_type == "SDXL":
-        run_cmd.append("--sdxl")
+        run_cmd += f" --sdxl"
     if model_type == "SSD-1B":
-        run_cmd.append("--ssd-1b")
+        run_cmd += f" --ssd-1b"
 
     # Set up the environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
-    command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {run_cmd} with shell={use_shell}")
 
     # Run the command in the sd-scripts folder context
     subprocess.run(
-        command_to_run, env=env, shell=use_shell
+        run_cmd, env=env, shell=use_shell
     )
 
     # Return a success message

@@ -51,7 +51,7 @@ def extract_dylora(
         save_to = f"{path}_tmp{ext}"
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
         "--save_to",
         rf'"{save_to}"',
@@ -63,7 +63,7 @@ def extract_dylora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Example environment variable adjustment for the Python environment
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

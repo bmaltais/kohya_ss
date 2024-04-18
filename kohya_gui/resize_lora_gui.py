@@ -65,7 +65,7 @@ def resize_lora(
         device = "cuda"
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/sd-scripts/networks/resize_lora.py"',
         "--save_precision",
         save_precision,
@@ -91,7 +91,7 @@ def resize_lora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
 
     # Adding example environment variables if relevant

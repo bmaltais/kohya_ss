@@ -39,7 +39,7 @@ def merge_lycoris(
 
     # Build the command to run merge_lycoris.py using list format
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/tools/merge_lycoris.py"',
         fr'"{base_model}"',
         fr'"{lycoris_model}"',
@@ -60,7 +60,7 @@ def merge_lycoris(
     # Copy and update the environment variables
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 

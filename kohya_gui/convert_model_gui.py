@@ -50,7 +50,7 @@ def convert_model(
         return
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"',
     ]
 
@@ -100,7 +100,7 @@ def convert_model(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"

@@ -36,21 +36,16 @@ def verify_lora(
         msgbox("The provided model A is not a file")
         return
 
-    # Build the command to run check_lora_weights.py
-    run_cmd = [
-        PYTHON,
-        f"{scriptdir}/sd-scripts/networks/check_lora_weights.py",
-        lora_model,
-    ]
+    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
 
-    # Log the command
-    log.info(" ".join(run_cmd))
+    log.info(run_cmd)
 
     # Set the environment variable for the Python path
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
+    
     # Example of adding an environment variable for TensorFlow, if necessary
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 

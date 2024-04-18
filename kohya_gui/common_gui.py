@@ -323,6 +323,7 @@ def update_my_data(my_data):
 
     # Convert values to int if they are strings
     for key in [
+        "adaptive_noise_scale",
         "clip_skip",
         "epoch",
         "gradient_accumulation_steps",
@@ -351,7 +352,7 @@ def update_my_data(my_data):
             except ValueError:
                 # Handle the case where the string is not a valid float
                 my_data[key] = int(1)
-                
+
     # Convert values to int if they are strings
     for key in ["max_token_length"]:
         value = my_data.get(key)
@@ -1449,3 +1450,21 @@ def is_file_writable(file_path: str) -> bool:
     except IOError:
         # If an IOError occurs, the file cannot be written to
         return False
+
+def print_command_and_toml(run_cmd, tmpfilename):
+    log.warning(
+        "Here is the trainer command as a reference. It will not be executed:\n"
+    )
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+
+    log.info(command_to_run)
+    print("")
+
+    log.info(f"Showing toml config file: {tmpfilename}")
+    print("")
+    with open(tmpfilename, "r") as toml_file:
+        log.info(toml_file.read())
+    log.info(f"end of toml config file: {tmpfilename}")
+
+    save_to_file(command_to_run)

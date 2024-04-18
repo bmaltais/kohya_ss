@@ -74,7 +74,7 @@ def extract_lora(
         return
 
     run_cmd = [
-        PYTHON,
+        fr'"{PYTHON}"',
         fr'"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py"',
         "--load_precision",
         load_precision,
@@ -112,7 +112,7 @@ def extract_lora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of another potentially relevant environment variable
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
