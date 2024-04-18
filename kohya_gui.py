@@ -107,6 +107,7 @@ def UI(**kwargs):
     share = kwargs.get("share", False)
     do_not_share = kwargs.get("do_not_share", False)
     server_name = kwargs.get("listen")
+    root_path = kwargs.get("root_path", None)
 
     launch_kwargs["server_name"] = server_name
     if username and password:
@@ -120,6 +121,8 @@ def UI(**kwargs):
     else:
         if share:
             launch_kwargs["share"] = share
+    if root_path:
+        launch_kwargs["root_path"] = root_path
     launch_kwargs["debug"] = True
     interface.launch(**launch_kwargs)
 
@@ -170,6 +173,10 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--do_not_share", action="store_true", help="Do not share the gradio UI"
+    )
+
+    parser.add_argument(
+        "--root_path", type=str, default=None, help="`root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss"
     )
 
     args = parser.parse_args()
