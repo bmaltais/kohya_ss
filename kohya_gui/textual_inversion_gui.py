@@ -829,7 +829,7 @@ def train_model(
 
     tmpfilename = "./outputs/tmpfileti.toml"
     # Save the updated TOML data back to the file
-    with open(tmpfilename, "w") as toml_file:
+    with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
 
         if not os.path.exists(toml_file.name):
