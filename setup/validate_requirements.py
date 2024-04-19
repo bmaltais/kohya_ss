@@ -20,6 +20,17 @@ from kohya_gui.custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
+def check_path_with_space():
+    # Get the current working directory
+    cwd = os.getcwd()
+
+    # Check if the current working directory contains a space
+    if " " in cwd:
+        log.error("The path in which this python code is executed contain one or many spaces. This is not supported for running kohya_ss GUI.")
+        log.error("Please move the repo to a path without spaces, delete the venv folder and run setup.sh again.")
+        log.error("The current working directory is: " + cwd)
+        exit(1)
+
 def check_torch():
     # Check for toolkit
     if shutil.which('nvidia-smi') is not None or os.path.exists(
@@ -89,6 +100,9 @@ def check_torch():
         
 def main():
     setup_common.check_repo_version()
+    
+    check_path_with_space()
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Validate that requirements are satisfied.'
