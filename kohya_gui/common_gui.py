@@ -331,7 +331,6 @@ def update_my_data(my_data):
         "lr_warmup",
         "max_data_loader_n_workers",
         "max_train_epochs",
-        "max_train_steps",
         "save_every_n_epochs",
         "seed",
     ]:
@@ -352,6 +351,17 @@ def update_my_data(my_data):
             except ValueError:
                 # Handle the case where the string is not a valid float
                 my_data[key] = int(1)
+                
+    for key in [
+        "max_train_steps",
+    ]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                my_data[key] = int(value)
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                my_data[key] = int(1600)
 
     # Convert values to int if they are strings
     for key in ["max_token_length"]:
