@@ -42,7 +42,10 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/25 (v24.0.4)](#20240425-v2404)
+    - [2024/04/19 (v24.0.5)](#20240419-v2405)
+    - [2024/04/18 (v24.0.4)](#20240418-v2404)
+      - [What's Changed](#whats-changed)
+      - [New Contributors](#new-contributors)
     - [2024/04/24 (v24.0.3)](#20240424-v2403)
     - [2024/04/24 (v24.0.2)](#20240424-v2402)
     - [2024/04/17 (v24.0.1)](#20240417-v2401)
@@ -409,9 +412,25 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
-### 2024/04/25 (v24.0.4)
+### 2024/04/19 (v24.0.5)
 
-- ...
+- fdds
+
+### 2024/04/18 (v24.0.4)
+
+#### What's Changed
+
+- Fix options.md heading by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2337>
+- Use correct file extensions when browsing for model file by @b-fission in <https://github.com/bmaltais/kohya_ss/pull/2323>
+- Add argument for Gradio's `root_path` to enable reverse proxy support by @hlky in <https://github.com/bmaltais/kohya_ss/pull/2333>
+- 2325 quotes wrapping python path cause subprocess cant find target in v2403 by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2338>
+- 2330 another seemingly new data validation leads to unusable configs 2403 by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2339>
+- Fix bad Lora parameters by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2341>
+
+#### New Contributors
+
+- @b-fission made their first contribution in <https://github.com/bmaltais/kohya_ss/pull/2323>
+- @hlky made their first contribution in <https://github.com/bmaltais/kohya_ss/pull/2333>
 
 ### 2024/04/24 (v24.0.3)
 
