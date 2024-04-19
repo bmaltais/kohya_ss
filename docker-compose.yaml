@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   kohya-ss-gui:
     container_name: kohya-ss-gui
