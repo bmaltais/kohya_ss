@@ -1,5 +1,4 @@
 xformers>=0.0.20
 bitsandbytes==0.43.0
 accelerate==0.25.0
-# tensorboard==2.15.2
-# tensorflow==2.15.0.post1
+tensorboard
