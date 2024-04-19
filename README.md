@@ -22,6 +22,8 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Manual installation](#manual-installation)
       - [Pre-built Runpod template](#pre-built-runpod-template)
     - [Docker](#docker)
+      - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
+      - [Use the pre-built Docker image](#use-the-pre-built-docker-image)
       - [Local docker build](#local-docker-build)
       - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
   - [Upgrading](#upgrading)
