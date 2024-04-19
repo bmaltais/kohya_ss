@@ -127,10 +127,10 @@ def caption_images(
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env)
 
 
     # Add prefix and postfix
