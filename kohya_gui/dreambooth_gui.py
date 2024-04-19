@@ -725,9 +725,9 @@ def train_model(
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
+        "multires_noise_iterations": multires_noise_iterations if not 0 else None,
         "no_token_padding": no_token_padding,
-        "noise_offset": noise_offset if noise_offset != 0 else None,
+        "noise_offset": noise_offset if not 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
@@ -779,9 +779,7 @@ def train_model(
     # Given dictionary `config_toml_data`
     # Remove all values = "" and values = False
     config_toml_data = {
-        key: value
-        for key, value in config_toml_data.items()
-        if value != "" and value is not False
+        key: value for key, value in config_toml_data.items() if value not in ["", False, None]
     }
 
     tmpfilename = "./outputs/tmpfiledbooth.toml"

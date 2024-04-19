@@ -1153,9 +1153,7 @@ def train_model(
     # Given dictionary `config_toml_data`
     # Remove all values = ""
     config_toml_data = {
-        key: value
-        for key, value in config_toml_data.items()
-        if value != "" and value is not False
+        key: value for key, value in config_toml_data.items() if value not in ["", False, None]
     }
 
     tmpfilename = "./outputs/tmpfilelora.toml"
