@@ -10,9 +10,9 @@ def file_path(fn):
 def js_html_str(language):
     head = f'<script type="text/javascript">{localization.load_language_js(language)}</script>\n'
     head += (
-        f'<script type="text/javascript">{open("./assets/js/script.js", "r", encoding="utf8").read()}</script>\n'
+        f'<script type="text/javascript">{open("./assets/js/script.js", "r", encoding="utf-8").read()}</script>\n'
     )
-    head += f'<script type="text/javascript">{open("./assets/js/localization.js", "r", encoding="utf8").read()}</script>\n'
+    head += f'<script type="text/javascript">{open("./assets/js/localization.js", "r", encoding="utf-8").read()}</script>\n'
     return head
 
 
@@ -24,7 +24,7 @@ def add_javascript(language):
 
     def template_response(*args, **kwargs):
         res = localization.GrRoutesTemplateResponse(*args, **kwargs)
-        res.body = res.body.replace(b"</head>", f"{jsStr}</head>".encode("utf8"))
+        res.body = res.body.replace(b"</head>", f"{jsStr}</head>".encode("utf-8"))
         res.init_headers()
         return res
 

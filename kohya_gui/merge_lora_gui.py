@@ -54,12 +54,12 @@ class GradioMergeLoRaTab:
         self.build_tab()
 
     def save_inputs_to_json(self, file_path, inputs):
-        with open(file_path, "w") as file:
+        with open(file_path, "w", encoding="utf-8") as file:
             json.dump(inputs, file)
         log.info(f"Saved inputs to {file_path}")
 
     def load_inputs_from_json(self, file_path):
-        with open(file_path, "r") as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             inputs = json.load(file)
         log.info(f"Loaded inputs from {file_path}")
         return inputs

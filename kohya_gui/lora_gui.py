@@ -469,7 +469,7 @@ def open_configuration(
             return
 
         # Load variables from JSON file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             my_data = json.load(f)
             log.info("Loading config...")
 
@@ -2341,7 +2341,7 @@ def lora_tab(
             with open(
                 os.path.join(rf"{scriptdir}/docs/LoRA/top_level.md"),
                 "r",
-                encoding="utf8",
+                encoding="utf-8",
             ) as file:
                 guides_top_level = file.read() + "\n"
             gr.Markdown(guides_top_level)

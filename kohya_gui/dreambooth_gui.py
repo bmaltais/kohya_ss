@@ -350,7 +350,7 @@ def open_configuration(
 
     if not file_path == "" and not file_path == None:
         # load variables from JSON file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             my_data = json.load(f)
             log.info("Loading config...")
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True

@@ -120,7 +120,7 @@ def generate_caption(
         output_file_path = os.path.splitext(file_path)[0] + caption_file_ext
 
         # Write the generated text to the output file
-        with open(output_file_path, "w") as output_file:
+        with open(output_file_path, "w", encoding="utf-8") as output_file:
             output_file.write(generated_text)
 
         # Log the image file path with a message about the fact that the caption was generated

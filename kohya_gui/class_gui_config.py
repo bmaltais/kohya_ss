@@ -45,7 +45,7 @@ class KohyaSSGUIConfig:
         - config (dict): The configuration data to save.
         """
         # Write the configuration data to the TOML file
-        with open(f"{config_file_path}", "w") as f:
+        with open(f"{config_file_path}", "w", encoding="utf-8") as f:
             toml.dump(config, f)
 
     def get(self, key: str, default=None):

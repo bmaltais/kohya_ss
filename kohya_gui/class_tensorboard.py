@@ -102,7 +102,7 @@ class TensorboardManager:
             visibility = True
             
         except ImportError:
-            self.log.error("Tensorboard is not installed, hiding the tensorboard button...")
+            self.log.error("tensorflow is not installed, hiding the tensorboard button...")
             visibility = False
             
         with gr.Row():
