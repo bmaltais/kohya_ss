@@ -51,7 +51,11 @@ executor = CommandExecutor()
 huggingface = None
 use_shell = False
 
-TRAIN_BUTTON_VISIBLE = [gr.Button(visible=True), gr.Button(visible=False), gr.Textbox(value=time.time())]
+TRAIN_BUTTON_VISIBLE = [
+    gr.Button(visible=True),
+    gr.Button(visible=False),
+    gr.Textbox(value=time.time()),
+]
 
 
 def save_configuration(
@@ -544,7 +548,7 @@ def train_model(
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
-            
+
         if max_train_steps == 0:
             max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
         else:
@@ -606,9 +610,9 @@ def train_model(
                 "Regularisation images are used... Will double the number of steps required..."
             )
             reg_factor = 2
-        
+
         log.info(f"Regulatization factor: {reg_factor}")
-        
+
         if max_train_steps == 0:
             # calculate max_train_steps
             max_train_steps = int(
@@ -639,9 +643,9 @@ def train_model(
             lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
         else:
             lr_warmup_steps = 0
-            
+
         log.info(f"Total steps: {total_steps}")
-        
+
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
     log.info(f"Epoch: {epoch}")
@@ -649,7 +653,7 @@ def train_model(
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [fr'"{get_executable_path("accelerate")}"', "launch"]
+    run_cmd = [rf'"{get_executable_path("accelerate")}"', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -668,9 +672,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(fr'"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"')
+        run_cmd.append(rf'"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"')
     else:
-        run_cmd.append(fr'"{scriptdir}/sd-scripts/train_textual_inversion.py"')
+        run_cmd.append(rf'"{scriptdir}/sd-scripts/train_textual_inversion.py"')
 
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
@@ -685,15 +689,10 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "huggingface_repo_id": huggingface_repo_id,
-        "huggingface_token": huggingface_token,
-        "huggingface_repo_type": huggingface_repo_type,
-        "huggingface_repo_visibility": huggingface_repo_visibility,
-        "huggingface_path_in_repo": huggingface_path_in_repo,
-        "save_state_to_huggingface": save_state_to_huggingface,
-        "resume_from_huggingface": resume_from_huggingface,
         "async_upload": async_upload,
-        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
+        "adaptive_noise_scale": (
+            adaptive_noise_scale if adaptive_noise_scale != 0 else None
+        ),
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -712,6 +711,11 @@ def train_model(
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
+        "huggingface_repo_id": huggingface_repo_id,
+        "huggingface_token": huggingface_token,
+        "huggingface_repo_type": huggingface_repo_type,
+        "huggingface_repo_visibility": huggingface_repo_visibility,
+        "huggingface_path_in_repo": huggingface_path_in_repo,
         "init_word": init_word,
         "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
@@ -729,8 +733,7 @@ def train_model(
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
-        "max_data_loader_n_workers": max_data_loader_n_workers,
-        "max_timestep": max_timestep if max_timestep!= 0 else None,
+        "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
         "max_train_epochs": max_train_epochs if max_train_epochs != 0 else None,
         "max_train_steps": max_train_steps if max_train_steps != 0 else None,
@@ -745,7 +748,9 @@ def train_model(
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
+        "multires_noise_iterations": (
+            multires_noise_iterations if multires_noise_iterations != 0 else None
+        ),
         "no_half_vae": sdxl_no_half_vae,
         "no_token_padding": no_token_padding,
         "noise_offset": noise_offset if noise_offset != 0 else None,
@@ -763,23 +768,35 @@ def train_model(
         "reg_data_dir": reg_data_dir,
         "resolution": max_resolution,
         "resume": resume,
-        "sample_every_n_epochs": sample_every_n_epochs if sample_every_n_epochs != 0 else None,
-        "sample_every_n_steps": sample_every_n_steps if sample_every_n_steps != 0 else None,
+        "resume_from_huggingface": resume_from_huggingface,
+        "sample_every_n_epochs": (
+            sample_every_n_epochs if sample_every_n_epochs != 0 else None
+        ),
+        "sample_every_n_steps": (
+            sample_every_n_steps if sample_every_n_steps != 0 else None
+        ),
         "sample_prompts": create_prompt_file(sample_prompts, output_dir),
         "sample_sampler": sample_sampler,
-        "save_every_n_epochs": save_every_n_epochs if save_every_n_epochs!= 0 else None,
+        "save_every_n_epochs": (
+            save_every_n_epochs if save_every_n_epochs != 0 else None
+        ),
         "save_every_n_steps": save_every_n_steps if save_every_n_steps != 0 else None,
         "save_last_n_steps": save_last_n_steps if save_last_n_steps != 0 else None,
-        "save_last_n_steps_state": save_last_n_steps_state if save_last_n_steps_state != 0 else None,
+        "save_last_n_steps_state": (
+            save_last_n_steps_state if save_last_n_steps_state != 0 else None
+        ),
         "save_model_as": save_model_as,
         "save_precision": save_precision,
         "save_state": save_state,
         "save_state_on_train_end": save_state_on_train_end,
+        "save_state_to_huggingface": save_state_to_huggingface,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "sdpa": True if xformers == "sdpa" else None,
         "seed": seed if seed != 0 else None,
         "shuffle_caption": shuffle_caption,
-        "stop_text_encoder_training": stop_text_encoder_training if stop_text_encoder_training!= 0 else None,
+        "stop_text_encoder_training": (
+            stop_text_encoder_training if stop_text_encoder_training != 0 else None
+        ),
         "token_string": token_string,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
@@ -800,8 +817,15 @@ def train_model(
     # Given dictionary `config_toml_data`
     # Remove all values = ""
     config_toml_data = {
-        key: value for key, value in config_toml_data.items() if value not in ["", False, None]
+        key: value
+        for key, value in config_toml_data.items()
+        if value not in ["", False, None]
     }
+    
+    config_toml_data["max_data_loader_n_workers"] = max_data_loader_n_workers
+    
+    # Sort the dictionary by keys
+    config_toml_data = dict(sorted(config_toml_data.items()))
 
     tmpfilename = "./outputs/tmpfileti.toml"
     # Save the updated TOML data back to the file
@@ -812,7 +836,7 @@ def train_model(
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
     run_cmd.append(f"--config_file")
-    run_cmd.append(fr'"{tmpfilename}"')
+    run_cmd.append(rf'"{tmpfilename}"')
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
