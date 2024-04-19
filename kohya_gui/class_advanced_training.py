@@ -402,7 +402,7 @@ class AdvancedTraining:
                 )
                 self.multires_noise_discount = gr.Slider(
                     label="Multires noise discount",
-                    value=self.config.get("advanced.multires_noise_discount", 0),
+                    value=self.config.get("advanced.multires_noise_discount", 0.3),
                     minimum=0,
                     maximum=1,
                     step=0.01,
