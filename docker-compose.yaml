@@ -11,7 +11,6 @@ services:
         - UID=1000
     ports:
       - 7860:7860
-      - 6006:6006
     environment:
       SAFETENSORS_FAST_GPU: 1
     tmpfs:
