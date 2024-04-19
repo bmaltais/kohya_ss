@@ -102,6 +102,9 @@ class SourceModel:
 
         with gr.Accordion("Model", open=True):
             with gr.Column(), gr.Group():
+                model_ext = gr.Textbox(value="*.safetensors *.ckpt", visible=False)
+                model_ext_name = gr.Textbox(value="Model types", visible=False)
+
                 # Define the input elements
                 with gr.Row():
                     with gr.Column(), gr.Row():
@@ -129,7 +132,7 @@ class SourceModel:
                         )
                         self.pretrained_model_name_or_path_file.click(
                             get_file_path,
-                            inputs=self.pretrained_model_name_or_path,
+                            inputs=[self.pretrained_model_name_or_path, model_ext, model_ext_name],
                             outputs=self.pretrained_model_name_or_path,
                             show_progress=False,
                         )
