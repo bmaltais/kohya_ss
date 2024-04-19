@@ -23,6 +23,7 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Pre-built Runpod template](#pre-built-runpod-template)
     - [Docker](#docker)
       - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
+      - [Design of our Dockerfile](#design-of-our-dockerfile)
       - [Use the pre-built Docker image](#use-the-pre-built-docker-image)
       - [Local docker build](#local-docker-build)
       - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
@@ -249,11 +250,16 @@ Install an NVIDIA GPU Driver if you do not already have one installed.
 Install the NVIDIA Container Toolkit with this guide.  
 <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
 
-Please be aware of the following limitations when using Docker:
+#### Design of our Dockerfile
 
-- All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
-- The file picker feature is not functional. You need to manually set the folder path and config file path.
-- Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
+- It is required that all training data is stored in the `dataset` subdirectory, which is mounted into the container at `/dataset`.
+- Please note that the file picker functionality is not available. Instead, you will need to manually input the folder path and configuration file path.
+- TensorBoard has been separated from the project.
+  - TensorBoard is not included in the Docker image.
+  - The "Start TensorBoard" button has been hidden.
+  - TensorBoard is launched from a distinct container [as shown here](/docker-compose.yaml#L41).
+- The browser won't be launched automatically. You will need to manually open the browser and navigate to [http://localhost:7860/](http://localhost:7860/) and [http://localhost:6006/](http://localhost:6006/)
+- This Dockerfile has been designed to be easily disposable. You can discard the container at any time and restart it with the new code version.
 
 #### Use the pre-built Docker image
 
@@ -262,8 +268,6 @@ git clone https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 docker compose up -d
 ```
-
-This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code.
 
 To update the system, do `docker compose down && docker compose up -d --pull always`
 
@@ -279,11 +283,10 @@ cd kohya_ss
 docker compose up -d --build
 ```
 
-Note: Building the image may take up to 20 minutes to complete.
+> [!NOTE]  
+> Building the image may take up to 20 minutes to complete.
 
-This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code.
-
-To update the system, ***run update scripts outside of Docker*** and rebuild using `docker compose down && docker compose up -d --build --pull always`
+To update the system, ***checkout to the new code version*** and rebuild using `docker compose down && docker compose up -d --build --pull always`
 
 > If you are running on Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
