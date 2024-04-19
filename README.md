@@ -229,34 +229,65 @@ To run from a pre-built Runpod template, you can:
 
 ### Docker
 
+#### Get your Docker ready for GPU support
+
+##### Windows
+
+Once you have installed [**Docker Desktop**](https://www.docker.com/products/docker-desktop/), [**CUDA Toolkit**](https://developer.nvidia.com/cuda-downloads), [**NVIDIA Windows Driver**](https://www.nvidia.com.tw/Download/index.aspx), and ensured that your Docker is running with [**WSL2**](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2), you are ready to go.
+
+Here is the official documentation for further reference.  
+<https://docs.nvidia.com/cuda/wsl-user-guide/index.html#nvidia-compute-software-support-on-wsl-2>
+<https://docs.docker.com/desktop/wsl/use-wsl/#gpu-support>
+
+##### Linux, OSX
+
+Install an NVIDIA GPU Driver if you do not already have one installed.  
+<https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html>
+
+Install the NVIDIA Container Toolkit with this guide.  
+<https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
+
+Please be aware of the following limitations when using Docker:
+
+- All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
+- The file picker feature is not functional. You need to manually set the folder path and config file path.
+- Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
+
+#### Use the pre-built Docker image
+
+```bash
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+docker compose up -d
+```
+
+This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code.
+
+To update the system, do `docker compose down && docker compose up -d --pull always`
+
 #### Local docker build
 
-If you prefer to use Docker, follow the instructions below:
+> [!IMPORTANT]  
+> Clone the Git repository ***recursively*** to include submodules:  
+> `git clone --recursive https://github.com/bmaltais/kohya_ss.git`
 
-1. Ensure that you have Git and Docker installed on your Windows or Linux system.
+```bash
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+docker compose up -d --build
+```
 
-2. Open your OS shell (Command Prompt or Terminal) and run the following commands:
+Note: Building the image may take up to 20 minutes to complete.
 
-   ```bash
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   cd kohya_ss
-   docker compose up -d --build
-   ```
+This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code.
 
-   Note: The initial run may take up to 20 minutes to complete.
+To update the system, ***run update scripts outside of Docker*** and rebuild using `docker compose down && docker compose up -d --build --pull always`
 
-   Please be aware of the following limitations when using Docker:
-
-   - All training data must be placed in the `dataset` subdirectory, as the Docker container cannot access files from other directories.
-   - The file picker feature is not functional. You need to manually set the folder path and config file path.
-   - Dialogs may not work as expected, and it is recommended to use unique file names to avoid conflicts.
-   - This Dockerfile has been designed to be easily disposable. You can discard the container at any time and docker build it with a new version of the code. To update the system, run update scripts outside of Docker and rebuild using `docker compose down && docker compose up -d --build`.
-
-   If you are running Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
+> If you are running on Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
 
 #### ashleykleynhans runpod docker builds
 
-You may want to use the following Dockerfile repositories to build the images:
+You may want to use the following repositories when running on runpod:
 
 - Standalone Kohya_ss template: <https://github.com/ashleykleynhans/kohya-docker>
 - Auto1111 + Kohya_ss GUI template: <https://github.com/ashleykleynhans/stable-diffusion-docker>
