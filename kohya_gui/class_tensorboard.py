@@ -94,9 +94,20 @@ class TensorboardManager:
         return self.get_button_states(started=False)
 
     def gradio_interface(self):
+        try:
+            os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+            
+            import tensorflow # Attempt to import tensorflow to check if it is installed
+            
+            visibility = True
+            
+        except ImportError:
+            self.log.error("Tensorboard is not installed, hiding the tensorboard button...")
+            visibility = False
+            
         with gr.Row():
             button_start_tensorboard = gr.Button(
-                value="Start tensorboard", elem_id="myTensorButton"
+                value="Start tensorboard", elem_id="myTensorButton", visible=visibility
             )
             button_stop_tensorboard = gr.Button(
                 value="Stop tensorboard",
