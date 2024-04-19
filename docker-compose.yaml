@@ -36,8 +36,8 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-              device_ids: ['all']
-  
+              device_ids: ["all"]
+
   tensorboard:
     container_name: tensorboard
     image: tensorflow/tensorflow:latest-gpu
@@ -52,4 +52,4 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-              device_ids: ['all']
+              device_ids: ["all"]

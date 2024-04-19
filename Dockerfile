@@ -112,6 +112,10 @@ ENV PYTHONPATH="${PYTHONPATH}:/home/$UID/.local/lib/python3.10/site-packages"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 ENV LD_PRELOAD=libtcmalloc.so
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+# Rich logging
+# https://rich.readthedocs.io/en/stable/console.html#interactive-mode
+ENV FORCE_COLOR="true"
+ENV COLUMNS="100"
 
 WORKDIR /app
 
