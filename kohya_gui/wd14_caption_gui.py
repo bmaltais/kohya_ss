@@ -15,7 +15,7 @@ from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
+old_onnx_value = True
 
 def caption_images(
     train_data_dir: str,
@@ -50,12 +50,16 @@ def caption_images(
     if caption_extension == "":
         msgbox("Please provide an extension for the caption files.")
         return
+    
+    repo_id_converted = repo_id.replace("/", "_")
+    if not os.path.exists(f"./wd14_tagger_model/{repo_id_converted}"):
+        force_download = True
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        fr'"{get_executable_path("accelerate")}"',
+        fr'{get_executable_path("accelerate")}',
         "launch",
-        fr'"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py"',
+        fr"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
     ]
 
     # Uncomment and modify if needed
@@ -112,11 +116,11 @@ def caption_images(
         run_cmd.append("--use_rating_tags_as_last_tag")
 
     # Add the directory containing the training data
-    run_cmd.append(fr'"{train_data_dir}"')
+    run_cmd.append(fr'{train_data_dir}')
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -126,7 +130,7 @@ def caption_images(
     log.info(f"Executing command: {command_to_run} with shell={use_shell}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env, shell=use_shell)
 
 
     # Add prefix and postfix
@@ -359,6 +363,21 @@ def gradio_wd14_caption_gui_tab(
                 label="Max dataloader workers",
                 interactive=True,
             )
+            
+        def repo_id_changes(repo_id, onnx):
+            global old_onnx_value
+            
+            if "-v3" in repo_id:
+                old_onnx_value = onnx
+                return gr.Checkbox(value=True, interactive=False)
+            else:
+                return gr.Checkbox(value=old_onnx_value, interactive=True)
+            
+        repo_id.change(
+            repo_id_changes,
+            inputs=[repo_id, onnx],
+            outputs=[onnx]
+        )
 
         caption_button = gr.Button("Caption images")
 
