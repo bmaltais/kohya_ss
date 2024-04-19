@@ -53,7 +53,6 @@ jobs:
             suffix=
           # https://github.com/docker/metadata-action/tree/v5/?tab=readme-ov-file#tags-input
           tags: |
-            ${{ github.sha }}
             type=semver,pattern=v{{major}}
             type=semver,pattern={{raw}}
 
