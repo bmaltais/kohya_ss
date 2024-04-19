@@ -416,7 +416,20 @@ def update_my_data(my_data):
             my_data["xformers"] = "xformers"
         else:
             my_data["xformers"] = "none"
-
+            
+    # Convert use_wandb to log_with="wandb" if it is set to True
+    for key in ["use_wandb"]:
+        value = my_data.get(key)
+        if value is not None:
+            try:
+                if value == "True":
+                    my_data["log_with"] = "wandb"
+            except ValueError:
+                # Handle the case where the string is not a valid float
+                pass
+            
+        my_data.pop(key, None)
+            
     return my_data
 
 
