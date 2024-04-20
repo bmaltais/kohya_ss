@@ -19,6 +19,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
+    validate_args_setting
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -543,6 +544,14 @@ def train_model(
     log.debug(f"headless = {headless} ; print_only = {print_only}")
 
     log.info(f"Start Finetuning...")
+
+    log.info(f"Validating lr scheduler arguments...")
+    if not validate_args_setting(lr_scheduler_args):
+        return
+    
+    log.info(f"Validating optimizer arguments...")
+    if not validate_args_setting(optimizer_args):
+        return
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)

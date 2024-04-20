@@ -18,6 +18,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
+    validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -491,18 +492,26 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
     global train_state_value
-    
+
     TRAIN_BUTTON_VISIBLE = [
         gr.Button(visible=True),
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
-    
+
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Start training Dreambooth...")
+
+    log.info(f"Validating lr scheduler arguments...")
+    if not validate_args_setting(lr_scheduler_args):
+        return
+    
+    log.info(f"Validating optimizer arguments...")
+    if not validate_args_setting(optimizer_args):
+        return
 
     # This function validates files or folder paths. Simply add new variables containing file of folder path
     # to validate below
@@ -808,9 +817,9 @@ def train_model(
         for key, value in config_toml_data.items()
         if value not in ["", False, None]
     }
-    
+
     config_toml_data["max_data_loader_n_workers"] = max_data_loader_n_workers
-    
+
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
 
@@ -861,7 +870,7 @@ def train_model(
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
-        
+
         train_state_value = time.time()
 
         return (
@@ -950,7 +959,7 @@ def dreambooth_tab(
 
         global executor
         executor = CommandExecutor(headless=headless)
-        
+
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
@@ -1102,9 +1111,9 @@ def dreambooth_tab(
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
-        
+
         run_state = gr.Textbox(value=train_state_value, visible=False)
-            
+
         run_state.change(
             fn=executor.wait_for_training_to_end,
             outputs=[executor.button_run, executor.button_stop_training],
@@ -1118,7 +1127,8 @@ def dreambooth_tab(
         )
 
         executor.button_stop_training.click(
-            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
+            executor.kill_command,
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
         button_print.click(
