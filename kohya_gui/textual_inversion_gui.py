@@ -695,10 +695,10 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "async_upload": async_upload,
         "adaptive_noise_scale": (
             adaptive_noise_scale if adaptive_noise_scale != 0 else None
         ),
+        "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,

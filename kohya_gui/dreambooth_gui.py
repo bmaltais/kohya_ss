@@ -669,8 +669,8 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "async_upload": async_upload,
         "adaptive_noise_scale": adaptive_noise_scale if not 0 else None,
+        "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -686,18 +686,17 @@ def train_model(
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
+        "huggingface_path_in_repo": huggingface_path_in_repo,
         "huggingface_repo_id": huggingface_repo_id,
-        "huggingface_token": huggingface_token,
         "huggingface_repo_type": huggingface_repo_type,
         "huggingface_repo_visibility": huggingface_repo_visibility,
-        "huggingface_path_in_repo": huggingface_path_in_repo,
+        "huggingface_token": huggingface_token,
         "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
@@ -712,8 +711,9 @@ def train_model(
             learning_rate_te2 if sdxl and not 0 else None
         ),  # only for sdxl and not 0
         "logging_dir": logging_dir,
-        "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "log_tracker_name": log_tracker_name,
+        "log_with": log_with,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -722,6 +722,7 @@ def train_model(
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
@@ -743,12 +744,12 @@ def train_model(
         "noise_offset": noise_offset if not 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
-        "optimizer_type": optimizer,
         "optimizer_args": (
             str(optimizer_args).replace('"', "").split()
             if optimizer_args != ""
             else None
         ),
+        "optimizer_type": optimizer,
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -789,7 +790,6 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
-        "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,

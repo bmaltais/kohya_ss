@@ -480,6 +480,7 @@ The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument
 #### Miscellaneous
 
 - Made various other minor improvements and bug fixes to enhance overall functionality and user experience.
+- Fixed an issue with existing LoRA network weights were not properly loaded prior to training
 
 ### 2024/04/10 (v23.1.5)
 
