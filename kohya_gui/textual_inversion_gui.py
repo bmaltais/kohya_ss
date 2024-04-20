@@ -45,17 +45,12 @@ from .custom_logging import setup_logging
 log = setup_logging()
 
 # Setup command executor
-executor = CommandExecutor()
+executor = None
 
 # Setup huggingface
 huggingface = None
 use_shell = False
-
-TRAIN_BUTTON_VISIBLE = [
-    gr.Button(visible=True),
-    gr.Button(visible=False),
-    gr.Textbox(value=time.time()),
-]
+train_state_value = time.time()
 
 
 def save_configuration(
@@ -496,6 +491,17 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    global train_state_value
+    
+    TRAIN_BUTTON_VISIBLE = [
+        gr.Button(visible=True),
+        gr.Button(visible=False or headless),
+        gr.Textbox(value=train_state_value),
+    ]
+    
+    if executor.is_running():
+        log.error("Training is already running. Can't start another training session.")
+        return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Start training TI...")
 
@@ -874,11 +880,13 @@ def train_model(
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+        
+        train_state_value = time.time()
 
         return (
-            gr.Button(visible=False),
+            gr.Button(visible=False or headless),
             gr.Button(visible=True),
-            gr.Textbox(value=time.time()),
+            gr.Textbox(value=train_state_value),
         )
 
 
@@ -1052,21 +1060,15 @@ def ti_tab(
             with gr.Accordion("HuggingFace", open=False):
                 huggingface = HuggingFace(config=config)
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_run = gr.Button("Start training", variant="primary")
-
-                button_stop_training = gr.Button(
-                    "Stop training", visible=False, variant="stop"
-                )
-
+        global executor
+        executor = CommandExecutor(headless=headless)
+        
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+        TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -1211,30 +1213,23 @@ def ti_tab(
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
-
-        # config.button_save_as_config.click(
-        #    save_configuration,
-        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
-        #    outputs=[config.config_file_name],
-        #    show_progress=False,
-        # )
-
-        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
-        run_state = gr.Textbox(value="", visible=False)
+        
+        run_state = gr.Textbox(value=train_state_value, visible=False)
+            
         run_state.change(
             fn=executor.wait_for_training_to_end,
-            outputs=[button_run, button_stop_training],
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
-        button_run.click(
+        executor.button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training, run_state],
+            outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(
-            executor.kill_command, outputs=[button_run, button_stop_training]
+        executor.button_stop_training.click(
+            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
         )
 
         button_print.click(
