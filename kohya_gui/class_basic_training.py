@@ -98,7 +98,7 @@ class BasicTraining:
                 step=1,
                 # precision=0,
                 minimum=0,
-                value=self.config.get("basic.max_train_epochs", 1600),
+                value=self.config.get("basic.max_train_epochs", 0),
             )
             # Initialize the maximum train steps input
             self.max_train_steps = gr.Number(
@@ -106,7 +106,7 @@ class BasicTraining:
                 info="Overrides # training steps. 0 = no override",
                 step=1,
                 # precision=0,
-                value=self.config.get("basic.max_train_steps", 0),
+                value=self.config.get("basic.max_train_steps", 1600),
             )
             # Initialize the save every N epochs input
             self.save_every_n_epochs = gr.Number(

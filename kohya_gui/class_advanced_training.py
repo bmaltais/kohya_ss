@@ -510,10 +510,11 @@ class AdvancedTraining:
                 value=self.config.get("advanced.max_data_loader_n_workers", 0),
             )
         with gr.Row():
-            self.use_wandb = gr.Checkbox(
-                label="WANDB Logging",
-                value=self.config.get("advanced.use_wandb", False),
-                info="If unchecked, tensorboard will be used as the default for logging.",
+            self.log_with = gr.Dropdown(
+                label="Logging",
+                choices=["","wandb", "tensorboard","all"],
+                value="",
+                info="Loggers to use, tensorboard will be used as the default.",
             )
             self.wandb_api_key = gr.Textbox(
                 label="WANDB API Key",

@@ -195,7 +195,7 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -400,7 +400,7 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -469,7 +469,7 @@ def open_configuration(
             return
 
         # Load variables from JSON file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             my_data = json.load(f)
             log.info("Loading config...")
 
@@ -635,7 +635,7 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -1152,7 +1152,7 @@ def train_model(
         "train_data_dir": train_data_dir,
         "training_comment": training_comment,
         "unet_lr": unet_lr if not 0 else None,
-        "use_wandb": use_wandb,
+        "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
@@ -1179,7 +1179,7 @@ def train_model(
 
     tmpfilename = "./outputs/tmpfilelora.toml"
     # Save the updated TOML data back to the file
-    with open(tmpfilename, "w") as toml_file:
+    with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
 
         if not os.path.exists(toml_file.name):
@@ -2223,7 +2223,7 @@ def lora_tab(
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,
             advanced_training.save_last_n_steps_state,
-            advanced_training.use_wandb,
+            advanced_training.log_with,
             advanced_training.wandb_api_key,
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
@@ -2341,7 +2341,7 @@ def lora_tab(
             with open(
                 os.path.join(rf"{scriptdir}/docs/LoRA/top_level.md"),
                 "r",
-                encoding="utf8",
+                encoding="utf-8",
             ) as file:
                 guides_top_level = file.read() + "\n"
             gr.Markdown(guides_top_level)

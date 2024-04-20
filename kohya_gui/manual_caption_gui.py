@@ -59,7 +59,7 @@ def paginate(page, max_page, page_change):
 
 def save_caption(caption, caption_ext, image_file, images_dir):
     caption_path = _get_caption_path(image_file, images_dir, caption_ext)
-    with open(caption_path, "w+", encoding="utf8") as f:
+    with open(caption_path, "w+", encoding="utf-8") as f:
         f.write(caption)
 
     log.info(f"Wrote captions to {caption_path}")
@@ -146,7 +146,7 @@ def import_tags_from_captions(
     for image_file in image_files:
         caption_file_path = _get_caption_path(image_file, images_dir, caption_ext)
         if os.path.exists(caption_file_path):
-            with open(caption_file_path, "r", encoding="utf8") as f:
+            with open(caption_file_path, "r", encoding="utf-8") as f:
                 caption = f.read()
                 for tag in caption.split(","):
                     tag = tag.strip()
@@ -230,7 +230,7 @@ def update_images(
 
             caption_file_path = _get_caption_path(image_file, images_dir, caption_ext)
             if os.path.exists(caption_file_path):
-                with open(caption_file_path, "r", encoding="utf8") as f:
+                with open(caption_file_path, "r", encoding="utf-8") as f:
                     caption = f.read()
 
         tag_checkboxes = _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set)

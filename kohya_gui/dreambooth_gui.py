@@ -159,7 +159,7 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -317,7 +317,7 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -350,7 +350,7 @@ def open_configuration(
 
     if not file_path == "" and not file_path == None:
         # load variables from JSON file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             my_data = json.load(f)
             log.info("Loading config...")
             # Update values to fix deprecated use_8bit_adam checkbox and set appropriate optimizer if it is set to True
@@ -470,7 +470,7 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
-    use_wandb,
+    log_with,
     wandb_api_key,
     wandb_run_name,
     log_tracker_name,
@@ -783,7 +783,7 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
-        "use_wandb": use_wandb,
+        "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
@@ -810,7 +810,7 @@ def train_model(
 
     tmpfilename = "./outputs/tmpfiledbooth.toml"
     # Save the updated TOML data back to the file
-    with open(tmpfilename, "w") as toml_file:
+    with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
 
         if not os.path.exists(toml_file.name):
@@ -1056,7 +1056,7 @@ def dreambooth_tab(
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,
             advanced_training.save_last_n_steps_state,
-            advanced_training.use_wandb,
+            advanced_training.log_with,
             advanced_training.wandb_api_key,
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
