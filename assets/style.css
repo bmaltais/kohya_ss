@@ -37,11 +37,11 @@
 #myTensorButton {
     background: radial-gradient(ellipse, #3a99ff, #52c8ff);
     color: white;
-    border: none;
+    border: #296eb8;
 }
 
 #myTensorButtonStop {
     background: radial-gradient(ellipse, #52c8ff, #3a99ff);
     color: black;
-    border: none;
+    border: #296eb8;
 }
