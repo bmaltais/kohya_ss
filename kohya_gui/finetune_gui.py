@@ -746,10 +746,10 @@ def train_model(
 
     config_toml_data = {
         # Update the values in the TOML data
-        "async_upload": async_upload,
         "adaptive_noise_scale": (
             adaptive_noise_scale if adaptive_noise_scale != 0 else None
         ),
+        "async_upload": async_upload,
         "block_lr": block_lr,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -767,7 +767,6 @@ def train_model(
         "dynamo_backend": dynamo_backend,
         "enable_bucket": True,
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
@@ -800,6 +799,7 @@ def train_model(
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),

@@ -105,7 +105,7 @@ def save_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -310,7 +310,7 @@ def open_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -545,7 +545,7 @@ def train_model(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -689,7 +689,7 @@ def train_model(
         log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
-        lora_network_weights=lora_network_weights,
+        network_weights=network_weights,
         dataset_config=dataset_config,
     ):
         return TRAIN_BUTTON_VISIBLE
@@ -1024,10 +1024,10 @@ def train_model(
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
     config_toml_data = {
-        "async_upload": async_upload,
         "adaptive_noise_scale": (
             adaptive_noise_scale if adaptive_noise_scale != 0 else None
         ),
+        "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -1047,7 +1047,6 @@ def train_model(
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
@@ -1067,7 +1066,6 @@ def train_model(
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
-        "lora_network_weights": lora_network_weights,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -1076,6 +1074,7 @@ def train_model(
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
@@ -1103,6 +1102,7 @@ def train_model(
         "network_module": network_module,
         "network_train_unet_only": network_train_unet_only,
         "network_train_text_encoder_only": network_train_text_encoder_only,
+        "network_weights": network_weights,
         "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
         "noise_offset": noise_offset if noise_offset != 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
@@ -1360,21 +1360,21 @@ def lora_tab(
                         )
                         with gr.Group():
                             with gr.Row():
-                                lora_network_weights = gr.Textbox(
-                                    label="LoRA network weights",
+                                network_weights = gr.Textbox(
+                                    label="Network weights",
                                     placeholder="(Optional)",
                                     info="Path to an existing LoRA network weights to resume training from",
                                 )
-                                lora_network_weights_file = gr.Button(
+                                network_weights_file = gr.Button(
                                     document_symbol,
                                     elem_id="open_folder_small",
                                     elem_classes=["tool"],
                                     visible=(not headless),
                                 )
-                                lora_network_weights_file.click(
+                                network_weights_file.click(
                                     get_any_file_path,
-                                    inputs=[lora_network_weights],
-                                    outputs=lora_network_weights,
+                                    inputs=[network_weights],
+                                    outputs=network_weights,
                                     show_progress=False,
                                 )
                                 dim_from_weights = gr.Checkbox(
@@ -1627,7 +1627,7 @@ def lora_tab(
                                         },
                                     },
                                 },
-                                "lora_network_weights": {
+                                "network_weights": {
                                     "gr_type": gr.Textbox,
                                     "update_params": {
                                         "visible": LoRA_type
@@ -1647,7 +1647,7 @@ def lora_tab(
                                         },
                                     },
                                 },
-                                "lora_network_weights_file": {
+                                "network_weights_file": {
                                     "gr_type": gr.Button,
                                     "update_params": {
                                         "visible": LoRA_type
@@ -2061,8 +2061,8 @@ def lora_tab(
                     network_row,
                     convolution_row,
                     kohya_advanced_lora,
-                    lora_network_weights,
-                    lora_network_weights_file,
+                    network_weights,
+                    network_weights_file,
                     dim_from_weights,
                     factor,
                     conv_dim,
@@ -2140,7 +2140,7 @@ def lora_tab(
             text_encoder_lr,
             unet_lr,
             network_dim,
-            lora_network_weights,
+            network_weights,
             dim_from_weights,
             advanced_training.color_aug,
             advanced_training.flip_aug,

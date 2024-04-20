@@ -429,7 +429,15 @@ def update_my_data(my_data):
                 pass
             
         my_data.pop(key, None)
-            
+        
+        
+    # Replace the lora_network_weights key with network_weights keeping the original value
+    for key in ["lora_network_weights"]:
+        value = my_data.get(key) # Get original value
+        if value is not None: # Check if the key exists in the dictionary
+            my_data["network_weights"] = value
+            my_data.pop(key, None)
+        
     return my_data
 
 
