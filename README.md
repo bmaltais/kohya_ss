@@ -417,6 +417,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 ### 2024/04/220 (v24.0.6)
 
 - Make start and stop buttons visible in headless
+- Add validation for lr and optimizer arguments
 
 ### 2024/04/19 (v24.0.5)
 
