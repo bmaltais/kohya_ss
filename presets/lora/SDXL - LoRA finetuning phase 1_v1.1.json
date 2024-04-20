@@ -85,7 +85,7 @@
     "unit": 1,
     "up_lr_weight": "",
     "use_cp": true,
-    "use_wandb": false,
+    "log_with": "",
     "v2": false,
     "v_parameterization": false,
     "vae_batch_size": 0,

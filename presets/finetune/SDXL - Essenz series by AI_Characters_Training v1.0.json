@@ -77,7 +77,7 @@
   "train_dir": "/kohya_ss/output/SDXL1.0_Essenz-series-by-AI_Characters_Concept_Morphing-v1.0",
   "train_text_encoder": true,
   "use_latent_files": "Yes",
-  "use_wandb": false,
+  "log_with": "",
   "v2": false,
   "v_parameterization": false,
   "v_pred_like_loss": 0,
