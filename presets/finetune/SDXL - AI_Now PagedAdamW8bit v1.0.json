@@ -61,7 +61,7 @@
     "train_batch_size": 2,
     "train_text_encoder": false,
     "use_latent_files": "No",
-    "use_wandb": false,
+    "log_with": "",
     "v2": false,
     "v_parameterization": false,
     "v_pred_like_loss": 0,
