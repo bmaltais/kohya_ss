@@ -24,7 +24,6 @@ PYTHON = sys.executable
 
 def verify_lora(
     lora_model,
-    use_shell: bool = False,
 ):
     # verify for caption_text_input
     if lora_model == "":
@@ -36,16 +35,23 @@ def verify_lora(
         msgbox("The provided model A is not a file")
         return
 
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
+    run_cmd = [
+        rf"{PYTHON}",
+        rf"{scriptdir}/sd-scripts/networks/check_lora_weights.py",
+        rf"{lora_model}",
+    ]
+    # run_cmd = rf'"{PYTHON}" "{scriptdir}/sd-scripts/networks/check_lora_weights.py" "{lora_model}"'
 
-    log.info(run_cmd)
+    # Reconstruct the safe command string for display
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run}")
 
     # Set the environment variable for the Python path
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
-    
+
     # Example of adding an environment variable for TensorFlow, if necessary
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -55,7 +61,7 @@ def verify_lora(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        shell=use_shell,
+        shell=False,
     )
     output, error = process.communicate()
 
@@ -67,7 +73,7 @@ def verify_lora(
 ###
 
 
-def gradio_verify_lora_tab(headless=False, use_shell: bool = False):
+def gradio_verify_lora_tab(headless=False):
     current_model_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
@@ -138,7 +144,6 @@ def gradio_verify_lora_tab(headless=False, use_shell: bool = False):
             verify_lora,
             inputs=[
                 lora_model,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             outputs=[lora_model_verif_output, lora_model_verif_error],
             show_progress=False,
