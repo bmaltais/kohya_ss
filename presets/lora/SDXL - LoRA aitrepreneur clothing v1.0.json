@@ -87,7 +87,7 @@
     "unit": 1,
     "up_lr_weight": "",
     "use_cp": false,
-    "use_wandb": false,
+    "log_with": "",
     "v2": false,
     "v_parameterization": false,
     "v_pred_like_loss": 0,

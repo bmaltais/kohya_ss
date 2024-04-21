@@ -20,6 +20,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
+    validate_args_setting
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -47,26 +48,17 @@ from .custom_logging import setup_logging
 log = setup_logging()
 
 # Setup command executor
-executor = CommandExecutor()
+executor = None
 
 # Setup huggingface
 huggingface = None
 use_shell = False
-
-button_run = gr.Button("Start training", variant="primary")
-
-button_stop_training = gr.Button("Stop training", visible=False)
+train_state_value = time.time()
 
 document_symbol = "\U0001F4C4"  # 📄
 
 
 presets_dir = rf"{scriptdir}/presets"
-
-TRAIN_BUTTON_VISIBLE = [
-    gr.Button(visible=True),
-    gr.Button(visible=False),
-    gr.Textbox(value=time.time()),
-]
 
 
 def save_configuration(
@@ -114,7 +106,7 @@ def save_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -319,7 +311,7 @@ def open_configuration(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -554,7 +546,7 @@ def train_model(
     text_encoder_lr,
     unet_lr,
     network_dim,
-    lora_network_weights,
+    network_weights,
     dim_from_weights,
     color_aug,
     flip_aug,
@@ -674,9 +666,27 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
-    global command_running
+    global train_state_value
+    
+    TRAIN_BUTTON_VISIBLE = [
+        gr.Button(visible=True),
+        gr.Button(visible=False or headless),
+        gr.Textbox(value=train_state_value),
+    ]
+    
+    if executor.is_running():
+        log.error("Training is already running. Can't start another training session.")
+        return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Start training LoRA {LoRA_type} ...")
+
+    log.info(f"Validating lr scheduler arguments...")
+    if not validate_args_setting(lr_scheduler_args):
+        return
+    
+    log.info(f"Validating optimizer arguments...")
+    if not validate_args_setting(optimizer_args):
+        return
 
     if not validate_paths(
         output_dir=output_dir,
@@ -688,7 +698,7 @@ def train_model(
         log_tracker_config=log_tracker_config,
         resume=resume,
         vae=vae,
-        lora_network_weights=lora_network_weights,
+        network_weights=network_weights,
         dataset_config=dataset_config,
     ):
         return TRAIN_BUTTON_VISIBLE
@@ -1023,10 +1033,10 @@ def train_model(
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
     config_toml_data = {
-        "async_upload": async_upload,
         "adaptive_noise_scale": (
             adaptive_noise_scale if adaptive_noise_scale != 0 else None
         ),
+        "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -1046,7 +1056,6 @@ def train_model(
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
@@ -1066,7 +1075,6 @@ def train_model(
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
-        "lora_network_weights": lora_network_weights,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -1075,6 +1083,7 @@ def train_model(
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
@@ -1102,6 +1111,7 @@ def train_model(
         "network_module": network_module,
         "network_train_unet_only": network_train_unet_only,
         "network_train_text_encoder_only": network_train_text_encoder_only,
+        "network_weights": network_weights,
         "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
         "noise_offset": noise_offset if noise_offset != 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
@@ -1221,12 +1231,15 @@ def train_model(
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
+
         executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+        
+        train_state_value = time.time()
 
         return (
-            gr.Button(visible=False),
+            gr.Button(visible=False or headless),
             gr.Button(visible=True),
-            gr.Textbox(value=time.time()),
+            gr.Textbox(value=train_state_value),
         )
 
 
@@ -1356,21 +1369,21 @@ def lora_tab(
                         )
                         with gr.Group():
                             with gr.Row():
-                                lora_network_weights = gr.Textbox(
-                                    label="LoRA network weights",
+                                network_weights = gr.Textbox(
+                                    label="Network weights",
                                     placeholder="(Optional)",
                                     info="Path to an existing LoRA network weights to resume training from",
                                 )
-                                lora_network_weights_file = gr.Button(
+                                network_weights_file = gr.Button(
                                     document_symbol,
                                     elem_id="open_folder_small",
                                     elem_classes=["tool"],
                                     visible=(not headless),
                                 )
-                                lora_network_weights_file.click(
+                                network_weights_file.click(
                                     get_any_file_path,
-                                    inputs=[lora_network_weights],
-                                    outputs=lora_network_weights,
+                                    inputs=[network_weights],
+                                    outputs=network_weights,
                                     show_progress=False,
                                 )
                                 dim_from_weights = gr.Checkbox(
@@ -1623,7 +1636,7 @@ def lora_tab(
                                         },
                                     },
                                 },
-                                "lora_network_weights": {
+                                "network_weights": {
                                     "gr_type": gr.Textbox,
                                     "update_params": {
                                         "visible": LoRA_type
@@ -1643,7 +1656,7 @@ def lora_tab(
                                         },
                                     },
                                 },
-                                "lora_network_weights_file": {
+                                "network_weights_file": {
                                     "gr_type": gr.Button,
                                     "update_params": {
                                         "visible": LoRA_type
@@ -2057,8 +2070,8 @@ def lora_tab(
                     network_row,
                     convolution_row,
                     kohya_advanced_lora,
-                    lora_network_weights,
-                    lora_network_weights_file,
+                    network_weights,
+                    network_weights_file,
                     dim_from_weights,
                     factor,
                     conv_dim,
@@ -2084,21 +2097,15 @@ def lora_tab(
                 ],
             )
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_run = gr.Button("Start training", variant="primary")
-
-                button_stop_training = gr.Button(
-                    "Stop training", visible=False, variant="stop"
-                )
-
+        global executor
+        executor = CommandExecutor(headless=headless)
+        
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+        TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -2142,7 +2149,7 @@ def lora_tab(
             text_encoder_lr,
             unet_lr,
             network_dim,
-            lora_network_weights,
+            network_weights,
             dim_from_weights,
             advanced_training.color_aug,
             advanced_training.flip_aug,
@@ -2301,29 +2308,22 @@ def lora_tab(
             show_progress=False,
         )
 
-        # config.button_save_as_config.click(
-        #    save_configuration,
-        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
-        #    outputs=[config.config_file_name],
-        #    show_progress=False,
-        # )
-
-        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
-        run_state = gr.Textbox(value="", visible=False)
+        run_state = gr.Textbox(value=train_state_value, visible=False)
+            
         run_state.change(
             fn=executor.wait_for_training_to_end,
-            outputs=[button_run, button_stop_training],
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
-        button_run.click(
+        executor.button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training, run_state],
+            outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(
-            executor.kill_command, outputs=[button_run, button_stop_training]
+        executor.button_stop_training.click(
+            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
         )
 
         button_print.click(

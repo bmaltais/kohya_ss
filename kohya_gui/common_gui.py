@@ -429,7 +429,15 @@ def update_my_data(my_data):
                 pass
             
         my_data.pop(key, None)
-            
+        
+        
+    # Replace the lora_network_weights key with network_weights keeping the original value
+    for key in ["lora_network_weights"]:
+        value = my_data.get(key) # Get original value
+        if value is not None: # Check if the key exists in the dictionary
+            my_data["network_weights"] = value
+            my_data.pop(key, None)
+        
     return my_data
 
 
@@ -1491,3 +1499,16 @@ def print_command_and_toml(run_cmd, tmpfilename):
     log.info(f"end of toml config file: {tmpfilename}")
 
     save_to_file(command_to_run)
+    
+def validate_args_setting(input_string):
+    # Regex pattern to handle multiple conditions:
+    # - Empty string is valid
+    # - Single or multiple key/value pairs with exactly one space between pairs
+    # - No spaces around '=' and no spaces within keys or values
+    pattern = r'^(\S+=\S+)( \S+=\S+)*$|^$'
+    if re.match(pattern, input_string):
+        return True
+    else:
+        log.info(f"'{input_string}' is not a valid settings string.")
+        log.info("A valid settings string must consist of one or more key/value pairs formatted as key=value, with no spaces around the equals sign or within the value. Multiple pairs should be separated by a space.")
+        return False

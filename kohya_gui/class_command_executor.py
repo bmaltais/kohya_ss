@@ -14,12 +14,19 @@ class CommandExecutor:
     A class to execute and manage commands.
     """
 
-    def __init__(self):
+    def __init__(self, headless: bool = False):
         """
         Initialize the CommandExecutor.
         """
+        self.headless = headless
         self.process = None
-        self.run_state = gr.Textbox(value="", visible=False)
+        
+        with gr.Row():
+            self.button_run = gr.Button("Start training", variant="primary")
+
+            self.button_stop_training = gr.Button(
+                "Stop training", visible=self.process is not None or headless, variant="stop"
+            )
 
     def execute_command(self, run_cmd: str, use_shell: bool = False, **kwargs):
         """
@@ -64,16 +71,17 @@ class CommandExecutor:
                 # General exception handling for any other errors
                 log.info(f"Error when terminating process: {e}")
         else:
+            self.process = None
             log.info("There is no running process to kill.")
 
-        return gr.Button(visible=True), gr.Button(visible=False)
+        return gr.Button(visible=True), gr.Button(visible=False or self.headless)
 
     def wait_for_training_to_end(self):
         while self.is_running():
             time.sleep(1)
             log.debug("Waiting for training to end...")
         log.info("Training has ended.")
-        return gr.Button(visible=True), gr.Button(visible=False)
+        return gr.Button(visible=True), gr.Button(visible=False or self.headless)
 
     def is_running(self):
         """
@@ -82,4 +90,4 @@ class CommandExecutor:
         Returns:
         - bool: True if the command is running, False otherwise.
         """
-        return self.process and self.process.poll() is None
+        return self.process is not None and self.process.poll() is None

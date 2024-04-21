@@ -42,10 +42,12 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [2024/04/220 (v24.0.6)](#202404220-v2406)
     - [2024/04/19 (v24.0.5)](#20240419-v2405)
+      - [New Contributors](#new-contributors)
     - [2024/04/18 (v24.0.4)](#20240418-v2404)
       - [What's Changed](#whats-changed)
-      - [New Contributors](#new-contributors)
+      - [New Contributors](#new-contributors-1)
     - [2024/04/24 (v24.0.3)](#20240424-v2403)
     - [2024/04/24 (v24.0.2)](#20240424-v2402)
     - [2024/04/17 (v24.0.1)](#20240417-v2401)
@@ -412,9 +414,20 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
+### 2024/04/220 (v24.0.6)
+
+- Make start and stop buttons visible in headless
+- Add validation for lr and optimizer arguments
+
 ### 2024/04/19 (v24.0.5)
 
-- fdds
+- Hide tensorboard button if tensorflow module is not installed by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2347>
+- wd14 captioning issue with undesired tags nor tag replacement by @bmaltais in <https://github.com/bmaltais/kohya_ss/pull/2350>
+- Changed logger checkbox to dropdown, renamed use_wandb -> log_with by @ccharest93 in <https://github.com/bmaltais/kohya_ss/pull/2352>
+
+#### New Contributors
+
+- @ccharest93 made their first contribution in <https://github.com/bmaltais/kohya_ss/pull/2352>
 
 ### 2024/04/18 (v24.0.4)
 
@@ -468,6 +481,7 @@ The `gui.bat` and `gui.sh` scripts now include the `--do_not_use_shell` argument
 #### Miscellaneous
 
 - Made various other minor improvements and bug fixes to enhance overall functionality and user experience.
+- Fixed an issue with existing LoRA network weights were not properly loaded prior to training
 
 ### 2024/04/10 (v23.1.5)
 

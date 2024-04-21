@@ -18,6 +18,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
+    validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -43,17 +44,12 @@ from .custom_logging import setup_logging
 log = setup_logging()
 
 # Setup command executor
-executor = CommandExecutor()
+executor = None
 
 # Setup huggingface
 huggingface = None
 use_shell = False
-
-TRAIN_BUTTON_VISIBLE = [
-    gr.Button(visible=True),
-    gr.Button(visible=False),
-    gr.Textbox(value=time.time()),
-]
+train_state_value = time.time()
 
 
 def save_configuration(
@@ -495,8 +491,27 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    global train_state_value
+
+    TRAIN_BUTTON_VISIBLE = [
+        gr.Button(visible=True),
+        gr.Button(visible=False or headless),
+        gr.Textbox(value=train_state_value),
+    ]
+
+    if executor.is_running():
+        log.error("Training is already running. Can't start another training session.")
+        return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Start training Dreambooth...")
+
+    log.info(f"Validating lr scheduler arguments...")
+    if not validate_args_setting(lr_scheduler_args):
+        return
+    
+    log.info(f"Validating optimizer arguments...")
+    if not validate_args_setting(optimizer_args):
+        return
 
     # This function validates files or folder paths. Simply add new variables containing file of folder path
     # to validate below
@@ -663,8 +678,8 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "async_upload": async_upload,
         "adaptive_noise_scale": adaptive_noise_scale if not 0 else None,
+        "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
@@ -680,18 +695,17 @@ def train_model(
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
+        "huggingface_path_in_repo": huggingface_path_in_repo,
         "huggingface_repo_id": huggingface_repo_id,
-        "huggingface_token": huggingface_token,
         "huggingface_repo_type": huggingface_repo_type,
         "huggingface_repo_visibility": huggingface_repo_visibility,
-        "huggingface_path_in_repo": huggingface_path_in_repo,
+        "huggingface_token": huggingface_token,
         "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
@@ -706,8 +720,9 @@ def train_model(
             learning_rate_te2 if sdxl and not 0 else None
         ),  # only for sdxl and not 0
         "logging_dir": logging_dir,
-        "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "log_tracker_name": log_tracker_name,
+        "log_with": log_with,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -716,6 +731,7 @@ def train_model(
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
@@ -737,12 +753,12 @@ def train_model(
         "noise_offset": noise_offset if not 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
-        "optimizer_type": optimizer,
         "optimizer_args": (
             str(optimizer_args).replace('"', "").split()
             if optimizer_args != ""
             else None
         ),
+        "optimizer_type": optimizer,
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": persistent_data_loader_workers,
@@ -783,7 +799,6 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
-        "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
@@ -802,9 +817,9 @@ def train_model(
         for key, value in config_toml_data.items()
         if value not in ["", False, None]
     }
-    
+
     config_toml_data["max_data_loader_n_workers"] = max_data_loader_n_workers
-    
+
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
 
@@ -856,10 +871,12 @@ def train_model(
 
         executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
 
+        train_state_value = time.time()
+
         return (
-            gr.Button(visible=False),
+            gr.Button(visible=False or headless),
             gr.Button(visible=True),
-            gr.Textbox(value=time.time()),
+            gr.Textbox(value=train_state_value),
         )
 
 
@@ -940,21 +957,15 @@ def dreambooth_tab(
             with gr.Accordion("HuggingFace", open=False):
                 huggingface = HuggingFace(config=config)
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_run = gr.Button("Start training", variant="primary")
-
-                button_stop_training = gr.Button(
-                    "Stop training", visible=False, variant="stop"
-                )
+        global executor
+        executor = CommandExecutor(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
 
         # Setup gradio tensorboard buttons
-        with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+        TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -1101,36 +1112,23 @@ def dreambooth_tab(
             show_progress=False,
         )
 
-        # config.button_save_as_config.click(
-        #    save_configuration,
-        #    inputs=[dummy_db_true, config.config_file_name] + settings_list,
-        #    outputs=[config.config_file_name],
-        #    show_progress=False,
-        # )
+        run_state = gr.Textbox(value=train_state_value, visible=False)
 
-        # def wait_for_training_to_end():
-        #     while executor.is_running():
-        #         time.sleep(1)
-        #         log.debug("Waiting for training to end...")
-        #     log.info("Training has ended.")
-        #     return gr.Button(visible=True), gr.Button(visible=False)
-
-        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
-        run_state = gr.Textbox(value="", visible=False)
         run_state.change(
             fn=executor.wait_for_training_to_end,
-            outputs=[button_run, button_stop_training],
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
-        button_run.click(
+        executor.button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training, run_state],
+            outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(
-            executor.kill_command, outputs=[button_run, button_stop_training]
+        executor.button_stop_training.click(
+            executor.kill_command,
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
         button_print.click(

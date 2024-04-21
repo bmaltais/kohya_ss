@@ -19,6 +19,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
+    validate_args_setting
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -40,13 +41,12 @@ from .custom_logging import setup_logging
 log = setup_logging()
 
 # Setup command executor
-executor = CommandExecutor()
+executor = None
 
 # Setup huggingface
 huggingface = None
 use_shell = False
-
-# from easygui import msgbox
+train_state_value = time.time()
 
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
@@ -56,11 +56,6 @@ document_symbol = "\U0001F4C4"  # 📄
 PYTHON = sys.executable
 
 presets_dir = rf"{scriptdir}/presets"
-TRAIN_BUTTON_VISIBLE = [
-    gr.Button(visible=True),
-    gr.Button(visible=False),
-    gr.Textbox(value=time.time()),
-]
 
 
 def save_configuration(
@@ -534,10 +529,29 @@ def train_model(
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
+    global train_state_value
+    
+    TRAIN_BUTTON_VISIBLE = [
+        gr.Button(visible=True),
+        gr.Button(visible=False or headless),
+        gr.Textbox(value=train_state_value),
+    ]
+    
+    if executor.is_running():
+        log.error("Training is already running. Can't start another training session.")
+        return TRAIN_BUTTON_VISIBLE
 
     log.debug(f"headless = {headless} ; print_only = {print_only}")
 
     log.info(f"Start Finetuning...")
+
+    log.info(f"Validating lr scheduler arguments...")
+    if not validate_args_setting(lr_scheduler_args):
+        return
+    
+    log.info(f"Validating optimizer arguments...")
+    if not validate_args_setting(optimizer_args):
+        return
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
@@ -741,10 +755,10 @@ def train_model(
 
     config_toml_data = {
         # Update the values in the TOML data
-        "async_upload": async_upload,
         "adaptive_noise_scale": (
             adaptive_noise_scale if adaptive_noise_scale != 0 else None
         ),
+        "async_upload": async_upload,
         "block_lr": block_lr,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -762,7 +776,6 @@ def train_model(
         "dynamo_backend": dynamo_backend,
         "enable_bucket": True,
         "flip_aug": flip_aug,
-        "masked_loss": masked_loss,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
@@ -795,6 +808,7 @@ def train_model(
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_warmup_steps": lr_warmup_steps,
+        "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
@@ -927,10 +941,12 @@ def train_model(
         # Run the command
         executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
 
+        train_state_value = time.time()
+
         return (
-            gr.Button(visible=False),
+            gr.Button(visible=False or headless),
             gr.Button(visible=True),
-            gr.Textbox(value=time.time()),
+            gr.Textbox(value=train_state_value),
         )
 
 
@@ -1090,21 +1106,14 @@ def finetune_tab(
             with gr.Accordion("HuggingFace", open=False):
                 huggingface = HuggingFace(config=config)
 
-        with gr.Column(), gr.Group():
-            with gr.Row():
-                button_run = gr.Button("Start training", variant="primary")
-
-                button_stop_training = gr.Button(
-                    "Stop training", visible=False, variant="stop"
-                )
+        global executor
+        executor = CommandExecutor(headless=headless)
 
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
 
-        # Setup gradio tensorboard buttons
-        with gr.Column(), gr.Group():
-            TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
+        TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
         settings_list = [
             source_model.pretrained_model_name_or_path,
@@ -1264,13 +1273,6 @@ def finetune_tab(
             show_progress=False,
         )
 
-        # config.button_load_config.click(
-        #     open_configuration,
-        #     inputs=[dummy_db_false, config.config_file_name] + settings_list,
-        #     outputs=[config.config_file_name] + settings_list,
-        #     show_progress=False,
-        # )
-
         training_preset.input(
             open_configuration,
             inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
@@ -1280,22 +1282,22 @@ def finetune_tab(
             show_progress=False,
         )
 
-        # Hidden textbox used to run the wait_for_training_to_end function to hide stop and show start at the end of the training
-        run_state = gr.Textbox(value="", visible=False)
+        run_state = gr.Textbox(value=train_state_value, visible=False)
+            
         run_state.change(
             fn=executor.wait_for_training_to_end,
-            outputs=[button_run, button_stop_training],
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
-        button_run.click(
+        executor.button_run.click(
             train_model,
             inputs=[dummy_headless] + [dummy_db_false] + settings_list,
-            outputs=[button_run, button_stop_training, run_state],
+            outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
 
-        button_stop_training.click(
-            executor.kill_command, outputs=[button_run, button_stop_training]
+        executor.button_stop_training.click(
+            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
         )
 
         button_print.click(
