@@ -25,4 +25,4 @@ class LoRATools:
         gradio_merge_lycoris_tab(headless=headless, use_shell=use_shell_flag)
         gradio_svd_merge_lora_tab(headless=headless, use_shell=use_shell_flag)
         gradio_resize_lora_tab(headless=headless, use_shell=use_shell_flag)
-        gradio_verify_lora_tab(headless=headless, use_shell=use_shell_flag)
+        gradio_verify_lora_tab(headless=headless)
