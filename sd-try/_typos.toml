@@ -1,0 +1,33 @@
+# Files for typos
+# Instruction:  https://github.com/marketplace/actions/typos-action#getting-started
+
+[default.extend-identifiers]
+
+[default.extend-words]
+NIN="NIN"
+parms="parms"
+nin="nin"
+extention="extention" # Intentionally left
+nd="nd"
+shs="shs"
+sts="sts"
+scs="scs"
+cpc="cpc"
+coc="coc"
+cic="cic"
+msm="msm"
+usu="usu"
+ici="ici"
+lvl="lvl"
+dii="dii"
+muk="muk"
+ori="ori"
+hru="hru"
+rik="rik"
+koo="koo"
+yos="yos"
+wn="wn"
+
+
+[files]
+extend-exclude = ["_typos.toml", "venv"]

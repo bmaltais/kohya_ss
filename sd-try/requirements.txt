@@ -1,0 +1,42 @@
+accelerate==0.25.0
+transformers==4.36.2
+diffusers[torch]==0.25.0
+ftfy==6.1.1
+# albumentations==1.3.0
+opencv-python==4.7.0.68
+einops==0.7.0
+pytorch-lightning==1.9.0
+bitsandbytes==0.43.0
+prodigyopt==1.0
+lion-pytorch==0.0.6
+tensorboard
+safetensors==0.4.2
+# gradio==3.16.2
+altair==4.2.2
+easygui==0.98.3
+toml==0.10.2
+voluptuous==0.13.1
+huggingface-hub==0.20.1
+# for Image utils
+imagesize==1.4.1
+# for BLIP captioning
+# requests==2.28.2
+# timm==0.6.12
+# fairscale==0.4.13
+# for WD14 captioning (tensorflow)
+# tensorflow==2.10.1
+# for WD14 captioning (onnx)
+# onnx==1.15.0
+# onnxruntime-gpu==1.17.1
+# onnxruntime==1.17.1
+# for cuda 12.1(default 11.8)
+# onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
+
+# this is for onnx: 
+# protobuf==3.20.3
+# open clip for SDXL
+# open-clip-torch==2.20.0
+# For logging
+rich==13.7.0
+# for kohya_ss library
+-e .
