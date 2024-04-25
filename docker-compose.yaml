@@ -1,14 +1,14 @@
 services:
   kohya-ss-gui:
     container_name: kohya-ss-gui
-    image: ghcr.io/jim60105/kohya-ss-gui:latest
+    image: ghcr.io/bmaltais/kohya-ss-gui:latest
     user: 1000:0
     build:
       context: .
       args:
         - UID=1000
       cache_from:
-        - ghcr.io/jim60105/kohya-ss-gui:cache
+        - ghcr.io/bmaltais/kohya-ss-gui:cache
       cache_to:
         - type=inline
     ports:
