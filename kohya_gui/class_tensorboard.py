@@ -3,6 +3,15 @@ import gradio as gr
 import subprocess
 import time
 import webbrowser
+
+try:
+    os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    import tensorflow  # Attempt to import tensorflow to check if it is installed
+
+    visibility = True
+except ImportError:
+    visibility = False
+
 from easygui import msgbox
 from threading import Thread, Event
 from .custom_logging import setup_logging
@@ -26,9 +35,9 @@ class TensorboardManager:
         self.gradio_interface()
 
     def get_button_states(self, started=False):
-        return gr.Button(visible=not started or self.headless), gr.Button(
-            visible=started or self.headless
-        )
+        return gr.Button(
+            visible=visibility and (not started or self.headless)
+        ), gr.Button(visible=visibility and (started or self.headless))
 
     def start_tensorboard(self, logging_dir=None):
         if self.tensorboard_proc is not None:
@@ -36,7 +45,7 @@ class TensorboardManager:
                 "Tensorboard is already running. Terminating existing process before starting new one..."
             )
             self.stop_tensorboard()
-            
+
         if not os.path.exists(logging_dir) or not os.listdir(logging_dir):
             self.log.error(
                 "Error: logging folder does not exist or does not contain logs."
@@ -77,7 +86,7 @@ class TensorboardManager:
             self.thread = Thread(target=open_tensorboard_url)
             self.thread.start()
 
-        return self.get_button_states(started=True or self.headless)
+        return self.get_button_states(started=True)
 
     def stop_tensorboard(self):
         if self.tensorboard_proc is not None:
@@ -95,31 +104,19 @@ class TensorboardManager:
             self.thread = None
             self.log.info("Thread terminated successfully.")
 
-        return self.get_button_states(started=False or self.headless)
+        return self.get_button_states(started=False)
 
     def gradio_interface(self):
-        try:
-            os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-
-            import tensorflow  # Attempt to import tensorflow to check if it is installed
-
-            visibility = True
-
-        except ImportError:
-            self.log.error(
-                "tensorflow is not installed, hiding the tensorboard button..."
-            )
-            visibility = False
 
         with gr.Row():
             button_start_tensorboard = gr.Button(
                 value="Start tensorboard",
                 elem_id="myTensorButton",
-                visible=visibility or self.headless,
+                visible=visibility,
             )
             button_stop_tensorboard = gr.Button(
                 value="Stop tensorboard",
-                visible=False or self.headless,
+                visible=visibility and self.headless,
                 elem_id="myTensorButtonStop",
             )
             button_start_tensorboard.click(
