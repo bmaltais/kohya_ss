@@ -23,6 +23,8 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Pre-built Runpod template](#pre-built-runpod-template)
     - [Docker](#docker)
       - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
+        - [Windows](#windows-1)
+        - [Linux, OSX](#linux-osx)
       - [Design of our Dockerfile](#design-of-our-dockerfile)
       - [Use the pre-built Docker image](#use-the-pre-built-docker-image)
       - [Local docker build](#local-docker-build)
@@ -455,6 +457,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 - Prevent crash if tkinter is not installed
 - Fix [24.0.6] Train toml config seed type error #2370
+- A new docker container is now built with every new release, eliminating the need for manual building. A big thank you to @jim60105 for his hard work in this area. You can find more information about it in the Docker section of the README.
 
 ### 2024/04/22 (v24.0.6)
 
