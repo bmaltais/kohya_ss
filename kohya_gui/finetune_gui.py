@@ -765,7 +765,7 @@ def train_model(
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
         "cache_text_encoder_outputs": cache_text_encoder_outputs,
-        "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_skip": clip_skip if clip_skip != 0 else None,
@@ -812,8 +812,8 @@ def train_model(
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": max_train_epochs if max_train_epochs != 0 else None,
-        "max_train_steps": max_train_steps if max_train_steps != 0 else None,
+        "max_train_epochs": int(max_train_epochs) if int(max_train_epochs) != 0 else None,
+        "max_train_steps": int(max_train_steps) if int(max_train_steps) != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
         "metadata_description": metadata_description,
@@ -836,7 +836,7 @@ def train_model(
         "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
-        "persistent_data_loader_workers": persistent_data_loader_workers,
+        "persistent_data_loader_workers": int(persistent_data_loader_workers),
         "pretrained_model_name_or_path": pretrained_model_name_or_path,
         "random_crop": random_crop,
         "resolution": max_resolution,
@@ -865,7 +865,7 @@ def train_model(
         "save_state_to_huggingface": save_state_to_huggingface,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "sdpa": True if xformers == "sdpa" else None,
-        "seed": seed if seed != 0 else None,
+        "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
@@ -889,7 +889,7 @@ def train_model(
         if value not in ["", False, None]
     }
     
-    config_toml_data["max_data_loader_n_workers"] = max_data_loader_n_workers
+    config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
     
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
