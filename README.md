@@ -418,6 +418,7 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 ### 2024/04/25 (v24.0.7)
 
 - Prevent crash if tkinter is not installed
+- Fix [24.0.6] Train toml config seed type error #2370
 
 ### 2024/04/22 (v24.0.6)
 
