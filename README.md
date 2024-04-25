@@ -42,7 +42,8 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
-    - [2024/04/220 (v24.0.6)](#202404220-v2406)
+    - [2024/04/25 (v24.0.7)](#20240425-v2407)
+    - [2024/04/22 (v24.0.6)](#20240422-v2406)
     - [2024/04/19 (v24.0.5)](#20240419-v2405)
       - [New Contributors](#new-contributors)
     - [2024/04/18 (v24.0.4)](#20240418-v2404)
@@ -414,7 +415,11 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
-### 2024/04/220 (v24.0.6)
+### 2024/04/25 (v24.0.7)
+
+- Prevent crash if tkinter is not installed
+
+### 2024/04/22 (v24.0.6)
 
 - Make start and stop buttons visible in headless
 - Add validation for lr and optimizer arguments

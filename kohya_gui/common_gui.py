@@ -1,4 +1,7 @@
-from tkinter import filedialog, Tk
+try:
+    from tkinter import filedialog, Tk
+except ImportError:
+    pass
 from easygui import msgbox, ynbox
 from typing import Optional
 from .custom_logging import setup_logging
