@@ -22,15 +22,13 @@ RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/v
     apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends python3-launchpadlib git curl
 
-# Install PyTorch and TensorFlow
+# Install PyTorch
 # The versions must align and be in sync with the requirements_linux_docker.txt
 # hadolint ignore=SC2102
 RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/root/.cache/pip \
     pip install -U --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.nvidia.com \
     torch==2.1.2 torchvision==0.16.2 \
     xformers==0.0.23.post1 \
-    # Why [and-cuda]: https://github.com/tensorflow/tensorflow/issues/61468#issuecomment-1759462485
-    tensorflow[and-cuda]==2.15.0.post1 \
     ninja \
     pip setuptools wheel
 
@@ -114,14 +112,17 @@ ENV PYTHONPATH="${PYTHONPATH}:/home/$UID/.local/lib/python3.10/site-packages"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 ENV LD_PRELOAD=libtcmalloc.so
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+# Rich logging
+# https://rich.readthedocs.io/en/stable/console.html#interactive-mode
+ENV FORCE_COLOR="true"
+ENV COLUMNS="100"
 
 WORKDIR /app
 
 VOLUME [ "/dataset" ]
 
 # 7860: Kohya GUI
-# 6006: TensorBoard
-EXPOSE 7860 6006
+EXPOSE 7860
 
 USER $UID
 

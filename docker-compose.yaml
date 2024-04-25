@@ -1,17 +1,18 @@
-version: "3.8"
-
 services:
   kohya-ss-gui:
     container_name: kohya-ss-gui
-    image: kohya-ss-gui:latest
+    image: ghcr.io/bmaltais/kohya-ss-gui:latest
     user: 1000:0
     build:
       context: .
       args:
         - UID=1000
+      cache_from:
+        - ghcr.io/bmaltais/kohya-ss-gui:cache
+      cache_to:
+        - type=inline
     ports:
       - 7860:7860
-      - 6006:6006
     environment:
       SAFETENSORS_FAST_GPU: 1
     tmpfs:
@@ -35,4 +36,20 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-              device_ids: ['all']
+              device_ids: ["all"]
+
+  tensorboard:
+    container_name: tensorboard
+    image: tensorflow/tensorflow:latest-gpu
+    ports:
+      - 6006:6006
+    volumes:
+      - ./dataset/logs:/app/logs
+    command: tensorboard --logdir=/app/logs --bind_all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              device_ids: ["all"]
