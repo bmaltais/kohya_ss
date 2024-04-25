@@ -33,7 +33,6 @@ def resize_lora(
     dynamic_method,
     dynamic_param,
     verbose,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -65,14 +64,14 @@ def resize_lora(
         device = "cuda"
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        fr'"{scriptdir}/sd-scripts/networks/resize_lora.py"',
+        fr"{PYTHON}",
+        fr"{scriptdir}/sd-scripts/networks/resize_lora.py",
         "--save_precision",
         save_precision,
         "--save_to",
-        fr'"{save_to}"',
+        fr"{save_to}",
         "--model",
-        fr'"{model}"',
+        fr"{model}",
         "--new_rank",
         str(new_rank),
         "--device",
@@ -91,7 +90,7 @@ def resize_lora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
 
     # Adding example environment variables if relevant
@@ -99,10 +98,10 @@ def resize_lora(
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env, shell=False)
 
 
     log.info("Done resizing...")
@@ -113,7 +112,7 @@ def resize_lora(
 ###
 
 
-def gradio_resize_lora_tab(headless=False, use_shell: bool = False):
+def gradio_resize_lora_tab(headless=False,):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -249,7 +248,6 @@ def gradio_resize_lora_tab(headless=False, use_shell: bool = False):
                 dynamic_method,
                 dynamic_param,
                 verbose,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

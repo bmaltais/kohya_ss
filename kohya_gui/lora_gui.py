@@ -1044,7 +1044,7 @@ def train_model(
         "cache_text_encoder_outputs": (
             True if sdxl and sdxl_cache_text_encoder_outputs else None
         ),
-        "caption_dropout_every_n_epochs": caption_dropout_every_n_epochs,
+        "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_skip": clip_skip if clip_skip != 0 else None,
@@ -1079,7 +1079,7 @@ def train_model(
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_scheduler_num_cycles": (
-            lr_scheduler_num_cycles if lr_scheduler_num_cycles != "" else int(epoch)
+            int(lr_scheduler_num_cycles) if lr_scheduler_num_cycles != "" else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
@@ -1088,8 +1088,8 @@ def train_model(
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": max_train_epochs if max_train_epochs != 0 else None,
-        "max_train_steps": max_train_steps if max_train_steps != 0 else None,
+        "max_train_epochs": int(max_train_epochs) if int(max_train_epochs) != 0 else None,
+        "max_train_steps": int(max_train_steps) if int(max_train_steps) != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
         "metadata_description": metadata_description,
@@ -1120,7 +1120,7 @@ def train_model(
         "optimizer_args": str(optimizer_args).replace('"', "").split(),
         "output_dir": output_dir,
         "output_name": output_name,
-        "persistent_data_loader_workers": persistent_data_loader_workers,
+        "persistent_data_loader_workers": int(persistent_data_loader_workers),
         "pretrained_model_name_or_path": pretrained_model_name_or_path,
         "prior_loss_weight": prior_loss_weight,
         "random_crop": random_crop,
@@ -1152,7 +1152,7 @@ def train_model(
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "scale_weight_norms": scale_weight_norms,
         "sdpa": True if xformers == "sdpa" else None,
-        "seed": seed if seed != 0 else None,
+        "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
         "stop_text_encoder_training": (
             stop_text_encoder_training if stop_text_encoder_training != 0 else None
@@ -1182,7 +1182,7 @@ def train_model(
         if value not in ["", False, None]
     }
     
-    config_toml_data["max_data_loader_n_workers"] = max_data_loader_n_workers
+    config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
     
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
@@ -2333,7 +2333,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(headless=headless)
+        lora_tools = LoRATools(headless=headless, use_shell_flag=use_shell)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
