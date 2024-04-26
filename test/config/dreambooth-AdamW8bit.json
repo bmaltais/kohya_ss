@@ -53,7 +53,7 @@
   "max_timestep": 1000,
   "max_token_length": 75,
   "max_train_epochs": 0,
-  "max_train_steps": 0,
+  "max_train_steps": "",
   "mem_eff_attn": false,
   "min_bucket_reso": 256,
   "min_snr_gamma": 0,
