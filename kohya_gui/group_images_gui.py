@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 from .common_gui import get_folder_path, scriptdir, list_dirs
 import os
@@ -21,23 +20,22 @@ def group_images(
     do_not_copy_other_files,
     generate_captions,
     caption_ext,
-    use_shell: bool = False,
 ):
     if input_folder == "":
-        msgbox("Input folder is missing...")
+        log.info("Input folder is missing...")
         return
 
     if output_folder == "":
-        msgbox("Please provide an output folder.")
+        log.info("Please provide an output folder.")
         return
 
     log.info(f"Grouping images in {input_folder}...")
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        f'"{scriptdir}/tools/group_images.py"',
-        fr'"{input_folder}"',
-        fr'"{output_folder}"',
+        fr"{PYTHON}",
+        f"{scriptdir}/tools/group_images.py",
+        fr"{input_folder}",
+        fr"{output_folder}",
         str(group_size),
     ]
 
@@ -62,16 +60,16 @@ def group_images(
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env)
 
 
     log.info("...grouping done")
 
 
-def gradio_group_images_gui_tab(headless=False, use_shell: bool = False):
+def gradio_group_images_gui_tab(headless=False):
     from .common_gui import create_refresh_button
 
     current_input_folder = os.path.join(scriptdir, "data")
@@ -203,7 +201,6 @@ def gradio_group_images_gui_tab(headless=False, use_shell: bool = False):
                 do_not_copy_other_files,
                 generate_captions,
                 caption_ext,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

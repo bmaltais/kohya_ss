@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 from .common_gui import (
     get_folder_path,
@@ -16,6 +15,7 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 old_onnx_value = True
+
 
 def caption_images(
     train_data_dir: str,
@@ -40,26 +40,25 @@ def caption_images(
     use_rating_tags_as_last_tag: bool,
     remove_underscore: bool,
     thresh: float,
-    use_shell: bool = False,
 ) -> None:
     # Check for images_dir_input
     if train_data_dir == "":
-        msgbox("Image folder is missing...")
+        log.info("Image folder is missing...")
         return
 
     if caption_extension == "":
-        msgbox("Please provide an extension for the caption files.")
+        log.info("Please provide an extension for the caption files.")
         return
-    
+
     repo_id_converted = repo_id.replace("/", "_")
     if not os.path.exists(f"./wd14_tagger_model/{repo_id_converted}"):
         force_download = True
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        fr'{get_executable_path("accelerate")}',
+        rf'{get_executable_path("accelerate")}',
         "launch",
-        fr"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
+        rf"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
     ]
 
     # Uncomment and modify if needed
@@ -116,11 +115,11 @@ def caption_images(
         run_cmd.append("--use_rating_tags_as_last_tag")
 
     # Add the directory containing the training data
-    run_cmd.append(fr'{train_data_dir}')
+    run_cmd.append(rf"{train_data_dir}")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -128,10 +127,9 @@ def caption_images(
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
     log.info(f"Executing command: {command_to_run}")
-            
+
     # Run the command in the sd-scripts folder context
     subprocess.run(run_cmd, env=env)
-
 
     # Add prefix and postfix
     add_pre_postfix(
@@ -152,7 +150,6 @@ def gradio_wd14_caption_gui_tab(
     headless=False,
     default_train_dir=None,
     config: KohyaSSGUIConfig = {},
-    use_shell: bool = False,
 ):
     from .common_gui import create_refresh_button
 
@@ -363,21 +360,17 @@ def gradio_wd14_caption_gui_tab(
                 label="Max dataloader workers",
                 interactive=True,
             )
-            
+
         def repo_id_changes(repo_id, onnx):
             global old_onnx_value
-            
+
             if "-v3" in repo_id:
                 old_onnx_value = onnx
                 return gr.Checkbox(value=True, interactive=False)
             else:
                 return gr.Checkbox(value=old_onnx_value, interactive=True)
-            
-        repo_id.change(
-            repo_id_changes,
-            inputs=[repo_id, onnx],
-            outputs=[onnx]
-        )
+
+        repo_id.change(repo_id_changes, inputs=[repo_id, onnx], outputs=[onnx])
 
         caption_button = gr.Button("Caption images")
 
@@ -406,7 +399,6 @@ def gradio_wd14_caption_gui_tab(
                 use_rating_tags_as_last_tag,
                 remove_underscore,
                 thresh,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

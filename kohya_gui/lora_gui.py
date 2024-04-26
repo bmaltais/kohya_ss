@@ -2333,7 +2333,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(headless=headless, use_shell_flag=use_shell)
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")

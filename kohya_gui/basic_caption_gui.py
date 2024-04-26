@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 from .common_gui import (
     get_folder_path,
@@ -47,14 +46,14 @@ def caption_images(
     """
     # Check if images_dir is provided
     if not images_dir:
-        msgbox(
+        log.info(
             "Image folder is missing. Please provide the directory containing the images to caption."
         )
         return
 
     # Check if caption_ext is provided
     if not caption_ext:
-        msgbox("Please provide an extension for the caption files.")
+        log.info("Please provide an extension for the caption files.")
         return
 
     # Log the captioning process
@@ -113,7 +112,7 @@ def caption_images(
     else:
         # Show a message if modification is not possible without overwrite option enabled
         if prefix or postfix:
-            msgbox(
+            log.info(
                 'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected.'
             )
 

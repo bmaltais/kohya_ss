@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 import os
 import sys
@@ -46,12 +45,12 @@ def caption_images(
     """
     # Check if the image folder is provided
     if not train_data_dir:
-        msgbox("Image folder is missing...")
+        log.info("Image folder is missing...")
         return
 
     # Check if the caption file extension is provided
     if not caption_file_ext:
-        msgbox("Please provide an extension for the caption files.")
+        log.info("Please provide an extension for the caption files.")
         return
 
     log.info(f"Captioning files in {train_data_dir}...")

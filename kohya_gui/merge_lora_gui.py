@@ -6,7 +6,6 @@ import json
 
 # Third-party imports
 import gradio as gr
-from easygui import msgbox
 
 # Local module imports
 from .common_gui import (
@@ -33,7 +32,7 @@ def check_model(model):
     if not model:
         return True
     if not os.path.isfile(model):
-        msgbox(f"The provided {model} is not a file")
+        log.info(f"The provided {model} is not a file")
         return False
     return True
 
@@ -48,9 +47,8 @@ def verify_conditions(sd_model, lora_models):
 
 
 class GradioMergeLoRaTab:
-    def __init__(self, headless=False, use_shell: bool = False):
+    def __init__(self, headless=False):
         self.headless = headless
-        self.use_shell = use_shell
         self.build_tab()
 
     def save_inputs_to_json(self, file_path, inputs):
@@ -380,7 +378,6 @@ class GradioMergeLoRaTab:
                     save_to,
                     precision,
                     save_precision,
-                    gr.Checkbox(value=self.use_shell, visible=False),
                 ],
                 show_progress=False,
             )
@@ -400,7 +397,6 @@ class GradioMergeLoRaTab:
         save_to,
         precision,
         save_precision,
-        use_shell: bool = False,
     ):
 
         log.info("Merge model...")
@@ -425,18 +421,23 @@ class GradioMergeLoRaTab:
                 return
 
         if not sdxl_model:
-            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/merge_lora.py"']
+            run_cmd = [rf"{PYTHON}", rf"{scriptdir}/sd-scripts/networks/merge_lora.py"]
         else:
-            run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py"']
+            run_cmd = [
+                rf"{PYTHON}",
+                rf"{scriptdir}/sd-scripts/networks/sdxl_merge_lora.py",
+            ]
 
         if sd_model:
             run_cmd.append("--sd_model")
-            run_cmd.append(fr'"{sd_model}"')
+            run_cmd.append(rf"{sd_model}")
 
-        run_cmd.extend(["--save_precision", save_precision])
-        run_cmd.extend(["--precision", precision])
+        run_cmd.append("--save_precision")
+        run_cmd.append(save_precision)
+        run_cmd.append("--precision")
+        run_cmd.append(precision)
         run_cmd.append("--save_to")
-        run_cmd.append(fr'"{save_to}"')
+        run_cmd.append(rf"{save_to}")
 
         # Prepare model and ratios command as lists, including only non-empty models
         valid_models = [model for model in lora_models if model]
@@ -452,17 +453,16 @@ class GradioMergeLoRaTab:
 
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         # Example of adding an environment variable for TensorFlow, if necessary
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Reconstruct the safe command string for display
         command_to_run = " ".join(run_cmd)
-        log.info(f"Executing command: {command_to_run} with shell={use_shell}")
-                
-        # Run the command in the sd-scripts folder context
-        subprocess.run(command_to_run, env=env, shell=use_shell)
+        log.info(f"Executing command: {command_to_run}")
 
+        # Run the command in the sd-scripts folder context
+        subprocess.run(run_cmd, env=env)
 
         log.info("Done merging...")
