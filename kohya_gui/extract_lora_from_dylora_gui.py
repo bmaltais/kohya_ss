@@ -27,7 +27,6 @@ def extract_dylora(
     model,
     save_to,
     unit,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
@@ -51,12 +50,12 @@ def extract_dylora(
         save_to = f"{path}_tmp{ext}"
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
+        fr'{PYTHON}',
+        rf'{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py',
         "--save_to",
-        rf'"{save_to}"',
+        rf"{save_to}",
         "--model",
-        rf'"{model}"',
+        rf"{model}",
         "--unit",
         str(unit),
     ]
@@ -73,7 +72,7 @@ def extract_dylora(
     log.info(f"Executing command: {command_to_run} with shell={use_shell}")
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env, shell=False)
 
     log.info("Done extracting DyLoRA...")
 
@@ -83,7 +82,7 @@ def extract_dylora(
 ###
 
 
-def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
+def gradio_extract_dylora_tab(headless=False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -172,7 +171,6 @@ def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
                 model,
                 save_to,
                 unit,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

@@ -23,7 +23,6 @@ def caption_images(
     beam_search: bool,
     prefix: str = "",
     postfix: str = "",
-    use_shell: bool = False,
 ) -> None:
     """
     Automatically generates captions for images in the specified directory using the BLIP model.
@@ -58,48 +57,49 @@ def caption_images(
     log.info(f"Captioning files in {train_data_dir}...")
 
     # Construct the command to run make_captions.py
-    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/sd-scripts/finetune/make_captions.py"']
+    run_cmd = [rf"{PYTHON}", rf"{scriptdir}/sd-scripts/finetune/make_captions.py"]
 
     # Add required arguments
-    run_cmd.append('--batch_size')
+    run_cmd.append("--batch_size")
     run_cmd.append(str(batch_size))
-    run_cmd.append('--num_beams')
+    run_cmd.append("--num_beams")
     run_cmd.append(str(num_beams))
-    run_cmd.append('--top_p')
+    run_cmd.append("--top_p")
     run_cmd.append(str(top_p))
-    run_cmd.append('--max_length')
+    run_cmd.append("--max_length")
     run_cmd.append(str(max_length))
-    run_cmd.append('--min_length')
+    run_cmd.append("--min_length")
     run_cmd.append(str(min_length))
 
     # Add optional flags to the command
     if beam_search:
         run_cmd.append("--beam_search")
     if caption_file_ext:
-        run_cmd.append('--caption_extension')
+        run_cmd.append("--caption_extension")
         run_cmd.append(caption_file_ext)
 
     # Add the directory containing the training data
-    run_cmd.append(fr'"{train_data_dir}"')
+    run_cmd.append(rf"{train_data_dir}")
 
     # Add URL for caption model weights
-    run_cmd.append('--caption_weights')
-    run_cmd.append("https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth")
+    run_cmd.append("--caption_weights")
+    run_cmd.append(
+        rf"https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth"
+    )
 
     # Set up the environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
-            
-    # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell, cwd=f"{scriptdir}/sd-scripts")
+    log.info(f"Executing command: {command_to_run}")
 
+    # Run the command in the sd-scripts folder context
+    subprocess.run(run_cmd, env=env, shell=False, cwd=rf"{scriptdir}/sd-scripts")
 
     # Add prefix and postfix
     add_pre_postfix(
@@ -117,7 +117,7 @@ def caption_images(
 ###
 
 
-def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None, use_shell: bool = False):
+def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
     from .common_gui import create_refresh_button
 
     default_train_dir = (
@@ -207,7 +207,6 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None, use_shel
                 beam_search,
                 prefix,
                 postfix,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

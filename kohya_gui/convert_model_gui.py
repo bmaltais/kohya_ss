@@ -26,7 +26,6 @@ def convert_model(
     target_model_type,
     target_save_precision_type,
     unet_use_linear_projection,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if source_model_type == "":
@@ -50,8 +49,8 @@ def convert_model(
         return
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        fr'"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py"',
+        rf"{PYTHON}",
+        rf"{scriptdir}/sd-scripts/tools/convert_diffusers20_original_sd.py",
     ]
 
     v1_models = [
@@ -82,7 +81,7 @@ def convert_model(
         run_cmd.append("--unet_use_linear_projection")
 
     # Add the source model input path
-    run_cmd.append(fr'"{source_model_input}"')
+    run_cmd.append(rf"{source_model_input}")
 
     # Determine the target model path
     if target_model_type == "diffuser" or target_model_type == "diffuser_safetensors":
@@ -96,23 +95,20 @@ def convert_model(
         )
 
     # Add the target model path
-    run_cmd.append(fr'"{target_model_path}"')
+    run_cmd.append(rf"{target_model_path}")
+
+    # Log the command
+    log.info(" ".join(run_cmd))
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    # Reconstruct the safe command string for display
-    command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
-
-    # Run the command in the sd-scripts folder context
-    subprocess.run(
-        command_to_run, env=env, shell=use_shell
-    )
+    # Run the command
+    subprocess.run(run_cmd, env=env, shell=False)
 
 
 ###
@@ -120,7 +116,7 @@ def convert_model(
 ###
 
 
-def gradio_convert_model_tab(headless=False, use_shell: bool = False):
+def gradio_convert_model_tab(headless=False):
     from .common_gui import create_refresh_button
 
     default_source_model = os.path.join(scriptdir, "outputs")
@@ -280,7 +276,6 @@ def gradio_convert_model_tab(headless=False, use_shell: bool = False):
                 target_model_type,
                 target_save_precision_type,
                 unet_use_linear_projection,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

@@ -17,8 +17,8 @@ class LoRATools:
         use_shell_flag: bool = False,
     ):
         gr.Markdown("This section provide various LoRA tools...")
-        gradio_extract_dylora_tab(headless=headless, use_shell=use_shell_flag)
-        gradio_convert_lcm_tab(headless=headless, use_shell=use_shell_flag)
+        gradio_extract_dylora_tab(headless=headless)
+        gradio_convert_lcm_tab(headless=headless)
         gradio_extract_lora_tab(headless=headless, use_shell=use_shell_flag)
         gradio_extract_lycoris_locon_tab(headless=headless, use_shell=use_shell_flag)
         gradio_merge_lora_tab = GradioMergeLoRaTab(use_shell=use_shell_flag)
