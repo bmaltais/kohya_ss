@@ -28,7 +28,7 @@ class CommandExecutor:
                 "Stop training", visible=self.process is not None or headless, variant="stop"
             )
 
-    def execute_command(self, run_cmd: str, use_shell: bool = False, **kwargs):
+    def execute_command(self, run_cmd: str, **kwargs):
         """
         Execute a command if no other command is currently running.
 

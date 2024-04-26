@@ -19,7 +19,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_paths,
-    validate_args_setting
+    validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -530,13 +530,13 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
     global train_state_value
-    
+
     TRAIN_BUTTON_VISIBLE = [
         gr.Button(visible=True),
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
-    
+
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
@@ -548,7 +548,7 @@ def train_model(
     log.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
         return
-    
+
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
         return
@@ -712,7 +712,7 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [get_executable_path("accelerate"), "launch"]
+    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -812,7 +812,9 @@ def train_model(
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": int(max_train_epochs) if int(max_train_epochs) != 0 else None,
+        "max_train_epochs": (
+            int(max_train_epochs) if int(max_train_epochs) != 0 else None
+        ),
         "max_train_steps": int(max_train_steps) if int(max_train_steps) != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
@@ -888,9 +890,9 @@ def train_model(
         for key, value in config_toml_data.items()
         if value not in ["", False, None]
     }
-    
+
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
-    
+
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
 
@@ -902,7 +904,7 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-    run_cmd.append(f"--config_file")
+    run_cmd.append("--config_file")
     run_cmd.append(rf"{tmpfilename}")
 
     # Initialize a dictionary with always-included keyword arguments
@@ -939,7 +941,7 @@ def train_model(
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
-        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+        executor.execute_command(run_cmd=run_cmd, env=env)
 
         train_state_value = time.time()
 
@@ -1283,7 +1285,7 @@ def finetune_tab(
         )
 
         run_state = gr.Textbox(value=train_state_value, visible=False)
-            
+
         run_state.change(
             fn=executor.wait_for_training_to_end,
             outputs=[executor.button_run, executor.button_stop_training],
@@ -1297,7 +1299,8 @@ def finetune_tab(
         )
 
         executor.button_stop_training.click(
-            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
+            executor.kill_command,
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
         button_print.click(
