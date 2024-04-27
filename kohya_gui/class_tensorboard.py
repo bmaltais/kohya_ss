@@ -39,6 +39,11 @@ class TensorboardManager:
             visible=visibility and (not started or self.headless)
         ), gr.Button(visible=visibility and (started or self.headless))
 
+    def open_tensorboard_url(self):
+        tensorboard_url = f"http://localhost:{self.tensorboard_port}"
+        self.log.info(f"Opening TensorBoard URL in browser: {tensorboard_url}")
+        webbrowser.open(tensorboard_url)
+
     def start_tensorboard(self, logging_dir=None):
         if self.tensorboard_proc is not None:
             self.log.info(
@@ -74,17 +79,13 @@ class TensorboardManager:
             self.log.error("Failed to start Tensorboard:", e)
             return self.get_button_states(started=False)
 
-        def open_tensorboard_url():
-            time.sleep(self.wait_time)
-            if not self.stop_event.is_set():
-                tensorboard_url = f"http://localhost:{self.tensorboard_port}"
-                self.log.info(f"Opening TensorBoard URL in browser: {tensorboard_url}")
-                webbrowser.open(tensorboard_url)
-
         if not self.headless:
             self.stop_event.clear()
-            self.thread = Thread(target=open_tensorboard_url)
-            self.thread.start()
+            
+            time.sleep(self.wait_time)
+            if not self.stop_event.is_set():
+                self.thread = Thread(target=self.open_tensorboard_url)
+                self.thread.start()
 
         return self.get_button_states(started=True)
 
@@ -118,6 +119,12 @@ class TensorboardManager:
                 value="Stop tensorboard",
                 visible=visibility and self.headless,
                 elem_id="myTensorButtonStop",
+            )
+            button_open_tensorboard = gr.Button(
+                value="Open tensorboard",
+                elem_id="myTensorButton",
+                visible=not visibility,
+                link=f"http://localhost:{self.tensorboard_port}",
             )
             button_start_tensorboard.click(
                 self.start_tensorboard,

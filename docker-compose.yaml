@@ -15,6 +15,7 @@ services:
       - 7860:7860
     environment:
       SAFETENSORS_FAST_GPU: 1
+      TENSORBOARD_PORT: ${TENSORBOARD_PORT:-6006}
     tmpfs:
       - /tmp
     volumes:
@@ -42,7 +43,8 @@ services:
     container_name: tensorboard
     image: tensorflow/tensorflow:latest-gpu
     ports:
-      - 6006:6006
+      # !Please change the port in .env file
+      - ${TENSORBOARD_PORT:-6006}:6006
     volumes:
       - ./dataset/logs:/app/logs
     command: tensorboard --logdir=/app/logs --bind_all

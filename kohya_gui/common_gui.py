@@ -364,7 +364,7 @@ def update_my_data(my_data):
                 my_data[key] = int(value)
             except ValueError:
                 # Handle the case where the string is not a valid float
-                my_data[key] = int(1600)
+                my_data[key] = int(0)
 
     # Convert values to int if they are strings
     for key in ["max_token_length"]:
