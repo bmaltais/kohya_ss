@@ -106,7 +106,7 @@ To set up the project, follow these steps:
 2. Clone the repository by running the following command:
 
    ```shell
-   git clone https://github.com/bmaltais/kohya_ss.git
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
    ```
 
 3. Change into the `kohya_ss` directory:
@@ -154,7 +154,7 @@ To set up the project on Linux or macOS, perform the following steps:
 2. Clone the repository by running the following command:
 
    ```shell
-   git clone https://github.com/bmaltais/kohya_ss.git
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
    ```
 
 3. Change into the `kohya_ss` directory:
@@ -199,7 +199,7 @@ To install the necessary components for Runpod and run kohya_ss, follow these st
 
    ```shell
    cd /workspace
-   git clone https://github.com/bmaltais/kohya_ss.git
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
    ```
 
 4. Run the setup script:
@@ -267,7 +267,7 @@ Install the NVIDIA Container Toolkit with this guide.
 #### Use the pre-built Docker image
 
 ```bash
-git clone https://github.com/bmaltais/kohya_ss.git
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
 cd kohya_ss
 docker compose up -d
 ```
