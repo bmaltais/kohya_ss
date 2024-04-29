@@ -141,6 +141,7 @@ def gradio_git_caption_gui_tab(
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
 
             prefix = gr.Textbox(

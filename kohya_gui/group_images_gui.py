@@ -187,6 +187,7 @@ def gradio_group_images_gui_tab(headless=False):
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
 
         group_images_button = gr.Button("Group images")

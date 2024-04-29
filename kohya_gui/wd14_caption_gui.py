@@ -231,6 +231,7 @@ def gradio_wd14_caption_gui_tab(
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
 
             caption_separator = gr.Textbox(

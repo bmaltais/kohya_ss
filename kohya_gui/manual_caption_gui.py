@@ -303,6 +303,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
             auto_save = gr.Checkbox(
                 label="Autosave", info="Options", value=True, interactive=True

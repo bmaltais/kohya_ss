@@ -201,6 +201,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
             # Checkbox to overwrite existing captions
             overwrite = gr.Checkbox(

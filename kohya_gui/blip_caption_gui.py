@@ -166,6 +166,7 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
 
             prefix = gr.Textbox(
