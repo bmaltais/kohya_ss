@@ -47,6 +47,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [2024/04/28 (v24.0.9)](#20240428-v2409)
     - [2024/04/26 (v24.0.8)](#20240426-v2408)
     - [2024/04/25 (v24.0.7)](#20240425-v2407)
     - [2024/04/22 (v24.0.6)](#20240422-v2406)
@@ -453,6 +454,11 @@ The feature is not fully tested, so there may be bugs. If you find any issues, p
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
 ## Change History
+
+### 2024/04/28 (v24.0.9)
+
+- Updated the temporary configuration file to include date and time information in the file name. This will allow for easier batching of multiple training commands, particularly useful for users who want to automate their training sessions.
+- Fixed an issue with wd14 captioning where the captioning process was not functioning correctly when the recursive option was set to true. Prefixes and postfixes are now applied to all caption files in the folder.
 
 ### 2024/04/26 (v24.0.8)
 

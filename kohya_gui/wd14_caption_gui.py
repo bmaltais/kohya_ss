@@ -62,7 +62,7 @@ def caption_images(
     ]
 
     # Uncomment and modify if needed
-    # if always_first_tags:
+    # if always_first_tags != "":
     #     run_cmd.append('--always_first_tags')
     #     run_cmd.append(always_first_tags)
 
@@ -136,6 +136,7 @@ def caption_images(
         folder=train_data_dir,
         caption_file_ext=caption_extension,
         prefix=always_first_tags,
+        recursive=recursive,
     )
 
     log.info("...captioning done")
@@ -264,7 +265,7 @@ def gradio_wd14_caption_gui_tab(
         with gr.Row():
             always_first_tags = gr.Textbox(
                 label="Prefix to add to WD14 caption",
-                info="comma-separated list of tags to always put at the beginning, e.g. 1girl, 1boy, ",
+                info="comma-separated list of tags to always put at the beginning, e.g.: 1girl, 1boy, ",
                 placeholder="(Optional)",
                 interactive=True,
                 value=config.get("wd14_caption.always_first_tags", ""),
