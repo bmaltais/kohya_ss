@@ -323,7 +323,7 @@ class BasicTraining:
             # Initialize the learning rate scheduler power textbox
             self.lr_scheduler_power = gr.Number(
                 label="LR power",
-                minimum=1.0,
+                minimum=0.0,
                 step=0.01,
                 info="Polynomial power for polynomial scheduler",
                 value=self.config.get("basic.lr_scheduler_power", 1.0),
