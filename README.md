@@ -457,7 +457,8 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ### 2024/04/28 (v24.0.9)
 
-- Update tmp config file to carry date and time info as part of the name. This will allow for easy batching of multiple training commands for users that desire to do so.
+- Updated the temporary configuration file to include date and time information in the file name. This will allow for easier batching of multiple training commands, particularly useful for users who want to automate their training sessions.
+- Fixed an issue with wd14 captioning where the captioning process was not functioning correctly when the recursive option was set to true. Prefixes and postfixes are now applied to all caption files in the folder.
 
 ### 2024/04/26 (v24.0.8)
 
