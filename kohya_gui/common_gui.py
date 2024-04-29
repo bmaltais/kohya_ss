@@ -739,6 +739,8 @@ def add_pre_postfix(
     prefix: str = "",
     postfix: str = "",
     caption_file_ext: str = ".caption",
+    recursive: bool = False,
+    
 ) -> None:
     """
     Add prefix and/or postfix to the content of caption files within a folder.
@@ -762,10 +764,18 @@ def add_pre_postfix(
     # Define the image file extensions to filter
     image_extensions = (".jpg", ".jpeg", ".png", ".webp")
 
-    # List all image files in the folder
-    image_files = [
-        f for f in os.listdir(folder) if f.lower().endswith(image_extensions)
-    ]
+    # If recursive is true, list all image files in the folder and its subfolders
+    if recursive:
+        image_files = []
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                if file.lower().endswith(image_extensions):
+                    image_files.append(os.path.join(root, file))
+    else:
+        # List all image files in the folder
+        image_files = [
+            f for f in os.listdir(folder) if f.lower().endswith(image_extensions)
+        ]
 
     # Iterate over the list of image files
     for image_file in image_files:
