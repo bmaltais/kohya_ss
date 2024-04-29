@@ -668,7 +668,7 @@ def train_model(
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [rf'"{get_executable_path("accelerate")}"', "launch"]
+    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -687,9 +687,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train_textual_inversion.py")
     else:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/train_textual_inversion.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/train_textual_inversion.py")
 
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
@@ -853,8 +853,8 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-    run_cmd.append(f"--config_file")
-    run_cmd.append(rf'"{tmpfilename}"')
+    run_cmd.append("--config_file")
+    run_cmd.append(rf"{tmpfilename}")
 
     # Initialize a dictionary with always-included keyword arguments
     kwargs_for_training = {
@@ -891,7 +891,7 @@ def train_model(
 
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+        executor.execute_command(run_cmd=run_cmd, env=env)
         
         train_state_value = time.time()
 

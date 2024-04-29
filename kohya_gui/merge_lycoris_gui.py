@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 import os
 import sys
@@ -33,23 +32,25 @@ def merge_lycoris(
     device,
     is_sdxl,
     is_v2,
-    use_shell: bool = False,
 ):
     log.info("Merge model...")
 
     # Build the command to run merge_lycoris.py using list format
     run_cmd = [
-        fr'"{PYTHON}"',
-        fr'"{scriptdir}/tools/merge_lycoris.py"',
-        fr'"{base_model}"',
-        fr'"{lycoris_model}"',
-        fr'"{output_name}"',
+        fr"{PYTHON}",
+        fr"{scriptdir}/tools/merge_lycoris.py",
+        fr"{base_model}",
+        fr"{lycoris_model}",
+        fr"{output_name}",
     ]
 
     # Add additional required arguments with their values
-    run_cmd.extend(["--weight", str(weight)])
-    run_cmd.extend(["--device", device])
-    run_cmd.extend(["--dtype", dtype])
+    run_cmd.append("--weight")
+    run_cmd.append(str(weight))
+    run_cmd.append("--device")
+    run_cmd.append(device)
+    run_cmd.append("--dtype")
+    run_cmd.append(dtype)
 
     # Add optional flags based on conditions
     if is_sdxl:
@@ -60,16 +61,16 @@ def merge_lycoris(
     # Copy and update the environment variables
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env)
 
 
     log.info("Done merging...")
@@ -80,7 +81,7 @@ def merge_lycoris(
 ###
 
 
-def gradio_merge_lycoris_tab(headless=False, use_shell: bool = False):
+def gradio_merge_lycoris_tab(headless=False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_lycoris_dir = current_model_dir
     current_save_dir = current_model_dir
@@ -253,7 +254,6 @@ def gradio_merge_lycoris_tab(headless=False, use_shell: bool = False):
                 device,
                 is_sdxl,
                 is_v2,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

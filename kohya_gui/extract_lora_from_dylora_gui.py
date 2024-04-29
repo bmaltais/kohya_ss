@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 import os
 import sys
@@ -27,16 +26,15 @@ def extract_dylora(
     model,
     save_to,
     unit,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model == "":
-        msgbox("Invalid DyLoRA model file")
+        log.info("Invalid DyLoRA model file")
         return
 
     # Check if source model exist
     if not os.path.isfile(model):
-        msgbox("The provided DyLoRA model is not a file")
+        log.info("The provided DyLoRA model is not a file")
         return
 
     if os.path.dirname(save_to) == "":
@@ -51,29 +49,29 @@ def extract_dylora(
         save_to = f"{path}_tmp{ext}"
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        rf'"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py"',
+        rf"{PYTHON}",
+        rf"{scriptdir}/sd-scripts/networks/extract_lora_from_dylora.py",
         "--save_to",
-        rf'"{save_to}"',
+        rf"{save_to}",
         "--model",
-        rf'"{model}"',
+        rf"{model}",
         "--unit",
         str(unit),
     ]
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Example environment variable adjustment for the Python environment
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env, shell=False)
 
     log.info("Done extracting DyLoRA...")
 
@@ -83,7 +81,7 @@ def extract_dylora(
 ###
 
 
-def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
+def gradio_extract_dylora_tab(headless=False):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
@@ -172,7 +170,6 @@ def gradio_extract_dylora_tab(headless=False, use_shell: bool = False):
                 model,
                 save_to,
                 unit,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

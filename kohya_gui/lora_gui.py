@@ -869,7 +869,7 @@ def train_model(
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [rf'"{get_executable_path("accelerate")}"', "launch"]
+    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -888,9 +888,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/sdxl_train_network.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train_network.py")
     else:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/train_network.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
     network_args = ""
 
@@ -1198,8 +1198,8 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-    run_cmd.append(f"--config_file")
-    run_cmd.append(rf'"{tmpfilename}"')
+    run_cmd.append("--config_file")
+    run_cmd.append(rf"{tmpfilename}")
 
     # Define a dictionary of parameters
     run_cmd_params = {
@@ -1229,13 +1229,13 @@ def train_model(
         # log.info(run_cmd)
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
+        executor.execute_command(run_cmd=run_cmd, env=env)
         
         train_state_value = time.time()
 
@@ -2336,7 +2336,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(headless=headless, use_shell_flag=use_shell)
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")

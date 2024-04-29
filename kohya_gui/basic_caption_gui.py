@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 from .common_gui import (
     get_folder_path,
@@ -28,7 +27,6 @@ def caption_images(
     postfix: str,
     find_text: str,
     replace_text: str,
-    use_shell: bool = False,
 ):
     """
     Captions images in a given directory with a given caption text.
@@ -48,14 +46,14 @@ def caption_images(
     """
     # Check if images_dir is provided
     if not images_dir:
-        msgbox(
+        log.info(
             "Image folder is missing. Please provide the directory containing the images to caption."
         )
         return
 
     # Check if caption_ext is provided
     if not caption_ext:
-        msgbox("Please provide an extension for the caption files.")
+        log.info("Please provide an extension for the caption files.")
         return
 
     # Log the captioning process
@@ -63,32 +61,35 @@ def caption_images(
         log.info(f"Captioning files in {images_dir} with {caption_text}...")
 
         # Build the command to run caption.py
-        run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/caption.py"'
-        run_cmd += f' --caption_text="{caption_text}"'
+        run_cmd = [
+            rf"{PYTHON}",
+            rf"{scriptdir}/tools/caption.py",
+            "--caption_text",
+            caption_text,
+        ]
 
         # Add optional flags to the command
         if overwrite:
-            run_cmd += f" --overwrite"
+            run_cmd.append("--overwrite")
         if caption_ext:
-            run_cmd += f' --caption_file_ext="{caption_ext}"'
+            run_cmd.append("--caption_file_ext")
+            run_cmd.append(caption_ext)
 
-        run_cmd += f' "{images_dir}"'
+        run_cmd.append(rf"{images_dir}")
 
-        # Log the command
-        log.info(run_cmd)
+        # Reconstruct the safe command string for display
+        command_to_run = " ".join(run_cmd)
+        log.info(f"Executing command: {command_to_run}")
 
         # Set the environment variable for the Python path
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-        log.info(f"Executing command: {run_cmd} with shell={use_shell}")
-                
         # Run the command in the sd-scripts folder context
-        subprocess.run(run_cmd, env=env, shell=use_shell)
-
+        subprocess.run(run_cmd, env=env, shell=False)
 
     # Check if overwrite option is enabled
     if overwrite:
@@ -111,7 +112,7 @@ def caption_images(
     else:
         # Show a message if modification is not possible without overwrite option enabled
         if prefix or postfix:
-            msgbox(
+            log.info(
                 'Could not modify caption files with requested change because the "Overwrite existing captions in folder" option is not selected.'
             )
 
@@ -120,7 +121,7 @@ def caption_images(
 
 
 # Gradio UI
-def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None, use_shell: bool = False):
+def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
     """
     Creates a Gradio tab for basic image captioning.
 
@@ -200,6 +201,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None, use_sh
                 choices=[".cap", ".caption", ".txt"],
                 value=".txt",
                 interactive=True,
+                allow_custom_value=True,
             )
             # Checkbox to overwrite existing captions
             overwrite = gr.Checkbox(
@@ -258,7 +260,6 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None, use_sh
                     postfix,
                     find_text,
                     replace_text,
-                    gr.Checkbox(value=use_shell, visible=False),
                 ],
                 show_progress=False,
             )
