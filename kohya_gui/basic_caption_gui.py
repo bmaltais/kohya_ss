@@ -44,16 +44,18 @@ def caption_images(
     Returns:
         None
     """
-    # Check if images_dir is provided
+    # Check if images_dir and caption_ext are provided
+    missing_parameters = []
     if not images_dir:
-        log.info(
-            "Image folder is missing. Please provide the directory containing the images to caption."
-        )
-        return
-
-    # Check if caption_ext is provided
+        missing_parameters.append("image directory")
     if not caption_ext:
-        log.info("Please provide an extension for the caption files.")
+        missing_parameters.append("caption file extension")
+        
+    if missing_parameters:
+        log.info(
+            "The following parameter(s) are missing: {}. "
+            "Please provide these to proceed with captioning the images.".format(", ".join(missing_parameters))
+        )
         return
 
     # Log the captioning process
@@ -93,22 +95,23 @@ def caption_images(
 
     # Check if overwrite option is enabled
     if overwrite:
-        # Add prefix and postfix to caption files
-        if prefix or postfix:
+        # Add prefix and postfix to caption files or find and replace text in caption files
+        if prefix or postfix or find_text:
+            # Add prefix and/or postfix to caption files
             add_pre_postfix(
                 folder=images_dir,
                 caption_file_ext=caption_ext,
                 prefix=prefix,
                 postfix=postfix,
             )
-        # Find and replace text in caption files
-        if find_text:
-            find_replace(
-                folder_path=images_dir,
-                caption_file_ext=caption_ext,
-                search_text=find_text,
-                replace_text=replace_text,
-            )
+            # Replace specified text in caption files if find and replace text is provided
+            if find_text and replace_text:
+                find_replace(
+                    folder_path=images_dir,
+                    caption_file_ext=caption_ext,
+                    search_text=find_text,
+                    replace_text=replace_text,
+                )
     else:
         # Show a message if modification is not possible without overwrite option enabled
         if prefix or postfix:

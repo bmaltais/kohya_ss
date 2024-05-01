@@ -751,6 +751,7 @@ def add_pre_postfix(
         prefix (str, optional): Prefix to add to the content of the caption files.
         postfix (str, optional): Postfix to add to the content of the caption files.
         caption_file_ext (str, optional): Extension of the caption files.
+        recursive (bool, optional): Whether to search for caption files recursively.
     """
     # If neither prefix nor postfix is provided, return early
     if prefix == "" and postfix == "":
@@ -775,33 +776,39 @@ def add_pre_postfix(
     # Iterate over the list of image files
     for image_file in image_files:
         # Construct the caption file name by appending the caption file extension to the image file name
-        caption_file_name = os.path.splitext(image_file)[0] + caption_file_ext
+        caption_file_name = f"{os.path.splitext(image_file)[0]}{caption_file_ext}"
         # Construct the full path to the caption file
         caption_file_path = os.path.join(folder, caption_file_name)
 
         # Check if the caption file does not exist
         if not os.path.exists(caption_file_path):
             # Create a new caption file with the specified prefix and/or postfix
-            with open(caption_file_path, "w", encoding="utf-8") as f:
-                # Determine the separator based on whether both prefix and postfix are provided
-                separator = " " if prefix and postfix else ""
-                f.write(f"{prefix}{separator}{postfix}")
+            try:
+                with open(caption_file_path, "w", encoding="utf-8") as f:
+                    # Determine the separator based on whether both prefix and postfix are provided
+                    separator = " " if prefix and postfix else ""
+                    f.write(f"{prefix}{separator}{postfix}")
+            except Exception as e:
+                log.error(f"Error writing to file {caption_file_path}: {e}")
         else:
             # Open the existing caption file for reading and writing
-            with open(caption_file_path, "r+", encoding="utf-8") as f:
-                # Read the content of the caption file, stripping any trailing whitespace
-                content = f.read().rstrip()
-                # Move the file pointer to the beginning of the file
-                f.seek(0, 0)
+            try:
+                with open(caption_file_path, "r+", encoding="utf-8") as f:
+                    # Read the content of the caption file, stripping any trailing whitespace
+                    content = f.read().rstrip()
+                    # Move the file pointer to the beginning of the file
+                    f.seek(0, 0)
 
-                # Determine the separator based on whether only prefix is provided
-                prefix_separator = " " if prefix else ""
-                # Determine the separator based on whether only postfix is provided
-                postfix_separator = " " if postfix else ""
-                # Write the updated content to the caption file, adding prefix and/or postfix
-                f.write(
-                    f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
-                )
+                    # Determine the separator based on whether only prefix is provided
+                    prefix_separator = " " if prefix else ""
+                    # Determine the separator based on whether only postfix is provided
+                    postfix_separator = " " if postfix else ""
+                    # Write the updated content to the caption file, adding prefix and/or postfix
+                    f.write(
+                        f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
+                    )
+            except Exception as e:
+                log.error(f"Error writing to file {caption_file_path}: {e}")
 
 
 def has_ext_files(folder_path: str, file_extension: str) -> bool:

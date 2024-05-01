@@ -80,15 +80,42 @@ def convert_lcm(
 
 
 def gradio_convert_lcm_tab(headless=False):
+    """
+    Creates a Gradio tab for converting a model to an LCM model.
+
+    Args:
+    headless (bool): If True, the tab will be created without any visible elements.
+
+    Returns:
+    None
+    """
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
+        """
+        Lists all model files in the given directory.
+
+        Args:
+        path (str): The directory path to search for model files.
+
+        Returns:
+        list: A list of model file paths.
+        """
         nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
     def list_save_to(path):
+        """
+        Lists all save-to options for the given directory.
+
+        Args:
+        path (str): The directory path to search for save-to options.
+
+        Returns:
+        list: A list of save-to options.
+        """
         nonlocal current_save_dir
         current_save_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))

@@ -10,11 +10,25 @@ import argparse
 import shutil
 
 def aspect_ratio(img_path):
-    """Return aspect ratio of an image"""
-    image = cv2.imread(img_path)
-    height, width = image.shape[:2]
-    aspect_ratio = float(width) / float(height)
-    return aspect_ratio
+    """
+    Calculate and return the aspect ratio of an image.
+    
+    Parameters:
+    img_path: A string representing the path to the input image.
+    
+    Returns:
+    float: Aspect ratio of the input image, defined as width / height.
+           Returns None if the image cannot be read.
+    """
+    try:
+        image = cv2.imread(img_path)
+        if image is None:
+            raise ValueError("Image not found or could not be read.")
+        height, width = image.shape[:2]
+        return float(width) / float(height)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 def sort_images_by_aspect_ratio(path):
     """Sort all images in a folder by aspect ratio"""
@@ -29,7 +43,26 @@ def sort_images_by_aspect_ratio(path):
     return sorted_images
 
 def create_groups(sorted_images, n_groups):
-    """Create n groups from sorted list of images"""
+    """
+    Create groups of images from a sorted list of images.
+
+    This function takes a sorted list of images and a group size as input, and returns a list of groups,
+    where each group contains a specified number of images.
+
+    Parameters:
+    sorted_images (list of tuples): A list of tuples, where each tuple contains the path to an image and its aspect ratio.
+    n_groups (int): The number of images to include in each group.
+
+    Returns:
+    list of lists: A list of groups, where each group is a list of tuples representing the images in the group.
+
+    Raises:
+    ValueError: If the group size is not a positive integer or if the group size is greater than the number of images.
+    """
+    if not isinstance(n_groups, int) or n_groups <= 0:
+        raise ValueError("Error: n_groups must be a positive integer.")
+    if n_groups > len(sorted_images):
+        raise ValueError("Error: n_groups must be less than or equal to the number of images.")
     n = len(sorted_images)
     size = n // n_groups
     groups = [sorted_images[i * size : (i + 1) * size] for i in range(n_groups - 1)]
@@ -37,11 +70,30 @@ def create_groups(sorted_images, n_groups):
     return groups
 
 def average_aspect_ratio(group):
-    """Calculate average aspect ratio for a group"""
-    aspect_ratios = [aspect_ratio for _, aspect_ratio in group]
-    avg_aspect_ratio = sum(aspect_ratios) / len(aspect_ratios)
-    print(f"Average aspect ratio for group: {avg_aspect_ratio}")
-    return avg_aspect_ratio
+    """
+    Calculate the average aspect ratio for a given group of images.
+
+    Parameters:
+    group (list of tuples):, A list of tuples, where each tuple contains the path to an image and its aspect ratio.
+
+    Returns:
+    float: The average aspect ratio of the images in the group.
+    """
+    if not group:
+        print("Error: The group is empty")
+        return None
+    
+    try:
+        aspect_ratios = [aspect_ratio for _, aspect_ratio in group]
+        avg_aspect_ratio = sum(aspect_ratios) / len(aspect_ratios)
+        print(f"Average aspect ratio for group: {avg_aspect_ratio}")
+        return avg_aspect_ratio
+    except TypeError:
+        print("Error: Check the structure of the input group elements. They should be tuples of (image_path, aspect_ratio).")
+        return None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 def center_crop_image(image, target_aspect_ratio):
     """Crop the input image to the target aspect ratio.
@@ -54,20 +106,33 @@ def center_crop_image(image, target_aspect_ratio):
 
     Returns:
         A numpy array representing the cropped image.
+        
+    Raises:
+        ValueError: If the input image is not a valid numpy array with at least two dimensions or if the calculated new width or height is zero.
 
     """
+    # Check if the input image is a valid numpy array with at least two dimensions
+    if not isinstance(image, np.ndarray) or image.ndim < 2:
+        raise ValueError("Input image must be a valid numpy array with at least two dimensions.")
+
     height, width = image.shape[:2]
     current_aspect_ratio = float(width) / float(height)
 
+    # If the current aspect ratio is already equal to the target aspect ratio, return the image as is
     if current_aspect_ratio == target_aspect_ratio:
         return image
 
+    # Calculate the new width and height based on the target aspect ratio
     if current_aspect_ratio > target_aspect_ratio:
         new_width = int(target_aspect_ratio * height)
+        if new_width == 0:
+            raise ValueError("Calculated new width is zero. Please check the input image and target aspect ratio.")
         x_start = (width - new_width) // 2
         cropped_image = image[:, x_start:x_start+new_width]
     else:
         new_height = int(width / target_aspect_ratio)
+        if new_height == 0:
+            raise ValueError("Calculated new height is zero. Please check the input image and target aspect ratio.")
         y_start = (height - new_height) // 2
         cropped_image = image[y_start:y_start+new_height, :]
 
@@ -77,8 +142,10 @@ def copy_related_files(img_path, save_path):
     """
     Copy all files in the same directory as the input image that have the same base name as the input image to the
     output directory with the corresponding new filename.
-    :param img_path: Path to the input image.
-    :param save_path: Path to the output image.
+
+    Args:
+        img_path (str): Path to the input image file.
+        save_path: Path to the output directory where the files should be copied with a new name.
     """
     # Get the base filename and directory
     img_dir, img_basename = os.path.split(img_path)
