@@ -18,7 +18,7 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_paths,
+    validate_file_path, validate_folder_path, validate_model_path,
     validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
@@ -556,17 +556,46 @@ def train_model(
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
 
-    if not validate_paths(
-        output_dir=output_dir,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        finetune_image_folder=image_folder,
-        headless=headless,
-        logging_dir=logging_dir,
-        log_tracker_config=log_tracker_config,
-        resume=resume,
-        dataset_config=dataset_config,
-    ):
+    #
+    # Validate paths
+    # 
+    
+    if not validate_file_path(dataset_config):
         return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(image_folder):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(log_tracker_config):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(logging_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(output_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_model_path(pretrained_model_name_or_path):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(resume):
+        return TRAIN_BUTTON_VISIBLE
+    
+    #
+    # End of path validation
+    #
+    
+    # if not validate_paths(
+    #     dataset_config=dataset_config,
+    #     finetune_image_folder=image_folder,
+    #     headless=headless,
+    #     log_tracker_config=log_tracker_config,
+    #     logging_dir=logging_dir,
+    #     output_dir=output_dir,
+    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
+    #     resume=resume,
+    # ):
+    #     return TRAIN_BUTTON_VISIBLE
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless
