@@ -436,3 +436,4 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 ### v24.1.0
 
 - To ensure cross-platform compatibility and security, the GUI now defaults to using "shell=False" when running subprocesses. This is based on documentation and should not cause issues on most platforms. However, some users have reported issues on specific platforms such as runpod and colab. PLease open an issue if you encounter any issues.
+- Add support for custom LyCORIS toml config files. Simply type the path to the config file in the LyCORIS preset dropdown.
