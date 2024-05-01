@@ -17,7 +17,7 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_paths,
+    validate_file_path, validate_folder_path, validate_model_path,
     validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
@@ -511,23 +511,57 @@ def train_model(
     
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
-        return
+        return TRAIN_BUTTON_VISIBLE
+
+    #
+    # Validate paths
+    # 
+    
+    if not validate_file_path(dataset_config):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(log_tracker_config):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(logging_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(output_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_model_path(pretrained_model_name_or_path):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(reg_data_dir):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(resume):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(train_data_dir):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(vae):
+        return TRAIN_BUTTON_VISIBLE
+    #
+    # End of path validation
+    #
 
     # This function validates files or folder paths. Simply add new variables containing file of folder path
     # to validate below
-    if not validate_paths(
-        output_dir=output_dir,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        train_data_dir=train_data_dir,
-        reg_data_dir=reg_data_dir,
-        headless=headless,
-        logging_dir=logging_dir,
-        log_tracker_config=log_tracker_config,
-        resume=resume,
-        vae=vae,
-        dataset_config=dataset_config,
-    ):
-        return TRAIN_BUTTON_VISIBLE
+    # if not validate_paths(
+    #     dataset_config=dataset_config,
+    #     headless=headless,
+    #     log_tracker_config=log_tracker_config,
+    #     logging_dir=logging_dir,
+    #     output_dir=output_dir,
+    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
+    #     reg_data_dir=reg_data_dir,
+    #     resume=resume,
+    #     train_data_dir=train_data_dir,
+    #     vae=vae,
+    # ):
+    #     return TRAIN_BUTTON_VISIBLE
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
