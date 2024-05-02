@@ -248,7 +248,7 @@ def main_menu(headless: bool = False):
                 setup_common.run_cmd("accelerate config")
             elif choice == "6":
                 subprocess.Popen(
-                    "start cmd /k .\gui.bat --inbrowser", shell=True
+                    "start cmd /k .\\gui.bat --inbrowser", shell=True
                 )  # /k keep the terminal open on quit. /c would close the terminal instead
             elif choice == "7":
                 print("Exiting setup.")
