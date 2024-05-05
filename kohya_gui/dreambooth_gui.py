@@ -859,7 +859,7 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = f"./outputs/config_dreambooth-{formatted_datetime}.toml"
+    tmpfilename = fr"{output_dir}/config_dreambooth-{formatted_datetime}.toml"
     
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
