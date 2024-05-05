@@ -27,10 +27,7 @@ def convert_lcm(
     model_path,
     lora_scale,
     model_type,
-    use_shell: bool = False,
 ):
-    run_cmd = rf'"{PYTHON}" "{scriptdir}/tools/lcm_convert.py"'
-
     # Check if source model exist
     if not os.path.isfile(model_path):
         log.error("The provided DyLoRA model is not a file")
@@ -48,44 +45,77 @@ def convert_lcm(
         save_to = f"{path}_lcm{ext}"
 
     # Construct the command to run the script
-    run_cmd += f" --lora-scale {lora_scale}"
-    run_cmd += f' --model "{model_path}"'
-    run_cmd += f' --name "{name}"'
+    run_cmd = [
+        rf"{PYTHON}",
+        rf"{scriptdir}/tools/lcm_convert.py",
+        "--lora-scale",
+        str(lora_scale),
+        "--model",
+        rf"{model_path}",
+        "--name",
+        str(name),
+    ]
 
     if model_type == "SDXL":
-        run_cmd += f" --sdxl"
+        run_cmd.append("--sdxl")
     if model_type == "SSD-1B":
-        run_cmd += f" --ssd-1b"
+        run_cmd.append("--ssd-1b")
 
     # Set up the environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
-    log.info(f"Executing command: {run_cmd} with shell={use_shell}")
+    command_to_run = " ".join(run_cmd)
+    log.info(f"Executing command: {command_to_run}")
 
     # Run the command in the sd-scripts folder context
-    subprocess.run(
-        run_cmd, env=env, shell=use_shell
-    )
+    subprocess.run(run_cmd, env=env, shell=False)
 
     # Return a success message
     log.info("Done extracting...")
 
 
-def gradio_convert_lcm_tab(headless=False, use_shell: bool = False):
+def gradio_convert_lcm_tab(headless=False):
+    """
+    Creates a Gradio tab for converting a model to an LCM model.
+
+    Args:
+    headless (bool): If True, the tab will be created without any visible elements.
+
+    Returns:
+    None
+    """
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
 
     def list_models(path):
+        """
+        Lists all model files in the given directory.
+
+        Args:
+        path (str): The directory path to search for model files.
+
+        Returns:
+        list: A list of model file paths.
+        """
         nonlocal current_model_dir
         current_model_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
 
     def list_save_to(path):
+        """
+        Lists all save-to options for the given directory.
+
+        Args:
+        path (str): The directory path to search for save-to options.
+
+        Returns:
+        list: A list of save-to options.
+        """
         nonlocal current_save_dir
         current_save_dir = path
         return list(list_files(path, exts=[".safetensors"], all=True))
@@ -186,7 +216,6 @@ def gradio_convert_lcm_tab(headless=False, use_shell: bool = False):
                 model_path,
                 lora_scale,
                 model_type,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

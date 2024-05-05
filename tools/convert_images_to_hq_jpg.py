@@ -5,25 +5,19 @@ from pathlib import Path
 from PIL import Image
 
 
-def main():
-    # Define the command-line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("directory", type=str,
-                        help="the directory containing the images to be converted")
-    parser.add_argument("--in_ext", type=str, default="webp",
-                        help="the input file extension")
-    parser.add_argument("--quality", type=int, default=95,
-                        help="the JPEG quality (0-100)")
-    parser.add_argument("--delete_originals", action="store_true",
-                        help="whether to delete the original files after conversion")
+def writable_dir(target_path):
+    """ Check if a path is a valid directory and that it can be written to. """
+    path = Path(target_path)
+    if path.is_dir():
+        if os.access(path, os.W_OK):
+            return path
+        else:
+            raise argparse.ArgumentTypeError(f"Directory '{path}' is not writable.")
+    else:
+        raise argparse.ArgumentTypeError(f"Directory '{path}' does not exist.")
 
-    # Parse the command-line arguments
-    args = parser.parse_args()
-    directory = args.directory
-    in_ext = args.in_ext
+def main(directory, in_ext, quality, delete_originals):
     out_ext = "jpg"
-    quality = args.quality
-    delete_originals = args.delete_originals
 
     # Create the file pattern string using the input file extension
     file_pattern = f"*.{in_ext}"
@@ -54,4 +48,18 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Define the command-line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("directory", type=writable_dir,
+                        help="the directory containing the images to be converted")
+    parser.add_argument("--in_ext", type=str, default="webp",
+                        help="the input file extension")
+    parser.add_argument("--quality", type=int, default=95,
+                        help="the JPEG quality (0-100)")
+    parser.add_argument("--delete_originals", action="store_true",
+                        help="whether to delete the original files after conversion")
+    
+    # Parse the command-line arguments
+    args = parser.parse_args()
+    
+    main(directory=args.directory, in_ext=args.in_ext, quality=args.quality, delete_originals=args.delete_originals)

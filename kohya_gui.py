@@ -78,13 +78,11 @@ def UI(**kwargs):
                 reg_data_dir_input=reg_data_dir_input,
                 output_dir_input=output_dir_input,
                 logging_dir_input=logging_dir_input,
-                enable_copy_info_button=True,
                 headless=headless,
                 config=config,
-                use_shell_flag=use_shell_flag,
             )
             with gr.Tab("LoRA"):
-                _ = LoRATools(headless=headless, use_shell_flag=use_shell_flag)
+                _ = LoRATools(headless=headless)
         with gr.Tab("About"):
             gr.Markdown(f"kohya_ss GUI release {release}")
             with gr.Tab("README"):

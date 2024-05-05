@@ -39,7 +39,6 @@ def extract_lora(
     load_original_model_to,
     load_tuned_model_to,
     load_precision,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if model_tuned == "":
@@ -74,18 +73,18 @@ def extract_lora(
         return
 
     run_cmd = [
-        fr'"{PYTHON}"',
-        fr'"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py"',
+        rf"{PYTHON}",
+        rf"{scriptdir}/sd-scripts/networks/extract_lora_from_models.py",
         "--load_precision",
         load_precision,
         "--save_precision",
         save_precision,
         "--save_to",
-        fr'"{save_to}"',
+        rf"{save_to}",
         "--model_org",
-        fr'"{model_org}"',
+        rf"{model_org}",
         "--model_tuned",
-        fr'"{model_tuned}"',
+        rf"{model_tuned}",
         "--dim",
         str(dim),
         "--device",
@@ -112,18 +111,17 @@ def extract_lora(
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of another potentially relevant environment variable
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
-            
-    # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    log.info(f"Executing command: {command_to_run}")
 
+    # Run the command in the sd-scripts folder context
+    subprocess.run(run_cmd, env=env)
 
 
 ###
@@ -131,7 +129,9 @@ def extract_lora(
 ###
 
 
-def gradio_extract_lora_tab(headless=False, use_shell: bool = False):
+def gradio_extract_lora_tab(
+    headless=False,
+):
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_model_org_dir = os.path.join(scriptdir, "outputs")
     current_save_dir = os.path.join(scriptdir, "outputs")
@@ -361,7 +361,6 @@ def gradio_extract_lora_tab(headless=False, use_shell: bool = False):
                 load_original_model_to,
                 load_tuned_model_to,
                 load_precision,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

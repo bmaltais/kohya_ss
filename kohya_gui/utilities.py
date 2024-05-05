@@ -16,21 +16,18 @@ def utilities_tab(
     reg_data_dir_input=gr.Dropdown(),
     output_dir_input=gr.Dropdown(),
     logging_dir_input=gr.Dropdown(),
-    enable_copy_info_button=bool(False),
-    enable_dreambooth_tab=True,
     headless=False,
     config: KohyaSSGUIConfig = {},
-    use_shell_flag: bool = False,
 ):
     with gr.Tab("Captioning"):
-        gradio_basic_caption_gui_tab(headless=headless, use_shell=use_shell_flag)
-        gradio_blip_caption_gui_tab(headless=headless, use_shell=use_shell_flag)
+        gradio_basic_caption_gui_tab(headless=headless)
+        gradio_blip_caption_gui_tab(headless=headless)
         gradio_blip2_caption_gui_tab(headless=headless)
-        gradio_git_caption_gui_tab(headless=headless, use_shell=use_shell_flag)
-        gradio_wd14_caption_gui_tab(headless=headless, config=config, use_shell=use_shell_flag)
+        gradio_git_caption_gui_tab(headless=headless)
+        gradio_wd14_caption_gui_tab(headless=headless, config=config)
         gradio_manual_caption_gui_tab(headless=headless)
-    gradio_convert_model_tab(headless=headless, use_shell=use_shell_flag)
-    gradio_group_images_gui_tab(headless=headless, use_shell=use_shell_flag)
+    gradio_convert_model_tab(headless=headless)
+    gradio_group_images_gui_tab(headless=headless)
 
     return (
         train_data_dir_input,

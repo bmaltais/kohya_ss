@@ -28,7 +28,7 @@ class CommandExecutor:
                 "Stop training", visible=self.process is not None or headless, variant="stop"
             )
 
-    def execute_command(self, run_cmd: str, use_shell: bool = False, **kwargs):
+    def execute_command(self, run_cmd: str, **kwargs):
         """
         Execute a command if no other command is currently running.
 
@@ -44,10 +44,10 @@ class CommandExecutor:
 
             # Reconstruct the safe command string for display
             command_to_run = " ".join(run_cmd)
-            log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+            log.info(f"Executing command: {command_to_run}")
 
             # Execute the command securely
-            self.process = subprocess.Popen(command_to_run, **kwargs, shell=use_shell)
+            self.process = subprocess.Popen(run_cmd, **kwargs)
             log.info("Command executed.")
 
     def kill_command(self):

@@ -1,5 +1,4 @@
 import gradio as gr
-from easygui import msgbox
 import subprocess
 import os
 import sys
@@ -43,24 +42,23 @@ def extract_lycoris_locon(
     use_sparse_bias,
     sparsity,
     disable_cp,
-    use_shell: bool = False,
 ):
     # Check for caption_text_input
     if db_model == "":
-        msgbox("Invalid finetuned model file")
+        log.info("Invalid finetuned model file")
         return
 
     if base_model == "":
-        msgbox("Invalid base model file")
+        log.info("Invalid base model file")
         return
 
     # Check if source model exist
     if not os.path.isfile(db_model):
-        msgbox("The provided finetuned model is not a file")
+        log.info("The provided finetuned model is not a file")
         return
 
     if not os.path.isfile(base_model):
-        msgbox("The provided base model is not a file")
+        log.info("The provided base model is not a file")
         return
 
     if os.path.dirname(output_name) == "":
@@ -74,7 +72,7 @@ def extract_lycoris_locon(
         path, ext = os.path.splitext(output_name)
         output_name = f"{path}_tmp{ext}"
 
-    run_cmd = [fr'"{PYTHON}"', fr'"{scriptdir}/tools/lycoris_locon_extract.py"']
+    run_cmd = [fr'{PYTHON}', fr'{scriptdir}/tools/lycoris_locon_extract.py']
 
     if is_sdxl:
         run_cmd.append("--is_sdxl")
@@ -121,23 +119,23 @@ def extract_lycoris_locon(
         run_cmd.append("--disable_cp")
 
     # Add paths
-    run_cmd.append(fr'"{base_model}"')
-    run_cmd.append(fr'"{db_model}"')
-    run_cmd.append(fr'"{output_name}"')
+    run_cmd.append(fr"{base_model}")
+    run_cmd.append(fr"{db_model}")
+    run_cmd.append(fr"{output_name}")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     # Adding an example of an environment variable that might be relevant
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
-    log.info(f"Executing command: {command_to_run} with shell={use_shell}")
+    log.info(f"Executing command: {command_to_run}")
             
     # Run the command in the sd-scripts folder context
-    subprocess.run(command_to_run, env=env, shell=use_shell)
+    subprocess.run(run_cmd, env=env)
 
 
     log.info("Done extracting...")
@@ -174,7 +172,7 @@ def update_mode(mode):
     return tuple(updates)
 
 
-def gradio_extract_lycoris_locon_tab(headless=False, use_shell: bool = False):
+def gradio_extract_lycoris_locon_tab(headless=False):
 
     current_model_dir = os.path.join(scriptdir, "outputs")
     current_base_model_dir = os.path.join(scriptdir, "outputs")
@@ -452,7 +450,6 @@ def gradio_extract_lycoris_locon_tab(headless=False, use_shell: bool = False):
                 use_sparse_bias,
                 sparsity,
                 disable_cp,
-                gr.Checkbox(value=use_shell, visible=False),
             ],
             show_progress=False,
         )

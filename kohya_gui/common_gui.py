@@ -14,6 +14,7 @@ import shlex
 import json
 import math
 import shutil
+import toml
 
 # Set up logging
 log = setup_logging()
@@ -354,7 +355,7 @@ def update_my_data(my_data):
             except ValueError:
                 # Handle the case where the string is not a valid float
                 my_data[key] = int(1)
-                
+
     for key in [
         "max_train_steps",
     ]:
@@ -419,7 +420,7 @@ def update_my_data(my_data):
             my_data["xformers"] = "xformers"
         else:
             my_data["xformers"] = "none"
-            
+
     # Convert use_wandb to log_with="wandb" if it is set to True
     for key in ["use_wandb"]:
         value = my_data.get(key)
@@ -430,17 +431,16 @@ def update_my_data(my_data):
             except ValueError:
                 # Handle the case where the string is not a valid float
                 pass
-            
+
         my_data.pop(key, None)
-        
-        
+
     # Replace the lora_network_weights key with network_weights keeping the original value
     for key in ["lora_network_weights"]:
-        value = my_data.get(key) # Get original value
-        if value is not None: # Check if the key exists in the dictionary
+        value = my_data.get(key)  # Get original value
+        if value is not None:  # Check if the key exists in the dictionary
             my_data["network_weights"] = value
             my_data.pop(key, None)
-        
+
     return my_data
 
 
@@ -740,7 +740,6 @@ def add_pre_postfix(
     postfix: str = "",
     caption_file_ext: str = ".caption",
     recursive: bool = False,
-    
 ) -> None:
     """
     Add prefix and/or postfix to the content of caption files within a folder.
@@ -751,12 +750,8 @@ def add_pre_postfix(
         prefix (str, optional): Prefix to add to the content of the caption files.
         postfix (str, optional): Postfix to add to the content of the caption files.
         caption_file_ext (str, optional): Extension of the caption files.
+        recursive (bool, optional): Whether to search for caption files recursively.
     """
-    # Enforce that the provided extension is one of .caption, .cap, .txt
-    if caption_file_ext not in (".caption", ".cap", ".txt"):
-        log.error("Invalid caption file extension. Must be on of .caption, .cap, .txt")
-        return
-
     # If neither prefix nor postfix is provided, return early
     if prefix == "" and postfix == "":
         return
@@ -780,33 +775,39 @@ def add_pre_postfix(
     # Iterate over the list of image files
     for image_file in image_files:
         # Construct the caption file name by appending the caption file extension to the image file name
-        caption_file_name = os.path.splitext(image_file)[0] + caption_file_ext
+        caption_file_name = f"{os.path.splitext(image_file)[0]}{caption_file_ext}"
         # Construct the full path to the caption file
         caption_file_path = os.path.join(folder, caption_file_name)
 
         # Check if the caption file does not exist
         if not os.path.exists(caption_file_path):
             # Create a new caption file with the specified prefix and/or postfix
-            with open(caption_file_path, "w", encoding="utf-8") as f:
-                # Determine the separator based on whether both prefix and postfix are provided
-                separator = " " if prefix and postfix else ""
-                f.write(f"{prefix}{separator}{postfix}")
+            try:
+                with open(caption_file_path, "w", encoding="utf-8") as f:
+                    # Determine the separator based on whether both prefix and postfix are provided
+                    separator = " " if prefix and postfix else ""
+                    f.write(f"{prefix}{separator}{postfix}")
+            except Exception as e:
+                log.error(f"Error writing to file {caption_file_path}: {e}")
         else:
             # Open the existing caption file for reading and writing
-            with open(caption_file_path, "r+", encoding="utf-8") as f:
-                # Read the content of the caption file, stripping any trailing whitespace
-                content = f.read().rstrip()
-                # Move the file pointer to the beginning of the file
-                f.seek(0, 0)
+            try:
+                with open(caption_file_path, "r+", encoding="utf-8") as f:
+                    # Read the content of the caption file, stripping any trailing whitespace
+                    content = f.read().rstrip()
+                    # Move the file pointer to the beginning of the file
+                    f.seek(0, 0)
 
-                # Determine the separator based on whether only prefix is provided
-                prefix_separator = " " if prefix else ""
-                # Determine the separator based on whether only postfix is provided
-                postfix_separator = " " if postfix else ""
-                # Write the updated content to the caption file, adding prefix and/or postfix
-                f.write(
-                    f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
-                )
+                    # Determine the separator based on whether only prefix is provided
+                    prefix_separator = " " if prefix else ""
+                    # Determine the separator based on whether only postfix is provided
+                    postfix_separator = " " if postfix else ""
+                    # Write the updated content to the caption file, adding prefix and/or postfix
+                    f.write(
+                        f"{prefix}{prefix_separator}{content}{postfix_separator}{postfix}"
+                    )
+            except Exception as e:
+                log.error(f"Error writing to file {caption_file_path}: {e}")
 
 
 def has_ext_files(folder_path: str, file_extension: str) -> bool:
@@ -1356,118 +1357,74 @@ def check_duplicate_filenames(
         log.info("...valid")
 
 
-def validate_paths(headless: bool = False, **kwargs: Optional[str]) -> bool:
-    """
-    Validates the existence of specified paths and patterns for model training configurations.
-
-    This function checks for the existence of various directory paths and files provided as keyword arguments,
-    including model paths, data directories, output directories, and more. It leverages predefined default
-    models for validation and ensures directory creation if necessary.
-
-    Args:
-        headless (bool): A flag indicating if the function should run without requiring user input.
-        **kwargs (Optional[str]): Keyword arguments that represent various path configurations,
-                                  including but not limited to `pretrained_model_name_or_path`, `train_data_dir`,
-                                  and more.
-
-    Returns:
-        bool: True if all specified paths are valid or have been successfully created; False otherwise.
-    """
-
-    def validate_path(
-        path: Optional[str], path_type: str, create_if_missing: bool = False
-    ) -> bool:
-        """
-        Validates the existence of a path. If the path does not exist and `create_if_missing` is True,
-        attempts to create the directory.
-
-        Args:
-            path (Optional[str]): The path to validate.
-            path_type (str): Description of the path type for logging purposes.
-            create_if_missing (bool): Whether to create the directory if it does not exist.
-
-        Returns:
-            bool: True if the path is valid or has been created; False otherwise.
-        """
-        if path:
-            log.info(f"Validating {path_type} path {path} existence...")
-            if os.path.exists(path):
-                log.info("...valid")
-            else:
-                if create_if_missing:
-                    try:
-                        os.makedirs(path, exist_ok=True)
-                        log.info(f"...created folder at {path}")
-                        return True
-                    except Exception as e:
-                        log.error(f"...failed to create {path_type} folder: {e}")
-                        return False
-                else:
-                    log.error(
-                        f"...{path_type} path '{path}' is missing or does not exist"
-                    )
-                    return False
-        else:
-            log.info(f"{path_type} not specified, skipping validation")
+def validate_file_path(file_path: str) -> bool:
+    if file_path == "":
         return True
-
-    # Validates the model name or path against default models or existence as a local path
-    if not validate_model_path(kwargs.get("pretrained_model_name_or_path")):
+    msg = f"Validating {file_path} existence..."
+    if not os.path.isfile(file_path):
+        log.error(f"{msg} FAILED: does not exist")
         return False
-
-    # Validates the existence of specified directories or files, and creates them if necessary
-    for key, value in kwargs.items():
-        if key in ["output_dir", "logging_dir"]:
-            if not validate_path(value, key, create_if_missing=True):
-                return False
-        elif key in ["vae"]:
-            # Check if it matches the Hugging Face model pattern
-            if re.match(r"^[\w-]+\/[\w-]+$", value):
-                log.info("Checking vae... huggingface.co model, skipping validation")
-            else:
-                if not validate_path(value, key):
-                    return False
-        else:
-            if key not in ["pretrained_model_name_or_path"]:
-                if not validate_path(value, key):
-                    return False
-
+    log.info(f"{msg} SUCCESS")
     return True
 
 
-def validate_model_path(pretrained_model_name_or_path: Optional[str]) -> bool:
+def validate_folder_path(folder_path: str, can_be_written_to: bool = False) -> bool:
+    if folder_path == "":
+        return True
+    msg = f"Validating {folder_path} existence{' and writability' if can_be_written_to else ''}..."
+    if not os.path.isdir(folder_path):
+        log.error(f"{msg} FAILED: does not exist")
+        return False
+    if can_be_written_to:
+        if not os.access(folder_path, os.W_OK):
+            log.error(f"{msg} FAILED: is not writable.")
+            return False
+    log.info(f"{msg} SUCCESS")
+    return True
+
+def validate_toml_file(file_path: str) -> bool:
+    if file_path == "":
+        return True
+    msg = f"Validating toml {file_path} existence and validity..."
+    if not os.path.isfile(file_path):
+        log.error(f"{msg} FAILED: does not exist")
+        return False
+    
+    try:
+        toml.load(file_path)
+    except:
+        log.error(f"{msg} FAILED: is not a valid toml file.")
+        return False
+    log.info(f"{msg} SUCCESS")
+    return True
+
+
+def validate_model_path(pretrained_model_name_or_path: str) -> bool:
     """
     Validates the pretrained model name or path against Hugging Face models or local paths.
 
     Args:
-        pretrained_model_name_or_path (Optional[str]): The pretrained model name or path to validate.
+        pretrained_model_name_or_path (str): The pretrained model name or path to validate.
 
     Returns:
         bool: True if the path is a valid Hugging Face model or exists locally; False otherwise.
     """
     from .class_source_model import default_models
 
-    if pretrained_model_name_or_path:
-        log.info(
-            f"Validating model file or folder path {pretrained_model_name_or_path} existence..."
-        )
+    msg = f"Validating {pretrained_model_name_or_path} existence..."
 
-        # Check if it matches the Hugging Face model pattern
-        if re.match(r"^[\w-]+\/[\w-]+$", pretrained_model_name_or_path):
-            log.info("...huggingface.co model, skipping validation")
-        elif pretrained_model_name_or_path not in default_models:
-            # If not one of the default models, check if it's a valid local path
-            if not os.path.exists(pretrained_model_name_or_path):
-                log.error(
-                    f"...source model path '{pretrained_model_name_or_path}' is missing or does not exist"
-                )
-                return False
-            else:
-                log.info("...valid")
-        else:
-            log.info("...valid")
+    # Check if it matches the Hugging Face model pattern
+    if re.match(r"^[\w-]+\/[\w-]+$", pretrained_model_name_or_path):
+        log.info(f"{msg} SKIPPING: huggingface.co model")
+    elif pretrained_model_name_or_path in default_models:
+        log.info(f"{msg} SUCCESS")
     else:
-        log.info("Model name or path not specified, skipping validation")
+        # If not one of the default models, check if it's a valid local path
+        if not os.path.exists(pretrained_model_name_or_path):
+            log.error(f"{msg} FAILED: is missing or does not exist")
+            return False
+        log.info(f"{msg} SUCCESS")
+
     return True
 
 
@@ -1495,6 +1452,7 @@ def is_file_writable(file_path: str) -> bool:
         # If an IOError occurs, the file cannot be written to
         return False
 
+
 def print_command_and_toml(run_cmd, tmpfilename):
     log.warning(
         "Here is the trainer command as a reference. It will not be executed:\n"
@@ -1512,16 +1470,19 @@ def print_command_and_toml(run_cmd, tmpfilename):
     log.info(f"end of toml config file: {tmpfilename}")
 
     save_to_file(command_to_run)
-    
+
+
 def validate_args_setting(input_string):
     # Regex pattern to handle multiple conditions:
     # - Empty string is valid
     # - Single or multiple key/value pairs with exactly one space between pairs
     # - No spaces around '=' and no spaces within keys or values
-    pattern = r'^(\S+=\S+)( \S+=\S+)*$|^$'
+    pattern = r"^(\S+=\S+)( \S+=\S+)*$|^$"
     if re.match(pattern, input_string):
         return True
     else:
         log.info(f"'{input_string}' is not a valid settings string.")
-        log.info("A valid settings string must consist of one or more key/value pairs formatted as key=value, with no spaces around the equals sign or within the value. Multiple pairs should be separated by a space.")
+        log.info(
+            "A valid settings string must consist of one or more key/value pairs formatted as key=value, with no spaces around the equals sign or within the value. Multiple pairs should be separated by a space."
+        )
         return False

@@ -2,7 +2,7 @@
 
 IF NOT EXIST venv (
     echo Creating venv...
-    python -m venv venv
+    py -3.10 -m venv venv
 )
 
 :: Create the directory if it doesn't exist
@@ -12,9 +12,6 @@ mkdir ".\logs\setup" > nul 2>&1
 call .\venv\Scripts\deactivate.bat
 
 call .\venv\Scripts\activate.bat
-
-REM first make sure we have setuptools available in the venv    
-python -m pip install --require-virtualenv --no-input -q -q  setuptools
 
 REM Check if the batch was started via double-click
 IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (

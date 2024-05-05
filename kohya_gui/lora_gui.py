@@ -19,8 +19,8 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_paths,
-    validate_args_setting
+    validate_file_path, validate_folder_path, validate_model_path, validate_toml_file,
+    validate_args_setting,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -59,6 +59,15 @@ document_symbol = "\U0001F4C4"  # 📄
 
 
 presets_dir = rf"{scriptdir}/presets"
+
+LYCORIS_PRESETS_CHOICES = [
+    "attn-mlp",
+    "attn-only",
+    "full",
+    "full-lin",
+    "unet-transformer-only",
+    "unet-convblock-only",
+]
 
 
 def save_configuration(
@@ -667,13 +676,13 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
     global train_state_value
-    
+
     TRAIN_BUTTON_VISIBLE = [
         gr.Button(visible=True),
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
-    
+
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
@@ -682,26 +691,68 @@ def train_model(
 
     log.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
-        return
-    
+        return TRAIN_BUTTON_VISIBLE
+
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
-        return
-
-    if not validate_paths(
-        output_dir=output_dir,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
-        train_data_dir=train_data_dir,
-        reg_data_dir=reg_data_dir,
-        headless=headless,
-        logging_dir=logging_dir,
-        log_tracker_config=log_tracker_config,
-        resume=resume,
-        vae=vae,
-        network_weights=network_weights,
-        dataset_config=dataset_config,
-    ):
         return TRAIN_BUTTON_VISIBLE
+
+    #
+    # Validate paths
+    # 
+    
+    if not validate_file_path(dataset_config):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(log_tracker_config):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(logging_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if LyCORIS_preset not in LYCORIS_PRESETS_CHOICES:
+        if not validate_toml_file(LyCORIS_preset):
+            return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(network_weights):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(output_dir, can_be_written_to=True):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_model_path(pretrained_model_name_or_path):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(reg_data_dir):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_file_path(resume):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(train_data_dir):
+        return TRAIN_BUTTON_VISIBLE
+    
+    if not validate_folder_path(vae):
+        return TRAIN_BUTTON_VISIBLE
+    
+    #
+    # End of path validation
+    #
+
+    # if not validate_paths(
+    #     dataset_config=dataset_config,
+    #     headless=headless,
+    #     log_tracker_config=log_tracker_config,
+    #     logging_dir=logging_dir,
+    #     network_weights=network_weights,
+    #     output_dir=output_dir,
+    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
+    #     reg_data_dir=reg_data_dir,
+    #     resume=resume,
+    #     train_data_dir=train_data_dir,
+    #     vae=vae,
+    # ):
+    #     return TRAIN_BUTTON_VISIBLE
 
     if int(bucket_reso_steps) < 1:
         output_message(
@@ -869,7 +920,7 @@ def train_model(
     log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [rf'"{get_executable_path("accelerate")}"', "launch"]
+    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -888,9 +939,9 @@ def train_model(
     )
 
     if sdxl:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/sdxl_train_network.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train_network.py")
     else:
-        run_cmd.append(rf'"{scriptdir}/sd-scripts/train_network.py"')
+        run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
     network_args = ""
 
@@ -954,7 +1005,7 @@ def train_model(
 
         for key, value in kohya_lora_vars.items():
             if value:
-                network_args += f' {key}={value}'
+                network_args += f" {key}={value}"
 
     if LoRA_type in ["LoRA-FA"]:
         kohya_lora_var_list = [
@@ -983,7 +1034,7 @@ def train_model(
 
         for key, value in kohya_lora_vars.items():
             if value:
-                network_args += f' {key}={value}'
+                network_args += f" {key}={value}"
 
     if LoRA_type in ["Kohya DyLoRA"]:
         kohya_lora_var_list = [
@@ -1013,8 +1064,8 @@ def train_model(
 
         for key, value in kohya_lora_vars.items():
             if value:
-                network_args += f' {key}={value}'
-    
+                network_args += f" {key}={value}"
+
     # Convert learning rates to float once and store the result for re-use
     learning_rate = float(learning_rate) if learning_rate is not None else 0.0
     text_encoder_lr_float = (
@@ -1079,7 +1130,9 @@ def train_model(
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_scheduler_num_cycles": (
-            int(lr_scheduler_num_cycles) if lr_scheduler_num_cycles != "" else int(epoch)
+            int(lr_scheduler_num_cycles)
+            if lr_scheduler_num_cycles != ""
+            else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_warmup_steps": lr_warmup_steps,
@@ -1088,7 +1141,9 @@ def train_model(
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": int(max_train_epochs) if int(max_train_epochs) != 0 else None,
+        "max_train_epochs": (
+            int(max_train_epochs) if int(max_train_epochs) != 0 else None
+        ),
         "max_train_steps": int(max_train_steps) if int(max_train_steps) != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
@@ -1181,16 +1236,16 @@ def train_model(
         for key, value in config_toml_data.items()
         if value not in ["", False, None]
     }
-    
+
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
-    
+
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = f"./outputs/config_lora-{formatted_datetime}.toml"
-    
+    tmpfilename = fr"{output_dir}/config_lora-{formatted_datetime}.toml"
+
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
@@ -1198,8 +1253,8 @@ def train_model(
         if not os.path.exists(toml_file.name):
             log.error(f"Failed to write TOML file: {toml_file.name}")
 
-    run_cmd.append(f"--config_file")
-    run_cmd.append(rf'"{tmpfilename}"')
+    run_cmd.append("--config_file")
+    run_cmd.append(rf"{tmpfilename}")
 
     # Define a dictionary of parameters
     run_cmd_params = {
@@ -1229,14 +1284,14 @@ def train_model(
         # log.info(run_cmd)
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            f"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
         )
         env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
         # Run the command
 
-        executor.execute_command(run_cmd=run_cmd, use_shell=use_shell, env=env)
-        
+        executor.execute_command(run_cmd=run_cmd, env=env)
+
         train_state_value = time.time()
 
         return (
@@ -1357,17 +1412,11 @@ def lora_tab(
                         )
                         LyCORIS_preset = gr.Dropdown(
                             label="LyCORIS Preset",
-                            choices=[
-                                "attn-mlp",
-                                "attn-only",
-                                "full",
-                                "full-lin",
-                                "unet-transformer-only",
-                                "unet-convblock-only",
-                            ],
+                            choices=LYCORIS_PRESETS_CHOICES,
                             value="full",
                             visible=False,
                             interactive=True,
+                            allow_custom_value=True,
                             # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                         )
                         with gr.Group():
@@ -2102,7 +2151,7 @@ def lora_tab(
 
         global executor
         executor = CommandExecutor(headless=headless)
-        
+
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
@@ -2312,7 +2361,7 @@ def lora_tab(
         )
 
         run_state = gr.Textbox(value=train_state_value, visible=False)
-            
+
         run_state.change(
             fn=executor.wait_for_training_to_end,
             outputs=[executor.button_run, executor.button_stop_training],
@@ -2326,7 +2375,8 @@ def lora_tab(
         )
 
         executor.button_stop_training.click(
-            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
+            executor.kill_command,
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
         button_print.click(
@@ -2336,7 +2386,7 @@ def lora_tab(
         )
 
     with gr.Tab("Tools"):
-        lora_tools = LoRATools(headless=headless, use_shell_flag=use_shell)
+        lora_tools = LoRATools(headless=headless)
 
     with gr.Tab("Guides"):
         gr.Markdown("This section provide Various LoRA guides and information...")
