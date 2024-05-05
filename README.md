@@ -447,3 +447,4 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 - Add support for custom LyCORIS toml config files. Simply type the path to the config file in the LyCORIS preset dropdown.
 - Improve files and folders validation
 - Added a new setup-3.10.bat file to set the venv to specifically use python 3.10.x instead of the default python the system might use.
+- Relocate toml training config file to same folder as the model output directory.
