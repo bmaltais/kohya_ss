@@ -1,9 +1,7 @@
 accelerate==0.25.0
 aiofiles==23.2.1
 altair==4.2.2
-dadaptation==3.1
 diffusers[torch]==0.25.0
-easygui==0.98.3
 einops==0.7.0
 fairscale==0.4.13
 ftfy==6.1.1
@@ -11,11 +9,8 @@ gradio==4.26.0
 huggingface-hub==0.20.1
 imagesize==1.4.1
 invisible-watermark==0.2.0
-lion-pytorch==0.0.6
-lycoris_lora==2.2.0.post3
 omegaconf==2.3.0
 onnx==1.15.0
-prodigyopt==1.0
 protobuf==3.20.3
 open-clip-torch==2.20.0
 opencv-python==4.7.0.68
@@ -29,7 +24,6 @@ tk==0.1.0
 toml==0.10.2
 transformers==4.38.0
 voluptuous==0.13.1
-wandb==0.15.11
 scipy==1.11.4
 # for kohya_ss library
 -e ./sd-scripts # no_verify leave this to specify not checking this a verification stage
