@@ -47,6 +47,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [v24.1.1](#v2411)
     - [v24.1.0](#v2410)
 
 ## 🦒 Colab
@@ -440,6 +441,10 @@ The feature is not fully tested, so there may be bugs. If you find any issues, p
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
 ## Change History
+
+### v24.1.1
+
+- Fix small issue with VAE file path validation
 
 ### v24.1.0
 
