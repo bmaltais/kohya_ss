@@ -541,7 +541,7 @@ def train_model(
     if not validate_folder_path(train_data_dir):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_folder_path(vae):
+    if not validate_file_path(vae):
         return TRAIN_BUTTON_VISIBLE
     #
     # End of path validation
