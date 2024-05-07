@@ -1420,10 +1420,8 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
         log.info(f"{msg} SUCCESS")
     else:
         # If not one of the default models, check if it's a valid local path
-        if not os.path.exists(pretrained_model_name_or_path):
-            log.error(f"{msg} FAILED: is missing or does not exist")
+        if not validate_file_path(pretrained_model_name_or_path):
             return False
-        log.info(f"{msg} SUCCESS")
 
     return True
 
