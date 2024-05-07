@@ -71,7 +71,7 @@ def svd_merge_lora(
         if not os.path.isfile(model_path):
             log.info(f"The provided model at {model_path} is not a file")
             return False
-        models.append(model_path)
+        models.append(fr"{model_path}")
         ratios.append(str(ratio))
         return True
 
@@ -89,7 +89,7 @@ def svd_merge_lora(
         run_cmd.extend(["--ratios"] + ratios)
 
     run_cmd.extend(
-        ["--device", device, "--new_rank", new_rank, "--new_conv_rank", new_conv_rank]
+        ["--device", device, "--new_rank", str(new_rank), "--new_conv_rank", str(new_conv_rank)]
     )
 
     # Log the command
