@@ -2,7 +2,7 @@ import gradio as gr
 import subprocess
 import os
 import sys
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs
+from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs, setup_environment
 
 from .custom_logging import setup_logging
 
@@ -58,12 +58,7 @@ def caption_images(
     # Add the directory containing the training data
     run_cmd.append(fr"{train_data_dir}")
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding an example of an environment variable that might be relevant
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

@@ -20,7 +20,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_file_path, validate_folder_path, validate_model_path, validate_toml_file,
-    validate_args_setting,
+    validate_args_setting, setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -732,7 +732,7 @@ def train_model(
     if not validate_folder_path(train_data_dir):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_file_path(vae):
+    if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
     
     #
@@ -1282,11 +1282,7 @@ def train_model(
         )
 
         # log.info(run_cmd)
-        env = os.environ.copy()
-        env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-        )
-        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+        env = setup_environment(scriptdir=scriptdir)
 
         # Run the command
 

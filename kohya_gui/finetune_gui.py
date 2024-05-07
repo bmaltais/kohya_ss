@@ -19,7 +19,7 @@ from .common_gui import (
     scriptdir,
     update_my_data,
     validate_file_path, validate_folder_path, validate_model_path,
-    validate_args_setting,
+    validate_args_setting, setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -639,15 +639,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Prepare environment variables
-            env = os.environ.copy()
-            env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-            )
-            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
-
-            # Execute the command if not in print-only mode
-            if not print_only:
-                subprocess.run(run_cmd, env=env)
+            env = setup_environment(scriptdir=scriptdir)
 
         # create images buckets
         if generate_image_buckets:
@@ -685,11 +677,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Copy and modify environment variables
-            env = os.environ.copy()
-            env["PYTHONPATH"] = (
-                rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-            )
-            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+            env = setup_environment(scriptdir=scriptdir)
 
             # Execute the command if not just for printing
             if not print_only:
@@ -965,11 +953,7 @@ def train_model(
 
         # log.info(run_cmd)
 
-        env = os.environ.copy()
-        env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-        )
-        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+        env = setup_environment(scriptdir=scriptdir)
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)

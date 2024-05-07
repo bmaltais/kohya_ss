@@ -1,6 +1,6 @@
 import gradio as gr
 import subprocess
-from .common_gui import get_folder_path, scriptdir, list_dirs
+from .common_gui import get_folder_path, scriptdir, list_dirs, setup_environment
 import os
 import sys
 
@@ -51,12 +51,7 @@ def group_images(
             run_cmd.append("--caption_ext")
             run_cmd.append(caption_ext)
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/tools{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding a common environmental setting as an example if it's missing in the original context
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

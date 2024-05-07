@@ -5,7 +5,7 @@ from .common_gui import (
     add_pre_postfix,
     scriptdir,
     list_dirs,
-    get_executable_path,
+    get_executable_path, setup_environment,
 )
 from .class_gui_config import KohyaSSGUIConfig
 import os
@@ -117,12 +117,7 @@ def caption_images(
     # Add the directory containing the training data
     run_cmd.append(rf"{train_data_dir}")
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding an example of an environment variable that might be relevant
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
