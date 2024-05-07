@@ -19,6 +19,7 @@ from .common_gui import (
     update_my_data,
     validate_file_path, validate_folder_path, validate_model_path,
     validate_args_setting,
+    setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -898,11 +899,7 @@ def train_model(
 
         # log.info(run_cmd)
 
-        env = os.environ.copy()
-        env["PYTHONPATH"] = (
-            fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-        )
-        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+        env = setup_environment(scriptdir=scriptdir)
 
         # Run the command
 

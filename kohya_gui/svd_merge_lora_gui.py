@@ -7,7 +7,7 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button,
+    create_refresh_button, setup_environment
 )
 
 from .custom_logging import setup_logging
@@ -95,12 +95,7 @@ def svd_merge_lora(
     # Log the command
     log.info(" ".join(run_cmd))
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Example of setting additional environment variables if needed
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Run the command
     subprocess.run(run_cmd, env=env)

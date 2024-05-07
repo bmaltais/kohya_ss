@@ -6,6 +6,7 @@ from .common_gui import (
     find_replace,
     scriptdir,
     list_dirs,
+    setup_environment,
 )
 import os
 import sys
@@ -84,11 +85,7 @@ def caption_images(
         log.info(f"Executing command: {command_to_run}")
 
         # Set the environment variable for the Python path
-        env = os.environ.copy()
-        env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-        )
-        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+        env = setup_environment(scriptdir=scriptdir)
 
         # Run the command in the sd-scripts folder context
         subprocess.run(run_cmd, env=env, shell=False)

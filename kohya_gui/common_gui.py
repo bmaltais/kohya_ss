@@ -1484,3 +1484,15 @@ def validate_args_setting(input_string):
             "A valid settings string must consist of one or more key/value pairs formatted as key=value, with no spaces around the equals sign or within the value. Multiple pairs should be separated by a space."
         )
         return False
+
+def setup_environment(scriptdir: str):
+    env = os.environ.copy()
+    env["PYTHONPATH"] = (
+        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+    )
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+    if os.name == "nt":
+        env["XFORMERS_FORCE_DISABLE_TRITON"] = "1"
+
+    return env

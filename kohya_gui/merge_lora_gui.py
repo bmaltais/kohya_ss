@@ -13,7 +13,7 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button,
+    create_refresh_button, setup_environment
 )
 from .custom_logging import setup_logging
 
@@ -451,12 +451,7 @@ class GradioMergeLoRaTab:
                 map(str, valid_ratios)
             )  # Convert ratios to strings and include them as separate arguments
 
-        env = os.environ.copy()
-        env["PYTHONPATH"] = (
-            rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-        )
-        # Example of adding an environment variable for TensorFlow, if necessary
-        env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+        env = setup_environment(scriptdir=scriptdir)
 
         # Reconstruct the safe command string for display
         command_to_run = " ".join(run_cmd)

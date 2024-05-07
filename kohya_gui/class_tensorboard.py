@@ -15,6 +15,7 @@ except ImportError:
 from easygui import msgbox
 from threading import Thread, Event
 from .custom_logging import setup_logging
+from .common_gui import setup_environment
 
 
 class TensorboardManager:
@@ -72,8 +73,7 @@ class TensorboardManager:
 
         self.log.info("Starting TensorBoard on port {}".format(self.tensorboard_port))
         try:
-            env = os.environ.copy()
-            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+            env = setup_environment(scriptdir=scriptdir)
             self.tensorboard_proc = subprocess.Popen(run_cmd, env=env)
         except Exception as e:
             self.log.error("Failed to start Tensorboard:", e)
