@@ -99,7 +99,7 @@ def convert_model(
     # Log the command
     log.info(" ".join(run_cmd))
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Run the command
     subprocess.run(run_cmd, env=env, shell=False)

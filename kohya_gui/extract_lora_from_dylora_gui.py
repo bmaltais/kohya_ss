@@ -59,7 +59,7 @@ def extract_dylora(
         str(unit),
     ]
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

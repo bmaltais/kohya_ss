@@ -916,7 +916,7 @@ def train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        env = setup_environment(scriptdir=scriptdir)
+        env = setup_environment()
 
         # Run the command
 

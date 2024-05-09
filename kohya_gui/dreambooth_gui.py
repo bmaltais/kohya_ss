@@ -899,7 +899,7 @@ def train_model(
 
         # log.info(run_cmd)
 
-        env = setup_environment(scriptdir=scriptdir)
+        env = setup_environment()
 
         # Run the command
 
