@@ -58,7 +58,7 @@ def caption_images(
     # Add the directory containing the training data
     run_cmd.append(fr"{train_data_dir}")
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

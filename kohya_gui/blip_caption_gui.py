@@ -87,7 +87,7 @@ def caption_images(
     )
 
     # Set up the environment
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

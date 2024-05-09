@@ -1368,17 +1368,21 @@ def validate_file_path(file_path: str) -> bool:
     return True
 
 
-def validate_folder_path(folder_path: str, can_be_written_to: bool = False) -> bool:
+def validate_folder_path(folder_path: str, can_be_written_to: bool = False, create_if_not_exists: bool = False) -> bool:
     if folder_path == "":
         return True
     msg = f"Validating {folder_path} existence{' and writability' if can_be_written_to else ''}..."
     if not os.path.isdir(folder_path):
-        log.error(f"{msg} FAILED: does not exist")
-        return False
-    if can_be_written_to:
-        if not os.access(folder_path, os.W_OK):
-            log.error(f"{msg} FAILED: is not writable.")
+        if create_if_not_exists:
+            os.makedirs(folder_path)
+            log.info(f"{msg} SUCCESS")
+            return True
+        else:
+            log.error(f"{msg} FAILED: does not exist")
             return False
+    if can_be_written_to and not os.access(folder_path, os.W_OK):
+        log.error(f"{msg} FAILED: is not writable.")
+        return False
     log.info(f"{msg} SUCCESS")
     return True
 
@@ -1485,7 +1489,7 @@ def validate_args_setting(input_string):
         )
         return False
 
-def setup_environment(scriptdir: str):
+def setup_environment():
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"

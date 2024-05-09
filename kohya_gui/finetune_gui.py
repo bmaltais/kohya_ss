@@ -569,10 +569,10 @@ def train_model(
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_folder_path(logging_dir, can_be_written_to=True):
+    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_folder_path(output_dir, can_be_written_to=True):
+    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
         return TRAIN_BUTTON_VISIBLE
     
     if not validate_model_path(pretrained_model_name_or_path):
@@ -639,7 +639,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Prepare environment variables
-            env = setup_environment(scriptdir=scriptdir)
+            env = setup_environment()
 
         # create images buckets
         if generate_image_buckets:
@@ -677,7 +677,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Copy and modify environment variables
-            env = setup_environment(scriptdir=scriptdir)
+            env = setup_environment()
 
             # Execute the command if not just for printing
             if not print_only:
@@ -729,7 +729,12 @@ def train_model(
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
+    accelerate_path = get_executable_path("accelerate")
+    if accelerate_path == "":
+        log.error("accelerate not found")
+        return TRAIN_BUTTON_VISIBLE
+
+    run_cmd = [rf'{accelerate_path}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -953,7 +958,7 @@ def train_model(
 
         # log.info(run_cmd)
 
-        env = setup_environment(scriptdir=scriptdir)
+        env = setup_environment()
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)

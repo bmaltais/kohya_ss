@@ -51,7 +51,7 @@ def group_images(
             run_cmd.append("--caption_ext")
             run_cmd.append(caption_ext)
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

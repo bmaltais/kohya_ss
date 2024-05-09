@@ -85,7 +85,7 @@ def caption_images(
         log.info(f"Executing command: {command_to_run}")
 
         # Set the environment variable for the Python path
-        env = setup_environment(scriptdir=scriptdir)
+        env = setup_environment()
 
         # Run the command in the sd-scripts folder context
         subprocess.run(run_cmd, env=env, shell=False)

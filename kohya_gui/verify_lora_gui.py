@@ -46,7 +46,7 @@ def verify_lora(
     log.info(f"Executing command: {command_to_run}")
 
     # Set the environment variable for the Python path
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Run the command using subprocess.Popen for asynchronous handling
     process = subprocess.Popen(
