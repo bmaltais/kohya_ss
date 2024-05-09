@@ -62,7 +62,7 @@ def convert_lcm(
         run_cmd.append("--ssd-1b")
 
     # Set up the environment
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

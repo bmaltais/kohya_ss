@@ -73,7 +73,7 @@ class TensorboardManager:
 
         self.log.info("Starting TensorBoard on port {}".format(self.tensorboard_port))
         try:
-            env = setup_environment(scriptdir=scriptdir)
+            env = setup_environment()
             self.tensorboard_proc = subprocess.Popen(run_cmd, env=env)
         except Exception as e:
             self.log.error("Failed to start Tensorboard:", e)

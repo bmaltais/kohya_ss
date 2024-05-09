@@ -639,7 +639,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Prepare environment variables
-            env = setup_environment(scriptdir=scriptdir)
+            env = setup_environment()
 
         # create images buckets
         if generate_image_buckets:
@@ -677,7 +677,7 @@ def train_model(
             log.info(" ".join(run_cmd))
 
             # Copy and modify environment variables
-            env = setup_environment(scriptdir=scriptdir)
+            env = setup_environment()
 
             # Execute the command if not just for printing
             if not print_only:
@@ -953,7 +953,7 @@ def train_model(
 
         # log.info(run_cmd)
 
-        env = setup_environment(scriptdir=scriptdir)
+        env = setup_environment()
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)

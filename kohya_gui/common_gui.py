@@ -1485,7 +1485,7 @@ def validate_args_setting(input_string):
         )
         return False
 
-def setup_environment(scriptdir: str):
+def setup_environment():
     env = os.environ.copy()
     env["PYTHONPATH"] = (
         fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"

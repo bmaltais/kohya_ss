@@ -59,7 +59,7 @@ def merge_lycoris(
         run_cmd.append("--is_v2")
 
     # Copy and update the environment variables
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

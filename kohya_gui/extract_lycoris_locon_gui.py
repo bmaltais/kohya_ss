@@ -123,7 +123,7 @@ def extract_lycoris_locon(
     run_cmd.append(fr"{db_model}")
     run_cmd.append(fr"{output_name}")
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

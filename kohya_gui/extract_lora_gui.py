@@ -109,7 +109,7 @@ def extract_lora(
         run_cmd.append("--load_tuned_model_to")
         run_cmd.append(load_tuned_model_to)
 
-    env = setup_environment(scriptdir=scriptdir)
+    env = setup_environment()
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
