@@ -677,7 +677,12 @@ def train_model(
     log.info(max_train_steps_info)
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
-    run_cmd = [rf'{get_executable_path("accelerate")}', "launch"]
+    accelerate_path = get_executable_path("accelerate")
+    if accelerate_path == "":
+        log.error("accelerate not found")
+        return TRAIN_BUTTON_VISIBLE
+
+    run_cmd = [rf'{accelerate_path}', "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
