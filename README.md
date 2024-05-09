@@ -47,6 +47,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Change History](#change-history)
+    - [v24.1.1](#v2411)
     - [v24.1.0](#v2410)
 
 ## 🦒 Colab
@@ -94,10 +95,18 @@ To set up the project, follow these steps:
    cd kohya_ss
    ```
 
-4. Run the setup script by executing the following command:
+4. Run one of the following setup script by executing the following command:
+
+   For systems with only python 3.10.11 installed:
 
    ```shell
    .\setup.bat
+   ```
+
+   For systems with only more than one python release installed:
+
+   ```shell
+   .\setup-3.10.bat
    ```
 
    During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
@@ -433,8 +442,14 @@ ControlNet dataset is used to specify the mask. The mask images should be the RG
 
 ## Change History
 
+### v24.1.1
+
+- Fix small issue with VAE file path validation
+
 ### v24.1.0
 
 - To ensure cross-platform compatibility and security, the GUI now defaults to using "shell=False" when running subprocesses. This is based on documentation and should not cause issues on most platforms. However, some users have reported issues on specific platforms such as runpod and colab. PLease open an issue if you encounter any issues.
 - Add support for custom LyCORIS toml config files. Simply type the path to the config file in the LyCORIS preset dropdown.
 - Improve files and folders validation
+- Added a new setup-3.10.bat file to set the venv to specifically use python 3.10.x instead of the default python the system might use.
+- Relocate toml training config file to same folder as the model output directory.

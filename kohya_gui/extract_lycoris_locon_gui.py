@@ -7,7 +7,7 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button,
+    create_refresh_button, setup_environment
 )
 
 from .custom_logging import setup_logging
@@ -123,12 +123,7 @@ def extract_lycoris_locon(
     run_cmd.append(fr"{db_model}")
     run_cmd.append(fr"{output_name}")
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding an example of an environment variable that might be relevant
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

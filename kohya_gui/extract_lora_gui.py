@@ -8,7 +8,7 @@ from .common_gui import (
     is_file_writable,
     scriptdir,
     list_files,
-    create_refresh_button,
+    create_refresh_button, setup_environment
 )
 
 from .custom_logging import setup_logging
@@ -109,12 +109,7 @@ def extract_lora(
         run_cmd.append("--load_tuned_model_to")
         run_cmd.append(load_tuned_model_to)
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding an example of another potentially relevant environment variable
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)

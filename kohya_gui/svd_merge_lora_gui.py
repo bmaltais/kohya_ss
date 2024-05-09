@@ -7,7 +7,7 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button,
+    create_refresh_button, setup_environment
 )
 
 from .custom_logging import setup_logging
@@ -71,7 +71,7 @@ def svd_merge_lora(
         if not os.path.isfile(model_path):
             log.info(f"The provided model at {model_path} is not a file")
             return False
-        models.append(model_path)
+        models.append(fr"{model_path}")
         ratios.append(str(ratio))
         return True
 
@@ -89,18 +89,13 @@ def svd_merge_lora(
         run_cmd.extend(["--ratios"] + ratios)
 
     run_cmd.extend(
-        ["--device", device, "--new_rank", new_rank, "--new_conv_rank", new_conv_rank]
+        ["--device", device, "--new_rank", str(new_rank), "--new_conv_rank", str(new_conv_rank)]
     )
 
     # Log the command
     log.info(" ".join(run_cmd))
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Example of setting additional environment variables if needed
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Run the command
     subprocess.run(run_cmd, env=env)

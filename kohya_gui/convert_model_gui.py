@@ -2,7 +2,7 @@ import gradio as gr
 import subprocess
 import os
 import sys
-from .common_gui import get_folder_path, get_file_path, scriptdir, list_files, list_dirs
+from .common_gui import get_folder_path, get_file_path, scriptdir, list_files, list_dirs, setup_environment
 
 from .custom_logging import setup_logging
 
@@ -99,12 +99,7 @@ def convert_model(
     # Log the command
     log.info(" ".join(run_cmd))
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = (
-        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
-    )
-    # Adding an example of an environment variable that might be relevant
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    env = setup_environment(scriptdir=scriptdir)
 
     # Run the command
     subprocess.run(run_cmd, env=env, shell=False)
