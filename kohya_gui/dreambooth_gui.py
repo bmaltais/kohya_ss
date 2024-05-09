@@ -524,10 +524,10 @@ def train_model(
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_folder_path(logging_dir, can_be_written_to=True):
+    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_folder_path(output_dir, can_be_written_to=True):
+    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
         return TRAIN_BUTTON_VISIBLE
     
     if not validate_model_path(pretrained_model_name_or_path):
