@@ -1431,13 +1431,10 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
         else:
             log.error(f"{msg} FAILED: path does not exist as file or folder")
             return False
-
         if not valid_path:
             log.error(f"{msg} FAILED: invalid path")
             return False
-
     return True
-
 
 def is_file_writable(file_path: str) -> bool:
     """
