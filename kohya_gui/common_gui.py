@@ -1423,8 +1423,17 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
     elif pretrained_model_name_or_path in default_models:
         log.info(f"{msg} SUCCESS")
     else:
-        # If not one of the default models, check if it's a valid local path
-        if not validate_file_path(pretrained_model_name_or_path):
+        # If not one of the default models, determine if it's a file or folder and validate accordingly
+        if os.path.isfile(pretrained_model_name_or_path):
+            valid_path = validate_file_path(pretrained_model_name_or_path)
+        elif os.path.isdir(pretrained_model_name_or_path):
+            valid_path = validate_folder_path(pretrained_model_name_or_path)
+        else:
+            log.error(f"{msg} FAILED: path does not exist as file or folder")
+            return False
+
+        if not valid_path:
+            log.error(f"{msg} FAILED: invalid path")
             return False
 
     return True
