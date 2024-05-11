@@ -578,7 +578,7 @@ def train_model(
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_file_path(resume):
+    if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
     
     #
