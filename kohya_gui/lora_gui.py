@@ -726,7 +726,7 @@ def train_model(
     if not validate_folder_path(reg_data_dir):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_file_path(resume):
+    if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
     
     if not validate_folder_path(train_data_dir):
