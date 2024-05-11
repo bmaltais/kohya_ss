@@ -578,7 +578,7 @@ def train_model(
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
     
-    if not validate_file_path(resume):
+    if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
     
     #
@@ -628,8 +628,8 @@ def train_model(
                 run_cmd.append(caption_extension)
 
             # Add paths for the image folder and the caption metadata file
-            run_cmd.append(image_folder)
-            run_cmd.append(os.path.join(train_dir, caption_metadata_filename))
+            run_cmd.append(rf"{image_folder}")
+            run_cmd.append(rf"{os.path.join(train_dir, caption_metadata_filename)}")
 
             # Include the full path flag if specified
             if full_path:
@@ -641,16 +641,20 @@ def train_model(
             # Prepare environment variables
             env = setup_environment()
 
+            # Execute the command if not just for printing
+            if not print_only:
+                subprocess.run(run_cmd, env=env)
+
         # create images buckets
         if generate_image_buckets:
             # Build the command to run the preparation script
             run_cmd = [
                 PYTHON,
                 rf"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
-                image_folder,
-                os.path.join(train_dir, caption_metadata_filename),
-                os.path.join(train_dir, latent_metadata_filename),
-                pretrained_model_name_or_path,
+                rf"{image_folder}",
+                rf"{os.path.join(train_dir, caption_metadata_filename)}",
+                rf"{os.path.join(train_dir, latent_metadata_filename)}",
+                rf"{pretrained_model_name_or_path}",
                 "--batch_size",
                 str(batch_size),
                 "--max_resolution",

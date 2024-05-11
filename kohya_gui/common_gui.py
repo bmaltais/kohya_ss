@@ -1424,11 +1424,10 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
         log.info(f"{msg} SUCCESS")
     else:
         # If not one of the default models, check if it's a valid local path
-        if not validate_file_path(pretrained_model_name_or_path):
+        if not validate_file_path(pretrained_model_name_or_path) and not validate_folder_path(pretrained_model_name_or_path):
+            log.info(f"{msg} FAILURE: not a valid file or folder")
             return False
-
     return True
-
 
 def is_file_writable(file_path: str) -> bool:
     """
