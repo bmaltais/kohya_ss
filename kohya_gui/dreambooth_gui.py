@@ -31,6 +31,7 @@ from .class_folders import Folders
 from .class_command_executor import CommandExecutor
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
+from .class_sdxl_parameters import SDXLParameters
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -162,6 +163,10 @@ def save_configuration(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    fused_backward_pass,
+    fused_optimizer_groups,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
     min_timestep,
     max_timestep,
     debiased_estimation_loss,
@@ -320,6 +325,10 @@ def open_configuration(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    fused_backward_pass,
+    fused_optimizer_groups,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
     min_timestep,
     max_timestep,
     debiased_estimation_loss,
@@ -473,6 +482,10 @@ def train_model(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    fused_backward_pass,
+    fused_optimizer_groups,
+    sdxl_cache_text_encoder_outputs,
+    sdxl_no_half_vae,
     min_timestep,
     max_timestep,
     debiased_estimation_loss,
@@ -544,6 +557,7 @@ def train_model(
     
     if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
+    
     #
     # End of path validation
     #
@@ -704,6 +718,9 @@ def train_model(
         run_cmd.append(rf'{scriptdir}/sd-scripts/sdxl_train.py')
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_db.py")
+    
+    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl and sdxl_no_half_vae
 
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
@@ -724,6 +741,7 @@ def train_model(
         "bucket_reso_steps": bucket_reso_steps,
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
+        "cache_text_encoder_outputs": cache_text_encoder_outputs,
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
@@ -737,6 +755,8 @@ def train_model(
         "flip_aug": flip_aug,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
+        "fused_backward_pass": fused_backward_pass,
+        "fused_optimizer_groups": int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
@@ -789,6 +809,7 @@ def train_model(
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
         "multires_noise_iterations": multires_noise_iterations if not 0 else None,
+        "no_half_vae": no_half_vae,
         "no_token_padding": no_token_padding,
         "noise_offset": noise_offset if not 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
@@ -980,6 +1001,11 @@ def dreambooth_tab(
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
+                    
+            # Add SDXL Parameters
+            sdxl_params = SDXLParameters(
+                source_model.sdxl_checkbox, config=config, trainer="finetune",
+            )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
@@ -1112,6 +1138,10 @@ def dreambooth_tab(
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
+            sdxl_params.fused_backward_pass,
+            sdxl_params.fused_optimizer_groups,
+            sdxl_params.sdxl_cache_text_encoder_outputs,
+            sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             advanced_training.debiased_estimation_loss,
