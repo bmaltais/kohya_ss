@@ -232,6 +232,9 @@ def save_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -437,6 +440,9 @@ def open_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -672,6 +678,9 @@ def train_model(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1131,6 +1140,9 @@ def train_model(
         "logging_dir": logging_dir,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "loraplus_lr_ratio": loraplus_lr_ratio if not 0 else None,
+        "loraplus_text_encoder_lr_ratio": loraplus_text_encoder_lr_ratio if not 0 else None,
+        "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if not 0 else None,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -1467,6 +1479,31 @@ def lora_tab(
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
+                        )
+
+                    with gr.Row():
+                        loraplus_lr_ratio = gr.Number(
+                            label="LoRA+ learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
+                        )
+
+                        loraplus_unet_lr_ratio = gr.Number(
+                            label="LoRA+ Unet learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
+                        )
+
+                        loraplus_text_encoder_lr_ratio = gr.Number(
+                            label="LoRA+ Text Encoder learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
                         )
 
                     # Add SDXL Parameters
@@ -2319,6 +2356,9 @@ def lora_tab(
             metadata.metadata_license,
             metadata.metadata_tags,
             metadata.metadata_title,
+            loraplus_lr_ratio,
+            loraplus_text_encoder_lr_ratio,
+            loraplus_unet_lr_ratio,
         ]
 
         configuration.button_open_config.click(
