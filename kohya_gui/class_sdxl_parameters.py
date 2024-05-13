@@ -46,6 +46,12 @@ class SDXLParameters:
                     step=1,
                     visible=self.trainer == "finetune" or self.trainer == "dreambooth",
                 )
+                self.disable_mmap_load_safetensors = gr.Checkbox(
+                    label="Disable mmap load safe tensors",
+                    info="Disable memory mapping when loading the model's .safetensors in SDXL.",
+                    value=self.config.get("sdxl.disable_mmap_load_safetensors", False),
+                )
+
                 self.fused_backward_pass.change(
                     lambda fused_backward_pass: gr.Number(
                         interactive=not fused_backward_pass
