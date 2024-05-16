@@ -26,4 +26,4 @@ transformers==4.38.0
 voluptuous==0.13.1
 scipy==1.11.4
 # for kohya_ss library
--e ./sd-scripts # no_verify leave this to specify not checking this a verification stage
+-e ./ke-scripts # no_verify leave this to specify not checking this a verification stage
