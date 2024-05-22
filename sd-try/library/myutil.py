@@ -13,7 +13,7 @@ class SelfAttention(nn.Module):
         self.query_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.key_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.value_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
-        self.out_conv = nn.Conv2d(hidden_channels, in_channels, kernel_size=1).to(device)
+        self.out_conv = nn.Conv2d(hidden_channels, in_channels / 2, kernel_size=1).to(device)
         self.gamma = nn.Parameter(torch.zeros(1)).to(device)
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class SelfAttention(nn.Module):
         print("attention_out:", attention_out.shape)
         attention_out = self.out_conv(attention_out)
         print("attention_out:", attention_out.shape)
-        out = self.gamma * attention_out + x
+        out = self.gamma * attention_out + self.out_conv(x)
         return out
 
 class DynamicWeightedLoss(nn.Module):
@@ -85,7 +85,7 @@ class DynamicWeightedLoss(nn.Module):
         print(f"myutil——1:{attention_out.shape},max:{torch.max(attention_out)},min:{torch.min(attention_out)}")
         weighted_loss = (attention_out * loss_values)
         print(f"myutil:weighted_loss{weighted_loss.shape},max:{torch.max(weighted_loss)},min:{torch.min(weighted_loss)}")
-        return torch.sqrt(weighted_loss) + torch.cat([huber_loss, huber_loss], dim=1) * 0.5
+        return 2 * torch.sqrt(weighted_loss) + huber_loss
         
 def create_loss_weight(hidden_channels=64, in_channels=4,num_heads = 4):
     return DynamicWeightedLoss(in_channels=in_channels, hidden_channels=hidden_channels,num_heads = 4).to(device)
