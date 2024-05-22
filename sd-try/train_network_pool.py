@@ -898,12 +898,12 @@ class NetworkTrainer:
                         target = noise_scheduler.get_velocity(latents, noise, timesteps)
                     else:
                         target = noise
-                    loss = myutil.compute_dynamic_weights(weight_loss_fn, noise_pred.float(), target.float(),huber_c)
-                    """
-                    loss = train_util.conditional_loss(
-                        noise_pred.float(), target.float(), reduction="none", loss_type=args.loss_type, huber_c=huber_c, huber_weight = args.huber_weight,is_huber_weight = is_huber_weight
-                    )
-                    """
+                    if args.loss_attention:
+                        loss = myutil.compute_dynamic_weights(weight_loss_fn, noise_pred.float(), target.float(),huber_c)
+                    else:
+                        loss = train_util.conditional_loss(
+                            noise_pred.float(), target.float(), reduction="none", loss_type=args.loss_type, huber_c=huber_c, huber_weight = args.huber_weight,is_huber_weight = is_huber_weight
+                        )
                     if args.masked_loss:
                         loss = apply_masked_loss(loss, batch)
                     #loss = torch.sum(loss, dim=(1, 2, 3))
@@ -1131,6 +1131,11 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--no_half_vae",
+        action="store_true",
+        help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
+    )
+    parser.add_argument(
+        "--loss_attention",
         action="store_true",
         help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
     )
