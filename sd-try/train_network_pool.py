@@ -922,6 +922,7 @@ class NetworkTrainer:
                         loss = apply_debiased_estimation(loss, timesteps, noise_scheduler)
 
                     loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
+                    print(f"test_myutil_current_loss_1:{loss}")
                     #loss = torch.sum(loss)
                     accelerator.backward(loss)
                     if accelerator.sync_gradients:
@@ -929,7 +930,7 @@ class NetworkTrainer:
                         if args.max_grad_norm != 0.0:
                             params_to_clip = accelerator.unwrap_model(network).get_trainable_params()
                             accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
-
+            
                     optimizer.step()
                     lr_scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
