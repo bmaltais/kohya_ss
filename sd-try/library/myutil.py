@@ -13,7 +13,7 @@ class SelfAttention(nn.Module):
         self.query_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.key_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.value_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
-        self.out_conv = nn.Conv2d(hidden_channels, in_channels / 2, kernel_size=1).to(device)
+        self.out_conv = nn.Conv2d(hidden_channels, in_channels // 2, kernel_size=1).to(device)
         self.gamma = nn.Parameter(torch.zeros(1)).to(device)
 
     def forward(self, x):
