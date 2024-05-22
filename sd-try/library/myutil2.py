@@ -59,19 +59,20 @@ def scaled_dot_product_attention(q, k, v):
     seq_len_q = q.size(2)
     seq_len_k = k.size(2)
 
-    matmul_qk = torch.bmm(q.view(batch_size * num_heads, seq_len_q, -1),
-                          k.view(batch_size * num_heads, -1, seq_len_k))
+    matmul_qk = torch.bmm(q.reshape(batch_size * num_heads, seq_len_q, -1),
+                          k.reshape(batch_size * num_heads, -1, seq_len_k))
 
     dk = q.size(-1)
     scaled_attention_logits = matmul_qk / math.sqrt(dk)
 
     attention_weights = torch.nn.functional.softmax(scaled_attention_logits, dim=-1)
 
-    output = torch.bmm(attention_weights, v.view(batch_size * num_heads, seq_len_k, -1))
+    output = torch.bmm(attention_weights, v.reshape(batch_size * num_heads, seq_len_k, -1))
 
-    output = output.view(batch_size, num_heads, seq_len_q, -1)
+    output = output.reshape(batch_size, num_heads, seq_len_q, -1)
 
     return output, attention_weights
+
 """
 def scaled_dot_product_attention(q, k, v):
     matmul_qk = torch.matmul(q, k.transpose(-2, -1))
