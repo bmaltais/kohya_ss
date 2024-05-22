@@ -15,9 +15,9 @@ class MultiHeadAttention(nn.Module):
 
         self.depth = d_model // num_heads
 
-        self.wq = nn.Linear(d_model, d_model).to(device)
-        self.wk = nn.Linear(d_model, d_model).to(device)
-        self.wv = nn.Linear(d_model, d_model).to(device)
+        #self.wq = nn.Linear(d_model, d_model).to(device)
+        #self.wk = nn.Linear(d_model, d_model).to(device)
+        #self.wv = nn.Linear(d_model, d_model).to(device)
 
         self.dense = nn.Linear(d_model, d_model).to(device)
 
@@ -30,6 +30,10 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, v, k, q):
         batch_size = q.size(0)
+        # 将权重矩阵的定义移到 forward 方法内部，以便每次调用时都重新创建新的权重矩阵
+        wq = nn.Linear(self.d_model, self.d_model).to(device)
+        wk = nn.Linear(self.d_model, self.d_model).to(device)
+        wv = nn.Linear(self.d_model, self.d_model).to(device)
         print(f"myutil——forwardself, v, k, q:devicev:{v.device},devicev:{k.device}，devicev:{q.device}")
         q = self.wq(q)  # (batch_size, seq_len, d_model)
         k = self.wk(k)  # (batch_size, seq_len, d_model)
@@ -47,9 +51,28 @@ class MultiHeadAttention(nn.Module):
         print(f"myutil——original_size_attentionv:{original_size_attention.device}")
         output = self.dense(original_size_attention)
         # 释放 GPU 空间
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
         return output
+def scaled_dot_product_attention(q, k, v):
+    batch_size = q.size(0)
+    num_heads = q.size(1)
+    seq_len_q = q.size(2)
+    seq_len_k = k.size(2)
 
+    matmul_qk = torch.bmm(q.view(batch_size * num_heads, seq_len_q, -1),
+                          k.view(batch_size * num_heads, -1, seq_len_k))
+
+    dk = q.size(-1)
+    scaled_attention_logits = matmul_qk / math.sqrt(dk)
+
+    attention_weights = torch.nn.functional.softmax(scaled_attention_logits, dim=-1)
+
+    output = torch.bmm(attention_weights, v.view(batch_size * num_heads, seq_len_k, -1))
+
+    output = output.view(batch_size, num_heads, seq_len_q, -1)
+
+    return output, attention_weights
+"""
 def scaled_dot_product_attention(q, k, v):
     matmul_qk = torch.matmul(q, k.transpose(-2, -1))
 
@@ -61,7 +84,7 @@ def scaled_dot_product_attention(q, k, v):
     output = torch.matmul(attention_weights, v)
 
     return output, attention_weights
-
+"""
 class AdaptiveLoss(nn.Module):
     def __init__(self, d_model, num_heads, huber_c=0.3):
         super(AdaptiveLoss, self).__init__()
