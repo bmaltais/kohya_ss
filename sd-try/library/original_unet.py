@@ -107,6 +107,7 @@ v2.1
 """
 
 import math
+import copy
 from types import SimpleNamespace
 from typing import Dict, Optional, Tuple, Union
 import torch
@@ -1387,7 +1388,11 @@ class UNet2DConditionModel(nn.Module):
         logger.info(
             f"UNet2DConditionModel: {sample_size}, {attention_head_dim}, {cross_attention_dim}, {use_linear_projection}, {upcast_attention}"
         )
-
+        self.current_step = 0
+        self.max_steps = 10
+        self.pool_start_weight = [0.4,0.2,0.2] #初始weight
+        self.pool_weight = []    #在初次训练之后获得的每个step的weight值  
+        self.pool_current_weight = [0.4,0.2,0.2]
         # 外部からの参照用に定義しておく
         self.in_channels = IN_CHANNELS
         self.out_channels = OUT_CHANNELS
@@ -1520,7 +1525,68 @@ class UNet2DConditionModel(nn.Module):
         for module in modules:
             logger.info(f"{module.__class__.__name__} {module.gradient_checkpointing} -> {value}")
             module.gradient_checkpointing = value
+    #调整权重
+    def adjust_array_proportionally(self, arr, reduce_val, reduce_index = 0):
+        # 从要减少的元素中减去指定的值
+        arr[reduce_index] -= reduce_val
+        remaining_sum = sum(arr) - arr[reduce_index]
+        add_val = reduce_val / (len(arr) - 1)
+        for i in range(len(arr)):
+            if i != reduce_index:
+                arr[i] += add_val
+        arr[reduce_index] = 1 - remaining_sum - (len(arr) - 1) * add_val
+        return arr
+    def set_pool_start_weight(self,pool_start_weight):
+        self.pool_start_weight = pool_start_weight
+        self.pool_current_weight = self.pool_start_weight
+      
+    def set_pool_weight(self,loss,is_first,step):
+        if(is_first):
+            weight = copy.deepcopy(self.pool_current_weight)
+            self.pool_weight.append(weight)
+        else:
+            #logger.info(f"set_pool_weight_loss, {loss}")
+            #logger.info(f"set_pool_weight_loss, {self.pool_current_weight}")
+            #print(f"the pool weight try before:{self.pool_weight[step]} and pool_weight {self.pool_weight}")
+            self.pool_current_weight = self.adjust_array_proportionally(self.pool_weight[step],loss)
+            self.pool_weight[step] = copy.deepcopy(self.pool_current_weight)
+            #print(f"the pool weight try:{self.pool_weight[step]} and pool_weight {self.pool_weight}")
+            #logger.info(f"set_pool_weight_loss2, {self.pool_current_weight},{step},{self.pool_weight[step]}")
 
+    def set_pool_weights(self,reduces_loss,is_first):
+        for step in range(self.max_steps):
+            if(is_first):
+                self.pool_weight.append(self.pool_current_weight)
+            else:
+                self.pool_current_weight = self.adjust_array_proportionally(self.pool_weight[steps],loss)
+                self.pool_weight[steps] = self.pool_current_weight
+    def get_pool_weight(self):
+        #print(f"pool_weight_test = {self.pool_weight}")
+        return self.pool_weight
+    def set_max_steps(self,max_steps):
+        self.max_steps = max_steps
+      
+    def set_current_step(self,current_step):
+        self.current_step = current_step
+        
+    def add_spp_layer(self, sample: torch.FloatTensor) -> torch.FloatTensor:
+        r"""
+        Adds Spatial Pyramid Pooling (SPP) layer to the sample tensor.
+        """
+        # Define the SPP layer
+        spp_layer = nn.Sequential(
+            nn.AvgPool2d(kernel_size=3, stride=1, padding=1),  # 3x3 max pooling
+            nn.AvgPool2d(kernel_size=5, stride=1, padding=2),  # 5x5 average pooling
+            nn.AvgPool2d(kernel_size=7, stride=1, padding=3),  # 7x7 max pooling
+            nn.AvgPool2d(kernel_size=9, stride=1, padding=4),  # 9x9 average pooling
+            #nn.Conv2d(sample.shape[1], sample.shape[1] // 2, kernel_size=1),  # 1x1 convolution
+        )
+        # Apply the SPP layer to the sample tensor
+        sample = spp_layer(sample)
+        return sample
+    def addmaxpool(self, sample: torch.FloatTensor) -> torch.FloatTensor:
+        max_pool_layer = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        return (max_pool_layer(sample)-max_pool_layer(-sample))
     # endregion
 
     def forward(
@@ -1528,6 +1594,7 @@ class UNet2DConditionModel(nn.Module):
         sample: torch.FloatTensor,
         timestep: Union[torch.Tensor, float, int],
         encoder_hidden_states: torch.Tensor,
+        is_sample = True,
         class_labels: Optional[torch.Tensor] = None,
         return_dict: bool = True,
         down_block_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
@@ -1605,7 +1672,11 @@ class UNet2DConditionModel(nn.Module):
 
         # 4. mid
         sample = self.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
-
+        # Add SPP layer
+        #logger.info(f"step_testforit:{self.current_step},pool_current_weight_test, {self.pool_current_weight}")
+        #if is_sample  == False:
+            #sample = sample * 0.3 + self.add_spp_layer(sample) * 0.3 + self.addmaxpool(sample) * 0.2
+            #sample = sample * self.pool_current_weight[0] + self.add_spp_layer(sample) * self.pool_current_weight[1] + self.addmaxpool(sample) * self.pool_current_weight[2]
         # ControlNetの出力を追加する
         if mid_block_additional_residual is not None:
             sample += mid_block_additional_residual

@@ -82,7 +82,8 @@ logger = logging.getLogger(__name__)
 from library.original_unet import UNet2DConditionModel
 
 # Tokenizer: checkpointから読み込むのではなくあらかじめ提供されているものを使う
-TOKENIZER_PATH = "openai/clip-vit-large-patch14"
+#TOKENIZER_PATH = "openai/clip-vit-large-patch14"
+TOKENIZER_PATH = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
 V2_STABLE_DIFFUSION_PATH = "stabilityai/stable-diffusion-2"  # ここからtokenizerだけ使う v2とv2.1はtokenizer仕様は同じ
 
 HIGH_VRAM = False
@@ -128,6 +129,17 @@ except:
     pass
 
 IMAGE_TRANSFORMS = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5]),
+    ]
+)
+IMAGE_TRANSFORMS3 = transforms.Compose(
+    [
+        transforms.ColorJitter(saturation = [1.5,2],brightness=[0.8,1.1],contrast=[1,1.5]),
+    ]
+)
+IMAGE_TRANSFORMS2 = transforms.Compose(
     [
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5]),
@@ -1347,7 +1359,7 @@ class BaseDataset(torch.utils.data.Dataset):
         example["flippeds"] = flippeds
 
         example["network_multipliers"] = torch.FloatTensor([self.network_multiplier] * len(captions))
-
+        example["batch_size"] = bucket_batch_size
         if self.debug_dataset:
             example["image_keys"] = bucket[image_index : image_index + self.batch_size]
         return example
@@ -1975,7 +1987,7 @@ class ControlNetDataset(BaseDataset):
             len(extra_imgs) == 0
         ), f"extra conditioning data for {len(extra_imgs)} images / 余分な制御用画像があります: {extra_imgs}"
 
-        self.conditioning_image_transforms = IMAGE_TRANSFORMS
+        self.conditioning_image_transforms = IMAGE_TRANSFORMS2
 
     def make_buckets(self):
         self.dreambooth_dataset_delegate.make_buckets()
@@ -2009,9 +2021,9 @@ class ControlNetDataset(BaseDataset):
             cond_img = load_image(image_info.cond_img_path)
 
             if self.dreambooth_dataset_delegate.enable_bucket:
-                assert (
-                    cond_img.shape[0] == original_size_hw[0] and cond_img.shape[1] == original_size_hw[1]
-                ), f"size of conditioning image is not match / 画像サイズが合いません: {image_info.absolute_path}"
+                #assert (
+                #    cond_img.shape[0] == original_size_hw[0] and cond_img.shape[1] == original_size_hw[1]
+                #), f"size of conditioning image is not match / 画像サイズが合いません: {image_info.absolute_path}"
                 cond_img = cv2.resize(
                     cond_img, image_info.resized_size, interpolation=cv2.INTER_AREA
                 )  # INTER_AREAでやりたいのでcv2でリサイズ
@@ -2351,7 +2363,14 @@ def load_image(image_path):
         image = image.convert("RGB")
     img = np.array(image, np.uint8)
     return img
-
+def load_image_tr(image_path,rand):
+    image = Image.open(image_path)
+    if not image.mode == "RGB":
+        image = image.convert("RGB")
+    if random.random() <= rand:
+        image = IMAGE_TRANSFORMS3(image)
+    img = np.array(image, np.uint8)
+    return img
 
 # 画像を読み込む。戻り値はnumpy.ndarray,(original width, original height),(crop left, crop top, crop right, crop bottom)
 def trim_and_resize_if_required(
@@ -3183,6 +3202,55 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="use random strength between 0~noise_offset for noise offset. / noise offsetにおいて、0からnoise_offsetの間でランダムな強度を使用します。",
     )
     parser.add_argument(
+        "--pool_start_weight",
+        type=float,
+        nargs='*', 
+        default=[0.4, 0.2, 0.2],
+        help="peil weight",
+    )
+    parser.add_argument(
+        "--loss_attention_in_channel",
+        type=int,
+        default=8,
+        help="4td",
+    )
+    parser.add_argument(
+        "--loss_attention_heads",
+        type=int,
+        default=8,
+        help="6",
+    )
+    parser.add_argument(
+        "--huber_weight",
+        type=float,
+        nargs='*', 
+        default=[0.8, 0.2],
+        help="peil weight",
+    )
+    parser.add_argument(
+        "--huber_weight_start",
+        type=int,
+        default=0,
+        help="peil weight",
+    )
+    parser.add_argument(
+        "--noise_for_peil",
+        action="store_true",
+        help="use rnoise_for_peil。",
+    )
+    parser.add_argument(
+        "--peil_weight",
+        type=float,
+        default=0.05,
+        help="peil weight",
+    )
+    parser.add_argument(
+        "--peil_sin_weight",
+        type=int,
+        default=1,
+        help="peil weight",
+    )
+    parser.add_argument(
         "--multires_noise_iterations",
         type=int,
         default=None,
@@ -3240,7 +3308,7 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         "--loss_type",
         type=str,
         default="l2",
-        choices=["l2", "huber", "smooth_l1"],
+        choices=["l2", "huber", "smooth_l1","ssim"],
         help="The type of loss function to use (L2, Huber, or smooth L1), default is L2 / 使用する損失関数の種類（L2、Huber、またはsmooth L1）、デフォルトはL2",
     )
     parser.add_argument(
@@ -4896,7 +4964,7 @@ def get_timesteps_and_huber_c(args, min_timestep, max_timestep, noise_scheduler,
     return timesteps, huber_c
 
 
-def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
+def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents,peil_weight = 0.0):
     # Sample noise that we'll add to the latents
     noise = torch.randn_like(latents, device=latents.device)
     if args.noise_offset:
@@ -4909,7 +4977,8 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
         noise = custom_train_functions.pyramid_noise_like(
             noise, latents.device, args.multires_noise_iterations, args.multires_noise_discount
         )
-
+    if args.noise_for_peil : 
+        noise = custom_train_functions.apply_noise_for_peil(latents,noise,peil_weight)
     # Sample a random timestep for each image
     b_size = latents.shape[0]
     min_timestep = 0 if args.min_timestep is None else args.min_timestep
@@ -4930,16 +4999,74 @@ def get_noise_noisy_latents_and_timesteps(args, noise_scheduler, latents):
 
     return noise, noisy_latents, timesteps, huber_c
 
+def contrastive_loss(embeddings1, embeddings2, labels, margin=0.8):
+    distances = torch.nn.functional.pairwise_distance(embeddings1, embeddings2)
+    loss = torch.mean((1 - labels) * torch.pow(distances, 2) + labels * torch.pow(torch.clamp(margin - distances, min=0), 2))
+    return loss
+def ssim_loss(img1, img2, window_size=11, sigma=1.5, data_range=5.0):
+    # 图像的均值、方差和协方差
+    channels = img1.shape[1]
+    weight = torch.ones(channels, channels, window_size, window_size).to(img1.device) / (window_size ** 2)
+    mu1 = torch.nn.functional.conv2d(img1, weight, padding=window_size // 2)
+    mu2 = torch.nn.functional.conv2d(img2, weight, padding=window_size // 2)
+    mu1_sq = mu1 ** 2
+    mu2_sq = mu2 ** 2
+    mu12 = mu1 * mu2
+    sigma1_sq = torch.nn.functional.conv2d(img1 ** 2, weight, padding=window_size // 2) - mu1_sq
+    sigma2_sq = torch.nn.functional.conv2d(img2 ** 2, weight, padding=window_size // 2) - mu2_sq
+    sigma12 = torch.nn.functional.conv2d(img1 * img2, weight, padding=window_size // 2) - mu12
 
+    # SSIM计算
+    c1 = (0.01 * data_range) ** 2
+    c2 = (0.03 * data_range) ** 2
+    ssim_map = ((2 * mu12 + c1) * (2 * sigma12 + c2)) / ((mu1_sq + mu2_sq + c1) * (sigma1_sq + sigma2_sq + c2))
+
+    # SSIM损失
+    ssim_loss = 1 - ssim_map  
+    #print(f"test_loss:{ssim_loss}")
+    return ssim_loss
+    
 # NOTE: if you're using the scheduled version, huber_c has to depend on the timesteps already
 def conditional_loss(
-    model_pred: torch.Tensor, target: torch.Tensor, reduction: str = "mean", loss_type: str = "l2", huber_c: float = 0.1
+    model_pred: torch.Tensor, target: torch.Tensor, reduction: str = "mean", loss_type: str = "l2", huber_c: float = 0.1, huber_weight = [1.0,0],is_huber_weight = False
 ):
-
+    #print(f"testforloss:{torch.min(model_pred)},{torch.max(model_pred)},-----target:{torch.min(target)},{torch.max(target)}")
     if loss_type == "l2":
         loss = torch.nn.functional.mse_loss(model_pred, target, reduction=reduction)
+    elif loss_type == "ssim":
+        loss = ssim_loss(model_pred,target)
     elif loss_type == "huber":
         loss = 2 * huber_c * (torch.sqrt((model_pred - target) ** 2 + huber_c**2) - huber_c)
+        if is_huber_weight:
+            loss_ssim = ssim_loss(model_pred,target)
+            loss = loss * huber_weight[0] + loss_ssim * huber_weight[1]
+        """
+        diff = model_pred - target
+        abs_diff = torch.abs(diff)
+        loss = torch.where(diff >= 0,
+                           torch.where(diff <= huber_c,
+                                       0.5 * (diff ** 2),
+                                       huber_c * (diff - 0.5 * huber_c)),
+                           torch.where(-diff <= huber_c,
+                                       0.5 * (diff ** 2),
+                                       huber_c * (-diff - 0.5 * huber_c)))
+        """
+        #loss = torch.where(diff >= 0, 
+        #                    torch.where(abs_diff < huber_c, diff ** 2, huber_c * (abs_diff - 0.5 * huber_c)), 
+        #                   torch.where(abs_diff < huber_c, -diff ** 2, -huber_c * (abs_diff - 0.5 * huber_c)))
+        """
+        residual = model_pred - target
+        negative_residual_mask = residual < 0
+    
+        # 使用 Huber loss 计算差值为负时的损失，并添加偏置
+        huber_loss = 2 * huber_c * (torch.sqrt((residual) ** 2 + huber_c ** 2) - huber_c)
+    
+        # 使用平方损失计算差值为正时的损失，并添加偏置
+        #squared_loss = (residual ** 2) / 2
+        # 根据差值的正负选择相应的损失
+        #loss = torch.where(negative_residual_mask, torch.exp(huber_loss * (-1)),  torch.log((huber_loss * 10) + torch.e))
+        loss = torch.where(negative_residual_mask, huber_loss - 0.1, huber_loss + 0.1)
+        """
         if reduction == "mean":
             loss = torch.mean(loss)
         elif reduction == "sum":

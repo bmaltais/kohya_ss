@@ -2,9 +2,10 @@ import torch
 import argparse
 import random
 import re
+import numpy as np
 from typing import List, Optional, Union
 from .utils import setup_logging
-
+from scipy.stats import norm
 setup_logging()
 import logging
 
@@ -477,6 +478,57 @@ def apply_noise_offset(latents, noise, noise_offset, adaptive_noise_scale):
 
     noise = noise + noise_offset * torch.randn((latents.shape[0], latents.shape[1], 1, 1), device=latents.device)
     return noise
+
+
+def generate_fractal_noise(batch_size, channels, height, width, latents, fractal_type='wiener'):
+    device = latents.device
+    if fractal_type == 'wiener':
+        # 生成分形维纳过程（蓝噪声）
+        fractal_noise = torch.randn((batch_size, channels, height, width), device=device)
+        for i in range(1, height):
+            for j in range(1, width):
+                # 计算每个像素的增量
+                increment = torch.randn((batch_size, channels, 1, 1), device=device)
+                fractal_noise[:, :, i, j] = 0.25 * (fractal_noise[:, :, i - 1, j] + fractal_noise[:, :, i, j - 1] + fractal_noise[:, :, i - 1, j - 1] + increment.squeeze(dim=3).squeeze(dim=2))
+    
+    elif fractal_type == 'brownian':
+        # 生成分形布朗运动（红噪声）
+        noise = torch.randn(batch_size, channels, height, width, device=device)
+        noise = torch.fft.fft2(noise, dim=(-2, -1))
+
+        # 生成随机相位
+        phase = torch.empty(batch_size, channels, height, width, device=device).uniform_(0, 2 * np.pi)
+
+        # 将功率谱和相位结合，进行逆傅里叶变换得到分形布朗运动
+        fractal_noise = torch.fft.ifft2(torch.sqrt(1 / (1 + noise**2)) * torch.exp(1j * phase), dim=(-2, -1)).real
+    
+    # 将噪声张量缩放到[0, 1]之间
+    fractal_noise -= fractal_noise.min()
+    fractal_noise /= fractal_noise.max()
+    
+    return fractal_noise
+
+
+def apply_noise_for_peil(latents,noise,peil_weight):
+    # 计算噪声的形状
+    batch_size, channels, height, width = latents.shape    
+    device = latents.device
+    #logger.info(f"fix noise {noise.max()},{noise.min()}")
+    # 生成泊松噪声
+    poisson_noise = torch.poisson(torch.ones((batch_size, channels, height, width), device=device)) / 255.0
+    poisson_noise = 2 * (poisson_noise - poisson_noise.min()) / (poisson_noise.max() - poisson_noise.min()) - 1  # 缩放到[-1, 1]之间
+    #logger.info(f"fix combined_noise1 {poisson_noise}")
+    #生成蓝噪声
+    blue_noise = generate_fractal_noise(batch_size, channels, height, width, latents, fractal_type='wiener')
+    #logger.info(f"fix combined_noise1 {blue_noise}")
+    # 生成红噪声
+    red_noise = generate_fractal_noise(batch_size, channels, height, width, latents, fractal_type='brownian')
+    #logger.info(f"fix combined_noise1 {red_noise}")
+    # 将三种噪声相加并返回
+    combined_noise = noise + peil_weight * (poisson_noise + blue_noise + red_noise)
+    #logger.info(f"fix combined_noise {combined_noise}")
+    #logger.info(f"fix noise {combined_noise.max()},{combined_noise.min()}")
+    return combined_noise
 
 
 def apply_masked_loss(loss, batch):
