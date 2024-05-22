@@ -88,7 +88,7 @@ class AdaptiveLoss(nn.Module):
         if combined_loss.shape[-1] != self.multihead_attn.d_model:
             combined_loss = torch.cat([combined_loss] * (self.multihead_attn.d_model // combined_loss.shape[-1]), dim=-1)
             print(f"myutil—— combined_loss3:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
-        attn_output = self.multihead_attn(combined_loss, combined_loss, combined_loss).to(decice)
+        attn_output = self.multihead_attn(combined_loss, combined_loss, combined_loss).to(device)
         
         print(f"myutil—— attn_output:{attn_output.shape},max:{torch.max(attn_output)},min:{torch.min(attn_output)}")
         attn_weights = self.linear(attn_output)  # 形状为[batch_size, seq_len, 2]
