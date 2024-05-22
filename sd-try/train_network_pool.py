@@ -801,7 +801,7 @@ class NetworkTrainer:
         unet.set_max_steps(num_update_steps_per_epoch - 1)
         #weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, in_channels=args.loss_attention_in_channel,num_heads = args.loss_attention_heads)
         
-        weight_loss_fn = myutil.create_loss_weight(d_model=64, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
+        weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
