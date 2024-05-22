@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import math
 
+# 检查 CUDA 是否可用
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):
         super(MultiHeadAttention, self).__init__()
@@ -12,11 +15,11 @@ class MultiHeadAttention(nn.Module):
 
         self.depth = d_model // num_heads
 
-        self.wq = nn.Linear(d_model, d_model)
-        self.wk = nn.Linear(d_model, d_model)
-        self.wv = nn.Linear(d_model, d_model)
+        self.wq = nn.Linear(d_model, d_model).to(device)
+        self.wk = nn.Linear(d_model, d_model).to(device)
+        self.wv = nn.Linear(d_model, d_model).to(device)
 
-        self.dense = nn.Linear(d_model, d_model)
+        self.dense = nn.Linear(d_model, d_model).to(device)
 
     def split_heads(self, x, batch_size):
         """分割最后一个维度到 (num_heads, depth).
@@ -61,8 +64,8 @@ class AdaptiveLoss(nn.Module):
     def __init__(self, d_model, num_heads, huber_c=0.3):
         super(AdaptiveLoss, self).__init__()
         self.huber_c = huber_c
-        self.multihead_attn = MultiHeadAttention(d_model, num_heads)
-        self.linear = nn.Linear(d_model, 2)  # 输出两个权重，一个给Huber损失，一个给L2损失
+        self.multihead_attn = MultiHeadAttention(d_model, num_heads).to(device)
+        self.linear = nn.Linear(d_model, 2).to(device)  # 输出两个权重，一个给Huber损失，一个给L2损失
 
     def huber_loss(self, output, target):
         huber_loss = 2 * self.huber_c * (torch.sqrt((output - target) ** 2 + self.huber_c**2) - self.huber_c)
