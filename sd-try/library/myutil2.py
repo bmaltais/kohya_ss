@@ -15,9 +15,9 @@ class MultiHeadAttention(nn.Module):
 
         self.depth = d_model // num_heads
 
-        self.wq = nn.Linear(d_model, d_model)
-        self.wk = nn.Linear(d_model, d_model)
-        self.wv = nn.Linear(d_model, d_model)
+        self.wq = nn.Linear(d_model, d_model).to(device)
+        self.wk = nn.Linear(d_model, d_model).to(device)
+        self.wv = nn.Linear(d_model, d_model).to(device)
 
         self.dense = nn.Linear(d_model, d_model)
 
@@ -31,7 +31,7 @@ class MultiHeadAttention(nn.Module):
     def forward(self, v, k, q):
         batch_size = q.size(0)
         print(f"myutil——forwardself, v, k, q:devicev:{v.device},devicev:{k.device}，devicev:{q.device}")
-        q = self.wq(q).to(device)  # (batch_size, seq_len, d_model)
+        q = self.wq(q)  # (batch_size, seq_len, d_model)
         k = self.wk(k)  # (batch_size, seq_len, d_model)
         v = self.wv(v)  # (batch_size, seq_len, d_model)
         print(f"myutil——forwardself, v, k, q:devicev:{v.device},devicev:{k.device}，devicev:{q.device}")
