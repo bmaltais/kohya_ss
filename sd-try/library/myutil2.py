@@ -78,20 +78,20 @@ class AdaptiveLoss(nn.Module):
     def forward(self, output, target):
         huber_loss = self.huber_loss(output, target)
         l2_loss = self.l2_loss(output, target)
-        print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
-        print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
+        #print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
+        #print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
         combined_loss = torch.stack([huber_loss, l2_loss], dim=-1)  # 形状为[2,4,64,64,2]
-        print(f"myutil—— combined_loss1:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
+        #print(f"myutil—— combined_loss1:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
         batch_size, channels, height, width, _ = combined_loss.shape
         combined_loss = combined_loss.view(batch_size, -1, 2)  # 形状为[batch_size, seq_len, 2]
-        print(f"myutil—— combined_loss2:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
+       # print(f"myutil—— combined_loss2:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
         # 调整形状使其与d_model匹配
         if combined_loss.shape[-1] != self.multihead_attn.d_model:
             combined_loss = torch.cat([combined_loss] * (self.multihead_attn.d_model // combined_loss.shape[-1]), dim=-1)
-            print(f"myutil—— combined_loss3:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
+            #print(f"myutil—— combined_loss3:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
         attn_output = self.multihead_attn(combined_loss, combined_loss, combined_loss)
         
-        print(f"myutil—— attn_output:{attn_output.shape},max:{torch.max(attn_output)},min:{torch.min(attn_output)}")
+        #print(f"myutil—— attn_output:{attn_output.shape},max:{torch.max(attn_output)},min:{torch.min(attn_output)}")
         attn_weights = self.linear(attn_output)  # 形状为[batch_size, seq_len, 2]
         attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
 
@@ -99,7 +99,7 @@ class AdaptiveLoss(nn.Module):
         l2_weight = attn_weights[..., 1].view(batch_size, channels, height, width)
 
         final_loss = huber_weight * huber_loss + l2_weight * l2_loss
-        print(f"myutil—— final_loss:{final_loss.shape},max:{torch.max(final_loss)},min:{torch.min(final_loss)}")
+        #print(f"myutil—— final_loss:{final_loss.shape},max:{torch.max(final_loss)},min:{torch.min(final_loss)}")
         return final_loss
 def create_loss_weight(d_model=128, num_heads=8, huber_c=0.3):
     adaptive_loss_fn = AdaptiveLoss(d_model=d_model, num_heads=num_heads, huber_c=huber_c)
