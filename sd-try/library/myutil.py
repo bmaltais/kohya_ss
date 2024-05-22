@@ -14,7 +14,7 @@ class SelfAttention(nn.Module):
         self.key_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.value_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.out_conv = nn.Conv2d(hidden_channels, in_channels // 2, kernel_size=1).to(device)
-        self.out_conv2 = nn.Conv2d(in_channels, in_channels // 2, kernel_size=1).to(device)
+        #self.out_conv2 = nn.Conv2d(in_channels, in_channels // 2, kernel_size=1).to(device)
         self.gamma = nn.Parameter(torch.zeros(1)).to(device)
 
     def forward(self, x):
@@ -36,7 +36,7 @@ class SelfAttention(nn.Module):
         print("attention_out:", attention_out.shape)
         attention_out = self.out_conv(attention_out)
         print("attention_out:", attention_out.shape)
-        out = self.gamma * attention_out + self.out_conv2(x)
+        out = self.gamma * attention_out + x
         return out
 
 class DynamicWeightedLoss(nn.Module):
@@ -44,6 +44,7 @@ class DynamicWeightedLoss(nn.Module):
         super(DynamicWeightedLoss, self).__init__()
         self.attention = SelfAttention(in_channels, hidden_channels,num_heads).to(device)
         self.fc = nn.Linear(hidden_channels, 1).to(device)
+        self.out_conv2 = nn.Conv2d(in_channels, in_channels // 2, kernel_size=1).to(device)
 
     def ssim_loss(self,target, pre_loss, window_size=11, sigma=1.5):
         # 获取数据范围
@@ -80,6 +81,7 @@ class DynamicWeightedLoss(nn.Module):
         l2_loss = torch.nn.functional.mse_loss(output, target, reduction='none')
         #ssim_loss = self.ssim_loss(target, output)
         loss_values = torch.cat([huber_loss, l2_loss], dim=1)
+        loss_values = out_conv2(loss_values)
         #loss_values = huber_loss
         print(f"myutil——loss_values:{loss_values.shape},max:{torch.max(loss_values)},min:{torch.min(loss_values)}")
         attention_out = self.attention(loss_values)
