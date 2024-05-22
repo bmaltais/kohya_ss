@@ -93,7 +93,7 @@ class AdaptiveLoss(nn.Module):
         final_loss = huber_weight * huber_loss + l2_weight * l2_loss
         print(f"myutil—— final_loss:{final_loss.shape},max:{torch.max(final_loss)},min:{torch.min(final_loss)}")
         return final_loss
-def create_loss_weight(output, target, d_model=128, num_heads=8, huber_c=0.3):
+def create_loss_weight(d_model=128, num_heads=8, huber_c=0.3):
     adaptive_loss_fn = AdaptiveLoss(d_model=d_model, num_heads=num_heads, huber_c=huber_c)
     return adaptive_loss_fn
 # 计算动态加权损失
