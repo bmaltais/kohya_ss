@@ -15,11 +15,11 @@ class MultiHeadAttention(nn.Module):
 
         self.depth = d_model // num_heads
 
-        self.wq = nn.Linear(d_model, d_model).to(device)
-        self.wk = nn.Linear(d_model, d_model).to(device)
-        self.wv = nn.Linear(d_model, d_model).to(device)
+        self.wq = nn.Linear(d_model, d_model)
+        self.wk = nn.Linear(d_model, d_model)
+        self.wv = nn.Linear(d_model, d_model)
 
-        self.dense = nn.Linear(d_model, d_model).to(device)
+        self.dense = nn.Linear(d_model, d_model)
 
     def split_heads(self, x, batch_size):
         """分割最后一个维度到 (num_heads, depth).
@@ -64,8 +64,8 @@ class AdaptiveLoss(nn.Module):
     def __init__(self, d_model, num_heads, huber_c=0.3):
         super(AdaptiveLoss, self).__init__()
         self.huber_c = huber_c
-        self.multihead_attn = MultiHeadAttention(d_model, num_heads).to(device)
-        self.linear = nn.Linear(d_model, 2).to(device)  # 输出两个权重，一个给Huber损失，一个给L2损失
+        self.multihead_attn = MultiHeadAttention(d_model, num_heads)
+        self.linear = nn.Linear(d_model, 2)  # 输出两个权重，一个给Huber损失，一个给L2损失
 
     def huber_loss(self, output, target):
         huber_loss = 2 * self.huber_c * (torch.sqrt((output - target) ** 2 + self.huber_c**2) - self.huber_c)
@@ -78,13 +78,13 @@ class AdaptiveLoss(nn.Module):
     def forward(self, output, target):
         huber_loss = self.huber_loss(output, target)
         l2_loss = self.l2_loss(output, target)
-        #print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
-        #print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
+        print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
+        print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
         combined_loss = torch.stack([huber_loss, l2_loss], dim=-1)  # 形状为[2,4,64,64,2]
-        #print(f"myutil—— combined_loss1:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
+        print(f"myutil—— combined_loss1:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
         batch_size, channels, height, width, _ = combined_loss.shape
         combined_loss = combined_loss.view(batch_size, -1, 2)  # 形状为[batch_size, seq_len, 2]
-       # print(f"myutil—— combined_loss2:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
+        print(f"myutil—— combined_loss2:{combined_loss.shape},max:{torch.max(combined_loss)},min:{torch.min(combined_loss)}")
         # 调整形状使其与d_model匹配
         if combined_loss.shape[-1] != self.multihead_attn.d_model:
             combined_loss = torch.cat([combined_loss] * (self.multihead_attn.d_model // combined_loss.shape[-1]), dim=-1)
@@ -101,9 +101,11 @@ class AdaptiveLoss(nn.Module):
         final_loss = huber_weight * huber_loss + l2_weight * l2_loss
         #print(f"myutil—— final_loss:{final_loss.shape},max:{torch.max(final_loss)},min:{torch.min(final_loss)}")
         return final_loss
+
 def create_loss_weight(d_model=128, num_heads=8, huber_c=0.3):
     adaptive_loss_fn = AdaptiveLoss(d_model=d_model, num_heads=num_heads, huber_c=huber_c)
     return adaptive_loss_fn
+
 # 计算动态加权损失
 def compute_dynamic_weights(weight_loss_fn, output, target):
     return weight_loss_fn(output, target)
