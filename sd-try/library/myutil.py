@@ -85,7 +85,7 @@ class DynamicWeightedLoss(nn.Module):
         print(f"myutil——1:{attention_out.shape},max:{torch.max(attention_out)},min:{torch.min(attention_out)}")
         weighted_loss = (attention_out * loss_values)
         print(f"myutil:weighted_loss{weighted_loss.shape},max:{torch.max(weighted_loss)},min:{torch.min(weighted_loss)}")
-        return torch.sqrt(weighted_loss)
+        return torch.sqrt(weighted_loss) + huber_loss
         
 def create_loss_weight(hidden_channels=64, in_channels=4,num_heads = 4):
     return DynamicWeightedLoss(in_channels=in_channels, hidden_channels=hidden_channels,num_heads = 4).to(device)
