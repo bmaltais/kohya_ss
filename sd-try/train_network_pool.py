@@ -908,7 +908,7 @@ class NetworkTrainer:
                         loss = apply_masked_loss(loss, batch)
                     #loss = torch.sum(loss, dim=(1, 2, 3))
                     loss = loss.mean([1, 2, 3])
-
+                    print(f"test_myutil_current_loss_2:{loss}")
                     loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                     loss = loss * loss_weights
                     
