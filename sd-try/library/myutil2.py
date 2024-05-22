@@ -19,7 +19,7 @@ class MultiHeadAttention(nn.Module):
         self.wk = nn.Linear(d_model, d_model).to(device)
         self.wv = nn.Linear(d_model, d_model).to(device)
 
-        self.dense = nn.Linear(d_model, d_model)
+        self.dense = nn.Linear(d_model, d_model).to(device)
 
     def split_heads(self, x, batch_size):
         """分割最后一个维度到 (num_heads, depth).
@@ -44,6 +44,7 @@ class MultiHeadAttention(nn.Module):
 
         scaled_attention = scaled_attention.permute(0, 2, 1, 3).contiguous()
         original_size_attention = scaled_attention.view(batch_size, -1, self.d_model)
+        print(f"myutil——original_size_attentionv:{original_size_attention.device}")
         output = self.dense(original_size_attention)
         # 释放 GPU 空间
         torch.cuda.empty_cache()
