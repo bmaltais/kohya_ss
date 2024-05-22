@@ -31,10 +31,10 @@ class MultiHeadAttention(nn.Module):
     def forward(self, v, k, q):
         batch_size = q.size(0)
         print(f"myutil——forwardself, v, k, q:devicev:{v.device},devicev:{k.device}，devicev:{q.device}")
-        q = self.wq(q)  # (batch_size, seq_len, d_model)
+        q = self.wq(q).to(device)  # (batch_size, seq_len, d_model)
         k = self.wk(k)  # (batch_size, seq_len, d_model)
         v = self.wv(v)  # (batch_size, seq_len, d_model)
-
+        print(f"myutil——forwardself, v, k, q:devicev:{v.device},devicev:{k.device}，devicev:{q.device}")
         q = self.split_heads(q, batch_size)  # (batch_size, num_heads, seq_len, depth)
         k = self.split_heads(k, batch_size)  # (batch_size, num_heads, seq_len, depth)
         v = self.split_heads(v, batch_size)  # (batch_size, num_heads, seq_len, depth)
