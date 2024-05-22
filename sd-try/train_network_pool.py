@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import torch
 from library.device_utils import init_ipex, clean_memory_on_device
-import library.myutil as myutil
+import library.myutil2 as myutil
 init_ipex()
 
 from accelerate.utils import set_seed
@@ -799,7 +799,9 @@ class NetworkTrainer:
         peil_ep = 2 * math.pi / (num_update_steps_per_epoch - 1) * args.peil_sin_weight
         unet.set_pool_start_weight(args.pool_start_weight)
         unet.set_max_steps(num_update_steps_per_epoch - 1)
-        weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, in_channels=args.loss_attention_in_channel,num_heads = args.loss_attention_heads)
+        #weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, in_channels=args.loss_attention_in_channel,num_heads = args.loss_attention_heads)
+        
+        weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, num_heads = args.loss_attention_heads,args.huber_c)
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
@@ -899,7 +901,8 @@ class NetworkTrainer:
                     else:
                         target = noise
                     if args.loss_attention:
-                        loss = myutil.compute_dynamic_weights(weight_loss_fn, noise_pred.float(), target.float(),huber_c)
+                        #loss = myutil.compute_dynamic_weights(weight_loss_fn, noise_pred.float(), target.float(),huber_c)
+                        loss = myutil.compute_dynamic_weights(weight_loss_fn, noise_pred.float(), target.float())
                     else:
                         loss = train_util.conditional_loss(
                             noise_pred.float(), target.float(), reduction="none", loss_type=args.loss_type, huber_c=huber_c, huber_weight = args.huber_weight,is_huber_weight = is_huber_weight
