@@ -14,6 +14,7 @@ class SelfAttention(nn.Module):
         self.key_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.value_conv = nn.Conv2d(in_channels, hidden_channels, kernel_size=1).to(device)
         self.out_conv = nn.Conv2d(hidden_channels, in_channels // 2, kernel_size=1).to(device)
+        self.out_conv2 = nn.Conv2d(in_channels, in_channels // 2, kernel_size=1).to(device)
         self.gamma = nn.Parameter(torch.zeros(1)).to(device)
 
     def forward(self, x):
@@ -35,7 +36,7 @@ class SelfAttention(nn.Module):
         print("attention_out:", attention_out.shape)
         attention_out = self.out_conv(attention_out)
         print("attention_out:", attention_out.shape)
-        out = self.gamma * attention_out + self.out_conv(x)
+        out = self.gamma * attention_out + self.out_conv2(x)
         return out
 
 class DynamicWeightedLoss(nn.Module):
