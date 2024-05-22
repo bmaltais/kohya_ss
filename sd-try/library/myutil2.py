@@ -45,7 +45,8 @@ class MultiHeadAttention(nn.Module):
         scaled_attention = scaled_attention.permute(0, 2, 1, 3).contiguous()
         original_size_attention = scaled_attention.view(batch_size, -1, self.d_model)
         output = self.dense(original_size_attention)
-
+        # 释放 GPU 空间
+        torch.cuda.empty_cache()
         return output
 
 def scaled_dot_product_attention(q, k, v):
