@@ -818,7 +818,8 @@ class NetworkTrainer:
             metadata["ss_epoch"] = str(epoch + 1)
 
             accelerator.unwrap_model(network).on_epoch_start(text_encoder, unet)
-            print("testforreduceloss",reduce_loss1)
+            #
+            #print("testforreduceloss",reduce_loss1)
             for step, batch in enumerate(train_dataloader):
                 current_step.value = global_step
                 unet.set_current_step(step)
@@ -911,7 +912,7 @@ class NetworkTrainer:
                         loss = apply_masked_loss(loss, batch)
                     #loss = torch.sum(loss, dim=(1, 2, 3))
                     loss = loss.mean([1, 2, 3])
-                    print(f"test_myutil_current_loss_2:{loss}")
+                    #print(f"test_myutil_current_loss_2:{loss}")
                     loss_weights = batch["loss_weights"]  # 各sampleごとのweight
                     loss = loss * loss_weights
                     
@@ -925,7 +926,7 @@ class NetworkTrainer:
                         loss = apply_debiased_estimation(loss, timesteps, noise_scheduler)
 
                     loss = loss.mean()  # 平均なのでbatch_sizeで割る必要なし
-                    print(f"test_myutil_current_loss_1:{loss}")
+                    #print(f"test_myutil_current_loss_1:{loss}")
                     #loss = torch.sum(loss)
                     accelerator.backward(loss)
                     if accelerator.sync_gradients:
@@ -976,7 +977,7 @@ class NetworkTrainer:
                     reduce_loss = (current_loss - before_loss[step]) * args.loss_for_peil
                     before_loss[step]=current_loss
                     reduce_loss1[step] = reduce_loss
-                print(f"test_myutil_current_loss:{current_loss}")
+                #print(f"test_myutil_current_loss:{current_loss}")
                 loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
                 avr_loss: float = loss_recorder.moving_average
                 logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
