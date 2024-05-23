@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import torch
 from library.device_utils import init_ipex, clean_memory_on_device
-import library.myutil2 as myutil
+import library.myutil3 as myutil
 init_ipex()
 
 from accelerate.utils import set_seed
