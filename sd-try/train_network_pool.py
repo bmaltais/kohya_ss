@@ -1139,11 +1139,6 @@ def setup_parser() -> argparse.ArgumentParser:
         help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
     )
     parser.add_argument(
-        "--loss_attention",
-        action="store_true",
-        help="do not use fp16/bf16 VAE in mixed precision (use float VAE) / mixed precisionでも fp16/bf16 VAEを使わずfloat VAEを使う",
-    )
-    parser.add_argument(
         "--loss_for_peil",
         type=float,
         default=0.1,
