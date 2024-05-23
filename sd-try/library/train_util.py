@@ -3215,6 +3215,12 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="4td",
     )
     parser.add_argument(
+        "--loss_attention_channels",
+        type=int,
+        default=64,
+        help="4td",
+    )
+    parser.add_argument(
         "--loss_attention_heads",
         type=int,
         default=8,
