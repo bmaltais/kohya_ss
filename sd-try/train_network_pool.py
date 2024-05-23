@@ -797,7 +797,7 @@ class NetworkTrainer:
         reduce_loss = 0
         is_first_epoch = True
         peil_ep = 2 * math.pi / (num_update_steps_per_epoch) * args.peil_sin_weight
-        print("num_update_steps_per_epoch“，num_update_steps_per_epoch)
+        print("num_update_steps_per_epoch"，num_update_steps_per_epoch)
         unet.set_pool_start_weight(args.pool_start_weight)
         unet.set_max_steps(num_update_steps_per_epoch - 1)
         #weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, in_channels=args.loss_attention_in_channel,num_heads = args.loss_attention_heads)
