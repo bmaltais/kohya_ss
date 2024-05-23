@@ -9,9 +9,14 @@ call .\venv\Scripts\deactivate.bat
 call .\venv\Scripts\activate.bat
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
+:: If the first argument is --help, skip the validation step
+if "%~1" equ "--help" goto :skip_validation
+
 :: Validate requirements
 python.exe .\setup\validate_requirements.py
 if %errorlevel% neq 0 exit /b %errorlevel%
+
+:skip_validation
 
 :: If the exit code is 0, run the kohya_gui.py script with the command-line arguments
 if %errorlevel% equ 0 (
