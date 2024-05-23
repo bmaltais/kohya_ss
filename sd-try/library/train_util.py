@@ -3221,10 +3221,9 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         help="6",
     )
     parser.add_argument(
-        "--loss_attention_channels",
-        type=int,
-        default=32,
-        help="6",
+        "--loss_attention",
+        action="store_true",
+        help="",
     )
     parser.add_argument(
         "--huber_weight",
