@@ -170,6 +170,9 @@ def save_configuration(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -336,6 +339,9 @@ def open_configuration(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -508,6 +514,9 @@ def train_model(
     log_tracker_name,
     log_tracker_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -799,11 +808,14 @@ def train_model(
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
         "debiased_estimation_loss": debiased_estimation_loss,
+        "disable_mmap_load_safetensors": disable_mmap_load_safetensors,
         "dynamo_backend": dynamo_backend,
         "enable_bucket": True,
         "flip_aug": flip_aug,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
+        "fused_backward_pass": fused_backward_pass,
+        "fused_optimizer_groups": int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
@@ -1090,7 +1102,7 @@ def finetune_tab(
 
                     # Add SDXL Parameters
                     sdxl_params = SDXLParameters(
-                        source_model.sdxl_checkbox, config=config
+                        source_model.sdxl_checkbox, config=config, trainer="finetune",
                     )
 
                     with gr.Row():
@@ -1250,6 +1262,9 @@ def finetune_tab(
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
+            sdxl_params.disable_mmap_load_safetensors,
+            sdxl_params.fused_backward_pass,
+            sdxl_params.fused_optimizer_groups,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,

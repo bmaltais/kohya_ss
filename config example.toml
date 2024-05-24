@@ -150,6 +150,9 @@ sample_prompts = ""        # Sample prompts
 sample_sampler = "euler_a" # Sampler to use for image sampling
 
 [sdxl]
+disable_mmap_load_safetensors = false   # Disable mmap load safe tensors
+fused_backward_pass = false             # Fused backward pass
+fused_optimizer_groups = 0              # Fused optimizer groups
 sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
 sdxl_no_half_vae = true                 # No half VAE
 
