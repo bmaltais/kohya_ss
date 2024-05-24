@@ -879,8 +879,6 @@ class NetworkTrainer:
                     )
                     if args.is_process_noisy_latents:
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,is_for_height = args.is_process_noisy_latents_height)
-                        conv_layer = nn.Conv2d(16, 4, kernel_size=2, stride=2, padding=0)
-                        noisy_latent = conv_layer(noisy_latents)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
