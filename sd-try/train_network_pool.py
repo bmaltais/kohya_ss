@@ -802,7 +802,8 @@ class NetworkTrainer:
         unet.set_max_steps(num_update_steps_per_epoch - 1)
         #weight_loss_fn = myutil.create_loss_weight(hidden_channels=64, in_channels=args.loss_attention_in_channel,num_heads = args.loss_attention_heads)
         
-        weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
+        #weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
+        device = accelerator.device
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
@@ -877,7 +878,7 @@ class NetworkTrainer:
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
                     if args.is_process_noisy_latents:
-                        noisy_latents = laten_util.process_noisy_latents(noisy_latent,device,is_for_height = args.is_process_noisy_latents_height)
+                        noisy_latents = latent_util.process_noisy_latents(noisy_latent,device,is_for_height = args.is_process_noisy_latents_height)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
