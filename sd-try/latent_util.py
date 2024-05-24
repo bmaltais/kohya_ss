@@ -68,8 +68,9 @@ def process_noisy_latents(noisy_latent,device,is_for_height = False):
         print("noisy latents shape2:", noisy_latents.shape)
         conv_layer = nn.Conv2d(16, 4, kernel_size=2, stride=2, padding=0).to(device).float()
         noisy_latents = conv_layer(noisy_latents)
-    print("noisy latents shape3:", noisy_latents.shape)
-    conv_layer = nn.Conv2d(8, 4, kernel_size=2, stride=2, padding=0).to(device).float()
-    noisy_latents = conv_layer(noisy_latents)
-    print("noisy latents shape4:", noisy_latents.shape)
+    else:
+        print("noisy latents shape3:", noisy_latents.shape)
+        conv_layer = nn.Conv2d(8, 4, kernel_size=2, stride=2, padding=0).to(device).float()
+        noisy_latents = conv_layer(noisy_latents)
+        print("noisy latents shape4:", noisy_latents.shape)
     return noisy_latents
