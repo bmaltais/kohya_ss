@@ -19,7 +19,7 @@ init_ipex()
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from library import deepspeed_utils, model_util
-
+import latent_util
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset
 import library.config_util as config_util
@@ -876,7 +876,7 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-
+                    noisy_latents = train_util.process_noisy_latents(noisy_latent,device,is_for_height = args.is_process_noisy_latents)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
@@ -1102,6 +1102,11 @@ def setup_parser() -> argparse.ArgumentParser:
         "--network_train_text_encoder_only",
         action="store_true",
         help="only training Text Encoder part / Text Encoder関連部分のみ学習する",
+    )
+    parser.add_argument(
+        "--is_process_noisy_latents",
+        action="store_true",
+        help="for process",
     )
     parser.add_argument(
         "--training_comment",
