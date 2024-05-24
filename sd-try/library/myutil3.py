@@ -69,11 +69,12 @@ class AdaptiveLoss(nn.Module):
 
     def huber_loss(self, output, target):
         huber_loss = 2 * self.huber_c * (torch.sqrt((output - target) ** 2 + self.huber_c**2) - self.huber_c)
-        
+        print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
         return self.cov2half(huber_loss)
 
     def l2_loss(self, output, target):
         l2_loss = torch.nn.functional.mse_loss(output, target, reduction='none')
+        print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
         return self.cov2half(l2_loss)
 
     def forward(self, output, target):
