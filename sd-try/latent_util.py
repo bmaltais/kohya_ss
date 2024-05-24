@@ -59,9 +59,9 @@ def make_latents(noisy_latents,dim,device):
     #print("noisy latents shape:", noisy_latents.shape)
     #print("noisy latents max:", torch.max(noisy_latents))
     return noisy_latents 
-def process_noisy_latents(noisy_latent,device,dims):
+def process_noisy_latents(noisy_latent,device,is_for_height = False):
     noisy_latents = make_latents(noisy_latent,-1,device)
-    if len(dims) == 2:
+    if is_for_height:
         noisy_latents2 = make_latents(noisy_latent,-2,device)
         noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-3)
     #print("noisy latents shape:", noisy_latents.shape)
