@@ -81,6 +81,8 @@ class AdaptiveLoss(nn.Module):
         print(f"myutil——output:{output.shape},max:{torch.max(output)},min:{torch.min(output)}")
         huber_loss = self.huber_loss(output, target)
         l2_loss = self.l2_loss(output, target)
+        huber_loss -= torch.min(huber_loss)
+        l2_loss -= torch.min(l2_loss)
         print(f"myutil—— huber_loss:{huber_loss.shape},max:{torch.max(huber_loss)},min:{torch.min(huber_loss)}")
         print(f"myutil—— l2_loss:{l2_loss.shape},max:{torch.max(l2_loss)},min:{torch.min(l2_loss)}")
         combined_loss = torch.stack([huber_loss, l2_loss], dim=-1)  # 形状为[2,4,64,64,2]
