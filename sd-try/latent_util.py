@@ -33,25 +33,25 @@ def make_latents(noisy_latents,dim,device):
     # 卷积操作
     conv_output1 = apply_convolution(part1, device)
     conv_output2 = apply_convolution(part2, device)
-        """
+    """
     print("conv_output1:", conv_output1.shape)
     print("conv_output2:", conv_output2.shape)
-        """
+    """
     # 池化操作
     l2_pooled_output1 = apply_pooling(conv_output1, device)
     l2_pooled_output2 = apply_pooling(conv_output2, device)
-        """
+    """
     print("l2_pooled_output1:", l2_pooled_output1.shape)
     print("l2_pooled_output2:", l2_pooled_output2.shape)
-        """
+    """
     # 上采样操作
     upsampled_output1 = apply_upsampling(l2_pooled_output1, device)
     upsampled_output2 = apply_upsampling(l2_pooled_output2, device)
-        """
+    """
     # 验证维度恢复情况
     print("Upsampled Output 1 shape:", upsampled_output1.shape)
     print("Upsampled Output 2 shape:", upsampled_output2.shape)
-        """
+    """
     # 拼接两个部分
     noisy_latents = torch.cat([upsampled_output1, upsampled_output2], dim=dim)
     
