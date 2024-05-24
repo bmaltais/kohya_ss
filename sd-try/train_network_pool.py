@@ -876,7 +876,8 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-                    noisy_latents = train_util.process_noisy_latents(noisy_latent,device,is_for_height = args.is_process_noisy_latents)
+                    if args.is_process_noisy_latents:
+                        noisy_latents = laten_util.process_noisy_latents(noisy_latent,device,is_for_height = args.is_process_noisy_latents_height)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
@@ -1105,6 +1106,11 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--is_process_noisy_latents",
+        action="store_true",
+        help="for process",
+    )
+    parser.add_argument(
+        "--is_process_noisy_latents_height",
         action="store_true",
         help="for process",
     )
