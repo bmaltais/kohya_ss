@@ -534,6 +534,11 @@ class AdvancedTraining:
                 self.current_log_tracker_config_dir = path if not path == "" else "."
                 return list(list_files(path, exts=[".json"], all=True))
 
+            self.log_config = gr.Checkbox(
+                label="Log config",
+                value=self.config.get("advanced.log_config", False),
+                info="Log training parameter to WANDB",
+            )
             self.log_tracker_name = gr.Textbox(
                 label="Log tracker name",
                 value=self.config.get("advanced.log_tracker_name", ""),
