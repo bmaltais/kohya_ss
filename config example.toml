@@ -48,6 +48,7 @@ learning_rate_te1 = 0.0001     # Learning rate text encoder 1
 learning_rate_te2 = 0.0001     # Learning rate text encoder 2
 lr_scheduler = "cosine"        # LR Scheduler
 lr_scheduler_args = ""         # LR Scheduler args
+lr_scheduler_type = ""         # LR Scheduler type
 lr_warmup = 0                  # LR Warmup (% of total steps)
 lr_scheduler_num_cycles = 1    # LR Scheduler num cycles
 lr_scheduler_power = 1.0       # LR Scheduler power

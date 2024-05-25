@@ -167,7 +167,17 @@ class BasicTraining:
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
             
-            
+            # Initialize the learning rate scheduler type dropdown
+            self.lr_scheduler_type = gr.Dropdown(
+                label="LR Scheduler type",
+                info="(Optional) custom scheduler module name",
+                choices=[
+                    "",
+                    "CosineAnnealingLR",
+                ],
+                value=self.config.get("basic.lr_scheduler_type", ""),
+                allow_custom_value=True,
+            )
             
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
