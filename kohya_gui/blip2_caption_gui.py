@@ -42,7 +42,7 @@ def get_images_in_directory(directory_path):
     import os
 
     # List of common image file extensions to look for
-    image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+    image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"]
 
     # Generate a list of image file paths in the directory
     image_files = [
