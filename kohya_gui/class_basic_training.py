@@ -240,7 +240,7 @@ class BasicTraining:
             self.learning_rate = gr.Number(
                 label=lr_label,
                 value=self.config.get("basic.learning_rate", self.learning_rate_value),
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Unet",
             )
@@ -251,7 +251,7 @@ class BasicTraining:
                     "basic.learning_rate_te", self.learning_rate_value
                 ),
                 visible=self.finetuning or self.dreambooth,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder",
             )
@@ -262,7 +262,7 @@ class BasicTraining:
                     "basic.learning_rate_te1", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 1",
             )
@@ -273,7 +273,7 @@ class BasicTraining:
                     "basic.learning_rate_te2", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 2",
             )
