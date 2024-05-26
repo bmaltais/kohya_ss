@@ -1646,7 +1646,7 @@ class UNet2DConditionModel(nn.Module):
         emb = self.time_embedding(t_emb)
 
         # 2. pre-process
-      ``print(f"test_sample_ffirst:{sample.shape}")
+        print(f"test_sample_ffirst:{sample.shape}")
         sample = self.conv_in(sample)
         print(f"test_sample_ffirst_conv_in:{sample.shape}")
         down_block_res_samples = (sample,)
