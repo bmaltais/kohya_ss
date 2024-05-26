@@ -804,7 +804,7 @@ class NetworkTrainer:
         
         #weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
         device = accelerator.device
-        latent_every_n_epoch = args.latent_every_n_epoch
+        #latent_every_n_epoch = args.latent_every_n_epoch
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
