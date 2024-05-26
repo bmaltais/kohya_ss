@@ -1157,6 +1157,12 @@ def setup_parser() -> argparse.ArgumentParser:
         default=0.1,
         help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
     )
+    parser.add_argument(
+        "--latent_every_n_epoch",
+        type=int,
+        default=10,
+        help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
+    )
     return parser
 
 
