@@ -815,7 +815,7 @@ class NetworkTrainer:
                 is_first_epoch = True
             else:
                 is_first_epoch = False
-            is_start_latent = (epoch % latent_every_n_epoch == 0 and args.is_process_noisy_latents)
+           # is_start_latent = (epoch % latent_every_n_epoch == 0 and args.is_process_noisy_latents)
             #logger.info(f"before_loss, {before_loss}")
             #logger.info(f"reduce_loss1, {reduce_loss1}")
             #logger.info(f"loss weight, {unet.get_pool_weight()}")
@@ -879,9 +879,9 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-                    if is_start_latent:
+                    if  args.is_process_noisy_latents:
                         print(f"test_is_start_latent:{is_start_latent})
-                        noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,is_for_height = args.is_process_noisy_latents_height)
+                        noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
@@ -1161,9 +1161,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
     )
     parser.add_argument(
-        "--latent_every_n_epoch",
+        "--noisy_latents_weight",
         type=int,
-        default=10,
+        default=0.1,
         help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
     )
     return parser
