@@ -1162,7 +1162,7 @@ def setup_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--noisy_latents_weight",
-        type=int,
+        type=float,
         default=0.1,
         help="Scale the weight of each key pair to help prevent overtraing via exploding gradients. (1 is a good starting point) / 重みの値をスケーリングして勾配爆発を防ぐ（1が初期値としては適当）",
     )
