@@ -1646,11 +1646,11 @@ class UNet2DConditionModel(nn.Module):
         emb = self.time_embedding(t_emb)
 
         # 2. pre-process
-        print(f"test_sample_ffirst:{sample.shape}")
+        #print(f"test_sample_ffirst:{sample.shape}")
         sample = self.conv_in(sample)
-        print(f"test_sample_ffirst_conv_in:{sample.shape}")
+        #print(f"test_sample_ffirst_conv_in:{sample.shape}")
         down_block_res_samples = (sample,)
-        print(f"test_sample_ffirst_conv_in_down_block:{sample.shape}")
+        #print(f"test_sample_ffirst_conv_in_down_block:{sample.shape}")
         for downsample_block in self.down_blocks:
             # downblockはforwardで必ずencoder_hidden_statesを受け取るようにしても良さそうだけど、
             # まあこちらのほうがわかりやすいかもしれない
@@ -1664,17 +1664,17 @@ class UNet2DConditionModel(nn.Module):
                 sample, res_samples = downsample_block(hidden_states=sample, temb=emb)
 
             down_block_res_samples += res_samples
-        print(f"test_sample_downsample_block:{sample.shape}")
+        #print(f"test_sample_downsample_block:{sample.shape}")
         # skip connectionにControlNetの出力を追加する
         if down_block_additional_residuals is not None:
             down_block_res_samples = list(down_block_res_samples)
             for i in range(len(down_block_res_samples)):
                 down_block_res_samples[i] += down_block_additional_residuals[i]
             down_block_res_samples = tuple(down_block_res_samples)
-        print(f"test_sample_down_block_additional_residuals:{sample.shape}")
+        #print(f"test_sample_down_block_additional_residuals:{sample.shape}")
         # 4. mid
         sample = self.mid_block(sample, emb, encoder_hidden_states=encoder_hidden_states)
-        print(f"test_sample_mid:{sample.shape}")
+        #print(f"test_sample_mid:{sample.shape}")
         # Add SPP layer
         #logger.info(f"step_testforit:{self.current_step},pool_current_weight_test, {self.pool_current_weight}")
         #if is_sample  == False:
@@ -1683,7 +1683,7 @@ class UNet2DConditionModel(nn.Module):
         # ControlNetの出力を追加する
         if mid_block_additional_residual is not None:
             sample += mid_block_additional_residual
-        print(f"test_sample_mid_block_additional_residual:{sample.shape}")
+        #print(f"test_sample_mid_block_additional_residual:{sample.shape}")
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
             is_final_block = i == len(self.up_blocks) - 1
@@ -1708,12 +1708,12 @@ class UNet2DConditionModel(nn.Module):
                 sample = upsample_block(
                     hidden_states=sample, temb=emb, res_hidden_states_tuple=res_samples, upsample_size=upsample_size
                 )
-        print(f"test_sample_upsample_block:{sample.shape}")
+        #print(f"test_sample_upsample_block:{sample.shape}")
         # 6. post-process
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
-        print(f"test_sample_post-process:{sample.shape}")
+        #print(f"test_sample_post-process:{sample.shape}")
         if not return_dict:
             return (sample,)
 
