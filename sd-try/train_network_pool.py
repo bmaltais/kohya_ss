@@ -804,6 +804,7 @@ class NetworkTrainer:
         
         #weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
         device = accelerator.device
+        latent_every_n_epoch = args.latent_every_n_epoch
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
@@ -814,6 +815,7 @@ class NetworkTrainer:
                 is_first_epoch = True
             else:
                 is_first_epoch = False
+            is_start_latent = (epoch % latent_every_n_epoch == 0 and args.is_process_noisy_latents)
             #logger.info(f"before_loss, {before_loss}")
             #logger.info(f"reduce_loss1, {reduce_loss1}")
             #logger.info(f"loss weight, {unet.get_pool_weight()}")
@@ -877,7 +879,8 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-                    if args.is_process_noisy_latents:
+                    if is_start_latent:
+                        print(f"test_is_start_latent:{is_start_latent})
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,is_for_height = args.is_process_noisy_latents_height)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
