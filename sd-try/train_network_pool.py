@@ -880,7 +880,7 @@ class NetworkTrainer:
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
                     if  args.is_process_noisy_latents:
-                        print(f"test_is_start_latent:{true})
+                        print(f"test_is_start_latent:{true}")
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
