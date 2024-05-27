@@ -5,11 +5,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class MyModel(nn.Module):
     def __init__(self,device):
         super(MyModel, self).__init__()
-        self.conv1 = nn.Conv2d(4, 8, kernel_size=3, padding=1).to(device)
+        #self.conv1 = nn.Conv2d(4, 8, kernel_size=3, padding=1).to(device)
         self.lp_pool = nn.LPPool2d(2, kernel_size=2, stride=2, ceil_mode=False).to(device)
         
     def forward(self, x):
-        x = self.conv1(x)
+        #x = self.conv1(x)
         x = self.lp_pool(x)
         return x
 
@@ -62,9 +62,10 @@ def create_model_and_processing_logic(device):
     return model, process_latents
 
 def process_noisy_latents(noisy_latent, model, process_latents, device, is_for_height=False):
-    output = model(noisy_latent)
-    print("Output shape after initial layers:", output.shape)
+    #output = model(noisy_latent)
+    print("Output shape after initial layers:", noisy_latent.shape)
 
     output = process_latents(noisy_latent, device, is_for_height=is_for_height)
     print("Output shape after processing latents:", output.shape)
 
+    return output
