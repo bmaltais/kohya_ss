@@ -19,7 +19,7 @@ init_ipex()
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from library import deepspeed_utils, model_util
-import latent_util2 as latent_util
+import latent_util as latent_util
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset
 import library.config_util as config_util
@@ -805,7 +805,7 @@ class NetworkTrainer:
         #weight_loss_fn = myutil.create_loss_weight(d_model=args.loss_attention_channels, num_heads = args.loss_attention_heads,huber_c = args.huber_c)
         device = accelerator.device
         #latent_every_n_epoch = args.latent_every_n_epoch
-        latent_model, process_latents = latent_util.create_model_and_processing_logic(device)
+        #latent_model, process_latents = latent_util.create_model_and_processing_logic(device)
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
@@ -883,7 +883,7 @@ class NetworkTrainer:
                     if  args.is_process_noisy_latents:
                         #print(f"test_is_start_latent:{true}")
                         #noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents * (1-args.noisy_latents_weight)
-                        noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height)
+                        #noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height)
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
