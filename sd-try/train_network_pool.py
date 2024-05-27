@@ -19,7 +19,7 @@ init_ipex()
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from library import deepspeed_utils, model_util
-import latent_util
+import latent_util2
 import library.train_util as train_util
 from library.train_util import DreamBoothDataset
 import library.config_util as config_util
