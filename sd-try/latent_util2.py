@@ -43,15 +43,15 @@ class ProcessLatents(nn.Module):
         part1, part2 = torch.split(noisy_latents, split_size, dim=dim)
         conv_output1 = self.conv1(part1.to(device))
         conv_output2 = self.conv1(part2.to(device))
-        print(f"test_noisy_latent:conv_output2":{conv_output2.shape)"}
+        print(f"test_noisy_latent:conv_output2":{conv_output2.shape})
         l2_pooled_output1 = self.lp_pool(conv_output1)
         l2_pooled_output2 = self.lp_pool(conv_output2)
-        print(f"test_noisy_latent:l2_pooled_output2":{l2_pooled_output2.shape)"}
+        print(f"test_noisy_latent:l2_pooled_output2":{l2_pooled_output2.shape})
         upsampled_output1 = self.upsampling(l2_pooled_output1)
         upsampled_output2 = self.upsampling(l2_pooled_output2)
-        print(f"test_noisy_latent:upsampled_output2":{upsampled_output2.shape)"}
+        print(f"test_noisy_latent:upsampled_output2":{upsampled_output2.shape})
         noisy_latents = torch.cat([upsampled_output1, upsampled_output2], dim=dim)
-        print(f"test_noisy_latent":{noisy_latents.shape)"}
+        print(f"test_noisy_latent":{noisy_latents.shape})
         return noisy_latents
 
 def create_model_and_processing_logic(device):
