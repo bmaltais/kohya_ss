@@ -51,7 +51,7 @@ def process_noisy_latents(noisy_latent, model, process_latents, device, is_for_h
     #output = model(noisy_latent)
     print("Output shape after initial layers:", noisy_latent.shape)
 
-    output = process_latents(noisy_latent, device, is_for_height=is_for_height)
+    output = process_latents(noisy_latent, device)
     print("Output shape after processing latents:", output.shape)
 
     return output
