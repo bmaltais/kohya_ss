@@ -33,8 +33,8 @@ class ProcessLatents(nn.Module):
         noisy_latents = self.make_latents(x, -1, device)
         if is_for_height:
             noisy_latents2 = self.make_latents(x, -2, device)
-            noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-3)
-            noisy_latents = self.conv1(noisy_latents)
+            noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-4)
+            #noisy_latents = self.conv1(noisy_latents)
         else:
             noisy_latents = self.conv2(noisy_latents)
         return noisy_latents
