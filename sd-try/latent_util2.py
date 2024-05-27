@@ -41,6 +41,7 @@ class ProcessLatents(nn.Module):
     def make_latents(self, noisy_latents, dim, device):
         split_size = noisy_latents.size(dim) // 2
         part1, part2 = torch.split(noisy_latents, split_size, dim=dim)
+        print(f"test_noisy_latent:part2:{part2.shape}")
         conv_output1 = self.conv1(part1.to(device))
         conv_output2 = self.conv1(part2.to(device))
         print(f"test_noisy_latent:conv_output2:{conv_output2.shape}")
