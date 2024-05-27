@@ -42,7 +42,8 @@ class ProcessLatents(nn.Module):
         return noisy_latents
 
 def create_model_and_processing_logic(device):
-    model = MyModel(device)
+    #model = MyModel(device)
+    model = "ss"
     process_latents = ProcessLatents(device)
     return model, process_latents
 
