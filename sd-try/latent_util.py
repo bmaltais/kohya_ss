@@ -63,6 +63,8 @@ def make_latents(noisy_latents,dim,conv,lp_pool,device):
     # 打印最终结果形状
     print("noisy latents shape:", noisy_latents.shape)
     #print("noisy latents max:", torch.max(noisy_latents))
+    conv_layer = nn.Conv2d(8, 4, kernel_size=3, stride=1, padding=1).to(device).float()
+    noisy_latents = conv_layer(noisy_latents)
     return noisy_latents 
 def process_noisy_latents(noisy_latent,device,conv,lp_pool,is_for_height = False):
     print("noisy latents shape1:", noisy_latent.shape)
@@ -72,10 +74,6 @@ def process_noisy_latents(noisy_latent,device,conv,lp_pool,is_for_height = False
         noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-4)
         #print("noisy latents shape2:", noisy_latents.shape)
         #conv_layer = nn.Conv2d(16, 4, kernel_size=3, stride=1, padding=1).to(device).float()
-        #noisy_latents = conv_layer(noisy_latents)
-    else:
-        print("noisy latents shape3:", noisy_latents.shape)
-        #conv_layer = nn.Conv2d(8, 4, kernel_size=3, stride=1, padding=1).to(device).float()
         #noisy_latents = conv_layer(noisy_latents)
     print("noisy latents shape4:", noisy_latents.shape)
     return noisy_latents
