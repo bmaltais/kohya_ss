@@ -890,7 +890,7 @@ class NetworkTrainer:
                         #noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents * (1-args.noisy_latents_weight)
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,conv,lp_pool,is_for_height = args.is_process_noisy_latents_height)
                         #text_encoder_conds = latent_util.process_noisy_latents(text_encoder_conds,device,conv,lp_pool,is_for_height = args.is_process_noisy_latents_height)
-                        if args.is_process_noisy_latents_height
+                        if args.is_process_noisy_latents_height :
                             text_encoder_conds = torch.cat([text_encoder_conds, text_encoder_conds], dim=-3)
                             print(f"text_encoder_conds:{text_encoder_conds.shape}")
                     # ensure the hidden state will require grad
