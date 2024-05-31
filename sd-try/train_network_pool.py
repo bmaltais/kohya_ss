@@ -1122,7 +1122,7 @@ def setup_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="for process",
     )
-        parser.add_argument(
+    parser.add_argument(
         "--latent_every_n_epoch",
         type=int,
         default=[24,25,26,50,51,52,80,81,85,100,110,111,130,131],
