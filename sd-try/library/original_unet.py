@@ -1586,7 +1586,7 @@ class UNet2DConditionModel(nn.Module):
         return sample
     def addmaxpool(self, sample: torch.FloatTensor) -> torch.FloatTensor:
         max_pool_layer = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        return (max_pool_layer(sample)-max_pool_layer(-sample))
+        return max_pool_layer(sample)
     # endregion
 
     def forward(
@@ -1677,8 +1677,8 @@ class UNet2DConditionModel(nn.Module):
         #print(f"test_sample_mid:{sample.shape}")
         # Add SPP layer
         #logger.info(f"step_testforit:{self.current_step},pool_current_weight_test, {self.pool_current_weight}")
-        #if is_sample  == False:
-            #sample = sample * 0.3 + self.add_spp_layer(sample) * 0.3 + self.addmaxpool(sample) * 0.2
+        if is_sample  == False:
+            sample = sample * 0.7 + self.add_spp_layer(sample) * 0.2 + self.addmaxpool(sample) * 0.1
             #sample = sample * self.pool_current_weight[0] + self.add_spp_layer(sample) * self.pool_current_weight[1] + self.addmaxpool(sample) * self.pool_current_weight[2]
         # ControlNetの出力を追加する
         if mid_block_additional_residual is not None:
