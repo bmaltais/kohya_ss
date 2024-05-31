@@ -884,8 +884,8 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-                    #if  args.is_process_noisy_latents and step in random_latent_numbers:
-                    if  args.is_process_noisy_latents :
+                    if  args.is_process_noisy_latents and step in random_latent_numbers:
+                    #if  args.is_process_noisy_latents :
                         #print(f"test_is_start_latent:{true}")
                         #noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents * (1-args.noisy_latents_weight)
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,conv,lp_pool,is_for_height = args.is_process_noisy_latents_height)
