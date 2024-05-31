@@ -11,11 +11,13 @@ def make_conv(device):
     conv = nn.Conv2d(4, 8, kernel_size=3, padding=1).to(device).float()
     return conv
 def apply_convolution(input_data, conv):
+    conv = nn.Conv2d(4, 8, kernel_size=3, padding=1).to(device).float()
     return conv(input_data)
 def make_pool(device):
     lp_pool = nn.LPPool2d(2, kernel_size=2, stride=2, ceil_mode=False).to(device).float()
     return lp_pool
 def apply_pooling(input_data,lp_pool):
+    lp_pool = nn.LPPool2d(2, kernel_size=2, stride=2, ceil_mode=False).to(device).float()
     return lp_pool(input_data)
 
 def apply_upsampling(input_data, device):
@@ -56,7 +58,7 @@ def make_latents(noisy_latents,dim,conv,lp_pool,device):
     noisy_latents = torch.cat([upsampled_output1, upsampled_output2], dim=dim)
     
     # 打印最终结果形状
-    #print("noisy latents shape:", noisy_latents.shape)
+    print("noisy latents shape:", noisy_latents.shape)
     #print("noisy latents max:", torch.max(noisy_latents))
     return noisy_latents 
 def process_noisy_latents(noisy_latent,device,conv,lp_pool,is_for_height = False):
@@ -64,13 +66,13 @@ def process_noisy_latents(noisy_latent,device,conv,lp_pool,is_for_height = False
     noisy_latents = make_latents(noisy_latent,-1,conv,lp_pool,device)
     if is_for_height:
         noisy_latents2 = make_latents(noisy_latent,-2,conv,lp_pool,device)
-        noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-3)
-        print("noisy latents shape2:", noisy_latents.shape)
-        conv_layer = nn.Conv2d(16, 4, kernel_size=3, stride=1, padding=1).to(device).float()
-        noisy_latents = conv_layer(noisy_latents)
+        noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-4)
+        #print("noisy latents shape2:", noisy_latents.shape)
+        #conv_layer = nn.Conv2d(16, 4, kernel_size=3, stride=1, padding=1).to(device).float()
+        #noisy_latents = conv_layer(noisy_latents)
     else:
         print("noisy latents shape3:", noisy_latents.shape)
-        conv_layer = nn.Conv2d(8, 4, kernel_size=3, stride=1, padding=1).to(device).float()
-        noisy_latents = conv_layer(noisy_latents)
+        #conv_layer = nn.Conv2d(8, 4, kernel_size=3, stride=1, padding=1).to(device).float()
+        #noisy_latents = conv_layer(noisy_latents)
     print("noisy latents shape4:", noisy_latents.shape)
     return noisy_latents
