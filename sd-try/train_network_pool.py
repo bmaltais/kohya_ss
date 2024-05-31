@@ -808,6 +808,7 @@ class NetworkTrainer:
         #latent_model, process_latents = latent_util.create_model_and_processing_logic(device)
         conv = latent_util.make_conv(device)
         lp_pool = latent_util.make_pool(device)
+        latent_rate = math.ceil(args.latent_rate *num_update_steps_per_epoch)
         # training loop
         for epoch in range(num_train_epochs):
             is_huber_weight = epoch >= args.huber_weight_start
@@ -827,6 +828,7 @@ class NetworkTrainer:
             accelerator.unwrap_model(network).on_epoch_start(text_encoder, unet)
             #
             #print("testforreduceloss",reduce_loss1)
+            random_latent_numbers = [random.randint(0, num_update_steps_per_epoch) for _ in range(latent_rate)]
             for step, batch in enumerate(train_dataloader):
                 current_step.value = global_step
                 unet.set_current_step(step)
@@ -882,10 +884,13 @@ class NetworkTrainer:
                     noise, noisy_latents, timesteps, huber_c = train_util.get_noise_noisy_latents_and_timesteps(
                         args, noise_scheduler, latents, peil_weight = 0.5 * args.peil_weight * (math.sin(peil_ep * step) + 1)
                     )
-                    if  args.is_process_noisy_latents and epoch in args.latent_every_n_epoch:
+                    #if  args.is_process_noisy_latents and step in random_latent_numbers:
+                    if  args.is_process_noisy_latents :
                         #print(f"test_is_start_latent:{true}")
                         #noisy_latents = latent_util.process_noisy_latents(noisy_latents,latent_model, process_latents,device,is_for_height = args.is_process_noisy_latents_height) * args.noisy_latents_weight + noisy_latents * (1-args.noisy_latents_weight)
                         noisy_latents = latent_util.process_noisy_latents(noisy_latents,device,conv,lp_pool,is_for_height = args.is_process_noisy_latents_height)
+                        text_encoder_conds = latent_util.process_noisy_latents(text_encoder_conds,device,conv,lp_pool,is_for_height = args.is_process_noisy_latents_height)
+                        print(f"text_encoder_conds:{text_encoder_conds.shape()}")
                     # ensure the hidden state will require grad
                     if args.gradient_checkpointing:
                         for x in noisy_latents:
@@ -1123,10 +1128,9 @@ def setup_parser() -> argparse.ArgumentParser:
         help="for process",
     )
     parser.add_argument(
-        "--latent_every_n_epoch",
-        type=int,
-        default=[24,25,26,50,51,52,80,81,85,100,110,111,130,131],
-        nargs="*",
+        "--latent_rate",
+        type=float,
+        default=0.1,
         help="",
     )
     parser.add_argument(
