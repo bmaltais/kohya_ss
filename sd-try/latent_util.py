@@ -63,7 +63,7 @@ def process_noisy_latents(noisy_latent,device,conv,lp_pool,is_for_height = False
     print("noisy latents shape1:", noisy_latent.shape)
     noisy_latents = make_latents(noisy_latent,-1,conv,lp_pool,device)
     if is_for_height:
-        noisy_latents2 = make_latents(noisy_latent,-2,device)
+        noisy_latents2 = make_latents(noisy_latent,-2,conv,lp_pool,device)
         noisy_latents = torch.cat([noisy_latents, noisy_latents2], dim=-3)
         print("noisy latents shape2:", noisy_latents.shape)
         conv_layer = nn.Conv2d(16, 4, kernel_size=3, stride=1, padding=1).to(device).float()
