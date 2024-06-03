@@ -162,6 +162,7 @@ class BasicTraining:
                     "cosine",
                     "cosine_with_restarts",
                     "linear",
+                    "piecewise_constant",
                     "polynomial",
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
