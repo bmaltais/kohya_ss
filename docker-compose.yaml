@@ -25,6 +25,7 @@ services:
       - ./dataset/logs:/app/logs
       - ./dataset/outputs:/app/outputs
       - ./dataset/regularization:/app/regularization
+      - ./models:/app/models
       - ./.cache/config:/app/config
       - ./.cache/user:/home/1000/.cache
       - ./.cache/triton:/home/1000/.triton
