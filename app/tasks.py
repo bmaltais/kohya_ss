@@ -50,14 +50,6 @@ s3 = boto3.client(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 # Set up logging
 log = setup_logging()
 
@@ -108,8 +100,6 @@ def _folder_preparation(
 
 
 def _train_model(
-    model_id,
-    user_id,
     headless,
     print_only,
     pretrained_model_name_or_path,
@@ -902,7 +892,7 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
 
     try:
         # 1. Load the model from the database
-        database = next(get_db())
+        database = SessionLocal()
         db_model = database.query(LoraModel).filter_by(id=model_data["id"]).first()
 
         model_root_dir = rf"{PROJECT_DIR}/{db_model.userId}/{db_model.id}"
@@ -927,8 +917,6 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
             output_dir = os.path.join(training_dir_output, "model")
             save_model_as = "safetensors"
             _train_model(
-                model_id=db_model.id,
-                user_id=db_model.userId,
                 headless=False,
                 print_only=False,
                 pretrained_model_name_or_path=db_model.baseModel,
