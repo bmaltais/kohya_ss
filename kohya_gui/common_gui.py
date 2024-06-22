@@ -327,7 +327,6 @@ def update_my_data(my_data):
 
     # Convert values to int if they are strings
     for key in [
-        "adaptive_noise_scale",
         "clip_skip",
         "epoch",
         "gradient_accumulation_steps",
@@ -378,7 +377,13 @@ def update_my_data(my_data):
                 my_data[key] = int(75)
 
     # Convert values to float if they are strings, correctly handling float representations
-    for key in ["noise_offset", "learning_rate", "text_encoder_lr", "unet_lr"]:
+    for key in [
+        "adaptive_noise_scale",
+        "noise_offset",
+        "learning_rate",
+        "text_encoder_lr",
+        "unet_lr",
+    ]:
         value = my_data.get(key)
         if value is not None:
             try:
@@ -1368,7 +1373,11 @@ def validate_file_path(file_path: str) -> bool:
     return True
 
 
-def validate_folder_path(folder_path: str, can_be_written_to: bool = False, create_if_not_exists: bool = False) -> bool:
+def validate_folder_path(
+    folder_path: str,
+    can_be_written_to: bool = False,
+    create_if_not_exists: bool = False,
+) -> bool:
     if folder_path == "":
         return True
     msg = f"Validating {folder_path} existence{' and writability' if can_be_written_to else ''}..."
@@ -1386,6 +1395,7 @@ def validate_folder_path(folder_path: str, can_be_written_to: bool = False, crea
     log.info(f"{msg} SUCCESS")
     return True
 
+
 def validate_toml_file(file_path: str) -> bool:
     if file_path == "":
         return True
@@ -1393,7 +1403,7 @@ def validate_toml_file(file_path: str) -> bool:
     if not os.path.isfile(file_path):
         log.error(f"{msg} FAILED: does not exist")
         return False
-    
+
     try:
         toml.load(file_path)
     except:
@@ -1424,10 +1434,13 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
         log.info(f"{msg} SUCCESS")
     else:
         # If not one of the default models, check if it's a valid local path
-        if not validate_file_path(pretrained_model_name_or_path) and not validate_folder_path(pretrained_model_name_or_path):
+        if not validate_file_path(
+            pretrained_model_name_or_path
+        ) and not validate_folder_path(pretrained_model_name_or_path):
             log.info(f"{msg} FAILURE: not a valid file or folder")
             return False
     return True
+
 
 def is_file_writable(file_path: str) -> bool:
     """
@@ -1488,10 +1501,11 @@ def validate_args_setting(input_string):
         )
         return False
 
+
 def setup_environment():
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
