@@ -1108,7 +1108,7 @@ def train_model(
         
     config_toml_data = {
         "adaptive_noise_scale": (
-            adaptive_noise_scale if adaptive_noise_scale != 0 else None
+            adaptive_noise_scale if (adaptive_noise_scale != 0 and noise_offset_type == "Original") else None
         ),
         "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
@@ -1183,9 +1183,9 @@ def train_model(
         "min_snr_gamma": min_snr_gamma if min_snr_gamma != 0 else None,
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
-        "multires_noise_discount": multires_noise_discount,
+        "multires_noise_discount": multires_noise_discount if noise_offset_type == "Multires" else None,
         "multires_noise_iterations": (
-            multires_noise_iterations if multires_noise_iterations != 0 else None
+            multires_noise_iterations if (multires_noise_iterations != 0 and noise_offset_type == "Multires") else None
         ),
         "network_alpha": network_alpha,
         "network_args": str(network_args).replace('"', "").split(),
@@ -1196,8 +1196,8 @@ def train_model(
         "network_train_text_encoder_only": network_train_text_encoder_only,
         "network_weights": network_weights,
         "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
-        "noise_offset": noise_offset if noise_offset != 0 else None,
-        "noise_offset_random_strength": noise_offset_random_strength,
+        "noise_offset": noise_offset if (noise_offset != 0 and noise_offset_type == "Original") else None,
+        "noise_offset_random_strength": noise_offset_random_strength if noise_offset_type == "Original" else None,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
         "optimizer_args": str(optimizer_args).replace('"', "").split(),
