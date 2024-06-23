@@ -46,6 +46,11 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Potential Solutions](#potential-solutions)
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
+  - [Guides](#guides)
+    - [Using Accelerate Lora Tab to Select GPU ID](#using-accelerate-lora-tab-to-select-gpu-id)
+      - [Starting Accelerate in GUI](#starting-accelerate-in-gui)
+      - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
+      - [Monitoring Processes](#monitoring-processes)
   - [Change History](#change-history)
 
 ## 🦒 Colab
@@ -437,6 +442,31 @@ The masked loss is supported in each training script. To enable the masked loss,
 The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
 
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
+
+## Guides
+
+The following are guides extracted from issues discussions
+
+### Using Accelerate Lora Tab to Select GPU ID
+
+#### Starting Accelerate in GUI
+
+- Open the kohya GUI on your desired port.
+- Open the `Accelerate launch` tab
+- Ensure the Multi-GPU checkbox is unchecked.
+- Set GPU IDs to the desired GPU (like 1).
+
+#### Running Multiple Instances (linux)
+
+- For tracking multiple processes, use separate kohya GUI instances on different ports (e.g., 7860, 7861).
+- Start instances using `nohup ./gui.sh --listen 0.0.0.0 --server_port <port> --headless > log.log 2>&1 &`.
+
+#### Monitoring Processes
+
+- Open each GUI in a separate browser tab.
+- For terminal access, use SSH and tools like `tmux` or `screen`.
+
+For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/issues/2577).
 
 ## Change History
 
