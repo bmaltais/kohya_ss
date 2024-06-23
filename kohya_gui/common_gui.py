@@ -1474,7 +1474,7 @@ def print_command_and_toml(run_cmd, tmpfilename):
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
 
-    log.info(command_to_run)
+    print(command_to_run)
     print("")
 
     log.info(f"Showing toml config file: {tmpfilename}")
