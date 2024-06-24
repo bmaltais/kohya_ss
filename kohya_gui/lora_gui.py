@@ -449,10 +449,10 @@ def open_configuration(
     loraplus_unet_lr_ratio,
     training_preset,
 ):
-    # Get list of function parameters and values
+    # Get list of function parameters and their values
     parameters = list(locals().items())
 
-    # Determines if a preset configuration is being applied
+    # Determine if a preset configuration is being applied
     if apply_preset:
         if training_preset != "none":
             log.info(f"Applying preset {training_preset}...")
@@ -1252,7 +1252,7 @@ def train_model(
         "vae": vae,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
-        "wandb_run_name": wandb_run_name,
+        "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
     }
