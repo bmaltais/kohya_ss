@@ -1462,8 +1462,9 @@ def is_file_writable(file_path: str) -> bool:
             pass
         # If the file can be opened, it is considered writable
         return True
-    except IOError:
+    except IOError as e:
         # If an IOError occurs, the file cannot be written to
+        log.info(f"Error: {e}. File '{file_path}' is not writable.")
         return False
 
 
