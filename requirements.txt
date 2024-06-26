@@ -1,3 +1,14 @@
+# for api
+boto3==1.34.103
+celery==5.4.0
+cuid2==2.0.1
+fastapi==0.111.0
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+redis==5.0.6
+SQLAlchemy==2.0.30
+SQLAlchemy-serializer==1.4.12
+
 accelerate==0.25.0
 aiofiles==23.2.1
 altair==4.2.2

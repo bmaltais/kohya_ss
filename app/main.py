@@ -13,6 +13,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -30,7 +31,9 @@ def create_and_train_model(
     lora_model_data: schemas.LoraModelCreate, db: Session = Depends(get_db)
 ):
     # Save the model data to your database first
-    db_model = models.LoraModel(id=cuid_generator(), **lora_model_data.model_dump(exclude={"trainingImageIds"}))
+    db_model = models.LoraModel(
+        id=cuid_generator(), **lora_model_data.model_dump(exclude={"trainingImageIds"})
+    )
     db.add(db_model)
     for image_id in lora_model_data.trainingImageIds:
         # Retrieve or create TrainingImage instances
@@ -45,4 +48,4 @@ def create_and_train_model(
     # Now, start the training task
     task = train_lora_model.delay(db_model.to_dict())
 
-    return {"task_id": task.id}
+    return db_model

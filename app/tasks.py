@@ -1086,15 +1086,27 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
                 f"loras/{db_model.userId}/{db_model.id}/{model_file.split('/')[-1]}"
             )
             s3.upload_file(model_file, BUCKET_NAME, object_key)
+
+            database = SessionLocal()
+            db_model = database.query(LoraModel).filter_by(id=model_data["id"]).first()
             db_model.objectKey = object_key
             db_model.status = LoraModelStatus.READY
             database.commit()
+
+            # 5. Copy file to a1111 Lora dir
+            shutil.copy(
+                model_file,
+                f"/workspace/stable-diffusion-webui/models/Lora/{model_file.split('/')[-1]}",
+            )
         else:
             raise Exception("Model not found")
 
     except Exception as e:
-        db_model.status = LoraModelStatus.ERROR
-        database.commit()
+        database.rollback()
+        db_model = database.query(LoraModel).filter_by(id=model_data["id"]).first()
+        if db_model:
+            db_model.status = LoraModelStatus.ERROR
+            database.commit()
         print(f"Error during training: {e}")
 
     finally:
