@@ -80,18 +80,22 @@ class sd3Training:
                         label="Weighting Scheme",
                         choices=["logit_normal", "sigma_sqrt", "mode", "cosmap"],
                         value=self.config.get("sd3.weighting_scheme", "logit_normal"),
+                        interactive=True,
                     )
                     self.logit_mean = gr.Number(
                         label="Logit Mean",
                         value=self.config.get("sd3.logit_mean", 0.0),
+                        interactive=True,
                     )
                     self.logit_std = gr.Number(
                         label="Logit Std",
                         value=self.config.get("sd3.logit_std", 1.0),
+                        interactive=True,
                     )
                     self.mode_scale = gr.Number(
                         label="Mode Scale",
                         value=self.config.get("sd3.mode_scale", 1.29),
+                        interactive=True,
                     )
                 
                 with gr.Row():
@@ -99,9 +103,11 @@ class sd3Training:
                         label="CLIP-L Path",
                         placeholder="Path to CLIP-L model",
                         value=self.config.get("sd3.clip_l", ""),
+                        interactive=True,
                     )
                     self.clip_l_button = gr.Button(
-                        document_symbol, elem_id="open_folder_small", visible=(not headless)
+                        document_symbol, elem_id="open_folder_small", visible=(not headless),
+                        interactive=True,
                     )
                     self.clip_l_button.click(
                         get_any_file_path,
@@ -151,21 +157,44 @@ class sd3Training:
                         label="CLIP-G Path",
                         placeholder="Path to CLIP-G model",
                         value=self.config.get("sd3.clip_g", ""),
+                        interactive=True,
                     )
+                    self.clip_g_button = gr.Button(
+                        document_symbol, elem_id="open_folder_small", visible=(not headless),
+                        interactive=True,
+                    )
+                    self.clip_g_button.click(
+                        get_any_file_path,
+                        outputs=self.clip_g,
+                        show_progress=False,
+                    )
+                    
                     self.t5xxl = gr.Textbox(
                         label="T5-XXL Path",
                         placeholder="Path to T5-XXL model",
                         value=self.config.get("sd3.t5xxl", ""),
+                        interactive=True,
+                    )
+                    self.t5xxl_button = gr.Button(
+                        document_symbol, elem_id="open_folder_small", visible=(not headless),
+                        interactive=True,
+                    )
+                    self.t5xxl_button.click(
+                        get_any_file_path,
+                        outputs=self.t5xxl,
+                        show_progress=False,
                     )
                 
                 with gr.Row():
                     self.save_clip = gr.Checkbox(
                         label="Save CLIP models",
                         value=self.config.get("sd3.save_clip", False),
+                        interactive=True,
                     )
                     self.save_t5xxl = gr.Checkbox(
                         label="Save T5-XXL model",
                         value=self.config.get("sd3.save_t5xxl", False),
+                        interactive=True,
                     )
 
                 with gr.Row():
@@ -173,26 +202,31 @@ class sd3Training:
                         label="T5-XXL Device",
                         placeholder="Device for T5-XXL (e.g., cuda:0)",
                         value=self.config.get("sd3.t5xxl_device", ""),
+                        interactive=True,
                     )
                     self.t5xxl_dtype = gr.Dropdown(
                         label="T5-XXL Dtype",
                         choices=["float32", "fp16", "bf16"],
                         value=self.config.get("sd3.t5xxl_dtype", "bf16"),
+                        interactive=True,
                     )
                     self.text_encoder_batch_size = gr.Number(
                         label="Text Encoder Batch Size",
                         value=self.config.get("sd3.text_encoder_batch_size", 1),
                         minimum=1,
+                        interactive=True,
                     )
                     self.cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
                         value=self.config.get("sd3.cache_text_encoder_outputs", False),
                         info="Cache text encoder outputs to speed up inference",
+                        interactive=True,
                     )
                     self.cache_text_encoder_outputs_to_disk = gr.Checkbox(
                         label="Cache Text Encoder Outputs to Disk",
                         value=self.config.get("sd3.cache_text_encoder_outputs_to_disk", False),
                         info="Cache text encoder outputs to disk to speed up inference",
+                        interactive=True,
                     )
                     
                 self.sd3_checkbox.change(
