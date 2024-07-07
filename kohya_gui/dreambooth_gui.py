@@ -187,6 +187,23 @@ def save_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    
+    # SD3 parameters
+    cache_text_encoder_outputs,
+    cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -352,6 +369,23 @@ def open_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    
+    # SD3 parameters
+    cache_text_encoder_outputs,
+    cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -512,6 +546,23 @@ def train_model(
     metadata_license,
     metadata_tags,
     metadata_title,
+    
+    # SD3 parameters
+    cache_text_encoder_outputs,
+    cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -726,6 +777,8 @@ def train_model(
 
     if sdxl:
         run_cmd.append(rf'{scriptdir}/sd-scripts/sdxl_train.py')
+    elif sd3_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_db.py")
     
@@ -882,6 +935,22 @@ def train_model(
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
+        
+        # SD3 only Parameters
+        "cache_text_encoder_outputs": cache_text_encoder_outputs if sd3_checkbox else None,
+        "cache_text_encoder_outputs_to_disk": cache_text_encoder_outputs_to_disk if sd3_checkbox else None,
+        "clip_g": clip_g if sd3_checkbox else None,
+        "clip_l": clip_l if sd3_checkbox else None,
+        "logit_mean": logit_mean if sd3_checkbox else None,
+        "logit_std": logit_std if sd3_checkbox else None,
+        "mode_scale": mode_scale if sd3_checkbox else None,
+        "save_clip": save_clip if sd3_checkbox else None,
+        "save_t5xxl": save_t5xxl if sd3_checkbox else None,
+        "t5xxl": t5xxl if sd3_checkbox else None,
+        "t5xxl_device": t5xxl_device if sd3_checkbox else None,
+        "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
+        "text_encoder_batch_size": text_encoder_batch_size if sd3_checkbox else None,
+        "weighting_scheme": weighting_scheme if sd3_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -1177,6 +1246,23 @@ def dreambooth_tab(
             metadata.metadata_license,
             metadata.metadata_tags,
             metadata.metadata_title,
+            
+            # SD3 Parameters
+            sd3_training.cache_text_encoder_outputs,
+            sd3_training.cache_text_encoder_outputs_to_disk,
+            sd3_training.clip_g,
+            sd3_training.clip_l,
+            sd3_training.logit_mean,
+            sd3_training.logit_std,
+            sd3_training.mode_scale,
+            sd3_training.save_clip,
+            sd3_training.save_t5xxl,
+            sd3_training.t5xxl,
+            sd3_training.t5xxl_device,
+            sd3_training.t5xxl_dtype,
+            sd3_training.text_encoder_batch_size,
+            sd3_training.weighting_scheme,
+            source_model.sd3_checkbox,
         ]
 
         configuration.button_open_config.click(
