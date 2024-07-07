@@ -960,11 +960,13 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=True, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
@@ -973,11 +975,13 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
@@ -988,11 +992,13 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=True, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
@@ -1001,17 +1007,20 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
         )
 
     # Check if the model_list is set to 'custom'
     v2 = gr.Checkbox(visible=True)
     v_parameterization = gr.Checkbox(visible=True)
     sdxl = gr.Checkbox(visible=True)
+    sd3 = gr.Checkbox(visible=True)
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:
@@ -1025,6 +1034,7 @@ def set_pretrained_model_name_or_path_input(
         v2,
         v_parameterization,
         sdxl,
+        sd3,
     )
 
 

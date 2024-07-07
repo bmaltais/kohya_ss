@@ -27,6 +27,7 @@ from .class_gui_config import KohyaSSGUIConfig
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
+from .class_sd3 import sd3Training
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
 from .class_huggingface import HuggingFace
@@ -1018,6 +1019,9 @@ def dreambooth_tab(
             sdxl_params = SDXLParameters(
                 source_model.sdxl_checkbox, config=config, trainer="finetune",
             )
+
+            # Add SD3 Parameters
+            sd3_training = sd3Training(headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox)
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
