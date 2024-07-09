@@ -173,19 +173,21 @@ class sd3Training:
                         value=self.config.get("sd3.t5xxl_dtype", "bf16"),
                         interactive=True,
                     )
-                    self.text_encoder_batch_size = gr.Number(
+                    self.sd3_text_encoder_batch_size = gr.Number(
                         label="Text Encoder Batch Size",
                         value=self.config.get("sd3.text_encoder_batch_size", 1),
                         minimum=1,
+                        maximum=1024,
+                        step=1,
                         interactive=True,
                     )
-                    self.cache_text_encoder_outputs = gr.Checkbox(
+                    self.sd3_cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
                         value=self.config.get("sd3.cache_text_encoder_outputs", False),
                         info="Cache text encoder outputs to speed up inference",
                         interactive=True,
                     )
-                    self.cache_text_encoder_outputs_to_disk = gr.Checkbox(
+                    self.sd3_cache_text_encoder_outputs_to_disk = gr.Checkbox(
                         label="Cache Text Encoder Outputs to Disk",
                         value=self.config.get(
                             "sd3.cache_text_encoder_outputs_to_disk", False

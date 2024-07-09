@@ -196,8 +196,8 @@ def save_configuration(
     metadata_title,
     
     # SD3 parameters
-    cache_text_encoder_outputs,
-    cache_text_encoder_outputs_to_disk,
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
     clip_g,
     clip_l,
     logit_mean,
@@ -208,7 +208,7 @@ def save_configuration(
     t5xxl,
     t5xxl_device,
     t5xxl_dtype,
-    text_encoder_batch_size,
+    sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
 ):
@@ -384,8 +384,8 @@ def open_configuration(
     metadata_title,
     
     # SD3 parameters
-    cache_text_encoder_outputs,
-    cache_text_encoder_outputs_to_disk,
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
     clip_g,
     clip_l,
     logit_mean,
@@ -396,7 +396,7 @@ def open_configuration(
     t5xxl,
     t5xxl_device,
     t5xxl_dtype,
-    text_encoder_batch_size,
+    sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
     
@@ -579,8 +579,8 @@ def train_model(
     metadata_title,
     
     # SD3 parameters
-    cache_text_encoder_outputs,
-    cache_text_encoder_outputs_to_disk,
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
     clip_g,
     clip_l,
     logit_mean,
@@ -591,7 +591,7 @@ def train_model(
     t5xxl,
     t5xxl_device,
     t5xxl_dtype,
-    text_encoder_batch_size,
+    sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
 ):
@@ -836,7 +836,7 @@ def train_model(
         if use_latent_files == "Yes"
         else f"{train_dir}/{caption_metadata_filename}"
     )
-    cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
+    cache_text_encoder_outputs = (sdxl and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs)
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     if max_data_loader_n_workers == "" or None:
@@ -984,8 +984,8 @@ def train_model(
         "xformers": True if xformers == "xformers" else None,
         
         # SD3 only Parameters
-        "cache_text_encoder_outputs": cache_text_encoder_outputs if sd3_checkbox else None,
-        "cache_text_encoder_outputs_to_disk": cache_text_encoder_outputs_to_disk if sd3_checkbox else None,
+        # "cache_text_encoder_outputs": cache_text_encoder_outputs if sd3_checkbox else None,
+        "cache_text_encoder_outputs_to_disk": sd3_cache_text_encoder_outputs_to_disk if sd3_checkbox else None,
         "clip_g": clip_g if sd3_checkbox else None,
         "clip_l": clip_l if sd3_checkbox else None,
         "logit_mean": logit_mean if sd3_checkbox else None,
@@ -996,7 +996,7 @@ def train_model(
         "t5xxl": t5xxl if sd3_checkbox else None,
         "t5xxl_device": t5xxl_device if sd3_checkbox else None,
         "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
-        "text_encoder_batch_size": text_encoder_batch_size if sd3_checkbox else None,
+        "text_encoder_batch_size": sd3_text_encoder_batch_size if sd3_checkbox else None,
         "weighting_scheme": weighting_scheme if sd3_checkbox else None,
     }
 
@@ -1369,8 +1369,8 @@ def finetune_tab(
             metadata.metadata_title,
             
             # SD3 Parameters
-            sd3_training.cache_text_encoder_outputs,
-            sd3_training.cache_text_encoder_outputs_to_disk,
+            sd3_training.sd3_cache_text_encoder_outputs,
+            sd3_training.sd3_cache_text_encoder_outputs_to_disk,
             sd3_training.clip_g,
             sd3_training.clip_l,
             sd3_training.logit_mean,
@@ -1381,7 +1381,7 @@ def finetune_tab(
             sd3_training.t5xxl,
             sd3_training.t5xxl_device,
             sd3_training.t5xxl_dtype,
-            sd3_training.text_encoder_batch_size,
+            sd3_training.sd3_text_encoder_batch_size,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
         ]
