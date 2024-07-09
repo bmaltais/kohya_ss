@@ -2,6 +2,7 @@ from datetime import datetime
 import math
 import os
 import shutil
+from typing import List
 import boto3
 from dotenv import load_dotenv
 import toml
@@ -30,7 +31,7 @@ from kohya_ss.kohya_gui.class_sample_images import create_prompt_file
 
 from kohya_ss.kohya_gui.custom_logging import setup_logging
 
-from .models import LoraModelStatus, LoraModel
+from .models import Image, LoraModelStatus, LoraModel
 from .database import SessionLocal
 
 
@@ -73,12 +74,12 @@ def upload_model_to_s3(user_id, model_id, model_file):
 
 
 def _folder_preparation(
-    user_id,
-    model_id,
-    instance_prompt,
-    class_prompt,
-    training_images,
-    training_dir_output,
+    user_id: str,
+    model_id: str,
+    instance_prompt: str,
+    class_prompt: str,
+    training_images: List[Image],
+    training_dir_output: str,
 ):
     training_images_dir_input = rf"{PROJECT_DIR}/{user_id}/{model_id}/raw/img"
     os.makedirs(training_images_dir_input, exist_ok=True)
@@ -87,6 +88,9 @@ def _folder_preparation(
         object_key = rf"assets/{user_id}/{image.objectKey}"
         local_file_path = os.path.join(training_images_dir_input, image.objectKey)
         s3.download_file(BUCKET_NAME, object_key, local_file_path)
+
+        with open(f"{os.path.splitext(image.objectKey)[0]}.txt", "a") as file:
+            file.write(image.caption + "\n")
 
     dreambooth_folder_creation_gui.dreambooth_folder_preparation(
         util_training_images_dir_input=training_images_dir_input,
