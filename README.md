@@ -51,6 +51,7 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Starting Accelerate in GUI](#starting-accelerate-in-gui)
       - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
       - [Monitoring Processes](#monitoring-processes)
+  - [Interesting Forks](#interesting-forks)
   - [Change History](#change-history)
 
 ## 🦒 Colab
@@ -467,6 +468,10 @@ The following are guides extracted from issues discussions
 - For terminal access, use SSH and tools like `tmux` or `screen`.
 
 For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/issues/2577).
+
+## Interesting Forks
+
+To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
 
 ## Change History
 
