@@ -89,8 +89,9 @@ def _folder_preparation(
         local_file_path = os.path.join(training_images_dir_input, image.objectKey)
         s3.download_file(BUCKET_NAME, object_key, local_file_path)
 
-        with open(f"{os.path.splitext(image.objectKey)[0]}.txt", "a") as file:
-            file.write(image.caption + "\n")
+        if image.caption is not None:
+            with open(f"{os.path.splitext(image.objectKey)[0]}.txt", "a") as file:
+                file.write(image.caption + "\n")
 
     dreambooth_folder_creation_gui.dreambooth_folder_preparation(
         util_training_images_dir_input=training_images_dir_input,
