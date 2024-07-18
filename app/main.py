@@ -1,5 +1,4 @@
 import os
-import string
 from typing import Callable
 from cuid2 import cuid_wrapper
 from fastapi import Depends, FastAPI
@@ -65,7 +64,7 @@ def create_and_train_model(
 
 
 @app.post("/model/{model_id}/download")
-def upload_model(model_id: string, db: Session = Depends(get_db)):
+def upload_model(model_id: str, db: Session = Depends(get_db)):
     lora_model = db.query(models.LoraModel).filter_by(id=model_id).first()
     object_key = lora_model.objectKey
     s3.download_file(
