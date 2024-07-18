@@ -1,8 +1,11 @@
 import os
+import string
 from typing import Callable
 from cuid2 import cuid_wrapper
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
+import boto3
+from dotenv import load_dotenv
 
 from . import models, schemas
 from .database import SessionLocal, engine
@@ -12,6 +15,16 @@ models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
+
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+BUCKET_NAME = "gazai"
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name="ap-northeast-1",
+)
 
 
 # Dependency
@@ -49,3 +62,14 @@ def create_and_train_model(
     task = train_lora_model.delay(db_model.to_dict())
 
     return db_model
+
+
+@app.post("/model/{model_id}/download")
+def upload_model(model_id: string, db: Session = Depends(get_db)):
+    lora_model = db.query(models.LoraModel).filter_by(id=model_id).first()
+    object_key = lora_model.objectKey
+    s3.download_file(
+        BUCKET_NAME,
+        object_key,
+        f"/workspace/stable-diffusion-webui/models/Lora/{object_key.split('/')[-1]}",
+    )

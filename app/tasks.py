@@ -34,11 +34,9 @@ from kohya_ss.kohya_gui.custom_logging import setup_logging
 from .models import Image, LoraModelStatus, LoraModel
 from .database import SessionLocal
 
+load_dotenv()
 
 PROJECT_DIR = "/workspace/data"
-BUCKET_NAME = "gazai"
-
-load_dotenv()
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
