@@ -162,12 +162,23 @@ class BasicTraining:
                     "cosine",
                     "cosine_with_restarts",
                     "linear",
+                    "piecewise_constant",
                     "polynomial",
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
             
-            
+            # Initialize the learning rate scheduler type dropdown
+            self.lr_scheduler_type = gr.Dropdown(
+                label="LR Scheduler type",
+                info="(Optional) custom scheduler module name",
+                choices=[
+                    "",
+                    "CosineAnnealingLR",
+                ],
+                value=self.config.get("basic.lr_scheduler_type", ""),
+                allow_custom_value=True,
+            )
             
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
@@ -240,7 +251,7 @@ class BasicTraining:
             self.learning_rate = gr.Number(
                 label=lr_label,
                 value=self.config.get("basic.learning_rate", self.learning_rate_value),
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Unet",
             )
@@ -251,7 +262,7 @@ class BasicTraining:
                     "basic.learning_rate_te", self.learning_rate_value
                 ),
                 visible=self.finetuning or self.dreambooth,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder",
             )
@@ -262,7 +273,7 @@ class BasicTraining:
                     "basic.learning_rate_te1", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 1",
             )
@@ -273,7 +284,7 @@ class BasicTraining:
                     "basic.learning_rate_te2", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 2",
             )
