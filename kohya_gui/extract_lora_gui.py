@@ -338,11 +338,17 @@ def gradio_extract_lora_tab(
                 outputs=[load_tuned_model_to, load_original_model_to],
             )
 
-            #secondary event on model_tuned for auto-detection of SDXL
+            #secondary event on model_tuned for auto-detection of v2/SDXL
+            def change_modeltype_model_tuned(path):
+                detect = SDModelType(path)
+                v2 = gr.Checkbox(value=detect.Is_SD2())
+                sdxl = gr.Checkbox(value=detect.Is_SDXL())
+                return v2, sdxl
+
             model_tuned.change(
-                lambda path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
+                change_modeltype_model_tuned,
                 inputs=model_tuned,
-                outputs=sdxl
+                outputs=[v2, sdxl]
             )
 
         extract_button = gr.Button("Extract LoRA model")
