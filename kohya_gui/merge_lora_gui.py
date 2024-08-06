@@ -16,6 +16,7 @@ from .common_gui import (
     create_refresh_button, setup_environment
 )
 from .custom_logging import setup_logging
+from .sd_modeltype import SDModelType
 
 # Set up logging
 log = setup_logging()
@@ -143,6 +144,13 @@ class GradioMergeLoRaTab:
                     inputs=sd_model,
                     outputs=sd_model,
                     show_progress=False,
+                )
+
+                #secondary event on sd_model for auto-detection of SDXL
+                sd_model.change(
+                    lambda sdxl, path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
+                    inputs=[sdxl_model, sd_model],
+                    outputs=sdxl_model
                 )
 
             with gr.Group(), gr.Row():

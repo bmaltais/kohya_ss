@@ -5,6 +5,7 @@ except ImportError:
 from easygui import msgbox, ynbox
 from typing import Optional
 from .custom_logging import setup_logging
+from .sd_modeltype import SDModelType
 
 import os
 import re
@@ -1008,6 +1009,13 @@ def set_pretrained_model_name_or_path_input(
     v2 = gr.Checkbox(visible=True)
     v_parameterization = gr.Checkbox(visible=True)
     sdxl = gr.Checkbox(visible=True)
+
+    # Auto-detect model type if safetensors file path is given
+    if pretrained_model_name_or_path.lower().endswith(".safetensors"):
+        detect = SDModelType(pretrained_model_name_or_path)
+        v2 = gr.Checkbox(value=detect.Is_SD2(), visible=True)
+        sdxl = gr.Checkbox(value=detect.Is_SDXL(), visible=True)
+        #TODO: v_parameterization
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:

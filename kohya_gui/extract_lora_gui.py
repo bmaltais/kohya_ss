@@ -12,6 +12,7 @@ from .common_gui import (
 )
 
 from .custom_logging import setup_logging
+from .sd_modeltype import SDModelType
 
 # Set up logging
 log = setup_logging()
@@ -335,6 +336,13 @@ def gradio_extract_lora_tab(
                 change_sdxl,
                 inputs=sdxl,
                 outputs=[load_tuned_model_to, load_original_model_to],
+            )
+
+            #secondary event on model_tuned for auto-detection of SDXL
+            model_tuned.change(
+                lambda sdxl, path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
+                inputs=[sdxl, model_tuned],
+                outputs=sdxl
             )
 
         extract_button = gr.Button("Extract LoRA model")
