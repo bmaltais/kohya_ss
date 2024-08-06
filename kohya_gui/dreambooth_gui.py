@@ -856,7 +856,7 @@ def train_model(
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if not any([value == "", value is False, value is None])
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
