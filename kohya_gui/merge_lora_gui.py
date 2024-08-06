@@ -148,8 +148,8 @@ class GradioMergeLoRaTab:
 
                 #secondary event on sd_model for auto-detection of SDXL
                 sd_model.change(
-                    lambda sdxl, path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
-                    inputs=[sdxl_model, sd_model],
+                    lambda path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
+                    inputs=sd_model,
                     outputs=sdxl_model
                 )
 

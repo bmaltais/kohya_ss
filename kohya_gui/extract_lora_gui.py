@@ -340,8 +340,8 @@ def gradio_extract_lora_tab(
 
             #secondary event on model_tuned for auto-detection of SDXL
             model_tuned.change(
-                lambda sdxl, path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
-                inputs=[sdxl, model_tuned],
+                lambda path: gr.Checkbox(value=SDModelType(path).Is_SDXL()),
+                inputs=model_tuned,
                 outputs=sdxl
             )
 
