@@ -731,6 +731,9 @@ def train_model(
     cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl and sdxl_no_half_vae
 
+    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl and sdxl_no_half_vae
+
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
@@ -1018,6 +1021,11 @@ def dreambooth_tab(
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(
                 source_model.sdxl_checkbox, config=config, trainer="finetune",
+            )
+
+            # Add SDXL Parameters
+            sdxl_params = SDXLParameters(
+                source_model.sdxl_checkbox, config=config
             )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
