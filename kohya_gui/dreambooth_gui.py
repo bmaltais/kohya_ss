@@ -785,9 +785,6 @@ def train_model(
     cache_text_encoder_outputs = (sdxl and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs)
     no_half_vae = sdxl and sdxl_no_half_vae
 
-    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
-    no_half_vae = sdxl and sdxl_no_half_vae
-
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
