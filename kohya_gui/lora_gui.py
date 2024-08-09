@@ -149,6 +149,7 @@ def save_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     max_grad_norm,
     noise_offset_type,
     noise_offset,
@@ -201,6 +202,7 @@ def save_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -232,6 +234,9 @@ def save_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -354,6 +359,7 @@ def open_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     max_grad_norm,
     noise_offset_type,
     noise_offset,
@@ -406,6 +412,7 @@ def open_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -437,12 +444,15 @@ def open_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
     training_preset,
 ):
-    # Get list of function parameters and values
+    # Get list of function parameters and their values
     parameters = list(locals().items())
 
-    # Determines if a preset configuration is being applied
+    # Determine if a preset configuration is being applied
     if apply_preset:
         if training_preset != "none":
             log.info(f"Applying preset {training_preset}...")
@@ -589,6 +599,7 @@ def train_model(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     max_grad_norm,
     noise_offset_type,
     noise_offset,
@@ -641,6 +652,7 @@ def train_model(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
     scale_weight_norms,
     network_dropout,
@@ -672,6 +684,9 @@ def train_model(
     metadata_license,
     metadata_tags,
     metadata_title,
+    loraplus_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+    loraplus_unet_lr_ratio,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1087,10 +1102,13 @@ def train_model(
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
-
+    
+    if text_encoder_lr_float != 0 or unet_lr_float != 0:
+        do_not_set_learning_rate = True
+        
     config_toml_data = {
         "adaptive_noise_scale": (
-            adaptive_noise_scale if adaptive_noise_scale != 0 else None
+            adaptive_noise_scale if (adaptive_noise_scale != 0 and noise_offset_type == "Original") else None
         ),
         "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
@@ -1127,10 +1145,14 @@ def train_model(
         "ip_noise_gamma": ip_noise_gamma if ip_noise_gamma != 0 else None,
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
-        "learning_rate": learning_rate,
+        "learning_rate": None if do_not_set_learning_rate else learning_rate,
         "logging_dir": logging_dir,
+        "log_config": log_config,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
+        "loraplus_lr_ratio": loraplus_lr_ratio if not 0 else None,
+        "loraplus_text_encoder_lr_ratio": loraplus_text_encoder_lr_ratio if not 0 else None,
+        "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if not 0 else None,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
@@ -1140,6 +1162,7 @@ def train_model(
             else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
+        "lr_scheduler_type": lr_scheduler_type if lr_scheduler_type != "" else None,
         "lr_warmup_steps": lr_warmup_steps,
         "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
@@ -1160,9 +1183,9 @@ def train_model(
         "min_snr_gamma": min_snr_gamma if min_snr_gamma != 0 else None,
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
-        "multires_noise_discount": multires_noise_discount,
+        "multires_noise_discount": multires_noise_discount if noise_offset_type == "Multires" else None,
         "multires_noise_iterations": (
-            multires_noise_iterations if multires_noise_iterations != 0 else None
+            multires_noise_iterations if (multires_noise_iterations != 0 and noise_offset_type == "Multires") else None
         ),
         "network_alpha": network_alpha,
         "network_args": str(network_args).replace('"', "").split(),
@@ -1173,8 +1196,8 @@ def train_model(
         "network_train_text_encoder_only": network_train_text_encoder_only,
         "network_weights": network_weights,
         "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
-        "noise_offset": noise_offset if noise_offset != 0 else None,
-        "noise_offset_random_strength": noise_offset_random_strength,
+        "noise_offset": noise_offset if (noise_offset != 0 and noise_offset_type == "Original") else None,
+        "noise_offset_random_strength": noise_offset_random_strength if noise_offset_type == "Original" else None,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
         "optimizer_args": str(optimizer_args).replace('"', "").split(),
@@ -1229,7 +1252,7 @@ def train_model(
         "vae": vae,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
-        "wandb_run_name": wandb_run_name,
+        "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
     }
@@ -1467,6 +1490,31 @@ def lora_tab(
                             info="(Optional)",
                             minimum=0,
                             maximum=1,
+                        )
+
+                    with gr.Row():
+                        loraplus_lr_ratio = gr.Number(
+                            label="LoRA+ learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
+                        )
+
+                        loraplus_unet_lr_ratio = gr.Number(
+                            label="LoRA+ Unet learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
+                        )
+
+                        loraplus_text_encoder_lr_ratio = gr.Number(
+                            label="LoRA+ Text Encoder learning rate ratio",
+                            value=0,
+                            info="(Optional) starting with 16 is suggested",
+                            minimum=0,
+                            maximum=128,
                         )
 
                     # Add SDXL Parameters
@@ -2236,6 +2284,7 @@ def lora_tab(
             basic_training.optimizer,
             basic_training.optimizer_args,
             basic_training.lr_scheduler_args,
+            basic_training.lr_scheduler_type,
             basic_training.max_grad_norm,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
@@ -2288,6 +2337,7 @@ def lora_tab(
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
+            advanced_training.log_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
             scale_weight_norms,
             network_dropout,
@@ -2319,6 +2369,9 @@ def lora_tab(
             metadata.metadata_license,
             metadata.metadata_tags,
             metadata.metadata_title,
+            loraplus_lr_ratio,
+            loraplus_text_encoder_lr_ratio,
+            loraplus_unet_lr_ratio,
         ]
 
         configuration.button_open_config.click(

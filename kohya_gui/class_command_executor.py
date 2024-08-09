@@ -48,7 +48,7 @@ class CommandExecutor:
 
             # Execute the command securely
             self.process = subprocess.Popen(run_cmd, **kwargs)
-            log.info("Command executed.")
+            log.debug("Command executed.")
 
     def kill_command(self):
         """

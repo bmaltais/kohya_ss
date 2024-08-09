@@ -135,6 +135,7 @@ def save_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -162,7 +163,11 @@ def save_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -295,6 +300,7 @@ def open_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -322,7 +328,11 @@ def open_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -450,6 +460,7 @@ def train_model(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -477,7 +488,11 @@ def train_model(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -551,6 +566,7 @@ def train_model(
     
     if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
+    
     #
     # End of path validation
     #
@@ -711,6 +727,9 @@ def train_model(
         run_cmd.append(rf'{scriptdir}/sd-scripts/sdxl_train.py')
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_db.py")
+    
+    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl and sdxl_no_half_vae
 
     cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
     no_half_vae = sdxl and sdxl_no_half_vae
@@ -724,6 +743,12 @@ def train_model(
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)
+
+    if sdxl:
+        train_text_encoder = (
+            (learning_rate_te1 != None and learning_rate_te1 > 0) or
+            (learning_rate_te2 != None and learning_rate_te2 > 0)
+        )
 
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
@@ -742,12 +767,15 @@ def train_model(
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
+        "disable_mmap_load_safetensors": disable_mmap_load_safetensors,
         "dynamo_backend": dynamo_backend,
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
+        "fused_backward_pass": fused_backward_pass,
+        "fused_optimizer_groups": int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
@@ -761,16 +789,11 @@ def train_model(
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,  # both for sd1.5 and sdxl
-        "learning_rate_te": (
-            learning_rate_te if not sdxl and not 0 else None
-        ),  # only for sd1.5 and not 0
-        "learning_rate_te1": (
-            learning_rate_te1 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
-        "learning_rate_te2": (
-            learning_rate_te2 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
+        "learning_rate_te": learning_rate_te if not sdxl else None, # only for sd1.5
+        "learning_rate_te1": learning_rate_te1 if sdxl else None, # only for sdxl
+        "learning_rate_te2": learning_rate_te2 if sdxl else None, # only for sdxl
         "logging_dir": logging_dir,
+        "log_config": log_config,
         "log_tracker_config": log_tracker_config,
         "log_tracker_name": log_tracker_name,
         "log_with": log_with,
@@ -781,6 +804,7 @@ def train_model(
             int(lr_scheduler_num_cycles) if lr_scheduler_num_cycles != "" else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
+        "lr_scheduler_type": lr_scheduler_type if lr_scheduler_type != "" else None,
         "lr_warmup_steps": lr_warmup_steps,
         "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
@@ -851,13 +875,14 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_text_encoder": train_text_encoder if sdxl else None,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
         "vae": vae,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
-        "wandb_run_name": wandb_run_name,
+        "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
     }
@@ -867,7 +892,7 @@ def train_model(
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if not any([value == "", value is False, value is None])
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
@@ -992,6 +1017,11 @@ def dreambooth_tab(
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
+                    
+            # Add SDXL Parameters
+            sdxl_params = SDXLParameters(
+                source_model.sdxl_checkbox, config=config, trainer="finetune",
+            )
 
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(
@@ -1101,6 +1131,7 @@ def dreambooth_tab(
             basic_training.optimizer,
             basic_training.optimizer_args,
             basic_training.lr_scheduler_args,
+            basic_training.lr_scheduler_type,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.noise_offset_random_strength,
@@ -1128,7 +1159,11 @@ def dreambooth_tab(
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
+            advanced_training.log_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
+            sdxl_params.disable_mmap_load_safetensors,
+            sdxl_params.fused_backward_pass,
+            sdxl_params.fused_optimizer_groups,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,

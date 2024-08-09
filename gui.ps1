@@ -12,6 +12,13 @@ $env:PATH += ";$($MyInvocation.MyCommand.Path)\venv\Lib\site-packages\torch\lib"
 # Debug info about system
 # python.exe .\setup\debug_info.py
 
+# If the --help parameter is passed, skip the validation step
+if ($args -contains "--help") {
+    # Run the kohya_gui.py script with the command-line arguments
+    python.exe kohya_gui.py $args
+    exit 0
+}
+
 # Validate the requirements and store the exit code
 python.exe .\setup\validate_requirements.py
 
