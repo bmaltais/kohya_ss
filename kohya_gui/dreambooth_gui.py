@@ -741,6 +741,12 @@ def train_model(
     else:
         max_train_steps = int(max_train_steps)
 
+    if sdxl:
+        train_text_encoder = (
+            (learning_rate_te1 != None and learning_rate_te1 > 0) or
+            (learning_rate_te2 != None and learning_rate_te2 > 0)
+        )
+
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
@@ -780,15 +786,9 @@ def train_model(
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,  # both for sd1.5 and sdxl
-        "learning_rate_te": (
-            learning_rate_te if not sdxl and not 0 else None
-        ),  # only for sd1.5 and not 0
-        "learning_rate_te1": (
-            learning_rate_te1 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
-        "learning_rate_te2": (
-            learning_rate_te2 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
+        "learning_rate_te": learning_rate_te if not sdxl else None, # only for sd1.5
+        "learning_rate_te1": learning_rate_te1 if sdxl else None, # only for sdxl
+        "learning_rate_te2": learning_rate_te2 if sdxl else None, # only for sdxl
         "logging_dir": logging_dir,
         "log_config": log_config,
         "log_tracker_config": log_tracker_config,
@@ -872,6 +872,7 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_text_encoder": train_text_encoder if sdxl else None,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
@@ -888,7 +889,7 @@ def train_model(
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if not any([value == "", value is False, value is None])
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
