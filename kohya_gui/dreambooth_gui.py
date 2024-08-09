@@ -785,6 +785,9 @@ def train_model(
     cache_text_encoder_outputs = (sdxl and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs)
     no_half_vae = sdxl and sdxl_no_half_vae
 
+    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
+    no_half_vae = sdxl and sdxl_no_half_vae
+
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
@@ -794,6 +797,12 @@ def train_model(
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)
+
+    if sdxl:
+        train_text_encoder = (
+            (learning_rate_te1 != None and learning_rate_te1 > 0) or
+            (learning_rate_te2 != None and learning_rate_te2 > 0)
+        )
 
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
@@ -834,15 +843,9 @@ def train_model(
         "ip_noise_gamma_random_strength": ip_noise_gamma_random_strength,
         "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,  # both for sd1.5 and sdxl
-        "learning_rate_te": (
-            learning_rate_te if not sdxl and not 0 else None
-        ),  # only for sd1.5 and not 0
-        "learning_rate_te1": (
-            learning_rate_te1 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
-        "learning_rate_te2": (
-            learning_rate_te2 if sdxl and not 0 else None
-        ),  # only for sdxl and not 0
+        "learning_rate_te": learning_rate_te if not sdxl else None, # only for sd1.5
+        "learning_rate_te1": learning_rate_te1 if sdxl else None, # only for sdxl
+        "learning_rate_te2": learning_rate_te2 if sdxl else None, # only for sdxl
         "logging_dir": logging_dir,
         "log_config": log_config,
         "log_tracker_config": log_tracker_config,
@@ -926,6 +929,7 @@ def train_model(
         ),
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_text_encoder": train_text_encoder if sdxl else None,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
@@ -958,7 +962,7 @@ def train_model(
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if not any([value == "", value is False, value is None])
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
