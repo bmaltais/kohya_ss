@@ -77,6 +77,7 @@ def save_configuration(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -287,6 +288,7 @@ def open_configuration(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -502,6 +504,7 @@ def open_configuration(
     # Display LoCon parameters based on the 'LoRA_type' from the loaded data
     # This section dynamically adjusts visibility of certain parameters in the UI
     if my_data.get("LoRA_type", "Standard") in {
+        "Flux1",
         "LoCon",
         "Kohya DyLoRA",
         "Kohya LoCon",
@@ -527,6 +530,7 @@ def train_model(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -960,6 +964,8 @@ def train_model(
 
     if sdxl:
         run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train_network.py")
+    elif flux1_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
@@ -1001,7 +1007,7 @@ def train_model(
         network_module = "lycoris.kohya"
         network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
-    if LoRA_type in ["Kohya LoCon", "Standard"]:
+    if LoRA_type in ["Flux1", "Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
             "down_lr_weight",
             "mid_lr_weight",
@@ -1020,7 +1026,9 @@ def train_model(
             for key, value in vars().items()
             if key in kohya_lora_var_list and value
         }
-        if LoRA_type == "Kohya LoCon":
+        
+        # Not sure if Flux1 is Standard... or LoCon style... flip a coin... going for LoCon style...
+        if LoRA_type in ["Flux1", "Kohya LoCon"]:
             network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
 
         for key, value in kohya_lora_vars.items():
@@ -1418,6 +1426,7 @@ def lora_tab(
                         LoRA_type = gr.Dropdown(
                             label="LoRA type",
                             choices=[
+                                "Flux1",
                                 "Kohya DyLoRA",
                                 "Kohya LoCon",
                                 "LoRA-FA",
@@ -1692,6 +1701,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
                                             "LoRA-FA",
@@ -1711,6 +1721,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -1730,6 +1741,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "Standard",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -1742,6 +1754,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
@@ -1762,6 +1775,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
@@ -1782,6 +1796,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
@@ -1967,6 +1982,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -1985,6 +2001,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -2006,6 +2023,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "LyCORIS/BOFT",
@@ -2026,6 +2044,7 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
+                                            "Flux1",
                                             "LoCon",
                                             "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
@@ -2213,6 +2232,7 @@ def lora_tab(
             source_model.v2,
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
+            source_model.flux1_checkbox,
             folders.logging_dir,
             source_model.train_data_dir,
             folders.reg_data_dir,
