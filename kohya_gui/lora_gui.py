@@ -36,6 +36,7 @@ from .class_lora_tab import LoRATools
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
+from .class_flux1 import flux1Training
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -238,6 +239,11 @@ def save_configuration(
     loraplus_lr_ratio,
     loraplus_text_encoder_lr_ratio,
     loraplus_unet_lr_ratio,
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    clip_l,
+    t5xxl,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -449,6 +455,11 @@ def open_configuration(
     loraplus_lr_ratio,
     loraplus_text_encoder_lr_ratio,
     loraplus_unet_lr_ratio,
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    clip_l,
+    t5xxl,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -691,6 +702,11 @@ def train_model(
     loraplus_lr_ratio,
     loraplus_text_encoder_lr_ratio,
     loraplus_unet_lr_ratio,
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    clip_l,
+    t5xxl,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1007,7 +1023,35 @@ def train_model(
         network_module = "lycoris.kohya"
         network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
-    if LoRA_type in ["Flux1", "Kohya LoCon", "Standard"]:
+    if LoRA_type in ["Flux1"]:
+        kohya_lora_var_list = [
+            "down_lr_weight",
+            "mid_lr_weight",
+            "up_lr_weight",
+            "block_lr_zero_threshold",
+            "block_dims",
+            "block_alphas",
+            "conv_block_dims",
+            "conv_block_alphas",
+            "rank_dropout",
+            "module_dropout",
+        ]
+        network_module = "networks.lora_flux"
+        kohya_lora_vars = {
+            key: value
+            for key, value in vars().items()
+            if key in kohya_lora_var_list and value
+        }
+        
+        # Not sure if Flux1 is Standard... or LoCon style... flip a coin... going for LoCon style...
+        if LoRA_type in ["Flux1"]:
+            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+                
+    if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
             "down_lr_weight",
             "mid_lr_weight",
@@ -1028,7 +1072,7 @@ def train_model(
         }
         
         # Not sure if Flux1 is Standard... or LoCon style... flip a coin... going for LoCon style...
-        if LoRA_type in ["Flux1", "Kohya LoCon"]:
+        if LoRA_type in ["Kohya LoCon"]:
             network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
 
         for key, value in kohya_lora_vars.items():
@@ -1208,7 +1252,7 @@ def train_model(
         "noise_offset_random_strength": noise_offset_random_strength if noise_offset_type == "Original" else None,
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', "").split(),
+        "optimizer_args": str(optimizer_args).replace('"', "").split() if optimizer_args != [] else None,
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": int(persistent_data_loader_workers),
@@ -1263,6 +1307,14 @@ def train_model(
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
+        
+        # Flux.1 specific parameters
+        "flux1_cache_text_encoder_outputs": flux1_cache_text_encoder_outputs if flux1_checkbox else None,
+        "flux1_cache_text_encoder_outputs_to_disk": flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None,
+        "ae": ae if flux1_checkbox else None,
+        "clip_l": clip_l if flux1_checkbox else None,
+        "t5xxl": t5xxl if flux1_checkbox else None,
+        
     }
 
     # Given dictionary `config_toml_data`
@@ -1530,6 +1582,9 @@ def lora_tab(
                     sdxl_params = SDXLParameters(
                         source_model.sdxl_checkbox, config=config
                     )
+                    
+                    # Add FLUX1 Parameters
+                    flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox)
 
                     # LyCORIS Specific parameters
                     with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
@@ -2392,6 +2447,12 @@ def lora_tab(
             loraplus_lr_ratio,
             loraplus_text_encoder_lr_ratio,
             loraplus_unet_lr_ratio,
+            # Flux1 parameters
+            flux1_training.flux1_cache_text_encoder_outputs,
+            flux1_training.flux1_cache_text_encoder_outputs_to_disk,
+            flux1_training.ae,
+            flux1_training.clip_l,
+            flux1_training.t5xxl,
         ]
 
         configuration.button_open_config.click(
