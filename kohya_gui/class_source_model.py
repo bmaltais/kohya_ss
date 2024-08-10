@@ -269,15 +269,23 @@ class SourceModel:
                                 min_width=60,
                                 interactive=True,
                             )
+                            self.flux1_checkbox = gr.Checkbox(
+                                label="Flux.1",
+                                value=False,
+                                visible=False,
+                                min_width=60,
+                                interactive=True,
+                            )
 
-                            def toggle_checkboxes(v2, v_parameterization, sdxl_checkbox, sd3_checkbox):
+                            def toggle_checkboxes(v2, v_parameterization, sdxl_checkbox, sd3_checkbox, flux1_checkbox):
                                 # Check if all checkboxes are unchecked
-                                if not v2 and not v_parameterization and not sdxl_checkbox and not sd3_checkbox:
+                                if not v2 and not v_parameterization and not sdxl_checkbox and not sd3_checkbox and not flux1_checkbox:
                                     # If all unchecked, return new interactive checkboxes
                                     return (
                                         gr.Checkbox(interactive=True),  # v2 checkbox
                                         gr.Checkbox(interactive=True),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=True),  # sdxl_checkbox
+                                        gr.Checkbox(interactive=True),  # sd3_checkbox
                                         gr.Checkbox(interactive=True),  # sd3_checkbox
                                     )
                                 else:
@@ -287,30 +295,37 @@ class SourceModel:
                                         gr.Checkbox(interactive=v_parameterization),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=sdxl_checkbox),  # sdxl_checkbox
                                         gr.Checkbox(interactive=sd3_checkbox),  # sd3_checkbox
+                                        gr.Checkbox(interactive=flux1_checkbox),  # flux1_checkbox
                                     )
 
                             self.v2.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
+                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
                                 show_progress=False,
                             )
                             self.v_parameterization.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
-                                show_progress=False,
-                            )
-                            self.sd3_checkbox.change(
-                                fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
+                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
                                 show_progress=False,
                             )
                             self.sdxl_checkbox.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox],
+                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                show_progress=False,
+                            )
+                            self.sd3_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                show_progress=False,
+                            )
+                            self.flux1_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
                                 show_progress=False,
                             )
                     with gr.Column():
@@ -349,6 +364,7 @@ class SourceModel:
                         self.v_parameterization,
                         self.sdxl_checkbox,
                         self.sd3_checkbox,
+                        self.flux1_checkbox,
                     ],
                     show_progress=False,
                 )
