@@ -146,7 +146,7 @@ class AdvancedTraining:
             with gr.Row():
                 self.loss_type = gr.Dropdown(
                     label="Loss type",
-                    choices=["huber", "smooth_l1", "l2"],
+                    choices=["huber", "smooth_l1", "l1", "l2"],
                     value=self.config.get("advanced.loss_type", "l2"),
                     info="The type of loss to use and whether it's scheduled based on the timestep",
                 )
@@ -228,12 +228,11 @@ class AdvancedTraining:
             )
 
         with gr.Row():
-            if training_type == "lora":
-                self.fp8_base = gr.Checkbox(
-                    label="fp8 base training (experimental)",
-                    info="U-Net and Text Encoder can be trained with fp8 (experimental)",
-                    value=self.config.get("advanced.fp8_base", False),
-                )
+            self.fp8_base = gr.Checkbox(
+                label="fp8 base",
+                info="Use fp8 for base model",
+                value=self.config.get("advanced.fp8_base", False),
+            )
             self.full_fp16 = gr.Checkbox(
                 label="Full fp16 training (experimental)",
                 value=self.config.get("advanced.full_fp16", False),
@@ -253,6 +252,20 @@ class AdvancedTraining:
                 full_options_update,
                 inputs=[self.full_fp16, self.full_bf16],
                 outputs=[self.full_fp16, self.full_bf16],
+            )
+            
+        with gr.Row():
+            self.highvram = gr.Checkbox(
+                label="highvram",
+                value=self.config.get("advanced.highvram", False),
+                info="Disable low VRAM optimization. e.g. do not clear CUDA cache after each latent caching (for machines which have bigger VRAM)",
+                interactive=True,
+            )
+            self.lowvram = gr.Checkbox(
+                label="lowvram",
+                value=self.config.get("advanced.lowvram", False),
+                info="Enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)",
+                interactive=True,
             )
 
         with gr.Row():

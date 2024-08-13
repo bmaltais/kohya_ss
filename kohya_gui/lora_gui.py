@@ -102,11 +102,11 @@ def save_configuration(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    # no_token_padding,
+    highvram,
+    lowvram,
     stop_text_encoder_training,
     min_bucket_reso,
     max_bucket_reso,
-    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -239,11 +239,15 @@ def save_configuration(
     loraplus_lr_ratio,
     loraplus_text_encoder_lr_ratio,
     loraplus_unet_lr_ratio,
+    #Flux1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
     ae,
     clip_l,
     t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -318,11 +322,11 @@ def open_configuration(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    # no_token_padding,
+    highvram,
+    lowvram,
     stop_text_encoder_training,
     min_bucket_reso,
     max_bucket_reso,
-    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -460,6 +464,9 @@ def open_configuration(
     ae,
     clip_l,
     t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -565,11 +572,11 @@ def train_model(
     gradient_checkpointing,
     fp8_base,
     full_fp16,
-    # no_token_padding,
+    highvram,
+    lowvram,
     stop_text_encoder_training_pct,
     min_bucket_reso,
     max_bucket_reso,
-    # use_8bit_adam,
     xformers,
     save_model_as,
     shuffle_caption,
@@ -707,6 +714,9 @@ def train_model(
     ae,
     clip_l,
     t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1183,6 +1193,7 @@ def train_model(
         "full_fp16": full_fp16,
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
+        "highvram": highvram,
         "huber_c": huber_c,
         "huber_schedule": huber_schedule,
         "huggingface_repo_id": huggingface_repo_id,
@@ -1202,6 +1213,7 @@ def train_model(
         "loraplus_text_encoder_lr_ratio": loraplus_text_encoder_lr_ratio if not 0 else None,
         "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if not 0 else None,
         "loss_type": loss_type,
+        "lowvram": lowvram,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_scheduler_num_cycles": (
@@ -1310,7 +1322,9 @@ def train_model(
         "ae": ae if flux1_checkbox else None,
         "clip_l": clip_l if flux1_checkbox else None,
         "t5xxl": t5xxl if flux1_checkbox else None,
-        
+        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
+        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
+        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -2307,6 +2321,8 @@ def lora_tab(
             advanced_training.gradient_checkpointing,
             advanced_training.fp8_base,
             advanced_training.full_fp16,
+            advanced_training.highvram,
+            advanced_training.lowvram,
             # advanced_training.no_token_padding,
             basic_training.stop_text_encoder_training,
             basic_training.min_bucket_reso,
@@ -2449,6 +2465,9 @@ def lora_tab(
             flux1_training.ae,
             flux1_training.clip_l,
             flux1_training.t5xxl,
+            flux1_training.discrete_flow_shift,
+            flux1_training.model_prediction_type,
+            flux1_training.timestep_sampling,
         ]
 
         configuration.button_open_config.click(

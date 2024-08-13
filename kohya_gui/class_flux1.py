@@ -191,14 +191,29 @@ class flux1Training:
                     #     value=self.config.get("flux1.t5xxl_dtype", "bf16"),
                     #     interactive=True,
                     # )
-                    # self.flux1_text_encoder_batch_size = gr.Number(
-                    #     label="Text Encoder Batch Size",
-                    #     value=self.config.get("flux1.text_encoder_batch_size", 1),
-                    #     minimum=1,
-                    #     maximum=1024,
-                    #     step=1,
-                    #     interactive=True,
-                    # )
+                    
+                    self.discrete_flow_shift = gr.Number(
+                        label="Discrete Flow Shift",
+                        value=self.config.get("flux1.discrete_flow_shift", 3.0),
+                        info="Discrete flow shift for the Euler Discrete Scheduler, default is 3.0",
+                        minimum=0,
+                        maximum=1024,
+                        step=.01,
+                        interactive=True,
+                    )
+                    self.model_prediction_type = gr.Dropdown(
+                        label="Model Prediction Type",
+                        choices=["raw", "additive", "sigma_scaled"],
+                        value=self.config.get("flux1.timestep_sampling", "sigma_scaled"),
+                        interactive=True,
+                    )
+                    self.timestep_sampling = gr.Dropdown(
+                        label="Timestep Sampling",
+                        choices=["sigma", "uniform", "sigmoid"],
+                        value=self.config.get("flux1.timestep_sampling", "sigma"),
+                        interactive=True,
+                    )
+                    
                     self.flux1_cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
                         value=self.config.get("flux1.cache_text_encoder_outputs", False),
