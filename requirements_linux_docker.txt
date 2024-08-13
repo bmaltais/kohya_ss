@@ -1,4 +1,4 @@
 xformers>=0.0.20
-bitsandbytes==0.43.0
+bitsandbytes==0.43.3
 accelerate==0.25.0
 tensorboard

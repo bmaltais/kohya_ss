@@ -1,4 +1,4 @@
-accelerate==0.25.0
+accelerate==0.33.0
 aiofiles==23.2.1
 altair==4.2.2
 dadaptation==3.1
@@ -8,7 +8,7 @@ einops==0.7.0
 fairscale==0.4.13
 ftfy==6.1.1
 gradio==4.41.0
-huggingface-hub==0.20.1
+huggingface-hub==0.24.5
 imagesize==1.4.1
 invisible-watermark==0.2.0
 lion-pytorch==0.0.6
@@ -25,10 +25,12 @@ pytorch-lightning==1.9.0
 rich>=13.7.1
 safetensors==0.4.2
 scipy==1.11.4
+# for T5XXL tokenizer (SD3/FLUX)
+sentencepiece==0.2.0
 timm==0.6.12
 tk==0.1.0
 toml==0.10.2
-transformers==4.38.0
+transformers==4.44.0
 voluptuous==0.13.1
 wandb==0.15.11
 scipy==1.11.4

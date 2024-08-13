@@ -1,5 +1,5 @@
 torch==2.1.2+cu118 torchvision==0.16.2+cu118 xformers==0.0.23.post1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118 # no_verify leave this to specify not checking this a verification stage
-bitsandbytes==0.43.0
+bitsandbytes==0.43.3
 tensorboard==2.14.1 tensorflow==2.14.0 wheel
 tensorrt
 onnxruntime-gpu==1.17.1

@@ -1023,7 +1023,7 @@ def train_model(
         network_module = "lycoris.kohya"
         network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
-    if LoRA_type in ["Flux1"]:
+    if LoRA_type == "Flux1":
         kohya_lora_var_list = [
             "down_lr_weight",
             "mid_lr_weight",
@@ -1042,10 +1042,6 @@ def train_model(
             for key, value in vars().items()
             if key in kohya_lora_var_list and value
         }
-        
-        # Not sure if Flux1 is Standard... or LoCon style... flip a coin... going for LoCon style...
-        if LoRA_type in ["Flux1"]:
-            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
 
         for key, value in kohya_lora_vars.items():
             if value:
