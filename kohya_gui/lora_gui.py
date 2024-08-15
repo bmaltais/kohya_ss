@@ -1174,7 +1174,7 @@ def train_model(
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
         "cache_text_encoder_outputs": (
-            True if sdxl and sdxl_cache_text_encoder_outputs else None
+            True if (sdxl and sdxl_cache_text_encoder_outputs) or (flux1_checkbox and flux1_cache_text_encoder_outputs) else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
@@ -1317,8 +1317,8 @@ def train_model(
         "xformers": True if xformers == "xformers" else None,
         
         # Flux.1 specific parameters
-        "flux1_cache_text_encoder_outputs": flux1_cache_text_encoder_outputs if flux1_checkbox else None,
-        "flux1_cache_text_encoder_outputs_to_disk": flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None,
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        "cache_text_encoder_outputs_to_disk": flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None,
         "ae": ae if flux1_checkbox else None,
         "clip_l": clip_l if flux1_checkbox else None,
         "t5xxl": t5xxl if flux1_checkbox else None,
