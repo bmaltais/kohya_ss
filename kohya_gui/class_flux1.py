@@ -228,6 +228,28 @@ class flux1Training:
                         info="Cache text encoder outputs to disk to speed up inference",
                         interactive=True,
                     )
+                with gr.Row():
+                    self.split_mode = gr.Checkbox(
+                        label="Split Mode",
+                        value=self.config.get("flux1.split_mode", False),
+                        info="Split mode for Flux1",
+                        interactive=True,
+                    )
+                    self.train_blocks = gr.Dropdown(
+                        label="Train Blocks",
+                        choices=["all", "double", "single"],
+                        value=self.config.get("flux1.train_blocks", "all"),
+                        interactive=True,
+                    )
+                    self.t5xxl_max_token_length =  gr.Number(
+                        label="T5-XXL Max Token Length",
+                        value=self.config.get("flux1.t5xxl_max_token_length", 512),
+                        info="Max token length for T5-XXL",
+                        minimum=0,
+                        maximum=4096,
+                        step=1,
+                        interactive=True,
+                    )
 
                 self.flux1_checkbox.change(
                     lambda flux1_checkbox: gr.Accordion(visible=flux1_checkbox),

@@ -248,6 +248,9 @@ def save_configuration(
     discrete_flow_shift,
     model_prediction_type,
     timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -467,6 +470,9 @@ def open_configuration(
     discrete_flow_shift,
     model_prediction_type,
     timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -717,6 +723,9 @@ def train_model(
     discrete_flow_shift,
     model_prediction_type,
     timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1228,7 +1237,7 @@ def train_model(
         "max_bucket_reso": max_bucket_reso,
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": int(max_token_length),
+        "max_token_length": int(max_token_length) if not flux1_checkbox else None,
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1325,6 +1334,9 @@ def train_model(
         "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
+        "split_mode": split_mode if flux1_checkbox else None,
+        "train_blocks": train_blocks if flux1_checkbox else None,
+        "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -2468,6 +2480,9 @@ def lora_tab(
             flux1_training.discrete_flow_shift,
             flux1_training.model_prediction_type,
             flux1_training.timestep_sampling,
+            flux1_training.split_mode,
+            flux1_training.train_blocks,
+            flux1_training.t5xxl_max_token_length,
         ]
 
         configuration.button_open_config.click(
