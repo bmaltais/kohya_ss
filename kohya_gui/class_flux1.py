@@ -241,6 +241,15 @@ class flux1Training:
                         value=self.config.get("flux1.train_blocks", "all"),
                         interactive=True,
                     )
+                    self.guidance_scale = gr.Number(
+                        label="Guidance Scale",
+                        value=self.config.get("flux1.guidance_scale", 3.5),
+                        info="Guidance scale for Flux1",
+                        minimum=0,
+                        maximum=1024,
+                        step=.1,
+                        interactive=True,
+                    )
                     self.t5xxl_max_token_length =  gr.Number(
                         label="T5-XXL Max Token Length",
                         value=self.config.get("flux1.t5xxl_max_token_length", 512),
