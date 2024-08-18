@@ -1010,7 +1010,7 @@ def train_model(
         "mode_scale": mode_scale if sd3_checkbox else None,
         "save_clip": save_clip if sd3_checkbox else None,
         "save_t5xxl": save_t5xxl if sd3_checkbox else None,
-        "t5xxl": t5xxl if sd3_checkbox else None,
+        # "t5xxl": see previous assignment above for code
         "t5xxl_device": t5xxl_device if sd3_checkbox else None,
         "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
         "text_encoder_batch_size": sd3_text_encoder_batch_size if sd3_checkbox else None,
