@@ -1340,7 +1340,7 @@ def train_model(
         "split_mode": split_mode if flux1_checkbox else None,
         "train_blocks": train_blocks if flux1_checkbox else None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
-        "guidance_scale": guidance_scale if flux1_checkbox else None,
+        "guidance_scale": float(guidance_scale) if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
