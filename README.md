@@ -475,4 +475,6 @@ To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.
 
 ## Change History
 
-See release information.
+Added support for SD3 (Dreambooth and Finetuning) and Flux.1 (Dreambooth, LoRA and Finetuning).
+
+See <https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md> for more details.
