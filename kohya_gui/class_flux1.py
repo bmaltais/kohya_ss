@@ -1,29 +1,12 @@
 import gradio as gr
 from typing import Tuple
 from .common_gui import (
-    get_folder_path,
     get_any_file_path,
-    list_files,
-    list_dirs,
-    create_refresh_button,
     document_symbol,
 )
 
 
 class flux1Training:
-    """
-    This class configures and initializes the advanced training settings for a machine learning model,
-    including options for headless operation, fine-tuning, training type selection, and default directory paths.
-
-    Attributes:
-        headless (bool): If True, run without the Gradio interface.
-        finetuning (bool): If True, enables fine-tuning of the model.
-        training_type (str): Specifies the type of training to perform.
-        no_token_padding (gr.Checkbox): Checkbox to disable token padding.
-        gradient_accumulation_steps (gr.Slider): Slider to set the number of gradient accumulation steps.
-        weighted_captions (gr.Checkbox): Checkbox to enable weighted captions.
-    """
-
     def __init__(
         self,
         headless: bool = False,
@@ -32,15 +15,6 @@ class flux1Training:
         config: dict = {},
         flux1_checkbox: gr.Checkbox = False,
     ) -> None:
-        """
-        Initializes the AdvancedTraining class with given settings.
-
-        Parameters:
-            headless (bool): Run in headless mode without GUI.
-            finetuning (bool): Enable model fine-tuning.
-            training_type (str): The type of training to be performed.
-            config (dict): Configuration options for the training process.
-        """
         self.headless = headless
         self.finetuning = finetuning
         self.training_type = training_type
@@ -51,15 +25,6 @@ class flux1Training:
         def noise_offset_type_change(
             noise_offset_type: str,
         ) -> Tuple[gr.Group, gr.Group]:
-            """
-            Returns a tuple of Gradio Groups with visibility set based on the noise offset type.
-
-            Parameters:
-                noise_offset_type (str): The selected noise offset type.
-
-            Returns:
-                Tuple[gr.Group, gr.Group]: A tuple containing two Gradio Group elements with their visibility set.
-            """
             if noise_offset_type == "Original":
                 return (gr.Group(visible=True), gr.Group(visible=False))
             else:
@@ -69,30 +34,6 @@ class flux1Training:
             "Flux.1", open=True, elem_id="flux1_tab", visible=False
         ) as flux1_accordion:
             with gr.Group():
-                # gr.Markdown("### Flux.1 Specific Parameters")
-                # with gr.Row():
-                #     self.weighting_scheme = gr.Dropdown(
-                #         label="Weighting Scheme",
-                #         choices=["logit_normal", "sigma_sqrt", "mode", "cosmap"],
-                #         value=self.config.get("flux1.weighting_scheme", "logit_normal"),
-                #         interactive=True,
-                #     )
-                #     self.logit_mean = gr.Number(
-                #         label="Logit Mean",
-                #         value=self.config.get("flux1.logit_mean", 0.0),
-                #         interactive=True,
-                #     )
-                #     self.logit_std = gr.Number(
-                #         label="Logit Std",
-                #         value=self.config.get("flux1.logit_std", 1.0),
-                #         interactive=True,
-                #     )
-                #     self.mode_scale = gr.Number(
-                #         label="Mode Scale",
-                #         value=self.config.get("flux1.mode_scale", 1.29),
-                #         interactive=True,
-                #     )
-
                 with gr.Row():
                     self.ae = gr.Textbox(
                         label="VAE Path",
@@ -130,24 +71,6 @@ class flux1Training:
                         show_progress=False,
                     )
 
-                    # self.clip_g = gr.Textbox(
-                    #     label="CLIP-G Path",
-                    #     placeholder="Path to CLIP-G model",
-                    #     value=self.config.get("flux1.clip_g", ""),
-                    #     interactive=True,
-                    # )
-                    # self.clip_g_button = gr.Button(
-                    #     document_symbol,
-                    #     elem_id="open_folder_small",
-                    #     visible=(not headless),
-                    #     interactive=True,
-                    # )
-                    # self.clip_g_button.click(
-                    #     get_any_file_path,
-                    #     outputs=self.clip_g,
-                    #     show_progress=False,
-                    # )
-
                     self.t5xxl = gr.Textbox(
                         label="T5-XXL Path",
                         placeholder="Path to T5-XXL model",
@@ -166,31 +89,7 @@ class flux1Training:
                         show_progress=False,
                     )
 
-                # with gr.Row():
-                #     self.save_clip = gr.Checkbox(
-                #         label="Save CLIP models",
-                #         value=self.config.get("flux1.save_clip", False),
-                #         interactive=True,
-                #     )
-                #     self.save_t5xxl = gr.Checkbox(
-                #         label="Save T5-XXL model",
-                #         value=self.config.get("flux1.save_t5xxl", False),
-                #         interactive=True,
-                #     )
-
                 with gr.Row():
-                    # self.t5xxl_device = gr.Textbox(
-                    #     label="T5-XXL Device",
-                    #     placeholder="Device for T5-XXL (e.g., cuda:0)",
-                    #     value=self.config.get("flux1.t5xxl_device", ""),
-                    #     interactive=True,
-                    # )
-                    # self.t5xxl_dtype = gr.Dropdown(
-                    #     label="T5-XXL Dtype",
-                    #     choices=["float32", "fp16", "bf16"],
-                    #     value=self.config.get("flux1.t5xxl_dtype", "bf16"),
-                    #     interactive=True,
-                    # )
                     
                     self.discrete_flow_shift = gr.Number(
                         label="Discrete Flow Shift",
@@ -256,6 +155,37 @@ class flux1Training:
                         info="Max token length for T5-XXL",
                         minimum=0,
                         maximum=4096,
+                        step=1,
+                        interactive=True,
+                    )
+                with gr.Row(visible=True if finetuning else False):
+                    self.blockwise_fused_optimizer = gr.Checkbox(
+                        label="Blockwise Fused Optimizer",
+                        value=self.config.get("flux1.blockwise_fused_optimizer", False),
+                        info="Enable blockwise optimizers for fused backward pass and optimizer step",
+                        interactive=True,
+                    )
+                    self.cpu_offload_checkpointing = gr.Checkbox(
+                        label="CPU Offload Checkpointing",
+                        value=self.config.get("flux1.cpu_offload_checkpointing", False),
+                        info="[Experimental] Enable offloading of tensors to CPU during checkpointing",
+                        interactive=True,
+                    )
+                    self.single_blocks_to_swap = gr.Slider(
+                        label="Single Blocks to swap",
+                        value=self.config.get("flux1.single_blocks_to_swap", 0),
+                        info="[Experimental] Sets the number of 'single_blocks' (~320MB) to swap during the forward and backward passes.",
+                        minimum=0,
+                        maximum=19,
+                        step=1,
+                        interactive=True,
+                    )
+                    self.double_blocks_to_swap = gr.Slider(
+                        label="Double Blocks to swap",
+                        value=self.config.get("flux1.double_blocks_to_swap", 0),
+                        info="[Experimental] Sets the number of 'double_blocks' (~640MB) to swap during the forward and backward passes.",
+                        minimum=0,
+                        maximum=38,
                         step=1,
                         interactive=True,
                     )

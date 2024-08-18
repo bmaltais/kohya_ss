@@ -1603,14 +1603,10 @@ def lora_tab(
                             minimum=0,
                             maximum=128,
                         )
-
                     # Add SDXL Parameters
                     sdxl_params = SDXLParameters(
                         source_model.sdxl_checkbox, config=config
                     )
-                    
-                    # Add FLUX1 Parameters
-                    flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox)
 
                     # LyCORIS Specific parameters
                     with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
@@ -2194,6 +2190,10 @@ def lora_tab(
                                 results.append(settings["gr_type"](**update_params))
 
                             return tuple(results)
+                    
+            with gr.Group():
+                # Add FLUX1 Parameters
+                flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox)
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 # with gr.Accordion('Advanced Configuration', open=False):

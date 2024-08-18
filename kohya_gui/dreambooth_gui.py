@@ -33,6 +33,7 @@ from .class_command_executor import CommandExecutor
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_sdxl_parameters import SDXLParameters
+from .class_flux1 import flux1Training
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -62,6 +63,7 @@ def save_configuration(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -204,6 +206,24 @@ def save_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizer,
+    cpu_offload_checkpointing,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -244,6 +264,7 @@ def open_configuration(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -386,6 +407,24 @@ def open_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizer,
+    cpu_offload_checkpointing,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -421,6 +460,7 @@ def train_model(
     v2,
     v_parameterization,
     sdxl,
+    flux1_checkbox,
     logging_dir,
     train_data_dir,
     reg_data_dir,
@@ -563,6 +603,24 @@ def train_model(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizer,
+    cpu_offload_checkpointing,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -779,12 +837,14 @@ def train_model(
         run_cmd.append(rf'{scriptdir}/sd-scripts/sdxl_train.py')
     elif sd3_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train.py")
+    elif flux1_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_db.py")
     
-    cache_text_encoder_outputs = (sdxl and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+    cache_text_encoder_outputs = (sdxl and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs) or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+    cache_text_encoder_outputs_to_disk = (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl and sdxl_no_half_vae
-
     if max_data_loader_n_workers == "" or None:
         max_data_loader_n_workers = 0
     else:
@@ -811,9 +871,11 @@ def train_model(
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
         "cache_text_encoder_outputs": cache_text_encoder_outputs,
+        "cache_text_encoder_outputs_to_disk": cache_text_encoder_outputs_to_disk,
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
+        "clip_l": flux1_clip_l if flux1_checkbox else clip_l if sd3_checkbox else None,
         "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
@@ -924,6 +986,7 @@ def train_model(
         "stop_text_encoder_training": (
             stop_text_encoder_training if stop_text_encoder_training != 0 else None
         ),
+        "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
         "train_text_encoder": train_text_encoder if sdxl else None,
@@ -938,10 +1001,10 @@ def train_model(
         "xformers": True if xformers == "xformers" else None,
         
         # SD3 only Parameters
-        # "cache_text_encoder_outputs": cache_text_encoder_outputs if sd3_checkbox else None,
-        "cache_text_encoder_outputs_to_disk": sd3_cache_text_encoder_outputs_to_disk if sd3_checkbox else None,
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
         "clip_g": clip_g if sd3_checkbox else None,
-        "clip_l": clip_l if sd3_checkbox else None,
+        # "clip_l": see previous assignment above for code
         "logit_mean": logit_mean if sd3_checkbox else None,
         "logit_std": logit_std if sd3_checkbox else None,
         "mode_scale": mode_scale if sd3_checkbox else None,
@@ -952,6 +1015,24 @@ def train_model(
         "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
         "text_encoder_batch_size": sd3_text_encoder_batch_size if sd3_checkbox else None,
         "weighting_scheme": weighting_scheme if sd3_checkbox else None,
+        
+        # Flux.1 specific parameters
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
+        "ae": ae if flux1_checkbox else None,
+        # "clip_l": see previous assignment above for code
+        # "t5xxl": see previous assignment above for code
+        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
+        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
+        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
+        "split_mode": split_mode if flux1_checkbox else None,
+        "train_blocks": train_blocks if flux1_checkbox else None,
+        "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
+        "guidance_scale": guidance_scale if flux1_checkbox else None,
+        "blockwise_fused_optimizer": blockwise_fused_optimizer if flux1_checkbox else None,
+        "cpu_offload_checkpointing": cpu_offload_checkpointing if flux1_checkbox else None,
+        "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
+        "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -1089,6 +1170,9 @@ def dreambooth_tab(
             sdxl_params = SDXLParameters(
                 source_model.sdxl_checkbox, config=config, trainer="finetune",
             )
+                    
+            # Add FLUX1 Parameters
+            flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox, finetuning=True)
 
             # Add SD3 Parameters
             sd3_training = sd3Training(headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox)
@@ -1123,6 +1207,7 @@ def dreambooth_tab(
             source_model.v2,
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
+            source_model.flux1_checkbox,
             folders.logging_dir,
             source_model.train_data_dir,
             folders.reg_data_dir,
@@ -1264,6 +1349,24 @@ def dreambooth_tab(
             sd3_training.sd3_text_encoder_batch_size,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
+            
+            # Flux1 parameters
+            flux1_training.flux1_cache_text_encoder_outputs,
+            flux1_training.flux1_cache_text_encoder_outputs_to_disk,
+            flux1_training.ae,
+            flux1_training.clip_l,
+            flux1_training.t5xxl,
+            flux1_training.discrete_flow_shift,
+            flux1_training.model_prediction_type,
+            flux1_training.timestep_sampling,
+            flux1_training.split_mode,
+            flux1_training.train_blocks,
+            flux1_training.t5xxl_max_token_length,
+            flux1_training.guidance_scale,
+            flux1_training.blockwise_fused_optimizer,
+            flux1_training.cpu_offload_checkpointing,
+            flux1_training.single_blocks_to_swap,
+            flux1_training.double_blocks_to_swap,
         ]
 
         configuration.button_open_config.click(
