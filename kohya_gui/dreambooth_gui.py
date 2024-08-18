@@ -1034,6 +1034,7 @@ def train_model(
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": guidance_scale if flux1_checkbox else None,
         "blockwise_fused_optimizer": blockwise_fused_optimizer if flux1_checkbox else None,
+        "blockwise_fused_optimizers": blockwise_fused_optimizer if flux1_checkbox else None, # temporary fix for flux1 sd-scripts bug
         "cpu_offload_checkpointing": cpu_offload_checkpointing if flux1_checkbox else None,
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,

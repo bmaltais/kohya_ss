@@ -1334,7 +1334,7 @@ def train_model(
         "ae": ae if flux1_checkbox else None,
         "clip_l": clip_l if flux1_checkbox else None,
         "t5xxl": t5xxl if flux1_checkbox else None,
-        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
+        "discrete_flow_shift": float(discrete_flow_shift) if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
         "split_mode": split_mode if flux1_checkbox else None,
