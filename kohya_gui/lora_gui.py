@@ -252,6 +252,7 @@ def save_configuration(
     train_blocks,
     t5xxl_max_token_length,
     guidance_scale,
+    mem_eff_save,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -475,6 +476,7 @@ def open_configuration(
     train_blocks,
     t5xxl_max_token_length,
     guidance_scale,
+    mem_eff_save,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -729,6 +731,7 @@ def train_model(
     train_blocks,
     t5xxl_max_token_length,
     guidance_scale,
+    mem_eff_save,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1341,6 +1344,7 @@ def train_model(
         "train_blocks": train_blocks if flux1_checkbox else None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": float(guidance_scale) if flux1_checkbox else None,
+        "mem_eff_save": mem_eff_save if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -2488,6 +2492,7 @@ def lora_tab(
             flux1_training.train_blocks,
             flux1_training.t5xxl_max_token_length,
             flux1_training.guidance_scale,
+            flux1_training.mem_eff_save,
         ]
 
         configuration.button_open_config.click(

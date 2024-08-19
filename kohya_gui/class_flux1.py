@@ -158,6 +158,12 @@ class flux1Training:
                         step=1,
                         interactive=True,
                     )
+                    self.mem_eff_save = gr.Checkbox(
+                        label="Memory Efficient Save",
+                        value=self.config.get("flux1.mem_eff_save", False),
+                        info="[Experimentsl] Enable memory efficient save. We do not recommend using it unless you are familiar with the code.",
+                        interactive=True,
+                    )
                 with gr.Row(visible=True if finetuning else False):
                     self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",
