@@ -159,9 +159,9 @@ class flux1Training:
                         interactive=True,
                     )
                 with gr.Row(visible=True if finetuning else False):
-                    self.blockwise_fused_optimizer = gr.Checkbox(
+                    self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",
-                        value=self.config.get("flux1.blockwise_fused_optimizer", False),
+                        value=self.config.get("flux1.blockwise_fused_optimizers", False),
                         info="Enable blockwise optimizers for fused backward pass and optimizer step",
                         interactive=True,
                     )
