@@ -8,6 +8,7 @@ from .convert_lcm_gui import gradio_convert_lcm_tab
 from .extract_lycoris_locon_gui import gradio_extract_lycoris_locon_tab
 from .extract_lora_from_dylora_gui import gradio_extract_dylora_tab
 from .merge_lycoris_gui import gradio_merge_lycoris_tab
+from .flux_merge_lora_gui import GradioFluxMergeLoRaTab
 
 
 class LoRATools:
@@ -25,3 +26,4 @@ class LoRATools:
         gradio_svd_merge_lora_tab(headless=headless)
         gradio_resize_lora_tab(headless=headless)
         gradio_verify_lora_tab(headless=headless)
+        GradioFluxMergeLoRaTab(headless=headless)
