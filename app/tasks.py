@@ -923,7 +923,7 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
             _train_model(
                 headless=False,
                 print_only=False,
-                pretrained_model_name_or_path=db_model.baseModel,
+                pretrained_model_name_or_path=f"/workspace/storage/stable_diffusion/models/ckpt/{db_model.baseModel}",
                 v2=False,
                 v_parameterization=False,
                 sdxl=True,
