@@ -360,6 +360,7 @@ class GradioFluxMergeLoRaTab:
                 concat = gr.Checkbox(label="Concat LoRA", value=False)
                 shuffle = gr.Checkbox(label="Shuffle LoRA weights", value=False)
                 no_metadata = gr.Checkbox(label="Don't save metadata", value=False)
+                diffusers  = gr.Checkbox(label="Diffusers LoRA", value=False)
 
             merge_button = gr.Button("Merge model")
 
@@ -383,6 +384,7 @@ class GradioFluxMergeLoRaTab:
                     concat,
                     shuffle,
                     no_metadata,
+                    diffusers,
                 ],
                 show_progress=False,
             )
@@ -406,6 +408,7 @@ class GradioFluxMergeLoRaTab:
         concat,
         shuffle,
         no_metadata,
+        difffusers,
     ):
         log.info("Merge FLUX LoRA...")
         models = [
@@ -452,6 +455,8 @@ class GradioFluxMergeLoRaTab:
             run_cmd.append("--shuffle")
         if no_metadata:
             run_cmd.append("--no_metadata")
+        if difffusers:
+            run_cmd.append("--diffusers")
 
         env = setup_environment()
 
