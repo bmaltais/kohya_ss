@@ -1,3 +1,4 @@
+from http.client import HTTPException
 import os
 import asyncio
 from typing import Callable
@@ -70,6 +71,20 @@ def create_and_train_model(
     task = train_lora_model.delay(db_model.to_dict())
 
     return db_model
+
+@app.post("/model/train/{model_id}")
+def train_model(
+    model_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    lora_model = db.query(models.LoraModel).filter_by(id=model_id).first()
+    if not lora_model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    lora_model.status = models.LoraModelStatus.PENDING
+    db.commit()
+    db.refresh(lora_model)
+
+    task = train_lora_model.delay(lora_model.to_dict())
+    return {"message": f"Training for model {model_id} started in the background"}
 
 
 @app.post("/model/{model_id}/download")

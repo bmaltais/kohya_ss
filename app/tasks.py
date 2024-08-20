@@ -899,6 +899,7 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
         db_model = database.query(LoraModel).filter_by(id=model_data["id"]).first()
 
         model_root_dir = rf"{PROJECT_DIR}/{db_model.userId}/{db_model.id}"
+        os.makedirs(model_root_dir, exist_ok=True)
         if db_model:
             # 2. Update the status to "training"
             db_model.status = LoraModelStatus.TRAINING
