@@ -112,19 +112,10 @@ class flux1Training:
                         value=self.config.get("flux1.timestep_sampling", "sigma"),
                         interactive=True,
                     )
-                    
-                    self.flux1_cache_text_encoder_outputs = gr.Checkbox(
-                        label="Cache Text Encoder Outputs",
-                        value=self.config.get("flux1.cache_text_encoder_outputs", False),
-                        info="Cache text encoder outputs to speed up inference",
-                        interactive=True,
-                    )
-                    self.flux1_cache_text_encoder_outputs_to_disk = gr.Checkbox(
-                        label="Cache Text Encoder Outputs to Disk",
-                        value=self.config.get(
-                            "flux1.cache_text_encoder_outputs_to_disk", False
-                        ),
-                        info="Cache text encoder outputs to disk to speed up inference",
+                    self.apply_t5_attn_mask = gr.Checkbox(
+                        label="Apply T5 Attention Mask",
+                        value=self.config.get("flux1.apply_t5_attn_mask", False),
+                        info="Apply attention mask to T5-XXL encode and FLUX double blocks ",
                         interactive=True,
                     )
                 with gr.Row():
@@ -158,12 +149,29 @@ class flux1Training:
                         step=1,
                         interactive=True,
                     )
+                    
+                with gr.Row():
+                    self.flux1_cache_text_encoder_outputs = gr.Checkbox(
+                        label="Cache Text Encoder Outputs",
+                        value=self.config.get("flux1.cache_text_encoder_outputs", False),
+                        info="Cache text encoder outputs to speed up inference",
+                        interactive=True,
+                    )
+                    self.flux1_cache_text_encoder_outputs_to_disk = gr.Checkbox(
+                        label="Cache Text Encoder Outputs to Disk",
+                        value=self.config.get(
+                            "flux1.cache_text_encoder_outputs_to_disk", False
+                        ),
+                        info="Cache text encoder outputs to disk to speed up inference",
+                        interactive=True,
+                    )
                     self.mem_eff_save = gr.Checkbox(
                         label="Memory Efficient Save",
                         value=self.config.get("flux1.mem_eff_save", False),
                         info="[Experimentsl] Enable memory efficient save. We do not recommend using it unless you are familiar with the code.",
                         interactive=True,
                     )
+                    
                 with gr.Row(visible=True if finetuning else False):
                     self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",

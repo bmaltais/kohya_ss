@@ -18,8 +18,11 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_file_path, validate_folder_path, validate_model_path,
-    validate_args_setting, setup_environment,
+    validate_file_path,
+    validate_folder_path,
+    validate_model_path,
+    validate_args_setting,
+    setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -197,7 +200,6 @@ def save_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
-    
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
@@ -214,7 +216,6 @@ def save_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
-    
     # Flux.1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
@@ -233,6 +234,7 @@ def save_configuration(
     single_blocks_to_swap,
     double_blocks_to_swap,
     mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -406,7 +408,6 @@ def open_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
-    
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
@@ -423,7 +424,6 @@ def open_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
-    
     # Flux.1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
@@ -443,6 +443,7 @@ def open_configuration(
     double_blocks_to_swap,
     mem_eff_save,
     training_preset,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -621,7 +622,6 @@ def train_model(
     metadata_license,
     metadata_tags,
     metadata_title,
-    
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
@@ -638,7 +638,6 @@ def train_model(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
-    
     # Flux.1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
@@ -657,6 +656,7 @@ def train_model(
     single_blocks_to_swap,
     double_blocks_to_swap,
     mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -689,33 +689,37 @@ def train_model(
 
     #
     # Validate paths
-    # 
-    
+    #
+
     if not validate_file_path(dataset_config):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(image_folder):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        logging_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        output_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
-    
+
     #
     # End of path validation
     #
-    
+
     # if not validate_paths(
     #     dataset_config=dataset_config,
     #     finetune_image_folder=image_folder,
@@ -869,7 +873,7 @@ def train_model(
         log.error("accelerate not found")
         return TRAIN_BUTTON_VISIBLE
 
-    run_cmd = [rf'{accelerate_path}', "launch"]
+    run_cmd = [rf"{accelerate_path}", "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -901,8 +905,14 @@ def train_model(
         if use_latent_files == "Yes"
         else f"{train_dir}/{caption_metadata_filename}"
     )
-    cache_text_encoder_outputs = (sdxl_checkbox and sdxl_cache_text_encoder_outputs) or (sd3_checkbox and sd3_cache_text_encoder_outputs) or (flux1_checkbox and flux1_cache_text_encoder_outputs)
-    cache_text_encoder_outputs_to_disk = (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+    cache_text_encoder_outputs = (
+        (sdxl_checkbox and sdxl_cache_text_encoder_outputs)
+        or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+        or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+    )
+    cache_text_encoder_outputs_to_disk = (
+        sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
+    ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     if max_data_loader_n_workers == "" or None:
@@ -945,7 +955,9 @@ def train_model(
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
         "fused_backward_pass": fused_backward_pass,
-        "fused_optimizer_groups": int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None,
+        "fused_optimizer_groups": (
+            int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None
+        ),
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
@@ -1052,7 +1064,6 @@ def train_model(
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
-        
         # SD3 only Parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
@@ -1066,9 +1077,10 @@ def train_model(
         # "t5xxl": see previous assignment above for code
         "t5xxl_device": t5xxl_device if sd3_checkbox else None,
         "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
-        "text_encoder_batch_size": sd3_text_encoder_batch_size if sd3_checkbox else None,
+        "text_encoder_batch_size": (
+            sd3_text_encoder_batch_size if sd3_checkbox else None
+        ),
         "weighting_scheme": weighting_scheme if sd3_checkbox else None,
-        
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
@@ -1082,11 +1094,16 @@ def train_model(
         "train_blocks": train_blocks if flux1_checkbox else None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": guidance_scale if flux1_checkbox else None,
-        "blockwise_fused_optimizers": blockwise_fused_optimizers if flux1_checkbox else None,
-        "cpu_offload_checkpointing": cpu_offload_checkpointing if flux1_checkbox else None,
+        "blockwise_fused_optimizers": (
+            blockwise_fused_optimizers if flux1_checkbox else None
+        ),
+        "cpu_offload_checkpointing": (
+            cpu_offload_checkpointing if flux1_checkbox else None
+        ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
+        "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -1104,7 +1121,7 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = fr"{output_dir}/config_finetune-{formatted_datetime}.toml"
+    tmpfilename = rf"{output_dir}/config_finetune-{formatted_datetime}.toml"
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
@@ -1270,7 +1287,9 @@ def finetune_tab(
 
                     # Add SDXL Parameters
                     sdxl_params = SDXLParameters(
-                        source_model.sdxl_checkbox, config=config, trainer="finetune",
+                        source_model.sdxl_checkbox,
+                        config=config,
+                        trainer="finetune",
                     )
 
                     with gr.Row():
@@ -1278,12 +1297,19 @@ def finetune_tab(
                         train_text_encoder = gr.Checkbox(
                             label="Train text encoder", value=True
                         )
-                    
+
             # Add FLUX1 Parameters
-            flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox, finetuning=True)
-                        
+            flux1_training = flux1Training(
+                headless=headless,
+                config=config,
+                flux1_checkbox=source_model.flux1_checkbox,
+                finetuning=True,
+            )
+
             # Add SD3 Parameters
-            sd3_training = sd3Training(headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox)
+            sd3_training = sd3Training(
+                headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
@@ -1461,7 +1487,6 @@ def finetune_tab(
             metadata.metadata_license,
             metadata.metadata_tags,
             metadata.metadata_title,
-            
             # SD3 Parameters
             sd3_training.sd3_cache_text_encoder_outputs,
             sd3_training.sd3_cache_text_encoder_outputs_to_disk,
@@ -1478,7 +1503,6 @@ def finetune_tab(
             sd3_training.sd3_text_encoder_batch_size,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
-            
             # Flux1 parameters
             flux1_training.flux1_cache_text_encoder_outputs,
             flux1_training.flux1_cache_text_encoder_outputs_to_disk,
@@ -1497,6 +1521,7 @@ def finetune_tab(
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
             flux1_training.mem_eff_save,
+            flux1_training.apply_t5_attn_mask,
         ]
 
         configuration.button_open_config.click(

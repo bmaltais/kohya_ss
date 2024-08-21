@@ -19,8 +19,12 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_file_path, validate_folder_path, validate_model_path, validate_toml_file,
-    validate_args_setting, setup_environment,
+    validate_file_path,
+    validate_folder_path,
+    validate_model_path,
+    validate_toml_file,
+    validate_args_setting,
+    setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -239,7 +243,7 @@ def save_configuration(
     loraplus_lr_ratio,
     loraplus_text_encoder_lr_ratio,
     loraplus_unet_lr_ratio,
-    #Flux1
+    # Flux1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
     ae,
@@ -253,6 +257,7 @@ def save_configuration(
     t5xxl_max_token_length,
     guidance_scale,
     mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -477,6 +482,7 @@ def open_configuration(
     t5xxl_max_token_length,
     guidance_scale,
     mem_eff_save,
+    apply_t5_attn_mask,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -732,6 +738,7 @@ def train_model(
     t5xxl_max_token_length,
     guidance_scale,
     mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -759,42 +766,46 @@ def train_model(
 
     #
     # Validate paths
-    # 
-    
+    #
+
     if not validate_file_path(dataset_config):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        logging_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if LyCORIS_preset not in LYCORIS_PRESETS_CHOICES:
         if not validate_toml_file(LyCORIS_preset):
             return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_file_path(network_weights):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        output_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(reg_data_dir):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(train_data_dir):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
-    
+
     #
     # End of path validation
     #
@@ -985,7 +996,7 @@ def train_model(
         log.error("accelerate not found")
         return TRAIN_BUTTON_VISIBLE
 
-    run_cmd = [rf'{accelerate_path}', "launch"]
+    run_cmd = [rf"{accelerate_path}", "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -1060,6 +1071,7 @@ def train_model(
             "conv_block_alphas",
             "rank_dropout",
             "module_dropout",
+            "train_blocks",
         ]
         network_module = "networks.lora_flux"
         kohya_lora_vars = {
@@ -1067,11 +1079,16 @@ def train_model(
             for key, value in vars().items()
             if key in kohya_lora_var_list and value
         }
-
+        if split_mode:
+            if train_blocks != "single":
+                log.warning(
+                    f"train_blocks is currently set to '{train_blocks}'. split_mode is enabled, forcing train_blocks to 'single'."
+                )
+            kohya_lora_vars["train_blocks"] = "single"
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f" {key}={value}"
-                
+
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
             "down_lr_weight",
@@ -1091,7 +1108,7 @@ def train_model(
             for key, value in vars().items()
             if key in kohya_lora_var_list and value
         }
-        
+
         # Not sure if Flux1 is Standard... or LoCon style... flip a coin... going for LoCon style...
         if LoRA_type in ["Kohya LoCon"]:
             network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
@@ -1175,13 +1192,15 @@ def train_model(
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
-    
+
     if text_encoder_lr_float != 0 or unet_lr_float != 0:
         do_not_set_learning_rate = True
-        
+
     config_toml_data = {
         "adaptive_noise_scale": (
-            adaptive_noise_scale if (adaptive_noise_scale != 0 and noise_offset_type == "Original") else None
+            adaptive_noise_scale
+            if (adaptive_noise_scale != 0 and noise_offset_type == "Original")
+            else None
         ),
         "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
@@ -1189,7 +1208,10 @@ def train_model(
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
         "cache_text_encoder_outputs": (
-            True if (sdxl and sdxl_cache_text_encoder_outputs) or (flux1_checkbox and flux1_cache_text_encoder_outputs) else None
+            True
+            if (sdxl and sdxl_cache_text_encoder_outputs)
+            or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+            else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
@@ -1225,7 +1247,9 @@ def train_model(
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
         "loraplus_lr_ratio": loraplus_lr_ratio if not 0 else None,
-        "loraplus_text_encoder_lr_ratio": loraplus_text_encoder_lr_ratio if not 0 else None,
+        "loraplus_text_encoder_lr_ratio": (
+            loraplus_text_encoder_lr_ratio if not 0 else None
+        ),
         "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if not 0 else None,
         "loss_type": loss_type,
         "lowvram": lowvram,
@@ -1258,9 +1282,13 @@ def train_model(
         "min_snr_gamma": min_snr_gamma if min_snr_gamma != 0 else None,
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
-        "multires_noise_discount": multires_noise_discount if noise_offset_type == "Multires" else None,
+        "multires_noise_discount": (
+            multires_noise_discount if noise_offset_type == "Multires" else None
+        ),
         "multires_noise_iterations": (
-            multires_noise_iterations if (multires_noise_iterations != 0 and noise_offset_type == "Multires") else None
+            multires_noise_iterations
+            if (multires_noise_iterations != 0 and noise_offset_type == "Multires")
+            else None
         ),
         "network_alpha": network_alpha,
         "network_args": str(network_args).replace('"', "").split(),
@@ -1271,11 +1299,21 @@ def train_model(
         "network_train_text_encoder_only": network_train_text_encoder_only,
         "network_weights": network_weights,
         "no_half_vae": True if sdxl and sdxl_no_half_vae else None,
-        "noise_offset": noise_offset if (noise_offset != 0 and noise_offset_type == "Original") else None,
-        "noise_offset_random_strength": noise_offset_random_strength if noise_offset_type == "Original" else None,
+        "noise_offset": (
+            noise_offset
+            if (noise_offset != 0 and noise_offset_type == "Original")
+            else None
+        ),
+        "noise_offset_random_strength": (
+            noise_offset_random_strength if noise_offset_type == "Original" else None
+        ),
         "noise_offset_type": noise_offset_type,
         "optimizer_type": optimizer,
-        "optimizer_args": str(optimizer_args).replace('"', "").split() if optimizer_args != [] else None,
+        "optimizer_args": (
+            str(optimizer_args).replace('"', "").split()
+            if optimizer_args != []
+            else None
+        ),
         "output_dir": output_dir,
         "output_name": output_name,
         "persistent_data_loader_workers": int(persistent_data_loader_workers),
@@ -1330,10 +1368,11 @@ def train_model(
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
-        
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
-        "cache_text_encoder_outputs_to_disk": flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None,
+        "cache_text_encoder_outputs_to_disk": (
+            flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None
+        ),
         "ae": ae if flux1_checkbox else None,
         "clip_l": clip_l if flux1_checkbox else None,
         "t5xxl": t5xxl if flux1_checkbox else None,
@@ -1341,10 +1380,10 @@ def train_model(
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
         "split_mode": split_mode if flux1_checkbox else None,
-        "train_blocks": train_blocks if flux1_checkbox else None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": float(guidance_scale) if flux1_checkbox else None,
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
+        "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -1362,7 +1401,7 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = fr"{output_dir}/config_lora-{formatted_datetime}.toml"
+    tmpfilename = rf"{output_dir}/config_lora-{formatted_datetime}.toml"
 
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
@@ -2194,10 +2233,14 @@ def lora_tab(
                                 results.append(settings["gr_type"](**update_params))
 
                             return tuple(results)
-                    
+
             with gr.Group():
                 # Add FLUX1 Parameters
-                flux1_training = flux1Training(headless=headless, config=config, flux1_checkbox=source_model.flux1_checkbox)
+                flux1_training = flux1Training(
+                    headless=headless,
+                    config=config,
+                    flux1_checkbox=source_model.flux1_checkbox,
+                )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 # with gr.Accordion('Advanced Configuration', open=False):
@@ -2493,6 +2536,7 @@ def lora_tab(
             flux1_training.t5xxl_max_token_length,
             flux1_training.guidance_scale,
             flux1_training.mem_eff_save,
+            flux1_training.apply_t5_attn_mask,
         ]
 
         configuration.button_open_config.click(
