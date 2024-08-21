@@ -176,7 +176,7 @@ class flux1Training:
                     self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",
                         value=self.config.get("flux1.blockwise_fused_optimizers", False),
-                        info="Enable blockwise optimizers for fused backward pass and optimizer step",
+                        info="Enable blockwise optimizers for fused backward pass and optimizer step. Any optimizer can be used.",
                         interactive=True,
                     )
                     self.cpu_offload_checkpointing = gr.Checkbox(
@@ -201,6 +201,12 @@ class flux1Training:
                         minimum=0,
                         maximum=38,
                         step=1,
+                        interactive=True,
+                    )
+                    self.flux_fused_backward_pass = gr.Checkbox(
+                        label="Fused Backward Pass",
+                        value=self.config.get("flux1.fused_backward_pass", False),
+                        info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )
 

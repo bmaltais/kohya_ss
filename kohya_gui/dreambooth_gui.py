@@ -222,6 +222,7 @@ def save_configuration(
     t5xxl_max_token_length,
     guidance_scale,
     blockwise_fused_optimizers,
+    flux_fused_backward_pass,
     cpu_offload_checkpointing,
     single_blocks_to_swap,
     double_blocks_to_swap,
@@ -424,6 +425,7 @@ def open_configuration(
     t5xxl_max_token_length,
     guidance_scale,
     blockwise_fused_optimizers,
+    flux_fused_backward_pass,
     cpu_offload_checkpointing,
     single_blocks_to_swap,
     double_blocks_to_swap,
@@ -621,6 +623,7 @@ def train_model(
     t5xxl_max_token_length,
     guidance_scale,
     blockwise_fused_optimizers,
+    flux_fused_backward_pass,
     cpu_offload_checkpointing,
     single_blocks_to_swap,
     double_blocks_to_swap,
@@ -902,7 +905,7 @@ def train_model(
         "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
-        "fused_backward_pass": fused_backward_pass,
+        "fused_backward_pass": fused_backward_pass if not flux1_checkbox else flux_fused_backward_pass,
         "fused_optimizer_groups": (
             int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None
         ),
@@ -1053,6 +1056,7 @@ def train_model(
         "blockwise_fused_optimizers": (
             blockwise_fused_optimizers if flux1_checkbox else None
         ),
+        # "flux_fused_backward_pass": see previous assignment of fused_backward_pass in above code
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
@@ -1399,6 +1403,7 @@ def dreambooth_tab(
             flux1_training.t5xxl_max_token_length,
             flux1_training.guidance_scale,
             flux1_training.blockwise_fused_optimizers,
+            flux1_training.flux_fused_backward_pass,
             flux1_training.cpu_offload_checkpointing,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
