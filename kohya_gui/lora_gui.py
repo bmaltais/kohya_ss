@@ -1622,7 +1622,7 @@ def lora_tab(
                             maximum=1,
                         )
 
-                    with gr.Row():
+                    with gr.Row() as loraplus:
                         loraplus_lr_ratio = gr.Number(
                             label="LoRA+ learning rate ratio",
                             value=0,
@@ -1841,7 +1841,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -2102,7 +2101,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -2121,7 +2119,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -2143,7 +2140,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "Flux1",
                                             "LoCon",
                                             "Kohya DyLoRA",
                                             "LyCORIS/BOFT",
@@ -2164,7 +2160,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "Flux1",
                                             "LoCon",
                                             "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
@@ -2221,6 +2216,26 @@ def lora_tab(
                                             "LyCORIS/LoHa",
                                             "LyCORIS/LoKr",
                                             "LyCORIS/Native Fine-Tuning",
+                                        },
+                                    },
+                                },
+                                "loraplus": {
+                                    "gr_type": gr.Row,
+                                    "update_params": {
+                                        "visible": LoRA_type
+                                        in {
+                                            "LoCon",
+                                            "Kohya DyLoRA",
+                                            "LyCORIS/BOFT",
+                                            "LyCORIS/Diag-OFT",
+                                            "LyCORIS/GLoRA",
+                                            "LyCORIS/LoCon",
+                                            "LyCORIS/LoHa",
+                                            "LyCORIS/LoKR",
+                                            "Kohya LoCon",
+                                            "LoRA-FA",
+                                            "LyCORIS/Native Fine-Tuning",
+                                            "Standard",
                                         },
                                     },
                                 },
@@ -2342,6 +2357,7 @@ def lora_tab(
                     LyCORIS_preset,
                     unit,
                     lycoris_accordion,
+                    loraplus,
                 ],
             )
 

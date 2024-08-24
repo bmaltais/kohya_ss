@@ -118,7 +118,7 @@ class flux1Training:
                         info="Apply attention mask to T5-XXL encode and FLUX double blocks ",
                         interactive=True,
                     )
-                with gr.Row():
+                with gr.Row(visible=True if not finetuning else False):
                     self.split_mode = gr.Checkbox(
                         label="Split Mode",
                         value=self.config.get("flux1.split_mode", False),
@@ -131,6 +131,13 @@ class flux1Training:
                         value=self.config.get("flux1.train_blocks", "all"),
                         interactive=True,
                     )
+                    self.split_qkv = gr.Checkbox(
+                        label="Split QKV",
+                        value=self.config.get("flux1.split_qkv", False),
+                        info="Split the projection layers of q/k/v/txt in the attention",
+                        interactive=True,
+                    )
+                with gr.Row():
                     self.guidance_scale = gr.Number(
                         label="Guidance Scale",
                         value=self.config.get("flux1.guidance_scale", 3.5),
