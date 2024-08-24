@@ -258,6 +258,7 @@ def save_configuration(
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
+    split_qkv,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -483,6 +484,7 @@ def open_configuration(
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
+    split_qkv,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -739,6 +741,7 @@ def train_model(
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
+    split_qkv,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1085,6 +1088,9 @@ def train_model(
                     f"train_blocks is currently set to '{train_blocks}'. split_mode is enabled, forcing train_blocks to 'single'."
                 )
             kohya_lora_vars["train_blocks"] = "single"
+        if split_qkv:
+            kohya_lora_vars["split_qkv"] = True
+            
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f" {key}={value}"
@@ -2553,6 +2559,7 @@ def lora_tab(
             flux1_training.guidance_scale,
             flux1_training.mem_eff_save,
             flux1_training.apply_t5_attn_mask,
+            flux1_training.split_qkv,
         ]
 
         configuration.button_open_config.click(
