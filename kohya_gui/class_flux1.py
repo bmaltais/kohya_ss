@@ -95,7 +95,7 @@ class flux1Training:
                         label="Discrete Flow Shift",
                         value=self.config.get("flux1.discrete_flow_shift", 3.0),
                         info="Discrete flow shift for the Euler Discrete Scheduler, default is 3.0",
-                        minimum=0,
+                        minimum=-1024,
                         maximum=1024,
                         step=.01,
                         interactive=True,
@@ -108,7 +108,7 @@ class flux1Training:
                     )
                     self.timestep_sampling = gr.Dropdown(
                         label="Timestep Sampling",
-                        choices=["sigma", "uniform", "sigmoid"],
+                        choices=["sigma", "shift", "sigmoid", "uniform"],
                         value=self.config.get("flux1.timestep_sampling", "sigma"),
                         interactive=True,
                     )
