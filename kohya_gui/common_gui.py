@@ -358,6 +358,7 @@ def update_my_data(my_data):
 
     for key in [
         "max_train_steps",
+        "caption_dropout_every_n_epochs"
     ]:
         value = my_data.get(key)
         if value is not None:
