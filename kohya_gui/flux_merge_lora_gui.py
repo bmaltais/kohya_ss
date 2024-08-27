@@ -330,7 +330,7 @@ class GradioFluxMergeLoRaTab:
                 )
                 save_precision = gr.Radio(
                     label="Save precision",
-                    choices=["float", "fp16", "bf16"],
+                    choices=["float", "fp16", "bf16", "fp8"],
                     value="fp16",
                     interactive=True,
                 )
@@ -420,11 +420,11 @@ class GradioFluxMergeLoRaTab:
         lora_models = [model for model in models if model]
         ratios = [ratio for model, ratio in zip(models, [ratio_a, ratio_b, ratio_c, ratio_d]) if model]
 
-        if not verify_conditions(flux_model, lora_models):
-            log.info(
-                "Warning: Either provide at least one LoRA model along with the FLUX model or at least two LoRA models if no FLUX model is provided."
-            )
-            return
+        # if not verify_conditions(flux_model, lora_models):
+        #     log.info(
+        #         "Warning: Either provide at least one LoRA model along with the FLUX model or at least two LoRA models if no FLUX model is provided."
+        #     )
+        #     return
 
         for model in [flux_model] + lora_models:
             if not check_model(model):
