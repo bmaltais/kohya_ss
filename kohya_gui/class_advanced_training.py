@@ -233,6 +233,11 @@ class AdvancedTraining:
                 info="Use fp8 for base model",
                 value=self.config.get("advanced.fp8_base", False),
             )
+            self.fp8_base_unet  = gr.Checkbox(
+                label="fp8 base unet",
+                info="Flux can be trained with fp8, and CLIP-L can be trained with bf16/fp16.",
+                value=self.config.get("advanced.fp8_base_unet", False),
+            )
             self.full_fp16 = gr.Checkbox(
                 label="Full fp16 training (experimental)",
                 value=self.config.get("advanced.full_fp16", False),
