@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from .models import LoraModelStatus  # Import the enum
+from app.models import LoraModelStatus  # Import the enum
 
 
 class LoraModelCreate(BaseModel):

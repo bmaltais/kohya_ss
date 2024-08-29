@@ -1,16 +1,18 @@
 from datetime import datetime
+import logging
 import math
 import os
 import shutil
+import sys
 from typing import List
 import boto3
 from dotenv import load_dotenv
 import toml
+import time
+import json
 
-from kohya_ss.celery_app import app
-
-from kohya_ss.kohya_gui import dreambooth_folder_creation_gui
-from kohya_ss.kohya_gui.common_gui import (
+from kohya_gui import dreambooth_folder_creation_gui
+from kohya_gui.common_gui import (
     check_if_model_exist,
     get_executable_path,
     output_message,
@@ -25,21 +27,29 @@ from kohya_ss.kohya_gui.common_gui import (
     validate_args_setting,
     setup_environment,
 )
-from kohya_ss.kohya_gui.class_accelerate_launch import AccelerateLaunch
-from kohya_ss.kohya_gui.class_command_executor import CommandExecutor
-from kohya_ss.kohya_gui.class_sample_images import create_prompt_file
+from kohya_gui.class_accelerate_launch import AccelerateLaunch
+from kohya_gui.class_command_executor import CommandExecutor
+from kohya_gui.class_sample_images import create_prompt_file
 
-from kohya_ss.kohya_gui.custom_logging import setup_logging
-
-from .models import Image, LoraModelStatus, LoraModel
-from .database import SessionLocal
+from app.models import Image, LoraModelStatus, LoraModel
+from app.database import SessionLocal
 
 load_dotenv()
 
-PROJECT_DIR = "/workspace/data"
+PROJECT_DIR = os.environ.get("PROJECT_DIR")
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.environ.get("AWS_REGION")
+
+SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
+sqs = boto3.client(
+    "sqs",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION,
+)
+
 BUCKET_NAME = "gazai"
 s3 = boto3.client(
     "s3",
@@ -50,7 +60,11 @@ s3 = boto3.client(
 
 
 # Set up logging
-log = setup_logging()
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 # Setup command executor
 executor = None
@@ -68,7 +82,7 @@ LYCORIS_PRESETS_CHOICES = [
 def upload_model_to_s3(user_id, model_id, model_file):
     object_key = f"loras/{user_id}/{model_file.split('/')[-1]}"
     s3.upload_file(model_file, BUCKET_NAME, object_key)
-    log.info(f"Uploaded {object_key} ...")
+    logging.info(f"Uploaded {object_key} ...")
 
 
 def _folder_preparation(
@@ -273,16 +287,18 @@ def _train_model(
         executor = CommandExecutor(headless=headless)
 
     if executor.is_running():
-        log.error("Training is already running. Can't start another training session.")
+        logging.error(
+            "Training is already running. Can't start another training session."
+        )
         return
 
-    log.info(f"Start training LoRA {LoRA_type} ...")
+    logging.info(f"Start training LoRA {LoRA_type} ...")
 
-    log.info(f"Validating lr scheduler arguments...")
+    logging.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
         return
 
-    log.info(f"Validating optimizer arguments...")
+    logging.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
         return
 
@@ -387,7 +403,7 @@ def _train_model(
     #     unet_lr = 0
 
     if dataset_config:
-        log.info(
+        logging.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
         if max_train_steps > 0:
@@ -416,7 +432,7 @@ def _train_model(
 
     else:
         if train_data_dir == "":
-            log.error("Train data dir is empty")
+            logging.error("Train data dir is empty")
             return
 
         # Get a list of all subfolders in train_data_dir
@@ -433,7 +449,7 @@ def _train_model(
             try:
                 # Extract the number of repeats from the folder name
                 repeats = int(folder.split("_")[0])
-                log.info(f"Folder {folder}: {repeats} repeats found")
+                logging.info(f"Folder {folder}: {repeats} repeats found")
 
                 # Count the number of images in the folder
                 num_images = len(
@@ -447,31 +463,33 @@ def _train_model(
                     ]
                 )
 
-                log.info(f"Folder {folder}: {num_images} images found")
+                logging.info(f"Folder {folder}: {num_images} images found")
 
                 # Calculate the total number of steps for this folder
                 steps = repeats * num_images
 
-                # log.info the result
-                log.info(f"Folder {folder}: {num_images} * {repeats} = {steps} steps")
+                # logging.info the result
+                logging.info(
+                    f"Folder {folder}: {num_images} * {repeats} = {steps} steps"
+                )
 
                 total_steps += steps
 
             except ValueError:
                 # Handle the case where the folder name does not contain an underscore
-                log.info(
+                logging.info(
                     f"Error: '{folder}' does not contain an underscore, skipping..."
                 )
 
         if reg_data_dir == "":
             reg_factor = 1
         else:
-            log.warning(
-                "Regularisation images are used... Will double the number of steps required..."
+            logging.warning(
+                "Regularization images are used... Will double the number of steps required..."
             )
             reg_factor = 2
 
-        log.info(f"Regulatization factor: {reg_factor}")
+        logging.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
             # calculate max_train_steps
@@ -504,18 +522,18 @@ def _train_model(
         else:
             lr_warmup_steps = 0
 
-        log.info(f"Total steps: {total_steps}")
+        logging.info(f"Total steps: {total_steps}")
 
-    log.info(f"Train batch size: {train_batch_size}")
-    log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
-    log.info(f"Epoch: {epoch}")
-    log.info(max_train_steps_info)
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
-    log.info(f"lr_warmup_steps = {lr_warmup_steps}")
+    logging.info(f"Train batch size: {train_batch_size}")
+    logging.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
+    logging.info(f"Epoch: {epoch}")
+    logging.info(max_train_steps_info)
+    logging.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+    logging.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     accelerate_path = get_executable_path("accelerate")
     if accelerate_path == "":
-        log.error("accelerate not found")
+        logging.error("accelerate not found")
         return
 
     run_cmd = [rf"{accelerate_path}", "launch"]
@@ -849,7 +867,7 @@ def _train_model(
         toml.dump(config_toml_data, toml_file)
 
         if not os.path.exists(toml_file.name):
-            log.error(f"Failed to write TOML file: {toml_file.name}")
+            logging.error(f"Failed to write TOML file: {toml_file.name}")
 
     run_cmd.append("--config_file")
     run_cmd.append(rf"{tmpfilename}")
@@ -871,7 +889,7 @@ def _train_model(
         # config_dir = os.path.dirname(os.path.dirname(train_data_dir))
         file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
 
-        log.info(f"Saving training config to {file_path}...")
+        logging.info(f"Saving training config to {file_path}...")
 
         SaveConfigFile(
             parameters=parameters,
@@ -879,19 +897,18 @@ def _train_model(
             exclusion=["file_path", "save_as", "headless", "print_only"],
         )
 
-        # log.info(run_cmd)
+        # logging.info(run_cmd)
         env = setup_environment()
 
         # Run the command
         executor.execute_command(run_cmd=run_cmd, env=env)
         executor.wait_for_training_to_end()
 
-        log.info(f"Training completed ...")
+        logging.info(f"Training completed ...")
 
 
-@app.task(name="train_lora_model")
-def train_lora_model(model_data: dict):  # Model data as a dictionary
-    print("train_lora_model task started...")
+def train_lora_model(model_data: dict):
+    logging.info("train_lora_model task started...")
 
     try:
         # 1. Load the model from the database
@@ -907,6 +924,7 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
 
             # 3. Perform the actual model training
             training_dir_output = os.path.join(model_root_dir, "output")
+            os.makedirs(training_dir_output, exist_ok=True)
             _folder_preparation(
                 user_id=db_model.userId,
                 model_id=db_model.id,
@@ -1111,8 +1129,45 @@ def train_lora_model(model_data: dict):  # Model data as a dictionary
         if db_model:
             db_model.status = LoraModelStatus.ERROR
             database.commit()
-        print(f"Error during training: {e}")
+        logging.error(f"Error during training: {e}")
 
     finally:
         database.close()
         shutil.rmtree(model_root_dir)
+
+
+def process_message(message):
+    # Parse the message payload
+    payload = json.loads(message["Body"])
+
+    # Execute the LoRA training script
+    train_lora_model(payload)
+
+
+def main():
+    logging.info("Listening for messages...")
+    while True:
+        # Receive message from SQS queue
+        response = sqs.receive_message(
+            QueueUrl=SQS_QUEUE_URL, MaxNumberOfMessages=1, WaitTimeSeconds=20
+        )
+
+        # Check if a message was received
+        if "Messages" in response:
+            for message in response["Messages"]:
+                try:
+                    process_message(message)
+
+                    # Delete the message from the queue
+                    sqs.delete_message(
+                        QueueUrl=SQS_QUEUE_URL, ReceiptHandle=message["ReceiptHandle"]
+                    )
+                except Exception as e:
+                    logging.error(f"Error processing message: {e}")
+
+        # Optional: Add a small delay to avoid excessive polling
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()
