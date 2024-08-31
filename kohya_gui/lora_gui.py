@@ -1066,19 +1066,8 @@ def train_model(
         network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
     if LoRA_type == "Flux1":
-        kohya_lora_var_list = [
-            "down_lr_weight",
-            "mid_lr_weight",
-            "up_lr_weight",
-            "block_lr_zero_threshold",
-            "block_dims",
-            "block_alphas",
-            "conv_block_dims",
-            "conv_block_alphas",
-            "rank_dropout",
-            "module_dropout",
-            "train_blocks",
-        ]
+        # Add a list of supported network arguments for Flux1 below when supported
+        kohya_lora_var_list = []
         network_module = "networks.lora_flux"
         kohya_lora_vars = {
             key: value
