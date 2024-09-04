@@ -137,6 +137,12 @@ class flux1Training:
                         info="Split the projection layers of q/k/v/txt in the attention",
                         interactive=True,
                     )
+                    self.train_t5xxl = gr.Checkbox(
+                        label="Train T5-XXL",
+                        value=self.config.get("flux1.train_t5xxl", False),
+                        info="Train T5-XXL model",
+                        interactive=True,
+                    )
                 with gr.Row():
                     self.guidance_scale = gr.Number(
                         label="Guidance Scale",
