@@ -143,6 +143,12 @@ class flux1Training:
                         info="Train T5-XXL model",
                         interactive=True,
                     )
+                    self.cpu_offload_checkpointing = gr.Checkbox(
+                        label="CPU Offload Checkpointing",
+                        value=self.config.get("flux1.cpu_offload_checkpointing", False),
+                        info="[Experimental] Enable offloading of tensors to CPU during checkpointing",
+                        interactive=True,
+                    )
                 with gr.Row():
                     self.guidance_scale = gr.Number(
                         label="Guidance Scale",

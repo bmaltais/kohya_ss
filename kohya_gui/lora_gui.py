@@ -261,6 +261,7 @@ def save_configuration(
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
+    cpu_offload_checkpointing,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -489,6 +490,7 @@ def open_configuration(
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
+    cpu_offload_checkpointing,
     training_preset,
 ):
     # Get list of function parameters and their values
@@ -748,6 +750,7 @@ def train_model(
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
+    cpu_offload_checkpointing,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1389,6 +1392,7 @@ def train_model(
         "guidance_scale": float(guidance_scale) if flux1_checkbox else None,
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
+        "cpu_offload_checkpointing": cpu_offload_checkpointing if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -2561,6 +2565,7 @@ def lora_tab(
             flux1_training.apply_t5_attn_mask,
             flux1_training.split_qkv,
             flux1_training.train_t5xxl,
+            flux1_training.cpu_offload_checkpointing,
         ]
 
         configuration.button_open_config.click(
