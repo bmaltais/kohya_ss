@@ -31,6 +31,8 @@ s3 = boto3.client(
     config=s3_config,
 )
 
+LORA_DIR = os.environ.get("LORA_DIR")
+
 
 # Dependency
 def get_db():
@@ -55,7 +57,7 @@ def upload_model(
                 s3.download_file,
                 BUCKET_NAME,
                 object_key,
-                f"/workspace/stable-diffusion-webui/models/Lora/{object_key.split('/')[-1]}",
+                os.path.join(LORA_DIR, object_key.split("/")[-1]),
             )
             print(f"File download completed for model {model_id}")
         except Exception as e:
