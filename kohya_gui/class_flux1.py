@@ -108,7 +108,7 @@ class flux1Training:
                     )
                     self.timestep_sampling = gr.Dropdown(
                         label="Timestep Sampling",
-                        choices=["flux_shift ", "sigma", "shift", "sigmoid", "uniform"],
+                        choices=["flux_shift", "sigma", "shift", "sigmoid", "uniform"],
                         value=self.config.get("flux1.timestep_sampling", "sigma"),
                         interactive=True,
                     )
