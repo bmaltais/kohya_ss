@@ -1388,7 +1388,7 @@ def train_model(
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
         "split_mode": split_mode if flux1_checkbox else None,
-        "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
+        "t5xxl_max_token_length": int(t5xxl_max_token_length) if flux1_checkbox else None,
         "guidance_scale": float(guidance_scale) if flux1_checkbox else None,
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
