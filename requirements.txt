@@ -7,7 +7,7 @@ easygui==0.98.3
 einops==0.7.0
 fairscale==0.4.13
 ftfy==6.1.1
-gradio==4.36.1
+gradio==4.43.0
 huggingface-hub==0.20.1
 imagesize==1.4.1
 invisible-watermark==0.2.0
