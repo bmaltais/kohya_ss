@@ -836,6 +836,12 @@ def train_model(
     if not validate_args_setting(optimizer_args):
         return TRAIN_BUTTON_VISIBLE
 
+    if flux1_checkbox:
+        log.info(f"Validating lora type is Flux1 if flux1 checkbox is checked...")
+        if LoRA_type != "Flux1":
+            log.error("LoRA type must be set to Flux1 if Flux1 checkbox is checked.")
+            return TRAIN_BUTTON_VISIBLE
+
     #
     # Validate paths
     #
