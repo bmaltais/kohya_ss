@@ -1608,271 +1608,270 @@ def lora_tab(
                             json_files.append(os.path.join("user_presets", preset_name))
 
                 return json_files
-
+            
             training_preset = gr.Dropdown(
                 label="Presets",
                 choices=["none"] + list_presets(rf"{presets_dir}/lora"),
-                # elem_id="myDropdown",
                 value="none",
+                elem_classes=["preset_background"],
             )
 
-            with gr.Accordion("Basic", open="True"):
-                with gr.Group(elem_id="basic_tab"):
+            with gr.Accordion("Basic", open="True", elem_classes=["basic_background"]):
+                with gr.Row():
+                    LoRA_type = gr.Dropdown(
+                        label="LoRA type",
+                        choices=[
+                            "Flux1",
+                            "Kohya DyLoRA",
+                            "Kohya LoCon",
+                            "LoRA-FA",
+                            "LyCORIS/iA3",
+                            "LyCORIS/BOFT",
+                            "LyCORIS/Diag-OFT",
+                            "LyCORIS/DyLoRA",
+                            "LyCORIS/GLoRA",
+                            "LyCORIS/LoCon",
+                            "LyCORIS/LoHa",
+                            "LyCORIS/LoKr",
+                            "LyCORIS/Native Fine-Tuning",
+                            "Standard",
+                        ],
+                        value="Standard",
+                    )
+                    LyCORIS_preset = gr.Dropdown(
+                        label="LyCORIS Preset",
+                        choices=LYCORIS_PRESETS_CHOICES,
+                        value="full",
+                        visible=False,
+                        interactive=True,
+                        allow_custom_value=True,
+                        # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
+                    )
+                    with gr.Group():
+                        with gr.Row():
+                            network_weights = gr.Textbox(
+                                label="Network weights",
+                                placeholder="(Optional)",
+                                info="Path to an existing LoRA network weights to resume training from",
+                            )
+                            network_weights_file = gr.Button(
+                                document_symbol,
+                                elem_id="open_folder_small",
+                                elem_classes=["tool"],
+                                visible=(not headless),
+                            )
+                            network_weights_file.click(
+                                get_any_file_path,
+                                inputs=[network_weights],
+                                outputs=network_weights,
+                                show_progress=False,
+                            )
+                            dim_from_weights = gr.Checkbox(
+                                label="DIM from weights",
+                                value=False,
+                                info="Automatically determine the dim(rank) from the weight file.",
+                            )
+                basic_training = BasicTraining(
+                    learning_rate_value=0.0001,
+                    lr_scheduler_value="cosine",
+                    lr_warmup_value=10,
+                    sdxl_checkbox=source_model.sdxl_checkbox,
+                    config=config,
+                )
+
+                with gr.Row():
+                    text_encoder_lr = gr.Number(
+                        label="Text Encoder learning rate",
+                        value=0.0001,
+                        info="(Optional)",
+                        minimum=0,
+                        maximum=1,
+                    )
+
+                    unet_lr = gr.Number(
+                        label="Unet learning rate",
+                        value=0.0001,
+                        info="(Optional)",
+                        minimum=0,
+                        maximum=1,
+                    )
+
+                with gr.Row() as loraplus:
+                    loraplus_lr_ratio = gr.Number(
+                        label="LoRA+ learning rate ratio",
+                        value=0,
+                        info="(Optional) starting with 16 is suggested",
+                        minimum=0,
+                        maximum=128,
+                    )
+
+                    loraplus_unet_lr_ratio = gr.Number(
+                        label="LoRA+ Unet learning rate ratio",
+                        value=0,
+                        info="(Optional) starting with 16 is suggested",
+                        minimum=0,
+                        maximum=128,
+                    )
+
+                    loraplus_text_encoder_lr_ratio = gr.Number(
+                        label="LoRA+ Text Encoder learning rate ratio",
+                        value=0,
+                        info="(Optional) starting with 16 is suggested",
+                        minimum=0,
+                        maximum=128,
+                    )
+                # Add SDXL Parameters
+                sdxl_params = SDXLParameters(
+                    source_model.sdxl_checkbox, config=config
+                )
+
+                # LyCORIS Specific parameters
+                with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
                     with gr.Row():
-                        LoRA_type = gr.Dropdown(
-                            label="LoRA type",
-                            choices=[
-                                "Flux1",
-                                "Kohya DyLoRA",
-                                "Kohya LoCon",
-                                "LoRA-FA",
-                                "LyCORIS/iA3",
-                                "LyCORIS/BOFT",
-                                "LyCORIS/Diag-OFT",
-                                "LyCORIS/DyLoRA",
-                                "LyCORIS/GLoRA",
-                                "LyCORIS/LoCon",
-                                "LyCORIS/LoHa",
-                                "LyCORIS/LoKr",
-                                "LyCORIS/Native Fine-Tuning",
-                                "Standard",
-                            ],
-                            value="Standard",
-                        )
-                        LyCORIS_preset = gr.Dropdown(
-                            label="LyCORIS Preset",
-                            choices=LYCORIS_PRESETS_CHOICES,
-                            value="full",
+                        factor = gr.Slider(
+                            label="LoKr factor",
+                            value=-1,
+                            minimum=-1,
+                            maximum=64,
+                            step=1,
                             visible=False,
-                            interactive=True,
-                            allow_custom_value=True,
-                            # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
                         )
-                        with gr.Group():
-                            with gr.Row():
-                                network_weights = gr.Textbox(
-                                    label="Network weights",
-                                    placeholder="(Optional)",
-                                    info="Path to an existing LoRA network weights to resume training from",
-                                )
-                                network_weights_file = gr.Button(
-                                    document_symbol,
-                                    elem_id="open_folder_small",
-                                    elem_classes=["tool"],
-                                    visible=(not headless),
-                                )
-                                network_weights_file.click(
-                                    get_any_file_path,
-                                    inputs=[network_weights],
-                                    outputs=network_weights,
-                                    show_progress=False,
-                                )
-                                dim_from_weights = gr.Checkbox(
-                                    label="DIM from weights",
-                                    value=False,
-                                    info="Automatically determine the dim(rank) from the weight file.",
-                                )
-                    basic_training = BasicTraining(
-                        learning_rate_value=0.0001,
-                        lr_scheduler_value="cosine",
-                        lr_warmup_value=10,
-                        sdxl_checkbox=source_model.sdxl_checkbox,
-                        config=config,
-                    )
-
-                    with gr.Row():
-                        text_encoder_lr = gr.Number(
-                            label="Text Encoder learning rate",
-                            value=0.0001,
-                            info="(Optional)",
-                            minimum=0,
-                            maximum=1,
+                        bypass_mode = gr.Checkbox(
+                            value=False,
+                            label="Bypass mode",
+                            info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
+                            visible=False,
                         )
-
-                        unet_lr = gr.Number(
-                            label="Unet learning rate",
-                            value=0.0001,
-                            info="(Optional)",
-                            minimum=0,
-                            maximum=1,
+                        dora_wd = gr.Checkbox(
+                            value=False,
+                            label="DoRA Weight Decompose",
+                            info="Enable the DoRA method for these algorithms",
+                            visible=False,
                         )
-
-                    with gr.Row() as loraplus:
-                        loraplus_lr_ratio = gr.Number(
-                            label="LoRA+ learning rate ratio",
-                            value=0,
-                            info="(Optional) starting with 16 is suggested",
-                            minimum=0,
-                            maximum=128,
+                        use_cp = gr.Checkbox(
+                            value=False,
+                            label="Use CP decomposition",
+                            info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
+                            visible=False,
                         )
-
-                        loraplus_unet_lr_ratio = gr.Number(
-                            label="LoRA+ Unet learning rate ratio",
-                            value=0,
-                            info="(Optional) starting with 16 is suggested",
-                            minimum=0,
-                            maximum=128,
+                        use_tucker = gr.Checkbox(
+                            value=False,
+                            label="Use Tucker decomposition",
+                            info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
+                            visible=False,
                         )
-
-                        loraplus_text_encoder_lr_ratio = gr.Number(
-                            label="LoRA+ Text Encoder learning rate ratio",
-                            value=0,
-                            info="(Optional) starting with 16 is suggested",
-                            minimum=0,
-                            maximum=128,
-                        )
-                    # Add SDXL Parameters
-                    sdxl_params = SDXLParameters(
-                        source_model.sdxl_checkbox, config=config
-                    )
-
-                    # LyCORIS Specific parameters
-                    with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
-                        with gr.Row():
-                            factor = gr.Slider(
-                                label="LoKr factor",
-                                value=-1,
-                                minimum=-1,
-                                maximum=64,
-                                step=1,
-                                visible=False,
-                            )
-                            bypass_mode = gr.Checkbox(
-                                value=False,
-                                label="Bypass mode",
-                                info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
-                                visible=False,
-                            )
-                            dora_wd = gr.Checkbox(
-                                value=False,
-                                label="DoRA Weight Decompose",
-                                info="Enable the DoRA method for these algorithms",
-                                visible=False,
-                            )
-                            use_cp = gr.Checkbox(
-                                value=False,
-                                label="Use CP decomposition",
-                                info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
-                                visible=False,
-                            )
-                            use_tucker = gr.Checkbox(
-                                value=False,
-                                label="Use Tucker decomposition",
-                                info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
-                                visible=False,
-                            )
-                            use_scalar = gr.Checkbox(
-                                value=False,
-                                label="Use Scalar",
-                                info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
-                                visible=False,
-                            )
-                        with gr.Row():
-                            rank_dropout_scale = gr.Checkbox(
-                                value=False,
-                                label="Rank Dropout Scale",
-                                info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
-                                visible=False,
-                            )
-                            constrain = gr.Number(
-                                value=0.0,
-                                label="Constrain OFT",
-                                info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
-                                visible=False,
-                            )
-                            rescaled = gr.Checkbox(
-                                value=False,
-                                label="Rescaled OFT",
-                                info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
-                                visible=False,
-                            )
-                            train_norm = gr.Checkbox(
-                                value=False,
-                                label="Train Norm",
-                                info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
-                                visible=False,
-                            )
-                            decompose_both = gr.Checkbox(
-                                value=False,
-                                label="LoKr decompose both",
-                                info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
-                                visible=False,
-                            )
-                            train_on_input = gr.Checkbox(
-                                value=True,
-                                label="iA3 train on input",
-                                info="Set if we change the information going into the system (True) or the information coming out of it (False).",
-                                visible=False,
-                            )
-                    with gr.Row() as network_row:
-                        network_dim = gr.Slider(
-                            minimum=1,
-                            maximum=512,
-                            label="Network Rank (Dimension)",
-                            value=8,
-                            step=1,
-                            interactive=True,
-                        )
-                        network_alpha = gr.Slider(
-                            minimum=0.00001,
-                            maximum=1024,
-                            label="Network Alpha",
-                            value=1,
-                            step=0.00001,
-                            interactive=True,
-                            info="alpha for LoRA weight scaling",
-                        )
-                    with gr.Row(visible=False) as convolution_row:
-                        # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
-                        conv_dim = gr.Slider(
-                            minimum=0,
-                            maximum=512,
-                            value=1,
-                            step=1,
-                            label="Convolution Rank (Dimension)",
-                        )
-                        conv_alpha = gr.Slider(
-                            minimum=0,
-                            maximum=512,
-                            value=1,
-                            step=1,
-                            label="Convolution Alpha",
+                        use_scalar = gr.Checkbox(
+                            value=False,
+                            label="Use Scalar",
+                            info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
+                            visible=False,
                         )
                     with gr.Row():
-                        scale_weight_norms = gr.Slider(
-                            label="Scale weight norms",
-                            value=0,
-                            minimum=0,
-                            maximum=10,
-                            step=0.01,
-                            info="Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR #545 on kohya_ss/sd_scripts repo for details. Recommended setting: 1. Higher is weaker, lower is stronger.",
-                            interactive=True,
+                        rank_dropout_scale = gr.Checkbox(
+                            value=False,
+                            label="Rank Dropout Scale",
+                            info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
+                            visible=False,
                         )
-                        network_dropout = gr.Slider(
-                            label="Network dropout",
-                            value=0,
-                            minimum=0,
-                            maximum=1,
-                            step=0.01,
-                            info="Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5",
-                        )
-                        rank_dropout = gr.Slider(
-                            label="Rank dropout",
-                            value=0,
-                            minimum=0,
-                            maximum=1,
-                            step=0.01,
-                            info="can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3",
-                        )
-                        module_dropout = gr.Slider(
-                            label="Module dropout",
+                        constrain = gr.Number(
                             value=0.0,
-                            minimum=0.0,
-                            maximum=1.0,
-                            step=0.01,
-                            info="can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3",
+                            label="Constrain OFT",
+                            info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
+                            visible=False,
                         )
-                    with gr.Row(visible=False):
+                        rescaled = gr.Checkbox(
+                            value=False,
+                            label="Rescaled OFT",
+                            info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
+                            visible=False,
+                        )
+                        train_norm = gr.Checkbox(
+                            value=False,
+                            label="Train Norm",
+                            info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
+                            visible=False,
+                        )
+                        decompose_both = gr.Checkbox(
+                            value=False,
+                            label="LoKr decompose both",
+                            info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
+                            visible=False,
+                        )
+                        train_on_input = gr.Checkbox(
+                            value=True,
+                            label="iA3 train on input",
+                            info="Set if we change the information going into the system (True) or the information coming out of it (False).",
+                            visible=False,
+                        )
+                with gr.Row() as network_row:
+                    network_dim = gr.Slider(
+                        minimum=1,
+                        maximum=512,
+                        label="Network Rank (Dimension)",
+                        value=8,
+                        step=1,
+                        interactive=True,
+                    )
+                    network_alpha = gr.Slider(
+                        minimum=0.00001,
+                        maximum=1024,
+                        label="Network Alpha",
+                        value=1,
+                        step=0.00001,
+                        interactive=True,
+                        info="alpha for LoRA weight scaling",
+                    )
+                with gr.Row(visible=False) as convolution_row:
+                    # locon= gr.Checkbox(label='Train a LoCon instead of a general LoRA (does not support v2 base models) (may not be able to some utilities now)', value=False)
+                    conv_dim = gr.Slider(
+                        minimum=0,
+                        maximum=512,
+                        value=1,
+                        step=1,
+                        label="Convolution Rank (Dimension)",
+                    )
+                    conv_alpha = gr.Slider(
+                        minimum=0,
+                        maximum=512,
+                        value=1,
+                        step=1,
+                        label="Convolution Alpha",
+                    )
+                with gr.Row():
+                    scale_weight_norms = gr.Slider(
+                        label="Scale weight norms",
+                        value=0,
+                        minimum=0,
+                        maximum=10,
+                        step=0.01,
+                        info="Max Norm Regularization is a technique to stabilize network training by limiting the norm of network weights. It may be effective in suppressing overfitting of LoRA and improving stability when used with other LoRAs. See PR #545 on kohya_ss/sd_scripts repo for details. Recommended setting: 1. Higher is weaker, lower is stronger.",
+                        interactive=True,
+                    )
+                    network_dropout = gr.Slider(
+                        label="Network dropout",
+                        value=0,
+                        minimum=0,
+                        maximum=1,
+                        step=0.01,
+                        info="Is a normal probability dropout at the neuron level. In the case of LoRA, it is applied to the output of down. Recommended range 0.1 to 0.5",
+                    )
+                    rank_dropout = gr.Slider(
+                        label="Rank dropout",
+                        value=0,
+                        minimum=0,
+                        maximum=1,
+                        step=0.01,
+                        info="can specify `rank_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3",
+                    )
+                    module_dropout = gr.Slider(
+                        label="Module dropout",
+                        value=0.0,
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.01,
+                        info="can specify `module_dropout` to dropout each rank with specified probability. Recommended range 0.1 to 0.3",
+                    )
+                with gr.Row(visible=False):
                         unit = gr.Slider(
                             minimum=1,
                             maximum=64,
@@ -2324,15 +2323,15 @@ def lora_tab(
 
                             return tuple(results)
 
-            with gr.Group():
-                # Add FLUX1 Parameters
+                # Add FLUX1 Parameters to the basic training accordion
                 flux1_training = flux1Training(
                     headless=headless,
                     config=config,
                     flux1_checkbox=source_model.flux1_checkbox,
                 )
+            
 
-            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=False, elem_classes="advanced_background"):
                 # with gr.Accordion('Advanced Configuration', open=False):
                 with gr.Row(visible=True) as kohya_advanced_lora:
                     with gr.Tab(label="Weights"):
@@ -2390,11 +2389,11 @@ def lora_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=False, elem_classes="samples_background"):
                 sample = SampleImages(config=config)
 
             global huggingface
-            with gr.Accordion("HuggingFace", open=False):
+            with gr.Accordion("HuggingFace", open=False, elem_classes="huggingface_background"):
                 huggingface = HuggingFace(config=config)
 
             LoRA_type.change(

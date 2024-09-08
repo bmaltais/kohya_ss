@@ -1,4 +1,4 @@
-#open_folder_small{
+#open_folder_small {
     min-width: auto;
     flex-grow: 0;
     padding-left: 0.25em;
@@ -7,14 +7,14 @@
     font-size: 1.5em;
 }
 
-#open_folder{
+#open_folder {
     height: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
 }
 
-#number_input{
+#number_input {
     min-width: min-content;
     flex-grow: 0.3;
     padding-left: 0.75em;
@@ -22,7 +22,7 @@
 }
 
 .ver-class {
-    color: #808080;
+    color: #6d6d6d; /* Neutral dark gray */
     font-size: small;
     text-align: right;
     padding-right: 1em;
@@ -35,13 +35,107 @@
 }
 
 #myTensorButton {
-    background: radial-gradient(ellipse, #3a99ff, #52c8ff);
+    background: #555c66; /* Muted dark gray */
     color: white;
-    border: #296eb8;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5em 1em;
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Subtle shadow */
+    /* transition: box-shadow 0.3s ease; */
+}
+
+#myTensorButton:hover {
+    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); Slightly increased shadow on hover */
 }
 
 #myTensorButtonStop {
-    background: radial-gradient(ellipse, #52c8ff, #3a99ff);
-    color: black;
-    border: #296eb8;
+    background: #777d85; /* Lighter muted gray */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5em 1em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* transition: box-shadow 0.3s ease; */
+}
+
+#myTensorButtonStop:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.advanced_background {
+    background: #f4f4f4; /* Light neutral gray */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
+}
+
+.advanced_background:hover {
+    background-color: #ebebeb; /* Slightly darker background on hover */
+    border: 1px solid #ccc; /* Add a subtle border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.basic_background {
+    background: #eaeff1; /* Muted cool gray */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.basic_background:hover {
+    background-color: #dfe4e7; /* Slightly darker cool gray on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.huggingface_background {
+    background: #e0e4e7; /* Light gray with a hint of blue */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.huggingface_background:hover {
+    background-color: #d6dce0; /* Slightly darker on hover */
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.flux1_background {
+    background: #ece9e6; /* Light beige tone */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.flux1_background:hover {
+    background-color: #e2dfdb; /* Slightly darker beige on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.preset_background {
+    background: #f0f0f0; /* Light gray */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.preset_background:hover {
+    background-color: #e6e6e6; /* Slightly darker on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.samples_background {
+    background: #d9dde1; /* Soft muted gray-blue */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.samples_background:hover {
+    background-color: #cfd3d8; /* Slightly darker on hover */
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }

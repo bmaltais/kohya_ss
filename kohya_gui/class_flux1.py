@@ -31,7 +31,7 @@ class flux1Training:
                 return (gr.Group(visible=False), gr.Group(visible=True))
 
         with gr.Accordion(
-            "Flux.1", open=True, elem_id="flux1_tab", visible=False
+            "Flux.1", open=True, visible=False, elem_classes=["flux1_background"]
         ) as flux1_accordion:
             with gr.Group():
                 with gr.Row():
