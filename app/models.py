@@ -44,6 +44,7 @@ class LoraModel(Base, SerializerMixin):
     fileName = Column(String, nullable=True)
     description = Column(String, nullable=True)
     baseModel = Column(String)
+    trainingBaseModel = Column(String, nullable=True)
     resolution = Column(String, nullable=True)
     instancePrompt = Column(String, nullable=True)
     classPrompt = Column(String, nullable=True)
