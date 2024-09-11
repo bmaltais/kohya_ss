@@ -30,9 +30,9 @@ sentencepiece==0.2.0
 timm==0.6.12
 tk==0.1.0
 toml==0.10.2
-transformers==4.44.0
+transformers==4.44.2
 voluptuous==0.13.1
-wandb==0.15.11
+wandb==0.18.0
 scipy==1.11.4
 # for kohya_ss library
 -e ./sd-scripts # no_verify leave this to specify not checking this a verification stage

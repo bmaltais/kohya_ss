@@ -164,6 +164,9 @@ class BasicTraining:
                     "linear",
                     "piecewise_constant",
                     "polynomial",
+                    "COSINE_WITH_MIN_LR",
+                    "INVERSE_SQRT",
+                    "WARMUP_STABLE_DECAY",
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
