@@ -17,9 +17,7 @@ import shutil
 import toml
 import threading
 import queue
-
-import gradio as gr
-
+import time
 
 # Queue for main thread tasks
 task_queue = queue.Queue()
@@ -135,33 +133,9 @@ def calculate_max_train_steps(
     )
 
 
-
-# Global variable to store the user's response from Gradio
-overwrite_result = None
-
-# Function to handle Gradio confirmation for overwriting
-def ask_overwrite_in_gradio(msg):
-    global overwrite_result
-
-    def set_overwrite_result(choice):
-        global overwrite_result
-        overwrite_result = choice
-        return f"You chose: {choice}"
-
-    # Gradio UI for user confirmation
-    with gr.Blocks() as demo:
-        gr.Markdown(f"### {msg}")
-        yes_button = gr.Button("Yes")
-        no_button = gr.Button("No")
-
-        # Capture the user's choice
-        yes_button.click(fn=lambda: set_overwrite_result("Yes"), outputs=None)
-        no_button.click(fn=lambda: set_overwrite_result("No"), outputs=None)
-
-        demo.launch()
-
-# The main function
-def check_if_model_exist(output_name: str, output_dir: str, save_model_as: str, headless: bool = False) -> bool:
+def check_if_model_exist(
+    output_name: str, output_dir: str, save_model_as: str, headless: bool = False
+) -> bool:
     """
     Checks if a model with the same name already exists and prompts the user to overwrite it if it does.
 
@@ -174,53 +148,48 @@ def check_if_model_exist(output_name: str, output_dir: str, save_model_as: str, 
     Returns:
     bool: True if the model already exists and the user chooses not to overwrite it, otherwise False.
     """
-    global overwrite_result
-    
     if headless:
-        log.info("Headless mode, skipping verification if model already exists... if model already exists, it will be overwritten...")
+        log.info(
+            "Headless mode, skipping verification if model already exist... if model already exist it will be overwritten..."
+        )
         return False
 
-
-    # Check for diffusers or safetensors models in directories
-    if save_model_as in ["diffusers", "diffusers_safetensors"]:
+    if save_model_as in ["diffusers", "diffusers_safetendors"]:
         ckpt_folder = os.path.join(output_dir, output_name)
         if os.path.isdir(ckpt_folder):
             msg = f"A diffuser model with the same name {ckpt_folder} already exists. Do you want to overwrite it?"
-            ask_overwrite_in_gradio(msg)  # Run the Gradio confirmation function
-
-            # Wait for the user to make a decision
-            while overwrite_result is None:
-                pass  # Loop until we get the user's response
-
-            if overwrite_result != "Yes":
-                log.info("Aborting training due to existing model with the same name...")
+            if not ynbox(msg, "Overwrite Existing Model?"):
+                log.info("Aborting training due to existing model with same name...")
                 return True
-
-    # Check for ckpt or safetensors models as files
     elif save_model_as in ["ckpt", "safetensors"]:
         ckpt_file = os.path.join(output_dir, output_name + "." + save_model_as)
         if os.path.isfile(ckpt_file):
-            msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
-            ask_overwrite_in_gradio(msg)  # Run the Gradio confirmation function
-
-            # Wait for the user to make a decision
-            while overwrite_result is None:
-                pass  # Loop until we get the user's response
-
-            if overwrite_result != "Yes":
-                log.info("Aborting training due to existing model with the same name...")
+            
+                    # Check if running on macOS (darwin)
+            if sys.platform == "darwin":
+                # Get the current time in epoch seconds
+                current_time = int(time.time())
+                
+                # Construct the backup file name with .BAK-<time_in_epoch_seconds>
+                backup_file = ckpt_file + f".BAK-{current_time}"
+                
+                # Rename the file to the backup file
+                shutil.move(ckpt_file, backup_file)
+                
+                log.info(f"Renamed existing model file to {backup_file}")
+                return False  # Returning False because we're continuing, not aborting the process
+            else:
+              msg = f"A model with the same file name {ckpt_file} already exists. Do you want to overwrite it?"
+              if not ynbox(msg, "Overwrite Existing Model?"):
+                log.info("Aborting training due to existing model with same name...")
                 return True
-
-    # For unsupported model types
     else:
-        log.info('Can\'t verify if existing model exists when save model is set as "same as source model", continuing to train model...')
+        log.info(
+            'Can\'t verify if existing model exist when save model is set as "same as source model", continuing to train model...'
+        )
         return False
 
-    # If the user chose to overwrite or no model was found
     return False
-
-
-
 
 
 def output_message(msg: str = "", title: str = "", headless: bool = False) -> None:
