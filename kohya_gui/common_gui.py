@@ -15,6 +15,7 @@ import json
 import math
 import shutil
 import toml
+import threading
 
 # Set up logging
 log = setup_logging()
@@ -490,20 +491,23 @@ def get_file_path(
             file_path
         )  # Decompose file path for dialog setup
 
+        if threading.current_thread() == threading.main_thread():
         # Initialize a hidden Tkinter window for the file dialog
-        root = Tk()
-        root.wm_attributes("-topmost", 1)  # Ensure the dialog is topmost
-        root.withdraw()  # Hide the root window to show only the dialog
+          root = Tk()
+          root.wm_attributes("-topmost", 1)  # Ensure the dialog is topmost
+          root.withdraw()  # Hide the root window to show only the dialog
 
-        # Open the file dialog and capture the selected file path
-        file_path = filedialog.askopenfilename(
-            filetypes=((extension_name, f"*{default_extension}"), ("All files", "*.*")),
-            defaultextension=default_extension,
-            initialfile=initial_file,
-            initialdir=initial_dir,
-        )
+          # Open the file dialog and capture the selected file path
+          file_path = filedialog.askopenfilename(
+              filetypes=((extension_name, f"*{default_extension}"), ("All files", "*.*")),
+              defaultextension=default_extension,
+              initialfile=initial_file,
+              initialdir=initial_dir,
+          )
 
-        root.destroy()  # Cleanup by destroying the Tkinter root window
+          root.destroy()  # Cleanup by destroying the Tkinter root window
+        else:
+            raise RuntimeError("Tkinter windows must be created on the main thread")
 
         # Fallback to the initial path if no selection is made
         if not file_path:
@@ -549,22 +553,24 @@ def get_any_file_path(file_path: str = "") -> str:
 
             initial_dir, initial_file = get_dir_and_file(file_path)
 
-            # Initialize a hidden Tkinter window for the file dialog
-            root = Tk()
-            root.wm_attributes("-topmost", 1)
-            root.withdraw()
+            if threading.current_thread() == threading.main_thread():
+              # Initialize a hidden Tkinter window for the file dialog
+              root = Tk()
+              root.wm_attributes("-topmost", 1)
+              root.withdraw()
 
-            try:
-                # Open the file dialog and capture the selected file path
-                file_path = filedialog.askopenfilename(
-                    initialdir=initial_dir,
-                    initialfile=initial_file,
-                )
-            except Exception as e:
-                raise RuntimeError(f"Failed to open file dialog: {e}")
-            finally:
-                root.destroy()
-
+              try:
+                  # Open the file dialog and capture the selected file path
+                  file_path = filedialog.askopenfilename(
+                      initialdir=initial_dir,
+                      initialfile=initial_file,
+                  )
+              except Exception as e:
+                  raise RuntimeError(f"Failed to open file dialog: {e}")
+              finally:
+                  root.destroy()
+            else:
+              raise RuntimeError("Tkinter windows must be created on the main thread")
             # Fallback to the initial path if no selection is made
             if not file_path:
                 file_path = current_file_path
@@ -606,11 +612,14 @@ def get_folder_path(folder_path: str = "") -> str:
         if any(var in os.environ for var in ENV_EXCLUSION) or sys.platform == "darwin":
             return folder_path or ""
 
-        root = Tk()
-        root.withdraw()
-        root.wm_attributes("-topmost", 1)
-        selected_folder = filedialog.askdirectory(initialdir=folder_path or ".")
-        root.destroy()
+        if threading.current_thread() == threading.main_thread():
+          root = Tk()
+          root.withdraw()
+          root.wm_attributes("-topmost", 1)
+          selected_folder = filedialog.askdirectory(initialdir=folder_path or ".")
+          root.destroy()
+        else:
+          raise RuntimeError("Tkinter windows must be created on the main thread")
         return selected_folder or folder_path
     except Exception as e:
         raise RuntimeError(f"Error initializing folder dialog: {e}") from e
@@ -632,21 +641,24 @@ def get_saveasfile_path(
         # Split the file path into directory and file name for setting the file dialog start location and filename
         initial_dir, initial_file = get_dir_and_file(file_path)
 
-        # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
-        root = Tk()
-        root.wm_attributes("-topmost", 1)
-        root.withdraw()
-        save_file_path = filedialog.asksaveasfile(
-            filetypes=(
-                (f"{extension_name}", f"{defaultextension}"),
-                ("All files", "*"),
-            ),
-            defaultextension=defaultextension,
-            initialdir=initial_dir,
-            initialfile=initial_file,
-        )
-        # Close the Tkinter root window to clean up the UI
-        root.destroy()
+        if threading.current_thread() == threading.main_thread():
+          # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
+          root = Tk()
+          root.wm_attributes("-topmost", 1)
+          root.withdraw()
+          save_file_path = filedialog.asksaveasfile(
+              filetypes=(
+                  (f"{extension_name}", f"{defaultextension}"),
+                  ("All files", "*"),
+              ),
+              defaultextension=defaultextension,
+              initialdir=initial_dir,
+              initialfile=initial_file,
+          )
+          # Close the Tkinter root window to clean up the UI
+          root.destroy()
+        else:
+          raise RuntimeError("Tkinter windows must be created on the main thread")
 
         # Logging the save file path for auditing purposes; useful in confirming the user's file choice
         # log.info(save_file_path)
@@ -705,22 +717,25 @@ def get_saveasfilename_path(
         # Split the file path into directory and file name for setting the file dialog start location and filename
         initial_dir, initial_file = get_dir_and_file(file_path)
 
-        # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
-        root = Tk()
-        root.wm_attributes("-topmost", 1)
-        root.withdraw()
-        # Open the file dialog and capture the selected file path
-        save_file_path = filedialog.asksaveasfilename(
-            filetypes=(
-                (f"{extension_name}", f"{extensions}"),
-                ("All files", "*"),
-            ),
-            defaultextension=extensions,
-            initialdir=initial_dir,
-            initialfile=initial_file,
-        )
-        # Close the Tkinter root window to clean up the UI
-        root.destroy()
+        if threading.current_thread() == threading.main_thread():
+          # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
+          root = Tk()
+          root.wm_attributes("-topmost", 1)
+          root.withdraw()
+          # Open the file dialog and capture the selected file path
+          save_file_path = filedialog.asksaveasfilename(
+              filetypes=(
+                  (f"{extension_name}", f"{extensions}"),
+                  ("All files", "*"),
+              ),
+              defaultextension=extensions,
+              initialdir=initial_dir,
+              initialfile=initial_file,
+          )
+          # Close the Tkinter root window to clean up the UI
+          root.destroy()
+        else:
+          raise RuntimeError("Tkinter windows must be created on the main thread")
 
         # Default to the current file path if no file is selected, ensuring there's always a valid file path
         if save_file_path == "":
