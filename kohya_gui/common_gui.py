@@ -180,6 +180,7 @@ def check_if_model_exist(output_name: str, output_dir: str, save_model_as: str, 
         log.info("Headless mode, skipping verification if model already exists... if model already exists, it will be overwritten...")
         return False
 
+
     # Check for diffusers or safetensors models in directories
     if save_model_as in ["diffusers", "diffusers_safetensors"]:
         ckpt_folder = os.path.join(output_dir, output_name)
