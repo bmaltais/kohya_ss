@@ -1257,14 +1257,14 @@ def train_model(
         log.error("When specifying T5XXL learning rate, text encoder learning rate need to be a value greater than 0.")
         return TRAIN_BUTTON_VISIBLE
     
-    text_encoder_lr_str = ""
+    text_encoder_lr_list = []
     
     if text_encoder_lr > 0 and t5xxl_lr > 0:
         # Set the text_encoder_lr to a combination of text_encoder_lr and t5xxl_lr
-        text_encoder_lr_str = f"{text_encoder_lr} {t5xxl_lr}"
+        text_encoder_lr_list = [float(text_encoder_lr), float(t5xxl_lr)]
     elif text_encoder_lr > 0:
         # Set the text_encoder_lr to text_encoder_lr only
-        text_encoder_lr_str = f"{text_encoder_lr}"
+        text_encoder_lr_list = [float(text_encoder_lr), float(text_encoder_lr)]
 
     # Convert learning rates to float once and store the result for re-use
     learning_rate = float(learning_rate) if learning_rate is not None else 0.0
@@ -1444,7 +1444,7 @@ def train_model(
         "stop_text_encoder_training": (
             stop_text_encoder_training if stop_text_encoder_training != 0 else None
         ),
-        "text_encoder_lr": text_encoder_lr_str if not 0 else None,
+        "text_encoder_lr": text_encoder_lr_list if not [] else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
         "training_comment": training_comment,
