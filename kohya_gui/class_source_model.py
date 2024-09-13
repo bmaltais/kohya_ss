@@ -26,7 +26,6 @@ default_models = [
     "stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned",
     "stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-2",
-    "runwayml/stable-diffusion-v1-5",
     "CompVis/stable-diffusion-v1-4",
 ]
 
