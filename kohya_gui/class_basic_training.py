@@ -25,6 +25,7 @@ class BasicTraining:
         learning_rate_value: float = "1e-6",
         lr_scheduler_value: str = "constant",
         lr_warmup_value: float = "0",
+        lr_warmup_steps_value: int = 0,
         finetuning: bool = False,
         dreambooth: bool = False,
         config: dict = {},
@@ -44,6 +45,7 @@ class BasicTraining:
         self.learning_rate_value = learning_rate_value
         self.lr_scheduler_value = lr_scheduler_value
         self.lr_warmup_value = lr_warmup_value
+        self.lr_warmup_steps_value= lr_warmup_steps_value
         self.finetuning = finetuning
         self.dreambooth = dreambooth
         self.config = config
@@ -299,25 +301,37 @@ class BasicTraining:
                 maximum=100,
                 step=1,
             )
+            # Initialize the learning rate warmup steps override
+            self.lr_warmup_steps = gr.Number(
+                label="LR warmup steps (override)",
+                value=self.config.get("basic.lr_warmup_steps", self.lr_warmup_steps_value),
+                minimum=0,
+                step=1,
+            )
             
-            def lr_scheduler_changed(scheduler, value):
+            def lr_scheduler_changed(scheduler, value, value_lr_warmup_steps):
                 if scheduler == "constant":
                     self.old_lr_warmup = value
+                    self.old_lr_warmup_steps = value_lr_warmup_steps
                     value = 0
+                    value_lr_warmup_steps = 0
                     interactive=False
                     info="Can't use LR warmup with LR Scheduler constant... setting to 0 and disabling field..."
                 else:
                     if self.old_lr_warmup != 0:
                         value = self.old_lr_warmup
                         self.old_lr_warmup = 0
+                    if self.old_lr_warmup_steps != 0:
+                        value_lr_warmup_steps = self.old_lr_warmup_steps
+                        self.old_lr_warmup_steps = 0
                     interactive=True
                     info=""
-                return gr.Slider(value=value, interactive=interactive, info=info)
+                return gr.Slider(value=value, interactive=interactive, info=info), gr.Number(value=value_lr_warmup_steps, interactive=interactive, info=info)
             
             self.lr_scheduler.change(
                 lr_scheduler_changed,
-                inputs=[self.lr_scheduler, self.lr_warmup],
-                outputs=self.lr_warmup,
+                inputs=[self.lr_scheduler, self.lr_warmup, self.lr_warmup_steps],
+                outputs=[self.lr_warmup, self.lr_warmup_steps],
             )
 
     def init_scheduler_controls(self) -> None:

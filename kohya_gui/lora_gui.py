@@ -103,6 +103,7 @@ def save_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -353,6 +354,7 @@ def open_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -635,6 +637,7 @@ def train_model(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -958,12 +961,10 @@ def train_model(
                     float(max_train_steps) / 100 * int(stop_text_encoder_training)
                 )
 
-            if lr_warmup != 0:
-                lr_warmup_steps = round(
-                    float(int(lr_warmup) * int(max_train_steps) / 100)
-                )
+            if lr_warmup_steps > 0:
+                lr_warmup_steps = int(lr_warmup_steps)
             else:
-                lr_warmup_steps = 0
+                lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
@@ -1058,10 +1059,10 @@ def train_model(
                 float(max_train_steps) / 100 * int(stop_text_encoder_training)
             )
 
-        if lr_warmup != 0:
-            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        if lr_warmup_steps > 0:
+            lr_warmup_steps = int(lr_warmup_steps)
         else:
-            lr_warmup_steps = 0
+            lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
 
         log.info(f"Total steps: {total_steps}")
 
@@ -2490,6 +2491,7 @@ def lora_tab(
             basic_training.learning_rate,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
+            basic_training.lr_warmup_steps,
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,

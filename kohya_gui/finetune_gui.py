@@ -88,6 +88,7 @@ def save_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -297,6 +298,7 @@ def open_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -512,6 +514,7 @@ def train_model(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -866,7 +869,10 @@ def train_model(
     log.info(max_train_steps_info)
 
     if max_train_steps != 0:
-        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+        if lr_warmup_steps > 0:
+            lr_warmup_steps = int(lr_warmup_steps)
+        else:
+            lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
     else:
         lr_warmup_steps = 0
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
@@ -1380,6 +1386,7 @@ def finetune_tab(
             basic_training.learning_rate,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
+            basic_training.lr_warmup_steps,
             dataset_repeats,
             basic_training.train_batch_size,
             basic_training.epoch,
