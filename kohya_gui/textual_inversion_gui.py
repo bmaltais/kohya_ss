@@ -561,20 +561,6 @@ def train_model(
     # End of path validation
     #
 
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     reg_data_dir=reg_data_dir,
-    #     resume=resume,
-    #     train_data_dir=train_data_dir,
-    #     vae=vae,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
-
     if token_string == "":
         output_message(msg="Token string is missing", headless=headless)
         return TRAIN_BUTTON_VISIBLE
@@ -600,11 +586,6 @@ def train_model(
                 stop_text_encoder_training = math.ceil(
                     float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
                 )
-
-            if lr_warmup_steps > 0:
-                lr_warmup_steps = int(lr_warmup_steps)
-            else:
-                lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
@@ -699,12 +680,17 @@ def train_model(
                 float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
             )
 
-        if lr_warmup_steps > 0:
-            lr_warmup_steps = int(lr_warmup_steps)
-        else:
-            lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
-
         log.info(f"Total steps: {total_steps}")
+
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
+    else:
+        lr_warmup_steps = 0
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")

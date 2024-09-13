@@ -726,18 +726,6 @@ def train_model(
     # End of path validation
     #
 
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     finetune_image_folder=image_folder,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     resume=resume,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
-
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless
     ):
@@ -868,13 +856,16 @@ def train_model(
 
     log.info(max_train_steps_info)
 
-    if max_train_steps != 0:
-        if lr_warmup_steps > 0:
-            lr_warmup_steps = int(lr_warmup_steps)
-        else:
-            lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
     else:
         lr_warmup_steps = 0
+
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     accelerate_path = get_executable_path("accelerate")

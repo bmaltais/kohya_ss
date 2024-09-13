@@ -696,22 +696,6 @@ def train_model(
     # End of path validation
     #
 
-    # This function validates files or folder paths. Simply add new variables containing file of folder path
-    # to validate below
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     reg_data_dir=reg_data_dir,
-    #     resume=resume,
-    #     train_data_dir=train_data_dir,
-    #     vae=vae,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
-
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
     ):
@@ -721,13 +705,6 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
-        if max_train_steps > 0:
-            if lr_warmup_steps > 0:
-                lr_warmup_steps = int(lr_warmup_steps)
-            else:
-                lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
-        else:
-            lr_warmup_steps = 0
 
         if max_train_steps == 0:
             max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
@@ -810,12 +787,17 @@ def train_model(
             else:
                 max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-        if lr_warmup_steps > 0:
-            lr_warmup_steps = int(lr_warmup_steps)
-        else:
-            lr_warmup_steps = float(lr_warmup / 100) if lr_warmup != 0 else 0
-
         log.info(f"Total steps: {total_steps}")
+
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
+    else:
+        lr_warmup_steps = 0
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
