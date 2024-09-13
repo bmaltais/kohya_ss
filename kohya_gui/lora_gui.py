@@ -991,7 +991,7 @@ def train_model(
         log.info(f"Total steps: {total_steps}")
 
     # Calculate stop_text_encoder_training
-    if max_train_steps > 0 and stop_text_encoder_training > 0:
+    if max_train_steps is not None and max_train_steps > 0 and stop_text_encoder_training > 0:
         stop_text_encoder_training = math.ceil(
             max_train_steps * stop_text_encoder_training / 100
         )
