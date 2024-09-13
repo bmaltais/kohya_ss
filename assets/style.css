@@ -139,3 +139,83 @@
     border: 1px solid #bbb;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
+
+/* Dark mode styles */
+.dark .advanced_background {
+    background: #172029; /* Slightly darker gradio dark theme */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
+}
+
+.dark .advanced_background:hover {
+    background-color: #121920; /* Slightly darker background on hover */
+    border: 1px solid #000000; /* Add a subtle border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .basic_background {
+    background: #172029;
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .basic_background:hover {
+    background-color: #11181e;
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .huggingface_background {
+    background: #131c25;
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .huggingface_background:hover {
+    background-color: #131c25;
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .flux1_background {
+    background: #131c25;
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .flux1_background:hover {
+    background-color: #131c25;
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .preset_background {
+    background: #191d25;
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .preset_background:hover {
+    background-color: #212530;
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .samples_background {
+    background: #101e2c;
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .samples_background:hover {
+    background-color: #17293a;
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
