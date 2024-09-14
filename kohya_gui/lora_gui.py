@@ -277,12 +277,22 @@ def save_configuration(
     split_mode,
     train_blocks,
     t5xxl_max_token_length,
+    enable_all_linear,
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
     cpu_offload_checkpointing,
+    img_attn_dim,
+    img_mlp_dim,
+    img_mod_dim,
+    single_dim,
+    txt_attn_dim,
+    txt_mlp_dim,
+    txt_mod_dim,
+    single_mod_dim,
+    in_dims,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -528,12 +538,23 @@ def open_configuration(
     split_mode,
     train_blocks,
     t5xxl_max_token_length,
+    enable_all_linear,
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
     cpu_offload_checkpointing,
+    img_attn_dim,
+    img_mlp_dim,
+    img_mod_dim,
+    single_dim,
+    txt_attn_dim,
+    txt_mlp_dim,
+    txt_mod_dim,
+    single_mod_dim,
+    in_dims,
+    
     ##
     training_preset,
 ):
@@ -812,12 +833,22 @@ def train_model(
     split_mode,
     train_blocks,
     t5xxl_max_token_length,
+    enable_all_linear,
     guidance_scale,
     mem_eff_save,
     apply_t5_attn_mask,
     split_qkv,
     train_t5xxl,
     cpu_offload_checkpointing,
+    img_attn_dim,
+    img_mlp_dim,
+    img_mod_dim,
+    single_dim,
+    txt_attn_dim,
+    txt_mlp_dim,
+    txt_mod_dim,
+    single_mod_dim,
+    in_dims,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -845,7 +876,6 @@ def train_model(
 
     if flux1_checkbox:
         log.info(f"Validating lora type is Flux1 if flux1 checkbox is checked...")
-        print(LoRA_type)
         if (LoRA_type != "Flux1") and (LoRA_type != "Flux1 OFT"):
             log.error("LoRA type must be set to 'Flux1' or 'Flux1 OFT' if Flux1 checkbox is checked.")
             return TRAIN_BUTTON_VISIBLE
@@ -1135,7 +1165,17 @@ def train_model(
 
     if LoRA_type == "Flux1":
         # Add a list of supported network arguments for Flux1 below when supported
-        kohya_lora_var_list = []
+        kohya_lora_var_list = [
+            "img_attn_dim",
+            "img_mlp_dim",
+            "img_mod_dim",
+            "single_dim",
+            "txt_attn_dim",
+            "txt_mlp_dim",
+            "txt_mod_dim",
+            "single_mod_dim",
+            "in_dims",
+        ]
         network_module = "networks.lora_flux"
         kohya_lora_vars = {
             key: value
@@ -1160,7 +1200,9 @@ def train_model(
                 
     if LoRA_type == "Flux1 OFT":
         # Add a list of supported network arguments for Flux1 OFT below when supported
-        kohya_lora_var_list = []
+        kohya_lora_var_list = [
+            "enable_all_linear",
+        ]
         network_module = "networks.oft_flux"
         kohya_lora_vars = {
             key: value
@@ -1602,11 +1644,11 @@ def lora_tab(
                 config=config,
             )
 
+            with gr.Accordion("Folders", open=True), gr.Group():
+                folders = Folders(headless=headless, config=config)
+
         with gr.Accordion("Metadata", open=False), gr.Group():
             metadata = MetaData(config=config)
-
-        with gr.Accordion("Folders", open=False), gr.Group():
-            folders = Folders(headless=headless, config=config)
 
         with gr.Accordion("Dataset Preparation", open=False):
             gr.Markdown(
@@ -2675,12 +2717,22 @@ def lora_tab(
             flux1_training.split_mode,
             flux1_training.train_blocks,
             flux1_training.t5xxl_max_token_length,
+            flux1_training.enable_all_linear,
             flux1_training.guidance_scale,
             flux1_training.mem_eff_save,
             flux1_training.apply_t5_attn_mask,
             flux1_training.split_qkv,
             flux1_training.train_t5xxl,
             flux1_training.cpu_offload_checkpointing,
+            flux1_training.img_attn_dim,
+            flux1_training.img_mlp_dim,
+            flux1_training.img_mod_dim,
+            flux1_training.single_dim,
+            flux1_training.txt_attn_dim,
+            flux1_training.txt_mlp_dim,
+            flux1_training.txt_mod_dim,
+            flux1_training.single_mod_dim,
+            flux1_training.in_dims,
         ]
 
         configuration.button_open_config.click(

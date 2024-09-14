@@ -219,3 +219,28 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
+.flux1_rank_layers_background {
+    background: #ece9e6; /* White background for clear theme */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.flux1_rank_layers_background:hover {
+    background-color: #dddad7; /* Slightly darker on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+.dark .flux1_rank_layers_background {
+    background: #131c25; /* Dark background for dark theme */
+    padding: 1em;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .flux1_rank_layers_background:hover {
+    background-color: #131c25; /* Slightly darker on hover */
+    border: 1px solid #000000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}

@@ -52,7 +52,7 @@ class flux1Training:
                         outputs=self.ae,
                         show_progress=False,
                     )
-                    
+
                     self.clip_l = gr.Textbox(
                         label="CLIP-L Path",
                         placeholder="Path to CLIP-L model",
@@ -90,20 +90,22 @@ class flux1Training:
                     )
 
                 with gr.Row():
-                    
+
                     self.discrete_flow_shift = gr.Number(
                         label="Discrete Flow Shift",
                         value=self.config.get("flux1.discrete_flow_shift", 3.0),
                         info="Discrete flow shift for the Euler Discrete Scheduler, default is 3.0",
                         minimum=-1024,
                         maximum=1024,
-                        step=.01,
+                        step=0.01,
                         interactive=True,
                     )
                     self.model_prediction_type = gr.Dropdown(
                         label="Model Prediction Type",
                         choices=["raw", "additive", "sigma_scaled"],
-                        value=self.config.get("flux1.timestep_sampling", "sigma_scaled"),
+                        value=self.config.get(
+                            "flux1.timestep_sampling", "sigma_scaled"
+                        ),
                         interactive=True,
                     )
                     self.timestep_sampling = gr.Dropdown(
@@ -156,10 +158,10 @@ class flux1Training:
                         info="Guidance scale for Flux1",
                         minimum=0,
                         maximum=1024,
-                        step=.1,
+                        step=0.1,
                         interactive=True,
                     )
-                    self.t5xxl_max_token_length =  gr.Number(
+                    self.t5xxl_max_token_length = gr.Number(
                         label="T5-XXL Max Token Length",
                         value=self.config.get("flux1.t5xxl_max_token_length", 512),
                         info="Max token length for T5-XXL",
@@ -168,11 +170,19 @@ class flux1Training:
                         step=1,
                         interactive=True,
                     )
-                    
+                    self.enable_all_linear = gr.Checkbox(
+                        label="Enable All Linear",
+                        value=self.config.get("flux1.enable_all_linear", False),
+                        info="(Only applicable to 'FLux1 OFT' LoRA) Target all linear connections in the MLP layer. The default is False, which targets only attention.",
+                        interactive=True,
+                    )
+
                 with gr.Row():
                     self.flux1_cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
-                        value=self.config.get("flux1.cache_text_encoder_outputs", False),
+                        value=self.config.get(
+                            "flux1.cache_text_encoder_outputs", False
+                        ),
                         info="Cache text encoder outputs to speed up inference",
                         interactive=True,
                     )
@@ -190,11 +200,13 @@ class flux1Training:
                         info="[Experimentsl] Enable memory efficient save. We do not recommend using it unless you are familiar with the code.",
                         interactive=True,
                     )
-                    
+
                 with gr.Row(visible=True if finetuning else False):
                     self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",
-                        value=self.config.get("flux1.blockwise_fused_optimizers", False),
+                        value=self.config.get(
+                            "flux1.blockwise_fused_optimizers", False
+                        ),
                         info="Enable blockwise optimizers for fused backward pass and optimizer step. Any optimizer can be used.",
                         interactive=True,
                     )
@@ -228,6 +240,62 @@ class flux1Training:
                         info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )
+                with gr.Accordion(
+                    "Rank for layers",
+                    open=False,
+                    visible=False if finetuning else True,
+                    elem_classes=["flux1_rank_layers_background"],
+                ):
+                    with gr.Row():
+                        self.img_attn_dim = gr.Textbox(
+                            label="img_attn_dim",
+                            value=self.config.get("flux1.img_attn_dim", ""),
+                            interactive=True,
+                        )
+                        self.img_mlp_dim = gr.Textbox(
+                            label="img_mlp_dim",
+                            value=self.config.get("flux1.img_mlp_dim", ""),
+                            interactive=True,
+                        )
+                        self.img_mod_dim = gr.Textbox(
+                            label="img_mod_dim",
+                            value=self.config.get("flux1.img_mod_dim", ""),
+                            interactive=True,
+                        )
+                        self.single_dim = gr.Textbox(
+                            label="single_dim",
+                            value=self.config.get("flux1.single_dim", ""),
+                            interactive=True,
+                        )
+                    with gr.Row():
+                        self.txt_attn_dim = gr.Textbox(
+                            label="txt_attn_dim",
+                            value=self.config.get("flux1.txt_attn_dim", ""),
+                            interactive=True,
+                        )
+                        self.txt_mlp_dim = gr.Textbox(
+                            label="txt_mlp_dim",
+                            value=self.config.get("flux1.txt_mlp_dim", ""),
+                            interactive=True,
+                        )
+                        self.txt_mod_dim = gr.Textbox(
+                            label="txt_mod_dim",
+                            value=self.config.get("flux1.txt_mod_dim", ""),
+                            interactive=True,
+                        )
+                        self.single_mod_dim = gr.Textbox(
+                            label="single_mod_dim",
+                            value=self.config.get("flux1.single_mod_dim", ""),
+                            interactive=True,
+                        )
+                    with gr.Row():
+                        self.in_dims = gr.Textbox(
+                            label="in_dims",
+                            value=self.config.get("flux1.in_dims", ""),
+                            placeholder="e.g., [4,0,0,0,4]",
+                            info="Each number corresponds to img_in, time_in, vector_in, guidance_in, txt_in. The above example applies LoRA to all conditioning layers, with rank 4 for img_in, 2 for time_in, vector_in, guidance_in, and 4 for txt_in.",
+                            interactive=True,
+                        )
 
                 self.flux1_checkbox.change(
                     lambda flux1_checkbox: gr.Accordion(visible=flux1_checkbox),
