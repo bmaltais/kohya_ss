@@ -591,6 +591,7 @@ def open_configuration(
     # This section dynamically adjusts visibility of certain parameters in the UI
     if my_data.get("LoRA_type", "Standard") in {
         "Flux1",
+        "Flux1 OFT",
         "LoCon",
         "Kohya DyLoRA",
         "Kohya LoCon",
@@ -844,8 +845,8 @@ def train_model(
 
     if flux1_checkbox:
         log.info(f"Validating lora type is Flux1 if flux1 checkbox is checked...")
-        if LoRA_type != "Flux1":
-            log.error("LoRA type must be set to Flux1 if Flux1 checkbox is checked.")
+        if LoRA_type != "Flux1" or LoRA_type != "Flux1 OFT":
+            log.error("LoRA type must be set to 'Flux1' or 'Flux1 OFT' if Flux1 checkbox is checked.")
             return TRAIN_BUTTON_VISIBLE
 
     #
@@ -1151,6 +1152,31 @@ def train_model(
             kohya_lora_vars["split_qkv"] = True
         if train_t5xxl:
             kohya_lora_vars["train_t5xxl"] = True
+            
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+                
+    if LoRA_type == "Flux1 OFT":
+        # Add a list of supported network arguments for Flux1 OFT below when supported
+        kohya_lora_var_list = []
+        network_module = "networks.oft_flux"
+        kohya_lora_vars = {
+            key: value
+            for key, value in vars().items()
+            if key in kohya_lora_var_list and value
+        }
+        # if split_mode:
+        #     if train_blocks != "single":
+        #         log.warning(
+        #             f"train_blocks is currently set to '{train_blocks}'. split_mode is enabled, forcing train_blocks to 'single'."
+        #         )
+        #     kohya_lora_vars["train_blocks"] = "single"
+            
+        # if split_qkv:
+        #     kohya_lora_vars["split_qkv"] = True
+        # if train_t5xxl:
+        #     kohya_lora_vars["train_t5xxl"] = True
             
         for key, value in kohya_lora_vars.items():
             if value:
@@ -1630,6 +1656,7 @@ def lora_tab(
                         label="LoRA type",
                         choices=[
                             "Flux1",
+                            "Flux1 OFT",
                             "Kohya DyLoRA",
                             "Kohya LoCon",
                             "LoRA-FA",
@@ -1912,6 +1939,7 @@ def lora_tab(
                                         "visible": LoRA_type
                                         in {
                                             "Flux1",
+                                            "Flux1 OFT",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
                                             "LoRA-FA",
@@ -1951,6 +1979,7 @@ def lora_tab(
                                         "visible": LoRA_type
                                         in {
                                             "Flux1",
+                                            "Flux1 OFT",
                                             "Standard",
                                             "Kohya DyLoRA",
                                             "Kohya LoCon",
@@ -1964,6 +1993,7 @@ def lora_tab(
                                         "visible": LoRA_type
                                         in {
                                             "Flux1",
+                                            "Flux1 OFT",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
@@ -1985,6 +2015,7 @@ def lora_tab(
                                         "visible": LoRA_type
                                         in {
                                             "Flux1",
+                                            "Flux1 OFT",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
@@ -2006,6 +2037,7 @@ def lora_tab(
                                         "visible": LoRA_type
                                         in {
                                             "Flux1",
+                                            "Flux1 OFT",
                                             "Standard",
                                             "LoCon",
                                             "Kohya DyLoRA",
