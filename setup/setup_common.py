@@ -6,6 +6,7 @@ import logging
 import shutil
 import datetime
 import pkg_resources
+import torch.version
 
 errors = 0  # Define the 'errors' variable before using it
 log = logging.getLogger('sd')
@@ -388,6 +389,8 @@ def check_torch():
                 log.info(
                     f'Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
                 )
+        elif torch.backends.mps.is_available():
+          log.info(f'MPS Available: {torch.mps.__spec__}')
         else:
             log.warning('Torch reports GPU not available')
         

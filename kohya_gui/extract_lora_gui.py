@@ -326,6 +326,7 @@ def gradio_extract_lora_tab(
                 choices=[
                     "cpu",
                     "cuda",
+                    "mps"
                 ],
                 value="cuda",
                 interactive=True,

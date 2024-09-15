@@ -2,6 +2,7 @@ import gradio as gr
 import subprocess
 import os
 import sys
+import torch
 from .common_gui import (
     get_saveasfilename_path,
     get_file_path,
@@ -62,7 +63,12 @@ def resize_lora(
         save_to += ".safetensors"
 
     if device == "":
-        device = "cuda"
+      if torch.cuda.is_available():
+        device = torch.device("cuda")
+      elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+      else:
+        device = torch.device("cpu")
 
     run_cmd = [
         rf"{PYTHON}",

@@ -377,6 +377,7 @@ def gradio_svd_merge_lora_tab(headless=False):
                 choices=[
                     "cpu",
                     "cuda",
+                    "mps"
                 ],
                 value="cuda",
                 interactive=True,

@@ -221,6 +221,7 @@ def gradio_merge_lycoris_tab(headless=False):
                 choices=[
                     "cpu",
                     "cuda",
+                    "mps"
                 ],
                 value="cpu",
                 interactive=True,

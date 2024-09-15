@@ -282,6 +282,7 @@ def gradio_extract_lycoris_locon_tab(headless=False):
                 choices=[
                     "cpu",
                     "cuda",
+                    "mps"
                 ],
                 value="cuda",
                 interactive=True,

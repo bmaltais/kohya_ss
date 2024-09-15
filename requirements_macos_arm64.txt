@@ -1,5 +1,7 @@
-torch>=2.4.0 torchvision>=0.15.0
 bitsandbytes==0.41.1
-tensorflow-macos tensorflow-metal tensorboard==2.14.1
-onnxruntime==1.17.1
--r requirements.txt
+blendmodes==2022
+numba==0.59.1
+gradio==4.43.0
+tensorboard==2.14.1
+numpy==1.26.0
+-r requirements.txt 

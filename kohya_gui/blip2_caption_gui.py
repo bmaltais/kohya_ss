@@ -12,8 +12,13 @@ log = setup_logging()
 
 
 def load_model():
-    # Set the device to GPU if available, otherwise use CPU
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Set the device to GPU if available, MPS if available, otherwise use CPU
+    if torch.cuda.is_available():
+      device = torch.device("cuda") 
+    elif torch.backends.mps.is_available():
+      device = torch.device("mps")
+    else:
+      device = torch.device("cpu")
 
     # Initialize the BLIP2 processor
     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
