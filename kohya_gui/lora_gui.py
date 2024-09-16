@@ -1046,11 +1046,11 @@ def train_model(
             reg_factor = 1
         else:
             log.warning(
-                "Regularisation images are used... Will double the number of steps required..."
+                "Regularization images are used... Will double the number of steps required..."
             )
             reg_factor = 2
 
-        log.info(f"Regulatization factor: {reg_factor}")
+        log.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
             # calculate max_train_steps
