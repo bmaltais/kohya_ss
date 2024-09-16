@@ -240,6 +240,27 @@ class flux1Training:
                         info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )
+                    
+                with gr.Accordion(
+                    "Blocks to train",
+                    open=True,
+                    visible=False if finetuning else True,
+                    elem_classes=["flux1_blocks_to_train_background"],
+                ):
+                    with gr.Row():
+                        self.train_double_block_indices = gr.Textbox(
+                            label="train_double_block_indices",
+                            info="The indices are specified as a list of integers or a range of integers, like '0,1,5,8' or '0,1,4-5,7' or 'all' or 'none'. The number of double blocks is 19.",
+                            value=self.config.get("flux1.train_double_block_indices", "all"),
+                            interactive=True,
+                        )
+                        self.train_single_block_indices = gr.Textbox(
+                            label="train_single_block_indices",
+                            info="The indices are specified as a list of integers or a range of integers, like '0,1,5,8' or '0,1,4-5,7' or 'all' or 'none'. The number of single blocks is 38.",
+                            value=self.config.get("flux1.train_single_block_indices", "all"),
+                            interactive=True,
+                        )
+                        
                 with gr.Accordion(
                     "Rank for layers",
                     open=False,

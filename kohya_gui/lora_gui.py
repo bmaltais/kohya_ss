@@ -293,6 +293,8 @@ def save_configuration(
     txt_mod_dim,
     single_mod_dim,
     in_dims,
+    train_double_block_indices,
+    train_single_block_indices,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -554,6 +556,8 @@ def open_configuration(
     txt_mod_dim,
     single_mod_dim,
     in_dims,
+    train_double_block_indices,
+    train_single_block_indices,
     
     ##
     training_preset,
@@ -849,6 +853,8 @@ def train_model(
     txt_mod_dim,
     single_mod_dim,
     in_dims,
+    train_double_block_indices,
+    train_single_block_indices,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1536,6 +1542,8 @@ def train_model(
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
         "cpu_offload_checkpointing": cpu_offload_checkpointing if flux1_checkbox else None,
+        "train_double_block_indices": train_double_block_indices if flux1_checkbox else None,
+        "train_single_block_indices": train_single_block_indices if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -2733,6 +2741,8 @@ def lora_tab(
             flux1_training.txt_mod_dim,
             flux1_training.single_mod_dim,
             flux1_training.in_dims,
+            flux1_training.train_double_block_indices,
+            flux1_training.train_single_block_indices,
         ]
 
         configuration.button_open_config.click(
