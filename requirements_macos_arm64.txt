@@ -1,3 +1,4 @@
+torch=2.4.1 torchvision==0.19.1 torchaudio==2.4.1 -f https://download.pytorch.org/whl/metal.html
 bitsandbytes==0.41.1
 blendmodes==2022
 numba==0.59.1
