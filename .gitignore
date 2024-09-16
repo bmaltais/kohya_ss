@@ -51,4 +51,5 @@ dataset/**
 models
 data
 config.toml
-sd-scripts
+
+# sd-scripts - Commenting out for now as changes are needed here as well.
