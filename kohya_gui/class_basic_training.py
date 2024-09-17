@@ -193,6 +193,7 @@ class BasicTraining:
                 label="Optimizer",
                 choices=[
                     "AdamW",
+                    "AdamWScheduleFree",
                     "AdamW8bit",
                     "Adafactor",
                     "DAdaptation",
@@ -211,6 +212,7 @@ class BasicTraining:
                     "Prodigy",
                     "SGDNesterov",
                     "SGDNesterov8bit",
+                    "SGDScheduleFree",
                 ],
                 value=self.config.get("basic.optimizer", "AdamW8bit"),
                 interactive=True,
