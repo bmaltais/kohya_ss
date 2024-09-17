@@ -49,7 +49,10 @@ class BasicTraining:
         self.finetuning = finetuning
         self.dreambooth = dreambooth
         self.config = config
+        
+        # Initialize old_lr_warmup and old_lr_warmup_steps with default values
         self.old_lr_warmup = 0
+        self.old_lr_warmup_steps = 0
 
         # Initialize the UI components
         self.initialize_ui_components()
