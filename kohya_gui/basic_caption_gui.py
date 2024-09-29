@@ -102,7 +102,7 @@ def caption_images(
                 postfix=postfix,
             )
             # Replace specified text in caption files if find and replace text is provided
-            if find_text and replace_text:
+            if find_text:
                 find_replace(
                     folder_path=images_dir,
                     caption_file_ext=caption_ext,

@@ -1,5 +1,5 @@
-torch==2.1.0.post0+cxx11.abi torchvision==0.16.0.post0+cxx11.abi intel-extension-for-pytorch==2.1.20+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/
-tensorboard==2.15.2 tensorflow==2.15.0 intel-extension-for-tensorflow[xpu]==2.15.0.0
-mkl==2024.1.0 mkl-dpcpp==2024.1.0 oneccl-devel==2021.12.0 impi-devel==2021.12.0
-onnxruntime-openvino==1.17.1
+torch==2.1.0.post3+cxx11.abi torchvision==0.16.0.post3+cxx11.abi intel-extension-for-pytorch==2.1.40+xpu oneccl_bind_pt==2.1.400+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/
+tensorflow==2.15.1 intel-extension-for-tensorflow[xpu]==2.15.0.1
+mkl==2024.2.0 mkl-dpcpp==2024.2.0 oneccl-devel==2021.13.0 impi-devel==2021.13.0
+onnxruntime-openvino==1.18.0
 -r requirements.txt

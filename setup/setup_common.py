@@ -436,8 +436,8 @@ def git(arg: str, folder: str = None, ignore: bool = False):
     This function was adapted from code written by vladimandic: https://github.com/vladmandic/automatic/commits/master
     """
     
-    git_cmd = os.environ.get('GIT', "git")
-    result = subprocess.run(f'"{git_cmd}" {arg}', check=False, shell=True, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=folder or '.')
+    # git_cmd = os.environ.get('GIT', "git")
+    result = subprocess.run(["git", arg], check=False, shell=True, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=folder or '.')
     txt = result.stdout.decode(encoding="utf8", errors="ignore")
     if len(result.stderr) > 0:
         txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
@@ -476,11 +476,12 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
     # arg = arg.replace('>=', '==')
     if not quiet:
         log.info(f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}')
-    log.debug(f"Running pip: {arg}")
+    pip_cmd = [fr"{sys.executable}", "-m", "pip"] + arg.split(" ")
+    log.debug(f"Running pip: {pip_cmd}")
     if show_stdout:
-        subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ)
+        subprocess.run(pip_cmd, shell=False, check=False, env=os.environ)
     else:
-        result = subprocess.run(f'"{sys.executable}" -m pip {arg}', shell=True, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(pip_cmd, shell=False, check=False, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         txt = result.stdout.decode(encoding="utf8", errors="ignore")
         if len(result.stderr) > 0:
             txt += ('\n' if len(txt) > 0 else '') + result.stderr.decode(encoding="utf8", errors="ignore")
@@ -489,7 +490,7 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
             global errors # pylint: disable=global-statement
             errors += 1
             log.error(f'Error running pip: {arg}')
-            log.debug(f'Pip output: {txt}')
+            log.error(f'Pip output: {txt}')
         return txt
 
 def installed(package, friendly: str = None):

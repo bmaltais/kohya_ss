@@ -1,0 +1,40 @@
+[general]
+# define common settings here
+flip_aug = true
+color_aug = false
+keep_tokens_separator= "|||"
+shuffle_caption = false
+caption_tag_dropout_rate = 0
+caption_extension = ".txt"
+min_bucket_reso = 64
+max_bucket_reso = 2048
+
+[[datasets]]
+# define the first resolution here
+batch_size = 1
+enable_bucket = true
+resolution = [1024, 1024]
+
+  [[datasets.subsets]]
+  image_dir = "./test/img/10_darius kawasaki person"
+  num_repeats = 10
+
+[[datasets]]
+# define the second resolution here
+batch_size = 1
+enable_bucket = true
+resolution = [768, 768]
+
+  [[datasets.subsets]]
+  image_dir = "./test/img/10_darius kawasaki person"
+  num_repeats = 10
+
+[[datasets]]
+# define the third resolution here
+batch_size = 1
+enable_bucket = true
+resolution = [512, 512]
+
+  [[datasets.subsets]]
+  image_dir = "./test/img/10_darius kawasaki person"
+  num_repeats = 10
