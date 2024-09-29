@@ -233,6 +233,7 @@ def save_configuration(
     blockwise_fused_optimizers,
     flux_fused_backward_pass,
     cpu_offload_checkpointing,
+    blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
     mem_eff_save,
@@ -443,11 +444,12 @@ def open_configuration(
     blockwise_fused_optimizers,
     flux_fused_backward_pass,
     cpu_offload_checkpointing,
+    blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
     mem_eff_save,
-    training_preset,
     apply_t5_attn_mask,
+    training_preset,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -659,6 +661,7 @@ def train_model(
     blockwise_fused_optimizers,
     flux_fused_backward_pass,
     cpu_offload_checkpointing,
+    blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
     mem_eff_save,
@@ -1101,6 +1104,7 @@ def train_model(
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
+        "blocks_to_swap": blocks_to_swap if flux1_checkbox else None,
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
@@ -1521,6 +1525,7 @@ def finetune_tab(
             flux1_training.blockwise_fused_optimizers,
             flux1_training.flux_fused_backward_pass,
             flux1_training.cpu_offload_checkpointing,
+            flux1_training.blocks_to_swap,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
             flux1_training.mem_eff_save,

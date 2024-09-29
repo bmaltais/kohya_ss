@@ -202,6 +202,35 @@ class flux1Training:
                     )
 
                 with gr.Row(visible=True if finetuning else False):
+                    self.blocks_to_swap = gr.Slider(
+                        label="Blocks to swap",
+                        value=self.config.get("flux1.blocks_to_swap", 0),
+                        info="The number of blocks to swap. The default is None (no swap). These options must be combined with --fused_backward_pass or --blockwise_fused_optimizers. The recommended maximum value is 36.",
+                        minimum=0,
+                        maximum=57,
+                        step=1,
+                        interactive=True,
+                    )
+                    self.single_blocks_to_swap = gr.Slider(
+                        label="Single Blocks to swap (depercated)",
+                        value=self.config.get("flux1.single_blocks_to_swap", 0),
+                        info="[Experimental] Sets the number of 'single_blocks' (~320MB) to swap during the forward and backward passes.",
+                        minimum=0,
+                        maximum=19,
+                        step=1,
+                        interactive=True,
+                    )
+                    self.double_blocks_to_swap = gr.Slider(
+                        label="Double Blocks to swap (depercated)",
+                        value=self.config.get("flux1.double_blocks_to_swap", 0),
+                        info="[Experimental] Sets the number of 'double_blocks' (~640MB) to swap during the forward and backward passes.",
+                        minimum=0,
+                        maximum=38,
+                        step=1,
+                        interactive=True,
+                    )
+
+                with gr.Row(visible=True if finetuning else False):
                     self.blockwise_fused_optimizers = gr.Checkbox(
                         label="Blockwise Fused Optimizer",
                         value=self.config.get(
@@ -214,24 +243,6 @@ class flux1Training:
                         label="CPU Offload Checkpointing",
                         value=self.config.get("flux1.cpu_offload_checkpointing", False),
                         info="[Experimental] Enable offloading of tensors to CPU during checkpointing",
-                        interactive=True,
-                    )
-                    self.single_blocks_to_swap = gr.Slider(
-                        label="Single Blocks to swap",
-                        value=self.config.get("flux1.single_blocks_to_swap", 0),
-                        info="[Experimental] Sets the number of 'single_blocks' (~320MB) to swap during the forward and backward passes.",
-                        minimum=0,
-                        maximum=19,
-                        step=1,
-                        interactive=True,
-                    )
-                    self.double_blocks_to_swap = gr.Slider(
-                        label="Double Blocks to swap",
-                        value=self.config.get("flux1.double_blocks_to_swap", 0),
-                        info="[Experimental] Sets the number of 'double_blocks' (~640MB) to swap during the forward and backward passes.",
-                        minimum=0,
-                        maximum=38,
-                        step=1,
                         interactive=True,
                     )
                     self.flux_fused_backward_pass = gr.Checkbox(
