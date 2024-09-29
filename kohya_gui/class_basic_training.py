@@ -196,6 +196,8 @@ class BasicTraining:
                     "AdamWScheduleFree",
                     "AdamW8bit",
                     "Adafactor",
+                    "bitsandbytes.optim.AdEMAMix8bit",
+                    "bitsandbytes.optim.PagedAdEMAMix8bit",
                     "DAdaptation",
                     "DAdaptAdaGrad",
                     "DAdaptAdam",
