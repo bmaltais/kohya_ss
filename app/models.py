@@ -9,11 +9,11 @@ from sqlalchemy_serializer import SerializerMixin
 from .database import Base
 
 
-training_image_table = Table(
-    "TrainingImage",
+lora_model_training_image_table = Table(
+    "LoraModelTrainingImage",
     Base.metadata,
     Column("loraModelId", String, ForeignKey("LoraModel.id")),
-    Column("imageId", String, ForeignKey("Image.id")),
+    Column("trainingImageId", String, ForeignKey("TrainingImage.id")),
 )
 
 
@@ -33,6 +33,14 @@ class Image(Base):
     caption = Column(String, nullable=True)
     userId = Column(String)
     createdAt = Column(DateTime, default=datetime.now)
+
+class TrainingImage(Base):
+    __tablename__ = "TrainingImage"
+
+    id = Column(String, primary_key=True)
+    caption = Column(String, nullable=True)
+    imageId = Column(String, ForeignKey("Image.id"))
+    userId = Column(String)
 
 
 class LoraModel(Base, SerializerMixin):
@@ -57,4 +65,4 @@ class LoraModel(Base, SerializerMixin):
     createdAt = Column(DateTime, default=datetime.now)
 
 
-    trainingImages: Mapped[List[Image]] = relationship(secondary=training_image_table)
+    trainingImages: Mapped[List[TrainingImage]] = relationship(secondary=lora_model_training_image_table)

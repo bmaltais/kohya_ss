@@ -96,14 +96,19 @@ def _folder_preparation(
     training_images_dir_input = rf"{PROJECT_DIR}/{user_id}/{model_id}/raw/img"
     os.makedirs(training_images_dir_input, exist_ok=True)
 
-    for image in training_images:
-        object_key = rf"assets/{user_id}/{image.objectKey}"
-        local_file_path = os.path.join(training_images_dir_input, image.objectKey)
+    for index, training_image in enumerate(training_images):
+        object_key = training_image.image.objectKey
+        if not object_key.startswith('assets'):
+            object_key = rf"assets/{user_id}/{object_key}"
+
+
+        file_extension = os.path.splitext(object_key)[1]
+        local_file_path = os.path.join(training_images_dir_input, f"{index}{file_extension}")
         s3.download_file(BUCKET_NAME, object_key, local_file_path)
 
-        if image.caption is not None:
-            with open(f"{os.path.splitext(image.objectKey)[0]}.txt", "a") as file:
-                file.write(image.caption + "\n")
+        if training_image.caption is not None:
+            with open(f"{index}.txt", "a") as file:
+                file.write(f"{index + 1}. {training_image.caption}\n")
 
     dreambooth_folder_creation_gui.dreambooth_folder_preparation(
         util_training_images_dir_input=training_images_dir_input,
@@ -913,7 +918,7 @@ def train_lora_model(model_data: dict):
     try:
         # 1. Load the model from the database
         database = SessionLocal()
-        db_model = database.query(LoraModel).filter_by(id=model_data["id"]).first()
+        db_model: LoraModel = database.query(LoraModel).filter_by(id=model_data["id"]).first()
 
         model_root_dir = rf"{PROJECT_DIR}/{db_model.userId}/{db_model.id}"
         os.makedirs(model_root_dir, exist_ok=True)
