@@ -58,7 +58,7 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: <https://github.com/camenduru/kohya_ss-colab>.
 
-I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
+I would like to express my gratitude to camenduru for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
 | Colab                                                                                                                                                                          | Info               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
