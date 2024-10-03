@@ -106,6 +106,7 @@ def UI(**kwargs):
     do_not_share = kwargs.get("do_not_share", False)
     server_name = kwargs.get("listen")
     root_path = kwargs.get("root_path", None)
+    debug = kwargs.get("debug", False)
 
     launch_kwargs["server_name"] = server_name
     if username and password:
@@ -121,7 +122,8 @@ def UI(**kwargs):
             launch_kwargs["share"] = share
     if root_path:
         launch_kwargs["root_path"] = root_path
-    launch_kwargs["debug"] = True
+    if debug:
+        launch_kwargs["debug"] = True
     interface.launch(**launch_kwargs)
 
 

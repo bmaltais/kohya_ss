@@ -18,14 +18,18 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_file_path, validate_folder_path, validate_model_path,
-    validate_args_setting, setup_environment,
+    validate_file_path,
+    validate_folder_path,
+    validate_model_path,
+    validate_args_setting,
+    setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
+from .class_sd3 import sd3Training
 from .class_folders import Folders
 from .class_sdxl_parameters import SDXLParameters
 from .class_command_executor import CommandExecutor
@@ -34,6 +38,7 @@ from .class_sample_images import SampleImages, create_prompt_file
 from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
+from .class_flux1 import flux1Training
 
 from .custom_logging import setup_logging
 
@@ -65,6 +70,7 @@ def save_configuration(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    flux1_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -82,6 +88,7 @@ def save_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -116,6 +123,7 @@ def save_configuration(
     save_state_on_train_end,
     resume,
     gradient_checkpointing,
+    fp8_base,
     gradient_accumulation_steps,
     block_lr,
     mem_eff_attn,
@@ -142,6 +150,7 @@ def save_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -169,7 +178,11 @@ def save_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -188,6 +201,43 @@ def save_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizers,
+    flux_fused_backward_pass,
+    cpu_offload_checkpointing,
+    blocks_to_swap,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
+    mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -231,6 +281,7 @@ def open_configuration(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    flux1_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -248,6 +299,7 @@ def open_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -282,6 +334,7 @@ def open_configuration(
     save_state_on_train_end,
     resume,
     gradient_checkpointing,
+    fp8_base,
     gradient_accumulation_steps,
     block_lr,
     mem_eff_attn,
@@ -308,6 +361,7 @@ def open_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -335,7 +389,11 @@ def open_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -354,6 +412,43 @@ def open_configuration(
     metadata_license,
     metadata_tags,
     metadata_title,
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizers,
+    flux_fused_backward_pass,
+    cpu_offload_checkpointing,
+    blocks_to_swap,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
+    mem_eff_save,
+    apply_t5_attn_mask,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -403,6 +498,7 @@ def train_model(
     v2,
     v_parameterization,
     sdxl_checkbox,
+    flux1_checkbox,
     train_dir,
     image_folder,
     output_dir,
@@ -420,6 +516,7 @@ def train_model(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     dataset_repeats,
     train_batch_size,
     epoch,
@@ -454,6 +551,7 @@ def train_model(
     save_state_on_train_end,
     resume,
     gradient_checkpointing,
+    fp8_base,
     gradient_accumulation_steps,
     block_lr,
     mem_eff_attn,
@@ -480,6 +578,7 @@ def train_model(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -507,7 +606,11 @@ def train_model(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
+    fused_backward_pass,
+    fused_optimizer_groups,
     sdxl_cache_text_encoder_outputs,
     sdxl_no_half_vae,
     min_timestep,
@@ -526,6 +629,43 @@ def train_model(
     metadata_license,
     metadata_tags,
     metadata_title,
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    clip_g,
+    clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
+    # Flux.1
+    flux1_cache_text_encoder_outputs,
+    flux1_cache_text_encoder_outputs_to_disk,
+    ae,
+    flux1_clip_l,
+    flux1_t5xxl,
+    discrete_flow_shift,
+    model_prediction_type,
+    timestep_sampling,
+    split_mode,
+    train_blocks,
+    t5xxl_max_token_length,
+    guidance_scale,
+    blockwise_fused_optimizers,
+    flux_fused_backward_pass,
+    cpu_offload_checkpointing,
+    blocks_to_swap,
+    single_blocks_to_swap,
+    double_blocks_to_swap,
+    mem_eff_save,
+    apply_t5_attn_mask,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -558,44 +698,36 @@ def train_model(
 
     #
     # Validate paths
-    # 
-    
+    #
+
     if not validate_file_path(dataset_config):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(image_folder):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        logging_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        output_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
-    
+
     #
     # End of path validation
     #
-    
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     finetune_image_folder=image_folder,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     resume=resume,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless
@@ -727,10 +859,16 @@ def train_model(
 
     log.info(max_train_steps_info)
 
-    if max_train_steps != 0:
-        lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
     else:
         lr_warmup_steps = 0
+
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     accelerate_path = get_executable_path("accelerate")
@@ -738,7 +876,7 @@ def train_model(
         log.error("accelerate not found")
         return TRAIN_BUTTON_VISIBLE
 
-    run_cmd = [rf'{accelerate_path}', "launch"]
+    run_cmd = [rf"{accelerate_path}", "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -758,6 +896,10 @@ def train_model(
 
     if sdxl_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train.py")
+    elif sd3_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train.py")
+    elif flux1_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/fine_tune.py")
 
@@ -766,7 +908,14 @@ def train_model(
         if use_latent_files == "Yes"
         else f"{train_dir}/{caption_metadata_filename}"
     )
-    cache_text_encoder_outputs = sdxl_checkbox and sdxl_cache_text_encoder_outputs
+    cache_text_encoder_outputs = (
+        (sdxl_checkbox and sdxl_cache_text_encoder_outputs)
+        or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+        or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+    )
+    cache_text_encoder_outputs_to_disk = (
+        sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
+    ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     if max_data_loader_n_workers == "" or None:
@@ -791,19 +940,27 @@ def train_model(
         "cache_latents": cache_latents,
         "cache_latents_to_disk": cache_latents_to_disk,
         "cache_text_encoder_outputs": cache_text_encoder_outputs,
+        "cache_text_encoder_outputs_to_disk": cache_text_encoder_outputs_to_disk,
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
+        "clip_l": flux1_clip_l if flux1_checkbox else clip_l if sd3_checkbox else None,
         "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
         "debiased_estimation_loss": debiased_estimation_loss,
+        "disable_mmap_load_safetensors": disable_mmap_load_safetensors,
         "dynamo_backend": dynamo_backend,
         "enable_bucket": True,
         "flip_aug": flip_aug,
+        "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
+        "fused_backward_pass": fused_backward_pass if not flux1_checkbox else flux_fused_backward_pass,
+        "fused_optimizer_groups": (
+            int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None
+        ),
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
@@ -828,11 +985,13 @@ def train_model(
             learning_rate_te2 if sdxl_checkbox else None
         ),  # only for sdxl
         "logging_dir": logging_dir,
+        "log_config": log_config,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
         "loss_type": loss_type,
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
+        "lr_scheduler_type": lr_scheduler_type if lr_scheduler_type != "" else None,
         "lr_warmup_steps": lr_warmup_steps,
         "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
@@ -895,6 +1054,7 @@ def train_model(
         "sdpa": True if xformers == "sdpa" else None,
         "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
+        "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
         "train_text_encoder": train_text_encoder,
@@ -904,9 +1064,51 @@ def train_model(
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
-        "wandb_run_name": wandb_run_name,
+        "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
+        # SD3 only Parameters
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
+        "clip_g": clip_g if sd3_checkbox else None,
+        # "clip_l": see previous assignment above for code
+        "logit_mean": logit_mean if sd3_checkbox else None,
+        "logit_std": logit_std if sd3_checkbox else None,
+        "mode_scale": mode_scale if sd3_checkbox else None,
+        "save_clip": save_clip if sd3_checkbox else None,
+        "save_t5xxl": save_t5xxl if sd3_checkbox else None,
+        # "t5xxl": see previous assignment above for code
+        "t5xxl_device": t5xxl_device if sd3_checkbox else None,
+        "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
+        "text_encoder_batch_size": (
+            sd3_text_encoder_batch_size if sd3_checkbox else None
+        ),
+        "weighting_scheme": weighting_scheme if sd3_checkbox else None,
+        # Flux.1 specific parameters
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
+        "ae": ae if flux1_checkbox else None,
+        # "clip_l": see previous assignment above for code
+        # "t5xxl": see previous assignment above for code
+        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
+        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
+        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
+        "split_mode": split_mode if flux1_checkbox else None,
+        "train_blocks": train_blocks if flux1_checkbox else None,
+        "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
+        "guidance_scale": guidance_scale if flux1_checkbox else None,
+        "blockwise_fused_optimizers": (
+            blockwise_fused_optimizers if flux1_checkbox else None
+        ),
+        # "flux_fused_backward_pass": see previous assignment of fused_backward_pass in above code
+        "cpu_offload_checkpointing": (
+            cpu_offload_checkpointing if flux1_checkbox else None
+        ),
+        "blocks_to_swap": blocks_to_swap if flux1_checkbox else None,
+        "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
+        "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        "mem_eff_save": mem_eff_save if flux1_checkbox else None,
+        "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -924,7 +1126,7 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = fr"{output_dir}/config_finetune-{formatted_datetime}.toml"
+    tmpfilename = rf"{output_dir}/config_finetune-{formatted_datetime}.toml"
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
@@ -1090,7 +1292,9 @@ def finetune_tab(
 
                     # Add SDXL Parameters
                     sdxl_params = SDXLParameters(
-                        source_model.sdxl_checkbox, config=config
+                        source_model.sdxl_checkbox,
+                        config=config,
+                        trainer="finetune",
                     )
 
                     with gr.Row():
@@ -1098,6 +1302,19 @@ def finetune_tab(
                         train_text_encoder = gr.Checkbox(
                             label="Train text encoder", value=True
                         )
+
+            # Add FLUX1 Parameters
+            flux1_training = flux1Training(
+                headless=headless,
+                config=config,
+                flux1_checkbox=source_model.flux1_checkbox,
+                finetuning=True,
+            )
+
+            # Add SD3 Parameters
+            sd3_training = sd3Training(
+                headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
                 with gr.Row():
@@ -1146,6 +1363,7 @@ def finetune_tab(
             source_model.v2,
             source_model.v_parameterization,
             source_model.sdxl_checkbox,
+            source_model.flux1_checkbox,
             train_dir,
             image_folder,
             output_dir,
@@ -1163,6 +1381,7 @@ def finetune_tab(
             basic_training.learning_rate,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
+            basic_training.lr_warmup_steps,
             dataset_repeats,
             basic_training.train_batch_size,
             basic_training.epoch,
@@ -1196,6 +1415,7 @@ def finetune_tab(
             advanced_training.save_state_on_train_end,
             advanced_training.resume,
             advanced_training.gradient_checkpointing,
+            advanced_training.fp8_base,
             gradient_accumulation_steps,
             block_lr,
             advanced_training.mem_eff_attn,
@@ -1222,6 +1442,7 @@ def finetune_tab(
             basic_training.optimizer,
             basic_training.optimizer_args,
             basic_training.lr_scheduler_args,
+            basic_training.lr_scheduler_type,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.noise_offset_random_strength,
@@ -1249,7 +1470,11 @@ def finetune_tab(
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
+            advanced_training.log_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
+            sdxl_params.disable_mmap_load_safetensors,
+            sdxl_params.fused_backward_pass,
+            sdxl_params.fused_optimizer_groups,
             sdxl_params.sdxl_cache_text_encoder_outputs,
             sdxl_params.sdxl_no_half_vae,
             advanced_training.min_timestep,
@@ -1268,6 +1493,43 @@ def finetune_tab(
             metadata.metadata_license,
             metadata.metadata_tags,
             metadata.metadata_title,
+            # SD3 Parameters
+            sd3_training.sd3_cache_text_encoder_outputs,
+            sd3_training.sd3_cache_text_encoder_outputs_to_disk,
+            sd3_training.clip_g,
+            sd3_training.clip_l,
+            sd3_training.logit_mean,
+            sd3_training.logit_std,
+            sd3_training.mode_scale,
+            sd3_training.save_clip,
+            sd3_training.save_t5xxl,
+            sd3_training.t5xxl,
+            sd3_training.t5xxl_device,
+            sd3_training.t5xxl_dtype,
+            sd3_training.sd3_text_encoder_batch_size,
+            sd3_training.weighting_scheme,
+            source_model.sd3_checkbox,
+            # Flux1 parameters
+            flux1_training.flux1_cache_text_encoder_outputs,
+            flux1_training.flux1_cache_text_encoder_outputs_to_disk,
+            flux1_training.ae,
+            flux1_training.clip_l,
+            flux1_training.t5xxl,
+            flux1_training.discrete_flow_shift,
+            flux1_training.model_prediction_type,
+            flux1_training.timestep_sampling,
+            flux1_training.split_mode,
+            flux1_training.train_blocks,
+            flux1_training.t5xxl_max_token_length,
+            flux1_training.guidance_scale,
+            flux1_training.blockwise_fused_optimizers,
+            flux1_training.flux_fused_backward_pass,
+            flux1_training.cpu_offload_checkpointing,
+            flux1_training.blocks_to_swap,
+            flux1_training.single_blocks_to_swap,
+            flux1_training.double_blocks_to_swap,
+            flux1_training.mem_eff_save,
+            flux1_training.apply_t5_attn_mask,
         ]
 
         configuration.button_open_config.click(

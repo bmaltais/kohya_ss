@@ -3,6 +3,10 @@ import os
 import shlex
 
 from .class_gui_config import KohyaSSGUIConfig
+from .custom_logging import setup_logging
+
+# Set up logging
+log = setup_logging()
 
 
 class AccelerateLaunch:
@@ -79,12 +83,16 @@ class AccelerateLaunch:
                 )
                 self.dynamo_use_fullgraph = gr.Checkbox(
                     label="Dynamo use fullgraph",
-                    value=self.config.get("accelerate_launch.dynamo_use_fullgraph", False),
+                    value=self.config.get(
+                        "accelerate_launch.dynamo_use_fullgraph", False
+                    ),
                     info="Whether to use full graph mode for dynamo or it is ok to break model into several subgraphs",
                 )
                 self.dynamo_use_dynamic = gr.Checkbox(
                     label="Dynamo use dynamic",
-                    value=self.config.get("accelerate_launch.dynamo_use_dynamic", False),
+                    value=self.config.get(
+                        "accelerate_launch.dynamo_use_dynamic", False
+                    ),
                     info="Whether to enable dynamic shape tracing.",
                 )
 
@@ -103,6 +111,24 @@ class AccelerateLaunch:
                     placeholder="example: 0,1",
                     info=" What GPUs (by id) should be used for training on this machine as a comma-separated list",
                 )
+
+                def validate_gpu_ids(value):
+                    if value == "":
+                        return
+                    if not (
+                        value.isdigit() and int(value) >= 0 and int(value) <= 128
+                    ):
+                        log.error("GPU IDs must be an integer between 0 and 128")
+                        return
+                    else:
+                        for id in value.split(","):
+                            if not id.isdigit() or int(id) < 0 or int(id) > 128:
+                                log.error(
+                                    "GPU IDs must be an integer between 0 and 128"
+                                )
+
+                self.gpu_ids.blur(fn=validate_gpu_ids, inputs=self.gpu_ids)
+
                 self.main_process_port = gr.Number(
                     label="Main process port",
                     value=self.config.get("accelerate_launch.main_process_port", 0),
@@ -136,9 +162,14 @@ class AccelerateLaunch:
 
         if "dynamo_use_dynamic" in kwargs and kwargs.get("dynamo_use_dynamic"):
             run_cmd.append("--dynamo_use_dynamic")
-        
-        if "extra_accelerate_launch_args" in kwargs and kwargs["extra_accelerate_launch_args"] != "":
-            extra_accelerate_launch_args = kwargs["extra_accelerate_launch_args"].replace('"', "")
+
+        if (
+            "extra_accelerate_launch_args" in kwargs
+            and kwargs["extra_accelerate_launch_args"] != ""
+        ):
+            extra_accelerate_launch_args = kwargs[
+                "extra_accelerate_launch_args"
+            ].replace('"', "")
             for arg in extra_accelerate_launch_args.split():
                 run_cmd.append(shlex.quote(arg))
 

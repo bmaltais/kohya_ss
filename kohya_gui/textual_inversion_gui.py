@@ -70,6 +70,7 @@ def save_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -135,6 +136,7 @@ def save_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -161,7 +163,9 @@ def save_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
@@ -229,6 +233,7 @@ def open_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -294,6 +299,7 @@ def open_configuration(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -320,7 +326,9 @@ def open_configuration(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
@@ -381,6 +389,7 @@ def train_model(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -446,6 +455,7 @@ def train_model(
     optimizer,
     optimizer_args,
     lr_scheduler_args,
+    lr_scheduler_type,
     noise_offset_type,
     noise_offset,
     noise_offset_random_strength,
@@ -472,7 +482,9 @@ def train_model(
     wandb_run_name,
     log_tracker_name,
     log_tracker_config,
+    log_config,
     scale_v_pred_loss_like_noise_pred,
+    disable_mmap_load_safetensors,
     min_timestep,
     max_timestep,
     sdxl_no_half_vae,
@@ -549,20 +561,6 @@ def train_model(
     # End of path validation
     #
 
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     reg_data_dir=reg_data_dir,
-    #     resume=resume,
-    #     train_data_dir=train_data_dir,
-    #     vae=vae,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
-
     if token_string == "":
         output_message(msg="Token string is missing", headless=headless)
         return TRAIN_BUTTON_VISIBLE
@@ -588,13 +586,6 @@ def train_model(
                 stop_text_encoder_training = math.ceil(
                     float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
                 )
-
-            if lr_warmup != 0:
-                lr_warmup_steps = round(
-                    float(int(lr_warmup) * int(max_train_steps) / 100)
-                )
-            else:
-                lr_warmup_steps = 0
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
@@ -657,11 +648,11 @@ def train_model(
             reg_factor = 1
         else:
             log.warning(
-                "Regularisation images are used... Will double the number of steps required..."
+                "Regularization images are used... Will double the number of steps required..."
             )
             reg_factor = 2
 
-        log.info(f"Regulatization factor: {reg_factor}")
+        log.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
             # calculate max_train_steps
@@ -689,12 +680,17 @@ def train_model(
                 float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
             )
 
-        if lr_warmup != 0:
-            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-        else:
-            lr_warmup_steps = 0
-
         log.info(f"Total steps: {total_steps}")
+
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
+    else:
+        lr_warmup_steps = 0
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
@@ -757,6 +753,7 @@ def train_model(
         "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
+        "disable_mmap_load_safetensors": disable_mmap_load_safetensors,
         "dynamo_backend": dynamo_backend,
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
@@ -777,6 +774,7 @@ def train_model(
         "keep_tokens": int(keep_tokens),
         "learning_rate": learning_rate,
         "logging_dir": logging_dir,
+        "log_config": log_config,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
         "loss_type": loss_type,
@@ -786,6 +784,7 @@ def train_model(
             int(lr_scheduler_num_cycles) if lr_scheduler_num_cycles != "" else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
+        "lr_scheduler_type": lr_scheduler_type if lr_scheduler_type != "" else None,
         "lr_warmup_steps": lr_warmup_steps,
         "max_bucket_reso": max_bucket_reso,
         "max_timestep": max_timestep if max_timestep != 0 else None,
@@ -862,7 +861,7 @@ def train_model(
         "vae": vae,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
-        "wandb_run_name": wandb_run_name,
+        "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weigts": weights,
         "use_object_template": True if template == "object template" else None,
         "use_style_template": True if template == "style template" else None,
@@ -1130,6 +1129,7 @@ def ti_tab(
             basic_training.learning_rate,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
+            basic_training.lr_warmup_steps,
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
@@ -1194,6 +1194,7 @@ def ti_tab(
             basic_training.optimizer,
             basic_training.optimizer_args,
             basic_training.lr_scheduler_args,
+            basic_training.lr_scheduler_type,
             advanced_training.noise_offset_type,
             advanced_training.noise_offset,
             advanced_training.noise_offset_random_strength,
@@ -1220,7 +1221,9 @@ def ti_tab(
             advanced_training.wandb_run_name,
             advanced_training.log_tracker_name,
             advanced_training.log_tracker_config,
+            advanced_training.log_config,
             advanced_training.scale_v_pred_loss_like_noise_pred,
+            sdxl_params.disable_mmap_load_safetensors,
             advanced_training.min_timestep,
             advanced_training.max_timestep,
             sdxl_params.sdxl_no_half_vae,
