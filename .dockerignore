@@ -3,6 +3,7 @@ cudnn_windows/
 bitsandbytes_windows/
 bitsandbytes_windows_deprecated/
 dataset/
+models/
 __pycache__/
 venv/
 **/.hadolint.yml
