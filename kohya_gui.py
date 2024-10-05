@@ -1,6 +1,8 @@
 import gradio as gr
 import os
 import argparse
+import subprocess
+import sys
 from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from kohya_gui.dreambooth_gui import dreambooth_tab
 from kohya_gui.finetune_gui import finetune_tab
@@ -12,6 +14,8 @@ from kohya_gui.class_lora_tab import LoRATools
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
 
+PYTHON = sys.executable
+project_directory = os.path.dirname(os.path.abspath(__file__))
 
 def UI(**kwargs):
     add_javascript(kwargs.get("language"))
@@ -178,10 +182,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--root_path", type=str, default=None, help="`root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss"
     )
+    
+    parser.add_argument(
+        "--noverify", action="store_true", help="Disable requirements verification"
+    )
 
     args = parser.parse_args()
 
     # Set up logging
     log = setup_logging(debug=args.debug)
+    
+    if args.noverify:
+        log.warning("Skipping requirements verification.")
+    else:
+        run_cmd = [rf"{PYTHON}", rf"{project_directory}/setup/validate_requirements.py"]
+        subprocess.run(run_cmd, shell=False)
 
     UI(**vars(args))
