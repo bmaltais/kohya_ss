@@ -1,8 +1,10 @@
-import gradio as gr
 import os
+import sys
 import argparse
 import subprocess
-import sys
+import contextlib
+import gradio as gr
+
 from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from kohya_gui.dreambooth_gui import dreambooth_tab
 from kohya_gui.finetune_gui import finetune_tab
@@ -10,73 +12,43 @@ from kohya_gui.textual_inversion_gui import ti_tab
 from kohya_gui.utilities import utilities_tab
 from kohya_gui.lora_gui import lora_tab
 from kohya_gui.class_lora_tab import LoRATools
-
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
 
 PYTHON = sys.executable
-project_directory = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(os.path.abspath(__file__))
 
-def UI(**kwargs):
-    add_javascript(kwargs.get("language"))
-    css = ""
+# Function to read file content, suppressing any FileNotFoundError
+def read_file_content(file_path):
+    with contextlib.suppress(FileNotFoundError):
+        with open(file_path, "r", encoding="utf8") as file:
+            return file.read()
+    return ""
 
-    headless = kwargs.get("headless", False)
-    log.info(f"headless: {headless}")
+# Function to initialize the Gradio UI interface
+def initialize_ui_interface(config, headless, use_shell, release_info, readme_content):
+    # Load custom CSS if available
+    css = read_file_content("./assets/style.css")
 
-    if os.path.exists("./assets/style.css"):
-        with open(os.path.join("./assets/style.css"), "r", encoding="utf8") as file:
-            log.debug("Load CSS...")
-            css += file.read() + "\n"
-
-    if os.path.exists("./.release"):
-        with open(os.path.join("./.release"), "r", encoding="utf8") as file:
-            release = file.read()
-
-    if os.path.exists("./README.md"):
-        with open(os.path.join("./README.md"), "r", encoding="utf8") as file:
-            README = file.read()
-
-    interface = gr.Blocks(
-        css=css, title=f"Kohya_ss GUI {release}", theme=gr.themes.Default()
-    )
-
-    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config"))
-
-    if config.is_config_loaded():
-        log.info(f"Loaded default GUI values from '{kwargs.get('config')}'...")
-
-    use_shell_flag = True
-    # if os.name == "posix":
-    #     use_shell_flag = True
-        
-    use_shell_flag = config.get("settings.use_shell", use_shell_flag)
-        
-    if kwargs.get("do_not_use_shell", False):
-        use_shell_flag = False
-        
-    if use_shell_flag:
-        log.info("Using shell=True when running external commands...")
-
-    with interface:
+    # Create the main Gradio Blocks interface
+    ui_interface = gr.Blocks(css=css, title=f"Kohya_ss GUI {release_info}", theme=gr.themes.Default())
+    with ui_interface:
+        # Create tabs for different functionalities
         with gr.Tab("Dreambooth"):
             (
                 train_data_dir_input,
                 reg_data_dir_input,
                 output_dir_input,
                 logging_dir_input,
-            ) = dreambooth_tab(
-                headless=headless, config=config, use_shell_flag=use_shell_flag
-            )
+            ) = dreambooth_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("LoRA"):
-            lora_tab(headless=headless, config=config, use_shell_flag=use_shell_flag)
+            lora_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("Textual Inversion"):
-            ti_tab(headless=headless, config=config, use_shell_flag=use_shell_flag)
+            ti_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("Finetuning"):
-            finetune_tab(
-                headless=headless, config=config, use_shell_flag=use_shell_flag
-            )
+            finetune_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("Utilities"):
+            # Utilities tab requires inputs from the Dreambooth tab
             utilities_tab(
                 train_data_dir_input=train_data_dir_input,
                 reg_data_dir_input=reg_data_dir_input,
@@ -88,114 +60,92 @@ def UI(**kwargs):
             with gr.Tab("LoRA"):
                 _ = LoRATools(headless=headless)
         with gr.Tab("About"):
-            gr.Markdown(f"kohya_ss GUI release {release}")
+            # About tab to display release information and README content
+            gr.Markdown(f"kohya_ss GUI release {release_info}")
             with gr.Tab("README"):
-                gr.Markdown(README)
+                gr.Markdown(readme_content)
 
-        htmlStr = f"""
-        <html>
-            <body>
-                <div class="ver-class">{release}</div>
-            </body>
-        </html>
-        """
-        gr.HTML(htmlStr)
-    # Show the interface
-    launch_kwargs = {}
-    username = kwargs.get("username")
-    password = kwargs.get("password")
-    server_port = kwargs.get("server_port", 0)
-    inbrowser = kwargs.get("inbrowser", False)
-    share = kwargs.get("share", False)
-    do_not_share = kwargs.get("do_not_share", False)
-    server_name = kwargs.get("listen")
-    root_path = kwargs.get("root_path", None)
-    debug = kwargs.get("debug", False)
+        # Display release information in a div element
+        gr.Markdown(f"<div class='ver-class'>{release_info}</div>")
 
-    launch_kwargs["server_name"] = server_name
-    if username and password:
-        launch_kwargs["auth"] = (username, password)
-    if server_port > 0:
-        launch_kwargs["server_port"] = server_port
-    if inbrowser:
-        launch_kwargs["inbrowser"] = inbrowser
-    if do_not_share:
-        launch_kwargs["share"] = False
-    else:
-        if share:
-            launch_kwargs["share"] = share
-    if root_path:
-        launch_kwargs["root_path"] = root_path
-    if debug:
-        launch_kwargs["debug"] = True
-    interface.launch(**launch_kwargs)
+    return ui_interface
 
+# Function to configure and launch the UI
+def UI(**kwargs):
+    # Add custom JavaScript if specified
+    add_javascript(kwargs.get("language"))
+    log.info(f"headless: {kwargs.get('headless', False)}")
 
-if __name__ == "__main__":
-    # torch.cuda.set_per_process_memory_fraction(0.48)
+    # Load release and README information
+    release_info = read_file_content("./.release")
+    readme_content = read_file_content("./README.md")
+
+    # Load configuration from the specified file
+    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config"))
+    if config.is_config_loaded():
+        log.info(f"Loaded default GUI values from '{kwargs.get('config')}'...")
+
+    # Determine if shell should be used for running external commands
+    use_shell = not kwargs.get("do_not_use_shell", False) and config.get("settings.use_shell", True)
+    if use_shell:
+        log.info("Using shell=True when running external commands...")
+
+    # Initialize the Gradio UI interface
+    ui_interface = initialize_ui_interface(config, kwargs.get("headless", False), use_shell, release_info, readme_content)
+
+    # Construct launch parameters using dictionary comprehension
+    launch_params = {
+        "server_name": kwargs.get("listen"),
+        "auth": (kwargs["username"], kwargs["password"]) if kwargs.get("username") and kwargs.get("password") else None,
+        "server_port": kwargs.get("server_port", 0) if kwargs.get("server_port", 0) > 0 else None,
+        "inbrowser": kwargs.get("inbrowser", False),
+        "share": False if kwargs.get("do_not_share", False) else kwargs.get("share", False),
+        "root_path": kwargs.get("root_path", None),
+        "debug": kwargs.get("debug", False),
+    }
+  
+    # This line filters out any key-value pairs from `launch_params` where the value is `None`, ensuring only valid parameters are passed to the `launch` function.
+    launch_params = {k: v for k, v in launch_params.items() if v is not None}
+
+    # Launch the Gradio interface with the specified parameters
+    ui_interface.launch(**launch_params)
+
+# Function to initialize argument parser for command-line arguments
+def initialize_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="./config.toml",
-        help="Path to the toml config file for interface defaults",
-    )
+    parser.add_argument("--config", type=str, default="./config.toml", help="Path to the toml config file for interface defaults")
     parser.add_argument("--debug", action="store_true", help="Debug on")
-    parser.add_argument(
-        "--listen",
-        type=str,
-        default="127.0.0.1",
-        help="IP to listen on for connections to Gradio",
-    )
-    parser.add_argument(
-        "--username", type=str, default="", help="Username for authentication"
-    )
-    parser.add_argument(
-        "--password", type=str, default="", help="Password for authentication"
-    )
-    parser.add_argument(
-        "--server_port",
-        type=int,
-        default=0,
-        help="Port to run the server listener on",
-    )
+    parser.add_argument("--listen", type=str, default="127.0.0.1", help="IP to listen on for connections to Gradio")
+    parser.add_argument("--username", type=str, default="", help="Username for authentication")
+    parser.add_argument("--password", type=str, default="", help="Password for authentication")
+    parser.add_argument("--server_port", type=int, default=0, help="Port to run the server listener on")
     parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
     parser.add_argument("--share", action="store_true", help="Share the gradio UI")
-    parser.add_argument(
-        "--headless", action="store_true", help="Is the server headless"
-    )
-    parser.add_argument(
-        "--language", type=str, default=None, help="Set custom language"
-    )
-
+    parser.add_argument("--headless", action="store_true", help="Is the server headless")
+    parser.add_argument("--language", type=str, default=None, help="Set custom language")
     parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
+    parser.add_argument("--do_not_use_shell", action="store_true", help="Enforce not to use shell=True when running external commands")
+    parser.add_argument("--do_not_share", action="store_true", help="Do not share the gradio UI")
+    parser.add_argument("--root_path", type=str, default=None, help="`root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss")
+    parser.add_argument("--noverify", action="store_true", help="Disable requirements verification")
+    return parser
 
-    parser.add_argument(
-        "--do_not_use_shell", action="store_true", help="Enforce not to use shell=True when running external commands"
-    )
-
-    parser.add_argument(
-        "--do_not_share", action="store_true", help="Do not share the gradio UI"
-    )
-
-    parser.add_argument(
-        "--root_path", type=str, default=None, help="`root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss"
-    )
-    
-    parser.add_argument(
-        "--noverify", action="store_true", help="Disable requirements verification"
-    )
-
+if __name__ == "__main__":
+    # Initialize argument parser and parse arguments
+    parser = initialize_arg_parser()
     args = parser.parse_args()
 
-    # Set up logging
+    # Set up logging based on the debug flag
     log = setup_logging(debug=args.debug)
-    
+
+    # Verify requirements unless `noverify` flag is set
     if args.noverify:
         log.warning("Skipping requirements verification.")
     else:
-        run_cmd = [rf"{PYTHON}", rf"{project_directory}/setup/validate_requirements.py"]
-        subprocess.run(run_cmd, shell=False)
+        # Run the validation command to verify requirements
+        validation_command = [PYTHON, os.path.join(project_dir, "setup", "validate_requirements.py")]
+        subprocess.run(validation_command, check=True)
 
+    # Launch the UI with the provided arguments
     UI(**vars(args))
