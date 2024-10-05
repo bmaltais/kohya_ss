@@ -34,6 +34,8 @@ class Image(Base):
     userId = Column(String)
     createdAt = Column(DateTime, default=datetime.now)
 
+    training_images: Mapped[List["TrainingImage"]] = relationship("TrainingImage", back_populates="image")
+
 class TrainingImage(Base):
     __tablename__ = "TrainingImage"
 
@@ -42,6 +44,7 @@ class TrainingImage(Base):
     imageId = Column(String, ForeignKey("Image.id"))
     userId = Column(String)
 
+    image: Mapped["Image"] = relationship("Image", back_populates="training_images")
 
 class LoraModel(Base, SerializerMixin):
     __tablename__ = "LoraModel"

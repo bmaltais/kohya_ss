@@ -26,8 +26,8 @@ RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/v
 # The versions must align and be in sync with the requirements_linux_docker.txt
 # hadolint ignore=SC2102
 RUN --mount=type=cache,id=pip-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/root/.cache/pip \
-    pip install -U --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.nvidia.com \
-    torch==2.1.2 torchvision==0.16.2 \
+    pip install --no-cache-dir -U --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.nvidia.com \
+    torch==2.1.2+cu121 torchvision==0.16.2 \
     xformers==0.0.23.post1 \
     ninja \
     pip setuptools wheel
