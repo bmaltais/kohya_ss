@@ -12,8 +12,8 @@ huggingface-hub==0.24.5
 imagesize==1.4.1
 invisible-watermark==0.2.0
 lion-pytorch==0.0.6
-lycoris_lora==2.2.0.post3
-# lycoris_lora==3.0.0.post1
+# lycoris_lora==2.2.0.post3
+lycoris_lora==3.1.0
 omegaconf==2.3.0
 onnx==1.16.1
 prodigyopt==1.0

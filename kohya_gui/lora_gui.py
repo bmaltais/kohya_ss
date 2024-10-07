@@ -1135,11 +1135,11 @@ def train_model(
 
     if LoRA_type == "LyCORIS/BOFT":
         network_module = "lycoris.kohya"
-        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=boft train_norm={train_norm}"
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} algo=boft train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/Diag-OFT":
         network_module = "lycoris.kohya"
-        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constrain={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}"
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constraint={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/DyLoRA":
         network_module = "lycoris.kohya"
@@ -1147,7 +1147,7 @@ def train_model(
 
     if LoRA_type == "LyCORIS/GLoRA":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo="glora" train_norm={train_norm}'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo="glora" train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/iA3":
         network_module = "lycoris.kohya"
@@ -1155,19 +1155,19 @@ def train_model(
 
     if LoRA_type == "LoCon" or LoRA_type == "LyCORIS/LoCon":
         network_module = "lycoris.kohya"
-        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}"
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/LoHa":
         network_module = "lycoris.kohya"
-        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo="loha" train_norm={train_norm}'
+        network_args = f' preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=loha train_norm={train_norm}'
 
     if LoRA_type == "LyCORIS/LoKr":
         network_module = "lycoris.kohya"
-        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}"
+        network_args = f" preset={LyCORIS_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}"
 
     if LoRA_type == "LyCORIS/Native Fine-Tuning":
         network_module = "lycoris.kohya"
-        network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
+        network_args = f" preset={LyCORIS_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
 
     if LoRA_type == "Flux1":
         # Add a list of supported network arguments for Flux1 below when supported
@@ -1731,7 +1731,7 @@ def lora_tab(
                         visible=False,
                         interactive=True,
                         allow_custom_value=True,
-                        # info="https://github.com/KohakuBlueleaf/LyCORIS/blob/0006e2ffa05a48d8818112d9f70da74c0cd30b99/docs/Preset.md"
+                        info="Use path_to_config_file.toml to choose config file (for LyCORIS module settings)"
                     )
                     with gr.Group():
                         with gr.Row():
@@ -2186,9 +2186,10 @@ def lora_tab(
                                             "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
                                             "LyCORIS/DyLoRA",
+                                            "LyCORIS/GLoRA",
                                             "LyCORIS/LoCon",
                                             "LyCORIS/LoHa",
-                                            "LyCORIS/Native Fine-Tuning",
+                                            "LyCORIS/LoKr",
                                         },
                                     },
                                 },
@@ -2197,12 +2198,9 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "LyCORIS/BOFT",
-                                            "LyCORIS/Diag-OFT",
                                             "LyCORIS/LoCon",
                                             "LyCORIS/LoHa",
                                             "LyCORIS/LoKr",
-                                            "LyCORIS/Native Fine-Tuning",
                                         },
                                     },
                                 },
@@ -2226,7 +2224,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
                                         },
                                     },
@@ -2236,7 +2233,6 @@ def lora_tab(
                                     "update_params": {
                                         "visible": LoRA_type
                                         in {
-                                            "LyCORIS/BOFT",
                                             "LyCORIS/Diag-OFT",
                                         },
                                     },
