@@ -20,6 +20,7 @@ from .common_gui import setup_environment
 
 class TensorboardManager:
     DEFAULT_TENSORBOARD_PORT = 6006
+    DEFAULT_TENSORBOARD_HOST = "0.0.0.0"
 
     def __init__(self, logging_dir, headless: bool = False, wait_time=5):
         self.logging_dir = logging_dir
@@ -28,6 +29,9 @@ class TensorboardManager:
         self.tensorboard_proc = None
         self.tensorboard_port = os.environ.get(
             "TENSORBOARD_PORT", self.DEFAULT_TENSORBOARD_PORT
+        )
+        self.tensorboard_host = os.environ.get(
+            "TENSORBOARD_HOST", self.DEFAULT_TENSORBOARD_HOST
         )
         self.log = setup_logging()
         self.thread = None
@@ -64,7 +68,7 @@ class TensorboardManager:
             "--logdir",
             logging_dir,
             "--host",
-            "0.0.0.0",
+            self.tensorboard_host,
             "--port",
             str(self.tensorboard_port),
         ]
