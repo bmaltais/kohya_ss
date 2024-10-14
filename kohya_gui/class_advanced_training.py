@@ -272,6 +272,11 @@ class AdvancedTraining:
                 info="Enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)",
                 interactive=True,
             )
+            self.skip_cache_check = gr.Checkbox(
+                label="Skip cache check",
+                value=self.config.get("advanced.skip_cache_check", False),
+                info="Skip cache check for faster training start",
+            )
 
         with gr.Row():
             self.gradient_checkpointing = gr.Checkbox(
