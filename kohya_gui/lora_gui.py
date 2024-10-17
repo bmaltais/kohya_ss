@@ -885,8 +885,8 @@ def train_model(
 
     if flux1_checkbox:
         log.info(f"Validating lora type is Flux1 if flux1 checkbox is checked...")
-        if (LoRA_type != "Flux1") and (LoRA_type != "Flux1 OFT"):
-            log.error("LoRA type must be set to 'Flux1' or 'Flux1 OFT' if Flux1 checkbox is checked.")
+        if (LoRA_type != "Flux1") and (LoRA_type != "Flux1 OFT") and ("LyCORIS" not in LoRA_type):
+            log.error("LoRA type must be set to 'Flux1', 'Flux1 OFT' or 'LyCORIS' if Flux1 checkbox is checked.")
             return TRAIN_BUTTON_VISIBLE
 
     #
