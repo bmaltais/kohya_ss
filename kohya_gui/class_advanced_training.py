@@ -188,6 +188,12 @@ class AdvancedTraining:
                 precision=0,
                 info="(Optional) Save only the specified number of states (old models will be deleted)",
             )
+            self.save_last_n_epochs_state = gr.Number(
+                label="Save last N epochs state",
+                value=self.config.get("advanced.save_last_n_epochs_state", 0),
+                precision=0,
+                info="(Optional) Save only the specified number of epochs states (old models will be deleted)",
+            )
         with gr.Row():
 
             def full_options_update(full_fp16, full_bf16):
