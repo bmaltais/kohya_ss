@@ -127,6 +127,7 @@ def initialize_arg_parser():
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
     parser.add_argument("--do_not_use_shell", action="store_true", help="Enforce not to use shell=True when running external commands")
     parser.add_argument("--do_not_share", action="store_true", help="Do not share the gradio UI")
+    parser.add_argument("--requirements", type=str, default=None, help="requirements file to use for validation")
     parser.add_argument("--root_path", type=str, default=None, help="`root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss")
     parser.add_argument("--noverify", action="store_true", help="Disable requirements verification")
     return parser
@@ -145,6 +146,10 @@ if __name__ == "__main__":
     else:
         # Run the validation command to verify requirements
         validation_command = [PYTHON, os.path.join(project_dir, "setup", "validate_requirements.py")]
+        
+        if args.requirements is not None:
+            validation_command.append(f"--requirements={args.requirements}")
+            
         subprocess.run(validation_command, check=True)
 
     # Launch the UI with the provided arguments

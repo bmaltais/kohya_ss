@@ -446,8 +446,6 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
             )
         txt = txt.strip()
         if result.returncode != 0 and not ignore:
-            global errors  # pylint: disable=global-statement
-            errors += 1
             log.error(f"Error running pip: {arg}")
             log.error(f"Pip output: {txt}")
         return txt
