@@ -197,7 +197,7 @@ class GradioFluxMergeLoRaTab:
                 ratio_a = gr.Slider(
                     label="Model A merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
-                    maximum=1,
+                    maximum=2,
                     step=0.01,
                     value=0.0,
                     interactive=True,
@@ -206,7 +206,7 @@ class GradioFluxMergeLoRaTab:
                 ratio_b = gr.Slider(
                     label="Model B merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
-                    maximum=1,
+                    maximum=2,
                     step=0.01,
                     value=0.0,
                     interactive=True,
@@ -281,7 +281,7 @@ class GradioFluxMergeLoRaTab:
                 ratio_c = gr.Slider(
                     label="Model C merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
-                    maximum=1,
+                    maximum=2,
                     step=0.01,
                     value=0.0,
                     interactive=True,
@@ -290,7 +290,7 @@ class GradioFluxMergeLoRaTab:
                 ratio_d = gr.Slider(
                     label="Model D merge ratio (eg: 0.5 mean 50%)",
                     minimum=0,
-                    maximum=1,
+                    maximum=2,
                     step=0.01,
                     value=0.0,
                     interactive=True,
