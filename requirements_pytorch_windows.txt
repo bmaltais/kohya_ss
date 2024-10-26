@@ -1,3 +1,8 @@
-torch==2.4.1+cu124 --index-url https://download.pytorch.org/whl/cu124
-torchvision==0.19.1+cu124 --index-url https://download.pytorch.org/whl/cu124
-xformers==0.0.28.post1 --index-url https://download.pytorch.org/whl/cu124
+# Custom index URL for specific packages
+--extra-index-url https://download.pytorch.org/whl/cu124
+
+torch==2.4.1+cu124
+torchvision==0.19.1+cu124
+xformers==0.0.28.post1
+
+-r requirements_windows.txt

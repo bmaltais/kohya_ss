@@ -158,16 +158,16 @@ def install_requirements_inbulk(
         log.error(f"Could not find the requirements file in {requirements_file}.")
         return
 
-    log.info(f"Installing requirements from {requirements_file}...")
+    log.info(f"Installing/Validating requirements from {requirements_file}...")
 
-    if upgrade:
-        optional_parm += " -U"
+    optional_parm += " -U" if upgrade else ""
 
-    if show_stdout:
-        run_cmd(f"pip install -r {requirements_file} {optional_parm}")
-    else:
-        run_cmd(f"pip install -r {requirements_file} {optional_parm} --quiet")
-    log.info(f"Requirements from {requirements_file} installed.")
+    cmd = f"pip install -r {requirements_file} {optional_parm}"
+    if not show_stdout:
+        cmd += " --quiet"
+
+    run_cmd(cmd)
+    log.info(f"Requirements from {requirements_file} installed/validated.")
 
 
 def configure_accelerate(run_accelerate=False):
@@ -649,7 +649,7 @@ def run_cmd(run_cmd):
     log.debug(f"Running command: {run_cmd}")
     try:
         subprocess.run(run_cmd, shell=True, check=True, env=os.environ)
-        log.info(f"Command executed successfully: {run_cmd}")
+        log.debug(f"Command executed successfully: {run_cmd}")
     except subprocess.CalledProcessError as e:
         log.error(f"Error occurred while running command: {run_cmd}")
         log.error(f"Error: {e}")

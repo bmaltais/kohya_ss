@@ -177,11 +177,17 @@ def main():
     # Install required packages from the specified requirements file
     requirements_file = args.requirements or "requirements_pytorch_windows.txt"
     log.debug(f"Installing requirements from: {requirements_file}")
-    setup_common.install_requirements(requirements_file, check_no_verify_flag=True)
-    log.debug("Installing additional requirements from: requirements_windows.txt")
-    setup_common.install_requirements(
-        "requirements_windows.txt", check_no_verify_flag=True
+    setup_common.install_requirements_inbulk(
+        requirements_file, show_stdout=False, 
+        # optional_parm="--index-url https://download.pytorch.org/whl/cu124"
     )
+    
+    # setup_common.install_requirements(requirements_file, check_no_verify_flag=True)
+    
+    # log.debug("Installing additional requirements from: requirements_windows.txt")
+    # setup_common.install_requirements(
+    #     "requirements_windows.txt", check_no_verify_flag=True
+    # )
 
 if __name__ == "__main__":
     log.debug("Starting main function...")
