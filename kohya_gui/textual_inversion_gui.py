@@ -872,7 +872,7 @@ def train_model(
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
-        "weigts": weights,
+        "weights": weights,
         "use_object_template": True if template == "object template" else None,
         "use_style_template": True if template == "style template" else None,
         "xformers": True if xformers == "xformers" else None,
