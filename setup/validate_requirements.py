@@ -178,7 +178,7 @@ def main():
     requirements_file = args.requirements or "requirements_pytorch_windows.txt"
     log.debug(f"Installing requirements from: {requirements_file}")
     setup_common.install_requirements_inbulk(
-        requirements_file, show_stdout=False, 
+        requirements_file, show_stdout=True, 
         # optional_parm="--index-url https://download.pytorch.org/whl/cu124"
     )
     

@@ -161,12 +161,17 @@ def install_requirements_inbulk(
     log.info(f"Installing/Validating requirements from {requirements_file}...")
 
     optional_parm += " -U" if upgrade else ""
+    optional_parm += " --quiet" if not show_stdout else ""
 
-    cmd = f"pip install -r {requirements_file} {optional_parm}"
-    if not show_stdout:
-        cmd += " --quiet"
+    cmd = [sys.executable, "-m", "pip", "install", "-r", requirements_file] + optional_parm.split()
+
+    if sys.platform.startswith("win32"):
+        cmd += ["|", "findstr", "/V", "Requirement already satisfied"]
+    else:
+        cmd += ["|", "grep", "-v", "Requirement already satisfied"]
 
     run_cmd(cmd)
+    
     log.info(f"Requirements from {requirements_file} installed/validated.")
 
 

@@ -1,8 +1,8 @@
 # Custom index URL for specific packages
 --extra-index-url https://download.pytorch.org/whl/cu124
 
-torch==2.4.1+cu124
-torchvision==0.19.1+cu124
-xformers==0.0.28.post1
+torch==2.5.0+cu124
+torchvision==0.20.0+cu124
+xformers==0.0.28.post2
 
 -r requirements_windows.txt
