@@ -160,19 +160,35 @@ def install_requirements_inbulk(
 
     log.info(f"Installing/Validating requirements from {requirements_file}...")
 
-    optional_parm += " -U" if upgrade else ""
-    optional_parm += " --quiet" if not show_stdout else ""
+    # Build the command as a list
+    cmd = ["pip", "install", "-r", requirements_file]
+    if upgrade:
+        cmd.append("--upgrade")
+    if not show_stdout:
+        cmd.append("--quiet")
+    if optional_parm:
+        cmd.extend(optional_parm.split())
 
-    cmd = f"pip install -r {requirements_file} {optional_parm}"
+    try:
+        # Run the command and filter output in real-time
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
 
-    if sys.platform.startswith("win32"):
-        cmd += " | findstr /V \"Requirement already satisfied\""
-    else:
-        cmd += " | grep -v \"Requirement already satisfied\""
+        for line in process.stdout:
+            if "Requirement already satisfied" not in line:
+                log.info(line.strip()) if show_stdout else None
 
-    run_cmd(cmd)
-    
-    log.info(f"Requirements from {requirements_file} installed/validated.")
+        # Capture and log any errors
+        _, stderr = process.communicate()
+        if process.returncode != 0:
+            log.error(f"Failed to install requirements: {stderr.strip()}")
+
+    except subprocess.CalledProcessError as e:
+        log.error(f"An error occurred while installing requirements: {e}")
 
 
 def configure_accelerate(run_accelerate=False):
