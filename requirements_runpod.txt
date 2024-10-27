@@ -5,7 +5,8 @@ xformers==0.0.28.post2
 
 bitsandbytes==0.44.0
 tensorboard==2.14.1
-tensorflow==2.14.0 wheel
+tensorflow==2.14.0
+wheel
 tensorrt
 onnxruntime-gpu==1.17.1
 
