@@ -2,7 +2,7 @@
 
 IF NOT EXIST venv (
     echo Creating venv...
-    py -3.10 -m venv venv
+    py -3.10.11 -m venv venv
 )
 
 :: Create the directory if it doesn't exist

@@ -8,6 +8,6 @@ xformers==0.0.28.post2
 bitsandbytes==0.44.0
 tensorboard==2.15.2
 tensorflow==2.15.0.post1
-onnxruntime-gpu==1.17.1
+onnxruntime-gpu==1.19.2
 
 -r requirements.txt
