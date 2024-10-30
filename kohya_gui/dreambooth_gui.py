@@ -165,6 +165,7 @@ def save_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
     save_last_n_epochs_state,
     skip_cache_check,
     log_with,
@@ -372,6 +373,7 @@ def open_configuration(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
     save_last_n_epochs_state,
     skip_cache_check,
     log_with,
@@ -574,6 +576,7 @@ def train_model(
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
     save_last_n_epochs_state,
     skip_cache_check,
     log_with,
@@ -990,6 +993,7 @@ def train_model(
         "save_last_n_steps_state": (
             save_last_n_steps_state if save_last_n_steps_state != 0 else None
         ),
+        "save_last_n_epochs": save_last_n_epochs if save_last_n_epochs != 0 else None,
         "save_last_n_epochs_state": (
             save_last_n_epochs_state if save_last_n_epochs_state != 0 else None
         ),
@@ -1343,6 +1347,7 @@ def dreambooth_tab(
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,
             advanced_training.save_last_n_steps_state,
+            advanced_training.save_last_n_epochs,
             advanced_training.save_last_n_epochs_state,
             advanced_training.skip_cache_check,
             advanced_training.log_with,
