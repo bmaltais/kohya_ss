@@ -8,7 +8,7 @@ einops==0.7.0
 fairscale==0.4.13
 ftfy==6.1.1
 gradio==4.43.0
-huggingface-hub==0.20.1
+huggingface-hub==0.20.2
 imagesize==1.4.1
 invisible-watermark==0.2.0
 lion-pytorch==0.0.6
