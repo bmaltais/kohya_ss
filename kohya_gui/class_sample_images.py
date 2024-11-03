@@ -28,7 +28,10 @@ def create_prompt_file(sample_prompts, output_dir):
     Returns:
         str: The path to the prompt file.
     """
-    sample_prompts_path = os.path.join(output_dir, "prompt.txt")
+    sample_prompts_path = os.path.join(output_dir, "sample/prompt.txt")
+
+    if not os.path.exists(os.path.dirname(sample_prompts_path)):
+        os.makedirs(os.path.dirname(sample_prompts_path))
 
     with open(sample_prompts_path, "w", encoding="utf-8") as f:
         f.write(sample_prompts)

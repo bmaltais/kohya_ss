@@ -48,6 +48,7 @@ learning_rate_te1 = 0.0001     # Learning rate text encoder 1
 learning_rate_te2 = 0.0001     # Learning rate text encoder 2
 lr_scheduler = "cosine"        # LR Scheduler
 lr_scheduler_args = ""         # LR Scheduler args
+lr_scheduler_type = ""         # LR Scheduler type
 lr_warmup = 0                  # LR Warmup (% of total steps)
 lr_scheduler_num_cycles = 1    # LR Scheduler num cycles
 lr_scheduler_power = 1.0       # LR Scheduler power
@@ -150,6 +151,9 @@ sample_prompts = ""        # Sample prompts
 sample_sampler = "euler_a" # Sampler to use for image sampling
 
 [sdxl]
+disable_mmap_load_safetensors = false   # Disable mmap load safe tensors
+fused_backward_pass = false             # Fused backward pass
+fused_optimizer_groups = 0              # Fused optimizer groups
 sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
 sdxl_no_half_vae = true                 # No half VAE
 

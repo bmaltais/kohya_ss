@@ -146,7 +146,7 @@ class AdvancedTraining:
             with gr.Row():
                 self.loss_type = gr.Dropdown(
                     label="Loss type",
-                    choices=["huber", "smooth_l1", "l2"],
+                    choices=["huber", "smooth_l1", "l1", "l2"],
                     value=self.config.get("advanced.loss_type", "l2"),
                     info="The type of loss to use and whether it's scheduled based on the timestep",
                 )
@@ -188,6 +188,18 @@ class AdvancedTraining:
                 precision=0,
                 info="(Optional) Save only the specified number of states (old models will be deleted)",
             )
+            self.save_last_n_epochs = gr.Number(
+                label="Save last N epochs",
+                value=self.config.get("advanced.save_last_n_epochs", 0),
+                precision=0,
+                info="(Optional) Save only the specified number of epochs (old epochs will be deleted)",
+            )
+            self.save_last_n_epochs_state = gr.Number(
+                label="Save last N epochs state",
+                value=self.config.get("advanced.save_last_n_epochs_state", 0),
+                precision=0,
+                info="(Optional) Save only the specified number of epochs states (old models will be deleted)",
+            )
         with gr.Row():
 
             def full_options_update(full_fp16, full_bf16):
@@ -228,12 +240,16 @@ class AdvancedTraining:
             )
 
         with gr.Row():
-            if training_type == "lora":
-                self.fp8_base = gr.Checkbox(
-                    label="fp8 base training (experimental)",
-                    info="U-Net and Text Encoder can be trained with fp8 (experimental)",
-                    value=self.config.get("advanced.fp8_base", False),
-                )
+            self.fp8_base = gr.Checkbox(
+                label="fp8 base",
+                info="Use fp8 for base model",
+                value=self.config.get("advanced.fp8_base", False),
+            )
+            self.fp8_base_unet  = gr.Checkbox(
+                label="fp8 base unet",
+                info="Flux can be trained with fp8, and CLIP-L can be trained with bf16/fp16.",
+                value=self.config.get("advanced.fp8_base_unet", False),
+            )
             self.full_fp16 = gr.Checkbox(
                 label="Full fp16 training (experimental)",
                 value=self.config.get("advanced.full_fp16", False),
@@ -253,6 +269,25 @@ class AdvancedTraining:
                 full_options_update,
                 inputs=[self.full_fp16, self.full_bf16],
                 outputs=[self.full_fp16, self.full_bf16],
+            )
+            
+        with gr.Row():
+            self.highvram = gr.Checkbox(
+                label="highvram",
+                value=self.config.get("advanced.highvram", False),
+                info="Disable low VRAM optimization. e.g. do not clear CUDA cache after each latent caching (for machines which have bigger VRAM)",
+                interactive=True,
+            )
+            self.lowvram = gr.Checkbox(
+                label="lowvram",
+                value=self.config.get("advanced.lowvram", False),
+                info="Enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)",
+                interactive=True,
+            )
+            self.skip_cache_check = gr.Checkbox(
+                label="Skip cache check",
+                value=self.config.get("advanced.skip_cache_check", False),
+                info="Skip cache check for faster training start",
             )
 
         with gr.Row():
@@ -534,6 +569,11 @@ class AdvancedTraining:
                 self.current_log_tracker_config_dir = path if not path == "" else "."
                 return list(list_files(path, exts=[".json"], all=True))
 
+            self.log_config = gr.Checkbox(
+                label="Log config",
+                value=self.config.get("advanced.log_config", False),
+                info="Log training parameter to WANDB",
+            )
             self.log_tracker_name = gr.Textbox(
                 label="Log tracker name",
                 value=self.config.get("advanced.log_tracker_name", ""),
