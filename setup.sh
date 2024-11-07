@@ -208,20 +208,20 @@ install_python_dependencies() {
   case "$OSTYPE" in
     "lin"*)
       if [ "$RUNPOD" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
       elif [ "$USE_IPEX" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
       fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt "$QUIET"
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt $QUIET
       fi
       ;;
   esac
@@ -309,7 +309,7 @@ update_kohya_ss() {
 
 # Section: Command-line options parsing
 
-while getopts ":vb:d:g:inprus-:" opt; do
+while getopts ":vb:d:g:inpqrus-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
