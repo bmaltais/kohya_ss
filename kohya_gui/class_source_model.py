@@ -248,7 +248,7 @@ class SourceModel:
                                 interactive=True,
                             )
                             self.v_parameterization = gr.Checkbox(
-                                label="v_parameterization",
+                                label="v_param",
                                 value=False,
                                 visible=False,
                                 min_width=130,

@@ -20,7 +20,7 @@ def main_menu(platform_requirements_file, show_stdout: bool = False, no_run_acce
     # Upgrade pip if needed
     setup_common.install('pip')
     setup_common.install_requirements_inbulk(
-        platform_requirements_file, show_stdout=True,
+        platform_requirements_file, show_stdout=show_stdout,
     )
     # setup_common.install_requirements(platform_requirements_file, check_no_verify_flag=False, show_stdout=show_stdout)
     if not no_run_accelerate:
