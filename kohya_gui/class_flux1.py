@@ -201,7 +201,7 @@ class flux1Training:
                         interactive=True,
                     )
 
-                with gr.Row(visible=True if finetuning else False):
+                with gr.Row():
                     self.blocks_to_swap = gr.Slider(
                         label="Blocks to swap",
                         value=self.config.get("flux1.blocks_to_swap", 0),
