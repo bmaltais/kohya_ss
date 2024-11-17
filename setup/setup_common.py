@@ -11,7 +11,7 @@ log = logging.getLogger("sd")
 
 # Constants
 MIN_PYTHON_VERSION = (3, 10, 9)
-MAX_PYTHON_VERSION = (3, 11, 0)
+MAX_PYTHON_VERSION = (3, 13, 0)
 LOG_DIR = "../logs/setup/"
 LOG_LEVEL = "INFO" # Set to "INFO" or "WARNING" for less verbose logging
 
@@ -31,7 +31,7 @@ def check_python_version():
             log.error(
                 f"The current version of python ({sys.version}) is not supported."
             )
-            log.error("The Python version must be >= 3.10.9 and < 3.11.0.")
+            log.error("The Python version must be >= 3.10.9 and < 3.13.0.")
             return False
         return True
     except Exception as e:
