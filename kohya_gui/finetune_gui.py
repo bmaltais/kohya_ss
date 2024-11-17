@@ -846,16 +846,16 @@ def train_model(
         repeats = int(image_num) * int(dataset_repeats)
         log.info(f"repeats = {str(repeats)}")
 
-        if max_train_steps == 0:
-            # calculate max_train_steps
-            max_train_steps = int(
-                math.ceil(
-                    float(repeats)
-                    / int(train_batch_size)
-                    / int(gradient_accumulation_steps)
-                    * int(epoch)
-                )
-            )
+        # if max_train_steps == 0:
+        #     # calculate max_train_steps
+        #     max_train_steps = int(
+        #         math.ceil(
+        #             float(repeats)
+        #             / int(train_batch_size)
+        #             / int(gradient_accumulation_steps)
+        #             * int(epoch)
+        #         )
+        #     )
 
         # Divide by two because flip augmentation create two copied of the source images
         if flip_aug and max_train_steps:

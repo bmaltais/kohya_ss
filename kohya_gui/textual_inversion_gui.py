@@ -664,22 +664,9 @@ def train_model(
         log.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
-            # calculate max_train_steps
-            max_train_steps = int(
-                math.ceil(
-                    float(total_steps)
-                    / int(train_batch_size)
-                    / int(gradient_accumulation_steps)
-                    * int(epoch)
-                    * int(reg_factor)
-                )
-            )
-            max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
+            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
         else:
-            if max_train_steps == 0:
-                max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
-            else:
-                max_train_steps_info = f"Max train steps: {max_train_steps}"
+            max_train_steps_info = f"Max train steps: {max_train_steps}"
 
         # calculate stop encoder training
         if stop_text_encoder_training_pct == 0:
@@ -1076,10 +1063,6 @@ def ti_tab(
                             step=1,
                             label="Vectors",
                         )
-                        # max_train_steps = gr.Textbox(
-                        #     label='Max train steps',
-                        #     placeholder='(Optional) Maximum number of steps',
-                        # )
                         template = gr.Dropdown(
                             label="Template",
                             choices=[
