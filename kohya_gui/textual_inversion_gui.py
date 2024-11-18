@@ -521,6 +521,8 @@ def train_model(
         gr.Textbox(value=train_state_value),
     ]
     
+    max_train_steps_info = "Automatic by sd-scripts"
+    
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
