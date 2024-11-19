@@ -521,8 +521,6 @@ def train_model(
         gr.Textbox(value=train_state_value),
     ]
     
-    max_train_steps_info = "Automatic by sd-scripts"
-    
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
@@ -666,9 +664,22 @@ def train_model(
         log.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
-            max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+            # calculate max_train_steps
+            max_train_steps = int(
+                math.ceil(
+                    float(total_steps)
+                    / int(train_batch_size)
+                    / int(gradient_accumulation_steps)
+                    * int(epoch)
+                    * int(reg_factor)
+                )
+            )
+            max_train_steps_info = f"max_train_steps ({total_steps} / {train_batch_size} / {gradient_accumulation_steps} * {epoch} * {reg_factor}) = {max_train_steps}"
         else:
-            max_train_steps_info = f"Max train steps: {max_train_steps}"
+            if max_train_steps == 0:
+                max_train_steps_info = f"Max train steps: 0. sd-scripts will therefore default to 1600. Please specify a different value if required."
+            else:
+                max_train_steps_info = f"Max train steps: {max_train_steps}"
 
         # calculate stop encoder training
         if stop_text_encoder_training_pct == 0:
@@ -1065,6 +1076,10 @@ def ti_tab(
                             step=1,
                             label="Vectors",
                         )
+                        # max_train_steps = gr.Textbox(
+                        #     label='Max train steps',
+                        #     placeholder='(Optional) Maximum number of steps',
+                        # )
                         template = gr.Dropdown(
                             label="Template",
                             choices=[

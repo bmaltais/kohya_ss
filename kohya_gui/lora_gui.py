@@ -883,8 +883,6 @@ def train_model(
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
-    
-    max_train_steps_info = "Automatic by sd-scripts"
 
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
@@ -1078,7 +1076,7 @@ def train_model(
 
         log.info(f"Regularization factor: {reg_factor}")
 
-        if (max_train_steps == 0) and (stop_text_encoder_training != 0):
+        if max_train_steps == 0:
             # calculate max_train_steps
             max_train_steps = int(
                 math.ceil(
@@ -1096,9 +1094,13 @@ def train_model(
             else:
                 max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-        stop_text_encoder_training = math.ceil(
-            float(max_train_steps) / 100 * int(stop_text_encoder_training)
-        ) if stop_text_encoder_training != 0 else 0
+        # calculate stop encoder training
+        if stop_text_encoder_training == 0:
+            stop_text_encoder_training = 0
+        else:
+            stop_text_encoder_training = math.ceil(
+                float(max_train_steps) / 100 * int(stop_text_encoder_training)
+            )
 
     # Calculate lr_warmup_steps
     if lr_warmup_steps > 0:
