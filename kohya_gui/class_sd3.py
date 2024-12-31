@@ -73,7 +73,7 @@ class sd3Training:
                 with gr.Row():
                     self.weighting_scheme = gr.Dropdown(
                         label="Weighting Scheme",
-                        choices=["logit_normal", "sigma_sqrt", "mode", "cosmap"],
+                        choices=["logit_normal", "sigma_sqrt", "mode", "cosmap", "uniform"],
                         value=self.config.get("sd3.weighting_scheme", "logit_normal"),
                         interactive=True,
                     )
