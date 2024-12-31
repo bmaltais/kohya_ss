@@ -493,6 +493,15 @@ class AdvancedTraining:
                 value=self.config.get("advanced.vae_batch_size", 0),
                 step=1,
             )
+            self.blocks_to_swap = gr.Slider(
+                label="Blocks to swap",
+                value=self.config.get("advanced.blocks_to_swap", 0),
+                info="The number of blocks to swap. The default is None (no swap). These options must be combined with --fused_backward_pass or --blockwise_fused_optimizers. The recommended maximum value is 36.",
+                minimum=0,
+                maximum=57,
+                step=1,
+                interactive=True,
+            )
         with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(
                 label="Save training state",

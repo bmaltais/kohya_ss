@@ -2859,7 +2859,7 @@ def lora_tab(
             flux1_training.split_qkv,
             flux1_training.train_t5xxl,
             flux1_training.cpu_offload_checkpointing,
-            flux1_training.blocks_to_swap,
+            advanced_training.blocks_to_swap,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
             flux1_training.img_attn_dim,

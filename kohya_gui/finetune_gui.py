@@ -1550,7 +1550,7 @@ def finetune_tab(
             flux1_training.blockwise_fused_optimizers,
             flux1_training.flux_fused_backward_pass,
             flux1_training.cpu_offload_checkpointing,
-            flux1_training.blocks_to_swap,
+            advanced_training.blocks_to_swap,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
             flux1_training.mem_eff_save,
