@@ -10,6 +10,11 @@ from .custom_logging import setup_logging
 log = setup_logging()
 
 
+import os
+import re
+import logging as log
+from easygui import msgbox
+
 def dataset_balancing(concept_repeats, folder, insecure):
 
     if not concept_repeats > 0:
@@ -78,13 +83,18 @@ def dataset_balancing(concept_repeats, folder, insecure):
                 old_name = os.path.join(folder, subdir)
                 new_name = os.path.join(folder, f"{repeats}_{subdir}")
 
-            os.rename(old_name, new_name)
+            # Check if the new folder name already exists
+            if os.path.exists(new_name):
+                log.warning(f"Destination folder {new_name} already exists. Skipping...")
+            else:
+                os.rename(old_name, new_name)
         else:
             log.info(
                 f"Skipping folder {subdir} because it does not match kohya_ss expected syntax..."
             )
 
     msgbox("Dataset balancing completed...")
+
 
 
 def warning(insecure):

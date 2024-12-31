@@ -1,32 +1,27 @@
-## Updating a Local Branch with the Latest sd-scripts Changes
+## Updating a Local Submodule with the Latest sd-scripts Changes
 
 To update your local branch with the most recent changes from kohya/sd-scripts, follow these steps:
 
-1. Add sd-scripts as an alternative remote by executing the following command:
+1. When you wish to perform an update of the dev branch, execute the following commands:
 
-   ```
-   git remote add sd-scripts https://github.com/kohya-ss/sd-scripts.git
-   ```
-
-2. When you wish to perform an update, execute the following commands:
-
-   ```
+   ```bash
+   cd sd-scripts
+   git fetch
    git checkout dev
-   git pull sd-scripts main
+   git pull origin dev
+   cd ..
+   git add sd-scripts
+   git commit -m "Update sd-scripts submodule to the latest on dev"
    ```
 
-   Alternatively, if you want to obtain the latest code, even if it may be unstable:
+   Alternatively, if you want to obtain the latest code from main:
 
+   ```bash
+   cd sd-scripts
+   git fetch
+   git checkout main
+   git pull origin main
+   cd ..
+   git add sd-scripts
+   git commit -m "Update sd-scripts submodule to the latest on main"
    ```
-   git checkout dev
-   git pull sd-scripts dev
-   ```
-
-3. If you encounter a conflict with the Readme file, you can resolve it by taking the following steps:
-
-   ```
-   git add README.md
-   git merge --continue
-   ```
-
-   This may open a text editor for a commit message, but you can simply save and close it to proceed. Following these steps should resolve the conflict. If you encounter additional merge conflicts, consider them as valuable learning opportunities for personal growth.
