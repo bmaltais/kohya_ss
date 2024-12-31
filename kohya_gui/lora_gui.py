@@ -31,6 +31,7 @@ from .class_configuration_file import ConfigurationFile
 from .class_source_model import SourceModel
 from .class_basic_training import BasicTraining
 from .class_advanced_training import AdvancedTraining
+from .class_sd3 import sd3Training
 from .class_sdxl_parameters import SDXLParameters
 from .class_folders import Folders
 from .class_command_executor import CommandExecutor
@@ -302,6 +303,24 @@ def save_configuration(
     in_dims,
     train_double_block_indices,
     train_single_block_indices,
+    
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
+    clip_g,
+    sd3_clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    sd3_t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -572,6 +591,24 @@ def open_configuration(
     in_dims,
     train_double_block_indices,
     train_single_block_indices,
+    
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
+    clip_g,
+    sd3_clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    sd3_t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
     
     ##
     training_preset,
@@ -876,6 +913,24 @@ def train_model(
     in_dims,
     train_double_block_indices,
     train_single_block_indices,
+    
+    # SD3 parameters
+    sd3_cache_text_encoder_outputs,
+    sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
+    clip_g,
+    sd3_clip_l,
+    logit_mean,
+    logit_std,
+    mode_scale,
+    save_clip,
+    save_t5xxl,
+    sd3_t5xxl,
+    t5xxl_device,
+    t5xxl_dtype,
+    sd3_text_encoder_batch_size,
+    weighting_scheme,
+    sd3_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1149,6 +1204,8 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/sdxl_train_network.py")
     elif flux1_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train_network.py")
+    elif sd3_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
@@ -1374,6 +1431,18 @@ def train_model(
 
     if text_encoder_lr_float != 0 or unet_lr_float != 0:
         do_not_set_learning_rate = True
+        
+    clip_l_value = None
+    if sd3_checkbox:
+        clip_l_value = sd3_clip_l
+    elif flux1_checkbox:
+        clip_l_value = clip_l
+        
+    t5xxl_value = None
+    if flux1_checkbox:
+        t5xxl_value = t5xxl
+    elif sd3_checkbox:
+        t5xxl_value = sd3_t5xxl
 
     config_toml_data = {
         "adaptive_noise_scale": (
@@ -1390,6 +1459,13 @@ def train_model(
             True
             if (sdxl and sdxl_cache_text_encoder_outputs)
             or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+            or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+            else None
+        ),
+        "cache_text_encoder_outputs_to_disk": (
+            True
+            if flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk
+            or sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
             else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
@@ -1554,14 +1630,31 @@ def train_model(
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
         "xformers": True if xformers == "xformers" else None,
+        
+        # SD3 only Parameters
+        # "cache_text_encoder_outputs": see previous assignment above for code
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
+        "clip_g": clip_g if sd3_checkbox else None,
+        "clip_l": clip_l_value,
+        "logit_mean": logit_mean if sd3_checkbox else None,
+        "logit_std": logit_std if sd3_checkbox else None,
+        "mode_scale": mode_scale if sd3_checkbox else None,
+        "save_clip": save_clip if sd3_checkbox else None,
+        "save_t5xxl": save_t5xxl if sd3_checkbox else None,
+        # "t5xxl": see previous assignment above for code
+        "t5xxl_device": t5xxl_device if sd3_checkbox else None,
+        "t5xxl_dtype": t5xxl_dtype if sd3_checkbox else None,
+        "text_encoder_batch_size": (
+            sd3_text_encoder_batch_size if sd3_checkbox else None
+        ),
+        "weighting_scheme": weighting_scheme if sd3_checkbox else None,
+        
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
-        "cache_text_encoder_outputs_to_disk": (
-            flux1_cache_text_encoder_outputs_to_disk if flux1_checkbox else None
-        ),
+        # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
         "ae": ae if flux1_checkbox else None,
         "clip_l": clip_l if flux1_checkbox else None,
-        "t5xxl": t5xxl if flux1_checkbox else None,
+        "t5xxl": t5xxl_value,
         "discrete_flow_shift": float(discrete_flow_shift) if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
@@ -2454,7 +2547,11 @@ def lora_tab(
                     config=config,
                     flux1_checkbox=source_model.flux1_checkbox,
                 )
-            
+
+            # Add SD3 Parameters
+            sd3_training = sd3Training(
+                headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
 
             with gr.Accordion("Advanced", open=False, elem_classes="advanced_background"):
                 # with gr.Accordion('Advanced Configuration', open=False):
@@ -2776,6 +2873,24 @@ def lora_tab(
             flux1_training.in_dims,
             flux1_training.train_double_block_indices,
             flux1_training.train_single_block_indices,
+            
+            # SD3 Parameters
+            sd3_training.sd3_cache_text_encoder_outputs,
+            sd3_training.sd3_cache_text_encoder_outputs_to_disk,
+            sd3_training.clip_g,
+            sd3_training.clip_l,
+            sd3_training.logit_mean,
+            sd3_training.logit_std,
+            sd3_training.mode_scale,
+            sd3_training.save_clip,
+            sd3_training.save_t5xxl,
+            sd3_training.t5xxl,
+            sd3_training.t5xxl_device,
+            sd3_training.t5xxl_dtype,
+            sd3_training.sd3_text_encoder_batch_size,
+            sd3_training.sd3_fused_backward_pass,
+            sd3_training.weighting_scheme,
+            source_model.sd3_checkbox,
         ]
 
         configuration.button_open_config.click(

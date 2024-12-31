@@ -46,6 +46,8 @@ class SDModelType:
                 self.model_type = ModelType.SD1
         except:
             pass
+        
+        # print(f"Model type: {self.model_type}")
 
     def Is_SD1(self):
         return self.model_type == ModelType.SD1

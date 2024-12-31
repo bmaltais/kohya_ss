@@ -172,7 +172,7 @@ class AdvancedTraining:
                     label="Huber scale",
                     value=self.config.get("advanced.huber_scale", 1.0),
                     minimum=0.0,
-                    maximum=1.0,
+                    maximum=10.0,
                     step=0.01,
                     info="The Huber loss scale parameter. Only used if one of the huber loss modes (huber or smooth l1) is selected with loss_type.",
                 )
