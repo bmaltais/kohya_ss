@@ -212,6 +212,7 @@ class BasicTraining:
                     "PagedAdamW32bit",
                     "PagedLion8bit",
                     "Prodigy",
+                    "prodigyplus.ProdigyPlusScheduleFree",
                     "RAdamScheduleFree",
                     "SGDNesterov",
                     "SGDNesterov8bit",
