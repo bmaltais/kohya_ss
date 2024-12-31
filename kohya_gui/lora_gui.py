@@ -1295,7 +1295,7 @@ def train_model(
             
         if split_qkv:
             kohya_lora_vars["split_qkv"] = True
-        if train_t5xxl:
+        if train_t5xxl and flux1_checkbox:
             kohya_lora_vars["train_t5xxl"] = True
             
         for key, value in kohya_lora_vars.items():
@@ -1342,7 +1342,7 @@ def train_model(
             "rank_dropout",
             "module_dropout",
         ]
-        network_module = "networks.lora"
+        network_module = "networks.lora" if sd3_checkbox else "networks.lora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
