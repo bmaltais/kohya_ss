@@ -1452,6 +1452,8 @@ def train_model(
         
     clip_l_value = None
     if sd3_checkbox:
+        # print("Setting clip_l_value to sd3_clip_l")
+        # print("sd3_clip_l: ", sd3_clip_l)
         clip_l_value = sd3_clip_l
     elif flux1_checkbox:
         clip_l_value = clip_l
@@ -1493,6 +1495,7 @@ def train_model(
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
+        "clip_l": clip_l_value,
         "clip_skip": clip_skip if clip_skip != 0 else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
@@ -1659,7 +1662,7 @@ def train_model(
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
         "clip_g": clip_g if sd3_checkbox else None,
         "clip_g_dropout_rate": clip_g_dropout_rate if sd3_checkbox else None,
-        "clip_l": clip_l_value,
+        # "clip_l": see previous assignment above for code
         "clip_l_dropout_rate": sd3_clip_l_dropout_rate if sd3_checkbox else None,
         "enable_scaled_pos_embed": sd3_enable_scaled_pos_embed if sd3_checkbox else None,
         "logit_mean": logit_mean if sd3_checkbox else None,
@@ -1681,7 +1684,7 @@ def train_model(
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
         "ae": ae if flux1_checkbox else None,
-        "clip_l": clip_l if flux1_checkbox else None,
+        # "clip_l": see previous assignment above for code
         "t5xxl": t5xxl_value,
         "discrete_flow_shift": float(discrete_flow_shift) if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
@@ -2905,6 +2908,7 @@ def lora_tab(
             # SD3 Parameters
             sd3_training.sd3_cache_text_encoder_outputs,
             sd3_training.sd3_cache_text_encoder_outputs_to_disk,
+            sd3_training.sd3_fused_backward_pass,
             sd3_training.clip_g,
             sd3_training.clip_g_dropout_rate,
             sd3_training.clip_l,
@@ -2922,7 +2926,6 @@ def lora_tab(
             sd3_training.t5xxl_device,
             sd3_training.t5xxl_dtype,
             sd3_training.sd3_text_encoder_batch_size,
-            sd3_training.sd3_fused_backward_pass,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
         ]
