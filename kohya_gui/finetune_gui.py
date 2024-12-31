@@ -208,6 +208,7 @@ def save_configuration(
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
     clip_g,
     clip_l,
     logit_mean,
@@ -423,6 +424,7 @@ def open_configuration(
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
     clip_g,
     clip_l,
     logit_mean,
@@ -644,6 +646,7 @@ def train_model(
     # SD3 parameters
     sd3_cache_text_encoder_outputs,
     sd3_cache_text_encoder_outputs_to_disk,
+    sd3_fused_backward_pass,
     clip_g,
     clip_l,
     logit_mean,
@@ -969,7 +972,7 @@ def train_model(
         "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
-        "fused_backward_pass": fused_backward_pass if not flux1_checkbox else flux_fused_backward_pass,
+        "fused_backward_pass": sd3_fused_backward_pass if sd3_checkbox else flux_fused_backward_pass if flux1_checkbox else fused_backward_pass,
         "fused_optimizer_groups": (
             int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None
         ),
@@ -1118,7 +1121,6 @@ def train_model(
         "blockwise_fused_optimizers": (
             blockwise_fused_optimizers if flux1_checkbox else None
         ),
-        # "flux_fused_backward_pass": see previous assignment of fused_backward_pass in above code
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
@@ -1529,6 +1531,7 @@ def finetune_tab(
             sd3_training.t5xxl_device,
             sd3_training.t5xxl_dtype,
             sd3_training.sd3_text_encoder_batch_size,
+            sd3_training.sd3_fused_backward_pass,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
             # Flux1 parameters

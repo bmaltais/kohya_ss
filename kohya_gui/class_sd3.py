@@ -195,6 +195,13 @@ class sd3Training:
                         info="Cache text encoder outputs to disk to speed up inference",
                         interactive=True,
                     )
+                with gr.Row():
+                    self.sd3_fused_backward_pass = gr.Checkbox(
+                        label="Fused Backward Pass",
+                        value=self.config.get("sd3.fused_backward_pass", False),
+                        info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
+                        interactive=True,
+                    )
 
                 self.sd3_checkbox.change(
                     lambda sd3_checkbox: gr.Accordion(visible=sd3_checkbox),
