@@ -1342,7 +1342,7 @@ def train_model(
             "rank_dropout",
             "module_dropout",
         ]
-        network_module = "networks.lora" if sd3_checkbox else "networks.lora"
+        network_module = "networks.lora_sd3" if sd3_checkbox else "networks.lora"
         kohya_lora_vars = {
             key: value
             for key, value in vars().items()
