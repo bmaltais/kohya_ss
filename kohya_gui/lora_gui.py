@@ -310,6 +310,7 @@ def save_configuration(
     sd3_fused_backward_pass,
     clip_g,
     sd3_clip_l,
+    sd3_disable_mmap_load_safetensors,
     logit_mean,
     logit_std,
     mode_scale,
@@ -598,6 +599,7 @@ def open_configuration(
     sd3_fused_backward_pass,
     clip_g,
     sd3_clip_l,
+    sd3_disable_mmap_load_safetensors,
     logit_mean,
     logit_std,
     mode_scale,
@@ -920,6 +922,7 @@ def train_model(
     sd3_fused_backward_pass,
     clip_g,
     sd3_clip_l,
+    sd3_disable_mmap_load_safetensors,
     logit_mean,
     logit_std,
     mode_scale,
@@ -1443,6 +1446,10 @@ def train_model(
         t5xxl_value = t5xxl
     elif sd3_checkbox:
         t5xxl_value = sd3_t5xxl
+        
+    disable_mmap_load_safetensors_value = None
+    if sd3_checkbox:
+        disable_mmap_load_safetensors_value = sd3_disable_mmap_load_safetensors
 
     config_toml_data = {
         "adaptive_noise_scale": (
@@ -1477,6 +1484,7 @@ def train_model(
         "debiased_estimation_loss": debiased_estimation_loss,
         "dynamo_backend": dynamo_backend,
         "dim_from_weights": dim_from_weights,
+        "disable_mmap_load_safetensors": disable_mmap_load_safetensors_value,
         "enable_bucket": enable_bucket,
         "epoch": int(epoch),
         "flip_aug": flip_aug,
@@ -2879,6 +2887,7 @@ def lora_tab(
             sd3_training.sd3_cache_text_encoder_outputs_to_disk,
             sd3_training.clip_g,
             sd3_training.clip_l,
+            sd3_training.disable_mmap_load_safetensors,
             sd3_training.logit_mean,
             sd3_training.logit_std,
             sd3_training.mode_scale,

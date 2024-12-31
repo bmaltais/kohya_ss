@@ -202,6 +202,11 @@ class sd3Training:
                         info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )
+                    self.disable_mmap_load_safetensors = gr.Checkbox(
+                        label="Disable mmap load safe tensors",
+                        info="Disable memory mapping when loading the model's .safetensors in SDXL.",
+                        value=self.config.get("sd3.disable_mmap_load_safetensors", False),
+                    )
 
                 self.sd3_checkbox.change(
                     lambda sd3_checkbox: gr.Accordion(visible=sd3_checkbox),
