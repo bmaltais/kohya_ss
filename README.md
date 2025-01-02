@@ -183,7 +183,7 @@ If you choose to use the interactive mode, the default values for the accelerate
 
 To install the necessary components for Runpod and run kohya_ss, follow these steps:
 
-1. Select the Runpod pytorch 2.0.1 template. This is important. Other templates may not work.
+1. Select the Runpod pytorch 2.2.0 template. This is important. Other templates may not work.
 
 2. SSH into the Runpod.
 
