@@ -112,7 +112,7 @@ then
 fi
 
 # Validate the requirements and run the script if successful
-if python "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
+if "${STARTUP_CMD}" "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
     "${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "$@"
 else
     echo "Validation failed. Exiting..."
