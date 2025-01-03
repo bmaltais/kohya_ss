@@ -54,7 +54,10 @@ def main_menu(platform_requirements_file):
 
     # Upgrade pip if needed
     setup_common.install('pip')
-    setup_common.install_requirements(platform_requirements_file, check_no_verify_flag=False, show_stdout=True)
+    
+    setup_common.install_requirements_inbulk(
+        platform_requirements_file, show_stdout=True,
+    )
     configure_accelerate()
 
 
