@@ -1,4 +1,5 @@
 # Python
+.venv
 venv
 venv2
 __pycache__
