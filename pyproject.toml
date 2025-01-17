@@ -3,7 +3,7 @@ name = "kohya-ss"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "accelerate==0.33.0",
     "aiofiles==23.2.1",
