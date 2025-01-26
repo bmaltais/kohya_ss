@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 
 # Function to display help information
 display_help() {
