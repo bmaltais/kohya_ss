@@ -7,7 +7,8 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button, setup_environment
+    create_refresh_button, setup_environment,
+    device_list, default_device
 )
 
 from .custom_logging import setup_logging
@@ -218,11 +219,8 @@ def gradio_merge_lycoris_tab(headless=False):
 
             device = gr.Radio(
                 label="Device",
-                choices=[
-                    "cpu",
-                    "cuda",
-                ],
-                value="cpu",
+                choices=device_list(),
+                value=default_device(),
                 interactive=True,
             )
 

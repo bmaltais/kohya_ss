@@ -8,7 +8,9 @@ from .common_gui import (
     is_file_writable,
     scriptdir,
     list_files,
-    create_refresh_button, setup_environment
+    create_refresh_button, setup_environment,
+    device_list, default_device, precision_list,
+    default_precision, disable_for_AS
 )
 
 from .custom_logging import setup_logging
@@ -184,8 +186,8 @@ def gradio_extract_lora_tab(
             )
             load_tuned_model_to = gr.Radio(
                 label="Load finetuned model to",
-                choices=["cpu", "cuda", "cuda:0"],
-                value="cpu",
+                choices=device_list(),
+                value=default_device(),
                 interactive=True,
                 scale=1,
                 info="only for SDXL",
@@ -218,8 +220,8 @@ def gradio_extract_lora_tab(
             )
             load_original_model_to = gr.Dropdown(
                 label="Load Stable Diffusion base model to",
-                choices=["cpu", "cuda", "cuda:0"],
-                value="cpu",
+                choices=device_list(),
+                value=default_device(),
                 interactive=True,
                 scale=1,
                 info="only for SDXL",
@@ -254,16 +256,16 @@ def gradio_extract_lora_tab(
             )
             save_precision = gr.Radio(
                 label="Save precision",
-                choices=["fp16", "bf16", "float"],
-                value="fp16",
-                interactive=True,
+                choices=precision_list(),
+                value=default_precision(),
+                interactive=disable_for_AS(),
                 scale=1,
             )
             load_precision = gr.Radio(
                 label="Load precision",
-                choices=["fp16", "bf16", "float"],
-                value="fp16",
-                interactive=True,
+                choices=precision_list(),
+                value=default_precision(),
+                interactive=disable_for_AS(),
                 scale=1,
             )
 
@@ -323,11 +325,8 @@ def gradio_extract_lora_tab(
             sdxl = gr.Checkbox(label="SDXL", value=False, interactive=True)
             device = gr.Radio(
                 label="Device",
-                choices=[
-                    "cpu",
-                    "cuda",
-                ],
-                value="cuda",
+                choices=device_list(),
+                value=default_device(),
                 interactive=True,
             )
 

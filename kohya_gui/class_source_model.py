@@ -1,5 +1,6 @@
 import gradio as gr
 import os
+from .common_gui import default_precision, disable_for_AS
 
 from .common_gui import (
     get_file_path,
@@ -245,18 +246,21 @@ class SourceModel:
                     with gr.Column():
                         with gr.Row():
                             self.v2 = gr.Checkbox(
-                                label="v2", value=False, visible=False, min_width=60
+                                label="v2",
+                                value=self.config.get("model.model_type", "") == "v2",
+                                visible=True,
+                                min_width=60
                             )
                             self.v_parameterization = gr.Checkbox(
                                 label="v_parameterization",
-                                value=False,
-                                visible=False,
+                                value=self.config.get("model.model_type", "") == "v_parameterization",
+                                visible=True,
                                 min_width=130,
                             )
                             self.sdxl_checkbox = gr.Checkbox(
                                 label="SDXL",
-                                value=False,
-                                visible=False,
+                                value=self.config.get("model.model_type", "") == "SDXL",
+                                visible=True,
                                 min_width=60,
                             )
                     with gr.Column():
@@ -279,7 +283,8 @@ class SourceModel:
                     self.save_precision = gr.Radio(
                         save_precision_choices,
                         label="Save precision",
-                        value=self.config.get("model.save_precision", "fp16"),
+                        value=default_precision(self.config, "model.save_precision"),
+                        interactive=disable_for_AS()
                     )
 
                 self.pretrained_model_name_or_path.change(
