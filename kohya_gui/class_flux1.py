@@ -212,7 +212,7 @@ class flux1Training:
                     #     interactive=True,
                     # )
                     self.single_blocks_to_swap = gr.Slider(
-                        label="Single Blocks to swap (depercated)",
+                        label="Single Blocks to swap (deprecated)",
                         value=self.config.get("flux1.single_blocks_to_swap", 0),
                         info="[Experimental] Sets the number of 'single_blocks' (~320MB) to swap during the forward and backward passes.",
                         minimum=0,
@@ -221,7 +221,7 @@ class flux1Training:
                         interactive=True,
                     )
                     self.double_blocks_to_swap = gr.Slider(
-                        label="Double Blocks to swap (depercated)",
+                        label="Double Blocks to swap (deprecated)",
                         value=self.config.get("flux1.double_blocks_to_swap", 0),
                         info="[Experimental] Sets the number of 'double_blocks' (~640MB) to swap during the forward and backward passes.",
                         minimum=0,
