@@ -21,6 +21,8 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Runpod](#runpod)
       - [Manual installation](#manual-installation)
       - [Pre-built Runpod template](#pre-built-runpod-template)
+   - [Novita](#novita)
+      - [Pre-built Novita template](#pre-built-novita-template)
     - [Docker](#docker)
       - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
         - [Windows](#windows-1)
@@ -218,6 +220,14 @@ To run from a pre-built Runpod template, you can:
 2. Deploy the template on the desired host.
 
 3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
+
+### Novita
+#### Pre-built Novita template
+1. Open the Novita template by clicking on <https://novita.ai/gpus-console?templateId=312>.
+
+2. Deploy the template on the desired host.
+
+3. Once deployed, connect to the Novita on HTTP 7860 to access the kohya_ss GUI.
 
 ### Docker
 
