@@ -21,7 +21,7 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Runpod](#runpod)
       - [Manual installation](#manual-installation)
       - [Pre-built Runpod template](#pre-built-runpod-template)
-   - [Novita](#novita)
+    - [Novita](#novita)
       - [Pre-built Novita template](#pre-built-novita-template)
     - [Docker](#docker)
       - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
