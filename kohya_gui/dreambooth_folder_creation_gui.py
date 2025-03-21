@@ -250,9 +250,9 @@ def gradio_dreambooth_folder_creation_tab(
             util_training_dir_output = gr.Dropdown(
                 label="Destination training directory (where formatted training and regularisation folders will be placed)",
                 interactive=True,
-                choices=[config.get(key="train_data_dir", default="")]
+                choices=[config.get(key="dataset_preparation.train_data_dir", default="")]
                 + list_train_output_dirs(current_train_output_dir),
-                value=config.get(key="train_data_dir", default=""),
+                value=config.get(key="dataset_preparation.train_data_dir", default=""),
                 allow_custom_value=True,
             )
             create_refresh_button(
@@ -272,7 +272,7 @@ def gradio_dreambooth_folder_creation_tab(
             )
             util_training_dir_output.change(
                 fn=lambda path: gr.Dropdown(
-                    choices=[config.get(key="train_data_dir", default="")] + list_train_output_dirs(path)
+                    choices=[config.get(key="dataset_preparation.train_data_dir", default="")] + list_train_output_dirs(path)
                 ),
                 inputs=util_training_dir_output,
                 outputs=util_training_dir_output,

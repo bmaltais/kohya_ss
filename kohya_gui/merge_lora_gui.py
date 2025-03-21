@@ -13,7 +13,8 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button, setup_environment
+    create_refresh_button, setup_environment,
+    precision_list, disable_for_AS, default_precision
 )
 from .custom_logging import setup_logging
 
@@ -342,15 +343,15 @@ class GradioMergeLoRaTab:
                 )
                 precision = gr.Radio(
                     label="Merge precision",
-                    choices=["fp16", "bf16", "float"],
+                    choices=precision_list(),
                     value="float",
-                    interactive=True,
+                    interactive=disable_for_AS(),
                 )
                 save_precision = gr.Radio(
                     label="Save precision",
-                    choices=["fp16", "bf16", "float"],
-                    value="fp16",
-                    interactive=True,
+                    choices=precision_list(),
+                    value=default_precision(),
+                    interactive=disable_for_AS(),
                 )
 
                 save_to.change(

@@ -9,6 +9,7 @@ from .custom_logging import setup_logging
 import os
 import re
 import gradio as gr
+import platform
 import sys
 import shlex
 import json
@@ -25,6 +26,8 @@ save_style_symbol = "\U0001f4be"  # 💾
 document_symbol = "\U0001F4C4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+fallback_device = "cpu"
 
 if os.name == "nt":
     scriptdir = scriptdir.replace("\\", "/")
@@ -950,64 +953,35 @@ def set_pretrained_model_name_or_path_input(
         tuple: A tuple containing the Dropdown widget, v2 checkbox, v_parameterization checkbox,
                and sdxl checkbox.
     """
+    v2 = gr.Checkbox(label="v2", value=False, visible=False)
+    v_parameterization = gr.Checkbox(label="v_parameterization", value=False, visible=False)
+    sdxl = gr.Checkbox(label="SDXL", value=False, visible=False)
+
     # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:
         log.info("SDXL model selected. Setting sdxl parameters")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=True, visible=False)
-        return (
-            gr.Dropdown(),
-            v2,
-            v_parameterization,
-            sdxl,
-        )
+        sdxl.constructor_args['value'] = True
 
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
-    if pretrained_model_name_or_path in V2_BASE_MODELS:
+    elif pretrained_model_name_or_path in V2_BASE_MODELS:
         log.info("SD v2 base model selected. Setting --v2 parameter")
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        return (
-            gr.Dropdown(),
-            v2,
-            v_parameterization,
-            sdxl,
-        )
+        v2.constructor_args['value'] = True
 
     # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
-    if pretrained_model_name_or_path in V_PARAMETERIZATION_MODELS:
+    elif pretrained_model_name_or_path in V_PARAMETERIZATION_MODELS:
         log.info(
             "SD v2 model selected. Setting --v2 and --v_parameterization parameters"
         )
-        v2 = gr.Checkbox(value=True, visible=False)
-        v_parameterization = gr.Checkbox(value=True, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        return (
-            gr.Dropdown(),
-            v2,
-            v_parameterization,
-            sdxl,
-        )
+        v_parameterization.constructor_args['value'] = True
 
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
-    if pretrained_model_name_or_path in V1_MODELS:
+    elif pretrained_model_name_or_path in V1_MODELS:
         log.info(f"{pretrained_model_name_or_path} model selected.")
-        v2 = gr.Checkbox(value=False, visible=False)
-        v_parameterization = gr.Checkbox(value=False, visible=False)
-        sdxl = gr.Checkbox(value=False, visible=False)
-        return (
-            gr.Dropdown(),
-            v2,
-            v_parameterization,
-            sdxl,
-        )
-
-    # Check if the model_list is set to 'custom'
-    v2 = gr.Checkbox(visible=True)
-    v_parameterization = gr.Checkbox(visible=True)
-    sdxl = gr.Checkbox(visible=True)
+    else:
+        # Check if the model_list is set to 'custom'
+        v2.constructor_args['visible'] = True
+        v_parameterization.constructor_args['visible']  = True
+        sdxl.constructor_args['visible']  = True
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:
@@ -1500,3 +1474,80 @@ def setup_environment():
         env["XFORMERS_FORCE_DISABLE_TRITON"] = "1"
 
     return env
+
+
+def local_device():
+    device = None
+    try:
+        from accelerate import Accelerator
+        device = Accelerator().device
+    except Exception:
+        pass
+    return device
+
+
+def default_device():
+    device = local_device()
+    return fallback_device if not device else device
+
+
+def device_list():
+    device = local_device()
+    return [fallback_device, device] if device else [fallback_device]
+
+
+def torch_device():
+    device = None
+    try:
+        import torch
+        device = local_device()
+        if not device or (not hasattr(torch, device) and \
+            not (hasattr(torch, 'backends') and hasattr(torch.backends, device))):
+            raise ValueError
+    except ValueError:
+        device = fallback_device
+
+    return device
+
+
+def precision_list():
+    return ["fp16", "bf16", "float"]
+
+
+def default_precision(config=None, config_key=None, non_as_default='fp16',apple_silicon_default='float'):
+    precision = non_as_default if platform.system().lower() != 'darwin' else apple_silicon_default
+    return config.get(config_key, precision) if config_key else precision
+
+
+def disable_for_AS():
+    return True if platform.system().lower() != 'darwin' else False
+
+def optimizer_list():
+    portable = [
+                    "AdamW",
+                    "Adafactor",
+                    "DAdaptation",
+                    "DAdaptAdaGrad",
+                    "DAdaptAdam",
+                    "DAdaptAdan",
+                    "DAdaptAdanIP",
+                    "DAdaptAdamPreprint",
+                    "DAdaptLion",
+                    "DAdaptSGD",
+                    "Lion",
+                    "Prodigy",
+                    "SGDNesterov",
+                ]
+    nonportble = [
+                    "AdamW8bit",
+                    "Lion8bit",
+                    "PagedAdamW8bit",
+                    "PagedAdamW32bit",
+                    "PagedLion8bit",
+                    "SGDNesterov8bit",
+                ]
+    return sorted(portable + nonportble) if platform.system().lower() != 'darwin' else sorted(portable)
+
+
+def default_optimizer(config):
+    return config.get("basic.optimizer", "AdamW8bit" if platform.system().lower() != 'darwin' else "AdamW")

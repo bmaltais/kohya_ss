@@ -4,7 +4,7 @@ import torch
 import gradio as gr
 import os
 
-from .common_gui import get_folder_path, scriptdir, list_dirs
+from .common_gui import get_folder_path, scriptdir, list_dirs, torch_device
 from .custom_logging import setup_logging
 
 # Set up logging
@@ -13,7 +13,7 @@ log = setup_logging()
 
 def load_model():
     # Set the device to GPU if available, otherwise use CPU
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch_device()
 
     # Initialize the BLIP2 processor
     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")

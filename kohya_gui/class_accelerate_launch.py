@@ -3,6 +3,7 @@ import os
 import shlex
 
 from .class_gui_config import KohyaSSGUIConfig
+from .common_gui import default_precision, disable_for_AS
 
 
 class AccelerateLaunch:
@@ -17,8 +18,9 @@ class AccelerateLaunch:
                 self.mixed_precision = gr.Dropdown(
                     label="Mixed precision",
                     choices=["no", "fp16", "bf16", "fp8"],
-                    value=self.config.get("accelerate_launch.mixed_precision", "fp16"),
+                    value= default_precision(self.config, "accelerate_launch.mixed_precision", "fp16", "no"),
                     info="Whether or not to use mixed precision training.",
+                    interactive=disable_for_AS()
                 )
                 self.num_processes = gr.Number(
                     label="Number of processes",

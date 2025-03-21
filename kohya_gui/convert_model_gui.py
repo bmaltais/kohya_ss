@@ -2,7 +2,9 @@ import gradio as gr
 import subprocess
 import os
 import sys
-from .common_gui import get_folder_path, get_file_path, scriptdir, list_files, list_dirs, setup_environment
+from .common_gui import (get_folder_path, get_file_path, scriptdir,
+                         list_files, list_dirs, setup_environment,
+                         disable_for_AS, precision_list)
 
 from .custom_logging import setup_logging
 
@@ -249,8 +251,9 @@ def gradio_convert_model_tab(headless=False):
             )
             target_save_precision_type = gr.Dropdown(
                 label="Target model precision",
-                choices=["unspecified", "fp16", "bf16", "float"],
+                choices=["unspecified"] + precision_list(),
                 value="unspecified",
+                interactive=disable_for_AS()
             )
             unet_use_linear_projection = gr.Checkbox(
                 label="UNet linear projection",

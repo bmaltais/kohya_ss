@@ -7,7 +7,9 @@ from .common_gui import (
     get_file_path,
     scriptdir,
     list_files,
-    create_refresh_button, setup_environment
+    create_refresh_button, setup_environment,
+    device_list, default_device,
+    precision_list, default_precision, disable_for_AS
 )
 
 from .custom_logging import setup_logging
@@ -62,7 +64,7 @@ def resize_lora(
         save_to += ".safetensors"
 
     if device == "":
-        device = "cuda"
+        device = default_device()
 
     run_cmd = [
         rf"{PYTHON}",
@@ -218,17 +220,14 @@ def gradio_resize_lora_tab(
             verbose = gr.Checkbox(label="Verbose logging", value=True)
             save_precision = gr.Radio(
                 label="Save precision",
-                choices=["fp16", "bf16", "float"],
-                value="fp16",
-                interactive=True,
+                choices=precision_list(),
+                value=default_precision(),
+                interactive=disable_for_AS(),
             )
             device = gr.Radio(
                 label="Device",
-                choices=[
-                    "cpu",
-                    "cuda",
-                ],
-                value="cuda",
+                choices=device_list(),
+                value=default_device(),
                 interactive=True,
             )
 

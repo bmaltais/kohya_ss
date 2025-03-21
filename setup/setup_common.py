@@ -348,7 +348,11 @@ def check_torch():
     or os.path.exists('/opt/intel/oneapi')):
         log.info('Intel OneAPI toolkit detected')
     else:
-        log.info('Using CPU-only Torch')
+        from platform import system
+        if system().lower() == 'darwin':
+            log.info('Apple OS detected')
+        else:
+            log.info('Using CPU-only Torch')
 
     try:
         import torch
@@ -388,12 +392,14 @@ def check_torch():
                 log.info(
                     f'Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}'
                 )
+        elif torch.backends.mps.is_available():
+            log.info('Torch backend: MPS')
         else:
             log.warning('Torch reports GPU not available')
         
         return int(torch.__version__[0])
     except Exception as e:
-        # log.warning(f'Could not load torch: {e}')
+        log.error(f'Could not load torch: {e}')
         return 0
 
 

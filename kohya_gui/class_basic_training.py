@@ -1,6 +1,7 @@
 import gradio as gr
 from typing import Tuple
 from .custom_logging import setup_logging
+from .common_gui import optimizer_list, default_optimizer
 
 # Set up logging
 log = setup_logging()
@@ -166,34 +167,12 @@ class BasicTraining:
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
-            
-            
-            
+
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
                 label="Optimizer",
-                choices=[
-                    "AdamW",
-                    "AdamW8bit",
-                    "Adafactor",
-                    "DAdaptation",
-                    "DAdaptAdaGrad",
-                    "DAdaptAdam",
-                    "DAdaptAdan",
-                    "DAdaptAdanIP",
-                    "DAdaptAdamPreprint",
-                    "DAdaptLion",
-                    "DAdaptSGD",
-                    "Lion",
-                    "Lion8bit",
-                    "PagedAdamW8bit",
-                    "PagedAdamW32bit",
-                    "PagedLion8bit",
-                    "Prodigy",
-                    "SGDNesterov",
-                    "SGDNesterov8bit",
-                ],
-                value=self.config.get("basic.optimizer", "AdamW8bit"),
+                choices=optimizer_list(),
+                value=default_optimizer(self.config),
                 interactive=True,
             )
 
