@@ -35,8 +35,10 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Windows Upgrade](#windows-upgrade)
     - [Linux and macOS Upgrade](#linux-and-macos-upgrade)
   - [Starting GUI Service](#starting-gui-service)
-    - [Launching the GUI on Windows](#launching-the-gui-on-windows)
+    - [Launching the GUI on Windows (non uv based method)](#launching-the-gui-on-windows-non-uv-based-method)
+    - [Alternative: UV-based Method](#alternative-uv-based-method)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+    - [Alternative: UV-based Method for Linux](#alternative-uv-based-method-for-linux)
   - [Custom Path Defaults](#custom-path-defaults)
   - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
@@ -104,7 +106,9 @@ To set up the project, follow these steps:
    cd kohya_ss
    ```
 
-4. Run one of the following setup script by executing the following command:
+4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+
+   Run one of the following setup script by executing the following command:
 
    For systems with only python 3.10.11 installed:
 
@@ -160,13 +164,15 @@ To set up the project on Linux or macOS, perform the following steps:
    cd kohya_ss
    ```
 
-4. If you encounter permission issues, make the `setup.sh` script executable by running the following command:
+4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+
+   If you encounter permission issues, make the `setup.sh` script executable by running the following command:
 
    ```shell
    chmod +x ./setup.sh
    ```
 
-5. Run the setup script by executing the following command:
+   Run the setup script by executing the following command:
 
    ```shell
    ./setup.sh
@@ -321,7 +327,7 @@ If a new release becomes available, you can upgrade your repository by running t
    git pull
    ```
 
-2. Run the setup script:
+2. Run the setup script (if you do not use the uv script. If you use the uv versions of the scripts the updates are done for you automatically.):
 
    ```powershell
    .\setup.bat
@@ -339,7 +345,7 @@ To upgrade your installation on Linux or macOS, follow these steps:
    git pull
    ```
 
-3. Refresh and update everything:
+3. Refresh and update everything (if you do not use the uv based script. If you use the uv versions of the scripts the updates are done for you automatically.):
 
    ```bash
    ./setup.sh
@@ -373,7 +379,7 @@ To launch the GUI service, you can use the provided scripts or run the `kohya_gu
   --noverify            Disable requirements verification
 ```
 
-### Launching the GUI on Windows
+### Launching the GUI on Windows (non uv based method)
 
 On Windows, you can use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
 
@@ -387,13 +393,45 @@ or
 gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
+### Alternative: UV-based Method
+
+To use the UV-based method for running the GUI, which does not require running `setup.bat`, follow these steps:
+
+```cmd
+.\gui-uv.bat
+```
+
+or
+
+```powershell
+.\gui-uv.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+This method provides an alternative way to run the GUI with the latest features, including support for Flux.1 and SD3, and eliminates the need for the setup script.
+
 ### Launching the GUI on Linux and macOS
 
 To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
 
 ```bash
-gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+./gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
+
+### Alternative: UV-based Method for Linux
+
+To use the UV-based method for running the GUI, which does not require running `setup.sh`, follow these steps:
+
+```shell
+./gui-uv.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+If you are running on a headless server, use:
+
+```shell
+./gui-uv.sh --headless --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+This method provides an alternative way to run the GUI with the latest features, including support for Flux.1 and SD3, and eliminates the need for the setup script.
 
 ## Custom Path Defaults
 
