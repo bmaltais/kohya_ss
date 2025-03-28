@@ -55,6 +55,8 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Monitoring Processes](#monitoring-processes)
   - [Interesting Forks](#interesting-forks)
   - [Change History](#change-history)
+    - [v25.0.2](#v2502)
+    - [v25.0.1](#v2501)
     - [v25.0.0](#v2500)
 
 ## 🦒 Colab
@@ -501,6 +503,14 @@ For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/
 To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
 
 ## Change History
+
+### v25.0.2
+
+- Force gradio to 5.14.0 or greater so it is updated.
+
+### v25.0.1
+
+- Fix issue with requirements version causing huggingface download issues
 
 ### v25.0.0
 
