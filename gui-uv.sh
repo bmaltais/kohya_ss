@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export VIRTUAL_ENV=.venv
 
 # Checks to see if variable is set and non-empty.
 # This is defined first, so we can use the function for some default variable values
