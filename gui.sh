@@ -111,10 +111,4 @@ then
     STARTUP_CMD=python
 fi
 
-# Validate the requirements and run the script if successful
-if python "$SCRIPT_DIR/setup/validate_requirements.py" -r "$REQUIREMENTS_FILE"; then
-    "${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "$@"
-else
-    echo "Validation failed. Exiting..."
-    exit 1
-fi
+"${STARTUP_CMD}" $STARTUP_CMD_ARGS "$SCRIPT_DIR/kohya_gui.py" "--requirements=""$REQUIREMENTS_FILE" "$@"
