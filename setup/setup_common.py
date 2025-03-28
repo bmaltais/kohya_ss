@@ -162,6 +162,9 @@ def install_requirements_inbulk(
 
     # Build the command as a list
     cmd = ["pip", "install", "-r", requirements_file]
+    if installed("uv") and shutil.which("uv"):
+        log.info("Using uv for pip...")
+        cmd.insert(0, "uv")
     if upgrade:
         cmd.append("--upgrade")
     if not show_stdout:
@@ -179,8 +182,11 @@ def install_requirements_inbulk(
         )
 
         for line in process.stdout:
-            if "Requirement already satisfied" not in line:
-                log.info(line.strip()) if show_stdout else None
+            if installed("uv"):
+                print(line)
+            else:
+                if "Requirement already satisfied" not in line:
+                    log.info(line.strip()) if show_stdout else None
 
         # Capture and log any errors
         _, stderr = process.communicate()
@@ -447,9 +453,13 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
         log.info(
             f'Installing package: {arg.replace("install", "").replace("--upgrade", "").replace("--no-deps", "").replace("--force", "").replace("  ", " ").strip()}'
         )
+    # pip_cmd = [rf"{sys.executable}", "-m", "pip"] + arg.split(" ")
     pip_cmd = [rf"{sys.executable}", "-m", "pip"] + arg.split(" ")
+    if installed("uv"):
+        log.info("Using uv for pip...")
+        pip_cmd.insert(2, "uv")
     log.debug(f"Running pip: {pip_cmd}")
-    if show_stdout:
+    if show_stdout or installed("uv"):
         subprocess.run(pip_cmd, shell=False, check=False, env=os.environ)
     else:
         result = subprocess.run(
@@ -653,7 +663,7 @@ def ensure_base_requirements():
     try:
         import rich  # pylint: disable=unused-import
     except ImportError:
-        install("--upgrade rich", "rich")
+        install("rich", "rich")
 
     try:
         import packaging
