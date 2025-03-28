@@ -15,6 +15,8 @@ set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
 echo Starting the GUI... this might take some time...
 
+:skip_validation
+
 :: If the exit code is 0, run the kohya_gui.py script with the command-line arguments
 if %errorlevel% equ 0 (
     REM Check if the batch was started via double-click
