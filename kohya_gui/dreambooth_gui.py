@@ -854,9 +854,6 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_db.py")
-    
-    cache_text_encoder_outputs = sdxl and sdxl_cache_text_encoder_outputs
-    no_half_vae = sdxl and sdxl_no_half_vae
 
     cache_text_encoder_outputs = (
         (sdxl and sdxl_cache_text_encoder_outputs)
@@ -1215,11 +1212,6 @@ def dreambooth_tab(
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
-                    
-            # Add SDXL Parameters
-            sdxl_params = SDXLParameters(
-                source_model.sdxl_checkbox, config=config, trainer="finetune",
-            )
 
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(
