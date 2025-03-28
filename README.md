@@ -57,6 +57,7 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Monitoring Processes](#monitoring-processes)
   - [Interesting Forks](#interesting-forks)
   - [Change History](#change-history)
+    - [v25.0.3](#v2503)
     - [v25.0.2](#v2502)
     - [v25.0.1](#v2501)
     - [v25.0.0](#v2500)
@@ -541,6 +542,11 @@ For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/
 To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
 
 ## Change History
+
+### v25.0.3
+
+- Upgrade Gradio, diffusers and huggingface-hub to latest release to fix issue with ASGI.
+- Add a new method to setup and run the GUI. You will find two new script for both Windows (gui-uv.bat) and Linux (gui-uv.sh). With those scripts there is no need to run setup.bat or setup.sh anymore.
 
 ### v25.0.2
 
