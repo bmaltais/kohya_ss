@@ -70,6 +70,7 @@ def save_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -152,11 +153,15 @@ def save_configuration(
     loss_type,
     huber_schedule,
     huber_c,
+    huber_scale,
     vae_batch_size,
     min_snr_gamma,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
+    save_last_n_epochs_state,
+    skip_cache_check,
     log_with,
     wandb_api_key,
     wandb_run_name,
@@ -232,6 +237,7 @@ def open_configuration(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -314,11 +320,15 @@ def open_configuration(
     loss_type,
     huber_schedule,
     huber_c,
+    huber_scale,
     vae_batch_size,
     min_snr_gamma,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
+    save_last_n_epochs_state,
+    skip_cache_check,
     log_with,
     wandb_api_key,
     wandb_run_name,
@@ -387,6 +397,7 @@ def train_model(
     learning_rate,
     lr_scheduler,
     lr_warmup,
+    lr_warmup_steps,
     train_batch_size,
     epoch,
     save_every_n_epochs,
@@ -469,11 +480,15 @@ def train_model(
     loss_type,
     huber_schedule,
     huber_c,
+    huber_scale,
     vae_batch_size,
     min_snr_gamma,
     save_every_n_steps,
     save_last_n_steps,
     save_last_n_steps_state,
+    save_last_n_epochs,
+    save_last_n_epochs_state,
+    skip_cache_check,
     log_with,
     wandb_api_key,
     wandb_run_name,
@@ -558,20 +573,6 @@ def train_model(
     # End of path validation
     #
 
-    # if not validate_paths(
-    #     dataset_config=dataset_config,
-    #     headless=headless,
-    #     log_tracker_config=log_tracker_config,
-    #     logging_dir=logging_dir,
-    #     output_dir=output_dir,
-    #     pretrained_model_name_or_path=pretrained_model_name_or_path,
-    #     reg_data_dir=reg_data_dir,
-    #     resume=resume,
-    #     train_data_dir=train_data_dir,
-    #     vae=vae,
-    # ):
-    #     return TRAIN_BUTTON_VISIBLE
-
     if token_string == "":
         output_message(msg="Token string is missing", headless=headless)
         return TRAIN_BUTTON_VISIBLE
@@ -597,13 +598,6 @@ def train_model(
                 stop_text_encoder_training = math.ceil(
                     float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
                 )
-
-            if lr_warmup != 0:
-                lr_warmup_steps = round(
-                    float(int(lr_warmup) * int(max_train_steps) / 100)
-                )
-            else:
-                lr_warmup_steps = 0
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
@@ -666,11 +660,11 @@ def train_model(
             reg_factor = 1
         else:
             log.warning(
-                "Regularisation images are used... Will double the number of steps required..."
+                "Regularization images are used... Will double the number of steps required..."
             )
             reg_factor = 2
 
-        log.info(f"Regulatization factor: {reg_factor}")
+        log.info(f"Regularization factor: {reg_factor}")
 
         if max_train_steps == 0:
             # calculate max_train_steps
@@ -698,12 +692,17 @@ def train_model(
                 float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
             )
 
-        if lr_warmup != 0:
-            lr_warmup_steps = round(float(int(lr_warmup) * int(max_train_steps) / 100))
-        else:
-            lr_warmup_steps = 0
-
         log.info(f"Total steps: {total_steps}")
+
+    # Calculate lr_warmup_steps
+    if lr_warmup_steps > 0:
+        lr_warmup_steps = int(lr_warmup_steps)
+        if lr_warmup > 0:
+            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+    elif lr_warmup != 0:
+        lr_warmup_steps = lr_warmup / 100
+    else:
+        lr_warmup_steps = 0
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
@@ -775,6 +774,7 @@ def train_model(
         "gradient_accumulation_steps": int(gradient_accumulation_steps),
         "gradient_checkpointing": gradient_checkpointing,
         "huber_c": huber_c,
+        "huber_scale": huber_scale,
         "huber_schedule": huber_schedule,
         "huggingface_repo_id": huggingface_repo_id,
         "huggingface_token": huggingface_token,
@@ -852,6 +852,10 @@ def train_model(
         "save_last_n_steps_state": (
             save_last_n_steps_state if save_last_n_steps_state != 0 else None
         ),
+        "save_last_n_epochs": save_last_n_epochs if save_last_n_epochs != 0 else None,
+        "save_last_n_epochs_state": (
+            save_last_n_epochs_state if save_last_n_epochs_state != 0 else None
+        ),
         "save_model_as": save_model_as,
         "save_precision": save_precision,
         "save_state": save_state,
@@ -861,6 +865,7 @@ def train_model(
         "sdpa": True if xformers == "sdpa" else None,
         "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
+        "skip_cache_check": skip_cache_check,
         "stop_text_encoder_training": (
             stop_text_encoder_training if stop_text_encoder_training != 0 else None
         ),
@@ -875,7 +880,7 @@ def train_model(
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
-        "weigts": weights,
+        "weights": weights,
         "use_object_template": True if template == "object template" else None,
         "use_style_template": True if template == "style template" else None,
         "xformers": True if xformers == "xformers" else None,
@@ -1142,6 +1147,7 @@ def ti_tab(
             basic_training.learning_rate,
             basic_training.lr_scheduler,
             basic_training.lr_warmup,
+            basic_training.lr_warmup_steps,
             basic_training.train_batch_size,
             basic_training.epoch,
             basic_training.save_every_n_epochs,
@@ -1223,11 +1229,15 @@ def ti_tab(
             advanced_training.loss_type,
             advanced_training.huber_schedule,
             advanced_training.huber_c,
+            advanced_training.huber_scale,
             advanced_training.vae_batch_size,
             advanced_training.min_snr_gamma,
             advanced_training.save_every_n_steps,
             advanced_training.save_last_n_steps,
             advanced_training.save_last_n_steps_state,
+            advanced_training.save_last_n_epochs,
+            advanced_training.save_last_n_epochs_state,
+            advanced_training.skip_cache_check,
             advanced_training.log_with,
             advanced_training.wandb_api_key,
             advanced_training.wandb_run_name,

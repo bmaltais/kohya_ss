@@ -7,14 +7,13 @@ call .\venv\Scripts\deactivate.bat
 
 :: Activate the virtual environment
 call .\venv\Scripts\activate.bat
+
+:: Update pip to latest version
+python -m pip install --upgrade pip -q
+
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
-:: If the first argument is --help, skip the validation step
-if "%~1" equ "--help" goto :skip_validation
-
-:: Validate requirements
-python.exe .\setup\validate_requirements.py
-if %errorlevel% neq 0 exit /b %errorlevel%
+echo Starting the GUI... this might take some time...
 
 :skip_validation
 
