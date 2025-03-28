@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = "==3.10.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -815,7 +816,7 @@ requires-dist = [
     { name = "open-clip-torch", specifier = "==2.20.0" },
     { name = "opencv-python", specifier = "==4.10.0.84" },
     { name = "prodigy-plus-schedule-free", specifier = "==1.8.0" },
-    { name = "prodigyopt", specifier = "==1.0" },
+    { name = "prodigyopt", specifier = "==1.1.2" },
     { name = "protobuf", specifier = "==3.20.3" },
     { name = "pytorch-lightning", specifier = "==1.9.0" },
     { name = "rich", specifier = ">=13.7.1" },
@@ -924,6 +925,7 @@ wheels = [
 name = "markupsafe"
 version = "2.1.5"
 source = { registry = "https://download.pytorch.org/whl/cu124" }
+sdist = { url = "https://download.pytorch.org/whl/MarkupSafe-2.1.5.tar.gz", hash = "sha256:d283d37a890ba4c1ae73ffadf8046435c76e7bc2247bbb63c00bd1a709c6544b" }
 wheels = [
     { url = "https://download.pytorch.org/whl/MarkupSafe-2.1.5-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:a17a92de5231666cfbe003f0e4b9b3a7ae3afb1ec2845aadc2bacc93ff85febc" },
     { url = "https://download.pytorch.org/whl/MarkupSafe-2.1.5-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:72b6be590cc35924b02c78ef34b467da4ba07e4e0f0454a2c5907f473fc50ce5" },
@@ -1359,11 +1361,11 @@ wheels = [
 
 [[package]]
 name = "prodigyopt"
-version = "1.0"
+version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dc/0e/a7660562219fef53c0fd2ddc0d0b904e09d4efb4399796d4dce8d1f2e3d5/prodigyopt-1.0.tar.gz", hash = "sha256:cdbbd99e836fa6eb90afa49f5eb1a7760d634a15976e77e3e8114349abe910ac", size = 5272 }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/8e/5ee7ea4f8ca1e1d8d5d868c6c97e53e8dc769caa383b5a16afc6fd7b28c7/prodigyopt-1.1.2.tar.gz", hash = "sha256:f6ef74944895c9b9a0045e55fdd04d07bdb03b9f09a2c77e2ec772c9d1ece15f", size = 9431 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/43/6c1b6dfaf9a864c0f9c8bad0d20ac6aa2135775c0093fbb4f8bb947edc70/prodigyopt-1.0-py3-none-any.whl", hash = "sha256:3ca9c44754949e344802fd14868007a05bf16fe4e025c39814e41b1491c783c9", size = 5535 },
+    { url = "https://files.pythonhosted.org/packages/57/26/a798a2e274d77944e784c1c577b85fcbdb7189e59ff821d9a2d6b462f853/prodigyopt-1.1.2-py3-none-any.whl", hash = "sha256:4f8f79f71d37e4a501527fc30ecc847731369dc7cbe12e6a178157924e30ce03", size = 10546 },
 ]
 
 [[package]]
@@ -2232,10 +2234,9 @@ wheels = [
 [[package]]
 name = "typing-extensions"
 version = "4.12.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8", size = 85321 }
+source = { registry = "https://download.pytorch.org/whl/cu124" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d", size = 37438 },
+    { url = "https://download.pytorch.org/whl/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d" },
 ]
 
 [[package]]
@@ -2393,8 +2394,8 @@ dependencies = [
     { name = "torch", version = "2.5.1+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu124/xformers-0.0.29.post1-cp310-cp310-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu124/xformers-0.0.29.post1-cp310-cp310-win_amd64.whl" },
+    { url = "https://download.pytorch.org/whl/cu124/xformers-0.0.29.post1-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:ff0cd00be84cc6867762d8c76f764f36c88f5997ae45caba28ab38d08dcf7090" },
+    { url = "https://download.pytorch.org/whl/cu124/xformers-0.0.29.post1-cp310-cp310-win_amd64.whl", hash = "sha256:b2e55d3209b95f702fb17caecd58c890192548941bbbee72f74aacb0d7c7690e" },
 ]
 
 [[package]]
