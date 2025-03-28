@@ -48,13 +48,20 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Potential Solutions](#potential-solutions)
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
+  - [Guides](#guides)
+    - [Using Accelerate Lora Tab to Select GPU ID](#using-accelerate-lora-tab-to-select-gpu-id)
+      - [Starting Accelerate in GUI](#starting-accelerate-in-gui)
+      - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
+      - [Monitoring Processes](#monitoring-processes)
+  - [Interesting Forks](#interesting-forks)
   - [Change History](#change-history)
+    - [v25.0.0](#v2500)
 
 ## 🦒 Colab
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: <https://github.com/camenduru/kohya_ss-colab>.
 
-I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
+I would like to express my gratitude to camenduru for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
 | Colab                                                                                                                                                                          | Info               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
@@ -71,7 +78,7 @@ To install the necessary dependencies on a Windows system, follow these steps:
 1. Install [Python 3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe).
    - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
 
-2. Install [CUDA 11.8 toolkit](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64).
+2. Install [CUDA 12.4 toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive?target_os=Windows&target_arch=x86_64).
 
 3. Install [Git](https://git-scm.com/download/win).
 
@@ -129,7 +136,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the CUDA 11.8 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Linux&target_arch=x86_64).
+- Install the CUDA 12.4 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-12-4-0-download-archive?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
 
@@ -179,7 +186,7 @@ If you choose to use the interactive mode, the default values for the accelerate
 
 To install the necessary components for Runpod and run kohya_ss, follow these steps:
 
-1. Select the Runpod pytorch 2.0.1 template. This is important. Other templates may not work.
+1. Select the Runpod pytorch 2.2.0 template. This is important. Other templates may not work.
 
 2. SSH into the Runpod.
 
@@ -222,7 +229,9 @@ To run from a pre-built Runpod template, you can:
 3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
 
 ### Novita
+
 #### Pre-built Novita template
+
 1. Open the Novita template by clicking on <https://novita.ai/gpus-console?templateId=312>.
 
 2. Deploy the template on the desired host.
@@ -339,13 +348,27 @@ To upgrade your installation on Linux or macOS, follow these steps:
 To launch the GUI service, you can use the provided scripts or run the `kohya_gui.py` script directly. Use the command line arguments listed below to configure the underlying service.
 
 ```text
---listen: Specify the IP address to listen on for connections to Gradio.
---username: Set a username for authentication.
---password: Set a password for authentication.
---server_port: Define the port to run the server listener on.
---inbrowser: Open the Gradio UI in a web browser.
---share: Share the Gradio UI.
---language: Set custom language
+  --help                show this help message and exit
+  --config CONFIG       Path to the toml config file for interface defaults
+  --debug               Debug on
+  --listen LISTEN       IP to listen on for connections to Gradio
+  --username USERNAME   Username for authentication
+  --password PASSWORD   Password for authentication
+  --server_port SERVER_PORT
+                        Port to run the server listener on
+  --inbrowser           Open in browser
+  --share               Share the gradio UI
+  --headless            Is the server headless
+  --language LANGUAGE   Set custom language
+  --use-ipex            Use IPEX environment
+  --use-rocm            Use ROCm environment
+  --do_not_use_shell    Enforce not to use shell=True when running external commands
+  --do_not_share        Do not share the gradio UI
+  --requirements REQUIREMENTS
+                        requirements file to use for validation
+  --root_path ROOT_PATH
+                        `root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss
+  --noverify            Disable requirements verification
 ```
 
 ### Launching the GUI on Windows
@@ -448,6 +471,45 @@ The feature is not fully tested, so there may be bugs. If you find any issues, p
 
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
+## Guides
+
+The following are guides extracted from issues discussions
+
+### Using Accelerate Lora Tab to Select GPU ID
+
+#### Starting Accelerate in GUI
+
+- Open the kohya GUI on your desired port.
+- Open the `Accelerate launch` tab
+- Ensure the Multi-GPU checkbox is unchecked.
+- Set GPU IDs to the desired GPU (like 1).
+
+#### Running Multiple Instances (linux)
+
+- For tracking multiple processes, use separate kohya GUI instances on different ports (e.g., 7860, 7861).
+- Start instances using `nohup ./gui.sh --listen 0.0.0.0 --server_port <port> --headless > log.log 2>&1 &`.
+
+#### Monitoring Processes
+
+- Open each GUI in a separate browser tab.
+- For terminal access, use SSH and tools like `tmux` or `screen`.
+
+For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/issues/2577).
+
+## Interesting Forks
+
+To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
+
 ## Change History
 
-See release information.
+### v25.0.0
+
+This is a SIGNIFICANT upgrade. I am groing in uncharted territory here because kohya has not merged any of the recent flux.1 and sd3 updated to his code in his main branch yet... but I feel updates in his code has pretty much dried down and I think his code is probably ready for prime time. So instead of keeping my GUI in the cave man ages, I am opting to move the code for the GUI with support for flux.1 and sd3 to the main branch of my project. Perhaps this will bite me in the proverbias ass... but for those who would rather stay on the older pre "flux.1 and sd3" updates, you can always do:
+
+```shell
+git checkout v24.1.7
+```
+
+after cloning the repo.
+
+For all the info regarding the new flux.1 and sd3 parameters, see <https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md> for more details.

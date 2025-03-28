@@ -25,6 +25,7 @@ class BasicTraining:
         learning_rate_value: float = "1e-6",
         lr_scheduler_value: str = "constant",
         lr_warmup_value: float = "0",
+        lr_warmup_steps_value: int = 0,
         finetuning: bool = False,
         dreambooth: bool = False,
         config: dict = {},
@@ -44,10 +45,14 @@ class BasicTraining:
         self.learning_rate_value = learning_rate_value
         self.lr_scheduler_value = lr_scheduler_value
         self.lr_warmup_value = lr_warmup_value
+        self.lr_warmup_steps_value= lr_warmup_steps_value
         self.finetuning = finetuning
         self.dreambooth = dreambooth
         self.config = config
+        
+        # Initialize old_lr_warmup and old_lr_warmup_steps with default values
         self.old_lr_warmup = 0
+        self.old_lr_warmup_steps = 0
 
         # Initialize the UI components
         self.initialize_ui_components()
@@ -162,20 +167,37 @@ class BasicTraining:
                     "cosine",
                     "cosine_with_restarts",
                     "linear",
+                    "piecewise_constant",
                     "polynomial",
+                    "cosine_with_min_lr",
+                    "inverse_sqrt",
+                    "warmup_stable_decay",
                 ],
                 value=self.config.get("basic.lr_scheduler", self.lr_scheduler_value),
             )
             
-            
+            # Initialize the learning rate scheduler type dropdown
+            self.lr_scheduler_type = gr.Dropdown(
+                label="LR Scheduler type",
+                info="(Optional) custom scheduler module name",
+                choices=[
+                    "",
+                    "CosineAnnealingLR",
+                ],
+                value=self.config.get("basic.lr_scheduler_type", ""),
+                allow_custom_value=True,
+            )
             
             # Initialize the optimizer dropdown
             self.optimizer = gr.Dropdown(
                 label="Optimizer",
                 choices=[
                     "AdamW",
+                    "AdamWScheduleFree",
                     "AdamW8bit",
                     "Adafactor",
+                    "bitsandbytes.optim.AdEMAMix8bit",
+                    "bitsandbytes.optim.PagedAdEMAMix8bit",
                     "DAdaptation",
                     "DAdaptAdaGrad",
                     "DAdaptAdam",
@@ -190,11 +212,15 @@ class BasicTraining:
                     "PagedAdamW32bit",
                     "PagedLion8bit",
                     "Prodigy",
+                    "prodigyplus.ProdigyPlusScheduleFree",
+                    "RAdamScheduleFree",
                     "SGDNesterov",
                     "SGDNesterov8bit",
+                    "SGDScheduleFree",
                 ],
                 value=self.config.get("basic.optimizer", "AdamW8bit"),
                 interactive=True,
+                allow_custom_value=True,
             )
 
     def init_grad_and_lr_controls(self) -> None:
@@ -240,7 +266,7 @@ class BasicTraining:
             self.learning_rate = gr.Number(
                 label=lr_label,
                 value=self.config.get("basic.learning_rate", self.learning_rate_value),
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Unet",
             )
@@ -251,7 +277,7 @@ class BasicTraining:
                     "basic.learning_rate_te", self.learning_rate_value
                 ),
                 visible=self.finetuning or self.dreambooth,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder",
             )
@@ -262,7 +288,7 @@ class BasicTraining:
                     "basic.learning_rate_te1", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 1",
             )
@@ -273,7 +299,7 @@ class BasicTraining:
                     "basic.learning_rate_te2", self.learning_rate_value
                 ),
                 visible=False,
-                minimum=0,
+                minimum=-1,
                 maximum=1,
                 info="Set to 0 to not train the Text Encoder 2",
             )
@@ -285,25 +311,37 @@ class BasicTraining:
                 maximum=100,
                 step=1,
             )
+            # Initialize the learning rate warmup steps override
+            self.lr_warmup_steps = gr.Number(
+                label="LR warmup steps (override)",
+                value=self.config.get("basic.lr_warmup_steps", self.lr_warmup_steps_value),
+                minimum=0,
+                step=1,
+            )
             
-            def lr_scheduler_changed(scheduler, value):
+            def lr_scheduler_changed(scheduler, value, value_lr_warmup_steps):
                 if scheduler == "constant":
                     self.old_lr_warmup = value
+                    self.old_lr_warmup_steps = value_lr_warmup_steps
                     value = 0
+                    value_lr_warmup_steps = 0
                     interactive=False
                     info="Can't use LR warmup with LR Scheduler constant... setting to 0 and disabling field..."
                 else:
                     if self.old_lr_warmup != 0:
                         value = self.old_lr_warmup
                         self.old_lr_warmup = 0
+                    if self.old_lr_warmup_steps != 0:
+                        value_lr_warmup_steps = self.old_lr_warmup_steps
+                        self.old_lr_warmup_steps = 0
                     interactive=True
                     info=""
-                return gr.Slider(value=value, interactive=interactive, info=info)
+                return gr.Slider(value=value, interactive=interactive, info=info), gr.Number(value=value_lr_warmup_steps, interactive=interactive, info=info)
             
             self.lr_scheduler.change(
                 lr_scheduler_changed,
-                inputs=[self.lr_scheduler, self.lr_warmup],
-                outputs=self.lr_warmup,
+                inputs=[self.lr_scheduler, self.lr_warmup, self.lr_warmup_steps],
+                outputs=[self.lr_warmup, self.lr_warmup_steps],
             )
 
     def init_scheduler_controls(self) -> None:

@@ -5,6 +5,7 @@ except ImportError:
 from easygui import msgbox, ynbox
 from typing import Optional
 from .custom_logging import setup_logging
+from .sd_modeltype import SDModelType
 
 import os
 import re
@@ -327,7 +328,6 @@ def update_my_data(my_data):
 
     # Convert values to int if they are strings
     for key in [
-        "adaptive_noise_scale",
         "clip_skip",
         "epoch",
         "gradient_accumulation_steps",
@@ -379,7 +379,13 @@ def update_my_data(my_data):
                 my_data[key] = int(75)
 
     # Convert values to float if they are strings, correctly handling float representations
-    for key in ["noise_offset", "learning_rate", "text_encoder_lr", "unet_lr"]:
+    for key in [
+        "adaptive_noise_scale",
+        "noise_offset",
+        "learning_rate",
+        "text_encoder_lr",
+        "unet_lr",
+    ]:
         value = my_data.get(key)
         if value is not None:
             try:
@@ -956,11 +962,15 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=True, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
+        flux1 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
+            flux1,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
@@ -969,11 +979,15 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
+        flux1 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
+            flux1,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
@@ -984,11 +998,15 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=True, visible=False)
         v_parameterization = gr.Checkbox(value=True, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
+        flux1 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
+            flux1,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
@@ -997,17 +1015,32 @@ def set_pretrained_model_name_or_path_input(
         v2 = gr.Checkbox(value=False, visible=False)
         v_parameterization = gr.Checkbox(value=False, visible=False)
         sdxl = gr.Checkbox(value=False, visible=False)
+        sd3 = gr.Checkbox(value=False, visible=False)
+        flux1 = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
             v_parameterization,
             sdxl,
+            sd3,
+            flux1,
         )
 
     # Check if the model_list is set to 'custom'
     v2 = gr.Checkbox(visible=True)
     v_parameterization = gr.Checkbox(visible=True)
     sdxl = gr.Checkbox(visible=True)
+    sd3 = gr.Checkbox(visible=True)
+    flux1 = gr.Checkbox(visible=True)
+
+    # Auto-detect model type if safetensors file path is given
+    if pretrained_model_name_or_path.lower().endswith(".safetensors"):
+        detect = SDModelType(pretrained_model_name_or_path)
+        v2 = gr.Checkbox(value=detect.Is_SD2(), visible=True)
+        sdxl = gr.Checkbox(value=detect.Is_SDXL(), visible=True)
+        sd3 = gr.Checkbox(value=detect.Is_SD3(), visible=True)
+        flux1 = gr.Checkbox(value=detect.Is_FLUX1(), visible=True)
+        #TODO: v_parameterization
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:
@@ -1021,6 +1054,8 @@ def set_pretrained_model_name_or_path_input(
         v2,
         v_parameterization,
         sdxl,
+        sd3,
+        flux1,
     )
 
 
@@ -1369,7 +1404,11 @@ def validate_file_path(file_path: str) -> bool:
     return True
 
 
-def validate_folder_path(folder_path: str, can_be_written_to: bool = False, create_if_not_exists: bool = False) -> bool:
+def validate_folder_path(
+    folder_path: str,
+    can_be_written_to: bool = False,
+    create_if_not_exists: bool = False,
+) -> bool:
     if folder_path == "":
         return True
     msg = f"Validating {folder_path} existence{' and writability' if can_be_written_to else ''}..."
@@ -1387,6 +1426,7 @@ def validate_folder_path(folder_path: str, can_be_written_to: bool = False, crea
     log.info(f"{msg} SUCCESS")
     return True
 
+
 def validate_toml_file(file_path: str) -> bool:
     if file_path == "":
         return True
@@ -1394,7 +1434,7 @@ def validate_toml_file(file_path: str) -> bool:
     if not os.path.isfile(file_path):
         log.error(f"{msg} FAILED: does not exist")
         return False
-    
+
     try:
         toml.load(file_path)
     except:
@@ -1425,10 +1465,13 @@ def validate_model_path(pretrained_model_name_or_path: str) -> bool:
         log.info(f"{msg} SUCCESS")
     else:
         # If not one of the default models, check if it's a valid local path
-        if not validate_file_path(pretrained_model_name_or_path) and not validate_folder_path(pretrained_model_name_or_path):
+        if not validate_file_path(
+            pretrained_model_name_or_path
+        ) and not validate_folder_path(pretrained_model_name_or_path):
             log.info(f"{msg} FAILURE: not a valid file or folder")
             return False
     return True
+
 
 def is_file_writable(file_path: str) -> bool:
     """
@@ -1450,8 +1493,9 @@ def is_file_writable(file_path: str) -> bool:
             pass
         # If the file can be opened, it is considered writable
         return True
-    except IOError:
+    except IOError as e:
         # If an IOError occurs, the file cannot be written to
+        log.info(f"Error: {e}. File '{file_path}' is not writable.")
         return False
 
 
@@ -1462,7 +1506,7 @@ def print_command_and_toml(run_cmd, tmpfilename):
     # Reconstruct the safe command string for display
     command_to_run = " ".join(run_cmd)
 
-    log.info(command_to_run)
+    print(command_to_run)
     print("")
 
     log.info(f"Showing toml config file: {tmpfilename}")
@@ -1489,10 +1533,11 @@ def validate_args_setting(input_string):
         )
         return False
 
+
 def setup_environment():
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        fr"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
+        rf"{scriptdir}{os.pathsep}{scriptdir}/sd-scripts{os.pathsep}{env.get('PYTHONPATH', '')}"
     )
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
