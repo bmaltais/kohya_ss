@@ -55,6 +55,7 @@ The GUI allows you to set the training parameters and generate and run the requi
       - [Monitoring Processes](#monitoring-processes)
   - [Interesting Forks](#interesting-forks)
   - [Change History](#change-history)
+    - [v25.0.0](#v2500)
 
 ## 🦒 Colab
 
@@ -228,7 +229,9 @@ To run from a pre-built Runpod template, you can:
 3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
 
 ### Novita
+
 #### Pre-built Novita template
+
 1. Open the Novita template by clicking on <https://novita.ai/gpus-console?templateId=312>.
 
 2. Deploy the template on the desired host.
@@ -499,6 +502,14 @@ To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.
 
 ## Change History
 
-Added support for SD3 (Dreambooth and Finetuning) and Flux.1 (Dreambooth, LoRA and Finetuning).
+### v25.0.0
 
-See <https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md> for more details.
+This is a SIGNIFICANT upgrade. I am groing in uncharted territory here because kohya has not merged any of the recent flux.1 and sd3 updated to his code in his main branch yet... but I feel updates in his code has pretty much dried down and I think his code is probably ready for prime time. So instead of keeping my GUI in the cave man ages, I am opting to move the code for the GUI with support for flux.1 and sd3 to the main branch of my project. Perhaps this will bite me in the proverbias ass... but for those who would rather stay on the older pre "flux.1 and sd3" updates, you can always do:
+
+```shell
+git checkout v24.1.7
+```
+
+after cloning the repo.
+
+For all the info regarding the new flux.1 and sd3 parameters, see <https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md> for more details.
