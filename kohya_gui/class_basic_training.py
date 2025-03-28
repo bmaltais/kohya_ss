@@ -220,6 +220,7 @@ class BasicTraining:
                 ],
                 value=self.config.get("basic.optimizer", "AdamW8bit"),
                 interactive=True,
+                allow_custom_value=True,
             )
 
     def init_grad_and_lr_controls(self) -> None:
