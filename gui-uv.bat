@@ -1,4 +1,6 @@
 @echo off
+set VIRTUAL_ENV=.venv
+echo VIRTUAL_ENV is set to %VIRTUAL_ENV%
 
 :: Install uv latest version
 pip install --upgrade uv -q
