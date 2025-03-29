@@ -22,7 +22,6 @@ dependencies = [
     "library",
     "lion-pytorch==0.0.6",
     "lycoris-lora==3.1.0",
-    "nvidia-cudnn-cu11>=8.9.5.29",
     "omegaconf==2.3.0",
     "onnx==1.16.1",
     "onnxruntime-gpu==1.19.2",
@@ -53,7 +52,15 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+torch = [
+  { index = "pytorch-cu124" },
+]
+torchvision = [
+  { index = "pytorch-cu124" },
+]
 library = { path = "sd-scripts" }
 
 [[tool.uv.index]]
+name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
+explicit = true
