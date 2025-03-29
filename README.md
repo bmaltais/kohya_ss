@@ -13,10 +13,13 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Windows](#windows)
       - [Windows Pre-requirements](#windows-pre-requirements)
       - [Setup Windows](#setup-windows)
-      - [Optional: CUDNN 8.9.6.50](#optional-cudnn-89650)
+        - [Using uv based package manager](#using-uv-based-package-manager)
+        - [Using the pip package manager](#using-the-pip-package-manager)
     - [Linux and macOS](#linux-and-macos)
       - [Linux Pre-requirements](#linux-pre-requirements)
       - [Setup Linux](#setup-linux)
+        - [Using uv based package manager](#using-uv-based-package-manager-1)
+        - [Using pip based package manager](#using-pip-based-package-manager)
       - [Install Location](#install-location)
     - [Runpod](#runpod)
       - [Manual installation](#manual-installation)
@@ -91,6 +94,8 @@ To install the necessary dependencies on a Windows system, follow these steps:
 
 #### Setup Windows
 
+##### Using uv based package manager
+
 To set up the project, follow these steps:
 
 1. Open a terminal and navigate to the desired installation directory.
@@ -107,9 +112,25 @@ To set up the project, follow these steps:
    cd kohya_ss
    ```
 
-4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+##### Using the pip package manager
 
-   Run one of the following setup script by executing the following command:
+To set up the project, follow these steps:
+
+1. Open a terminal and navigate to the desired installation directory.
+
+2. Clone the repository by running the following command:
+
+   ```shell
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
+   ```
+
+3. Change into the `kohya_ss` directory:
+
+   ```shell
+   cd kohya_ss
+   ```
+
+4. Run one of the following setup script by executing the following command:
 
    For systems with only python 3.10.11 installed:
 
@@ -125,11 +146,11 @@ To set up the project, follow these steps:
 
    During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
 
-#### Optional: CUDNN 8.9.6.50
+5. Optional: CUDNN 8.9.6.50
 
 The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
 
-1. Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
 
 ### Linux and macOS
 
@@ -148,6 +169,26 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
 - Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
 
 #### Setup Linux
+
+##### Using uv based package manager
+
+To set up the project on Linux or macOS, perform the following steps:
+
+1. Open a terminal and navigate to the desired installation directory.
+
+2. Clone the repository by running the following command:
+
+   ```shell
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
+   ```
+
+3. Change into the `kohya_ss` directory:
+
+   ```shell
+   cd kohya_ss
+   ```
+
+##### Using pip based package manager
 
 To set up the project on Linux or macOS, perform the following steps:
 

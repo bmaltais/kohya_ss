@@ -772,6 +772,7 @@ dependencies = [
     { name = "library" },
     { name = "lion-pytorch" },
     { name = "lycoris-lora" },
+    { name = "nvidia-cudnn-cu11" },
     { name = "omegaconf" },
     { name = "onnx" },
     { name = "onnxruntime-gpu" },
@@ -822,6 +823,7 @@ requires-dist = [
     { name = "library", directory = "sd-scripts" },
     { name = "lion-pytorch", specifier = "==0.0.6" },
     { name = "lycoris-lora", specifier = "==3.1.0" },
+    { name = "nvidia-cudnn-cu11", specifier = ">=8.9.5.29" },
     { name = "omegaconf", specifier = "==2.3.0" },
     { name = "onnx", specifier = "==1.16.1" },
     { name = "onnxruntime-gpu", specifier = "==1.19.2" },
@@ -1042,6 +1044,17 @@ wheels = [
 ]
 
 [[package]]
+name = "nvidia-cublas-cu11"
+version = "11.11.3.6"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/be/c222e33e60d28ecd496a46fc4d78ccae0ee28e1fd7dc705b6288b4cad27e/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux1_x86_64.whl", hash = "sha256:39fb40e8f486dd8a2ddb8fdeefe1d5b28f5b99df01c87ab3676f057a74a5a6f3", size = 417870452 },
+    { url = "https://files.pythonhosted.org/packages/96/df/c5ac9ac5096355c47c606e613ecc7aa50fbccf5e0145df857d11da6464b1/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5ccae9e069a2c6be9af9cb5a0b0c6928c19c7915e390d15f598a1eead2a01a7a", size = 291428448 },
+    { url = "https://files.pythonhosted.org/packages/ea/2e/9d99c60771d275ecf6c914a612e9a577f740a615bc826bec132368e1d3ae/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux2014_x86_64.whl", hash = "sha256:60252822adea5d0b10cd990a7dc7bedf7435f30ae40083c7a624a85a43225abc", size = 417870460 },
+    { url = "https://files.pythonhosted.org/packages/0b/1d/7a78cd36fd5e3da4021b3ac2c2c8b2651dd72345b7c3ecc0d3e051884f50/nvidia_cublas_cu11-11.11.3.6-py3-none-win_amd64.whl", hash = "sha256:6ab12b1302bef8ac1ff4414edd1c059e57f4833abef9151683fb8f4de25900be", size = 427234740 },
+]
+
+[[package]]
 name = "nvidia-cublas-cu12"
 version = "12.4.5.8"
 source = { registry = "https://download.pytorch.org/whl/cu124" }
@@ -1071,6 +1084,18 @@ version = "12.4.127"
 source = { registry = "https://download.pytorch.org/whl/cu124" }
 wheels = [
     { url = "https://download.pytorch.org/whl/cu124/nvidia_cuda_runtime_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:64403288fa2136ee8e467cdc9c9427e0434110899d07c779f25b5c068934faa5" },
+]
+
+[[package]]
+name = "nvidia-cudnn-cu11"
+version = "9.8.0.87"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nvidia-cublas-cu11" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/22/32/6385ef0da5e01553e3b8ad55428fd4824cbff29ff941185082b17f030c9e/nvidia_cudnn_cu11-9.8.0.87-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:11aa6d2d6bb3aaa0ce15d06557c729c79b9ecae05679538ef2afc47b8d02bce9", size = 434538620 },
+    { url = "https://files.pythonhosted.org/packages/74/2e/357359964ab4b369e060a39643e7a82fa68ffde74dabfe118654a156c2e6/nvidia_cudnn_cu11-9.8.0.87-py3-none-win_amd64.whl", hash = "sha256:fbf7bfb3a8a250f852ca49b1158bac0cf4d134af84cb3dbdf6085b6fad936632", size = 428351602 },
 ]
 
 [[package]]

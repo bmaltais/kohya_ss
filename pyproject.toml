@@ -22,6 +22,7 @@ dependencies = [
     "library",
     "lion-pytorch==0.0.6",
     "lycoris-lora==3.1.0",
+    "nvidia-cudnn-cu11>=8.9.5.29",
     "omegaconf==2.3.0",
     "onnx==1.16.1",
     "onnxruntime-gpu==1.19.2",
