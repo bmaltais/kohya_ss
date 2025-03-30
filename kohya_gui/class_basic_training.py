@@ -213,6 +213,7 @@ class BasicTraining:
                     "PagedLion8bit",
                     "Prodigy",
                     "prodigyplus.ProdigyPlusScheduleFree",
+                    "pytorch_optimizer.CAME",
                     "RAdamScheduleFree",
                     "SGDNesterov",
                     "SGDNesterov8bit",
