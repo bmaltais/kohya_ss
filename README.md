@@ -96,6 +96,8 @@ To install the necessary dependencies on a Windows system, follow these steps:
 
 ##### Using uv based package manager
 
+NOTE: This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
+
 To set up the project, follow these steps:
 
 1. Open a terminal and navigate to the desired installation directory.
@@ -171,6 +173,8 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
 #### Setup Linux
 
 ##### Using uv based package manager
+
+NOTE: This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
 
 To set up the project on Linux or macOS, perform the following steps:
 
