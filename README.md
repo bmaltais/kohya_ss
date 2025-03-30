@@ -8,6 +8,7 @@ The GUI allows you to set the training parameters and generate and run the requi
 
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
+  - [ToDo](#todo)
   - [🦒 Colab](#-colab)
   - [Installation](#installation)
     - [Windows](#windows)
@@ -64,6 +65,10 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [v25.0.2](#v2502)
     - [v25.0.1](#v2501)
     - [v25.0.0](#v2500)
+  
+## ToDo
+
+- [ ] Add support for LoRA-GGPO introduced in sd-scripts merge of March 30, 2025
 
 ## 🦒 Colab
 
