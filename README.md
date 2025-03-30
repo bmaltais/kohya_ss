@@ -132,7 +132,9 @@ To set up the project, follow these steps:
    cd kohya_ss
    ```
 
-4. Run one of the following setup script by executing the following command:
+4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+
+   Run one of the following setup script by executing the following command:
 
    For systems with only python 3.10.11 installed:
 

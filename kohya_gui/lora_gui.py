@@ -1447,6 +1447,7 @@ def train_model(
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
 
+    do_not_set_learning_rate = False  # Initialize with a default value
     if text_encoder_lr_float != 0 or unet_lr_float != 0:
         do_not_set_learning_rate = True
         
