@@ -68,7 +68,7 @@ The GUI allows you to set the training parameters and generate and run the requi
   
 ## ToDo
 
-- [ ] Add support for LoRA-GGPO introduced in sd-scripts merge of March 30, 2025
+- [X] Add support for LoRA-GGPO introduced in sd-scripts merge of March 30, 2025
 
 ## 🦒 Colab
 

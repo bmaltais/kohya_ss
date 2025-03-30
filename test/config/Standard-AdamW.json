@@ -12,7 +12,7 @@
   "cache_latents_to_disk": false,
   "caption_dropout_every_n_epochs": 0,
   "caption_dropout_rate": 0.05,
-  "caption_extension": "",
+  "caption_extension": ".txt",
   "clip_g": "",
   "clip_l": "",
   "clip_skip": 2,
