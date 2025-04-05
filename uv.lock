@@ -833,7 +833,7 @@ requires-dist = [
     { name = "sentencepiece", specifier = "==0.2.0" },
     { name = "tensorboard", specifier = ">=2.18.0" },
     { name = "tensorflow", specifier = ">=2.16.1" },
-    { name = "tensorflow-io-gcs-filesystem", specifier = "==0.31.0" },
+    { name = "tensorflow-io-gcs-filesystem", specifier = ">=0.31.0" },
     { name = "timm", specifier = "==0.6.12" },
     { name = "tk", specifier = "==0.1.0" },
     { name = "toml", specifier = "==0.10.2" },

@@ -39,7 +39,7 @@ dependencies = [
     "sentencepiece==0.2.0",
     "tensorboard>=2.18.0",
     "tensorflow>=2.16.1",
-    "tensorflow-io-gcs-filesystem==0.31.0",
+    "tensorflow-io-gcs-filesystem>=0.31.0",
     "timm==0.6.12",
     "tk==0.1.0",
     "toml==0.10.2",
