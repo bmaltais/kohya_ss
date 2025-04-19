@@ -96,6 +96,9 @@ def check_torch():
             log.debug("XPU is available, logging XPU info...")
             log_xpu_info(torch, ipex)
         # Log a warning if no GPU is available
+        elif hasattr(torch, "mps") and torch.mps.is_available():
+            log.info("MPS is available, logging MPS info...")
+            log_mps_info(torch)
         else:
             log.warning("Torch reports GPU not available")
 
@@ -129,6 +132,15 @@ def log_cuda_info(torch):
         log.info(
             f"Torch detected GPU: {props.name} VRAM {round(props.total_memory / 1024 / 1024)}MB Arch {props.major}.{props.minor} Cores {props.multi_processor_count}"
         )
+
+def log_mps_info(torch):
+    """Log information about Apple Silicone (MPS)"""
+    max_reccomended_mem = round(torch.mps.recommended_max_memory() / 1024**2)
+    log.info(
+        f"Torch detected Apple MPS: {max_reccomended_mem}MB Unified Memory Available"
+    )
+    log.warning('MPS support is still experimental, proceed with caution.')
+
 
 def log_xpu_info(torch, ipex):
     """Log information about Intel XPU-enabled GPUs."""
