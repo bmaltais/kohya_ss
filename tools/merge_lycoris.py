@@ -47,12 +47,12 @@ args = ARGS = get_args()
 
 
 from lycoris.utils import merge
-from lycoris.kohya.model_utils import (
+from library.model_util import (
     load_models_from_stable_diffusion_checkpoint,
     save_stable_diffusion_checkpoint,
     load_file,
 )
-from lycoris.kohya.sdxl_model_util import (
+from library.sdxl_model_util import (
     load_models_from_sdxl_checkpoint,
     save_stable_diffusion_checkpoint as save_sdxl_checkpoint,
 )
@@ -73,15 +73,16 @@ def main():
     else:
         lyco = torch.load(ARGS.lycoris_model)
 
-    dtype_str = ARGS.dtype.replace("fp", "float").replace("bf", "bfloat")
-    dtype = {
+    dtypes = {
         "float": torch.float,
         "float16": torch.float16,
         "float32": torch.float32,
         "float64": torch.float64,
         "bfloat": torch.bfloat16,
         "bfloat16": torch.bfloat16,
-    }.get(dtype_str, None)
+    }
+    dtype = dtypes.get(ARGS.dtype, None) or dtypes.get(ARGS.dtype.replace("fp", "float").replace("bf", "bfloat"), None)
+
     if dtype is None:
         raise ValueError(f'Cannot Find the dtype "{dtype}"')
 
@@ -105,6 +106,7 @@ def main():
             None,
             base[2],
             getattr(base[1], "logit_scale", None),
+            None,
             dtype,
         )
     else:
