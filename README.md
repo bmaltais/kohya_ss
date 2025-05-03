@@ -88,7 +88,7 @@ I would like to express my gratitude to camenduru for their valuable contributio
 
 To install the necessary dependencies on a Windows system, follow these steps:
 
-1. Install [Python 3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe).
+1. Install [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe).
    - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
 
 2. Install [CUDA 12.4 toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive?target_os=Windows&target_arch=x86_64).
