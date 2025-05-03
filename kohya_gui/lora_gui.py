@@ -1524,11 +1524,11 @@ def train_model(
         "log_config": log_config,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
-        "loraplus_lr_ratio": loraplus_lr_ratio if not 0 else None,
+        "loraplus_lr_ratio": loraplus_lr_ratio if loraplus_lr_ratio != 0 else None,
         "loraplus_text_encoder_lr_ratio": (
-            loraplus_text_encoder_lr_ratio if not 0 else None
+            loraplus_text_encoder_lr_ratio if loraplus_text_encoder_lr_ratio != 0 else None
         ),
-        "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if not 0 else None,
+        "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if loraplus_unet_lr_ratio != 0 else None,
         "loss_type": loss_type,
         "lowvram": lowvram,
         "lr_scheduler": lr_scheduler,
@@ -1636,11 +1636,11 @@ def train_model(
         "stop_text_encoder_training": (
             stop_text_encoder_training if stop_text_encoder_training != 0 else None
         ),
-        "text_encoder_lr": text_encoder_lr_list if not [] else None,
+        "text_encoder_lr": text_encoder_lr_list if text_encoder_lr_list != [] else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
         "training_comment": training_comment,
-        "unet_lr": unet_lr if not 0 else None,
+        "unet_lr": unet_lr if unet_lr != 0 else None,
         "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
