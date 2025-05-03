@@ -1159,7 +1159,7 @@ requires-dist = [
     { name = "invisible-watermark", specifier = "==0.2.0" },
     { name = "library" },
     { name = "lion-pytorch", specifier = "==0.0.6" },
-    { name = "lycoris-lora", specifier = "==3.1.0" },
+    { name = "lycoris-lora", specifier = "==3.2.0.post2" },
     { name = "omegaconf", specifier = "==2.3.0" },
     { name = "onnx", specifier = "==1.16.1" },
     { name = "onnxruntime-gpu", specifier = "==1.19.2" },
@@ -1320,7 +1320,7 @@ wheels = [
 
 [[package]]
 name = "lycoris-lora"
-version = "3.1.0"
+version = "3.2.0.post2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "einops" },
@@ -1330,7 +1330,7 @@ dependencies = [
     { name = "torch", version = "2.7.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0a/c7/e1841957da4c465208b8fbda4dfee8059a71dbde68f2c6cc393128622679/lycoris_lora-3.1.0.tar.gz", hash = "sha256:698410ebee7cf88cdcd37f3933fd0cb76b3e0f79580dd3c35041ea9fe8d83756", size = 51581, upload-time = "2024-10-01T17:59:48.09Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/d8/095d4c0861bfc2fbfd7baf032cb21f337ea3a40e3637e7e581a17728cdd5/lycoris_lora-3.2.0.post2.tar.gz", hash = "sha256:b7ac3ab2a8260dae3051da7407855bd671055030fdd252b66d9df1735be96ee4", size = 53694, upload-time = "2025-04-25T15:39:20.722Z" }
 
 [[package]]
 name = "markdown"
