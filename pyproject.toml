@@ -40,13 +40,15 @@ dependencies = [
     "sentencepiece==0.2.0",
     "tensorboard>=2.18.0",
     "tensorflow>=2.16.1",
-    "tensorflow-io-gcs-filesystem>=0.31.0",
+    "tensorflow-io-gcs-filesystem==0.31.0; sys_platform == 'win32'",
+    "tensorflow-io-gcs-filesystem>=0.37.1; sys_platform == 'linux'",
     "timm==0.6.7",
     "tk==0.1.0",
     "toml==0.10.2",
     "torch>=2.5.0",
     "torchvision>=0.20.0",
     "transformers==4.44.2",
+    "triton==3.1.0; sys_platform == 'linux'",
     "voluptuous==0.13.1",
     "wandb==0.18.0",
     "xformers>=0.0.28.post2",
@@ -54,11 +56,11 @@ dependencies = [
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu126", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
 ]
 torchvision = [
-  { index = "pytorch-cu126", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
 ]
 
