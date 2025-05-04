@@ -63,6 +63,7 @@ torchvision = [
   { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
 ]
+library = { path = "sd-scripts" }
 
 [[tool.uv.index]]
 name = "pytorch-cu124"
