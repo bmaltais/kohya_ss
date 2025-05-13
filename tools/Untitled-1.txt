@@ -1,0 +1,244 @@
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision bf16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_fro_0.65.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 16 --device cuda --sdxl --target_fro_retained 0.5 --group_size 6 --svd_mode per_layer --dynamic_param 0.65
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision bf16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_cumulative_0.9.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 16 --device cuda --sdxl --target_fro_retained 0.5 --group_size 6 --svd_mode per_layer --dynamic_param 0.9 --dynamic_method sv_cumulative
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision fp16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_fro_0.5v2.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 256 --device cuda --sdxl --dynamic_param 0.5 --dynamic_method sv_fro --verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision fp16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_cumulative_0.5v2.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 768 --device cuda --sdxl --dynamic_param 0.5 --dynamic_method sv_cumulative --verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision fp16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_ratio_0.5.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 768 --device cuda --sdxl --dynamic_param 0.5 --dynamic_method sv_ratio --verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision fp16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_sv_knee.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --dim 512 --device cuda --sdxl --dynamic_method sv_knee --verbose --dynamic_param 0.5
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py `
+--save_precision fp16 `
+--save_to E:/lora/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES_sv_cumulative_knee.safetensors `
+--model_tuned E:/models/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES.safetensors `
+--model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+--dim 512 `
+--device cuda `
+--sdxl `
+--dynamic_method sv_cumulative_knee `
+--verbose `
+--dynamic_param 0.25
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_v2.safetensors `
+--rank 4 `
+--iterations 200 `
+--lr 0.005 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--verbose_layer_debug `
+--save_weights_dtype fp16
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_64_4000steps.safetensors `
+--rank 64 `
+--initial_alpha 32 `
+--max_rank_doublings 2 `
+--max_iterations 16000 `
+--min_iterations 200 `
+--target_loss 9.9999999e-8 `
+--lr 0.05 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16
+
+
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_16_16000steps.safetensors `
+--rank 16 `
+--initial_alpha 8 `
+--max_rank_retries 3 `
+--rank_increase_factor 1.5 `
+--max_iterations 8000 `
+--min_iterations 200 `
+--target_loss 9.9999999e-8 `
+--lr 0.05 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_16_8000steps.safetensors `
+--rank 16 `
+--initial_alpha 16 `
+--max_rank_retries 6 `
+--rank_increase_factor 2 `
+--max_iterations 8000 `
+--min_iterations 200 `
+--target_loss 9.9999999e-8 `
+--lr 0.05 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES.safetensors `
+E:/lora/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES_loha_16_8000steps.safetensors `
+--rank 16 `
+--initial_alpha 16 `
+--max_rank_retries 6 `
+--rank_increase_factor 2 `
+--max_iterations 8000 `
+--min_iterations 200 `
+--target_loss 9.9999999e-8 `
+--lr 0.1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16
+
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/aetherverseXL_v10.safetensors `
+E:/lora/sdxl/aetherverseXL_v10_loha_9e-8.safetensors `
+--rank 4 `
+--initial_alpha 4 `
+--max_rank_retries 27 `
+--rank_increase_factor 1.2 `
+--max_iterations 16000 `
+--min_iterations 400 `
+--target_loss 9e-8 `
+--lr 1e-1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 200 `
+--advanced_projection_decay_cap_min 0.5 `
+--advanced_projection_decay_cap_max 1.05 `
+--min_progress_loss_ratio 0.000001 `
+--projection_sample_interval 1 `
+--projection_min_ema_history 100
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_9e-8.safetensors `
+--rank 4 `
+--initial_alpha 4 `
+--max_rank_retries 27 `
+--rank_increase_factor 1.2 `
+--max_iterations 16000 `
+--min_iterations 400 `
+--target_loss 1e-7 `
+--lr 1e-1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 200 `
+--advanced_projection_decay_cap_min 0.5 `
+--advanced_projection_decay_cap_max 1.05 `
+--min_progress_loss_ratio 0.000001 `
+--projection_sample_interval 1 `
+--projection_min_ema_history 100
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES.safetensors `
+E:/lora/sdxl/lustifySDXLNSFW_oltFIXEDTEXTURES_loha_9e-8.safetensors `
+--rank 4 `
+--initial_alpha 4 `
+--max_rank_retries 27 `
+--rank_increase_factor 1.2 `
+--max_iterations 16000 `
+--min_iterations 400 `
+--target_loss 1e-7 `
+--lr 1e-1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 200 `
+--advanced_projection_decay_cap_min 0.5 `
+--advanced_projection_decay_cap_max 1.05 `
+--min_progress_loss_ratio 0.000001 `
+--projection_sample_interval 1 `
+--projection_min_ema_history 100
+
+C:\Users\berna\Downloads\Dune_Movie_Loha2.safetensors
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py `
+--save_to E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha.safetensors `
+--model_org_path E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+--model_tuned_path E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+--algo loha `
+--network_alpha 64 `
+--network_dim 4 `
+--conv_alpha 64 `
+--conv_dim 4 `
+--device cuda `
+--sdxl `
+--save_precision fp16 `
+--verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_model_difference.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+--save_dtype float16
+
+--model_org_path E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+--model_tuned_path E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+--algo loha `
+--network_alpha 64 `
+--network_dim 4 `
+--conv_alpha 64 `
+--conv_dim 4 `
+--device cuda `
+--sdxl `
+--save_precision fp16 `
+--verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_to E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors --algo loha --sdxl --dim 32 --conv_dim 32 --dynamic_method sv_cumulative --dynamic_param 0.99 --save_precision fp16 --device cuda --verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py ^
+    --model_org_path "D:\StableDiffusion\models\sdxl_base_1.0.safetensors" ^
+    --model_tuned_path "D:\StableDiffusion\models\my_sdxl_finetune.safetensors" ^
+    --save_to "C:\LoRA_Extractor\output\my_loha_sdxl.safetensors" ^
+    --sdxl ^
+    --algo loha ^
+    --network_alpha 64 ^
+    --network_dim 4 ^
+    --conv_alpha 64 ^
+    --conv_dim 4 ^
+    --save_precision bf16 ^
+    --device cuda ^
+    --verbose
+
+sv_cumulative_knee
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py --save_precision fp16 --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_two_pass_energy_512.safetensors --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors --total_rank_budget 2048 --device cuda --sdxl --svd_mode per_layer --dynamic_param 1.0 --dynamic_method two_pass_energy --verbose --min_rank 4 --max_rank 32
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\sd-scripts\networks\extract_lora_from_models-nw.py ^
+  --save_precision bf16 ^
+  --save_to E:/lora/sdxl/cinemaDiffusoXL_beta03_two_pass_energy_512.safetensors ^
+  --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors ^
+  --model_tuned E:/models/sdxl/cinemaDiffusoXL_beta03.safetensors ^
+  --dim 512 ^
+  --device cuda ^
+  --sdxl ^
+  --target_fro_retained 0.5 ^
+  --group_size 6 ^
+  --svd_mode per_layer ^
+  --dynamic_method two_pass_energy ^
+  --dynamic_param 1.0 ^
+  --min_rank 4 ^
+  --verbose
