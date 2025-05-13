@@ -131,14 +131,14 @@ E:/lora/sdxl/aetherverseXL_v10_loha_9e-8.safetensors `
 D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
 E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
 E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
-E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_9e-8.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-8.safetensors `
 --rank 4 `
 --initial_alpha 4 `
 --max_rank_retries 27 `
 --rank_increase_factor 1.2 `
 --max_iterations 16000 `
 --min_iterations 400 `
---target_loss 1e-7 `
+--target_loss 1e-8 `
 --lr 1e-1 `
 --device cuda `
 --precision fp32 `
@@ -149,7 +149,8 @@ E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_9e-8.safetensors `
 --advanced_projection_decay_cap_max 1.05 `
 --min_progress_loss_ratio 0.000001 `
 --projection_sample_interval 1 `
---projection_min_ema_history 100
+--projection_min_ema_history 100 `
+--continue_training_from_loha
 
 D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
 E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
