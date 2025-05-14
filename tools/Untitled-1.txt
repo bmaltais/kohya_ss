@@ -128,13 +128,55 @@ E:/lora/sdxl/aetherverseXL_v10_loha_9e-8.safetensors `
 --projection_sample_interval 1 `
 --projection_min_ema_history 100
 
+
 D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
 E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
-E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
-E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-8.safetensors `
+E:/models/sdxl/aetherverseXL_v10.safetensors `
+E:/lora/sdxl/aetherverseXL_v10_loha_9e-8.safetensors `
 --rank 4 `
 --initial_alpha 4 `
 --max_rank_retries 27 `
+--rank_increase_factor 1.2 `
+--max_iterations 16000 `
+--min_iterations 400 `
+--target_loss 9e-8 `
+--lr 1e-1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 200 `
+--save_every_n_layers 10 `
+--keep_n_resume_files 10
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/proteus_v06.safetensors `
+E:/lora/sdxl/proteus_v06_1e-7.safetensors `
+--rank 4 `
+--initial_alpha 4 `
+--max_rank_retries 27 `
+--rank_increase_factor 1.2 `
+--max_iterations 16000 `
+--min_iterations 400 `
+--target_loss 1e-7 `
+--lr 1e-1 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 200 `
+--save_every_n_layers 10 `
+--keep_n_resume_files 10
+
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-8v3.safetensors `
+--rank 4 `
+--initial_alpha 4 `
+--max_rank_retries 29 `
 --rank_increase_factor 1.2 `
 --max_iterations 16000 `
 --min_iterations 400 `
@@ -150,7 +192,7 @@ E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-8.safetensors `
 --min_progress_loss_ratio 0.000001 `
 --projection_sample_interval 1 `
 --projection_min_ema_history 100 `
---continue_training_from_loha
+--continue_training_from_loha E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-8v2_resume_L422.safetensors
 
 D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
 E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
