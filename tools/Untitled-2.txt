@@ -37,12 +37,12 @@ D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_lora_from_models-
 --save_precision fp16 `
 --model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
 --model_tuned E:/models/sdxl/xxxRay_v11.safetensors `
---save_to E:/lora/sdxl/xxxRay_v11_sv_fro_0.85_1024.safetensors `
+--save_to E:/lora/sdxl/xxxRay_v11_sv_fro_0.9_1024.safetensors `
 --dim 1024 `
 --device cuda `
 --sdxl `
 --dynamic_method sv_fro `
---dynamic_param 0.85 `
+--dynamic_param 0.9 `
 --verbose
 
 D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_lora_from_models-nw.py `
