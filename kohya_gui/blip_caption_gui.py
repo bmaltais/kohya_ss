@@ -1,14 +1,17 @@
 import gradio as gr
 import subprocess
 import os
-import sys
-from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs, setup_environment
+from .common_gui import (
+    add_pre_postfix,
+    scriptdir,
+    setup_environment,
+    PYTHON,
+    create_folder_selection_gr_items,
+)
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
-PYTHON = sys.executable
 
 
 def caption_images(
@@ -113,48 +116,22 @@ def caption_images(
 
 
 def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
-    from .common_gui import create_refresh_button
-
     default_train_dir = (
         default_train_dir
         if default_train_dir is not None
         else os.path.join(scriptdir, "data")
     )
-    current_train_dir = default_train_dir
-
-    def list_train_dirs(path):
-        nonlocal current_train_dir
-        current_train_dir = path
-        return list(list_dirs(path))
 
     with gr.Tab("BLIP Captioning"):
         gr.Markdown(
             "This utility uses BLIP to caption files for each image in a folder."
         )
         with gr.Group(), gr.Row():
-            train_data_dir = gr.Dropdown(
+            train_data_dir, _, _ = create_folder_selection_gr_items(
                 label="Image folder to caption (containing the images to caption)",
-                choices=[""] + list_train_dirs(default_train_dir),
-                value="",
-                interactive=True,
-                allow_custom_value=True,
-            )
-            create_refresh_button(
-                train_data_dir,
-                lambda: None,
-                lambda: {"choices": list_train_dirs(current_train_dir)},
-                "open_folder_small",
-            )
-            button_train_data_dir_input = gr.Button(
-                "📂",
-                elem_id="open_folder_small",
-                elem_classes=["tool"],
-                visible=(not headless),
-            )
-            button_train_data_dir_input.click(
-                get_folder_path,
-                outputs=train_data_dir,
-                show_progress=False,
+                default_path=default_train_dir,
+                headless=headless,
+                elem_id="blip_caption_train_data_dir"
             )
         with gr.Row():
             caption_file_ext = gr.Dropdown(
@@ -207,9 +184,3 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
             show_progress=False,
         )
 
-        train_data_dir.change(
-            fn=lambda path: gr.Dropdown(choices=[""] + list_train_dirs(path)),
-            inputs=train_data_dir,
-            outputs=train_data_dir,
-            show_progress=False,
-        )

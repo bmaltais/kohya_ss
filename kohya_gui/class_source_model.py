@@ -3,12 +3,14 @@ import os
 
 from .common_gui import (
     get_file_path,
+    get_file_path,
     get_folder_path,
     set_pretrained_model_name_or_path_input,
     scriptdir,
-    list_dirs,
-    list_files,
+    list_files, # list_dirs removed as it's no longer directly used
     create_refresh_button,
+    create_folder_selection_gr_items,
+    create_file_selection_gr_items,
 )
 from .class_gui_config import KohyaSSGUIConfig
 
@@ -58,12 +60,8 @@ class SourceModel:
         self.current_models_dir = self.config.get(
             "model.models_dir", os.path.join(scriptdir, "models")
         )
-        self.current_train_data_dir = self.config.get(
-            "model.train_data_dir", os.path.join(scriptdir, "data")
-        )
-        self.current_dataset_config_dir = self.config.get(
-            "model.dataset_config", os.path.join(scriptdir, "dataset_config")
-        )
+        # self.current_train_data_dir and self.current_dataset_config_dir removed as they are no longer needed
+        # for the new components' internal state management.
 
         model_checkpoints = list(
             list_files(
@@ -79,25 +77,7 @@ class SourceModel:
                 list_files(path, exts=[".ckpt", ".safetensors"], all=True)
             )
 
-        def list_train_data_dirs(path):
-            self.current_train_data_dir = path if not path == "" else "."
-            return list(list_dirs(self.current_train_data_dir))
-
-        def list_dataset_config_dirs(path: str) -> list:
-            """
-            List directories and toml files in the dataset_config directory.
-
-            Parameters:
-            - path (str): The path to list directories and files from.
-
-            Returns:
-            - list: A list of directories and files.
-            """
-            current_dataset_config_dir = path if not path == "" else "."
-            # Lists all .json files in the current configuration directory, used for populating dropdown choices.
-            return list(
-                list_files(current_dataset_config_dir, exts=[".toml"], all=True)
-            )
+        # list_train_data_dirs and list_dataset_config_dirs removed
 
         with gr.Accordion("Model", open=True):
             with gr.Column(), gr.Group():
@@ -157,89 +137,22 @@ class SourceModel:
                         )
                 with gr.Row():
                     with gr.Column(), gr.Row():
-                        self.train_data_dir = gr.Dropdown(
-                            label=(
-                                "Image folder (containing training images subfolders)"
-                                if not finetuning
-                                else "Image folder (containing training images)"
-                            ),
-                            choices=[""]
-                            + list_train_data_dirs(self.current_train_data_dir),
-                            value=self.config.get("model.train_data_dir", ""),
-                            interactive=True,
-                            allow_custom_value=True,
-                        )
-                        create_refresh_button(
-                            self.train_data_dir,
-                            lambda: None,
-                            lambda: {
-                                "choices": [""]
-                                + list_train_data_dirs(self.current_train_data_dir)
-                            },
-                            "open_folder_small",
-                        )
-                        self.train_data_dir_folder = gr.Button(
-                            "📂",
-                            elem_id="open_folder_small",
-                            elem_classes=["tool"],
-                            visible=(not self.headless),
-                        )
-                        self.train_data_dir_folder.click(
-                            get_folder_path,
-                            outputs=self.train_data_dir,
-                            show_progress=False,
+                        self.train_data_dir, _, _ = create_folder_selection_gr_items(
+                            label=("Image folder (containing training images subfolders)" if not finetuning else "Image folder (containing training images)"),
+                            default_path=self.config.get("model.train_data_dir", ""),
+                            headless=self.headless,
+                            elem_id="source_model_train_data_dir"
                         )
                     with gr.Column(), gr.Row():
-                        # Toml directory dropdown
-                        self.dataset_config = gr.Dropdown(
+                        self.dataset_config, _, _ = create_file_selection_gr_items(
                             label="Dataset config file (Optional. Select the toml configuration file to use for the dataset)",
-                            choices=[self.config.get("model.dataset_config", "")]
-                            + list_dataset_config_dirs(self.current_dataset_config_dir),
-                            value=self.config.get("model.dataset_config", ""),
-                            interactive=True,
-                            allow_custom_value=True,
+                            default_path=self.config.get("model.dataset_config", ""),
+                            headless=self.headless,
+                            elem_id="source_model_dataset_config",
+                            list_file_extensions=['.toml'],
+                            dialog_default_extension=".toml",
+                            dialog_extension_name="TOML Config files"
                         )
-                        # Refresh button for dataset_config directory
-                        create_refresh_button(
-                            self.dataset_config,
-                            lambda: None,
-                            lambda: {
-                                "choices": [""]
-                                + list_dataset_config_dirs(
-                                    self.current_dataset_config_dir
-                                )
-                            },
-                            "open_folder_small",
-                        )
-                        # Toml directory button
-                        self.dataset_config_folder = gr.Button(
-                            document_symbol,
-                            elem_id="open_folder_small",
-                            elem_classes=["tool"],
-                            visible=(not self.headless),
-                        )
-
-                        # Toml directory button click event
-                        self.dataset_config_folder.click(
-                            get_file_path,
-                            inputs=[
-                                self.dataset_config,
-                                gr.Textbox(value="*.toml", visible=False),
-                                gr.Textbox(value="Dataset config types", visible=False),
-                            ],
-                            outputs=self.dataset_config,
-                            show_progress=False,
-                        )
-                        # Change event for dataset_config directory dropdown
-                        self.dataset_config.change(
-                            fn=lambda path: gr.Dropdown(
-                                choices=[""] + list_dataset_config_dirs(path)
-                            ),
-                            inputs=self.dataset_config,
-                            outputs=self.dataset_config,
-                            show_progress=False,
-                        )
-
                 with gr.Row():
                     with gr.Column():
                         with gr.Row():
@@ -365,14 +278,5 @@ class SourceModel:
                         self.sd3_checkbox,
                         self.flux1_checkbox,
                     ],
-                    show_progress=False,
-                )
-
-                self.train_data_dir.change(
-                    fn=lambda path: gr.Dropdown(
-                        choices=[""] + list_train_data_dirs(path)
-                    ),
-                    inputs=self.train_data_dir,
-                    outputs=self.train_data_dir,
                     show_progress=False,
                 )

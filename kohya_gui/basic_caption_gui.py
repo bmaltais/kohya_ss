@@ -1,22 +1,19 @@
 import gradio as gr
 import subprocess
 from .common_gui import (
-    get_folder_path,
     add_pre_postfix,
     find_replace,
     scriptdir,
-    list_dirs,
     setup_environment,
+    PYTHON,
+    create_folder_selection_gr_items,
 )
 import os
-import sys
 
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
-
-PYTHON = sys.executable
 
 
 def caption_images(
@@ -133,31 +130,12 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
     Returns:
         None
     """
-    from .common_gui import create_refresh_button
-
     # Set default images directory if not provided
     default_images_dir = (
         default_images_dir
         if default_images_dir is not None
         else os.path.join(scriptdir, "data")
     )
-    current_images_dir = default_images_dir
-
-    # Function to list directories
-    def list_images_dirs(path):
-        """
-        Lists directories within a specified path and updates the current image directory.
-
-        Parameters:
-            path (str): The directory path to list image directories from.
-
-        Returns:
-            list: A list of directories within the specified path.
-        """
-        # Allows list_images_dirs to modify current_images_dir outside of this function
-        nonlocal current_images_dir
-        current_images_dir = path
-        return list(list_dirs(path))
 
     # Gradio tab for basic captioning
     with gr.Tab("Basic Captioning"):
@@ -167,33 +145,11 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
         )
         # Group and row for image folder selection
         with gr.Group(), gr.Row():
-            # Dropdown for image folder
-            images_dir = gr.Dropdown(
+            images_dir, _, _ = create_folder_selection_gr_items(
                 label="Image folder to caption (containing the images to caption)",
-                choices=[""] + list_images_dirs(default_images_dir),
-                value="",
-                interactive=True,
-                allow_custom_value=True,
-            )
-            # Refresh button for image folder
-            create_refresh_button(
-                images_dir,
-                lambda: None,
-                lambda: {"choices": list_images_dirs(current_images_dir)},
-                "open_folder_small",
-            )
-            # Button to open folder
-            folder_button = gr.Button(
-                "📂",
-                elem_id="open_folder_small",
-                elem_classes=["tool"],
-                visible=(not headless),
-            )
-            # Event handler for button click
-            folder_button.click(
-                get_folder_path,
-                outputs=images_dir,
-                show_progress=False,
+                default_path=default_images_dir,
+                headless=headless,
+                elem_id="basic_caption_images_dir"
             )
             # Textbox for caption file extension
             caption_ext = gr.Dropdown(
@@ -264,10 +220,3 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
                 show_progress=False,
             )
 
-        # Event handler for dynamic update of dropdown choices
-        images_dir.change(
-            fn=lambda path: gr.Dropdown(choices=[""] + list_images_dirs(path)),
-            inputs=images_dir,
-            outputs=images_dir,
-            show_progress=False,
-        )

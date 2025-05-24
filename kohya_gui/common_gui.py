@@ -30,6 +30,8 @@ scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 if os.name == "nt":
     scriptdir = scriptdir.replace("\\", "/")
 
+PYTHON = sys.executable
+
 # insert sd-scripts path into PYTHONPATH
 sys.path.insert(0, os.path.join(scriptdir, "sd-scripts"))
 
@@ -1057,6 +1059,171 @@ def set_pretrained_model_name_or_path_input(
         sd3,
         flux1,
     )
+
+
+def create_folder_selection_gr_items(label: str, default_path: str = None, headless: bool = False, elem_id: str = None):
+    """
+    Creates a Gradio Row with a Dropdown for folder selection, a refresh button, and an open folder button.
+
+    Args:
+        label (str): The label for the Dropdown.
+        default_path (str, optional): The default path for the folder selection. Defaults to None.
+        headless (bool, optional): If True, the open folder button will be hidden. Defaults to False.
+        elem_id (str, optional): The base element ID for the Gradio components. Defaults to None.
+
+    Returns:
+        gr.Dropdown: The Gradio Dropdown component for folder path selection.
+    """
+    current_folder = default_path if default_path else ""
+
+    def list_current_dirs(path):
+        nonlocal current_folder
+        current_folder = path
+        return list(list_dirs(path))
+
+    folder_path_dropdown = gr.Dropdown(
+        label=label,
+        choices=[""] + list_current_dirs(current_folder),
+        value=current_folder,
+        interactive=True,
+        allow_custom_value=True,
+        elem_id=elem_id,
+    )
+    refresh_button = create_refresh_button(
+        refresh_component=folder_path_dropdown,
+        refresh_method=lambda: None,
+        refreshed_args=lambda: {"choices": list_current_dirs(current_folder), "value": current_folder},
+        elem_id=f"{elem_id}_refresh" if elem_id else "folder_refresh_button",
+    )
+    open_button = gr.Button(
+        "📂",
+        elem_id=f"{elem_id}_open" if elem_id else "open_folder_button_small",
+        elem_classes=["tool"],
+        visible=(not headless),
+    )
+
+    open_button.click(
+        fn=get_folder_path,
+        inputs=[folder_path_dropdown],
+        outputs=folder_path_dropdown,
+        show_progress=False,
+    )
+
+    folder_path_dropdown.change(
+        fn=lambda path: gr.update(choices=[""] + list_current_dirs(path), value=path),
+        inputs=folder_path_dropdown,
+        outputs=folder_path_dropdown,
+        show_progress=False,
+    )
+
+    return folder_path_dropdown, refresh_button, open_button
+
+
+def create_file_selection_gr_items(
+    label: str,
+    default_path: str = None,
+    headless: bool = False,
+    elem_id: str = None,
+    list_file_extensions: list = None, # Used by list_files to populate dropdown (e.g., ['.toml', '.json'])
+    dialog_default_extension: str = ".*", # Passed to get_file_path (e.g., ".toml")
+    dialog_extension_name: str = "All files" # Passed to get_file_path (e.g., "TOML files")
+):
+    """
+    Creates Gradio components for file selection: a Dropdown, a refresh button, and an open file button.
+    These components are returned individually and are not wrapped in a gr.Row.
+
+    Args:
+        label (str): The label for the Dropdown.
+        default_path (str, optional): The default file or folder path.
+        headless (bool, optional): If True, the open file button is hidden.
+        elem_id (str, optional): The base element ID for the Gradio components.
+        list_file_extensions (list, optional): File extensions to filter by in the dropdown (e.g., ['.txt', '.json']).
+                                               If None, shows all files (respecting list_files internal filters).
+        dialog_default_extension (str, optional): Default extension for the file dialog (e.g., ".json").
+        dialog_extension_name (str, optional): Name for the extension type in the file dialog (e.g., "JSON files").
+
+    Returns:
+        tuple: (gr.Dropdown, gr.Button, gr.Button) for file path, refresh, and open.
+    """
+    current_file_or_folder = default_path if default_path else ""
+    # Convert list_file_extensions to a set for list_files, or None if it's empty
+    list_exts_set = set(list_file_extensions) if list_file_extensions else None
+
+    def list_current_files(path_or_file):
+        nonlocal current_file_or_folder
+        current_file_or_folder = path_or_file
+        
+        directory_to_list = ""
+        if path_or_file:
+            if os.path.isfile(path_or_file):
+                directory_to_list = os.path.dirname(path_or_file)
+            elif os.path.isdir(path_or_file):
+                directory_to_list = path_or_file
+            else: # Path doesn't exist or is invalid, try to get parent dir if possible
+                parent_dir = os.path.dirname(path_or_file)
+                if os.path.isdir(parent_dir):
+                    directory_to_list = parent_dir
+                else: # Fallback if parent is also not a dir (e.g. totally invalid path)
+                    directory_to_list = "" # Or some sensible default like scriptdir
+        
+        if not directory_to_list and default_path and os.path.isdir(default_path):
+            directory_to_list = default_path
+        elif not directory_to_list and default_path and os.path.isfile(default_path):
+            directory_to_list = os.path.dirname(default_path)
+            
+        # Ensure directory_to_list is not None before passing to list_files
+        # and handle if it's an empty string (list_files can handle this)
+        return list(list_files(directory_to_list if directory_to_list else ".", exts=list_exts_set, all=True if not list_exts_set else False))
+
+    file_path_dropdown = gr.Dropdown(
+        label=label,
+        choices=[""] + list_current_files(current_file_or_folder),
+        value=default_path if default_path else "",
+        interactive=True,
+        allow_custom_value=True,
+        elem_id=elem_id,
+    )
+
+    refresh_button = create_refresh_button(
+        refresh_component=file_path_dropdown,
+        refresh_method=lambda: None,
+        refreshed_args=lambda: {
+            "choices": [""] + list_current_files(current_file_or_folder),
+            "value": current_file_or_folder # This will set the dropdown to the file/folder that was last interacted with
+        },
+        elem_id=f"{elem_id}_refresh" if elem_id else "file_refresh_button",
+    )
+
+    open_button = gr.Button(
+        value=document_symbol,
+        elem_id=f"{elem_id}_open" if elem_id else "open_file_button_small",
+        elem_classes=["tool"],
+        visible=(not headless),
+    )
+
+    # Hidden components to pass dialog parameters
+    dialog_default_ext_gr = gr.Textbox(value=dialog_default_extension, visible=False)
+    dialog_ext_name_gr = gr.Textbox(value=dialog_extension_name, visible=False)
+
+    open_button.click(
+        fn=get_file_path,
+        inputs=[
+            file_path_dropdown, # current value of the dropdown passed as initial path to dialog
+            dialog_default_ext_gr,
+            dialog_ext_name_gr
+        ],
+        outputs=file_path_dropdown,
+        show_progress=False,
+    )
+
+    file_path_dropdown.change(
+        fn=lambda path: gr.update(choices=[""] + list_current_files(path), value=path),
+        inputs=file_path_dropdown,
+        outputs=file_path_dropdown,
+        show_progress=False,
+    )
+
+    return file_path_dropdown, refresh_button, open_button
 
 
 ###
