@@ -15,6 +15,7 @@ from .common_gui import (
     get_saveasfile_path,
     output_message,
     print_command_and_toml,
+    create_presets_dropdown,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
@@ -1827,31 +1828,11 @@ def lora_tab(
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
-
-            def list_presets(path):
-                json_files = []
-
-                # Insert an empty string at the beginning
-                # json_files.insert(0, "none")
-
-                for file in os.listdir(path):
-                    if file.endswith(".json"):
-                        json_files.append(os.path.splitext(file)[0])
-
-                user_presets_path = os.path.join(path, "user_presets")
-                if os.path.isdir(user_presets_path):
-                    for file in os.listdir(user_presets_path):
-                        if file.endswith(".json"):
-                            preset_name = os.path.splitext(file)[0]
-                            json_files.append(os.path.join("user_presets", preset_name))
-
-                return json_files
-
-            training_preset = gr.Dropdown(
-                label="Presets",
-                choices=["none"] + list_presets(rf"{presets_dir}/lora"),
-                value="none",
-                elem_classes=["preset_background"],
+        # list_presets function removed
+        training_preset = create_presets_dropdown(
+            preset_type_name="lora",
+            presets_base_dir=presets_dir,
+            elem_classes=["preset_background"]
             )
 
             with gr.Accordion("Basic", open="True", elem_classes=["basic_background"]):

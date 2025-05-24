@@ -2,7 +2,7 @@ import gradio as gr
 import json
 import math
 import os
-import subprocess
+# import subprocess # Removed
 import time
 import sys
 import toml
@@ -16,6 +16,8 @@ from .common_gui import (
     print_command_and_toml,
     run_cmd_advanced_training,
     SaveConfigFile,
+    create_presets_dropdown,
+    run_python_script, # Added
     scriptdir,
     update_my_data,
     validate_file_path,
@@ -761,79 +763,61 @@ def train_model(
     else:
         # create caption json file
         if generate_caption_database:
-            # Define the command components
-            run_cmd = [
-                PYTHON,
-                rf"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py",
-            ]
-
-            # Add the caption extension
-            run_cmd.append("--caption_extension")
+            script_path = rf"{scriptdir}/sd-scripts/finetune/merge_captions_to_metadata.py"
+            args_list = ["--caption_extension"]
             if caption_extension == "":
-                run_cmd.append(".caption")  # Default extension
+                args_list.append(".caption")  # Default extension
             else:
-                run_cmd.append(caption_extension)
-
-            # Add paths for the image folder and the caption metadata file
-            run_cmd.append(rf"{image_folder}")
-            run_cmd.append(rf"{os.path.join(train_dir, caption_metadata_filename)}")
-
-            # Include the full path flag if specified
+                args_list.append(caption_extension)
+            args_list.append(rf"{image_folder}")
+            args_list.append(rf"{os.path.join(train_dir, caption_metadata_filename)}")
             if full_path:
-                run_cmd.append("--full_path")
+                args_list.append("--full_path")
 
-            # Log the built command
-            log.info(" ".join(run_cmd))
-
-            # Prepare environment variables
-            env = setup_environment()
-
-            # Execute the command if not just for printing
             if not print_only:
-                subprocess.run(run_cmd, env=env)
+                run_python_script(
+                    script_full_path=script_path,
+                    args=args_list,
+                    description="Merging captions to metadata"
+                )
+            else:
+                # If print_only, still log the command that would be run
+                # Assuming PYTHON variable is accessible or replaced by common_gui.PYTHON if that's the case
+                log.info(f"[Print Only] Would execute: {sys.executable} {script_path} {' '.join(args_list)}")
+
 
         # create images buckets
         if generate_image_buckets:
-            # Build the command to run the preparation script
-            run_cmd = [
-                PYTHON,
-                rf"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py",
+            script_path = rf"{scriptdir}/sd-scripts/finetune/prepare_buckets_latents.py"
+            args_list = [
                 rf"{image_folder}",
                 rf"{os.path.join(train_dir, caption_metadata_filename)}",
                 rf"{os.path.join(train_dir, latent_metadata_filename)}",
                 rf"{pretrained_model_name_or_path}",
-                "--batch_size",
-                str(batch_size),
-                "--max_resolution",
-                str(max_resolution),
-                "--min_bucket_reso",
-                str(min_bucket_reso),
-                "--max_bucket_reso",
-                str(max_bucket_reso),
-                "--mixed_precision",
-                str(mixed_precision),
+                "--batch_size", str(batch_size),
+                "--max_resolution", str(max_resolution),
+                "--min_bucket_reso", str(min_bucket_reso),
+                "--max_bucket_reso", str(max_bucket_reso),
             ]
-
-            # Conditional flags
-            if full_path:
-                run_cmd.append("--full_path")
+            
+            current_mixed_precision = str(mixed_precision)
             if sdxl_checkbox and sdxl_no_half_vae:
-                log.info(
-                    "Using mixed_precision = no because no half vae is selected..."
-                )
-                # Ensure 'no' is correctly handled without extra quotes that might be interpreted literally in command line
-                run_cmd.append("--mixed_precision=no")
+                log.info("Using mixed_precision = no because no_half_vae is selected for SDXL prepare_buckets_latents.")
+                current_mixed_precision = "no"
+            args_list.extend(["--mixed_precision", current_mixed_precision])
 
-            # Log the complete command as a string for clarity
-            log.info(" ".join(run_cmd))
+            if full_path:
+                args_list.append("--full_path")
 
-            # Copy and modify environment variables
-            env = setup_environment()
-
-            # Execute the command if not just for printing
             if not print_only:
-                subprocess.run(run_cmd, env=env)
-
+                run_python_script(
+                    script_full_path=script_path,
+                    args=args_list,
+                    description="Preparing image buckets and latents"
+                )
+            else:
+                log.info(f"[Print Only] Would execute: {sys.executable} {script_path} {' '.join(args_list)}")
+                
         if image_folder == "":
             log.error("Image folder dir is empty")
             return TRAIN_BUTTON_VISIBLE
@@ -1277,28 +1261,10 @@ def finetune_tab(
                     )
 
         with gr.Accordion("Parameters", open=False), gr.Column():
-
-            def list_presets(path):
-                json_files = []
-
-                for file in os.listdir(path):
-                    if file.endswith(".json"):
-                        json_files.append(os.path.splitext(file)[0])
-
-                user_presets_path = os.path.join(path, "user_presets")
-                if os.path.isdir(user_presets_path):
-                    for file in os.listdir(user_presets_path):
-                        if file.endswith(".json"):
-                            preset_name = os.path.splitext(file)[0]
-                            json_files.append(os.path.join("user_presets", preset_name))
-
-                return json_files
-
-            training_preset = gr.Dropdown(
-                label="Presets",
-                choices=["none"] + list_presets(f"{presets_dir}/finetune"),
-                # elem_id="myDropdown",
-                value="none",
+            # list_presets function removed
+            training_preset = create_presets_dropdown(
+                preset_type_name="finetune",
+                presets_base_dir=presets_dir
             )
 
             with gr.Accordion("Basic", open="True"):

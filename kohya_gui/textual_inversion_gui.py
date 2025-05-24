@@ -15,6 +15,7 @@ from .common_gui import (
     list_files,
     output_message,
     print_command_and_toml,
+    create_file_selection_gr_items,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
@@ -966,11 +967,7 @@ def ti_tab(
     global use_shell
     use_shell = use_shell_flag
 
-    current_embedding_dir = (
-        default_output_dir
-        if default_output_dir is not None and default_output_dir != ""
-        else os.path.join(scriptdir, "outputs")
-    )
+    # current_embedding_dir removed
 
     with gr.Tab("Training"), gr.Column(variant="compact"):
         gr.Markdown("Train a TI using kohya textual inversion python code...")
@@ -1017,51 +1014,16 @@ def ti_tab(
             with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
                     with gr.Row():
-
-                        def list_embedding_files(path):
-                            nonlocal current_embedding_dir
-                            current_embedding_dir = path
-                            return list(
-                                list_files(
-                                    path,
-                                    exts=[".pt", ".ckpt", ".safetensors"],
-                                    all=True,
-                                )
-                            )
-
-                        weights = gr.Dropdown(
+                        output_dir_value = default_output_dir if default_output_dir is not None and default_output_dir != "" else os.path.join(scriptdir, "outputs")
+            
+                        weights, _, _ = create_file_selection_gr_items(
                             label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
-                            choices=[""] + list_embedding_files(current_embedding_dir),
-                            value="",
-                            interactive=True,
-                            allow_custom_value=True,
-                        )
-                        create_refresh_button(
-                            weights,
-                            lambda: None,
-                            lambda: {
-                                "choices": list_embedding_files(current_embedding_dir)
-                            },
-                            "open_folder_small",
-                        )
-                        weights_file_input = gr.Button(
-                            "📂",
-                            elem_id="open_folder_small",
-                            elem_classes=["tool"],
-                            visible=(not headless),
-                        )
-                        weights_file_input.click(
-                            get_file_path,
-                            outputs=weights,
-                            show_progress=False,
-                        )
-                        weights.change(
-                            fn=lambda path: gr.Dropdown(
-                                choices=[""] + list_embedding_files(path)
-                            ),
-                            inputs=weights,
-                            outputs=weights,
-                            show_progress=False,
+                            default_path=output_dir_value, # Pass the directory to list from initially
+                            headless=headless, # Pass the existing headless variable
+                            elem_id="textual_inversion_weights", # Example elem_id
+                            list_file_extensions=['.pt', '.ckpt', '.safetensors'], # Extensions for dropdown
+                            dialog_default_extension=".pt", # Primary for dialog (can be any from the list)
+                            dialog_extension_name="Embedding files (.pt, .ckpt, .safetensors)" # Dialog title
                         )
 
                     with gr.Row():

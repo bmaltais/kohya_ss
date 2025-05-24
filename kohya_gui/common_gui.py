@@ -1226,6 +1226,50 @@ def create_file_selection_gr_items(
     return file_path_dropdown, refresh_button, open_button
 
 
+def create_presets_dropdown(preset_type_name: str, presets_base_dir: str, elem_classes: list = None):
+    """
+    Creates a Gradio Dropdown for selecting presets from a specified directory structure.
+
+    Args:
+        preset_type_name (str): The name of the preset type (e.g., "lora", "ti").
+                                This corresponds to a subfolder in presets_base_dir.
+        presets_base_dir (str): The base directory where preset type folders are located.
+        elem_classes (list, optional): List of CSS classes to apply to the Dropdown.
+
+    Returns:
+        gr.Dropdown: The configured Gradio Dropdown component.
+    """
+    
+    specific_preset_dir = os.path.join(presets_base_dir, preset_type_name)
+
+    def list_presets(path_to_preset_type_folder):
+        json_files = []
+        if not os.path.exists(path_to_preset_type_folder):
+            log.warning(f"Preset directory not found: {path_to_preset_type_folder}")
+            return json_files
+
+        for file in os.listdir(path_to_preset_type_folder):
+            if file.endswith(".json"):
+                json_files.append(os.path.splitext(file)[0])
+
+        user_presets_path = os.path.join(path_to_preset_type_folder, "user_presets")
+        if os.path.isdir(user_presets_path):
+            for file in os.listdir(user_presets_path):
+                if file.endswith(".json"):
+                    preset_name = os.path.splitext(file)[0]
+                    # Ensure user_presets are clearly identified, e.g. by prefixing
+                    json_files.append(os.path.join("user_presets", preset_name))
+        
+        return sorted(json_files)
+
+    return gr.Dropdown(
+        label="Presets",
+        choices=["none"] + list_presets(specific_preset_dir),
+        value="none",
+        elem_classes=elem_classes if elem_classes else [], # Ensure it's a list
+    )
+
+
 ###
 ### Gradio common GUI section
 ###
@@ -1712,3 +1756,49 @@ def setup_environment():
         env["XFORMERS_FORCE_DISABLE_TRITON"] = "1"
 
     return env
+
+
+def run_python_script(script_full_path: str, args: list, description: str = None, env: dict = None):
+    """
+    Executes a Python script using the configured PYTHON interpreter and environment.
+
+    Args:
+        script_full_path (str): The absolute path to the Python script to execute.
+        args (list): A list of arguments to pass to the script. Each argument will be converted to a string.
+        description (str, optional): A description of the script execution for logging purposes.
+                                     If None, the script path will be used.
+        env (dict, optional): A dictionary of environment variables to add/override for the script execution.
+    """
+    import subprocess
+
+    cmd = [PYTHON, script_full_path] + [str(arg) for arg in args]
+
+    log_description = description if description else script_full_path
+    
+    log.info(f"Executing {log_description}: {' '.join(cmd)}")
+
+    current_env = setup_environment()
+    if env:
+        current_env.update(env)
+
+    try:
+        process = subprocess.run(cmd, env=current_env, shell=False, capture_output=True, text=True, check=False)
+        
+        if process.returncode == 0:
+            log.info(f"{log_description} executed successfully.")
+            if process.stdout:
+                # Limit stdout logging to avoid excessive verbosity for very long outputs
+                # Log first 1000 chars and last 1000 chars if too long
+                if len(process.stdout) > 2000:
+                    log.debug(f"Stdout (truncated):\n{process.stdout[:1000]}\n...\n{process.stdout[-1000:]}")
+                else:
+                    log.debug(f"Stdout:\n{process.stdout}")
+        else:
+            log.error(f"Error executing {log_description}. Return code: {process.returncode}")
+            if process.stdout: # Sometimes errors are also in stdout
+                 log.error(f"Stdout (on error):\n{process.stdout}")
+            if process.stderr:
+                log.error(f"Stderr:\n{process.stderr}")
+                
+    except Exception as e:
+        log.error(f"An exception occurred while trying to run {log_description}: {e}")
