@@ -1828,12 +1828,12 @@ def lora_tab(
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=False), gr.Column():
-        # list_presets function removed
-        training_preset = create_presets_dropdown(
-            preset_type_name="lora",
-            presets_base_dir=presets_dir,
-            elem_classes=["preset_background"]
-            )
+            # list_presets function removed
+            training_preset = create_presets_dropdown(
+                preset_type_name="lora",
+                presets_base_dir=presets_dir,
+                elem_classes=["preset_background"]
+                )
 
             with gr.Accordion("Basic", open="True", elem_classes=["basic_background"]):
                 with gr.Row():

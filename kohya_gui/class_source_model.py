@@ -141,14 +141,14 @@ class SourceModel:
                             label=("Image folder (containing training images subfolders)" if not finetuning else "Image folder (containing training images)"),
                             default_path=self.config.get("model.train_data_dir", ""),
                             headless=self.headless,
-                            elem_id="source_model_train_data_dir"
+                            # elem_id="source_model_train_data_dir"
                         )
                     with gr.Column(), gr.Row():
                         self.dataset_config, _, _ = create_file_selection_gr_items(
                             label="Dataset config file (Optional. Select the toml configuration file to use for the dataset)",
                             default_path=self.config.get("model.dataset_config", ""),
                             headless=self.headless,
-                            elem_id="source_model_dataset_config",
+                            # elem_id="source_model_dataset_config",
                             list_file_extensions=['.toml'],
                             dialog_default_extension=".toml",
                             dialog_extension_name="TOML Config files"

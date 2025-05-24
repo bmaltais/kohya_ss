@@ -1093,11 +1093,11 @@ def create_folder_selection_gr_items(label: str, default_path: str = None, headl
         refresh_component=folder_path_dropdown,
         refresh_method=lambda: None,
         refreshed_args=lambda: {"choices": list_current_dirs(current_folder), "value": current_folder},
-        elem_id=f"{elem_id}_refresh" if elem_id else "folder_refresh_button",
+        elem_id=f"{elem_id}_refresh" if elem_id else "open_folder_small",
     )
     open_button = gr.Button(
         "📂",
-        elem_id=f"{elem_id}_open" if elem_id else "open_folder_button_small",
+        elem_id=f"{elem_id}_open" if elem_id else "open_folder_small",
         elem_classes=["tool"],
         visible=(not headless),
     )
@@ -1191,12 +1191,12 @@ def create_file_selection_gr_items(
             "choices": [""] + list_current_files(current_file_or_folder),
             "value": current_file_or_folder # This will set the dropdown to the file/folder that was last interacted with
         },
-        elem_id=f"{elem_id}_refresh" if elem_id else "file_refresh_button",
+        elem_id=f"{elem_id}_refresh" if elem_id else "open_folder_small",
     )
 
     open_button = gr.Button(
         value=document_symbol,
-        elem_id=f"{elem_id}_open" if elem_id else "open_file_button_small",
+        elem_id=f"{elem_id}_open" if elem_id else "open_folder_small",
         elem_classes=["tool"],
         visible=(not headless),
     )
