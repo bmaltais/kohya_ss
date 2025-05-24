@@ -85,6 +85,114 @@ I would like to express my gratitude to camenduru for their valuable contributio
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
 
+## Installation Methods
+
+This project offers two primary methods for installing and running the GUI: using the `uv` package manager (recommended for ease of use and automatic updates) or using the traditional `pip` package manager. Below, you'll find details on both approaches. Please read this section to decide which method best suits your needs before proceeding to the OS-specific installation prerequisites.
+
+**Key Differences:**
+
+*   **`uv` method:**
+    *   Simplifies the setup process.
+    *   Automatically handles updates when you run `gui-uv.bat` (Windows) or `gui-uv.sh` (Linux).
+    *   No need to run `setup.bat` or `setup.sh` after the initial clone.
+    *   This is the recommended method for most users on Windows and Linux.
+    *   **Not recommended for Runpod, Docker, or macOS installations.** For these, please use the `pip` method.
+*   **`pip` method:**
+    *   The traditional method, requiring manual execution of `setup.bat` (Windows) or `setup.sh` (Linux) after cloning and for updates.
+    *   Necessary for environments like Runpod, Docker, and macOS where the `uv` scripts are not intended to be used.
+
+Subsequent sections will detail the specific commands for each method.
+
+### Using `uv` (Recommended)
+This method utilizes the `uv` package manager for a streamlined setup and automatic updates. It is the preferred approach for most users on Windows and Linux.
+
+> [!NOTE]
+> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
+
+To set up the project, follow these steps:
+
+1. Open a terminal and navigate to the desired installation directory.
+
+2. Clone the repository by running the following command:
+
+   ```shell
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
+   ```
+
+3. Change into the `kohya_ss` directory:
+
+   ```shell
+   cd kohya_ss
+   ```
+
+For Linux, the steps are similar (clone and change directory as above).
+
+### Using `pip` (Traditional Method)
+This method uses the traditional `pip` package manager and requires manual script execution for setup and updates. It is necessary for environments like Runpod, Docker, or macOS, or if you prefer managing your environment with `pip`.
+
+Regardless of your OS, start with these steps:
+
+1. Open a terminal and navigate to the desired installation directory.
+
+2. Clone the repository by running the following command:
+
+   ```shell
+   git clone --recursive https://github.com/bmaltais/kohya_ss.git
+   ```
+
+3. Change into the `kohya_ss` directory:
+
+   ```shell
+   cd kohya_ss
+   ```
+
+Then, proceed with OS-specific instructions:
+
+**For Windows:**
+
+*   If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+
+    Run one of the following setup script by executing the following command:
+
+    For systems with only python 3.10.11 installed:
+
+   ```shell
+   .\setup.bat
+   ```
+
+   For systems with only more than one python release installed:
+
+   ```shell
+   .\setup-3.10.bat
+   ```
+
+    During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
+
+*   Optional: CUDNN 8.9.6.50
+
+    The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+
+    Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+
+**For Linux and macOS:**
+
+*   If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
+
+    If you encounter permission issues, make the `setup.sh` script executable by running the following command:
+
+   ```shell
+   chmod +x ./setup.sh
+   ```
+
+   Run the setup script by executing the following command:
+
+   ```shell
+   ./setup.sh
+   ```
+
+   > [!NOTE]
+   > If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+
 ## Prerequisites
 
 Before you begin, ensure you have the following software and hardware:
@@ -115,68 +223,7 @@ To install the necessary dependencies on a Windows system, follow these steps:
 
 #### Setup Windows
 
-##### Using uv based package manager
-
-> [!NOTE]
-> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
-
-To set up the project, follow these steps:
-
-1. Open a terminal and navigate to the desired installation directory.
-
-2. Clone the repository by running the following command:
-
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-3. Change into the `kohya_ss` directory:
-
-   ```shell
-   cd kohya_ss
-   ```
-
-##### Using the pip package manager
-
-To set up the project, follow these steps:
-
-1. Open a terminal and navigate to the desired installation directory.
-
-2. Clone the repository by running the following command:
-
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-3. Change into the `kohya_ss` directory:
-
-   ```shell
-   cd kohya_ss
-   ```
-
-4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
-
-   Run one of the following setup script by executing the following command:
-
-   For systems with only python 3.10.11 installed:
-
-   ```shell
-   .\setup.bat
-   ```
-
-   For systems with only more than one python release installed:
-
-   ```shell
-   .\setup-3.10.bat
-   ```
-
-   During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
-
-5. Optional: CUDNN 8.9.6.50
-
-The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
-
-Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+For detailed setup instructions using either `uv` or `pip`, please refer to the 'Installation Methods' section above. Ensure you have met the Windows Pre-requirements before proceeding with either method.
 
 ### Linux and macOS
 
@@ -196,63 +243,11 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
 
 #### Setup Linux
 
-##### Using uv based package manager
-
-> [!NOTE]
-> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
-
-To set up the project on Linux or macOS, perform the following steps:
-
-1. Open a terminal and navigate to the desired installation directory.
-
-2. Clone the repository by running the following command:
-
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-3. Change into the `kohya_ss` directory:
-
-   ```shell
-   cd kohya_ss
-   ```
-
-##### Using pip based package manager
-
-To set up the project on Linux or macOS, perform the following steps:
-
-1. Open a terminal and navigate to the desired installation directory.
-
-2. Clone the repository by running the following command:
-
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-3. Change into the `kohya_ss` directory:
-
-   ```shell
-   cd kohya_ss
-   ```
-
-4. If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
-
-   If you encounter permission issues, make the `setup.sh` script executable by running the following command:
-
-   ```shell
-   chmod +x ./setup.sh
-   ```
-
-   Run the setup script by executing the following command:
-
-   ```shell
-   ./setup.sh
-   ```
-
-   > [!NOTE]
-   > If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+For detailed setup instructions using either `uv` or `pip`, please refer to the 'Installation Methods' section above. Ensure you have met the Linux Pre-requirements before proceeding with either method.
 
 #### Install Location
+
+Note: The information below regarding install location applies to both `uv` and `pip` installation methods described in the 'Installation Methods' section.
 
 The default installation location on Linux is the directory where the script is located. If a previous installation is detected in that location, the setup will proceed there. Otherwise, the installation will fall back to `/opt/kohya_ss`. If `/opt` is not writable, the fallback location will be `$HOME/kohya_ss`. Finally, if none of the previous options are viable, the installation will be performed in the current directory.
 
@@ -278,41 +273,51 @@ To upgrade your installation to a new version, follow the instructions below.
 
 ### Windows Upgrade
 
-If a new release becomes available, you can upgrade your repository by running the following commands from the root directory of the project:
+If a new release becomes available, you can upgrade your repository by following these steps:
 
-1. Pull the latest changes from the repository:
+*   **If you are using the `uv`-based installation (`gui-uv.bat`):**
+    1.  Pull the latest changes from the repository:
+        ```powershell
+        git pull
+        ```
+    2.  Updates to the Python environment are handled automatically when you next run the `gui-uv.bat` script. No separate setup script execution is needed.
 
-   ```powershell
-   git pull
-   ```
-
-2. Run the setup script (if you do not use the uv script. If you use the uv versions of the scripts the updates are done for you automatically.):
-
-   ```powershell
-   .\setup.bat
-   ```
+*   **If you are using the `pip`-based installation (`gui.bat` or `gui.ps1`):**
+    1.  Pull the latest changes from the repository:
+        ```powershell
+        git pull
+        ```
+    2.  Run the setup script to update dependencies:
+        ```powershell
+        .\setup.bat
+        ```
 
 ### Linux and macOS Upgrade
 
 To upgrade your installation on Linux or macOS, follow these steps:
 
-1. Open a terminal and navigate to the root directory of the project.
+*   **If you are using the `uv`-based installation (`gui-uv.sh`):**
+    1.  Open a terminal and navigate to the root directory of the project.
+    2.  Pull the latest changes from the repository:
+        ```bash
+        git pull
+        ```
+    3.  Updates to the Python environment are handled automatically when you next run the `gui-uv.sh` script. No separate setup script execution is needed.
 
-2. Pull the latest changes from the repository:
-
-   ```bash
-   git pull
-   ```
-
-3. Refresh and update everything (if you do not use the uv based script. If you use the uv versions of the scripts the updates are done for you automatically.):
-
-   ```bash
-   ./setup.sh
-   ```
+*   **If you are using the `pip`-based installation (`gui.sh`):**
+    1.  Open a terminal and navigate to the root directory of the project.
+    2.  Pull the latest changes from the repository:
+        ```bash
+        git pull
+        ```
+    3.  Refresh and update everything by running the setup script:
+        ```bash
+        ./setup.sh
+        ```
 
 ## Starting GUI Service
 
-To launch the GUI service, you can use the provided scripts or run the `kohya_gui.py` script directly. Use the command line arguments listed below to configure the underlying service.
+To launch the GUI service, use the script corresponding to your chosen installation method (`uv` or `pip`), or run the `kohya_gui.py` script directly. Use the command line arguments listed below to configure the underlying service.
 
 ```text
   --help                show this help message and exit
@@ -338,9 +343,9 @@ To launch the GUI service, you can use the provided scripts or run the `kohya_gu
   --noverify            Disable requirements verification
 ```
 
-### Launching the GUI on Windows (non uv based method)
+### Launching the GUI on Windows (pip method)
 
-On Windows, you can use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
+If you installed using the `pip` method, use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
 
 ```powershell
 gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share
@@ -352,9 +357,9 @@ or
 gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-### Alternative: UV-based Method
+### Launching the GUI on Windows (uv method)
 
-To use the UV-based method for running the GUI, which does not require running `setup.bat`, follow these steps:
+If you installed using the `uv` method, use the `gui-uv.bat` script to start the GUI. Follow these steps:
 
 ```cmd
 .\gui-uv.bat
@@ -366,19 +371,19 @@ or
 .\gui-uv.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-This method provides an alternative way to run the GUI with the latest features, including support for Flux.1 and SD3, and eliminates the need for the setup script.
+This script utilizes the `uv` managed environment.
 
 ### Launching the GUI on Linux and macOS
 
-To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
+If you installed using the `pip` method on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
 
 ```bash
 ./gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-### Alternative: UV-based Method for Linux
+### Launching the GUI on Linux (uv method)
 
-To use the UV-based method for running the GUI, which does not require running `setup.sh`, follow these steps:
+If you installed using the `uv` method on Linux, use the `gui-uv.sh` script to start the GUI. Follow these steps:
 
 ```shell
 ./gui-uv.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
@@ -390,7 +395,7 @@ If you are running on a headless server, use:
 ./gui-uv.sh --headless --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-This method provides an alternative way to run the GUI with the latest features, including support for Flux.1 and SD3, and eliminates the need for the setup script.
+This script utilizes the `uv` managed environment.
 
 ## Custom Path Defaults
 
