@@ -1,14 +1,23 @@
 # Kohya's GUI
 
-This repository primarily provides a Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). However, support for Linux OS is also offered through community contributions. macOS support is not optimal at the moment but might work if the conditions are favorable.
+[![GitHub stars](https://img.shields.io/github/stars/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/network/members)
+[![License](https://img.shields.io/github/license/bmaltais/kohya_ss)](LICENSE.md)
+[![GitHub issues](https://img.shields.io/github/issues/bmaltais/kohya_ss)](https://github.com/bmaltais/kohya_ss/issues)
 
-The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
+This project provides a user-friendly Gradio-based Graphical User Interface (GUI) for [Kohya's Stable Diffusion training scripts](https://github.com/kohya-ss/sd-scripts). Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, and training specialized models like LoRA (Low-Rank Adaptation).
+
+Key features of this GUI include:
+*   Easy-to-use interface for setting a wide range of training parameters.
+*   Automatic generation of the command-line interface (CLI) commands required to run the training scripts.
+*   Support for various training methods, including LoRA, Dreambooth, fine-tuning, and SDXL training.
+
+Support for Linux and macOS is also available. While Linux support is actively maintained through community contributions, macOS compatibility may vary.
 
 ## Table of Contents
 
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
-  - [ToDo](#todo)
   - [🦒 Colab](#-colab)
   - [Installation](#installation)
     - [Windows](#windows)
@@ -66,10 +75,6 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [v25.0.1](#v2501)
     - [v25.0.0](#v2500)
   
-## ToDo
-
-- [X] Add support for LoRA-GGPO introduced in sd-scripts merge of March 30, 2025
-
 ## 🦒 Colab
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: <https://github.com/camenduru/kohya_ss-colab>.
@@ -79,6 +84,17 @@ I would like to express my gratitude to camenduru for their valuable contributio
 | Colab                                                                                                                                                                          | Info               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
+
+## Prerequisites
+
+Before you begin, ensure you have the following software and hardware:
+
+*   **Python:** Version 3.10.x or 3.11.x. (Python 3.11.9 is used in Windows pre-requirements, Python 3.10.9+ for Linux).
+*   **Git:** For cloning the repository and managing updates.
+*   **NVIDIA CUDA Toolkit:** Version 12.4 or compatible (as per installation steps).
+*   **NVIDIA GPU:** A compatible NVIDIA graphics card is required. VRAM requirements vary depending on the model and training parameters.
+*   **(Optional but Recommended) NVIDIA cuDNN:** For accelerated performance on compatible NVIDIA GPUs. (Often included with CUDA Toolkit or installed separately).
+*   **For Windows Users:** Visual Studio 2015, 2017, 2019, and 2022 Redistributable.
 
 ## Installation
 
@@ -101,7 +117,8 @@ To install the necessary dependencies on a Windows system, follow these steps:
 
 ##### Using uv based package manager
 
-NOTE: This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
+> [!NOTE]
+> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
 
 To set up the project, follow these steps:
 
@@ -181,7 +198,8 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
 
 ##### Using uv based package manager
 
-NOTE: This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
+> [!NOTE]
+> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
 
 To set up the project on Linux or macOS, perform the following steps:
 
@@ -231,7 +249,8 @@ To set up the project on Linux or macOS, perform the following steps:
    ./setup.sh
    ```
 
-   Note: If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+   > [!NOTE]
+   > If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
 
 #### Install Location
 
@@ -243,128 +262,15 @@ If you choose to use the interactive mode, the default values for the accelerate
 
 ### Runpod
 
-#### Manual installation
-
-To install the necessary components for Runpod and run kohya_ss, follow these steps:
-
-1. Select the Runpod pytorch 2.2.0 template. This is important. Other templates may not work.
-
-2. SSH into the Runpod.
-
-3. Clone the repository by running the following command:
-
-   ```shell
-   cd /workspace
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-4. Run the setup script:
-
-   ```shell
-   cd kohya_ss
-   ./setup-runpod.sh
-   ```
-
-5. Run the GUI with:
-
-   ```shell
-   ./gui.sh --share --headless
-   ```
-
-   or with this if you expose 7860 directly via the runpod configuration:
-
-   ```shell
-   ./gui.sh --listen=0.0.0.0 --headless
-   ```
-
-6. Connect to the public URL displayed after the installation process is completed.
-
-#### Pre-built Runpod template
-
-To run from a pre-built Runpod template, you can:
-
-1. Open the Runpod template by clicking on <https://runpod.io/gsc?template=ya6013lj5a&ref=w18gds2n>.
-
-2. Deploy the template on the desired host.
-
-3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
+See [Runpod Installation Guide](docs/installation_runpod.md) for details.
 
 ### Novita
 
-#### Pre-built Novita template
-
-1. Open the Novita template by clicking on <https://novita.ai/gpus-console?templateId=312>.
-
-2. Deploy the template on the desired host.
-
-3. Once deployed, connect to the Novita on HTTP 7860 to access the kohya_ss GUI.
+See [Novita Installation Guide](docs/installation_novita.md) for details.
 
 ### Docker
 
-#### Get your Docker ready for GPU support
-
-##### Windows
-
-Once you have installed [**Docker Desktop**](https://www.docker.com/products/docker-desktop/), [**CUDA Toolkit**](https://developer.nvidia.com/cuda-downloads), [**NVIDIA Windows Driver**](https://www.nvidia.com.tw/Download/index.aspx), and ensured that your Docker is running with [**WSL2**](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2), you are ready to go.
-
-Here is the official documentation for further reference.  
-<https://docs.nvidia.com/cuda/wsl-user-guide/index.html#nvidia-compute-software-support-on-wsl-2>
-<https://docs.docker.com/desktop/wsl/use-wsl/#gpu-support>
-
-##### Linux, OSX
-
-Install an NVIDIA GPU Driver if you do not already have one installed.  
-<https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html>
-
-Install the NVIDIA Container Toolkit with this guide.  
-<https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
-
-#### Design of our Dockerfile
-
-- It is required that all training data is stored in the `dataset` subdirectory, which is mounted into the container at `/dataset`.
-- Please note that the file picker functionality is not available. Instead, you will need to manually input the folder path and configuration file path.
-- TensorBoard has been separated from the project.
-  - TensorBoard is not included in the Docker image.
-  - The "Start TensorBoard" button has been hidden.
-  - TensorBoard is launched from a distinct container [as shown here](/docker-compose.yaml#L41).
-- The browser won't be launched automatically. You will need to manually open the browser and navigate to [http://localhost:7860/](http://localhost:7860/) and [http://localhost:6006/](http://localhost:6006/)
-- This Dockerfile has been designed to be easily disposable. You can discard the container at any time and restart it with the new code version.
-
-#### Use the pre-built Docker image
-
-```bash
-git clone --recursive https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-docker compose up -d
-```
-
-To update the system, do `docker compose down && docker compose up -d --pull always`
-
-#### Local docker build
-
-> [!IMPORTANT]  
-> Clone the Git repository ***recursively*** to include submodules:  
-> `git clone --recursive https://github.com/bmaltais/kohya_ss.git`
-
-```bash
-git clone --recursive https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-docker compose up -d --build
-```
-
-> [!NOTE]  
-> Building the image may take up to 20 minutes to complete.
-
-To update the system, ***checkout to the new code version*** and rebuild using `docker compose down && docker compose up -d --build --pull always`
-
-> If you are running on Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
-
-#### ashleykleynhans runpod docker builds
-
-You may want to use the following repositories when running on runpod:
-
-- Standalone Kohya_ss template: <https://github.com/ashleykleynhans/kohya-docker>
-- Auto1111 + Kohya_ss GUI template: <https://github.com/ashleykleynhans/stable-diffusion-docker>
+See [Docker Installation Guide](docs/installation_docker.md) for details.
 
 ## Upgrading
 
@@ -506,6 +412,10 @@ To train a LoRA, you can currently use the `train_network.py` code. You can crea
 
 Once you have created the LoRA network, you can generate images using auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
 
+For more detailed information on LoRA training options and advanced configurations, please refer to our LoRA documentation:
+- [LoRA Training Guide](docs/LoRA/top_level.md)
+- [LoRA Training Options](docs/LoRA/options.md)
+
 ## Sample image generation during training
 
 A prompt file might look like this, for example:
@@ -543,24 +453,18 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 
 ### LORA Training on TESLA V100 - GPU Utilization Issue
 
-#### Issue Summary
-
-When training LORA on a TESLA V100, users reported low GPU utilization. Additionally, there was difficulty in specifying GPUs other than the default for training.
-
-#### Potential Solutions
-
-- **GPU Selection:** Users can specify GPU IDs in the setup configuration to select the desired GPUs for training.
-- **Improving GPU Load:** Utilizing `adamW8bit` optimizer and increasing the batch size can help achieve 70-80% GPU utilization without exceeding GPU memory limits.
+See [Troubleshooting LORA Training on TESLA V100](docs/troubleshooting_tesla_v100.md) for details.
 
 ## SDXL training
 
-The documentation in this section will be moved to a separate document later.
+For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
 
 ## Masked loss
 
 The masked loss is supported in each training script. To enable the masked loss, specify the `--masked_loss` option.
 
-The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
+> [!WARNING]
+> The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
 
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
@@ -593,6 +497,17 @@ For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/
 
 To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
 
+## Contributing
+
+Contributions are welcome! If you'd like to contribute to this project, please consider the following:
+- For bug reports or feature requests, please open an issue on the [GitHub Issues page](https://github.com/bmaltais/kohya_ss/issues).
+- If you'd like to submit code changes, please open a pull request. Ensure your changes are well-tested and follow the existing code style.
+- For security-related concerns, please refer to our `SECURITY.md` file.
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE.md](LICENSE.md) file for details.
+
 ## Change History
 
 ### v25.0.3
@@ -610,12 +525,9 @@ To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.
 
 ### v25.0.0
 
-This is a SIGNIFICANT upgrade. I am groing in uncharted territory here because kohya has not merged any of the recent flux.1 and sd3 updated to his code in his main branch yet... but I feel updates in his code has pretty much dried down and I think his code is probably ready for prime time. So instead of keeping my GUI in the cave man ages, I am opting to move the code for the GUI with support for flux.1 and sd3 to the main branch of my project. Perhaps this will bite me in the proverbias ass... but for those who would rather stay on the older pre "flux.1 and sd3" updates, you can always do:
-
-```shell
-git checkout v24.1.7
-```
-
-after cloning the repo.
-
-For all the info regarding the new flux.1 and sd3 parameters, see <https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md> for more details.
+- Major update: Introduced support for flux.1 and sd3, moving the GUI to align with more recent script functionalities.
+- Users preferring the pre-flux.1/sd3 version can check out tag `v24.1.7`.
+  ```shell
+  git checkout v24.1.7
+  ```
+- For details on new flux.1 and sd3 parameters, refer to the [sd-scripts README](https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md).
