@@ -230,13 +230,7 @@ class BasicTraining:
         """
         with gr.Row():
             # Initialize the maximum gradient norm slider
-            self.max_grad_norm = gr.Slider(
-                label="Max grad norm",
-                value=self.config.get("basic.max_grad_norm", 1.0),
-                minimum=0.0,
-                maximum=1.0,
-                interactive=True,
-            )
+            self.max_grad_norm = gr.Number(label='Max grad norm', value=1.0, interactive=True)
             # Initialize the learning rate scheduler extra arguments textbox
             self.lr_scheduler_args = gr.Textbox(
                 label="LR scheduler extra arguments",
