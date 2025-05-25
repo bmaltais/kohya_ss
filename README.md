@@ -96,10 +96,10 @@ This project offers two primary methods for installing and running the GUI: usin
     *   Automatically handles updates when you run `gui-uv.bat` (Windows) or `gui-uv.sh` (Linux).
     *   No need to run `setup.bat` or `setup.sh` after the initial clone.
     *   This is the recommended method for most users on Windows and Linux.
-    *   **Not recommended for Runpod, Docker, or macOS installations.** For these, please use the `pip` method.
+    *   **Not recommended for Runpod or macOS installations.** For these, please use the `pip` method.
 *   **`pip` method:**
     *   The traditional method, requiring manual execution of `setup.bat` (Windows) or `setup.sh` (Linux) after cloning and for updates.
-    *   Necessary for environments like Runpod, Docker, and macOS where the `uv` scripts are not intended to be used.
+    *   Necessary for environments like Runpod and macOS where the `uv` scripts are not intended to be used.
 
 Subsequent sections will detail the specific commands for each method.
 
@@ -107,7 +107,7 @@ Subsequent sections will detail the specific commands for each method.
 This method utilizes the `uv` package manager for a streamlined setup and automatic updates. It is the preferred approach for most users on Windows and Linux.
 
 > [!NOTE]
-> This method is not intended for runpod, docker or MacOS installation. Use the "pip based package manager" setup instead.
+> This method is not intended for runpod or MacOS installation. Use the "pip based package manager" setup instead.
 
 To set up the project, follow these steps:
 
@@ -128,7 +128,7 @@ To set up the project, follow these steps:
 For Linux, the steps are similar (clone and change directory as above).
 
 ### Using `pip` (Traditional Method)
-This method uses the traditional `pip` package manager and requires manual script execution for setup and updates. It is necessary for environments like Runpod, Docker, or macOS, or if you prefer managing your environment with `pip`.
+This method uses the traditional `pip` package manager and requires manual script execution for setup and updates. It is necessary for environments like Runpod or macOS, or if you prefer managing your environment with `pip`.
 
 Regardless of your OS, start with these steps:
 
