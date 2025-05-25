@@ -933,12 +933,12 @@ def train_model(
     ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
-    if max_data_loader_n_workers == "" or None:
+    if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
         max_data_loader_n_workers = int(max_data_loader_n_workers)
 
-    if max_train_steps == "" or None:
+    if max_train_steps in ("", None):
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)

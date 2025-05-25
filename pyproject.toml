@@ -1,15 +1,16 @@
 [project]
 name = "kohya-ss"
-version = "0.1.0"
-description = "Add your description here"
+version = "25.1.0"
+description = "Kohya_ss GUI"
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "accelerate==0.33.0",
     "aiofiles==23.2.1",
     "altair==4.2.2",
     "bitsandbytes==0.44.0",
     "dadaptation==3.2",
+    "deepspeed; sys_platform == 'linux'",
     "diffusers[torch]==0.32.2",
     "easygui==0.98.3",
     "einops==0.7.0",
@@ -21,7 +22,7 @@ dependencies = [
     "invisible-watermark==0.2.0",
     "library",
     "lion-pytorch==0.0.6",
-    "lycoris-lora==3.1.0",
+    "lycoris-lora==3.2.0.post2",
     "omegaconf==2.3.0",
     "onnx==1.16.1",
     "onnxruntime-gpu==1.19.2",
@@ -39,20 +40,37 @@ dependencies = [
     "sentencepiece==0.2.0",
     "tensorboard>=2.18.0",
     "tensorflow>=2.16.1",
-    "tensorflow-io-gcs-filesystem==0.31.0",
-    "timm==0.6.12",
+    "tensorflow-io-gcs-filesystem==0.31.0; sys_platform == 'win32'",
+    "tensorflow-io-gcs-filesystem>=0.37.1; sys_platform == 'linux'",
+    "timm==0.6.7",
     "tk==0.1.0",
     "toml==0.10.2",
     "torch>=2.5.0",
     "torchvision>=0.20.0",
     "transformers==4.44.2",
+    "triton==3.1.0; sys_platform == 'linux'",
     "voluptuous==0.13.1",
     "wandb==0.18.0",
     "xformers>=0.0.28.post2",
 ]
 
 [tool.uv.sources]
+torch = [
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
+]
+torchvision = [
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
+]
 library = { path = "sd-scripts" }
 
 [[tool.uv.index]]
+name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true

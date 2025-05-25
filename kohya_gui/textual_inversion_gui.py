@@ -739,12 +739,12 @@ def train_model(
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_textual_inversion.py")
 
-    if max_data_loader_n_workers == "" or None:
+    if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
         max_data_loader_n_workers = int(max_data_loader_n_workers)
 
-    if max_train_steps == "" or None:
+    if max_train_steps in ("", None):
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)

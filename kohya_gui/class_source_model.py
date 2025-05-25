@@ -278,11 +278,11 @@ class SourceModel:
 
                             def toggle_checkboxes(v2, v_parameterization, sdxl_checkbox, sd3_checkbox, flux1_checkbox):
                                 # Check if all checkboxes are unchecked
-                                if not v2 and not v_parameterization and not sdxl_checkbox and not sd3_checkbox and not flux1_checkbox:
+                                if not v2 and not sdxl_checkbox and not sd3_checkbox and not flux1_checkbox:
                                     # If all unchecked, return new interactive checkboxes
                                     return (
                                         gr.Checkbox(interactive=True),  # v2 checkbox
-                                        gr.Checkbox(interactive=True),  # v_parameterization checkbox
+                                        gr.Checkbox(interactive=False, value=False),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=True),  # sdxl_checkbox
                                         gr.Checkbox(interactive=True),  # sd3_checkbox
                                         gr.Checkbox(interactive=True),  # sd3_checkbox
@@ -291,7 +291,7 @@ class SourceModel:
                                     # If any checkbox is checked, return checkboxes with current interactive state
                                     return (
                                         gr.Checkbox(interactive=v2),  # v2 checkbox
-                                        gr.Checkbox(interactive=v_parameterization),  # v_parameterization checkbox
+                                        gr.Checkbox(interactive=sdxl_checkbox),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=sdxl_checkbox),  # sdxl_checkbox
                                         gr.Checkbox(interactive=sd3_checkbox),  # sd3_checkbox
                                         gr.Checkbox(interactive=flux1_checkbox),  # flux1_checkbox

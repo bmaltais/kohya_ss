@@ -132,6 +132,7 @@ def save_configuration(
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
+    max_grad_norm,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -342,6 +343,7 @@ def open_configuration(
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
+    max_grad_norm,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -547,6 +549,7 @@ def train_model(
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
+    max_grad_norm,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -864,12 +867,12 @@ def train_model(
         sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
     ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl and sdxl_no_half_vae
-    if max_data_loader_n_workers == "" or None:
+    if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
         max_data_loader_n_workers = int(max_data_loader_n_workers)
 
-    if max_train_steps == "" or None:
+    if max_train_steps in ("", None):
         max_train_steps = 0
     else:
         max_train_steps = int(max_train_steps)
@@ -890,7 +893,7 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "adaptive_noise_scale": adaptive_noise_scale if not 0 else None,
+        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
         "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -953,6 +956,7 @@ def train_model(
         "lr_warmup_steps": lr_warmup_steps,
         "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
+        "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
         "max_train_epochs": (
@@ -970,10 +974,10 @@ def train_model(
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations if not 0 else None,
+        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
         "no_half_vae": no_half_vae,
         "no_token_padding": no_token_padding,
-        "noise_offset": noise_offset if not 0 else None,
+        "noise_offset": noise_offset if noise_offset != 0 else None,
         "noise_offset_random_strength": noise_offset_random_strength,
         "noise_offset_type": noise_offset_type,
         "optimizer_args": (
@@ -1329,6 +1333,7 @@ def dreambooth_tab(
             advanced_training.keep_tokens,
             basic_training.lr_scheduler_num_cycles,
             basic_training.lr_scheduler_power,
+            basic_training.max_grad_norm,
             advanced_training.persistent_data_loader_workers,
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
