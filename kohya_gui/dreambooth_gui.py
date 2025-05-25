@@ -132,6 +132,7 @@ def save_configuration(
     keep_tokens,
     lr_scheduler_num_cycles,
     lr_scheduler_power,
+    max_grad_norm,
     persistent_data_loader_workers,
     bucket_no_upscale,
     random_crop,
@@ -953,6 +954,7 @@ def train_model(
         "lr_warmup_steps": lr_warmup_steps,
         "masked_loss": masked_loss,
         "max_bucket_reso": max_bucket_reso,
+        "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
         "max_train_epochs": (
@@ -1329,6 +1331,7 @@ def dreambooth_tab(
             advanced_training.keep_tokens,
             basic_training.lr_scheduler_num_cycles,
             basic_training.lr_scheduler_power,
+            basic_training.max_grad_norm,
             advanced_training.persistent_data_loader_workers,
             advanced_training.bucket_no_upscale,
             advanced_training.random_crop,
