@@ -39,9 +39,14 @@ cd "$SCRIPT_DIR" || exit 1
 
 # Check if uv is already installed
 if ! command -v uv &> /dev/null; then
-    # Setup uv
+  read -p "uv is not installed. Do you want to install it? [y/N]: " install_uv
+  if [[ "$install_uv" =~ ^[Yy]$ ]]; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
     source $HOME/.local/bin/env
+  else
+    echo "uv is required to run this script. Exiting."
+    exit 1
+  fi
 fi
 
 git submodule update --init --recursive

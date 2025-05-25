@@ -2,8 +2,21 @@
 set VIRTUAL_ENV=.venv
 echo VIRTUAL_ENV is set to %VIRTUAL_ENV%
 
-:: Install uv latest version
-pip install --upgrade uv -q
+:: Check if uv is installed
+setlocal enabledelayedexpansion
+where uv >nul 2>nul
+if %errorlevel% neq 0 (
+    set /p INSTALL_UV="uv is not installed. Do you want to install it now? (Y/N) "
+    if /i "!INSTALL_UV!"=="Y" (
+        pip install --upgrade uv -q
+    ) else (
+        echo uv is required to run this script. Exiting.
+        exit /b 1
+    )
+) else (
+    echo uv is already installed.
+)
+endlocal
 
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
