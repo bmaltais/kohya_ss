@@ -361,6 +361,8 @@ gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 
 If you installed using the `uv` method, use the `gui-uv.bat` script to start the GUI. Follow these steps:
 
+When you run `gui-uv.bat`, it will first check if `uv` is installed on your system. If `uv` is not found, the script will prompt you, asking if you'd like to attempt an automatic installation. You can choose 'Y' to let the script try to install `uv` for you, or 'N' to cancel. If you cancel, you'll need to install `uv` manually from [https://astral.sh/uv](https://astral.sh/uv) before running `gui-uv.bat` again.
+
 ```cmd
 .\gui-uv.bat
 ```
@@ -384,6 +386,8 @@ If you installed using the `pip` method on Linux or macOS, run the `gui.sh` scri
 ### Launching the GUI on Linux (uv method)
 
 If you installed using the `uv` method on Linux, use the `gui-uv.sh` script to start the GUI. Follow these steps:
+
+When you run `gui-uv.sh`, it will first check if `uv` is installed on your system. If `uv` is not found, the script will prompt you, asking if you'd like to attempt an automatic installation. You can choose 'Y' (or 'y') to let the script try to install `uv` for you, or 'N' (or 'n') to cancel. If you cancel, you'll need to install `uv` manually from [https://astral.sh/uv](https://astral.sh/uv) before running `gui-uv.sh` again.
 
 ```shell
 ./gui-uv.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share

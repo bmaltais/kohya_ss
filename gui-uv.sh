@@ -39,12 +39,12 @@ cd "$SCRIPT_DIR" || exit 1
 
 # Check if uv is already installed
 if ! command -v uv &> /dev/null; then
-  read -p "uv is not installed. Do you want to install it? [y/N]: " install_uv
+  read -p "uv is not installed. We can try to install it for you, or you can install it manually from https://astral.sh/uv before running this script again. Would you like to attempt automatic installation now? [Y/n]: " install_uv
   if [[ "$install_uv" =~ ^[Yy]$ ]]; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
     source $HOME/.local/bin/env
   else
-    echo "uv is required to run this script. Exiting."
+    echo "Okay, please install uv manually from https://astral.sh/uv and then re-run this script. Exiting."
     exit 1
   fi
 fi
