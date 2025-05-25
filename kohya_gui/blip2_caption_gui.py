@@ -23,7 +23,7 @@ def load_model():
 
     # Initialize the BLIP2 processor
     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
-    print('processor:' + str(processor))
+    log.debug('Processor initialized: %s', processor)
 
     # Initialize the BLIP2 model
     model = Blip2ForConditionalGeneration.from_pretrained(
