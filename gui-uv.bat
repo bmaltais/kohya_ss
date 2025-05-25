@@ -8,7 +8,7 @@ where uv >nul 2>nul
 if %errorlevel% neq 0 (
     set /p INSTALL_UV="uv is not installed. We can try to install it for you, or you can install it manually from https://astral.sh/uv before running this script again. Would you like to attempt automatic installation now? (Y/N) "
     if /i "!INSTALL_UV!"=="Y" (
-        pip install --upgrade uv -q
+        winget install --id=astral-sh.uv  -e
     ) else (
         echo Okay, please install uv manually from https://astral.sh/uv and then re-run this script. Exiting.
         exit /b 1

@@ -838,7 +838,7 @@ wheels = [
 
 [[package]]
 name = "kohya-ss"
-version = "25.0.5"
+version = "25.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "accelerate" },
