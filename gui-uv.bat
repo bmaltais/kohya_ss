@@ -13,8 +13,6 @@ if %errorlevel% neq 0 (
         echo Okay, please install uv manually from https://astral.sh/uv and then re-run this script. Exiting.
         exit /b 1
     )
-) else (
-    echo uv is already installed.
 )
 endlocal
 
