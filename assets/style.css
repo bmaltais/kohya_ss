@@ -1,17 +1,91 @@
-#open_folder_small {
+.dark #open_folder_small {
     min-width: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
     padding: 0.5em;
     font-size: 1.5em;
+    background: #000000;
+}
+
+#open_folder_small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5em;
+    min-width: 2.5em;
+    flex-grow: 0;
+    padding: 0 1em;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #333;
+    background: linear-gradient(180deg, #fff 80%, #f3f3f3 100%);
+    border: 1.5px solid #b0b0b0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: 
+        background 0.2s,
+        border 0.2s,
+        box-shadow 0.2s,
+        color 0.2s;
+}
+#open_folder_small:hover, #open_folder_small:focus {
+    background: linear-gradient(180deg, #f5faff 80%, #e6f0fa 100%);
+    border-color: #3399ff;
+    color: #1761a0;
+    box-shadow: 0 4px 12px rgba(51,153,255,0.15);
+    outline: none;
+}
+#open_folder_small:active {
+    background: linear-gradient(180deg, #e6f0fa 80%, #d0e3f7 100%);
+    border-color: #1761a0;
+    color: #1761a0;
+    box-shadow: 0 2px 4px rgba(51,153,255,0.10);
 }
 
 #open_folder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5em;
+    min-width: 2.5em;
+    flex-grow: 0;
+    padding: 0 1em;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #333;
+    background: linear-gradient(180deg, #fff 80%, #f3f3f3 100%);
+    border: 1.5px solid #b0b0b0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: 
+        background 0.2s,
+        border 0.2s,
+        box-shadow 0.2s,
+        color 0.2s;
+}
+#open_folder:hover, #open_folder:focus {
+    background: linear-gradient(180deg, #f5faff 80%, #e6f0fa 100%);
+    border-color: #3399ff;
+    color: #1761a0;
+    box-shadow: 0 4px 12px rgba(51,153,255,0.15);
+    outline: none;
+}
+#open_folder:active {
+    background: linear-gradient(180deg, #e6f0fa 80%, #d0e3f7 100%);
+    border-color: #1761a0;
+    color: #1761a0;
+    box-shadow: 0 2px 4px rgba(51,153,255,0.10);
+}
+
+.dark #open_folder {
     height: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
+    background: #000000;
 }
 
 #number_input {
