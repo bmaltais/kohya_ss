@@ -1,4 +1,4 @@
-bitsandbytes==0.44.0
+bitsandbytes>=0.45.0
 tensorboard
 tensorflow>=2.16.1
 onnxruntime-gpu==1.19.2

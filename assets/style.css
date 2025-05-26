@@ -1,17 +1,91 @@
-#open_folder_small {
+.dark #open_folder_small {
     min-width: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
     padding: 0.5em;
     font-size: 1.5em;
+    background: #000000;
+}
+
+#open_folder_small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5em;
+    min-width: 2.5em;
+    flex-grow: 0;
+    padding: 0 1em;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #333;
+    background: linear-gradient(180deg, #fff 80%, #f3f3f3 100%);
+    border: 1.5px solid #b0b0b0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: 
+        background 0.2s,
+        border 0.2s,
+        box-shadow 0.2s,
+        color 0.2s;
+}
+#open_folder_small:hover, #open_folder_small:focus {
+    background: linear-gradient(180deg, #f5faff 80%, #e6f0fa 100%);
+    border-color: #3399ff;
+    color: #1761a0;
+    box-shadow: 0 4px 12px rgba(51,153,255,0.15);
+    outline: none;
+}
+#open_folder_small:active {
+    background: linear-gradient(180deg, #e6f0fa 80%, #d0e3f7 100%);
+    border-color: #1761a0;
+    color: #1761a0;
+    box-shadow: 0 2px 4px rgba(51,153,255,0.10);
 }
 
 #open_folder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5em;
+    min-width: 2.5em;
+    flex-grow: 0;
+    padding: 0 1em;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #333;
+    background: linear-gradient(180deg, #fff 80%, #f3f3f3 100%);
+    border: 1.5px solid #b0b0b0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: 
+        background 0.2s,
+        border 0.2s,
+        box-shadow 0.2s,
+        color 0.2s;
+}
+#open_folder:hover, #open_folder:focus {
+    background: linear-gradient(180deg, #f5faff 80%, #e6f0fa 100%);
+    border-color: #3399ff;
+    color: #1761a0;
+    box-shadow: 0 4px 12px rgba(51,153,255,0.15);
+    outline: none;
+}
+#open_folder:active {
+    background: linear-gradient(180deg, #e6f0fa 80%, #d0e3f7 100%);
+    border-color: #1761a0;
+    color: #1761a0;
+    box-shadow: 0 2px 4px rgba(51,153,255,0.10);
+}
+
+.dark #open_folder {
     height: auto;
     flex-grow: 0;
     padding-left: 0.25em;
     padding-right: 0.25em;
+    background: #000000;
 }
 
 #number_input {
@@ -22,7 +96,7 @@
 }
 
 .ver-class {
-    color: #6d6d6d; /* Neutral dark gray */
+    color: #6c757d;
     font-size: small;
     text-align: right;
     padding-right: 1em;
@@ -35,31 +109,29 @@
 }
 
 #myTensorButton {
-    background: #555c66; /* Muted dark gray */
-    color: white;
+    background: #007bff;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     padding: 0.5em 1em;
-    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Subtle shadow */
-    /* transition: box-shadow 0.3s ease; */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #myTensorButton:hover {
-    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); Slightly increased shadow on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 #myTensorButtonStop {
-    background: #777d85; /* Lighter muted gray */
-    color: white;
+    background: #17a2b8;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     padding: 0.5em 1em;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    /* transition: box-shadow 0.3s ease; */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #myTensorButtonStop:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .advanced_background {
@@ -141,82 +213,107 @@
 }
 
 /* Dark mode styles */
+.dark .ver-class {
+    color: #adb5bd;
+}
+
+.dark #myTensorButton {
+    background: #007bff;
+    color: #f8f9fa;
+    /* Ensure other properties like border, border-radius, padding are consistent if needed */
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.dark #myTensorButton:hover {
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
+.dark #myTensorButtonStop {
+    background: #17a2b8;
+    color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.dark #myTensorButtonStop:hover {
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
 .dark .advanced_background {
-    background: #172029; /* Slightly darker gradio dark theme */
+    background: #222222;
     padding: 1em;
     border-radius: 8px;
-    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .advanced_background:hover {
-    background-color: #121920; /* Slightly darker background on hover */
-    border: 1px solid #000000; /* Add a subtle border */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #2c2c2c;
+    border: 1px solid #444444;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .basic_background {
-    background: #172029;
+    background: #1f2328;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .basic_background:hover {
-    background-color: #11181e;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #292d32;
+    border: 1px solid #4a4e53;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .huggingface_background {
-    background: #131c25;
+    background: #1c2128;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .huggingface_background:hover {
-    background-color: #131c25;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #262b32;
+    border: 1px solid #474c53;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .flux1_background {
-    background: #131c25;
+    background: #252321;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_background:hover {
-    background-color: #131c25;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #2f2d2b;
+    border: 1px solid #4f4d4b;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .preset_background {
-    background: #191d25;
+    background: #1e1e1e;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .preset_background:hover {
-    background-color: #212530;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #282828;
+    border: 1px solid #404040;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .samples_background {
-    background: #101e2c;
+    background: #1b242c;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .samples_background:hover {
-    background-color: #17293a;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #252e36;
+    border: 1px solid #465058;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .flux1_rank_layers_background {
@@ -233,14 +330,14 @@
 }
 
 .dark .flux1_rank_layers_background {
-    background: #131c25; /* Dark background for dark theme */
+    background: #252321;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_rank_layers_background:hover {
-    background-color: #131c25; /* Slightly darker on hover */
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #2f2d2b;
+    border: 1px solid #4f4d4b;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

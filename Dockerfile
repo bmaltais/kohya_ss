@@ -6,7 +6,7 @@ ARG RELEASE=0
 ########################################
 # Base stage
 ########################################
-FROM docker.io/library/python:3.11-slim-bullseye AS base
+FROM docker.io/library/python:3.11-slim-bookworm AS base
 
 # RUN mount cache for multi-arch: https://github.com/docker/buildx/issues/549#issuecomment-1788297892
 ARG TARGETARCH
@@ -22,22 +22,22 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # Installing the complete CUDA Toolkit system-wide usually adds around 8GB to the image size.
 # Since most CUDA packages already installed through pip, there's no need to download the entire toolkit.
 # Therefore, we opt to install only the essential libraries.
-# Here is the package list for your reference: https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64
+# Here is the package list for your reference: https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64
 
-ADD https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb /tmp/cuda-keyring_x86_64.deb
+ADD https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb /tmp/cuda-keyring_x86_64.deb
 RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/cache/apt \
     --mount=type=cache,id=aptlists-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/lib/apt/lists \
     dpkg -i cuda-keyring_x86_64.deb && \
     rm -f cuda-keyring_x86_64.deb && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    # !If you experience any related issues, replace the following line with `cuda-12-4` to obtain the complete CUDA package.
-    cuda-nvcc-12-4
+    # !If you experience any related issues, replace the following line with `cuda-12-8` to obtain the complete CUDA package.
+    cuda-nvcc-12-8
 
 ENV PATH="/usr/local/cuda/bin${PATH:+:${PATH}}"
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64
-ENV CUDA_VERSION=12.4
-ENV NVIDIA_REQUIRE_CUDA=cuda>=12.4
+ENV CUDA_VERSION=12.8
+ENV NVIDIA_REQUIRE_CUDA=cuda>=12.8
 ENV CUDA_HOME=/usr/local/cuda
 
 ########################################
@@ -58,7 +58,7 @@ ENV UV_PROJECT_ENVIRONMENT=/venv
 ENV VIRTUAL_ENV=/venv
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
-ENV UV_INDEX=https://download.pytorch.org/whl/cu124
+ENV UV_INDEX=https://download.pytorch.org/whl/cu128
 
 # Install build dependencies
 RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/var/cache/apt \
@@ -73,10 +73,10 @@ RUN --mount=type=cache,id=apt-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/v
 RUN --mount=type=cache,id=uv-$TARGETARCH$TARGETVARIANT,sharing=locked,target=/root/.cache/uv \
     uv venv --system-site-packages /venv && \
     uv pip install --no-deps \
-    # torch (866.2MiB)
-    torch==2.5.1+cu124 \ 
-    # triton (199.8MiB)
-    triton==3.1.0 \
+    # torch (1.0GiB)
+    torch==2.7.0+cu128 \ 
+    # triton (149.3MiB)
+    triton>=3.1.0 \
     # tensorflow (615.0MiB)
     tensorflow>=2.16.1 \
     # onnxruntime-gpu (215.7MiB)
