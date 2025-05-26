@@ -8,9 +8,8 @@ dependencies = [
     "accelerate==0.33.0",
     "aiofiles==23.2.1",
     "altair==4.2.2",
-    "bitsandbytes==0.44.0",
+    "bitsandbytes>=0.45.0",
     "dadaptation==3.2",
-    "deepspeed; sys_platform == 'linux'",
     "diffusers[torch]==0.32.2",
     "easygui==0.98.3",
     "einops==0.7.0",
@@ -48,20 +47,24 @@ dependencies = [
     "torch>=2.5.0",
     "torchvision>=0.20.0",
     "transformers==4.44.2",
-    "triton==3.1.0; sys_platform == 'linux'",
+    "triton>=3.1.0; sys_platform == 'linux'",
     "voluptuous==0.13.1",
     "wandb==0.18.0",
-    "xformers>=0.0.28.post2",
+    "xformers>=0.0.30",
 ]
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
 ]
 torchvision = [
-  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu124", marker = "sys_platform == 'win32'" }
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
+]
+xformers = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
 ]
 library = { path = "sd-scripts" }
 
@@ -73,4 +76,9 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
