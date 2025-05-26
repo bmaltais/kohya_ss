@@ -19,39 +19,29 @@ Support for Linux and macOS is also available. While Linux support is actively m
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
   - [🦒 Colab](#-colab)
+  - [Installation Methods](#installation-methods)
+    - [Using `uv` (Recommended)](#using-uv-recommended)
+    - [Using `pip` (Traditional Method)](#using-pip-traditional-method)
+  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
     - [Windows](#windows)
       - [Windows Pre-requirements](#windows-pre-requirements)
       - [Setup Windows](#setup-windows)
-        - [Using uv based package manager](#using-uv-based-package-manager)
-        - [Using the pip package manager](#using-the-pip-package-manager)
     - [Linux and macOS](#linux-and-macos)
       - [Linux Pre-requirements](#linux-pre-requirements)
       - [Setup Linux](#setup-linux)
-        - [Using uv based package manager](#using-uv-based-package-manager-1)
-        - [Using pip based package manager](#using-pip-based-package-manager)
       - [Install Location](#install-location)
     - [Runpod](#runpod)
-      - [Manual installation](#manual-installation)
-      - [Pre-built Runpod template](#pre-built-runpod-template)
     - [Novita](#novita)
-      - [Pre-built Novita template](#pre-built-novita-template)
     - [Docker](#docker)
-      - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
-        - [Windows](#windows-1)
-        - [Linux, OSX](#linux-osx)
-      - [Design of our Dockerfile](#design-of-our-dockerfile)
-      - [Use the pre-built Docker image](#use-the-pre-built-docker-image)
-      - [Local docker build](#local-docker-build)
-      - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
   - [Upgrading](#upgrading)
     - [Windows Upgrade](#windows-upgrade)
     - [Linux and macOS Upgrade](#linux-and-macos-upgrade)
   - [Starting GUI Service](#starting-gui-service)
-    - [Launching the GUI on Windows (non uv based method)](#launching-the-gui-on-windows-non-uv-based-method)
-    - [Alternative: UV-based Method](#alternative-uv-based-method)
+    - [Launching the GUI on Windows (pip method)](#launching-the-gui-on-windows-pip-method)
+    - [Launching the GUI on Windows (uv method)](#launching-the-gui-on-windows-uv-method)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
-    - [Alternative: UV-based Method for Linux](#alternative-uv-based-method-for-linux)
+    - [Launching the GUI on Linux (uv method)](#launching-the-gui-on-linux-uv-method)
   - [Custom Path Defaults](#custom-path-defaults)
   - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
@@ -59,8 +49,6 @@ Support for Linux and macOS is also available. While Linux support is actively m
     - [Page File Limit](#page-file-limit)
     - [No module called tkinter](#no-module-called-tkinter)
     - [LORA Training on TESLA V100 - GPU Utilization Issue](#lora-training-on-tesla-v100---gpu-utilization-issue)
-      - [Issue Summary](#issue-summary)
-      - [Potential Solutions](#potential-solutions)
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
   - [Guides](#guides)
@@ -69,6 +57,8 @@ Support for Linux and macOS is also available. While Linux support is actively m
       - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
       - [Monitoring Processes](#monitoring-processes)
   - [Interesting Forks](#interesting-forks)
+  - [Contributing](#contributing)
+  - [License](#license)
   - [Change History](#change-history)
     - [v25.0.3](#v2503)
     - [v25.0.2](#v2502)
@@ -199,7 +189,7 @@ Before you begin, ensure you have the following software and hardware:
 
 *   **Python:** Version 3.10.x or 3.11.x. (Python 3.11.9 is used in Windows pre-requirements, Python 3.10.9+ for Linux).
 *   **Git:** For cloning the repository and managing updates.
-*   **NVIDIA CUDA Toolkit:** Version 12.4 or compatible (as per installation steps).
+*   **NVIDIA CUDA Toolkit:** Version 12.8 or compatible (as per installation steps).
 *   **NVIDIA GPU:** A compatible NVIDIA graphics card is required. VRAM requirements vary depending on the model and training parameters.
 *   **(Optional but Recommended) NVIDIA cuDNN:** For accelerated performance on compatible NVIDIA GPUs. (Often included with CUDA Toolkit or installed separately).
 *   **For Windows Users:** Visual Studio 2015, 2017, 2019, and 2022 Redistributable.
@@ -215,7 +205,7 @@ To install the necessary dependencies on a Windows system, follow these steps:
 1. Install [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe).
    - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
 
-2. Install [CUDA 12.4 toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive?target_os=Windows&target_arch=x86_64).
+2. Install [CUDA 12.8 toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Windows&target_arch=x86_64).
 
 3. Install [Git](https://git-scm.com/download/win).
 
@@ -237,7 +227,7 @@ To install the necessary dependencies on a Linux system, ensure that you fulfill
   apt install python3.10-venv
   ```
 
-- Install the CUDA 12.4 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-12-4-0-download-archive?target_os=Linux&target_arch=x86_64).
+- Install the CUDA 12.8 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64).
 
 - Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
 
