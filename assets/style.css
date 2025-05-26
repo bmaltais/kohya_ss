@@ -61,81 +61,81 @@
 }
 
 .advanced_background {
-    background: #ffffff;
+    background: #f4f4f4; /* Light neutral gray */
     padding: 1em;
     border-radius: 8px;
-    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
 }
 
 .advanced_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #ebebeb; /* Slightly darker background on hover */
+    border: 1px solid #ccc; /* Add a subtle border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .basic_background {
-    background: #ffffff;
+    background: #eaeff1; /* Muted cool gray */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .basic_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #dfe4e7; /* Slightly darker cool gray on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .huggingface_background {
-    background: #ffffff;
+    background: #e0e4e7; /* Light gray with a hint of blue */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .huggingface_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #d6dce0; /* Slightly darker on hover */
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .flux1_background {
-    background: #ffffff;
+    background: #ece9e6; /* Light beige tone */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flux1_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #e2dfdb; /* Slightly darker beige on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .preset_background {
-    background: #ffffff;
+    background: #f0f0f0; /* Light gray */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .preset_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #e6e6e6; /* Slightly darker on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .samples_background {
-    background: #ffffff;
+    background: #d9dde1; /* Soft muted gray-blue */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .samples_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #cfd3d8; /* Slightly darker on hover */
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 /* Dark mode styles */
@@ -146,6 +146,7 @@
 .dark #myTensorButton {
     background: #007bff;
     color: #f8f9fa;
+    /* Ensure other properties like border, border-radius, padding are consistent if needed */
     box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
 }
 
@@ -164,105 +165,105 @@
 }
 
 .dark .advanced_background {
-    background: #121212;
+    background: #222222;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .advanced_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #2c2c2c;
+    border: 1px solid #444444;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .basic_background {
-    background: #121212;
+    background: #1f2328;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .basic_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #292d32;
+    border: 1px solid #4a4e53;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .huggingface_background {
-    background: #121212;
+    background: #1c2128;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .huggingface_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #262b32;
+    border: 1px solid #474c53;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .flux1_background {
-    background: #121212;
+    background: #252321;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #2f2d2b;
+    border: 1px solid #4f4d4b;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .preset_background {
-    background: #121212;
+    background: #1e1e1e;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .preset_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #282828;
+    border: 1px solid #404040;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .samples_background {
-    background: #121212;
+    background: #1b242c;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .samples_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #252e36;
+    border: 1px solid #465058;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .flux1_rank_layers_background {
-    background: #ffffff;
+    background: #ece9e6; /* White background for clear theme */
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flux1_rank_layers_background:hover {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    background-color: #dddad7; /* Slightly darker on hover */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
 }
 
 .dark .flux1_rank_layers_background {
-    background: #121212;
+    background: #252321;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_rank_layers_background:hover {
-    background-color: #1a1a1a;
-    border: 1px solid #495057;
+    background-color: #2f2d2b;
+    border: 1px solid #4f4d4b;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
