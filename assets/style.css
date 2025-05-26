@@ -22,7 +22,7 @@
 }
 
 .ver-class {
-    color: #6d6d6d; /* Neutral dark gray */
+    color: #6c757d;
     font-size: small;
     text-align: right;
     padding-right: 1em;
@@ -35,212 +35,234 @@
 }
 
 #myTensorButton {
-    background: #555c66; /* Muted dark gray */
-    color: white;
+    background: #007bff;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     padding: 0.5em 1em;
-    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Subtle shadow */
-    /* transition: box-shadow 0.3s ease; */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #myTensorButton:hover {
-    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); Slightly increased shadow on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 #myTensorButtonStop {
-    background: #777d85; /* Lighter muted gray */
-    color: white;
+    background: #17a2b8;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     padding: 0.5em 1em;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    /* transition: box-shadow 0.3s ease; */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #myTensorButtonStop:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .advanced_background {
-    background: #f4f4f4; /* Light neutral gray */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
-    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .advanced_background:hover {
-    background-color: #ebebeb; /* Slightly darker background on hover */
-    border: 1px solid #ccc; /* Add a subtle border */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .basic_background {
-    background: #eaeff1; /* Muted cool gray */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .basic_background:hover {
-    background-color: #dfe4e7; /* Slightly darker cool gray on hover */
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .huggingface_background {
-    background: #e0e4e7; /* Light gray with a hint of blue */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .huggingface_background:hover {
-    background-color: #d6dce0; /* Slightly darker on hover */
-    border: 1px solid #bbb;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .flux1_background {
-    background: #ece9e6; /* Light beige tone */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flux1_background:hover {
-    background-color: #e2dfdb; /* Slightly darker beige on hover */
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .preset_background {
-    background: #f0f0f0; /* Light gray */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .preset_background:hover {
-    background-color: #e6e6e6; /* Slightly darker on hover */
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .samples_background {
-    background: #d9dde1; /* Soft muted gray-blue */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .samples_background:hover {
-    background-color: #cfd3d8; /* Slightly darker on hover */
-    border: 1px solid #bbb;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Dark mode styles */
+.dark .ver-class {
+    color: #adb5bd;
+}
+
+.dark #myTensorButton {
+    background: #007bff;
+    color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.dark #myTensorButton:hover {
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
+.dark #myTensorButtonStop {
+    background: #17a2b8;
+    color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.dark #myTensorButtonStop:hover {
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+}
+
 .dark .advanced_background {
-    background: #172029; /* Slightly darker gradio dark theme */
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
-    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added transition for smooth shadow effect */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .advanced_background:hover {
-    background-color: #121920; /* Slightly darker background on hover */
-    border: 1px solid #000000; /* Add a subtle border */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .basic_background {
-    background: #172029;
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .basic_background:hover {
-    background-color: #11181e;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .huggingface_background {
-    background: #131c25;
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .huggingface_background:hover {
-    background-color: #131c25;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .flux1_background {
-    background: #131c25;
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_background:hover {
-    background-color: #131c25;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .preset_background {
-    background: #191d25;
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .preset_background:hover {
-    background-color: #212530;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark .samples_background {
-    background: #101e2c;
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .samples_background:hover {
-    background-color: #17293a;
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .flux1_rank_layers_background {
-    background: #ece9e6; /* White background for clear theme */
+    background: #ffffff;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flux1_rank_layers_background:hover {
-    background-color: #dddad7; /* Slightly darker on hover */
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .dark .flux1_rank_layers_background {
-    background: #131c25; /* Dark background for dark theme */
+    background: #121212;
     padding: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .flux1_rank_layers_background:hover {
-    background-color: #131c25; /* Slightly darker on hover */
-    border: 1px solid #000000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+    background-color: #1a1a1a;
+    border: 1px solid #495057;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
