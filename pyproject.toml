@@ -10,7 +10,6 @@ dependencies = [
     "altair==4.2.2",
     "bitsandbytes>=0.45.0",
     "dadaptation==3.2",
-    "deepspeed; sys_platform == 'linux'",
     "diffusers[torch]==0.32.2",
     "easygui==0.98.3",
     "einops==0.7.0",
