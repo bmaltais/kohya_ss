@@ -2,7 +2,7 @@ import gradio as gr
 import subprocess
 import os
 import sys
-from kohya_gui import common_gui, custom_logging
+from kohya_gui import common_gui
 
 # Define the script directory
 scriptdir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -30,28 +30,6 @@ def extract_lora_new(
     verbose,
     no_metadata,
 ):
-    # This function will be implemented in a subsequent step
-    print("Extract LoRA button clicked. Functionality to be implemented.")
-    print(f"Model Tuned: {model_tuned}")
-    print(f"Model Original: {model_org}")
-    print(f"Save To: {save_to}")
-    print(f"Save Precision: {save_precision}")
-    print(f"Load Precision: {load_precision}")
-    print(f"Dimension: {dim}")
-    print(f"Conv Dimension: {conv_dim}")
-    print(f"Device: {device}")
-    print(f"SDXL: {sdxl}")
-    print(f"v2: {v2}")
-    print(f"v_parameterization: {v_parameterization}")
-    print(f"Clamp Quantile: {clamp_quantile}")
-    print(f"Min Diff: {min_diff}")
-    print(f"Load Original Model To: {load_original_model_to}")
-    print(f"Load Tuned Model To: {load_tuned_model_to}")
-    print(f"Dynamic Method: {dynamic_method}")
-    print(f"Dynamic Param: {dynamic_param}")
-    print(f"Verbose: {verbose}")
-    print(f"No Metadata: {no_metadata}")
-    
     # Construct the command
     command = [
         PYTHON,
@@ -67,13 +45,9 @@ def extract_lora_new(
         command.extend(["--save_to", save_to])
     if save_precision:
         command.extend(["--save_precision", save_precision])
-    if load_precision and load_precision != "None": # Handle None case
+    if load_precision and load_precision != "None":
         command.extend(["--load_precision", load_precision])
     command.extend(["--dim", str(dim)])
-    # conv_dim defaults to dim if not provided or 0 in the script,
-    # so we only add it if it's explicitly set to a non-zero value by the user that is different from dim,
-    # or if the script requires it even if it's the same as dim (need to check script logic)
-    # For now, pass it if it's > 0. The script itself handles the default.
     if conv_dim > 0:
         command.extend(["--conv_dim", str(conv_dim)])
     if device:
@@ -82,7 +56,7 @@ def extract_lora_new(
         command.append("--sdxl")
     if v2:
         command.append("--v2")
-    if v_parameterization: # Only relevant if v2 is true, but script might handle it
+    if v_parameterization:
         command.append("--v_parameterization")
     command.extend(["--clamp_quantile", str(clamp_quantile)])
     command.extend(["--min_diff", str(min_diff)])
@@ -95,9 +69,6 @@ def extract_lora_new(
     
     if dynamic_method and dynamic_method != "None":
         command.extend(["--dynamic_method", dynamic_method])
-        # dynamic_param is only needed for certain methods, script should handle if it's missing
-        # but we should only pass it if a method requiring it is selected.
-        # This requires knowing which methods need params. Assuming for now all non-"None" methods might use it if provided.
         command.extend(["--dynamic_param", str(dynamic_param)])
 
     if verbose:
@@ -106,36 +77,61 @@ def extract_lora_new(
         command.append("--no_metadata")
 
     # Run the script
-    print(f"Running command: {' '.join(command)}")
+    print(f"Running command: {' '.join(command)}") # Log to console
     
-    log_stream = custom_logging.LogStreaming()
-    
+    all_logs = ""
     try:
+        # Use Popen to capture stdout and stderr
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE, # Capture stderr separately
             text=True,
             bufsize=1,
             universal_newlines=True,
         )
         
-        for line in iter(process.stdout.readline, ''):
-            log_stream.log(line.strip())
-            # Optionally print to console during development/debugging
-            # print(line.strip()) 
-        process.wait()
+        # Stream stdout
+        if process.stdout:
+            for line in iter(process.stdout.readline, ''):
+                line = line.strip()
+                if line:
+                    print(line) # Log to console
+                    all_logs += line + '\n'
+                    yield all_logs # Yield accumulated logs
         
+        # Stream stderr
+        # After stdout is exhausted, check stderr
+        stderr_output = ""
+        if process.stderr:
+            for line in iter(process.stderr.readline, ''):
+                line = line.strip()
+                if line:
+                    print(f"Error: {line}") # Log to console
+                    stderr_output += f"ERROR: {line}\n"
+        
+        process.wait() # Wait for the process to complete
+
+        # Append any stderr output to all_logs after stdout and process completion
+        if stderr_output:
+            all_logs += "\n--- Errors/Warnings ---\n" + stderr_output
+            yield all_logs
+
         if process.returncode == 0:
-            return "LoRA extraction completed successfully.", log_stream.get_logs()
+            all_logs += "\nLoRA extraction completed successfully."
         else:
-            return f"Error during LoRA extraction. Return code: {process.returncode}", log_stream.get_logs()
+            all_logs += f"\nError during LoRA extraction. Return code: {process.returncode}"
+        
+        yield all_logs
 
     except Exception as e:
-        return f"Failed to run script: {e}", log_stream.get_logs()
+        all_logs += f"\nFailed to run script: {e}"
+        yield all_logs
     finally:
-        log_stream.close()
-
+        if process.stdout:
+            process.stdout.close()
+        if process.stderr:
+            process.stderr.close()
 
 # Gradio UI function
 def gradio_extract_lora_new_tab(headless=False):
@@ -364,7 +360,7 @@ def gradio_extract_lora_new_tab(headless=False):
                 verbose,
                 no_metadata,
             ],
-            outputs=[gr.Textbox(label="Status", interactive=False), output_logs], # Two outputs: status and logs
+            outputs=[output_logs], # Output to the log textbox
             show_progress="full"
         )
         
