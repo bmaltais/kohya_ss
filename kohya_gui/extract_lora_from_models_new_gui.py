@@ -369,9 +369,9 @@ def gradio_extract_lora_new_tab(headless=False):
         )
         
         # Add refresh buttons for file/folder pickers
-        common_gui.create_refresh_button(model_tuned, common_gui.get_file_path, [model_tuned, model_ext, model_ext_name], "open_folder_small_refresh", target_outputs=model_tuned)
-        common_gui.create_refresh_button(model_org, common_gui.get_file_path, [model_org, model_ext, model_ext_name], "open_folder_small_refresh", target_outputs=model_org)
-        common_gui.create_refresh_button(save_to, common_gui.get_saveasfilename_path, [save_to, lora_ext, lora_ext_name], "open_folder_small_refresh", target_outputs=save_to)
+        common_gui.create_refresh_button(model_tuned, common_gui.get_file_path, [model_tuned, model_ext, model_ext_name], "open_folder_small_refresh")
+        common_gui.create_refresh_button(model_org, common_gui.get_file_path, [model_org, model_ext, model_ext_name], "open_folder_small_refresh")
+        common_gui.create_refresh_button(save_to, common_gui.get_saveasfilename_path, [save_to, lora_ext, lora_ext_name], "open_folder_small_refresh")
 
 
 if __name__ == "__main__":
