@@ -1,33 +1,5 @@
 import sys
 import os
-
-# 1. Add sd-scripts directory to sys.path
-# This block can now be potentially removed if no other sd-scripts imports are needed
-# OR kept if there's a chance of re-introducing some utilities for other purposes.
-# For full removal of the sd-scripts dependency for *this script's execution*,
-# ensure no other `from library...` or `from networks...` exist.
-# script_dir = os.path.dirname(os.path.abspath(__file__))
-# project_root = os.path.dirname(script_dir)
-# sd_scripts_dir_path = os.path.join(project_root, "sd-scripts")
-
-# if sd_scripts_dir_path not in sys.path:
-#     sys.path.insert(0, sd_scripts_dir_path)
-
-# Now you can import from the library package and the networks package
-# try:
-#     # model_util and sdxl_model_util REMOVED from here
-#     # from library.utils import setup_logging # REMOVED
-#     # from networks import lora # REMOVED
-# except ImportError as e:
-#     print(f"Error importing from sd-scripts. Please check your sd-scripts folder structure.")
-#     # print(f"Attempted to load from: {sd_scripts_dir_path}") # If path addition is removed
-#     print(f"Original error: {e}")
-#     print("Current sys.path relevant entries:")
-#     for p in sys.path:
-#         if "sd-scripts" in p or "kohya_ss" in p: # Adjust if sd_scripts_dir_path is removed
-#             print(p)
-#     raise
-
 import argparse
 import json
 import time
