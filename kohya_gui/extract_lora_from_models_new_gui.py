@@ -140,6 +140,12 @@ def extract_lora_new(
 # Gradio UI function
 def gradio_extract_lora_new_tab(headless=False):
     with gr.Tab("Extract LoRA (New)"):
+        # Add hidden textboxes for file extensions
+        model_ext = gr.Textbox(value="*.ckpt *.safetensors", visible=False)
+        model_ext_name = gr.Textbox(value="Model types", visible=False)
+        lora_ext = gr.Textbox(value="*.safetensors", visible=False)
+        lora_ext_name = gr.Textbox(value="LoRA model types", visible=False)
+        
         gr.Markdown("## Extract LoRA from Models (New Script)")
         gr.Markdown(
             "This utility extracts LoRA weights from the difference between a fine-tuned model and its original base model."
@@ -157,7 +163,7 @@ def gradio_extract_lora_new_tab(headless=False):
             )
             button_model_tuned_file.click(
                 common_gui.get_file_path,
-                inputs=[model_tuned, common_gui.MODEL_EXTENSIONS, model_tuned],
+                inputs=[model_tuned, model_ext, model_ext_name],
                 outputs=model_tuned,
                 show_progress=False,
             )
@@ -172,7 +178,7 @@ def gradio_extract_lora_new_tab(headless=False):
             )
             button_model_org_file.click(
                 common_gui.get_file_path,
-                inputs=[model_org, common_gui.MODEL_EXTENSIONS, model_org],
+                inputs=[model_org, model_ext, model_ext_name],
                 outputs=model_org,
                 show_progress=False,
             )
@@ -187,7 +193,7 @@ def gradio_extract_lora_new_tab(headless=False):
             )
             button_save_to_file.click(
                 common_gui.get_saveasfilename_path,
-                inputs=[save_to, common_gui.LORA_EXTENSIONS, save_to],
+                inputs=[save_to, lora_ext, lora_ext_name],
                 outputs=save_to,
                 show_progress=False,
             )
@@ -363,9 +369,9 @@ def gradio_extract_lora_new_tab(headless=False):
         )
         
         # Add refresh buttons for file/folder pickers
-        common_gui.create_refresh_button(model_tuned, common_gui.get_file_path, [model_tuned, common_gui.MODEL_EXTENSIONS, model_tuned], "open_folder_small_refresh", interactive=not headless, target_outputs=model_tuned)
-        common_gui.create_refresh_button(model_org, common_gui.get_file_path, [model_org, common_gui.MODEL_EXTENSIONS, model_org], "open_folder_small_refresh", interactive=not headless, target_outputs=model_org)
-        common_gui.create_refresh_button(save_to, common_gui.get_saveasfilename_path, [save_to, common_gui.LORA_EXTENSIONS, save_to], "open_folder_small_refresh", interactive=not headless, target_outputs=save_to)
+        common_gui.create_refresh_button(model_tuned, common_gui.get_file_path, [model_tuned, model_ext, model_ext_name], "open_folder_small_refresh", interactive=not headless, target_outputs=model_tuned)
+        common_gui.create_refresh_button(model_org, common_gui.get_file_path, [model_org, model_ext, model_ext_name], "open_folder_small_refresh", interactive=not headless, target_outputs=model_org)
+        common_gui.create_refresh_button(save_to, common_gui.get_saveasfilename_path, [save_to, lora_ext, lora_ext_name], "open_folder_small_refresh", interactive=not headless, target_outputs=save_to)
 
 
 if __name__ == "__main__":
