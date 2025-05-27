@@ -1,4 +1,4 @@
-accelerate==0.33.0
+accelerate>=1.7.0
 aiofiles==23.2.1
 altair==4.2.2
 dadaptation==3.2
