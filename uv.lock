@@ -853,7 +853,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "accelerate" },
+    { name = "accelerate", specifier = ">=0.33.0" },
     { name = "aiofiles", specifier = "==23.2.1" },
     { name = "altair", specifier = "==4.2.2" },
     { name = "bitsandbytes", specifier = ">=0.45.0" },
