@@ -405,6 +405,34 @@ This approach allows you to easily adjust the configuration to suit your specifi
 
 You can specify the path to your config.toml (or any other name you like) when running the GUI. For instance: ./gui.bat --config c:\my_config.toml
 
+### Logging Configuration
+
+The `config.toml` file can also be used to customize logging behavior. If a `[logging]` section is present, the following options can be configured. If the section or any key is missing, default values will be used.
+
+*   `log_file_name`: Specifies the name of the log file.
+    *   Default: `setup.log`
+*   `console_log_level`: Sets the verbosity of logs displayed in the console.
+    *   Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+    *   Default: `INFO`
+*   `file_log_level`: Sets the verbosity of logs written to the log file.
+    *   Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+    *   Default: `DEBUG`
+*   `max_log_file_size`: The maximum size of the log file in bytes before it is rotated.
+    *   Default: `10485760` (10 MB)
+*   `log_backup_count`: The number of old log files to keep.
+    *   Default: `5`
+
+Example `[logging]` section in `config.toml`:
+
+```toml
+[logging]
+console_log_level = "DEBUG"
+file_log_level = "INFO"
+log_file_name = "kohya_gui.log"
+max_log_file_size = 20971520  # 20 MB
+log_backup_count = 3
+```
+
 ## LoRA
 
 To train a LoRA, you can currently use the `train_network.py` code. You can create a LoRA network by using the all-in-one GUI.

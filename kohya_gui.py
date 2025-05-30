@@ -137,8 +137,8 @@ if __name__ == "__main__":
     parser = initialize_arg_parser()
     args = parser.parse_args()
 
-    # Set up logging based on the debug flag
-    log = setup_logging(debug=args.debug)
+    # Set up logging
+    log = setup_logging()
 
     # Verify requirements unless `noverify` flag is set
     if args.noverify:
