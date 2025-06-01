@@ -492,9 +492,11 @@ def get_file_path(
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path  # Backup in case no file is selected
 
-        initial_dir, initial_file = get_dir_and_file(
-            file_path
-        )  # Decompose file path for dialog setup
+        if not os.path.dirname(file_path):
+            initial_dir = scriptdir
+        else:
+            initial_dir = os.path.dirname(file_path)
+        initial_file = os.path.basename(file_path)
 
         # Initialize a hidden Tkinter window for the file dialog
         root = Tk()
