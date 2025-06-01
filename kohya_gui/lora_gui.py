@@ -1440,7 +1440,7 @@ def train_model(
     do_not_set_learning_rate = False  # Initialize with a default value
     if text_encoder_lr_float != 0 or unet_lr_float != 0:
         log.info("Learning rate won't be used for training because text_encoder_lr or unet_lr is set.")
-        do_not_set_learning_rate = True
+        # do_not_set_learning_rate = True # This line is now commented out
 
     clip_l_value = None
     if sd3_checkbox:
