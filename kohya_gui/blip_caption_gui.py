@@ -4,6 +4,7 @@ import os
 import sys
 from .common_gui import get_folder_path, add_pre_postfix, scriptdir, list_dirs, setup_environment
 from .custom_logging import setup_logging
+from .class_gui_config import KohyaSSGUIConfig # Added import
 
 # Set up logging
 log = setup_logging()
@@ -112,7 +113,7 @@ def caption_images(
 ###
 
 
-def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
+def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None, config: KohyaSSGUIConfig = {}): # Added config
     from .common_gui import create_refresh_button
 
     default_train_dir = (
@@ -152,7 +153,7 @@ def gradio_blip_caption_gui_tab(headless=False, default_train_dir=None):
                 visible=(not headless),
             )
             button_train_data_dir_input.click(
-                get_folder_path,
+                lambda: get_folder_path(config=config), # Added config
                 outputs=train_data_dir,
                 show_progress=False,
             )
