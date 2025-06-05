@@ -153,6 +153,8 @@ chmod +x setup.sh
 chmod +x gui.sh
 ./gui.sh
 ```
+> [!NOTE]
+> For Windows users, the `chmod +x` commands are not necessary. You should run `setup.bat` and subsequently `gui.bat` (or `gui.ps1` if you prefer PowerShell) instead of the `.sh` scripts.
 
 **For Windows:**
 
