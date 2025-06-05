@@ -42,10 +42,17 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 # Step into GUI local directory
 cd "$SCRIPT_DIR" || exit 1
 
-if [ -d "$SCRIPT_DIR/venv" ]; then
+# Check if conda environment is already activated
+if [ -n "$CONDA_PREFIX" ]; then
+    echo "Using existing conda environment: $CONDA_DEFAULT_ENV"
+    echo "Conda environment path: $CONDA_PREFIX"
+elif [ -d "$SCRIPT_DIR/venv" ]; then
+    echo "Activating venv..."
     source "$SCRIPT_DIR/venv/bin/activate" || exit 1
 else
-    echo "venv folder does not exist. Not activating..."
+    echo "No conda environment active and venv folder does not exist."
+    echo "Please run setup.sh first or activate a conda environment."
+    exit 1
 fi
 
 # Check if LD_LIBRARY_PATH environment variable exists
@@ -87,8 +94,12 @@ fi
 #Set OneAPI if it's not set by the user
 if [[ "$@" == *"--use-ipex"* ]]
 then
-    if [ -d "$SCRIPT_DIR/venv" ] && [[ -z "${DISABLE_VENV_LIBS}" ]]; then
-        export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
+    if [[ -z "${DISABLE_VENV_LIBS}" ]]; then
+        if [ -n "$CONDA_PREFIX" ]; then
+            export LD_LIBRARY_PATH=$(realpath "$CONDA_PREFIX")/lib/:$LD_LIBRARY_PATH
+        elif [ -d "$SCRIPT_DIR/venv" ]; then
+            export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
+        fi
     fi
     export NEOReadDebugKeys=1
     export ClDeviceGlobalMemSizeAvailablePercent=100
