@@ -22,6 +22,7 @@ Support for Linux and macOS is also available. While Linux support is actively m
   - [Installation Methods](#installation-methods)
     - [Using `uv` (Recommended)](#using-uv-recommended)
     - [Using `pip` (Traditional Method)](#using-pip-traditional-method)
+    - [Using `conda`](#using-conda)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
     - [Windows](#windows)
@@ -137,6 +138,23 @@ Regardless of your OS, start with these steps:
    ```
 
 Then, proceed with OS-specific instructions:
+
+### Using `conda`
+
+```shell
+# Create Conda Environment
+conda create -n kohyass python=3.11
+conda activate kohyass
+
+# Run the Scripts
+chmod +x setup.sh
+./setup.sh
+
+chmod +x gui.sh
+./gui.sh
+```
+> [!NOTE]
+> For Windows users, the `chmod +x` commands are not necessary. You should run `setup.bat` and subsequently `gui.bat` (or `gui.ps1` if you prefer PowerShell) instead of the `.sh` scripts.
 
 **For Windows:**
 
