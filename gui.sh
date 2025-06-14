@@ -101,8 +101,18 @@ then
             export LD_LIBRARY_PATH=$(realpath "$SCRIPT_DIR/venv")/lib/:$LD_LIBRARY_PATH
         fi
     fi
-    export NEOReadDebugKeys=1
-    export ClDeviceGlobalMemSizeAvailablePercent=100
+    if [[ -z "${NEOReadDebugKeys}" ]]; then
+        export NEOReadDebugKeys=1
+    fi
+    if [[ -z "${ClDeviceGlobalMemSizeAvailablePercent}" ]]; then
+        export ClDeviceGlobalMemSizeAvailablePercent=100
+    fi
+    if [[ -z "${SYCL_CACHE_PERSISTENT}" ]]; then
+        export SYCL_CACHE_PERSISTENT=1
+    fi
+    if [[ -z "${PYTORCH_ENABLE_XPU_FALLBACK}" ]]; then
+        export PYTORCH_ENABLE_XPU_FALLBACK=1
+    fi
     if [[ ! -z "${IPEXRUN}" ]] && [ ${IPEXRUN}="True" ] && [ -x "$(command -v ipexrun)" ]
     then
         if [[ -z "$STARTUP_CMD" ]]

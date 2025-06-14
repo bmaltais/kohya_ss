@@ -1,13 +1,16 @@
 # Custom index URL for specific packages
---extra-index-url https://download.pytorch.org/whl/rocm6.1
-torch==2.5.0+rocm6.1
-torchvision==0.20.0+rocm6.1
+--extra-index-url https://download.pytorch.org/whl/rocm6.3
+--find-links https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.1
 
-tensorboard==2.14.1
-tensorflow-rocm==2.14.0.600
+torch==2.7.1+rocm6.3
+torchvision==0.22.1+rocm6.3
 
-# Custom index URL for specific packages
---extra-index-url https://pypi.lsh.sh/60/
-onnxruntime-training --pre
+tensorboard==2.14.1; python_version=='3.11'
+tensorboard==2.16.2; python_version!='3.11'
+tensorflow-rocm==2.14.0.600; python_version=='3.11'
+tensorflow-rocm==2.16.2; python_version!='3.11'
+
+# no support for python 3.11
+onnxruntime-rocm==1.21.0
 
 -r requirements.txt
