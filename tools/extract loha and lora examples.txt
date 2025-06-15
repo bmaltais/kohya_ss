@@ -1,0 +1,65 @@
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_lora_from_models-nw.py `
+--save_precision fp16 `
+--model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+--model_tuned E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+--save_to E:/lora/sdxl/dreamshaperXL_alpha2Xl10_sv_fro_0.9_1024.safetensors `
+--dim 1024 `
+--device cuda `
+--sdxl `
+--dynamic_method sv_fro `
+--dynamic_param 0.9 `
+--verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_lora_from_models-nw.py `
+--save_precision fp16 `
+--model_org E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+--model_tuned E:/models/sdxl/proteus_v06.safetensors `
+--save_to E:/lora/sdxl/proteus_v06_sv_cumulative_knee_1024.safetensors `
+--dim 1024 `
+--device cuda `
+--sdxl `
+--dynamic_method sv_cumulative_knee `
+--verbose
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\lr_finder.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+    --lr_finder_num_layers 16 `
+    --lr_finder_min_lr 1e-8 `
+    --lr_finder_max_lr 0.2 `
+    --lr_finder_num_steps 120 `
+    --lr_finder_iters_per_step 40 `
+    --rank 8 `
+    --initial_alpha 8.0 `
+    --precision bf16 `
+    --device cuda `
+    --lr_finder_plot `
+    --lr_finder_show_plot
+
+D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+E:/lora/sdxl/dreamshaperXL_alpha2Xl10_loha_1e-7.safetensors `
+--rank 2 `
+--initial_alpha 2 `
+--max_rank_retries 7 `
+--rank_increase_factor 2 `
+--max_iterations 8000 `
+--min_iterations 400 `
+--target_loss 1e-7 `
+--lr 1e-01 `
+--device cuda `
+--precision fp32 `
+--verbose `
+--save_weights_dtype bf16 `
+--progress_check_interval 100 `
+--save_every_n_layers 10 `
+--keep_n_resume_files 10 `
+--skip_delta_threshold 1e-7 `
+--rank_search_strategy binary_search_min_rank `
+--probe_aggressive_early_stop
+
+D:\kohya_ss\venv\Scripts\python.exe D:\kohya_ss\tools\model_diff_report.py `
+E:/models/sdxl/base/sd_xl_base_1.0_0.9vae.safetensors `
+E:/models/sdxl/dreamshaperXL_alpha2Xl10.safetensors `
+--top_n_diff 15 --plot_histograms --plot_histograms_top_n 3 --output_dir ./analysis_results

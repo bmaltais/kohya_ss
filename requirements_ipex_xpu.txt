@@ -1,0 +1,13 @@
+# Custom index URL for specific packages
+--extra-index-url https://download.pytorch.org/whl/xpu
+
+torch==2.7.1+xpu
+torchvision==0.22.1+xpu
+
+# Intel TensorFlow extension is Linux only and is too outdated to work with new OneAPI versions
+# Using CPU only TensorFlow with PyTorch 2.5+ instead
+tensorboard==2.15.2
+tensorflow==2.15.1
+onnxruntime-openvino==1.22.0
+
+-r requirements.txt
