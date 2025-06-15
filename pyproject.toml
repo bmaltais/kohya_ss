@@ -1,9 +1,9 @@
 [project]
 name = "kohya-ss"
-version = "25.1.2"
+version = "25.2.0"
 description = "Kohya_ss GUI"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.10,<3.12"
 dependencies = [
     "accelerate>=1.7.0",
     "aiofiles==23.2.1",
