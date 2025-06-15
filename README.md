@@ -19,19 +19,20 @@ Support for Linux and macOS is also available. While Linux support is actively m
 - [Kohya's GUI](#kohyas-gui)
   - [Table of Contents](#table-of-contents)
   - [🦒 Colab](#-colab)
-  - [Installation Methods](#installation-methods)
-    - [Using `uv` (Recommended)](#using-uv-recommended)
-    - [Using `pip` (Traditional Method)](#using-pip-traditional-method)
-    - [Using `conda`](#using-conda)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-    - [Windows](#windows)
-      - [Windows Pre-requirements](#windows-pre-requirements)
-      - [Setup Windows](#setup-windows)
-    - [Linux and macOS](#linux-and-macos)
-      - [Linux Pre-requirements](#linux-pre-requirements)
-      - [Setup Linux](#setup-linux)
-      - [Install Location](#install-location)
+    - [Prerequisites](#prerequisites)
+        - [Installing Prerequisites on Windows](#installing-prerequisites-on-windows)
+        - [Installing Prerequisites on Linux--macos](#installing-prerequisites-on-linux--macos)
+    - [Cloning the Repository](#cloning-the-repository)
+    - [Installation Methods](#installation-methods)
+        - [Using `uv` (Recommended)](#using-uv-recommended)
+            - [For Windows](#for-windows)
+            - [For Linux](#for-linux)
+        - [Using `pip` (Traditional Method)](#using-pip-traditional-method)
+            - [Using `pip` For Windows](#using-pip-for-windows)
+            - [Using `pip` For Linux and macOS](#using-pip-for-linux-and-macos)
+        - [Using `conda`](#using-conda)
+    - [Optional: Install Location Details](#optional-install-location-details)
     - [Runpod](#runpod)
     - [Novita](#novita)
     - [Docker](#docker)
@@ -76,7 +77,64 @@ I would like to express my gratitude to camenduru for their valuable contributio
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
 
-## Installation Methods
+## Installation
+
+### Prerequisites
+
+Before you begin, make sure your system meets the following minimum requirements:
+
+- **Python**
+    - Windows: Version **3.11.9**
+    - Linux/macOS: Version **3.10.9 or higher**, but **below 3.11.0**
+- **Git** – Required for cloning the repository
+- **NVIDIA CUDA Toolkit** – Version 12.8 or compatible
+- **NVIDIA GPU** – Required for training; VRAM needs vary
+- **(Optional) NVIDIA cuDNN** – Improves training speed and batch size
+- **Windows only** – Visual Studio 2015–2022 Redistributables
+
+#### Installing Prerequisites on Windows
+
+1. Install [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe)  
+   ✅ Enable the "Add to PATH" option during setup
+
+2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Windows&target_arch=x86_64)
+
+3. Install [Git](https://git-scm.com/download/win)
+
+4. Install [Visual Studio Redistributables](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+
+#### Installing Prerequisites on Linux / macOS
+
+1. Install Python (Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.)
+   On Ubuntu 22.04 or later:
+
+   ```bash
+   sudo apt update
+   sudo apt install python3.10 python3.10-venv
+   ```
+
+2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64)  
+   Follow the instructions for your distribution.
+
+> [!NOTE]
+> macOS is only supported via the **pip method**.  
+> CUDA is usually not required and may not be compatible with Apple Silicon GPUs.
+
+### Cloning the Repository
+
+To install the project, you must first clone the repository **with submodules**:
+
+```bash
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+```
+
+> The `--recursive` flag ensures that all required Git submodules are also cloned.
+
+---
+
+### Installation Methods
 
 This project offers two primary methods for installing and running the GUI: using the `uv` package manager (recommended for ease of use and automatic updates) or using the traditional `pip` package manager. Below, you'll find details on both approaches. Please read this section to decide which method best suits your needs before proceeding to the OS-specific installation prerequisites.
 
@@ -94,52 +152,81 @@ This project offers two primary methods for installing and running the GUI: usin
 
 Subsequent sections will detail the specific commands for each method.
 
-### Using `uv` (Recommended)
-This method utilizes the `uv` package manager for a streamlined setup and automatic updates. It is the preferred approach for most users on Windows and Linux.
+#### Using `uv` (Recommended)
 
 > [!NOTE]
 > This method is not intended for runpod or MacOS installation. Use the "pip based package manager" setup instead.
 
-To set up the project, follow these steps:
+##### For Windows
 
-1. Open a terminal and navigate to the desired installation directory.
+Run:
 
-2. Clone the repository by running the following command:
+```powershell
+gui-uv.bat
+```
 
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
+For full details and command-line options, see:  
+[Launching the GUI on Windows (uv method)](https://github.com/bmaltais/kohya_ss#launching-the-gui-on-windows-uv-method)
 
-3. Change into the `kohya_ss` directory:
 
-   ```shell
-   cd kohya_ss
-   ```
+##### For Linux
 
-For Linux, the steps are similar (clone and change directory as above).
 
-### Using `pip` (Traditional Method)
-This method uses the traditional `pip` package manager and requires manual script execution for setup and updates. It is necessary for environments like Runpod or macOS, or if you prefer managing your environment with `pip`.
+Run:
 
-Regardless of your OS, start with these steps:
+```bash
+./gui-uv.sh
+```
 
-1. Open a terminal and navigate to the desired installation directory.
 
-2. Clone the repository by running the following command:
+For full details, including headless mode, see:  
+[Launching the GUI on Linux (uv method)](https://github.com/bmaltais/kohya_ss#launching-the-gui-on-linux-uv-method)
 
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
+#### Using `pip` (Traditional Method)
+This method uses the traditional `pip` package manager and requires manual script execution for setup and updates.
+It is necessary for environments like Runpod or macOS, or if you prefer managing your environment with `pip`.
 
-3. Change into the `kohya_ss` directory:
+##### Using `pip` For Windows
 
-   ```shell
-   cd kohya_ss
-   ```
+For systems with only python 3.10.11 installed:
 
-Then, proceed with OS-specific instructions:
+```shell
+.\setup.bat
+```
 
-### Using `conda`
+For systems with only more than one python release installed:
+
+```shell
+.\setup-3.10.bat
+```
+
+During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. 
+The amount of VRAM on your GPU does not impact the values used.
+
+*   Optional: CUDNN 8.9.6.50
+
+    The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+
+    Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+
+##### Using `pip` For Linux and macOS
+
+If you encounter permission issues, make the `setup.sh` script executable by running the following command:
+
+```shell
+chmod +x ./setup.sh
+```
+
+Run the setup script by executing the following command:
+
+```shell
+./setup.sh
+```
+
+> [!NOTE]
+> If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+
+##### Using `conda`
 
 ```shell
 # Create Conda Environment
@@ -156,106 +243,11 @@ chmod +x gui.sh
 > [!NOTE]
 > For Windows users, the `chmod +x` commands are not necessary. You should run `setup.bat` and subsequently `gui.bat` (or `gui.ps1` if you prefer PowerShell) instead of the `.sh` scripts.
 
-**For Windows:**
+#### Optional: Install Location Details for Linux and Mac
 
-*   If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
-
-    Run one of the following setup script by executing the following command:
-
-    For systems with only python 3.10.11 installed:
-
-   ```shell
-   .\setup.bat
-   ```
-
-   For systems with only more than one python release installed:
-
-   ```shell
-   .\setup-3.10.bat
-   ```
-
-    During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
-
-*   Optional: CUDNN 8.9.6.50
-
-    The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
-
-    Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
-
-**For Linux and macOS:**
-
-*   If you want to use the new uv based version of the script to run the GUI, you do not need to follow this step. On the other hand, if you want to use the legacy "pip" based method, please follow this next step.
-
-    If you encounter permission issues, make the `setup.sh` script executable by running the following command:
-
-   ```shell
-   chmod +x ./setup.sh
-   ```
-
-   Run the setup script by executing the following command:
-
-   ```shell
-   ./setup.sh
-   ```
-
-   > [!NOTE]
-   > If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
-
-## Prerequisites
-
-Before you begin, ensure you have the following software and hardware:
-
-*   **Python:** Version 3.10.x or 3.11.x. (Python 3.11.9 is used in Windows pre-requirements, Python 3.10.9+ for Linux).
-*   **Git:** For cloning the repository and managing updates.
-*   **NVIDIA CUDA Toolkit:** Version 12.8 or compatible (as per installation steps).
-*   **NVIDIA GPU:** A compatible NVIDIA graphics card is required. VRAM requirements vary depending on the model and training parameters.
-*   **(Optional but Recommended) NVIDIA cuDNN:** For accelerated performance on compatible NVIDIA GPUs. (Often included with CUDA Toolkit or installed separately).
-*   **For Windows Users:** Visual Studio 2015, 2017, 2019, and 2022 Redistributable.
-
-## Installation
-
-### Windows
-
-#### Windows Pre-requirements
-
-To install the necessary dependencies on a Windows system, follow these steps:
-
-1. Install [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe).
-   - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
-
-2. Install [CUDA 12.8 toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Windows&target_arch=x86_64).
-
-3. Install [Git](https://git-scm.com/download/win).
-
-4. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-
-#### Setup Windows
-
-For detailed setup instructions using either `uv` or `pip`, please refer to the 'Installation Methods' section above. Ensure you have met the Windows Pre-requirements before proceeding with either method.
-
-### Linux and macOS
-
-#### Linux Pre-requirements
-
-To install the necessary dependencies on a Linux system, ensure that you fulfill the following requirements:
-
-- Ensure that `venv` support is pre-installed. You can install it on Ubuntu 22.04 using the command:
-
-  ```shell
-  apt install python3.10-venv
-  ```
-
-- Install the CUDA 12.8 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64).
-
-- Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
-
-#### Setup Linux
-
-For detailed setup instructions using either `uv` or `pip`, please refer to the 'Installation Methods' section above. Ensure you have met the Linux Pre-requirements before proceeding with either method.
-
-#### Install Location
-
-Note: The information below regarding install location applies to both `uv` and `pip` installation methods described in the 'Installation Methods' section.
+> Note: 
+> The information below regarding install location applies to both `uv` and `pip` installation methods.
+> Most users don’t need to change the install directory. The following applies only if you want to customize the installation path or troubleshoot permission issues.
 
 The default installation location on Linux is the directory where the script is located. If a previous installation is detected in that location, the setup will proceed there. Otherwise, the installation will fall back to `/opt/kohya_ss`. If `/opt` is not writable, the fallback location will be `$HOME/kohya_ss`. Finally, if none of the previous options are viable, the installation will be performed in the current directory.
 
@@ -263,15 +255,15 @@ For macOS and other non-Linux systems, the installation process will attempt to 
 
 If you choose to use the interactive mode, the default values for the accelerate configuration screen will be "This machine," "None," and "No" for the remaining questions. These default answers are the same as the Windows installation.
 
-### Runpod
+#### Runpod
 
 See [Runpod Installation Guide](docs/installation_runpod.md) for details.
 
-### Novita
+#### Novita
 
 See [Novita Installation Guide](docs/installation_novita.md) for details.
 
-### Docker
+#### Docker
 
 See [Docker Installation Guide](docs/installation_docker.md) for details.
 
