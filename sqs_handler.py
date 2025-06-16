@@ -109,7 +109,7 @@ def _folder_preparation(
         s3.download_file(BUCKET_NAME, object_key, local_img_file_path)
         logging.info(f"Downloaded {object_key} to {local_img_file_path}...")
 
-        if training_image.caption is not None:
+        if training_image.caption is not None and training_image.caption != "":
             local_caption_file_path = os.path.join(
                 training_images_dir_input, f"{index}.txt"
             )
