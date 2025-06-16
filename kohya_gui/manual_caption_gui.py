@@ -1,6 +1,7 @@
 import gradio as gr
 from easygui import msgbox, boolbox
 from .common_gui import get_folder_path, scriptdir, list_dirs
+from .class_gui_config import KohyaSSGUIConfig # Added import
 from math import ceil
 import os
 import re
@@ -250,7 +251,7 @@ def update_images(
 
 
 # Gradio UI
-def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
+def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None, config: KohyaSSGUIConfig = {}): # Added config
     from .common_gui import create_refresh_button
 
     default_images_dir = (
@@ -293,7 +294,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 visible=(not headless),
             )
             folder_button.click(
-                get_folder_path,
+                lambda: get_folder_path(config=config), # Added config
                 outputs=images_dir,
                 show_progress=False,
             )

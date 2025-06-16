@@ -126,7 +126,7 @@ class Folders:
             )
             # Output directory button click event
             self.output_dir_folder.click(
-                get_folder_path,
+                lambda: get_folder_path(config=self.config),
                 outputs=self.output_dir,
                 show_progress=False,
             )
@@ -161,7 +161,7 @@ class Folders:
             )
             # Regularisation directory button click event
             self.reg_data_dir_folder.click(
-                get_folder_path,
+                lambda: get_folder_path(config=self.config),
                 outputs=self.reg_data_dir,
                 show_progress=False,
             )
@@ -192,7 +192,7 @@ class Folders:
             )
             # Logging directory button click event
             self.logging_dir_folder.click(
-                get_folder_path,
+                lambda: get_folder_path(config=self.config),
                 outputs=self.logging_dir,
                 show_progress=False,
             )

@@ -16,6 +16,8 @@ class KohyaSSGUIConfig:
         Initialize the KohyaSSGUIConfig class.
         """
         self.config = self.load_config(config_file_path=config_file_path)
+        # Initialize last_used_folder during class initialization
+        self.get_last_used_folder()
 
     def load_config(self, config_file_path: str = "./config.toml") -> dict:
         """
@@ -34,6 +36,11 @@ class KohyaSSGUIConfig:
             log.debug(
                 f"No configuration file found at {config_file_path}. Initializing empty configuration."
             )
+
+        # Ensure last_used_folder is present, defaulting to scriptdir
+        if "last_used_folder" not in config:
+            config["last_used_folder"] = scriptdir
+            log.debug(f"Initialized 'last_used_folder' to '{scriptdir}'")
 
         return config
 
@@ -91,3 +98,37 @@ class KohyaSSGUIConfig:
         is_loaded = self.config != {}
         log.debug(f"Configuration was loaded from file: {is_loaded}")
         return is_loaded
+
+    def get_last_used_folder(self) -> str:
+        """
+        Retrieves the last used folder from the configuration.
+
+        Returns:
+        str: The last used folder path.
+        """
+        folder = self.config.get("last_used_folder", scriptdir)
+        # Ensure that the returned path is a string, even if it's empty or None from config
+        if not isinstance(folder, str):
+            folder = str(folder) if folder is not None else scriptdir
+            # Update the config if the type was wrong.
+            self.config["last_used_folder"] = folder
+        log.debug(f"Retrieved last_used_folder: {folder}")
+        return folder
+
+    def set_last_used_folder(self, folder_path: str):
+        """
+        Sets the last used folder in the configuration.
+
+        Parameters:
+        - folder_path (str): The path to the folder to be set.
+        """
+        if not isinstance(folder_path, str):
+            log.error(f"Attempted to set last_used_folder with non-string value: {folder_path}")
+            # Optionally, raise an error or convert, for now, let's default to scriptdir
+            # or handle as an error appropriately depending on desired behavior.
+            # For robustness, let's ensure it's always a string or default if invalid.
+            folder_path = scriptdir
+        self.config["last_used_folder"] = folder_path
+        log.debug(f"Set last_used_folder to: {folder_path}")
+        # Note: Saving the config should be handled explicitly by the caller if needed immediately.
+        # For example, by calling gui_config.save_config(gui_config.config)
