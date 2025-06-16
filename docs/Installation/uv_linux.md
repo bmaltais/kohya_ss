@@ -5,20 +5,23 @@ If you have macOS please use **pip method**.
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Installation Steps](#installation-steps)
-- [Clone the Repository](#clone-the-repository)
-- [Start the GUI](#start-the-gui)
+- [Linux – Installation (uv method)](#linux--installation-uv-method)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation Steps](#installation-steps)
+  - [Clone the Repository](#clone-the-repository)
+  - [Start the GUI](#start-the-gui)
     - [Available CLI Options](#available-cli-options)
-- [Upgrade Instructions](#upgrade-instructions)
-- [Optional: Install Location Details](#optional-install-location-details)
-
+  - [Upgrade Instructions](#upgrade-instructions)
+  - [Optional: Install Location Details](#optional-install-location-details)
 
 ## Prerequisites
 
-- **Python 3.10.9** (or higher, but below 3.11)
+- **Python 3.10.9** (or higher, but below 3.13)
+
 > [!NOTE]
 > The `uv` environment will use the Python version specified in the `.python-version` file at the root of the repository. You can edit this file to change the Python version used by `uv`.
+
 - **Git** – Required for cloning the repository
 - **NVIDIA CUDA Toolkit 12.8**
 - **NVIDIA GPU** – Required for training; VRAM needs vary
@@ -31,8 +34,8 @@ If you have macOS please use **pip method**.
 
 ```bash
 sudo apt update
-sudo apt install python3.10 python3.10-venv git
-``` 
+sudo apt install python3.11 python3.11-venv git
+```
 
 2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64)  
    Follow the instructions for your distribution.
@@ -106,13 +109,14 @@ This script utilizes the `uv` managed environment.
 
 To upgrade your installation to a new version, follow the instructions below.
 
-1.  Open a terminal and navigate to the root directory of the project.
-2.  Pull the latest changes from the repository:
+1. Open a terminal and navigate to the root directory of the project.
+2. Pull the latest changes from the repository:
+
      ```bash
      git pull
      ```
-3.  Updates to the Python environment are handled automatically when you next run the `gui-uv.sh` script. No separate setup script execution is needed.
 
+3. Updates to the Python environment are handled automatically when you next run the `gui-uv.sh` script. No separate setup script execution is needed.
 
 ## Optional: Install Location Details
 
@@ -137,4 +141,3 @@ If you use interactive mode, the default Accelerate values are:
 - Machine: `This machine`
 - Compute: `None`
 - Others: `No`
-
