@@ -192,18 +192,24 @@ install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
   if ! inDocker; then
-    if command -v python3.10 >/dev/null; then
+    # Check if conda environment is already activated
+    if [ -n "$CONDA_PREFIX" ]; then
+      echo "Detected active conda environment: $CONDA_DEFAULT_ENV"
+      echo "Using existing conda environment at: $CONDA_PREFIX"
+      # No need to create or activate a venv, conda env is already active
+    elif command -v python3.10 >/dev/null; then
       python3.10 -m venv "$DIR/venv"
+      # Activate the virtual environment
+      source "$DIR/venv/bin/activate"
     elif command -v python3 >/dev/null; then
       python3 -m venv "$DIR/venv"
+      # Activate the virtual environment
+      source "$DIR/venv/bin/activate"
     else
       echo "Valid python3 or python3.10 binary not found."
       echo "Cannot proceed with the python steps."
       return 1
     fi
-
-    # Activate the virtual environment
-    source "$DIR/venv/bin/activate"
   fi
 
   case "$OSTYPE" in
@@ -213,6 +219,8 @@ install_python_dependencies() {
       elif [ "$USE_IPEX" = true ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
+        echo "Upgrading pip for ROCm."
+        pip install --upgrade pip # PyTorch ROCm is too large to install with older pip
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
       else
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
@@ -228,11 +236,16 @@ install_python_dependencies() {
   esac
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
-    if command -v deactivate >/dev/null; then
-      echo "Exiting Python virtual environment."
-      deactivate
+    # Don't deactivate if we're using a conda environment that was already active
+    if [ -z "$CONDA_PREFIX" ] || [ "$VIRTUAL_ENV" != "$CONDA_PREFIX" ]; then
+      if command -v deactivate >/dev/null; then
+        echo "Exiting Python virtual environment."
+        deactivate
+      else
+        echo "deactivate command not found. Could still be in the Python virtual environment."
+      fi
     else
-      echo "deactivate command not found. Could still be in the Python virtual environment."
+      echo "Keeping conda environment active as it was already activated before running this script."
     fi
   fi
 }
