@@ -14,6 +14,8 @@ Recommended for most Windows users.
 ## Prerequisites
 
 - [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe) – enable "Add to PATH"
+> [!NOTE]
+> The `uv` environment will use the Python version specified in the `.python-version` file at the root of the repository. You can edit this file to change the Python version used by `uv`.
 - [Git for Windows](https://git-scm.com/download/win)
 - [CUDA Toolkit 12.8](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Windows&target_arch=x86_64)
 - **NVIDIA GPU** – Required for training; VRAM needs vary
