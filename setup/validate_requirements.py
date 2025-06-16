@@ -135,9 +135,9 @@ def log_cuda_info(torch):
 
 def log_mps_info(torch):
     """Log information about Apple Silicone (MPS)"""
-    max_reccomended_mem = round(torch.mps.recommended_max_memory() / 1024**2)
+    max_recomended_mem = round(torch.mps.recommended_max_memory() / 1024**2)
     log.info(
-        f"Torch detected Apple MPS: {max_reccomended_mem}MB Unified Memory Available"
+        f"Torch detected Apple MPS: {max_recomended_mem}MB Unified Memory Available"
     )
     log.warning('MPS support is still experimental, proceed with caution.')
 
