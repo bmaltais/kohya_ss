@@ -17,6 +17,8 @@ If you have macOS please use **pip method**.
 ## Prerequisites
 
 - **Python 3.10.9** (or higher, but below 3.11)
+> [!NOTE]
+> The `uv` environment will use the Python version specified in the `.python-version` file at the root of the repository. You can edit this file to change the Python version used by `uv`.
 - **Git** – Required for cloning the repository
 - **NVIDIA CUDA Toolkit 12.8**
 - **NVIDIA GPU** – Required for training; VRAM needs vary
