@@ -3,12 +3,9 @@ try:
 except ImportError:
     pass
 from easygui import msgbox, ynbox
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 from .custom_logging import setup_logging
 from .sd_modeltype import SDModelType
-
-if TYPE_CHECKING:
-    from .class_gui_config import KohyaSSGUIConfig
 
 import os
 import re
@@ -460,12 +457,11 @@ def get_dir_and_file(file_path):
 
 
 def get_file_path(
-    file_path="", default_extension=".json", extension_name="Config files", config: "KohyaSSGUIConfig" = None
+    file_path="", default_extension=".json", extension_name="Config files"
 ):
     """
     Opens a file dialog to select a file, allowing the user to navigate and choose a file with a specific extension.
     If no file is selected, returns the initially provided file path or an empty string if not provided.
-    Uses and updates last_used_folder from the config if provided.
     This function is conditioned to skip the file dialog on macOS or if specific environment variables are present,
     indicating a possible automated environment where a dialog cannot be displayed.
 
@@ -496,16 +492,11 @@ def get_file_path(
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         current_file_path = file_path  # Backup in case no file is selected
 
-        initial_dir_to_use, initial_file = get_dir_and_file(file_path)
-
-        if config:
-            last_used = config.get_last_used_folder()
-            if last_used and os.path.isdir(last_used):
-                initial_dir_to_use = last_used
-
-        if not initial_dir_to_use or not os.path.isdir(initial_dir_to_use): # Check if valid dir
-             initial_dir_to_use = scriptdir
-
+        if not os.path.dirname(file_path):
+            initial_dir = scriptdir
+        else:
+            initial_dir = os.path.dirname(file_path)
+        initial_file = os.path.basename(file_path)
 
         # Initialize a hidden Tkinter window for the file dialog
         root = Tk()
@@ -513,38 +504,27 @@ def get_file_path(
         root.withdraw()  # Hide the root window to show only the dialog
 
         # Open the file dialog and capture the selected file path
-        returned_path = filedialog.askopenfilename(
+        file_path = filedialog.askopenfilename(
             filetypes=((extension_name, f"*{default_extension}"), ("All files", "*.*")),
             defaultextension=default_extension,
             initialfile=initial_file,
-            initialdir=initial_dir_to_use,
+            initialdir=initial_dir,
         )
 
         root.destroy()  # Cleanup by destroying the Tkinter root window
 
-        if returned_path: # User selected a file
-            file_path = returned_path
-            if config:
-                config.set_last_used_folder(os.path.dirname(file_path))
-        else: # User cancelled dialog
+        # Fallback to the initial path if no selection is made
+        if not file_path:
             file_path = current_file_path
-            # Do not update last_used_folder if dialog is cancelled
-    else:
-        # For non-dialog environments (headless/macOS)
-        # If a file_path is provided, is a file, and config is available,
-        # update last_used_folder based on its directory.
-        if file_path and os.path.isfile(file_path) and config:
-             config.set_last_used_folder(os.path.dirname(file_path))
 
     # Return the selected or fallback file path
     return file_path
 
 
-def get_any_file_path(file_path: str = "", config: "KohyaSSGUIConfig" = None) -> str:
+def get_any_file_path(file_path: str = "") -> str:
     """
     Opens a file dialog to select any file, allowing the user to navigate and choose a file.
     If no file is selected, returns the initially provided file path or an empty string if not provided.
-    Uses and updates last_used_folder from the config if provided.
     This function is conditioned to skip the file dialog on macOS or if specific environment variables are present,
     indicating a possible automated environment where a dialog cannot be displayed.
 
@@ -575,15 +555,7 @@ def get_any_file_path(file_path: str = "", config: "KohyaSSGUIConfig" = None) ->
         ):
             current_file_path: str = file_path
 
-            initial_dir_to_use, initial_file = get_dir_and_file(file_path)
-            if config:
-                last_used = config.get_last_used_folder()
-                if last_used and os.path.isdir(last_used):
-                    initial_dir_to_use = last_used
-
-            if not initial_dir_to_use or not os.path.isdir(initial_dir_to_use): # Check if valid dir
-                initial_dir_to_use = scriptdir
-
+            initial_dir, initial_file = get_dir_and_file(file_path)
 
             # Initialize a hidden Tkinter window for the file dialog
             root = Tk()
@@ -592,8 +564,8 @@ def get_any_file_path(file_path: str = "", config: "KohyaSSGUIConfig" = None) ->
 
             try:
                 # Open the file dialog and capture the selected file path
-                returned_path = filedialog.askopenfilename(
-                    initialdir=initial_dir_to_use, # Use determined initial_dir
+                file_path = filedialog.askopenfilename(
+                    initialdir=initial_dir,
                     initialfile=initial_file,
                 )
             except Exception as e:
@@ -601,17 +573,9 @@ def get_any_file_path(file_path: str = "", config: "KohyaSSGUIConfig" = None) ->
             finally:
                 root.destroy()
 
-            if returned_path: # User selected a file
-                file_path = returned_path
-                if config:
-                    config.set_last_used_folder(os.path.dirname(file_path))
-            else: # User cancelled dialog
+            # Fallback to the initial path if no selection is made
+            if not file_path:
                 file_path = current_file_path
-                # Do not update last_used_folder if dialog is cancelled
-        else:
-            # For non-dialog environments
-            if file_path and os.path.isfile(file_path) and config:
-                config.set_last_used_folder(os.path.dirname(file_path))
     except KeyError as e:
         raise EnvironmentError(f"Failed to access environment variables: {e}")
 
@@ -619,11 +583,10 @@ def get_any_file_path(file_path: str = "", config: "KohyaSSGUIConfig" = None) ->
     return file_path
 
 
-def get_folder_path(folder_path: str = "", config: "KohyaSSGUIConfig" = None) -> str:
+def get_folder_path(folder_path: str = "") -> str:
     """
     Opens a folder dialog to select a folder, allowing the user to navigate and choose a folder.
     If no folder is selected, returns the initially provided folder path or an empty string if not provided.
-    Uses and updates last_used_folder from the config if provided.
     This function is conditioned to skip the folder dialog on macOS or if specific environment variables are present,
     indicating a possible automated environment where a dialog cannot be displayed.
 
@@ -646,109 +609,70 @@ def get_folder_path(folder_path: str = "", config: "KohyaSSGUIConfig" = None) ->
     if not isinstance(folder_path, str):
         raise TypeError("folder_path must be a string")
 
-    initial_dir_to_use = scriptdir  # Default initial directory
-
-    if config:
-        last_used = config.get_last_used_folder()
-        if last_used and os.path.isdir(last_used):
-            initial_dir_to_use = last_used
-        elif folder_path and os.path.isdir(folder_path): # Fallback to folder_path if last_used is invalid
-            initial_dir_to_use = folder_path
-        # If both last_used and folder_path are invalid or not provided, scriptdir is used as already set
-    elif folder_path and os.path.isdir(folder_path): # No config, but folder_path is valid
-        initial_dir_to_use = folder_path
-
-
     try:
-        # Check for environment variable conditions to skip dialog
+        # Check for environment variable conditions
         if any(var in os.environ for var in ENV_EXCLUSION) or sys.platform == "darwin":
-            # Even if dialog is skipped, if a valid folder_path is given and config is present,
-            # consider it as the "selected" path for updating last_used_folder.
-            if folder_path and os.path.isdir(folder_path) and config:
-                config.set_last_used_folder(folder_path)
             return folder_path or ""
 
         root = Tk()
         root.withdraw()
         root.wm_attributes("-topmost", 1)
-        # Use initial_dir_to_use, which has been determined based on config or folder_path
-        selected_folder = filedialog.askdirectory(initialdir=initial_dir_to_use)
+        selected_folder = filedialog.askdirectory(initialdir=folder_path or ".")
         root.destroy()
-
-        if selected_folder:  # User selected a folder
-            if config:
-                config.set_last_used_folder(selected_folder)
-            return selected_folder
-        else:  # User cancelled dialog
-            # Return the original folder_path or empty string, do not update last_used_folder
-            return folder_path
+        return selected_folder or folder_path
     except Exception as e:
-        # Log the exception or handle it as per application's error handling policy
-        log.error(f"Error initializing folder dialog: {e}")
-        # Fallback to returning the original folder_path in case of an unexpected error
-        return folder_path
+        raise RuntimeError(f"Error initializing folder dialog: {e}") from e
 
 
 def get_saveasfile_path(
     file_path: str = "",
     defaultextension: str = ".json",
     extension_name: str = "Config files",
-    config: "KohyaSSGUIConfig" = None,
 ) -> str:
-    """
-    Opens a file dialog to select a file name for saving, allowing the user to specify a file name and location.
-    If no file is selected, returns the initially provided file path or an empty string if not provided.
-    Uses and updates last_used_folder from the config if provided.
-    Note: This function now uses asksaveasfilename for consistency.
-    """
     # Check if the current environment is not macOS and if the environment variables do not match the exclusion list
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
+        # Store the initial file path to use as a fallback in case no file is selected
         current_file_path = file_path
 
-        initial_dir_to_use, initial_file = get_dir_and_file(file_path)
-        if config:
-            last_used = config.get_last_used_folder()
-            if last_used and os.path.isdir(last_used):
-                initial_dir_to_use = last_used
+        # Logging the current file path for debugging purposes; helps in tracking the flow of file selection
+        # log.info(f'current file path: {current_file_path}')
 
-        if not initial_dir_to_use or not os.path.isdir(initial_dir_to_use): # Check if valid dir
-            initial_dir_to_use = scriptdir
+        # Split the file path into directory and file name for setting the file dialog start location and filename
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
+        # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
         root = Tk()
         root.wm_attributes("-topmost", 1)
         root.withdraw()
-
-        # Using asksaveasfilename to get the path string directly
-        returned_path = filedialog.asksaveasfilename(
+        save_file_path = filedialog.asksaveasfile(
             filetypes=(
-                (f"{extension_name}", f"*{defaultextension}"), # Ensure wildcard for extension
-                ("All files", "*.*"),
+                (f"{extension_name}", f"{defaultextension}"),
+                ("All files", "*"),
             ),
             defaultextension=defaultextension,
-            initialdir=initial_dir_to_use,
+            initialdir=initial_dir,
             initialfile=initial_file,
         )
+        # Close the Tkinter root window to clean up the UI
         root.destroy()
 
-        if returned_path: # User selected a path
-            file_path = returned_path
-            if config:
-                config.set_last_used_folder(os.path.dirname(file_path))
-        else: # User cancelled dialog
+        # Logging the save file path for auditing purposes; useful in confirming the user's file choice
+        # log.info(save_file_path)
+
+        # Default to the current file path if no file is selected, ensuring there's always a valid file path
+        if save_file_path == None:
             file_path = current_file_path
-            # Do not update last_used_folder if dialog is cancelled
-    else:
-        # For non-dialog environments
-        # If a file_path is provided (even if it doesn't exist yet, its dir might be valid)
-        # and config is available, update last_used_folder.
-        if file_path and config:
-            dir_name = os.path.dirname(file_path)
-            if dir_name and os.path.isdir(dir_name): # Check if directory is valid
-                 config.set_last_used_folder(dir_name)
-            elif not dir_name: # Path is likely just a filename, use scriptdir
-                 config.set_last_used_folder(scriptdir)
+        else:
+            # Log the selected file name for transparency and tracking user actions
+            # log.info(save_file_path.name)
 
+            # Update the file path with the user-selected file name, facilitating the save operation
+            file_path = save_file_path.name
 
+        # Log the final file path for verification, ensuring the intended file is being used
+        # log.info(file_path)
+
+    # Return the final file path, either the user-selected file or the fallback path
     return file_path
 
 
@@ -756,12 +680,10 @@ def get_saveasfilename_path(
     file_path: str = "",
     extensions: str = "*",
     extension_name: str = "Config files",
-    config: "KohyaSSGUIConfig" = None,
 ) -> str:
     """
     Opens a file dialog to select a file name for saving, allowing the user to specify a file name and location.
     If no file is selected, returns the initially provided file path or an empty string if not provided.
-    Uses and updates last_used_folder from the config if provided.
     This function is conditioned to skip the file dialog on macOS or if specific environment variables are present,
     indicating a possible automated environment where a dialog cannot be displayed.
 
@@ -786,48 +708,36 @@ def get_saveasfilename_path(
     if not any(var in os.environ for var in ENV_EXCLUSION) and sys.platform != "darwin":
         # Store the initial file path to use as a fallback in case no file is selected
         current_file_path: str = file_path
+        # log.info(f'current file path: {current_file_path}')
 
-        initial_dir_to_use, initial_file = get_dir_and_file(file_path)
-        if config:
-            last_used = config.get_last_used_folder()
-            if last_used and os.path.isdir(last_used):
-                initial_dir_to_use = last_used
-
-        if not initial_dir_to_use or not os.path.isdir(initial_dir_to_use): # Check if valid dir
-            initial_dir_to_use = scriptdir
+        # Split the file path into directory and file name for setting the file dialog start location and filename
+        initial_dir, initial_file = get_dir_and_file(file_path)
 
         # Initialize a hidden Tkinter window to act as the parent for the file dialog, ensuring it appears on top
         root = Tk()
         root.wm_attributes("-topmost", 1)
         root.withdraw()
         # Open the file dialog and capture the selected file path
-        returned_path = filedialog.asksaveasfilename(
+        save_file_path = filedialog.asksaveasfilename(
             filetypes=(
-                (f"{extension_name}", f"{extensions}"), # Corrected: uses extensions parameter
-                ("All files", "*.*"),
+                (f"{extension_name}", f"{extensions}"),
+                ("All files", "*"),
             ),
-            defaultextension=extensions, # Corrected: uses extensions parameter
-            initialdir=initial_dir_to_use,
+            defaultextension=extensions,
+            initialdir=initial_dir,
             initialfile=initial_file,
         )
         # Close the Tkinter root window to clean up the UI
         root.destroy()
 
-        if returned_path: # User selected a path
-            file_path = returned_path
-            if config:
-                config.set_last_used_folder(os.path.dirname(file_path))
-        else: # User cancelled dialog
+        # Default to the current file path if no file is selected, ensuring there's always a valid file path
+        if save_file_path == "":
             file_path = current_file_path
-            # Do not update last_used_folder if dialog is cancelled
-    else:
-        # For non-dialog environments
-        if file_path and config:
-            dir_name = os.path.dirname(file_path)
-            if dir_name and os.path.isdir(dir_name):
-                 config.set_last_used_folder(dir_name)
-            elif not dir_name: # Path is likely just a filename, use scriptdir
-                 config.set_last_used_folder(scriptdir)
+        else:
+            # Logging the save file path for auditing purposes; useful in confirming the user's file choice
+            # log.info(save_file_path)
+            # Update the file path with the user-selected file name, facilitating the save operation
+            file_path = save_file_path
 
     # Return the final file path, either the user-selected file or the fallback path
     return file_path

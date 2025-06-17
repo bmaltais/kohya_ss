@@ -190,7 +190,7 @@ def gradio_wd14_caption_gui_tab(
                 visible=(not headless),
             )
             button_train_data_dir_input.click(
-                lambda: get_folder_path(config=config),
+                get_folder_path,
                 outputs=train_data_dir,
                 show_progress=False,
             )

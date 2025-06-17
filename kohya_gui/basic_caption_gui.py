@@ -8,7 +8,6 @@ from .common_gui import (
     list_dirs,
     setup_environment,
 )
-from .class_gui_config import KohyaSSGUIConfig # Added import
 import os
 import sys
 
@@ -122,7 +121,7 @@ def caption_images(
 
 
 # Gradio UI
-def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None, config: KohyaSSGUIConfig = {}): # Added config
+def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None):
     """
     Creates a Gradio tab for basic image captioning.
 
@@ -192,7 +191,7 @@ def gradio_basic_caption_gui_tab(headless=False, default_images_dir=None, config
             )
             # Event handler for button click
             folder_button.click(
-                lambda: get_folder_path(config=config), # Added config
+                get_folder_path,
                 outputs=images_dir,
                 show_progress=False,
             )

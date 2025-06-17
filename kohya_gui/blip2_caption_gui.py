@@ -6,7 +6,6 @@ import os
 
 from .common_gui import get_folder_path, scriptdir, list_dirs
 from .custom_logging import setup_logging
-from .class_gui_config import KohyaSSGUIConfig # Added import
 
 # Set up logging
 log = setup_logging()
@@ -209,7 +208,7 @@ def caption_images_nucleus(
     )
 
 
-def gradio_blip2_caption_gui_tab(headless=False, directory_path=None, config: KohyaSSGUIConfig = {}): # Added config
+def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
     from .common_gui import create_refresh_button
 
     directory_path = (
@@ -250,7 +249,7 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None, config: Ko
                 visible=(not headless),
             )
             button_directory_path_dir_input.click(
-                lambda: get_folder_path(config=config), # Added config
+                get_folder_path,
                 outputs=directory_path_dir,
                 show_progress=False,
             )
