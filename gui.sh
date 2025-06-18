@@ -81,6 +81,8 @@ else
     if [ "$RUNPOD" = false ]; then
         if [[ "$@" == *"--use-ipex"* ]]; then
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_ipex.txt"
+        elif [ -x "$(command -v nvidia-smi)" ]; then
+            REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux.txt"
         elif [[ "$@" == *"--use-rocm"* ]] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
             REQUIREMENTS_FILE="$SCRIPT_DIR/requirements_linux_rocm.txt"
         else
