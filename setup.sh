@@ -218,6 +218,8 @@ install_python_dependencies() {
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
       elif [ "$USE_IPEX" = true ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
+      elif [ -x "$(command -v nvidia-smi)" ]; then
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
         echo "Upgrading pip for ROCm."
         pip install --upgrade pip # PyTorch ROCm is too large to install with older pip
