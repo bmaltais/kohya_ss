@@ -106,19 +106,79 @@ These options are for users running training on hosted GPU infrastructure or con
 - **[Docker setup](docs/docker.md)** – For developers/sysadmins using containerized environments.
 
 
-## Custom Path Defaults
+## Custom Path Defaults with `config.toml`
 
-The repository now provides a default configuration file named `config.toml`. This file is a template that you can customize to suit your needs.
+The GUI supports a configuration file named `config.toml` that allows you to set default paths for many of the input fields. This is useful for avoiding repetitive manual selection of directories every time you start the GUI.
 
-To use the default configuration file, follow these steps:
+**Purpose of `config.toml`:**
 
-1. Copy the `config example.toml` file from the root directory of the repository to `config.toml`.
-2. Open the `config.toml` file in a text editor.
-3. Modify the paths and settings as per your requirements.
+*   Pre-fill default directory paths for pretrained models, datasets, output folders, LoRA models, etc.
+*   Streamline your workflow by having the GUI remember your preferred locations.
 
-This approach allows you to easily adjust the configuration to suit your specific needs to open the desired default folders for each type of folder/file input supported in the GUI.
+**How to Use and Customize:**
 
-You can specify the path to your config.toml (or any other name you like) when running the GUI. For instance: ./gui.bat --config c:\my_config.toml
+1.  **Create your configuration file:**
+    *   In the root directory of the `kohya_ss` repository, you'll find a file named `config example.toml`.
+    *   Copy this file and rename the copy to `config.toml`. This `config.toml` file will be automatically loaded when the GUI starts.
+2.  **Edit `config.toml`:**
+    *   Open `config.toml` with a text editor.
+    *   The file uses TOML (Tom's Obvious, Minimal Language) format, which consists of `key = "value"` pairs.
+    *   Modify the paths for the keys according to your local directory structure.
+    *   **Important:**
+        *   Use absolute paths (e.g., `C:/Users/YourName/StableDiffusion/Models` or `/home/yourname/sd-models`).
+        *   Alternatively, you can use paths relative to the `kohya_ss` root directory.
+        *   Ensure you use forward slashes (`/`) for paths, even on Windows, as this is generally more compatible with TOML and Python.
+        *   Make sure the specified directories exist on your system.
+
+**Structure of `config.toml`:**
+
+The `config.toml` file can have several sections, typically corresponding to different training modes or general settings. Common keys you might want to set include:
+
+*   `model_dir`: Default directory for loading base Stable Diffusion models.
+*   `lora_model_dir`: Default directory for saving and loading LoRA models.
+*   `output_dir`: Default base directory for training outputs (images, logs, model checkpoints).
+*   `dataset_dir`: A general default if you store all your datasets in one place.
+*   Specific input paths for different training tabs like Dreambooth, Finetune, LoRA, etc. (e.g., `db_model_dir`, `ft_source_model_name_or_path`).
+
+**Example Configurations:**
+
+Here's an example snippet of what your `config.toml` might look like:
+
+```toml
+# General settings
+model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
+lora_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Lora"
+vae_dir = "C:/ai_stuff/stable-diffusion-webui/models/VAE"
+output_dir = "C:/ai_stuff/kohya_ss_outputs"
+logging_dir = "C:/ai_stuff/kohya_ss_outputs/logs"
+
+# Dreambooth specific paths
+db_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
+db_reg_image_dir = "C:/ai_stuff/datasets/dreambooth_regularization_images"
+# Add other db_... paths as needed
+
+# Finetune specific paths
+ft_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
+# Add other ft_... paths as needed
+
+# LoRA / LoCon specific paths
+lc_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion" # Base model for LoRA training
+lc_output_dir = "C:/ai_stuff/kohya_ss_outputs/lora"
+lc_dataset_dir = "C:/ai_stuff/datasets/my_lora_project"
+# Add other lc_... paths as needed
+
+# You can find a comprehensive list of all available keys in the `config example.toml` file.
+# Refer to it to customize paths for all supported options in the GUI.
+```
+
+**Using a Custom Config File Path:**
+
+If you prefer to name your configuration file differently or store it in another location, you can specify its path using the `--config` command-line argument when launching the GUI:
+
+*   On Windows: `gui.bat --config D:/my_configs/kohya_settings.toml`
+*   On Linux/macOS: `./gui.sh --config /home/user/my_configs/kohya_settings.toml`
+
+By effectively using `config.toml`, you can significantly speed up your training setup process. Always refer to the `config example.toml` for the most up-to-date list of configurable paths.
 
 ## LoRA
 
