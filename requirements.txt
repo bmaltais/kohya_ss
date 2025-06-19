@@ -28,11 +28,11 @@ schedulefree==1.4
 scipy==1.11.4
 # for T5XXL tokenizer (SD3/FLUX)
 sentencepiece==0.2.0
-timm==0.6.7
+timm==1.0.15
 tk==0.1.0
 toml==0.10.2
 transformers==4.44.2
 voluptuous==0.13.1
 wandb==0.18.0
 # for kohya_ss sd-scripts library
--e ./sd-scripts
+library @ file:///./sd-scripts

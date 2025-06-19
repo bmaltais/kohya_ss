@@ -27,6 +27,7 @@ dependencies = [
     "onnxruntime-gpu==1.19.2",
     "open-clip-torch==2.20.0",
     "opencv-python==4.10.0.84",
+    "pip",
     "prodigy-plus-schedule-free==1.8.0",
     "prodigyopt==1.1.2",
     "protobuf==3.20.3",
@@ -66,7 +67,7 @@ xformers = [
   { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
 ]
-library = { path = "sd-scripts" }
+library = { path = "./sd-scripts" }
 
 [[tool.uv.index]]
 name = "pytorch-cu124"

@@ -855,6 +855,7 @@ dependencies = [
     { name = "onnxruntime-gpu" },
     { name = "open-clip-torch" },
     { name = "opencv-python" },
+    { name = "pip" },
     { name = "prodigy-plus-schedule-free" },
     { name = "prodigyopt" },
     { name = "protobuf" },
@@ -897,7 +898,7 @@ requires-dist = [
     { name = "einops", specifier = "==0.7.0" },
     { name = "fairscale", specifier = "==0.4.13" },
     { name = "ftfy", specifier = "==6.1.1" },
-    { name = "gradio", specifier = ">=5.23.1" },
+    { name = "gradio", specifier = ">=5.34.1" },
     { name = "huggingface-hub", specifier = "==0.29.3" },
     { name = "imagesize", specifier = "==1.4.1" },
     { name = "invisible-watermark", specifier = "==0.2.0" },
@@ -909,6 +910,7 @@ requires-dist = [
     { name = "onnxruntime-gpu", specifier = "==1.19.2" },
     { name = "open-clip-torch", specifier = "==2.20.0" },
     { name = "opencv-python", specifier = "==4.10.0.84" },
+    { name = "pip" },
     { name = "prodigy-plus-schedule-free", specifier = "==1.8.0" },
     { name = "prodigyopt", specifier = "==1.1.2" },
     { name = "protobuf", specifier = "==3.20.3" },
@@ -1585,6 +1587,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f6/20/5c0a0aa83b213b7a07ec01e71a3d6ea2cf4ad1d2c686cc0168173b6089e7/pillow-11.2.1-pp311-pypy311_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:036e53f4170e270ddb8797d4c590e6dd14d28e15c7da375c18978045f7e6c37b", size = 3527165, upload-time = "2025-04-12T17:49:55.164Z" },
     { url = "https://files.pythonhosted.org/packages/58/0e/2abab98a72202d91146abc839e10c14f7cf36166f12838ea0c4db3ca6ecb/pillow-11.2.1-pp311-pypy311_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:14f73f7c291279bd65fda51ee87affd7c1e097709f7fdd0188957a16c264601f", size = 3571586, upload-time = "2025-04-12T17:49:57.171Z" },
     { url = "https://files.pythonhosted.org/packages/21/2c/5e05f58658cf49b6667762cca03d6e7d85cededde2caf2ab37b81f80e574/pillow-11.2.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:208653868d5c9ecc2b327f9b9ef34e0e42a4cdd172c2988fd81d62d2bc9bc044", size = 2674751, upload-time = "2025-04-12T17:49:59.628Z" },
+]
+
+[[package]]
+name = "pip"
+version = "25.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/de/241caa0ca606f2ec5fe0c1f4261b0465df78d786a38da693864a116c37f4/pip-25.1.1.tar.gz", hash = "sha256:3de45d411d308d5054c2168185d8da7f9a2cd753dbac8acbfa88a8909ecd9077", size = 1940155, upload-time = "2025-05-02T15:14:02.057Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/a2/d40fb2460e883eca5199c62cfc2463fd261f760556ae6290f88488c362c0/pip-25.1.1-py3-none-any.whl", hash = "sha256:2913a38a2abf4ea6b64ab507bd9e967f3b53dc1ede74b01b0931e1ce548751af", size = 1825227, upload-time = "2025-05-02T15:13:59.102Z" },
 ]
 
 [[package]]
