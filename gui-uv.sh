@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 export VIRTUAL_ENV=.venv
 
 env_var_exists() {
@@ -9,6 +10,8 @@ env_var_exists() {
   fi
 }
 
+# Handle LD_LIBRARY_PATH for WSL environments and preserve it when using sudo,
+# as these can affect how shared libraries are found.
 lib_path="/usr/lib/wsl/lib/"
 
 if [ -d "$lib_path" ]; then
@@ -47,9 +50,12 @@ if ! command -v uv &> /dev/null; then
   fi
 fi
 
+echo "Ensuring virtual environment .venv is set up..."
+uv venv .venv || { echo "Failed to create or set up the virtual environment. Exiting."; exit 1; }
+
 if [[ "$uv_quiet" == "--quiet" ]]; then
   echo "Notice: uv will run in quiet mode. No indication of the uv module download and install process will be displayed."
 fi
 
-git submodule update --init --recursive
+git submodule update --init --recursive || { echo "ERROR: Failed to update git submodules. Please check for errors above and try again." >&2; exit 1; }
 uv run $uv_quiet kohya_gui.py --noverify "${args[@]}"

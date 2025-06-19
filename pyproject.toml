@@ -54,18 +54,9 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-torch = [
-  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
-]
-torchvision = [
-  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
-]
-xformers = [
-  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu128", marker = "sys_platform == 'win32'" }
-]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+xformers = { index = "pytorch-cu128" }
 library = { path = "sd-scripts" }
 
 [[tool.uv.index]]

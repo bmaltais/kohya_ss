@@ -16,21 +16,41 @@ if %errorlevel% neq 0 (
 )
 endlocal
 
+echo Ensuring virtual environment .venv is set up...
+uv venv .venv
+if errorlevel 1 (
+    echo Failed to create or set up the virtual environment. Exiting.
+    exit /b 1
+)
+
+:: Ensures PyTorch native libraries (DLLs) are found
 set PATH=%PATH%;%~dp0venv\Lib\site-packages\torch\lib
 
 echo Starting the GUI... this might take some time... Especially on 1st run after install or update...
 
 :: Make sure we are on the right sd-scripts commit
 git submodule update --init --recursive
+if errorlevel 1 (
+    echo Error updating git submodules. Please check for errors and try again.
+    exit /b 1
+)
 
-:: If the exit code is 0, run the kohya_gui.py script with the command-line arguments
-if %errorlevel% equ 0 (
-    REM Check if the batch was started via double-click
-    IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (
-        REM echo This script was started by double clicking.
-        cmd /k uv run --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
-    ) ELSE (
-        REM echo This script was started from a command prompt.
-        uv run --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
+:: If we reach here, git submodules updated successfully.
+set "uv_quiet_arg="
+for %%a in (%*) do (
+    if /i "%%a"=="--quiet" (
+        set "uv_quiet_arg=--quiet"
     )
+)
+
+REM Check if the script was started by double-clicking (interactive session)
+REM or from an existing command prompt.
+REM If double-clicked, use 'cmd /k' to keep the window open after uv run finishes or errors.
+REM Check if the batch was started via double-click
+IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (
+    REM echo This script was started by double clicking.
+    cmd /k uv run %uv_quiet_arg% --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
+) ELSE (
+    REM echo This script was started from a command prompt.
+    uv run %uv_quiet_arg% --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify %*
 )
