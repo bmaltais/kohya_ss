@@ -5,52 +5,52 @@ description = "Kohya_ss GUI"
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
 dependencies = [
-    "accelerate>=0.29.0",
+    "accelerate>=1.7.0",
     "aiofiles==23.2.1",
-    # "altair==4.2.2", # Removed, unused
-    "bitsandbytes>=0.43.0",
+    "altair==4.2.2",
+    "bitsandbytes>=0.45.0",
     "dadaptation==3.2",
-    "diffusers[torch]~=0.29.0",
+    "diffusers[torch]==0.32.2",
     "easygui==0.98.3",
-    "einops~=0.8.0",
-    # "fairscale==0.4.13", # Removed, unused
-    "ftfy~=6.2.0",
-    "gradio>=5.23.1", # Keeping this per readme notes, might be a specific fork/version
-    "huggingface-hub~=0.23.0",
-    # "imagesize==1.4.1", # Removed, unused
-    # "invisible-watermark==0.2.0", # Removed, unused
+    "einops==0.7.0",
+    "fairscale==0.4.13",
+    "ftfy==6.1.1",
+    "gradio>=5.34.1",
+    "huggingface-hub==0.29.3",
+    "imagesize==1.4.1",
+    "invisible-watermark==0.2.0",
     "library",
     "lion-pytorch==0.0.6",
     "lycoris-lora==3.2.0.post2",
     "omegaconf==2.3.0",
     "onnx==1.16.1",
-    "onnxruntime-gpu~=1.18.0",
+    "onnxruntime-gpu==1.19.2",
     "open-clip-torch==2.20.0",
     "opencv-python==4.10.0.84",
     "prodigy-plus-schedule-free==1.8.0",
     "prodigyopt==1.1.2",
     "protobuf==3.20.3",
-    # "pytorch-lightning==1.9.0", # Removed, unused
+    "pytorch-lightning==1.9.0",
     "pytorch-optimizer==3.5.0",
     "rich>=13.7.1",
-    "safetensors~=0.4.3",
+    "safetensors==0.4.4",
     "schedulefree==1.4",
-    "scipy~=1.13.0",
+    "scipy==1.11.4",
     "sentencepiece==0.2.0",
     "tensorboard>=2.18.0",
     "tensorflow>=2.16.1",
-    "tensorflow-io-gcs-filesystem~=0.37.0; sys_platform == 'win32'",
-    "tensorflow-io-gcs-filesystem>=0.37.0; sys_platform == 'linux'", # Aligning with win32 version base
-    "timm~=0.9.12",
+    "tensorflow-io-gcs-filesystem==0.31.0; sys_platform == 'win32'",
+    "tensorflow-io-gcs-filesystem>=0.37.1; sys_platform == 'linux'",
+    "timm>=0.9.2",
     "tk==0.1.0",
     "toml==0.10.2",
-    "torch~=2.3.0",
-    "torchvision~=0.18.0",
-    "transformers~=4.41.0",
-    "triton~=2.3.0; sys_platform == 'linux'",
-    # "voluptuous==0.13.1", # Removed, unused
+    "torch>=2.5.0",
+    "torchvision>=0.20.0",
+    "transformers==4.44.2",
+    "triton>=3.1.0; sys_platform == 'linux'",
+    "voluptuous==0.13.1",
     "wandb==0.18.0",
-    "xformers>=0.0.25,<0.0.27", # More specific range for torch 2.3 compatibility
+    "xformers>=0.0.30",
 ]
 
 [tool.uv.sources]
