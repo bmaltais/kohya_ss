@@ -35,4 +35,4 @@ transformers==4.44.2
 voluptuous==0.13.1
 wandb==0.18.0
 # for kohya_ss sd-scripts library
-library @ file:///./sd-scripts
+-e ./sd-scripts
