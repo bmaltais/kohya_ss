@@ -14,7 +14,7 @@ call .\venv\Scripts\deactivate.bat
 call .\venv\Scripts\activate.bat
 
 REM first make sure we have setuptools available in the venv    
-python -m pip install --require-virtualenv --no-input -q -q  setuptools
+python -m pip install --require-virtualenv --no-input -q setuptools
 
 REM Check if the batch was started via double-click
 IF /i "%comspec% /c %~0 " equ "%cmdcmdline:"=%" (

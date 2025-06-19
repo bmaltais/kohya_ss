@@ -35,7 +35,8 @@ def check_python_version():
             return False
         return True
     except Exception as e:
-        log.error(f"Failed to verify Python version. Error: {e}")
+        log.error(f"An unexpected error occurred while verifying Python version: {e}")
+        log.error("This might indicate a problem with your Python installation or environment configuration.")
         return False
 
 
@@ -49,12 +50,17 @@ def update_submodule(quiet=True):
         git_command.append("--quiet")
 
     try:
-        subprocess.run(git_command, check=True)
+        subprocess.run(git_command, check=True, capture_output=True, text=True)
         log.info("Submodule initialized and updated.")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error during Git operation: {e}")
-    except FileNotFoundError as e:
-        log.error(e)
+        log.error(f"Error updating submodule. Git command: '{' '.join(git_command)}' failed with exit code {e.returncode}.")
+        if e.stdout:
+            log.error(f"Git stdout: {e.stdout.strip()}")
+        if e.stderr:
+            log.error(f"Git stderr: {e.stderr.strip()}")
+        log.error("Please ensure Git is installed and accessible in your PATH. Also, check your internet connection and repository permissions.")
+    except FileNotFoundError:
+        log.error(f"Error updating submodule: Git command not found. Please ensure Git is installed and accessible in your PATH.")
 
 
 def clone_or_checkout(repo_url, branch_or_tag, directory_name):
@@ -106,7 +112,14 @@ def clone_or_checkout(repo_url, branch_or_tag, directory_name):
             else:
                 log.info(f"Already at required branch/tag: {branch_or_tag}")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error during Git operation: {e}")
+        log.error(f"Error during Git operation. Command: '{' '.join(e.cmd)}' failed with exit code {e.returncode}.")
+        if e.stdout:
+            log.error(f"Git stdout: {e.stdout.strip()}")
+        if e.stderr:
+            log.error(f"Git stderr: {e.stderr.strip()}")
+        log.error(f"Failed to clone or checkout {repo_url} ({branch_or_tag}). Please check the repository URL, branch/tag name, your internet connection, and Git installation.")
+    except FileNotFoundError:
+        log.error(f"Error during Git operation: Git command not found. Please ensure Git is installed and accessible in your PATH.")
     finally:
         os.chdir(original_dir)
 
@@ -189,12 +202,27 @@ def install_requirements_inbulk(
                     log.info(line.strip()) if show_stdout else None
 
         # Capture and log any errors
-        _, stderr = process.communicate()
+        stdout, stderr = process.communicate()
         if process.returncode != 0:
-            log.error(f"Failed to install requirements: {stderr.strip()}")
+            log.error(f"Failed to install requirements from {requirements_file}. Pip command: '{' '.join(cmd)}'. Exit code: {process.returncode}")
+            if stdout:
+                log.error(f"Pip stdout: {stdout.strip()}")
+            if stderr:
+                log.error(f"Pip stderr: {stderr.strip()}")
+            log.error("Please check the requirements file path, your internet connection, and ensure pip is functioning correctly.")
+        else:
+            if stdout and show_stdout and not installed("uv"): # uv already prints its output
+                for line in stdout.splitlines():
+                    if "Requirement already satisfied" not in line:
+                        log.info(line.strip())
+            if stderr: # Always log stderr if present, even on success
+                log.warning(f"Pip stderr (even on success): {stderr.strip()}")
 
-    except subprocess.CalledProcessError as e:
-        log.error(f"An error occurred while installing requirements: {e}")
+
+    except FileNotFoundError:
+        log.error(f"Error installing requirements: '{cmd[0]}' command not found. Please ensure it is installed and in your PATH.")
+    except Exception as e:
+        log.error(f"An unexpected error occurred while installing requirements from {requirements_file}: {e}")
 
 
 def configure_accelerate(run_accelerate=False):
@@ -288,27 +316,7 @@ def check_torch():
     # This function was adapted from code written by vladimandic: https://github.com/vladimandic/automatic/commits/master
     #
 
-    # Check for toolkit
-    if shutil.which("nvidia-smi") is not None or os.path.exists(
-        os.path.join(
-            os.environ.get("SystemRoot") or r"C:\Windows",
-            "System32",
-            "nvidia-smi.exe",
-        )
-    ):
-        log.info("nVidia toolkit detected")
-    elif shutil.which("rocminfo") is not None or os.path.exists(
-        "/opt/rocm/bin/rocminfo"
-    ):
-        log.info("AMD toolkit detected")
-    elif (
-        shutil.which("sycl-ls") is not None
-        or os.environ.get("ONEAPI_ROOT") is not None
-        or os.path.exists("/opt/intel/oneapi")
-    ):
-        log.info("Intel OneAPI toolkit detected")
-    else:
-        log.info("Using CPU-only Torch")
+    _check_hardware_toolkit()
 
     try:
         import torch
@@ -323,42 +331,102 @@ def check_torch():
             log.warning(f"Failed to import intel_extension_for_pytorch: {e}")
         log.info(f"Torch {torch.__version__}")
 
-        if torch.cuda.is_available():
-            if torch.version.cuda:
-                # Log nVidia CUDA and cuDNN versions
-                log.info(
-                    f'Torch backend: nVidia CUDA {torch.version.cuda} cuDNN {torch.backends.cudnn.version() if torch.backends.cudnn.is_available() else "N/A"}'
-                )
-            elif torch.version.hip:
-                # Log AMD ROCm HIP version
-                log.info(f"Torch backend: AMD ROCm HIP {torch.version.hip}")
-            else:
-                log.warning("Unknown Torch backend")
-
-            # Log information about detected GPUs
-            for device in [
-                torch.cuda.device(i) for i in range(torch.cuda.device_count())
-            ]:
-                log.info(
-                    f"Torch detected GPU: {torch.cuda.get_device_name(device)} VRAM {round(torch.cuda.get_device_properties(device).total_memory / 1024 / 1024)} Arch {torch.cuda.get_device_capability(device)} Cores {torch.cuda.get_device_properties(device).multi_processor_count}"
-                )
-        # Check if XPU is available
-        elif hasattr(torch, "xpu") and torch.xpu.is_available():
-            # Log Intel IPEX version
-            log.info(f"Torch backend: Intel IPEX {ipex.__version__}")
-            for device in [
-                torch.xpu.device(i) for i in range(torch.xpu.device_count())
-            ]:
-                log.info(
-                    f"Torch detected GPU: {torch.xpu.get_device_name(device)} VRAM {round(torch.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch.xpu.get_device_properties(device).max_compute_units}"
-                )
-        else:
-            log.warning("Torch reports GPU not available")
+        _log_gpu_info(torch)
 
         return int(torch.__version__[0])
-    except Exception as e:
-        log.error(f"Could not load torch: {e}")
+    except ImportError as e:
+        log.error(f"Failed to import Torch: {e}. Please ensure PyTorch is installed correctly for your system.")
+        log.error("You might need to install or reinstall PyTorch. Check https://pytorch.org/get-started/locally/ for instructions.")
         return 0
+    except Exception as e:
+        log.error(f"An unexpected error occurred while checking Torch: {e}")
+        return 0
+
+
+def _check_nvidia_toolkit():
+    """Checks for nVidia toolkit."""
+    if shutil.which("nvidia-smi") is not None or os.path.exists(
+        os.path.join(
+            os.environ.get("SystemRoot") or r"C:\Windows",
+            "System32",
+            "nvidia-smi.exe",
+        )
+    ):
+        log.info("nVidia toolkit detected")
+        return True
+    return False
+
+
+def _check_amd_toolkit():
+    """Checks for AMD toolkit."""
+    if shutil.which("rocminfo") is not None or os.path.exists(
+        "/opt/rocm/bin/rocminfo"
+    ):
+        log.info("AMD toolkit detected")
+        return True
+    return False
+
+
+def _check_intel_oneapi_toolkit():
+    """Checks for Intel OneAPI toolkit."""
+    if (
+        shutil.which("sycl-ls") is not None
+        or os.environ.get("ONEAPI_ROOT") is not None
+        or os.path.exists("/opt/intel/oneapi")
+    ):
+        log.info("Intel OneAPI toolkit detected")
+        return True
+    return False
+
+
+def _check_hardware_toolkit():
+    """Checks for available hardware toolkits."""
+    if _check_nvidia_toolkit():
+        return
+    if _check_amd_toolkit():
+        return
+    if _check_intel_oneapi_toolkit():
+        return
+    log.info("Using CPU-only Torch")
+
+
+def _log_gpu_info(torch_module):
+    """Logs GPU information for available backends."""
+    if torch_module.cuda.is_available():
+        if torch_module.version.cuda:
+            # Log nVidia CUDA and cuDNN versions
+            log.info(
+                f'Torch backend: nVidia CUDA {torch_module.version.cuda} cuDNN {torch_module.backends.cudnn.version() if torch_module.backends.cudnn.is_available() else "N/A"}'
+            )
+        elif torch_module.version.hip:
+            # Log AMD ROCm HIP version
+            log.info(f"Torch backend: AMD ROCm HIP {torch_module.version.hip}")
+        else:
+            log.warning("Unknown Torch backend")
+
+        # Log information about detected GPUs
+        for i in range(torch_module.cuda.device_count()):
+            device = torch_module.cuda.device(i)
+            log.info(
+                f"Torch detected GPU: {torch_module.cuda.get_device_name(device)} VRAM {round(torch_module.cuda.get_device_properties(device).total_memory / 1024 / 1024)} Arch {torch_module.cuda.get_device_capability(device)} Cores {torch_module.cuda.get_device_properties(device).multi_processor_count}"
+            )
+    # Check if XPU is available
+    elif hasattr(torch_module, "xpu") and torch_module.xpu.is_available():
+        # Log Intel IPEX version
+        # Ensure ipex is imported before accessing __version__
+        try:
+            import intel_extension_for_pytorch as ipex
+            log.info(f"Torch backend: Intel IPEX {ipex.__version__}")
+        except ImportError:
+            log.warning("Intel IPEX version not available.")
+
+        for i in range(torch_module.xpu.device_count()):
+            device = torch_module.xpu.device(i)
+            log.info(
+                f"Torch detected GPU: {torch_module.xpu.get_device_name(device)} VRAM {round(torch_module.xpu.get_device_properties(device).total_memory / 1024 / 1024)} Compute Units {torch_module.xpu.get_device_properties(device).max_compute_units}"
+            )
+    else:
+        log.warning("Torch reports GPU not available")
 
 
 # report current version of code
@@ -376,9 +444,9 @@ def check_repo_version():
 
             log.info(f"Kohya_ss GUI version: {release}")
         except Exception as e:
-            log.error(f"Could not read release: {e}")
+            log.error(f"Could not read release file at './.release': {e}")
     else:
-        log.debug("Could not read release...")
+        log.debug("Could not read release file './.release' as it does not exist.")
 
 
 # execute git command
@@ -418,12 +486,13 @@ def git(arg: str, folder: str = None, ignore: bool = False):
         )
     txt = txt.strip()
     if result.returncode != 0 and not ignore:
-        global errors
-        errors += 1
-        log.error(f"Error running git: {folder} / {arg}")
+        # global errors # This variable is not defined in this file. Assuming it's a remnant from an older version or a different context.
+        # errors += 1
+        log.error(f"Error running git command 'git {arg}' in folder '{folder or '.'}'. Exit code: {result.returncode}")
         if "or stash them" in txt:
-            log.error(f"Local changes detected: check log for details...")
-        log.debug(f"Git output: {txt}")
+            log.error(f"Local changes detected. Please commit or stash them before running this command again. Full git output below.")
+        log.error(f"Git output: {txt}") # Changed from log.debug to log.error for better visibility of error details
+        log.error("Please ensure Git is installed, the repository exists, you have the necessary permissions, and there are no conflicts or uncommitted changes.")
 
 
 def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool = False):
@@ -477,8 +546,9 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
             )
         txt = txt.strip()
         if result.returncode != 0 and not ignore:
-            log.error(f"Error running pip: {arg}")
+            log.error(f"Error running pip command: '{' '.join(pip_cmd)}'. Exit code: {result.returncode}")
             log.error(f"Pip output: {txt}")
+            log.error("Please check the package name, version, your internet connection, and ensure pip is functioning correctly.")
         return txt
 
 
@@ -677,11 +747,24 @@ def run_cmd(run_cmd):
     """
     log.debug(f"Running command: {run_cmd}")
     try:
-        subprocess.run(run_cmd, shell=True, check=True, env=os.environ)
+        process = subprocess.run(run_cmd, shell=True, check=True, env=os.environ, capture_output=True, text=True)
         log.debug(f"Command executed successfully: {run_cmd}")
+        if process.stdout:
+            log.debug(f"Stdout: {process.stdout.strip()}")
+        if process.stderr:
+            log.debug(f"Stderr: {process.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error occurred while running command: {run_cmd}")
-        log.error(f"Error: {e}")
+        log.error(f"Error occurred while running command: '{run_cmd}'. Exit code: {e.returncode}")
+        if e.stdout:
+            log.error(f"Stdout: {e.stdout.strip()}")
+        if e.stderr:
+            log.error(f"Stderr: {e.stderr.strip()}")
+        log.error("Please check the command syntax, permissions, and ensure all required programs are installed and in PATH.")
+    except FileNotFoundError:
+        # This might occur if the command itself (e.g., the first part of run_cmd) is not found
+        log.error(f"Error running command: '{run_cmd}'. The command or a part of it was not found. Please ensure it is correctly spelled and accessible in your PATH.")
+    except Exception as e:
+        log.error(f"An unexpected error occurred while running command '{run_cmd}': {e}")
 
 
 def clear_screen():
