@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
 
+# Function to get the python command
+get_python_command() {
+  if command -v python3.11 &>/dev/null; then
+    echo "python3.11"
+  elif command -v python3.10 &>/dev/null; then
+    echo "python3.10"
+  elif command -v python3 &>/dev/null; then
+    echo "python3"
+  else
+    echo "python" # Fallback, though this might not have venv
+  fi
+}
+
 # Function to display help information
 display_help() {
   cat <<EOF
@@ -188,27 +201,29 @@ create_symlinks() {
 # Function to install Python dependencies
 install_python_dependencies() {
   local TEMP_REQUIREMENTS_FILE
+  local PYTHON_CMD
+
+  PYTHON_CMD=$(get_python_command)
+
+  if [ "$PYTHON_CMD" == "python" ]; then # Check if get_python_command returned the fallback
+      echo "Could not find python3.11, python3.10, or python3."
+      echo "Please install a compatible Python version."
+      return 1
+  fi
 
   # Switch to local virtual env
-  echo "Switching to virtual Python environment."
+  echo "Switching to virtual Python environment using $PYTHON_CMD."
   if ! inDocker; then
     # Check if conda environment is already activated
     if [ -n "$CONDA_PREFIX" ]; then
       echo "Detected active conda environment: $CONDA_DEFAULT_ENV"
       echo "Using existing conda environment at: $CONDA_PREFIX"
       # No need to create or activate a venv, conda env is already active
-    elif command -v python3.10 >/dev/null; then
-      python3.10 -m venv "$DIR/venv"
-      # Activate the virtual environment
-      source "$DIR/venv/bin/activate"
-    elif command -v python3 >/dev/null; then
-      python3 -m venv "$DIR/venv"
-      # Activate the virtual environment
-      source "$DIR/venv/bin/activate"
     else
-      echo "Valid python3 or python3.10 binary not found."
-      echo "Cannot proceed with the python steps."
-      return 1
+      "$PYTHON_CMD" -m venv "$DIR/venv"
+      # Activate the virtual environment
+      # shellcheck source=/dev/null
+      source "$DIR/venv/bin/activate"
     fi
   fi
 
@@ -547,35 +562,37 @@ if [[ "$OSTYPE" == "lin"* ]]; then
   if [ "$RUNPOD" = true ]; then
     if inDocker; then
       # We get the site-packages from python itself, then cut the string, so no other code changes required.
-      VENV_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-      VENV_DIR="${VENV_DIR%/lib/python3.10/site-packages}"
+      PYTHON_CMD_FALLBACK=$(get_python_command) # Use a fallback if PYTHON_CMD is not set (e.g. not called from install_python_dependencies)
+      VENV_PYTHON_VERSION=$($PYTHON_CMD_FALLBACK -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+      VENV_DIR=$($PYTHON_CMD_FALLBACK -c "import site; print(site.getsitepackages()[0])")
+      VENV_DIR="${VENV_DIR%/lib/python${VENV_PYTHON_VERSION}/site-packages}"
     fi
 
     # Symlink paths
-    libnvinfer_plugin_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.7"
-    libnvinfer_symlink="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.7"
-    libcudart_symlink="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
+    libnvinfer_plugin_symlink="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/libnvinfer_plugin.so.7"
+    libnvinfer_symlink="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/libnvinfer.so.7"
+    libcudart_symlink="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/nvidia/cuda_runtime/lib/libcudart.so.11.0"
 
     #Target file paths
-    libnvinfer_plugin_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer_plugin.so.8"
-    libnvinfer_target="$VENV_DIR/lib/python3.10/site-packages/tensorrt/libnvinfer.so.8"
-    libcudart_target="$VENV_DIR/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
+    libnvinfer_plugin_target="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/libnvinfer_plugin.so.8"
+    libnvinfer_target="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/libnvinfer.so.8"
+    libcudart_target="$VENV_DIR/lib/python${VENV_PYTHON_VERSION}/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12"
 
     # echo "Checking symlinks now."
     # create_symlinks "$libnvinfer_plugin_symlink" "$libnvinfer_plugin_target"
     # create_symlinks "$libnvinfer_symlink" "$libnvinfer_target"
     # create_symlinks "$libcudart_symlink" "$libcudart_target"
 
-    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/tensorrt/"
+    # if [ -d "${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/"
     # else
-    #   echo "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/ not found; not linking library."
+    #   echo "${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/ not found; not linking library."
     # fi
 
-    # if [ -d "${VENV_DIR}/lib/python3.10/site-packages/tensorrt/" ]; then
-    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/"
+    # if [ -d "${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/tensorrt/" ]; then
+    #   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/nvidia/cuda_runtime/lib/"
     # else
-    #   echo "${VENV_DIR}/lib/python3.10/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
+    #   echo "${VENV_DIR}/lib/python${VENV_PYTHON_VERSION}/site-packages/nvidia/cuda_runtime/lib/ not found; not linking library."
     # fi
 
     configure_accelerate
@@ -620,25 +637,36 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   check_storage_space
 
   # Install base python packages
-  echo "Installing Python 3.10 if not found."
-  if ! brew ls --versions python@3.10 >/dev/null; then
-    echo "Installing Python 3.10."
-    brew install python@3.10 >&3
-  else
+  echo "Checking for Python 3.11 or 3.10."
+  if brew ls --versions python@3.11 >/dev/null; then
+    echo "Python 3.11 found!"
+    PYTHON_BREW_VERSION="python@3.11"
+  elif brew ls --versions python@3.10 >/dev/null; then
     echo "Python 3.10 found!"
-  fi
-  echo "Installing Python-TK 3.10 if not found."
-  if ! brew ls --versions python-tk@3.10 >/dev/null; then
-    echo "Installing Python TK 3.10."
-    brew install python-tk@3.10 >&3
+    PYTHON_BREW_VERSION="python@3.10"
   else
-    echo "Python Tkinter 3.10 found!"
+    echo "Neither Python 3.11 nor 3.10 found via Homebrew. Installing Python 3.11."
+    brew install python@3.11 >&3
+    PYTHON_BREW_VERSION="python@3.11"
+  fi
+
+  echo "Installing $PYTHON_BREW_VERSION if not linked or found."
+  brew install "$PYTHON_BREW_VERSION" >&3
+
+
+  echo "Checking for Python TK for $PYTHON_BREW_VERSION."
+  PYTHON_TK_BREW_VERSION="python-tk@${PYTHON_BREW_VERSION#*@}" # Extracts e.g., 3.11 from python@3.11
+  if ! brew ls --versions "$PYTHON_TK_BREW_VERSION" >/dev/null; then
+    echo "Installing $PYTHON_TK_BREW_VERSION."
+    brew install "$PYTHON_TK_BREW_VERSION" >&3
+  else
+    echo "$PYTHON_TK_BREW_VERSION found!"
   fi
 
   update_kohya_ss
 
   if ! install_python_dependencies; then
-    echo "You may need to install Python. The command for this is brew install python@3.10."
+     echo "You may need to install Python. The command for this is brew install $PYTHON_BREW_VERSION."
   fi
 
   configure_accelerate
